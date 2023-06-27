@@ -23,6 +23,7 @@ class DummyMetricGenerator(MetricGenerator):
                       value=25,
                       generator=self)
 
+
 def test_add_data():
     manager = MultiManager([])
 
@@ -56,8 +57,8 @@ def test_add_data():
     # Check adding additional data including repeated data
     manager = MultiManager([])
     manager.add_data({'truths': truths, 'tracks': tracks, 'detections': dets})
-    manager.add_data({'truths': truths + truths2, 'tracks': tracks + tracks2, 'detections': dets + dets2},
-                     overwrite=True)
+    manager.add_data({'truths': truths + truths2, 'tracks': tracks + tracks2,
+                      'detections': dets + dets2}, overwrite=True)
 
     assert manager.states_sets['tracks'] == set(tracks2 + tracks)
     assert manager.states_sets['truths'] == set(truths2 + truths)

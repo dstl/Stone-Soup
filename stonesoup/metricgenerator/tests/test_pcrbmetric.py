@@ -131,8 +131,8 @@ def test_computemetric(prior, transition_model, measurement_model, groundtruth,
                        sensor_locations, irf_overall, position_mapping, velocity_mapping):
     pcrb = PCRBMetric(prior, transition_model, measurement_model, sensor_locations,
                       position_mapping, velocity_mapping, irf_overall,
-                      generator_name='generator',
-                      truths_key='truths')
+                      truths_key='truths',
+                      generator_name='generator')
 
     manager = MultiManager([pcrb])
 

@@ -8,10 +8,12 @@ from ..base import Property
 class BasicMetrics(MetricGenerator):
     """Calculates simple metrics like number of tracks, truth and
     ratio of track-to-truth"""
-    generator_name: str = Property(doc="Unique identifier to use when accessing generated metrics from MultiManager")
+    generator_name: str = Property(doc="Unique identifier to use when accessing generated "
+                                       "metrics from MultiManager")
     tracks_key: str = Property(doc='Key to access set of tracks added to MultiManager')
-    truths_key: str = Property(doc="Key to access set of ground truths added to MultiManager. Or key to access a second"
-                                   " set of tracks for track-to-track metric generation")
+    truths_key: str = Property(doc="Key to access set of ground truths added to MultiManager. "
+                                   "Or key to access a second set of tracks for track-to-track "
+                                   "metric generation")
 
     def compute_metric(self, manager, *args, **kwargs):
         """Compute the metric using the data in the metric manager

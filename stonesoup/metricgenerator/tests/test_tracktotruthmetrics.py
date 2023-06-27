@@ -27,10 +27,14 @@ def test_siap(trial_manager, trial_truths, trial_tracks, trial_associations, mea
         assert siap_generator.num_tracks_at_time(trial_tracks, timestamp) == 3
 
     # Test num_associated_tracks_at_time
-    assert siap_generator.num_associated_tracks_at_time(trial_manager, trial_tracks, timestamps[0]) == 2
-    assert siap_generator.num_associated_tracks_at_time(trial_manager, trial_tracks, timestamps[1]) == 3
-    assert siap_generator.num_associated_tracks_at_time(trial_manager, trial_tracks, timestamps[2]) == 3
-    assert siap_generator.num_associated_tracks_at_time(trial_manager, trial_tracks, timestamps[3]) == 2
+    assert siap_generator.num_associated_tracks_at_time(trial_manager, trial_tracks,
+                                                        timestamps[0]) == 2
+    assert siap_generator.num_associated_tracks_at_time(trial_manager, trial_tracks,
+                                                        timestamps[1]) == 3
+    assert siap_generator.num_associated_tracks_at_time(trial_manager, trial_tracks,
+                                                        timestamps[2]) == 3
+    assert siap_generator.num_associated_tracks_at_time(trial_manager, trial_tracks,
+                                                        timestamps[3]) == 2
 
     # Test accuracy_at_time
     assoc0_pos_accuracy = np.sqrt(0.1 ** 2 + 0.1 ** 2)

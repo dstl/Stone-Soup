@@ -36,7 +36,8 @@ class SIAPMetrics(MetricGenerator):
         * Rate of track number changes (R): SIAP continuity measure. Rate of number of track
           changes per truth. The output is in the range :math:`0:\infty`, with a target score of 0.
         * Longest track Segment (LS): SIAP continuity measure. Proportion of longest associated
-          track segment per truth. The output is in the range :math:`0:1`, with a target score of 1.
+          track segment per truth. The output is in the range :math:`0:1`, with a target score of
+          1.
 
     Reference
         [1] Single Integrated Air Picture (SIAP) Metrics Implementation, Votruba et al, 29-10-2001
@@ -46,10 +47,12 @@ class SIAPMetrics(MetricGenerator):
         doc="Distance measure used in calculating position accuracy scores.")
     velocity_measure: Measure = Property(
         doc="Distance measure used in calculating velocity accuracy scores.")
-    generator_name: str = Property(doc="Unique identifier to use when accessing generated metrics from MultiManager")
+    generator_name: str = Property(doc="Unique identifier to use when accessing generated metrics "
+                                       "from MultiManager")
     tracks_key: str = Property(doc='Key to access set of tracks added to MultiManager')
-    truths_key: str = Property(doc="Key to access set of ground truths added to MultiManager. Or key to access a second"
-                                   " set of tracks for track-to-track metric generation")
+    truths_key: str = Property(doc="Key to access set of ground truths added to MultiManager. "
+                                   "Or key to access a second set of tracks for track-to-track "
+                                   "metric generation")
 
     def compute_metric(self, manager, **kwargs):
         r"""Compute metrics:

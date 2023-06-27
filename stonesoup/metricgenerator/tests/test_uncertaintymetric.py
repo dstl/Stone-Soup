@@ -4,7 +4,7 @@ import datetime
 import numpy as np
 import pytest
 
-from ..manager import SimpleManager
+from ..manager import MultiManager
 from ..uncertaintymetric import SumofCovarianceNormsMetric, MeanofCovarianceNormsMetric
 from ...types.detection import Detection
 from ...types.groundtruth import GroundTruthPath, GroundTruthState
@@ -82,8 +82,8 @@ def test_covariancenormsmetric_compute_metric(generator):
                                                        timestamp=time + datetime.timedelta(
                                                            seconds=1))])}
 
-    manager = SimpleManager([generator])
-    manager.add_data(truths, tracks)
+    manager = MultiManager([generator])
+    manager.add_data({'truths': truths, 'tracks': tracks})
     main_metric = generator.compute_metric(manager)
     first_association, second_association = main_metric.value
 

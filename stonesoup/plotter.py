@@ -670,7 +670,8 @@ class MetricPlotter(ABC):
                                   "Mean of Covariance Norms Metric"
                                   ]
 
-    def plot_metrics(self, metrics, generator_names=None, metric_names=None, combine_plots=True, **kwargs):
+    def plot_metrics(self, metrics, generator_names=None, metric_names=None,
+                     combine_plots=True, **kwargs):
         """Plots metrics
 
         Plots each plottable metric passed in to :attr:`metrics` across a series of subplots
@@ -708,7 +709,8 @@ class MetricPlotter(ABC):
         if metric_names is not None:
             for metric_name in metric_names:
                 if metric_name not in self.plottable_metrics:
-                    warnings.warn(f"{metric_name} is not a plottable metric and will not be plotted")
+                    warnings.warn(f"{metric_name} "
+                                  f"is not a plottable metric and will not be plotted")
         else:
             metric_names = self.extract_metric_types(metrics)
 
@@ -725,11 +727,14 @@ class MetricPlotter(ABC):
 
         for generator_name in generator_names:
             for metric_name in metric_names:
-                if metric_name in metrics[generator_name].keys() and metric_name in self.plottable_metrics:
+                if metric_name in metrics[generator_name].keys() and \
+                        metric_name in self.plottable_metrics:
                     if generator_name not in metrics_dict.keys():
-                        metrics_dict[generator_name] = {metric_name: metrics[generator_name][metric_name]}
+                        metrics_dict[generator_name] = \
+                            {metric_name: metrics[generator_name][metric_name]}
                     else:
-                        metrics_dict[generator_name][metric_name] = metrics[generator_name][metric_name]
+                        metrics_dict[generator_name][metric_name] = \
+                            metrics[generator_name][metric_name]
 
         return metrics_dict
 
@@ -784,7 +789,7 @@ class MetricPlotter(ABC):
             colour_map_copy = iter(colour_map.copy())
 
             for generator in metrics_to_plot.keys():
-                for metric in metrics_to_plot[generator].keys():  # can change to a try except block with key error
+                for metric in metrics_to_plot[generator].keys():
                     if metric == metric_type:
                         colour = next(colour_map_copy)
                         metric_values = metrics_to_plot[generator][metric].value
@@ -793,7 +798,8 @@ class MetricPlotter(ABC):
                                                  color=colour,
                                                  **metrics_kwargs))
 
-                        metric_handle = Line2D([], [], linestyle=metrics_kwargs['linestyle'], color=colour)
+                        metric_handle = Line2D([], [], linestyle=metrics_kwargs['linestyle'],
+                                               color=colour)
                         legend_dict[generator] = metric_handle
 
             # Generate legend
@@ -801,10 +807,12 @@ class MetricPlotter(ABC):
                                        labels=legend_dict.keys()))
 
             y_label = metric_type.split(' at times')[0]
-            artists.extend(axis.set(title=metric_type.split(' at times')[0], xlabel="Time", ylabel=y_label))
+            artists.extend(axis.set(title=metric_type.split(' at times')[0],
+                                    xlabel="Time", ylabel=y_label))
 
     def plot_separately(self, metrics_to_plot, metrics_kwargs):
-        metrics_kwargs['color'] = metrics_kwargs['color'] if 'color' in metrics_kwargs.keys() else 'blue'
+        metrics_kwargs['color'] = metrics_kwargs['color'] if \
+            'color' in metrics_kwargs.keys() else 'blue'
 
         # determine how many plots required - equal to number of metrics within the generators
         number_of_subplots = self.count_subplots(metrics_to_plot, False)
@@ -830,7 +838,8 @@ class MetricPlotter(ABC):
                       **metrics_kwargs)
 
             # Generate legend
-            metric_handle = Line2D([], [], linestyle=metrics_kwargs['linestyle'], color=metrics_kwargs['color'])
+            metric_handle = Line2D([], [], linestyle=metrics_kwargs['linestyle'],
+                                   color=metrics_kwargs['color'])
             axis.legend(handles=[metric_handle],
                         labels=[metric.split(' at times')[0]])
 
