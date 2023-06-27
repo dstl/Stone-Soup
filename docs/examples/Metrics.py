@@ -8,15 +8,15 @@ Metrics example
 
 # %%
 # This example demonstrates some of the different metrics available in Stonesoup and how they can be used with the
-# :class:`MultiManager` to assess tracking performance. It also demonstrates how to use the :class:`MetricPlotter` class
+# :class:`~.MultiManager` to assess tracking performance. It also demonstrates how to use the :class:`~.MetricPlotter` class
 # to easily generate metric plots for visualisation.
 #
 # To generate metrics, we need:
-#  - At least one :class:`MetricGenerator` - these are used to determine the metric type we want to generate and to
+#  - At least one :class:`~.MetricGenerator` - these are used to determine the metric type we want to generate and to
 #    compute the metrics themselves.
-#  - The :class:`MultiManager` metric manager - this is used to hold the metric generator(s) as well as all the ground
+#  - The :class:`~.MultiManager` metric manager - this is used to hold the metric generator(s) as well as all the ground
 #    truth, track, and detection sets we want to generate our metrics from. We will generate our metrics using the
-#    generate_metrics method of the :class:`MultiManager` class.
+#    generate_metrics method of the :class:`~.MultiManager` class.
 #
 # In this example, we will create a variety of metric generators for different types of metrics. These metrics will be
 # used to assess and compare tracks produced from the same set of ground truth paths and detections by the Extended
@@ -118,7 +118,7 @@ plot_generator_PF = TwoDPlotter([0, 2], [0, 2], [0, 2], tracks_key='PF_tracks',
                                 generator_name='PF_plot')
 
 # %%
-# Now we add all of our metric generators to the :class:`MultiManager`.
+# Now we add all of our metric generators to the :class:`~.MultiManager`.
 
 from stonesoup.metricgenerator.manager import MultiManager
 
@@ -346,9 +346,9 @@ tracker_PF = MultiTargetTracker(
 # The MultiManager .add_data() method takes a dictionary of lists/sets of ground truth, detections, and/or tracks data.
 # It can take multiple sets of each type. Each state set must have a unique key assigned to it. The track, truth, and
 # detection keys that we input into the metric generators will be used to extract the corresponding set from the
-# :class:`MultiManager` for metric generation.
+# :class:`~.MultiManager` for metric generation.
 #
-# Setting overwrite to False allows new data to be added to the :class:`MultiManager` without overwriting data that is
+# Setting overwrite to False allows new data to be added to the :class:`~.MultiManager` without overwriting data that is
 # already in it, as demonstrated in the code below.
 
 
@@ -389,8 +389,8 @@ metric_manager.display_basic_metrics()
 #
 # Next we'll look at the averages of each of the SIAP metrics to compare.
 #
-# First we extract the SIAP averages from the :class:`MultiManager` using the .get_siap_averages() method. Then we use
-# the :class:`SIAPTableGenerator` to display the average metrics in a table which shows us descriptions for each metric.
+# First we extract the SIAP averages from the :class:`~.MultiManager` using the :meth:`get_siap_averages()` method. Then we use
+# the :class:`~.SIAPTableGenerator` to display the average metrics in a table which shows us descriptions for each metric.
 # We will create a table for the EKF SIAPs first.
 
 from stonesoup.metricgenerator.metrictables import SIAPTableGenerator
@@ -421,18 +421,18 @@ siap_table = SIAPTableGenerator(siap_averages_PF).compute_metric()
 # %%
 # Plot metrics
 # ------------
-# We will use :class:`MetricPlotter` to plot some of our metrics below.
+# We will use :class:`~.MetricPlotter` to plot some of our metrics below.
 #
-# To use :class:`MetricPlotter` we first create an instance of the class. We can then use the .plot_metrics() method to
-# plot the metrics of our choice. Key features of :class:`MetricPlotter`:
-# - You can specify exactly which metrics you want to plot by specifying the optional generator_names and metric_names
+# To use :class:`~.MetricPlotter` we first create an instance of the class. We can then use the :meth:`plot_metrics()` method to
+# plot the metrics of our choice. Key features of :class:`~.MetricPlotter`:
+# - You can specify exactly which metrics you want to plot by specifying the optional `generator_names` and `metric_names`
 #   parameters.
-# - generator_names allows you to specify which generators you want to plot metrics from. If you don't pass the
-#   generator_names argument, .plot_metrics() will automatically extract all plottable metrics from all metric
-#   generators in the :class:`MultiManager` and plot them.
-# - metric_names allows you to specify which specific metrics types you want to plot from the metric generators. This is
-#   mostly relevant for the SIAP metrics. You can view which metrics are plottable with MetricPlotter.plottable_metrics.
-# - .plot_metrics has a combine_plots argument which defaults to True. This means that all metrics of the same type will
+# - `generator_names` allows you to specify which generators you want to plot metrics from. If you don't pass the
+#   `generator_names` argument, :meth:`plot_metrics()` will automatically extract all plottable metrics from all metric
+#   generators in the :class:`~.MultiManager` and plot them.
+# - `metric_names` allows you to specify which specific metrics types you want to plot from the metric generators. This is
+#   mostly relevant for the SIAP metrics. You can view which metrics are plottable with :meth:`MetricPlotter.plottable_metrics`.
+# - :meth:`plot_metrics` has a `combine_plots` argument which defaults to True. This means that all metrics of the same type will
 #   be plotted together on a single subplot.
 # - You can specify additional formatting, like colour and linestyle, for the plots produced by using keyword arguments
 #   from matplotlib pyplot.
