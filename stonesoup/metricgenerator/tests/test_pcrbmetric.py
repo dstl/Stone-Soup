@@ -5,7 +5,7 @@ import pytest
 
 from ..manager import MultiManager
 from ..pcrbmetric import PCRBMetric
-from ...types.groundtruth import GroundTruthState
+from ...types.groundtruth import GroundTruthState, GroundTruthPath
 from ...types.array import StateVector, StateVectors, CovarianceMatrix
 from ...types.state import GaussianState
 
@@ -129,8 +129,13 @@ def test_compute_pcrb_single(prior, transition_model, measurement_model, groundt
 )
 def test_computemetric(prior, transition_model, measurement_model, groundtruth,
                        sensor_locations, irf_overall, position_mapping, velocity_mapping):
-    pcrb = PCRBMetric(prior, transition_model, measurement_model, sensor_locations,
-                      position_mapping, velocity_mapping, irf_overall,
+    pcrb = PCRBMetric(prior=prior,
+                      transition_model=transition_model,
+                      measurement_model=measurement_model,
+                      sensor_locations=sensor_locations,
+                      position_mapping=position_mapping,
+                      velocity_mapping=velocity_mapping,
+                      irf=irf_overall,
                       truths_key='truths',
                       generator_name='generator')
 
@@ -138,7 +143,7 @@ def test_computemetric(prior, transition_model, measurement_model, groundtruth,
 
     manager.add_data({'truths': groundtruth})
 
-    metric = pcrb.compute_metric(manager)['generator']['PCRB Metrics']
+    metric = pcrb.compute_metric(manager)[0]
 
     assert metric.title == 'PCRB Metrics'
     assert metric.time_range.start_timestamp == groundtruth.states[0].timestamp
@@ -165,7 +170,8 @@ def test_computemetric(prior, transition_model, measurement_model, groundtruth,
     # NOTE: Checking value of inverse_j is not necessary since rmse values are derived from
     # inverse_j, therefore if they are correct, then inverse_j is also correct.
     assert 'inverse_j' in metric.value
-    assert metric.value['track'] == groundtruth
+    # assert metric.value['track'] == groundtruth
+    assert metric.value['track'].states == groundtruth.states
     assert np.allclose(metric.value['position_RMSE'], expected_pos_rmse)
     if velocity_mapping is not None:
         assert np.allclose(metric.value['velocity_RMSE'], expected_vel_rmse)
