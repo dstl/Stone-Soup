@@ -29,7 +29,7 @@ def test_multi_deconfliction():
     assoc4 = TimeRangeAssociation({tracks[0], tracks[1]},
                                   time_range=CompoundTimeRange([ranges[1], ranges[4]]))
     a4_clone = TimeRangeAssociation({tracks[0], tracks[1]},
-                                  time_range=CompoundTimeRange([ranges[1], ranges[4]]))
+                                    time_range=CompoundTimeRange([ranges[1], ranges[4]]))
     # Will fail as there is only one track, rather than two
     assoc_fail = TimeRangeAssociation({tracks[0]}, time_range=ranges[0])
     with pytest.raises(ValueError):
