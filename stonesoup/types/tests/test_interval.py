@@ -167,9 +167,6 @@ def test_intervals_overlap():
 
 
 def test_intervals_disjoint():
-    # with pytest.raises(ValueError, match="Can only compare Intervals to Intervals"):
-    #     A.isdisjoint('a string')
-    # assert not A.isdisjoint(B)  # Overlap
     assert not A.isdisjoint(C)  # Meet with no overlap
     assert A.isdisjoint(D)
     assert not A.isdisjoint(A)
@@ -197,6 +194,11 @@ def test_intervals_len():
     assert Intervals([]).length == 0
     assert A.length == 2
     assert Intervals([Interval(0.5, 0.75), Interval(0.1, 0.2)]).length == 0.35
+
+
+def test_intervals_str():
+    assert str(A) == str([[interval.left, interval.right] for interval in A])
+    assert A.__repr__() == 'Intervals{intervals}'.format(intervals=str(A))
 
 
 def test_intervals_iter():

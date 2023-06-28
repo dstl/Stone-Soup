@@ -49,9 +49,6 @@ class Interval(Type):
     def __str__(self):
         return '[{left}, {right}]'.format(left=self.start, right=self.end)
 
-    # def __repr__(self):
-    #     return 'Interval{interval}'.format(interval=str(self))
-
     def __eq__(self, other):
         return isinstance(other, Interval) and (self.start, self.end) == (other.start, other.end)
 
@@ -267,7 +264,7 @@ class Intervals(Type):
 
     def __eq__(self, other):
         if len(self) == 0:
-            return True if len(other) == 0 else False
+            return len(other) == 0
         if isinstance(other, Interval):
             other = Intervals(other)
 

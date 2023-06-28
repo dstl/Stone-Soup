@@ -85,7 +85,7 @@ def test_associationset():
     timestamp2 = datetime.datetime(2018, 3, 1, 5, 8, 35)
     timestamp3 = datetime.datetime(2020, 3, 1, 1, 1, 1)
     time_range = TimeRange(start=timestamp1, end=timestamp2)
-    time_range2 = TimeRange(timestamp2, timestamp3)
+    time_range2 = TimeRange(start=timestamp2, end=timestamp3)
 
     objects_list = [Detection(np.array([[1], [2]])),
                     Detection(np.array([[3], [4]])),
@@ -96,7 +96,7 @@ def test_associationset():
 
     assoc2 = TimeRangeAssociation(objects=set(objects_list[1:]),
                                   time_range=time_range)
-    assoc_duplicate = TimeRangeAssociation(objects=set(objects_list[1:]),
+    assoc2_same_objects = TimeRangeAssociation(objects=set(objects_list[1:]),
                                            time_range=time_range2)
 
     assoc_set = AssociationSet({assoc1, assoc2})
@@ -115,7 +115,7 @@ def test_associationset():
 
     # test _simplify method
 
-    simplify_test = AssociationSet({assoc1, assoc2, assoc_duplicate})
+    simplify_test = AssociationSet({assoc1, assoc2, assoc2_same_objects})
 
     assert len(simplify_test.associations) == 2
 
@@ -148,17 +148,17 @@ def test_associationset():
 def test_association_set_add_remove():
     test = AssociationSet()
     with pytest.raises(TypeError):
-        test.add("banana")
+        test.add("a string")
     with pytest.raises(TypeError):
-        test.remove("banana")
+        test.remove("a string")
     objects = {Detection(np.array([[1], [2]])),
                Detection(np.array([[3], [4]])),
                Detection(np.array([[5], [6]]))}
 
     assoc = Association(objects)
+    assert assoc not in test.associations
     with pytest.raises(ValueError):
         test.remove(assoc)
-    assert assoc not in test.associations
     test.add(assoc)
     assert assoc in test.associations
     test.remove(assoc)

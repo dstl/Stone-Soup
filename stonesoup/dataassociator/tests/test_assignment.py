@@ -28,16 +28,18 @@ def test_multi_deconfliction():
                                   time_range=CompoundTimeRange([ranges[0], ranges[4]]))
     assoc4 = TimeRangeAssociation({tracks[0], tracks[1]},
                                   time_range=CompoundTimeRange([ranges[1], ranges[4]]))
+    assoc4_again = TimeRangeAssociation({tracks[0], tracks[1]},
+                                  time_range=CompoundTimeRange([ranges[1], ranges[4]]))
     # Will fail as there is only one track, rather than two
     assoc_fail = TimeRangeAssociation({tracks[0]}, time_range=ranges[0])
     with pytest.raises(ValueError):
         multidimensional_deconfliction(AssociationSet({assoc_fail, assoc1, assoc2}))
 
-    #  Objects do not conflict, so should do nothing
+    #  Objects do not conflict, so should return input association set
     test2 = AssociationSet({assoc1, assoc2})
     assert multidimensional_deconfliction(test2).associations == {assoc1, assoc2}
 
-    # Objects do conflict, so remove the shorter one
+    # Objects do conflict, so remove the shorter time range
     test3 = AssociationSet({assoc1, assoc3})
     # Should entirely remove assoc1
     tested3 = multidimensional_deconfliction(test3)
@@ -53,5 +55,15 @@ def test_multi_deconfliction():
     assert assoc2 in tested4
     merged = tested4.associations_including_objects({tracks[0], tracks[1]})
     assert len(merged) == 1
-    merged = merged.associations.pop()
+    merged = next(iter(merged.associations))
+    assert merged.time_range == CompoundTimeRange([ranges[0], ranges[1], ranges[4]])
+
+    test5 = AssociationSet({assoc1, assoc2, assoc3, assoc4, assoc4_again})
+    # Very similar to above, but we add a duplicate assoc4, which should have no effect on the result.
+    tested5 = multidimensional_deconfliction(test5)
+    assert len(tested5) == 2
+    assert assoc2 in tested5
+    merged = tested5.associations_including_objects({tracks[0], tracks[1]})
+    assert len(merged) == 1
+    merged = next(iter(merged.associations))
     assert merged.time_range == CompoundTimeRange([ranges[0], ranges[1], ranges[4]])

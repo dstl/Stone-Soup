@@ -403,11 +403,7 @@ class SIAPMetrics(MetricGenerator):
             else:
                 key_times = assoc_at_time.time_range.key_times
                 # If the current time is a start of a TimeRange we need strict inequality
-                try:
-                    is_start_time = key_times.index(current_time) % 2 == 0
-                except ValueError:
-                    is_start_time = False
-                if is_start_time:
+                if current_time in key_times and key_times.index(current_time) % 2 == 0:
                     end_time = min([time for time in key_times if time > current_time])
                 else:
                     end_time = min([time for time in key_times if time >= current_time])

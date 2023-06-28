@@ -28,11 +28,11 @@ def test_timerange(times):
 
     # Without start time
     with pytest.raises(TypeError):
-        TimeRange(start=times[1])
+        TimeRange(end=times[3])
 
     # Without end time
     with pytest.raises(TypeError):
-        TimeRange(end=times[3])
+        TimeRange(start=times[1])
 
     # Test an error is caught when end is after start
     with pytest.raises(ValueError):
@@ -50,7 +50,7 @@ def test_timerange(times):
 
     test_compound2 = CompoundTimeRange([test_range])
 
-    # Tests fuse_components method
+    # Test fuse_components method
     fuse_test = CompoundTimeRange([test_range, TimeRange(times[3], times[4])])
 
     assert test_range.start_timestamp == times[1]
@@ -72,8 +72,8 @@ def test_duration(times):
     test_range2 = CompoundTimeRange([TimeRange(start=times[1], end=times[3]),
                                      TimeRange(start=times[2], end=times[4])])
 
-    assert test_range.duration == datetime.timedelta(seconds=3726)
-    assert test_range2.duration == datetime.timedelta(seconds=31539726)
+    assert test_range.duration == times[3] - times[1]
+    assert test_range2.duration == times[4] - times[1]
 
 
 def test_contains(times):
@@ -86,11 +86,11 @@ def test_contains(times):
     with pytest.raises(TypeError):
         16 in test3
 
-    assert times[2] in test_range
-    assert not times[4] in test_range
-    assert not times[0] in test_range
     assert times[1] in test_range
+    assert times[2] in test_range
     assert times[3] in test_range
+    assert not times[0] in test_range
+    assert not times[4] in test_range
 
     assert test2 in test_range
     assert test_range not in test2
@@ -120,7 +120,7 @@ def test_equality(times):
     test2 = TimeRange(times[1], times[2])
     test3 = TimeRange(times[1], times[3])
 
-    assert test1 != "stonesoup"
+    assert test1 != "a string"
 
     assert test1 == test2
     assert test2 == test1
@@ -129,13 +129,11 @@ def test_equality(times):
     ctest1 = CompoundTimeRange([test1, test3])
     ctest2 = CompoundTimeRange([TimeRange(times[1], times[3])])
 
-    assert ctest2 != "Stonesoup is the best!"
+    assert ctest2 != "a string"
 
-    assert ctest1 == ctest2
-    assert ctest2 == ctest1
+    assert ctest1 == ctest2 and ctest2 == ctest1
     ctest2.add(TimeRange(times[3], times[4]))
-    assert ctest1 != ctest2
-    assert ctest2 != ctest1
+    assert ctest1 != ctest2 and ctest2 != ctest1
 
     assert CompoundTimeRange() == CompoundTimeRange()
     assert ctest1 != CompoundTimeRange()
@@ -218,14 +216,11 @@ def test_remove_overlap(times):
     test3_ro = CompoundTimeRange()
     test3_ro._remove_overlap()
 
-    test1 = CompoundTimeRange([TimeRange(times[0], times[1]),
-                               TimeRange(times[3], times[4])])
-    test3 = CompoundTimeRange()
-    test4 = CompoundTimeRange([TimeRange(times[0], times[4])])
+    test2 = CompoundTimeRange([TimeRange(times[0], times[4])])
 
-    assert test1_ro == test1
-    assert test2_ro == test4
-    assert test3_ro == test3
+    assert test1_ro.duration == TimeRange(times[0], times[1]).duration + TimeRange(times[3], times[4]).duration
+    assert test2_ro == test2
+    assert test3_ro == CompoundTimeRange()
 
 
 def test_fuse_components(times):

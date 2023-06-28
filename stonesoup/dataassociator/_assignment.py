@@ -377,7 +377,7 @@ def multidimensional_deconfliction(association_set):
     if len(cleaned_set) == 0:
         raise ValueError("Problem unsolvable using this method")
 
-    if check_if_no_conflicts(cleaned_set) and len(association_set) == 0:
+    if check_if_no_conflicts(cleaned_set) and len(association_set_reduced) == 0:
         # If no conflicts after this iteration and all objects return
         return cleaned_set
     else:
@@ -397,29 +397,22 @@ def multidimensional_deconfliction(association_set):
 
 
 def conflicts(assoc1, assoc2):
-    if getattr(assoc1, 'time_range', None) is None or getattr(assoc2, 'time_range', None) is None:
-        return False
-    if assoc1.time_range & assoc2.time_range and assoc1 != assoc2 \
-            and len(assoc1.objects.intersection(assoc2.objects)) > 0:
+    if hasattr(assoc1, 'time_range') and hasattr(assoc2, 'time_range') and \
+            len(assoc1.objects.intersection(assoc2.objects)) > 0 and \
+            len(assoc1.time_range.intersection(assoc2.time_range)) > 0:
         return True
     else:
         return False
 
 
 def check_if_no_conflicts(association_set):
-    for assoc1 in association_set:
-        for assoc2 in association_set:
-            if conflicts(assoc1, assoc2):
+    for assoc1 in range(0, len(association_set)):
+        for assoc2 in range(assoc1, len(association_set)):
+            if conflicts(list(association_set)[assoc1], list(association_set)[assoc2]):
                 return False
     return True
 
 
 def make_symmetric(matrix):
     """Matrix must be square"""
-    length = matrix.shape[0]
-    for i in range(length):
-        for j in range(length):
-            if matrix[i, j] >= matrix[j, i]:
-                matrix[j, i] = matrix[i, j]
-            else:
-                matrix[i, j] = matrix[j, i]
+    return numpy.maximum(matrix, matrix.transpose())

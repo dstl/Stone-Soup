@@ -78,7 +78,7 @@ class TimeRange(Interval):
         Returns
         -------
         TimeRange
-            This instance less the overlap
+            This instance less the overlap with the other time_range
         """
         if time_range is None:
             return copy.copy(self)
@@ -87,7 +87,7 @@ class TimeRange(Interval):
         if isinstance(time_range, CompoundTimeRange):
             ans = self
             for t_range in time_range.time_ranges:
-                ans = ans - t_range
+                ans -= t_range
                 if not ans:
                     return None
             return ans
