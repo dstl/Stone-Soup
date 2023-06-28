@@ -218,7 +218,8 @@ def test_remove_overlap(times):
 
     test2 = CompoundTimeRange([TimeRange(times[0], times[4])])
 
-    assert test1_ro.duration == TimeRange(times[0], times[1]).duration + TimeRange(times[3], times[4]).duration
+    assert test1_ro.duration == TimeRange(times[0], times[1]).duration + \
+           TimeRange(times[3], times[4]).duration
     assert test2_ro == test2
     assert test3_ro == CompoundTimeRange()
 
