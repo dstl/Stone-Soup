@@ -12,7 +12,7 @@ to use (G)NN (nearest neighbour) data association methods. The Tracker Particle 
 method for single target case.
 
 To run this example we have to set up the ground truths and the measurements before setting up a simplistic
-particle filter.
+particle filter. This example follows the implementation that can be found in [#]_.
 
 """
 
@@ -64,16 +64,18 @@ transition_model = CombinedLinearGaussianTransitionModel(
 measurement_model = LinearGaussian(4, mapping=[0, 2], noise_covar=np.diag([0.5, 0.5]))
 
 # %%
+#
 
 from stonesoup.types.groundtruth import GroundTruthPath, GroundTruthState
 from stonesoup.types.detection import TrueDetection
 from stonesoup.types.detection import Clutter
 
-# defined the ground truth transtion model, in this case we have two linear tracks
+# defined the ground truth transition model, in this case we have two linear tracks
 gnd_transition_model = CombinedLinearGaussianTransitionModel([ConstantVelocity(0.),
                                                               ConstantVelocity(0.)])
 
 truths = set()
+
 # first object
 truth = GroundTruthPath([GroundTruthState([0, 0.2, 0, 0.2], timestamp=start_time)])
 for k in range(1, num_iter + 1):
@@ -82,6 +84,7 @@ for k in range(1, num_iter + 1):
                                       time_interval=timedelta(seconds=1)),
         timestamp=start_time + timedelta(seconds=k)))
 truths.add(truth)
+
 # second object
 truth = GroundTruthPath([GroundTruthState([0, 0.2, 20, -0.2], timestamp=start_time)])
 for k in range(1, num_iter + 1):
@@ -91,13 +94,14 @@ for k in range(1, num_iter + 1):
         timestamp=start_time + timedelta(seconds=k)))
 truths.add(truth)
 
-# create a list of timestamsp
+# create a list of timestamps
 timestamps = [start_time]
 for k in range(1, num_iter + 1):
     timestamps.append(start_time + timedelta(seconds=k))
 
 # Simulate measurements
 # =====================
+
 scans = []
 
 for k in range(num_iter):
@@ -127,7 +131,7 @@ for k in range(num_iter):
 
 # %%
 # At this point we have generated a series of GroundTruth measurements
-# for the two tracks, some Clutter detections and detections now we can create a detector
+# for the two targets, some Clutter and real detections. Now, we can create a detector
 # and prepare the pieces for the particle filter
 
 # %%
@@ -145,19 +149,16 @@ class SimpleDetector(DetectionReader):
 # 3) set up the Particle filter
 # ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 # As presented in previous tutorials and examples, for the filters we need a predictor, an updater and,
-# in the specific case of particle filters a resampler.
+# in the specific case of particle filters, a resampler.
 
-# %%
 # Load the particle predictor
 from stonesoup.predictor.particle import ParticlePredictor
 predictor = ParticlePredictor(transition_model)
 
-# %%
 # Load the resampler
 from stonesoup.resampler.particle import SystematicResampler
 resampler = SystematicResampler()
 
-# %%
 # Load the particle updater, at this stage we don't need the Resampler inside the particle updater
 from stonesoup.updater.particle import ParticleUpdater
 updater = ParticleUpdater(measurement_model)
@@ -251,10 +252,9 @@ for k, (timestamp, tracks) in enumerate(tracker):
 # 2)
 # 3)
 
-"""
-References
-----------
-.. [#] Marrs, A., Maskell, S., and Bar-Shalom, Y., “Expected likelihood for tracking in clutter with 
-   particle filters”, in Signal and Data Processing of Small Targets 2002, 2002, vol. 4728, 
-   pp. 230–239. doi:10.1117/12.478507
-"""
+# %%
+# References
+# ----------
+# [#] Marrs, A., Maskell, S., and Bar-Shalom, Y., “Expected likelihood for tracking in clutter with
+# particle filters”, in Signal and Data Processing of Small Targets 2002, 2002, vol. 4728,
+# pp. 230–239. doi:10.1117/12.478507
