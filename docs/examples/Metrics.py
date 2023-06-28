@@ -155,8 +155,8 @@ timestep_size = datetime.timedelta(seconds=5)
 number_steps = 20
 initial_state = GaussianState(initial_state_mean, initial_state_covariance)
 
-from stonesoup.models.transition.linear import (
-    CombinedLinearGaussianTransitionModel, ConstantVelocity, KnownTurnRate)
+from stonesoup.models.transition.linear import \
+    CombinedLinearGaussianTransitionModel, ConstantVelocity, KnownTurnRate
 
 # initialise the transition models the ground truth can use
 constant_velocity = CombinedLinearGaussianTransitionModel(
@@ -295,7 +295,7 @@ kalman_tracker_EKF = MultiTargetTracker(  # Runs the tracker
     deleter=deleter,
     detector=detectors[0],
     data_associator=data_associator_EKF,
-    updater=updater_EKF,
+    updater=updater_EKF
 )
 
 # %%
