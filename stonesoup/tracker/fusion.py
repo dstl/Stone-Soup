@@ -9,6 +9,8 @@ from stonesoup.types.detection import Detection
 from stonesoup.types.track import Track
 from stonesoup.tracker.pointprocess import PointProcessMultiTargetTracker
 from stonesoup.feeder.track import Tracks2GaussianDetectionFeeder
+
+
 class DummyDetector(DetectionReader):
     def __init__(self, *args, **kwargs):
         self.current = kwargs['current']
@@ -18,19 +20,14 @@ class DummyDetector(DetectionReader):
         yield self.current
 
 
-class SimpleFusionTracker(Tracker): # implement tracks method
+class SimpleFusionTracker(Tracker):  # implement tracks method
     """Presumes data from this node are detections, and from every other node are tracks
     Acts as a wrapper around a base tracker. Track is fixed after the sliding window.
     It exists within it, but the States may change. """
-    base_tracker: Tracker = Property(
-        doc="Tracker given to the fusion node")
-    # Question (for Alasdair??): Do we want an over-arching fusion tracker,
-    # or give each Node its own? Probably latter
-    sliding_window = Property(  # This entails assumptions: fixed time intervals for one.
-        # Do we express in seconds, or steps
-        doc="The number of time steps before the result is fixed")
-    data = Property( # better name for this
-        doc="Data received from queue and sensor")
+    base_tracker: Tracker = Property(doc="Tracker given to the fusion node")
+    sliding_window = Property(default=30,
+                              doc="The number of time steps before the result is fixed")
+    queue = Property(default=None, doc="Queue which feeds in data")
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
