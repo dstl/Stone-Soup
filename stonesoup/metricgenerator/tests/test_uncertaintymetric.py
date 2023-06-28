@@ -14,7 +14,9 @@ from ...types.track import Track
 
 @pytest.fixture(params=[SumofCovarianceNormsMetric, MeanofCovarianceNormsMetric])
 def generator(request):
-    return request.param()
+    generator = request.param(tracks_key='tracks',
+                              generator_name='test_generator')
+    return generator
 
 
 def test_covariancenormsmetric_extractstates(generator):
