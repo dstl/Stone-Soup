@@ -399,7 +399,7 @@ def multidimensional_deconfliction(association_set):
 def conflicts(assoc1, assoc2):
     if hasattr(assoc1, 'time_range') and hasattr(assoc2, 'time_range') and \
             len(assoc1.objects.intersection(assoc2.objects)) > 0 and \
-            len(assoc1.time_range & assoc2.time_range)) > 0:
+            len(assoc1.time_range & assoc2.time_range) > 0:
         return True
     else:
         return False
