@@ -427,6 +427,7 @@ siap_table = SIAPTableGenerator(siap_averages_PF).compute_metric()
 #
 # To use :class:`~.MetricPlotter` we first create an instance of the class. We can then use the :meth:`plot_metrics()`
 # method to plot the metrics of our choice. Key features of :class:`~.MetricPlotter`:
+#
 # - You can specify exactly which metrics you want to plot by specifying the optional `generator_names` and
 #   `metric_names` parameters.
 # - `generator_names` allows you to specify which generators you want to plot metrics from. If you don't pass the
