@@ -29,12 +29,13 @@ class MultiManager(MetricManager):
 
         Parameters
         ----------
-        metric_data : dict of lists or dict of sets of :class:`~.GroundTruthPath`,
+        metric_data : dict of lists or dict of sets of :class:`~.GroundTruthPath`, \
         :class:`~.Track`, and/or :class:`~.Detection`
             Ground truth paths, Tracks, and/or detections to be added to the manager.
         overwrite: bool
-            declaring whether pre-existing data will be overwritten. Note that
-            overwriting one field (e.g. tracks) does not affect the others
+            Declaring whether pre-existing data will be overwritten. Note that
+            overwriting one key-value pair (e.g. 'tracks') does not affect the others.
+
         """
         self._add(overwrite, metric_data=metric_data)
 

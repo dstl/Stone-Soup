@@ -235,7 +235,7 @@ class SIAPMetrics(MetricGenerator):
         ----------
         manager: MetricManager
             Containing the data to be used
-        ground_truths: set or list of :class:`~.GroundTruthPath` or :class:`~.Track objects
+        ground_truths: set or list of :class:`~.GroundTruthPath` or :class:`~.Track` objects
             Containing the groundtruth or track data to be used
         timestamp: datetime.datetime
             Timestamp at which to compute the value
