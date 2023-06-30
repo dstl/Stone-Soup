@@ -677,18 +677,18 @@ class MetricPlotter(ABC):
         Plots each plottable metric passed in to :attr:`metrics` across a series of subplots
         and generates legend(s) automatically. Metrics are plotted as lines with default colors.
 
-        Users can change linestyle, color and marker using keyword arguments. Any changes
-        will apply to all metrics.
+        Users can change linestyle, color and marker or other features using keyword arguments.
+        Any changes will apply to all metrics.
 
         Parameters
         ----------
         metrics : dict of :class:`~.Metric`
             Dictionary of generated metrics to be plotted.
-        generator_names: list
+        generator_names: list of str
             Generator(s) to extract specific metrics from :attr:`metrics` for plotting.
             Default None to take all metrics.
-        metric_names: list
-            Specific metric(s) to extract from :class:`MetricGenerator` for plotting.
+        metric_names: list of str
+            Specific metric(s) to extract from :class:`~.MetricGenerator` for plotting.
             Default None to take all metrics in generators.
         combine_plots: bool
             Plot metrics of same type on the same subplot. Default True.
@@ -714,15 +714,31 @@ class MetricPlotter(ABC):
         else:
             metric_names = self.extract_metric_types(metrics)
 
-        metrics_to_plot = self.extract_plottable_metrics(metrics, generator_names, metric_names)
+        metrics_to_plot = self._extract_plottable_metrics(metrics, generator_names, metric_names)
 
         if combine_plots:
             self.combine_plots(metrics_to_plot, metrics_kwargs)
         else:
             self.plot_separately(metrics_to_plot, metrics_kwargs)
 
-    def extract_plottable_metrics(self, metrics, generator_names, metric_names):
+    def _extract_plottable_metrics(self, metrics, generator_names, metric_names):
+        """
+        Extract all plottable metrics from dict of generated metrics.
 
+        Parameters
+        ----------
+        metrics: dict of :class:`~.Metric`
+            Dictionary of generated metrics.
+        generator_names: list of str
+            Generator(s) to extract specific metrics from :attr:`metrics` for plotting.
+        metric_names: list of str
+            Specific metric(s) to extract from :class:`~.MetricGenerator` for plotting.
+
+        Returns
+        -------
+        : dict
+            Dict of all plottable metrics.
+        """
         metrics_dict = dict()
 
         for generator_name in generator_names:
@@ -738,7 +754,22 @@ class MetricPlotter(ABC):
 
         return metrics_dict
 
-    def count_subplots(self, metrics_to_plot, combine_plots):
+    def _count_subplots(self, metrics_to_plot, combine_plots):
+        """
+        Calculate number of subplots needed to plot all metrics.
+
+        Parameters
+        ----------
+        metrics_to_plot: dict of :class:`~.Metric`
+            Dictionary of metrics to be plotted.
+        combine_plots: bool
+            Specifies whether same metric types should be plotted on same subplot.
+
+        Returns
+        -------
+        : int
+            Number of subplots to generate.
+        """
         if combine_plots:
             metric_types = self.extract_metric_types(metrics_to_plot)
             number_of_subplots = len(metric_types)
@@ -752,6 +783,19 @@ class MetricPlotter(ABC):
 
     @staticmethod
     def extract_metric_types(metrics):
+        """
+        Identify the different types of metric held in dict of metrics.
+
+        Parameters
+        ----------
+        metrics: dict of :class:`~.Metric`
+            Dictionary of metrics.
+
+        Returns
+        -------
+        : list
+            Sorted list of types of metric
+        """
         metric_types = set()
         for generator in metrics.keys():
             for metric_key in metrics[generator].keys():
@@ -763,8 +807,24 @@ class MetricPlotter(ABC):
         return metric_types
 
     def combine_plots(self, metrics_to_plot, metrics_kwargs):
+        """
+        Generates one subplot for each different metric type and plots metrics of the same type on same subplot.
+        Metrics are plotted over time.
+
+        Parameters
+        ----------
+        metrics_to_plot: dict of :class:`~.Metric`
+            Dictionary of metrics to plot.
+        metrics_kwargs: dict
+            Keyword arguments to be passed to plot function.
+
+        Returns
+        -------
+        : :class:`matplotlib.pyplot.figure`
+            Figure containing subplots displaying metrics.
+        """
         # determine how many plots required - equal to number of metric types
-        number_of_subplots = self.count_subplots(metrics_to_plot, True)
+        number_of_subplots = self._count_subplots(metrics_to_plot, True)
 
         # initialise each subplot
         self.fig, axes = plt.subplots(number_of_subplots, figsize=(10, 6*number_of_subplots))
@@ -811,11 +871,26 @@ class MetricPlotter(ABC):
                                     xlabel="Time", ylabel=y_label))
 
     def plot_separately(self, metrics_to_plot, metrics_kwargs):
+        """
+        Generates one subplot for each different individual metric and plots metric values over time.
+
+        Parameters
+        ----------
+        metrics_to_plot: dict of :class:`~.Metric`
+            Dictionary of metrics to plot.
+        metrics_kwargs: dict
+            Keyword arguments to be passed to plot function.
+
+        Returns
+        -------
+        : :class:`matplotlib.pyplot.figure`
+            Figure containing subplots displaying metrics.
+        """
         metrics_kwargs['color'] = metrics_kwargs['color'] if \
             'color' in metrics_kwargs.keys() else 'blue'
 
         # determine how many plots required - equal to number of metrics within the generators
-        number_of_subplots = self.count_subplots(metrics_to_plot, False)
+        number_of_subplots = self._count_subplots(metrics_to_plot, False)
 
         # initialise each plot
         self.fig, axes = plt.subplots(number_of_subplots, figsize=(10, 6*number_of_subplots))
