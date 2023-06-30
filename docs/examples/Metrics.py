@@ -110,10 +110,10 @@ sum_cov_norms_PF = SumofCovarianceNormsMetric(tracks_key='PF_tracks',
 
 from stonesoup.metricgenerator.plotter import TwoDPlotter
 
-plot_generator_EKF = TwoDPlotter([0, 2], [0, 2], [0, 2], tracks_key='EKF_tracks',
+plot_generator_EKF = TwoDPlotter([0, 2], [0, 2], [0, 2], uncertainty=True, tracks_key='EKF_tracks',
                                  truths_key='truths', detections_key='detections',
                                  generator_name='EKF_plot')
-plot_generator_PF = TwoDPlotter([0, 2], [0, 2], [0, 2], tracks_key='PF_tracks',
+plot_generator_PF = TwoDPlotter([0, 2], [0, 2], [0, 2], uncertainty=True, tracks_key='PF_tracks',
                                 truths_key='truths', detections_key='detections',
                                 generator_name='PF_plot')
 
