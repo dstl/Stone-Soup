@@ -4,9 +4,11 @@
 Bearings-only tracking example
 ==============================
 
-Non-linear bearing-only target tracking is a complex problem since the model has only the knowledge of
-the target direction towards the sensor, leaving a lot of information that needs to be extracted from the measurements
-from the sensor.
+Non-linear bearing-only target tracking is a complex problem for estimating the
+target's states from the knowledge of the bearing measurements towards the sensor.
+From the bearing only measurements we should estimate the parameters of the target
+motion (range and course), and this is a non-linear problem caused by the non-linearity
+between the measurements and the target state vector.
 
 In this short tutorial we show how we can run a bearing-only simulation inside the Stone Soup framework.
 
@@ -22,7 +24,7 @@ distance-based data associator to merge the hypothesis and the detections from t
 #
 # 1) Create the moving platform and the :class:`~.RadarBearing` detector;
 # 2) Generate the target ground truths tracks;
-# 3) Setup the simulation for generating detections and ground truths;
+# 3) Set up the simulation for generating detections and ground truths;
 # 4) Run the simulation and create the plots
 
 # some general imports
@@ -118,8 +120,10 @@ from stonesoup.simulator.simple import SingleTargetGroundTruthSimulator
 transition_model = CombinedLinearGaussianTransitionModel([
     ConstantVelocity(1.0), ConstantVelocity(1.0)])
 
-# Define the initial state of the target using a gaussian state specifying the origin point and the
-# accuracy of the predictions on the 2D Cartesian location and speed (using the covariance matrix).
+# Define the initial target state
+# We use a gaussian state to specify the initial
+# 2D cartesian location and speed, and the accuracy
+# using a covariance matrix.
 initial_target_state = GaussianState([50, 0, 50, 0],
                                      np.diag([1, 1, 1, 1]) ** 2,
                                      timestamp=start_time)
@@ -133,7 +137,7 @@ groundtruth_simulation = SingleTargetGroundTruthSimulator(
 )
 
 # %%
-# 3) Setup the simulation generating measurements and ground truths
+# 3) Set up the simulation generating measurements and ground truths
 # -----------------------------------------------------------------
 # After defining the measurement model and simulation, we will use components to run our example.
 # The measurement model is the :class:`~.Cartesian2DToBearing`.
