@@ -135,7 +135,7 @@ groundtruth_simulation = SingleTargetGroundTruthSimulator(
 # %%
 # 3) Setup the simulation generating measurements and ground truths
 # -----------------------------------------------------------------
-# After defining the measurement model and simulation, we will have the needed components to start running our example.
+# After defining the measurement model and simulation, we will use components to run our example.
 # The measurement model is the :class:`~.Cartesian2DToBearing`.
 
 # Define the measurement model using a Cartesian to bearing
