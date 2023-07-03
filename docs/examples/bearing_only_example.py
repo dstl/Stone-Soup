@@ -4,10 +4,10 @@
 Bearings-only tracking example
 ==============================
 
-Non-linear bearing-only target tracking is a complex problem for estimating the
-target's states from the knowledge of the bearing measurements towards the sensor.
-From the bearing only measurements we should estimate the parameters of the target
-motion (range and course), and this is a non-linear problem caused by the non-linearity
+Non-linear bearing-only target tracking is a complex problem for estimating a
+target's states from bearing measurements towards a sensor.
+From bearing-only measurements we can estimate the parameters of the target
+motion (range and course). This is a non-linear problem caused by the non-linearity
 between the measurements and the target state vector.
 
 In this short tutorial we show how we can run a bearing-only simulation inside the Stone Soup framework.
