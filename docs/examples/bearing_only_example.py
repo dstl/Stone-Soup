@@ -52,7 +52,7 @@ start_time = datetime.now()
 # 1) Create the moving platform and the Bearing-Only radar
 # --------------------------------------------------------
 # Firstly, we create the initial state of the platform, including the origin point and the
-# cartesian (x,y) movement direction. Then, we create a transition motion (in 2D cartesian coordinates)
+# cartesian (x,y) movement direction. Then, we create a transition model (in 2D cartesian coordinates)
 # of the platform.
 # At this point, we can setup the Radar which receives only the bearing measurements from the targets using the
 # :class:`~.RadarBearing` object.
