@@ -124,7 +124,7 @@ initial_target_state = GaussianState([50, 0, 50, 0],
                                      np.diag([1, 1, 1, 1]) ** 2,
                                      timestamp=start_time)
 
-# Setup the ground truth simulation
+# Set up the ground truth simulation
 groundtruth_simulation = SingleTargetGroundTruthSimulator(
     transition_model=transition_model,
     initial_state=initial_target_state,
