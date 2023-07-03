@@ -5,7 +5,7 @@ import pytest
 
 from ..manager import MultiManager
 from ..pcrbmetric import PCRBMetric
-from ...types.groundtruth import GroundTruthState, GroundTruthPath
+from ...types.groundtruth import GroundTruthState
 from ...types.array import StateVector, StateVectors, CovarianceMatrix
 from ...types.state import GaussianState
 

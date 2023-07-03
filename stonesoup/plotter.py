@@ -808,8 +808,8 @@ class MetricPlotter(ABC):
 
     def combine_plots(self, metrics_to_plot, metrics_kwargs):
         """
-        Generates one subplot for each different metric type and plots metrics of the same type on same subplot.
-        Metrics are plotted over time.
+        Generates one subplot for each different metric type and plots metrics of the same
+        type on same subplot. Metrics are plotted over time.
 
         Parameters
         ----------
@@ -872,7 +872,8 @@ class MetricPlotter(ABC):
 
     def plot_separately(self, metrics_to_plot, metrics_kwargs):
         """
-        Generates one subplot for each different individual metric and plots metric values over time.
+        Generates one subplot for each different individual metric and plots metric
+        values over time.
 
         Parameters
         ----------
