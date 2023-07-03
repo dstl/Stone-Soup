@@ -229,7 +229,7 @@ fig = plt.figure(figsize=(10, 6))
 ax = fig.add_subplot(1, 1, 1)
 ax.set_xlabel("$East$ (m)")
 ax.set_ylabel("$North$ (m)")
-ax.set_ylim(-1000, 400)  # change eventually in case there is a different model or seed
+ax.set_ylim(-1000, 400)  # change if there is a different model or seed
 ax.set_xlim(-900, 100)
 
 for key in groundtruth_paths:
