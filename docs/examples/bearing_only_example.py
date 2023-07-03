@@ -8,7 +8,7 @@ Non-linear bearing-only target tracking is a complex problem since the model has
 the target direction towards the sensor, leaving a lot of information that needs to be extracted from the measurements
 from the sensor.
 
-The purpose of this short tutorial we show how we can run a bearing-only simulation inside Stone Soup framework.
+In this short tutorial we show how we can run a bearing-only simulation inside the Stone Soup framework.
 
 In this tutorial we simulate a radar placed on top of a moving platform collecting measurements,
 then using :class:`~.ExtendedKalmanFilter` we provide the tracking of the target. In this example we employ a
