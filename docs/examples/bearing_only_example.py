@@ -160,8 +160,9 @@ updater = ExtendedKalmanUpdater(measurement_model=None)
 # Instantiate the single point initiator
 from stonesoup.initiator.simple import SinglePointInitiator
 
-# Define a initiator, given the complexity of the bearing only tracking let's feed the
-# same initial state to both the ground truths measurements and tracker.
+# Define an initiator
+# Given the complexity of the bearing-only tracking, let's feed the
+# same initial state to both the ground truth measurements and tracker.
 
 initiator = SinglePointInitiator(
     prior_state=initial_target_state,
