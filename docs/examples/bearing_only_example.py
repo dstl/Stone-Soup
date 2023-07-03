@@ -70,25 +70,29 @@ velocity_mapping = (1, 3)
 # Create the initial state (position and time)
 platform_state = State(platform_state_vector, start_time)
 
-# Create a platform transition model, let's assume it is moving into a straight line from its starting place
+# Create a platform transition model, let's assume it is moving in a straight line
+# from its starting place
 platform_transition_model = CombinedLinearGaussianTransitionModel([
     ConstantVelocity(0.0), ConstantVelocity(0.0)])
 
-# We can instantiate the platform initial state, position and velocity mapping and the transition model
+# We can instantiate the platform initial state, position and velocity mapping and 
+# the transition model
 platform = MovingPlatform(states=platform_state,
                           position_mapping=position_mapping,
                           velocity_mapping=velocity_mapping,
                           transition_model=platform_transition_model)
 
-# At this stage, we need to create the sensor, let's import the RadarBearing. This sensor only elaborates the
-# bearing measurements from the target detections, the range is not specified.
+# At this stage, we need to create the sensor, let's import the RadarBearing. 
+# This sensor only provides the bearing measurements from the target detections, 
+# the range is not specified.
 from stonesoup.sensor.radar.radar import RadarBearing
 
 # Configure the radar noise, since we are using just a dimension we need to specify only the
-# noise associated to the bearing, we assume a bearing accuracy  of +/- 0.025 degrees for each measurements
+# noise associated with the bearing, we assume a bearing accuracy of +/- 0.025 degrees for 
+# each measurement
 noise_covar = CovarianceMatrix(np.array(np.diag([np.deg2rad(0.025) ** 2])))
 
-# This radar needs to be informed of the x and y mapping of the space target.
+# This radar needs to be informed of the x and y mapping of the target space.
 radar_mapping = (0, 2)
 
 # Instantiate the radar
@@ -96,7 +100,7 @@ radar = RadarBearing(ndim_state=4,
                      position_mapping=radar_mapping,
                      noise_covar=noise_covar)
 
-# As presented in the other examples we have to attach the sensor on the platform.
+# As presented in the other examples we have to place the sensor on the platform.
 platform.add_sensor(radar)
 # At this point we can also check the offset rotation or the mounting of the radar in respect to the
 # platform as shown in other tutorials.
