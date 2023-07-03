@@ -10,9 +10,9 @@ from the sensor.
 
 In this short tutorial we show how we can run a bearing-only simulation inside the Stone Soup framework.
 
-In this tutorial we simulate a radar placed on top of a moving platform collecting measurements,
-then using :class:`~.ExtendedKalmanFilter` we provide the tracking of the target. In this example we employ a
-distance based data associator to merge the hypothesis and the detections from the sensor.
+In this tutorial, we simulate a radar placed on top of a moving platform collecting measurements,
+then using the :class:`~.ExtendedKalmanFilter` we track the target. In this example we employ a
+distance-based data associator to merge the hypothesis and the detections from the sensor.
 """
 
 # %%%
