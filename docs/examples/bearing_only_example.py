@@ -169,7 +169,7 @@ initiator = SinglePointInitiator(
     measurement_model=meas_model)
 
 # %%
-# Add the hypothesiser components, we use a distance based hypothesiser using a Malahonobis
+# Add the hypothesiser components. We use a distance based hypothesiser using a Malahonobis
 # distance to do the data association between the detections and the tracks.
 # Since we consider a single target case a simple nearest neighbour will be enough for the data associator.
 
