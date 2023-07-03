@@ -235,12 +235,14 @@ ax.set_xlim(-900, 100)
 for key in groundtruth_paths:
     X = [coord[0] for coord in groundtruth_paths[key]]
     Y = [coord[1] for coord in groundtruth_paths[key]]
-    ax.plot(X, Y, color='r', lw=3, alpha=0.9, label='Ground truth track')  # Plot true locations in red
+    ax.plot(X, Y, color='r', lw=3, alpha=0.9, 
+                label='Ground truth track')  # Plot true locations in red
 
 for key in kalman_tracks:
     X = [coord[0] for coord in kalman_tracks[key]]
     Y = [coord[1] for coord in kalman_tracks[key]]
-    ax.plot(X, Y, color='b', lw=3, alpha=0.9, label='Track estimates')  # Plot track estimates in blue
+    ax.plot(X, Y, color='b', lw=3, alpha=0.9, 
+                label='Track estimates')  # Plot track estimates in blue
 
 # plot platform location
 ax.plot(Xp, Yp, color='y', lw=2, label='Platform track')
