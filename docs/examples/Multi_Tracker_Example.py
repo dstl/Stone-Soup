@@ -389,132 +389,74 @@ plotter.fig
 # step for each tracker. This is a measure of how far the calculated tracks are
 # from the ground truth. We first initialise the metrics before plotting:
 
+tracking_filters = ['EKF', 'UKF', 'PF', 'ESIF']
+
+# %%
 from stonesoup.metricgenerator.ospametric import OSPAMetric
 
-ospa_generator = OSPAMetric(c=40, p=1)
+ospa_generators = [OSPAMetric(c=40, p=1,
+                              generator_name=f'{tracking_filter} OSPA metrics',
+                              tracks_key=f'tracks_{tracking_filter}',
+                              truths_key='truths'
+                             )
+                   for tracking_filter in tracking_filters]
 
 from stonesoup.metricgenerator.tracktotruthmetrics import SIAPMetrics
 from stonesoup.measures import Euclidean
 
-siap_generator = SIAPMetrics(position_measure=Euclidean((0, 2)),
-                             velocity_measure=Euclidean((1, 3)))
+siap_generators = [SIAPMetrics(position_measure=Euclidean((0, 2)),
+                             velocity_measure=Euclidean((1, 3)),
+                             generator_name=f'{tracking_filter} SIAP metrics',
+                             tracks_key=f'tracks_{tracking_filter}',
+                             truths_key='truths'
+                            )
+                  for tracking_filter in tracking_filters]
 
-from stonesoup.dataassociator.tracktotrack import TrackToTruth
-
-associator = TrackToTruth(association_threshold=30)
 
 from stonesoup.metricgenerator.uncertaintymetric import SumofCovarianceNormsMetric
 
-uncertainty_generator = SumofCovarianceNormsMetric()
+uncertainty_generators = [
+    SumofCovarianceNormsMetric(generator_name=f'{tracking_filter} OSPA metrics',
+                               tracks_key=f'tracks_{tracking_filter}')
+    for tracking_filter in tracking_filters]
 
 # %%
-# Now we initialise the metric managers for each tracker:
-from stonesoup.metricgenerator.manager import SimpleManager
+# Now we initialise the metric manager and generate the metrics:
 
-metric_manager_EKF = SimpleManager([ospa_generator, siap_generator, uncertainty_generator],
-                                   associator=associator)
-metric_manager_EKF.add_data(ground_truth, tracks_EKF)
-metrics_EKF = metric_manager_EKF.generate_metrics()
+from stonesoup.dataassociator.tracktotrack import TrackToTruth
+from stonesoup.metricgenerator.manager import MultiManager
 
-# ##################################################
+associator = TrackToTruth(association_threshold=30)
 
-metric_manager_UKF = SimpleManager([ospa_generator, siap_generator, uncertainty_generator],
-                                   associator=associator)
-metric_manager_UKF.add_data(ground_truth, tracks_UKF)
-metrics_UKF = metric_manager_UKF.generate_metrics()
+generators = ospa_generators + siap_generators + uncertainty_generators
+metric_manager = MultiManager(generators, associator=associator)
 
-# ##################################################
-
-metric_manager_PF = SimpleManager([ospa_generator, siap_generator, uncertainty_generator],
-                                  associator=associator)
-metric_manager_PF.add_data(ground_truth, tracks_PF)
-metrics_PF = metric_manager_PF.generate_metrics()
-
-# ##################################################
-
-metric_manager_ESIF = SimpleManager([ospa_generator, siap_generator, uncertainty_generator],
-                                    associator=associator)
-metric_manager_ESIF.add_data(ground_truth, tracks_ESIF)
-metrics_ESIF = metric_manager_ESIF.generate_metrics()
+metric_manager.add_data({'truths': ground_truth,
+                         'tracks_EKF': tracks_EKF,
+                         'tracks_UKF': tracks_UKF,
+                         'tracks_PF': tracks_PF,
+                         'tracks_ESIF': tracks_ESIF
+                         })
+metrics = metric_manager.generate_metrics()
 
 # %%
 # Now we can plot the OSPA distance for each tracker:
 
-from plotly.subplots import make_subplots
+from stonesoup.plotter import MetricPlotter
 
-ospa_metric_EKF = metrics_EKF['OSPA distances']
-ospa_metric_UKF = metrics_UKF['OSPA distances']
-ospa_metric_ESIF = metrics_ESIF['OSPA distances']
-ospa_metric_PF = metrics_PF['OSPA distances']
+fig1 = MetricPlotter()
+fig1.plot_metrics(metrics, metric_names=['OSPA distances'])
 
-fig = make_subplots(
-    rows=1, cols=1,
-    shared_xaxes=False,
-    vertical_spacing=0.040,
-    subplot_titles=['Tracker distance error from target - lower is better'])
-fig.add_scatter(
-    x=[i.timestamp for i in ospa_metric_ESIF.value],
-    y=[i.value for i in ospa_metric_ESIF.value],
-    name='ESIF',
-    legendgroup="green",
-    yaxis='y',
-    row=1,
-    col=1,
-    showlegend=True,
-    line_color='green',
-)
-fig.add_scatter(
-    x=[i.timestamp for i in ospa_metric_EKF.value],
-    y=[i.value for i in ospa_metric_EKF.value],
-    name='EKF',
-    legendgroup="orange",
-    yaxis='y',
-    row=1,
-    col=1,
-    showlegend=True,
-    line_color='orange',
-)
-fig.add_scatter(
-    x=[i.timestamp for i in ospa_metric_UKF.value],
-    y=[i.value for i in ospa_metric_UKF.value],
-    name='UKF',
-    legendgroup="blue",
-    yaxis='y',
-    row=1,
-    col=1,
-    showlegend=True,
-    line_color='blue',
-)
-fig.add_scatter(
-    x=[i.timestamp for i in ospa_metric_PF.value],
-    y=[i.value for i in ospa_metric_PF.value],
-    name='Particle',
-    legendgroup="red",
-    yaxis='y',
-    row=1,
-    col=1,
-    showlegend=True,
-    line_color='red',
-)
 # %%
 # It can be seen that the EKF, UKF, and Particle Filter all behave very similarly,
 # whereas the ESIF has very poor relative performance. A singular performance metric is calculated
 # from this by summing the OSPA value over all timesteps:
 
 # sum up distance error from ground truth over all timestamps
-ospa_EKF_total = sum([ospa_metric_EKF.value[i].value for i in range(0,
-                                                                    len(ospa_metric_EKF.value))])
-ospa_UKF_total = sum([ospa_metric_UKF.value[i].value for i in range(0,
-                                                                    len(ospa_metric_UKF.value))])
-ospa_PF_total = sum([ospa_metric_PF.value[i].value for i in range(0,
-                                                                len(ospa_metric_PF.value))])
-ospa_ESIF_total = sum([ospa_metric_ESIF.value[i].value for i in range(0,
-                                                                      len(ospa_metric_ESIF.value))])
-
-print("OSPA total value for EKF is ", f'{ospa_EKF_total:.3f}')
-print("OSPA total value for UKF is ", f'{ospa_UKF_total:.3f}')
-print("OSPA total value for PF is ", f'{ospa_PF_total:.3f}')
-print("OSPA total value for ESIF is ", f'{ospa_ESIF_total:.3f}')
+for tracking_filter in tracking_filters:
+    total = sum([metrics[f'{tracking_filter} OSPA metrics']['OSPA distances'].value[i].value
+                 for i in range(0, len(metrics[f'{tracking_filter} OSPA metrics']['OSPA distances'].value))])
+    print(f'OSPA total value for {tracking_filter} is {total:.3f}')
 
 # %%
 # Finally, we calculate the SIAP metrics for the EKF. The same metrics can be calculated for the
@@ -523,9 +465,7 @@ print("OSPA total value for ESIF is ", f'{ospa_ESIF_total:.3f}')
 from stonesoup.metricgenerator.metrictables import SIAPTableGenerator
 
 # generate metrics for EKF
-siap_averages_EKF = {metrics_EKF.get(metric) for metric in metrics_EKF
-                     if metric.startswith("SIAP") and not metric.endswith(" at times")}
-siap_time_based_EKF = {metrics_EKF.get(metric) for metric in metrics_EKF if metric.endswith(' at times')}
+siap_averages_EKF = metric_manager.get_siap_averages(generator_name='EKF SIAP metrics')
 
 _ = SIAPTableGenerator(siap_averages_EKF).compute_metric()
 print("\n\nSIAP metrics for EKF:")
