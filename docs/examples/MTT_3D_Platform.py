@@ -320,8 +320,11 @@ plotter2.plot_tracks(tracks_plot, [0, 2, 4], uncertainty=True, err_freq=5)
 
 # OSPA metric
 from stonesoup.metricgenerator.ospametric import OSPAMetric
-ospa_generator = OSPAMetric(c=40, p=1, generator_name='OSPA',
-                            tracks_key='tracks', truths_key='truths')
+ospa_generator = OSPAMetric(c=40, p=1,
+                            generator_name='OSPA metrics',
+                            tracks_key='tracks',
+                            truths_key='truths'
+                           )
 
 # SIAP metrics
 from stonesoup.metricgenerator.tracktotruthmetrics import SIAPMetrics
@@ -331,14 +334,15 @@ SIAPvel_measure = Euclidean(mapping=np.array([1, 3]))
 siap_generator = SIAPMetrics(
     position_measure=SIAPpos_measure,
     velocity_measure=SIAPvel_measure,
-    generator_name='SIAP',
-    tracks_key='tracks', truths_key='truths'
+    generator_name='SIAP metrics',
+    tracks_key='tracks',
+    truths_key='truths'
 )
 
 # Uncertainty metric
 from stonesoup.metricgenerator.uncertaintymetric import \
     SumofCovarianceNormsMetric
-uncertainty_generator = SumofCovarianceNormsMetric(generator_name='uncertainty',
+uncertainty_generator = SumofCovarianceNormsMetric(generator_name='Uncertainty metric',
                                                    tracks_key='tracks')
 
 # %%
@@ -365,8 +369,8 @@ metrics = metric_manager.generate_metrics()
 # The first metric we will look at is the OSPA metric.
 from stonesoup.plotter import MetricPlotter
 
-fig = MetricPlotter()
-fig.plot_metrics(metrics, generator_names=['OSPA'])
+fig1 = MetricPlotter()
+fig1.plot_metrics(metrics, generator_names=['OSPA metrics'])
 
 
 # %%
@@ -383,4 +387,6 @@ fig2.plot_metrics(metrics, metric_names=['SIAP Position Accuracy at times',
 # Since the sum is not normalized for the number of estimated states, it is
 # most important to look at the trends of this graph rather than the values.
 fig3 = MetricPlotter()
-fig3.plot_metrics(metrics, generator_names=['uncertainty'])
+fig3.plot_metrics(metrics, generator_names=['Uncertainty metric'])
+fig3.fig.axes[0].set_title(label='Track uncertainty over time')
+plt.show()
