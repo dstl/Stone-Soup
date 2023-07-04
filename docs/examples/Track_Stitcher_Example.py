@@ -370,27 +370,27 @@ print("Tracklets stitched correctly: ", StitcherCorrectness(stitched_tracks), "%
 # zero is showing that tracklets are being incorrectly stitched to tracklets from different truth
 # paths.
 
-import matplotlib.pyplot as plt
 from stonesoup.measures import Euclidean
 from stonesoup.metricgenerator.tracktotruthmetrics import SIAPMetrics
 from stonesoup.dataassociator.tracktotrack import TrackToTruth
-from stonesoup.metricgenerator.manager import SimpleManager
+from stonesoup.metricgenerator.manager import MultiManager
 from stonesoup.metricgenerator.metrictables import SIAPTableGenerator
 
 siap_generator = SIAPMetrics(position_measure=Euclidean((0, 2)),
-                             velocity_measure=Euclidean((1, 3)))
+                             velocity_measure=Euclidean((1, 3)),
+                             generator_name='SIAPs',
+                             tracks_key='tracks',
+                             truths_key='truths'
+                            )
 
 associator = TrackToTruth(association_threshold=30)
 
-metric_manager = SimpleManager([siap_generator],
-                               associator=associator)
-metric_manager.add_data(truths, set(all_tracks))
+# create metric manager and add tracks and truths data to it
+metric_manager = MultiManager([siap_generator],
+                              associator=associator)
+metric_manager.add_data({'truths': truths, 'tracks': set(all_tracks)})
 
-plt.rcParams["figure.figsize"] = (10, 8)
+# generate metrics and extract SIAP averages to display in SIAP table
 metrics = metric_manager.generate_metrics()
-
-siap_averages = {metrics.get(metric) for metric in metrics
-                 if metric.startswith("SIAP") and not metric.endswith(" at times")}
-siap_time_based = {metrics.get(metric) for metric in metrics if metric.endswith(' at times')}
-
+siap_averages = metric_manager.get_siap_averages(generator_name='SIAPs')
 _ = SIAPTableGenerator(siap_averages).compute_metric()
