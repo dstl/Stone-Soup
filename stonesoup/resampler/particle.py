@@ -58,7 +58,7 @@ class SystematicResampler(Resampler):
 class ESSResampler(Resampler):
     """
     This wrapper uses a :class:`~.Resampler` to resample the particles inside
-    an instant of :class:`~.Particles`, but only after checking if this is necessary
+    an instance of :class:`~.Particles`, but only after checking if this is necessary
     by comparing Effective Sample Size (ESS) with a supplied threshold (numeric).
     Kish's ESS is used, as recommended in Section 3.5 of this tutorial [1]_.
 

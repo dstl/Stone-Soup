@@ -8,7 +8,7 @@ from ..particle import SystematicResampler, MultinomialResampler, StratifiedResa
 from ..particle import ESSResampler
 
 
-def test_raise_errors():
+def test_residual_method_errors():
     particles = [Particle(np.array([[i]]), weight=1.5/20 if i % 2 == 0 else 0.5/20)
                  for i in range(20)]
     resampler1 = ResidualResampler()

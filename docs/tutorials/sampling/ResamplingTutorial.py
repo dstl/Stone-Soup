@@ -2,28 +2,29 @@
 # coding: utf-8
 
 """
-===================================
-Particle Filter Resamplers: Example
-===================================
+====================================
+Particle Filter Resamplers: Tutorial
+====================================
 """
 
 # %%
 # Introduction
 # ------------
-# The Stone-Soup package comes with a number of resamplers, for the Particle Filter, that can be
+# The stonesoup package comes with a number of resamplers, for the Particle Filter, that can be
 # used straight out of the box. This example explains each of the resamplers and compares the
 # results of using each one.
 #
 #
-# **Resamplers currently available in Stone-Soup:**
+# **Resamplers currently available in stonesoup:**
 #
-# - Systematic resampler
-# - Multinomial resampler
-# - Stratified resampler
-# - Residual resampler :math:`\ast`
-# - Effective Sample Size Resampler :math:`\ast`
+# - :class:`~SystematicResampler`
+# - :class:`~MultinomialResampler`
+# - :class:`~StratifiedResampler`
+# - :class:`~ResidualResampler`
+# - :class:`~ESSResampler` (Effective Sample Size Resampler)
 #
-# :math:`\ast` preprocessing methods that require the use of another resampler
+# The last two resamplers (Residual and ESS) are preprocessing methods that require the use of
+# another resampler.
 
 # %%
 # Plotter for this notebook
@@ -36,6 +37,7 @@ def plot(norm_weights, u_j=None, stratified=False):
     # Plot
     fig, ax = plt.subplots()
     fig.set_size_inches(10, 1.5)
+    plt.xlim([0, 1])
     for i, particle_weight in enumerate(norm_weights):
         left = 0
         for j in range(i):
@@ -103,7 +105,7 @@ u_j = [0.15, 0.41, 0.57, 0.63, 0.89]
 plot(normalised_weights, u_j)
 
 # %%
-# As shown above, the points 0.15, 0.41, and 0.57, all fall within the section of the CDF
+# As shown above, the points 0.15, 0.41, and 0.57 all fall within the section of the CDF
 # corresponding to particle 2, while the points 0.63 and 0.89 fall within the sections of
 # the CDF corresponding to particles 3 and 5 respectively.
 #
@@ -133,7 +135,7 @@ plot(normalised_weights, u_j)
 #      - 0.2
 #
 # As shown in the table, the resampler assigns a new weight to each sample - by default, each of
-# the resamplers included in Stone-Soup give all particles an equal weight of :math:`1/N` where
+# the resamplers included in stonesoup give all particles an equal weight of :math:`1/N` where
 # :math:`N` = no. of resampled particles.
 
 # %%
@@ -144,8 +146,8 @@ plot(normalised_weights, u_j)
 # Multinomial Resampler
 # ^^^^^^^^^^^^^^^^^^^^^
 #
-# The Multinomial resampler calculates :math:`N` independent random numbers from the uniform
-# distribution :math:`u \sim U(0,1]`, where :math:`N` is the target number of particles to
+# The :class:`~MultinomialResampler` calculates :math:`N` independent random numbers from the
+# uniform distribution :math:`u \sim U(0,1]`, where :math:`N` is the target number of particles to
 # be resampled. In most cases, we use :math:`N = M`, where :math:`M` is the number of existing
 # particles to be resampled. However, the Multinomial resampler can upsample (:math:`N > M`) or
 # downsample (:math:`N < M`) to a value :math:`N \neq M \in \mathbb{N}`. The Multinomial resampler
@@ -167,7 +169,7 @@ plot(normalised_weights, u_j)
 # Systematic Resampler
 # ^^^^^^^^^^^^^^^^^^^^
 #
-# Unlike the Multinomial resampler, the Systematic resampler doesn't calculate all points
+# Unlike the Multinomial resampler, the :class:`~SystematicResampler` doesn't calculate all points
 # independently. Instead, a single, random starting point is chosen. :math:`N` points are then
 # calculated at equidistant intervals along the CDF, so that there is a gap of :math:`1/N`
 # between any two consecutive points. The Systematic resampler has a computational complexity
@@ -189,7 +191,7 @@ plot(normalised_weights, u_j)
 # Stratified Resampler
 # ^^^^^^^^^^^^^^^^^^^^
 #
-# The Stratified resampler splits the whole CDF into :math:`N` evenly sized strata
+# The S:class:`~StratifiedResampler` splits the whole CDF into :math:`N` evenly sized strata
 # (subpopulations). A random point is then chosen, independently, from each stratum. This results
 # in the gap between any two consecutive points will be in the range :math:`(0, 2/N]`. The
 # Stratified resampler has a computational complexity of :math:`O(N)` where :math:`N` is the
@@ -215,52 +217,52 @@ plot(normalised_weights, u_j, s_lb)
 # Residual Resampler
 # ^^^^^^^^^^^^^^^^^^
 #
-# The residual resampler consists of two stages.
+# The :class:`~ResidualResampler` consists of two stages.
 #
 # **Stage 1**
 #
 # The first stage determines which particles have weight :math:`w^{i}_{j} \geq N`. Each of these
 # particles is then resampled :math:`N^{i}_{j} = floor(Nw^{i}_{j})` times. Hence we resample
-# :math:`N_j = \sum_{i=1}^{N}` particles in stage 1.
+# :math:`N_j = \sum_{i=1}^{N}N^i_j` particles in stage 1.
 #
 # **Stage 2**
-# We now look to resample the remaining :math:`R_j = N - N_j` particles from stage 2. The
+# We now look to resample the remaining :math:`R_j = N - N_j` particles during stage 2. The
 # residual weights from each particle are carried over from stage 1. These residual weights are
 # normalised, and used to calculate a CDF. We then use any of the first 3 resamplers to sample
 # :math:`R_j` particles using the CDF.
 #
 # This method reduces the number of particles that are sampled through the more computationally
 # expensive methods seen above. The Residual resampler also guarantees that any particle of weight
-# greater than :math:`1/N` will be represented at in the set of resampled particles.
+# greater than :math:`1/N` will be represented in the set of resampled particles.
 #
-# When using the Residual resampler in Stone-Soup, the Resampler requires a property
+# When using the Residual resampler in stonesoup, the Resampler requires a property
 # 'residual_resampler'. This property defines which resampler method to use for resampling the
 # residuals in stage 2.
-# The variable must be a string value from the following: ['multinomial', 'systematic',
-# 'stratified']. `If no residual_method` variable is provided, the multinomial method will be used
+# The variable must be a string value from the following: 'multinomial', 'systematic',
+# 'stratified'. If no `residual_method` variable is provided, the multinomial method will be used
 # by default.
 
 # %%
 # ESS Resampler
 # ^^^^^^^^^^^^^
 #
-# The ESS (Effective Sample Size) resampler is a wrapper around another resampler. It performs a
-# check at each time step to determine whether it is necessary to resample the particles.
-# Resampling is only performed at a given time step if a defined criterion is met. By default,
-# this criterion is
-# :math:`\frac{1}{\sum \exp(2 * particle_log_weight)}1 \leq \frac{n_particles}{2}`
+# The :class:`~ESSResampler` (Effective Sample Size)  is a wrapper around another resampler. It
+# performs a check at each time step to determine whether it is necessary to resample the
+# particles. Resampling is only performed at a given time step if a defined criterion is met. By
+# default, this criterion is
+# :math:`\frac{1}{\sum \exp(2 * particle\_log\_weight)}1 \leq \frac{n\_particles}{2}`
 
 # %%
-# Example in Stone-Soup
+# Example in stonesoup
 # ---------------------
 #
 # Generate some particles
 # ^^^^^^^^^^^^^^^^^^^^^^^
 #
-# An example of resampling particles using the Stone-Soup package. We generate some particles
-# using the Particle class from Stone-Soup. In this example, we give every particle an equal
+# An example of resampling particles using the stonesoup package. We generate some particles
+# using the Particle class from stonesoup. In this example, we give every particle an equal
 # weight - each particle will have the same likelihood of being resampled. The resample
-# function returns a ParticleState object, within which ParticleState.state_vector contains a
+# function returns a :class:`~.ParticleState`, the `state_vector` from which contains a
 # list of particles to be resampled.
 
 
@@ -272,12 +274,13 @@ particles = [Particle(np.array([[i]]), weight=1/5) for i in range(5)]
 # Simple Example
 # """"""""""""""
 #
-# In this example, we use the Multinomial Resampler to resample the particles generated above. We
-# simply define the Resampler, and then call the Resampler's method resample(), to resample the
-# particles.
+# In this example, we use the :class:`~MultinomialResampler` to resample the particles generated
+# above. We simply define the Resampler, call its `resample` method.
 #
-# There are situations where we may want to resample to a different number of particles. Excluding
-# the ResidualResampler, all stonesoup resamplers can up or down-sample as shown below.
+# There are situations where we may want to resample to a different number of particles - for
+# example if you want more granular information, or want to be more computationally efficient.
+# Excluding the :class:`~ResidualResampler`, all stonesoup resamplers can up or down-sample as
+# shown below.
 
 
 from stonesoup.resampler.particle import MultinomialResampler
@@ -287,17 +290,21 @@ resampler = MultinomialResampler()
 
 # Resample particles
 resampled_particles = resampler.resample(particles)
+print("---- State vector of resampled particles ----")
 print(resampled_particles.state_vector)
+print("------ Weights of resampled particles -------")
 print(resampled_particles.weight)
 
 # Repeat while upsampling particles
 upsampled_particles = resampler.resample(particles, nparts=10)
+print("---- State vector of upsampled particles ----")
 print(upsampled_particles.state_vector)
+print("------ Weights of upsampled particles -------")
 print(upsampled_particles.weight)
 
 
 # %%
-# Here we can see which particles were chosen to be resampled, and the weights of the new
+# Here we can see which particles were chosen to be resampled and the weights of the new
 # particles.
 
 # %%
