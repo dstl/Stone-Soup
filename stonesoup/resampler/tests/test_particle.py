@@ -11,14 +11,10 @@ from ..particle import ESSResampler
 def test_residual_method_errors():
     particles = [Particle(np.array([[i]]), weight=1.5/20 if i % 2 == 0 else 0.5/20)
                  for i in range(20)]
-    resampler1 = ResidualResampler()
-    resampler2 = ResidualResampler(residual_method='This_is_not_a_valid_residual_method')
+    resampler = ResidualResampler(residual_method='This_is_not_a_valid_residual_method')
 
     with pytest.raises(ValueError):
-        resampler1.resample(particles, nparts=5000000)
-
-    with pytest.raises(ValueError):
-        resampler2.resample(particles)
+        resampler.resample(particles)
 
 
 def test_systematic_equal():

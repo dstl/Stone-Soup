@@ -78,11 +78,11 @@ def plot(norm_weights, u_j=None, stratified=False):
 #      - 5
 #      - 0.5
 #    * - 3
-#      - 0.5
-#      - 0.05
-#    * - 4
 #      - 1.5
 #      - 0.15
+#    * - 4
+#      - 0.5
+#      - 0.05
 #    * - 5
 #      - 2
 #      - 0.2
@@ -107,7 +107,7 @@ plot(normalised_weights, u_j)
 # %%
 # As shown above, the points 0.15, 0.41, and 0.57 all fall within the section of the CDF
 # corresponding to particle 2, while the points 0.63 and 0.89 fall within the sections of
-# the CDF corresponding to particles 3 and 5 respectively.
+# the CDF corresponding to particles 3 and 5, respectively.
 #
 # Hence, for this example, the number of times each particle is resampled is as follows:
 #
@@ -160,7 +160,7 @@ plot(normalised_weights, u_j)
 
 import numpy as np
 
-# Pick :math:`N` random points in the uniform distribution :math:`u~U(0,1]`
+# Pick N random points in the uniform distribution u~U(0,1]
 u_j = np.random.rand(5)
 
 plot(normalised_weights, u_j)
@@ -170,7 +170,7 @@ plot(normalised_weights, u_j)
 # ^^^^^^^^^^^^^^^^^^^^
 #
 # Unlike the Multinomial resampler, the :class:`~SystematicResampler` doesn't calculate all points
-# independently. Instead, a single, random starting point is chosen. :math:`N` points are then
+# independently. Instead, a single random starting point is chosen. :math:`N` points are then
 # calculated at equidistant intervals along the CDF, so that there is a gap of :math:`1/N`
 # between any two consecutive points. The Systematic resampler has a computational complexity
 # of :math:`O(N)` where :math:`N` is the number of resampled particles.
@@ -193,7 +193,7 @@ plot(normalised_weights, u_j)
 #
 # The S:class:`~StratifiedResampler` splits the whole CDF into :math:`N` evenly sized strata
 # (subpopulations). A random point is then chosen, independently, from each stratum. This results
-# in the gap between any two consecutive points will be in the range :math:`(0, 2/N]`. The
+# in the gap between any two consecutive points being in the range :math:`(0, 2/N]`. The
 # Stratified resampler has a computational complexity of :math:`O(N)` where :math:`N` is the
 # number of resampled particles.
 #
@@ -260,7 +260,7 @@ plot(normalised_weights, u_j, s_lb)
 # ^^^^^^^^^^^^^^^^^^^^^^^
 #
 # An example of resampling particles using the stonesoup package. We generate some particles
-# using the Particle class from stonesoup. In this example, we give every particle an equal
+# using the :class:`~Particle` from stonesoup. In this example, we give every particle an equal
 # weight - each particle will have the same likelihood of being resampled. The resample
 # function returns a :class:`~.ParticleState`, the `state_vector` from which contains a
 # list of particles to be resampled.

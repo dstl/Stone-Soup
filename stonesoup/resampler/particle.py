@@ -213,12 +213,8 @@ class ResidualResampler(Resampler):
     Cannot be used to upsample or downsample.
     """
     residual_method: str = Property(default=None,
-                                    doc="string value...")
-
-    # def __init__(self, *args, **kwargs):
-    #     super().__init__(*args, **kwargs)
-    #     if self.residual_method is None:
-    #         self.residual_method = 'multinomial'
+                                    doc="String value to represent the method used to resample "
+                                        "particles from the residuals.")
 
     def resample(self, particles, nparts=None):
         """Resample the particles
@@ -228,7 +224,8 @@ class ResidualResampler(Resampler):
         particles : :class:`~.ParticleState` or list of :class:`~.Particle`
             The particles or particle state to be resampled according to their weights
         nparts : int
-            The number of particles to be returned from resampling
+            The number of particles to be returned from resampling. Must be equal to number of
+            particles from previous step
 
         Returns
         -------
@@ -238,12 +235,8 @@ class ResidualResampler(Resampler):
         if not isinstance(particles, ParticleState):
             particles = ParticleState(None, particle_list=particles)
 
-        if nparts is None:
-            nparts = len(particles)
-        elif nparts != len(particles):
-            raise ValueError("Residual Resampler cannot up-sample or down-sample, nparts must be "
-                             "equal to the exiting number of particles"
-                             "equal the number particles from the previous time step")
+        nparts = len(particles)
+
         if self.residual_method is None:
             self.residual_method = 'multinomial'
         log_weights = particles.log_weight
