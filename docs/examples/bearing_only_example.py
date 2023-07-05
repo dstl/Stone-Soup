@@ -1,5 +1,3 @@
-#!/usr/bin/env python
-
 """
 Bearings-only tracking example
 ==============================
@@ -166,7 +164,8 @@ from stonesoup.initiator.simple import SinglePointInitiator
 
 # Define an initiator
 # Given the complexity of the bearing-only tracking, let's feed the
-# same initial state to both the ground truth measurements and tracker.
+# same initial state to both the ground truth measurements and tracker
+# as Stone Soup, currently, does not have a bearing only initiator.
 
 initiator = SinglePointInitiator(
     prior_state=initial_target_state,
