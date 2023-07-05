@@ -489,7 +489,7 @@ track_fusion_tracker = PointProcessMultiTargetTracker(
 
 # %%
 # 6: Make Metric Manager
-# -----------------------
+# ----------------------
 # We will generate metrics of each of the four trackers for comparison.
 
 # %%

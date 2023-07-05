@@ -170,7 +170,6 @@ def test_computemetric(prior, transition_model, measurement_model, groundtruth,
     # NOTE: Checking value of inverse_j is not necessary since rmse values are derived from
     # inverse_j, therefore if they are correct, then inverse_j is also correct.
     assert 'inverse_j' in metric.value
-    # assert metric.value['track'] == groundtruth
     assert metric.value['track'].states == groundtruth.states
     assert np.allclose(metric.value['position_RMSE'], expected_pos_rmse)
     if velocity_mapping is not None:
