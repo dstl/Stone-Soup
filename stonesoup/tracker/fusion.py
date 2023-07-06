@@ -25,26 +25,33 @@ class SimpleFusionTracker(Tracker):  # implement tracks method
     Acts as a wrapper around a base tracker. Track is fixed after the sliding window.
     It exists within it, but the States may change. """
     base_tracker: Tracker = Property(doc="Tracker given to the fusion node")
-    sliding_window = Property(default=30,
+    sliding_window: int = Property(default=30,
                               doc="The number of time steps before the result is fixed")
-    queue = Property(default=None, doc="Queue which feeds in data")
+    queue: = Property(default=None, doc="Queue which feeds in data")
+    current_time: datetime = Property()
+    detector: DetectionReader = Property(doc= "Detection reader to read detections from the queue")
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self._tracks = set()
 
+    @property
+    def tracks(self):
+        return self._tracks
+
+    def __iter__(self):
+        self.detector_iter = iter(self.detector)
+        return super().__iter__()
+
     def __next__(self):
         # Get data in time window
-        data_in_window = set()  #? Convert to list? If ordered we can remove [0] and add to end.
-        data_not_in_window = set() # This should just be fixed_track or something like that (ie a Track object)
-        for data_piece in self.data:
+
+        # I think this block of code is equivalent to a detection reader?
+        data_in_window = list()
+        for data_piece in self.queue:
             if (self.current_time - datetime.timedelta(seconds=self.sliding_window) <
                     data_piece.time_arrived <= self.current_time):
-                data_in_window.add(data_piece)
-            else:
-                # Not sure what we want to do with this
-                data_not_in_window.add(data_piece)
-
+                data_in_window.append(data_piece)
         cdets = set()
         ctracks = set()
         for data_piece in data_in_window:
@@ -55,17 +62,17 @@ class SimpleFusionTracker(Tracker):  # implement tracks method
 
         # run our tracker on our detections
         tracks = set()
-        for time, ctracks in self.tracker:
+        for time, ctracks in self.base_tracker:
             tracks.update(ctracks)
 
         # Take the tracks and combine them, accounting for the fact that they might not all be as
         # up-to-date as one another
-        for tracks in [ctracks]:
-            dummy_detector = DummyDetector(current=[time, tracks])
-            self.track_fusion_tracker.detector = Tracks2GaussianDetectionFeeder(dummy_detector)
-            self.track_fusion_tracker.__iter__()
-            _, tracks = next(self.track_fusion_tracker)
-            self.track_fusion_tracker.update(tracks)
+        # for tracks in [ctracks]:
+        #     dummy_detector = DummyDetector(current=[time, tracks])
+        #     self.track_fusion_tracker.detector = Tracks2GaussianDetectionFeeder(dummy_detector)
+        #     self.track_fusion_tracker.__iter__()
+        #     _, tracks = next(self.track_fusion_tracker)
+        #     self.track_fusion_tracker.update(tracks)
 
         return time, self.tracks
 

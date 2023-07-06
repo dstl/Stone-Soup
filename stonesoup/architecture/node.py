@@ -83,6 +83,8 @@ class FusionNode(Node):
         doc="The queue from which this node draws data to be fused")
     track_fusion_tracker: Tracker = Property(
         doc="Tracker for associating tracks at the node")
+    tracks: set = Property(default=None,
+                           doc="Set of tracks tracked by the fusion node")
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -103,10 +105,11 @@ class FusionNode(Node):
 
         # Sort detections and tracks and group by time
 
-
         if data:
             # track it
             print("there's data")
+            for time, track in self.tracker:
+                self.tracks.update(track)
         else:
             print("no data")
             return
