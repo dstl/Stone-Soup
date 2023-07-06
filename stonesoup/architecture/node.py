@@ -80,8 +80,10 @@ class FusionNode(Node):
     tracker: Tracker = Property(
         doc="Tracker used by this Node to fuse together Tracks and Detections")
     fusion_queue: FusionQueue = Property(
+        default=FusionQueue(),
         doc="The queue from which this node draws data to be fused")
     track_fusion_tracker: Tracker = Property(
+        default=SimpleFusionTracker(),
         doc="Tracker for associating tracks at the node")
     tracks: set = Property(default=None,
                            doc="Set of tracks tracked by the fusion node")
