@@ -13,6 +13,7 @@ from string import ascii_uppercase as auc
 from datetime import datetime, timedelta
 import threading
 
+
 class Architecture(Base):
     edges: Edges = Property(
         doc="An Edges object containing all edges. For A to be connected to B we would have an "
@@ -259,6 +260,8 @@ class InformationArchitecture(Architecture):
             x.start()
 
         self.current_time += timedelta(seconds=time_increment)
+        for node in self.fusion_nodes:
+            node.track_fusion_tracker.current_time = self.current_time
 
 
 class NetworkArchitecture(Architecture):
