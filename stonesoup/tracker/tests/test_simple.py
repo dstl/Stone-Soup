@@ -23,9 +23,9 @@ def test_single_target_tracker(
 
 
 def test_single_target_mixture_tracker(
-        initiator, deleter, detector, data_associator, updater):
+        initiator, deleter, detector, data_mixture_associator, updater):
     tracker = SingleTargetMixtureTracker(
-        initiator, deleter, detector, data_associator, updater)
+        initiator, deleter, detector, data_mixture_associator, updater)
 
     previous_time = datetime.datetime(2018, 1, 1, 13, 59)
     total_tracks = set()
