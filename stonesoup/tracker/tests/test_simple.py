@@ -27,7 +27,7 @@ def test_single_target_mixture_tracker(
     tracker = SingleTargetMixtureTracker(
         initiator, deleter, detector, data_associator, updater)
 
-    previous_time = datetime.datetime(2023, 10, 7, 10, 00)
+    previous_time = datetime.datetime(2018, 1, 1, 13, 59)
     total_tracks = set()
     for time, tracks in tracker:
         assert time == previous_time + datetime.timedelta(minutes=1)
