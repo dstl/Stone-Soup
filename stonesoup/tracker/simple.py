@@ -89,7 +89,7 @@ class SingleTargetMixtureTracker(Tracker):
     by the :attr:`deleter`, and remaining unassociated detections are passed
     to the :attr:`initiator` to generate new track.
 
-        Parameters
+    Parameters
     ----------
     """
     initiator: Initiator = Property(doc="Initiator used to initialise the track.")
