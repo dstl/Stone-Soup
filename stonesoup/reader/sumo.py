@@ -15,9 +15,9 @@ from ..buffered_generator import BufferedGenerator
 class SUMOGroundTruthReader(GroundTruthReader):
     r"""A Groundtruth reader for a SUMO simulation.
 
-    At each time step, kinematic information from the objects in the SUMO simulation will be extracted and placed into a
-    :class:`~.GroundTruthState`. States with the same ID will be placed into a :class:`~.GroundTruthPath` in
-    sequence.
+    At each time step, kinematic information from the objects in the SUMO simulation will be
+    extracted and placed into a :class:`~.GroundTruthState`. States with the same ID will be placed
+    into a :class:`~.GroundTruthPath` in sequence.
 
     The state vector for each truth object is, by default,  of the form:
 
@@ -27,7 +27,8 @@ class SUMOGroundTruthReader(GroundTruthReader):
 
     .. note::
 
-        This reader requires the installation of SUMO, see: https://sumo.dlr.de/docs/Installing/index.html
+        This reader requires the installation of SUMO, see:
+        https://sumo.dlr.de/docs/Installing/index.html
 
         This reader requires a SUMO configuration file.
 
@@ -38,8 +39,9 @@ class SUMOGroundTruthReader(GroundTruthReader):
         doc='Path to SUMO config file')
 
     sumo_server_path: str = Property(
-        doc='Path to SUMO server, relative from SUMO_HOME environment variable. "/bin/sumo" to run on command line '
-            '"/bin/sumo-gui" will run using the SUMO-GUI, this will require pressing play within the GUI.')
+        doc='Path to SUMO server, relative from SUMO_HOME environment variable. "/bin/sumo" to run '
+            'on command line "/bin/sumo-gui" will run using the SUMO-GUI, this will require '
+            'pressing play within the GUI.')
 
     sim_start: datetime.datetime = Property(
         default=None,
@@ -47,7 +49,8 @@ class SUMOGroundTruthReader(GroundTruthReader):
 
     sim_steps: int = Property(
         default=200,
-        doc='Number of steps you want your SUMO simulation to run for. Use numpy.inf to have no limit')
+        doc='Number of steps you want your SUMO simulation to run for. Use numpy.inf to have no'
+            ' limit')
 
     position_mapping: Sequence[int] = Property(
         default=[0, 2, 4],
@@ -59,21 +62,24 @@ class SUMOGroundTruthReader(GroundTruthReader):
 
     person_metadata_fields: Collection[str] = Property(
         default=None,
-        doc='Collection of metadata fields for people that will be added to the metadata of each GroundTruthState. '
-            'Possible fields are documented in https://sumo.dlr.de/docs/TraCI/Person_Value_Retrieval.html. '
-            'See also PersonMetadataEnum. Underscores are required in place of spaces. '
+        doc='Collection of metadata fields for people that will be added to the metadata of '
+            'each GroundTruthState. Possible fields are documented in '
+            'https://sumo.dlr.de/docs/TraCI/Person_Value_Retrieval.html. See also '
+            'PersonMetadataEnum. Underscores are required in place of spaces. '
             'An example would be: ["speed", "color", "slope", "road_id]')
 
     vehicle_metadata_fields: Collection[str] = Property(
         default=None,
-        doc='Collection of metadata fields for vehicles that will be added to the metadata of each GroundTruthState. '
-            'Possible fields are documented in https://sumo.dlr.de/docs/TraCI/Vehicle_Value_Retrieval.html. '
-            'See also VehicleMetadataEnum. Underscores are required in place of spaces. '
+        doc='Collection of metadata fields for vehicles that will be added to the metadata of each '
+            'GroundTruthState. Possible fields are documented in '
+            'https://sumo.dlr.de/docs/TraCI/Vehicle_Value_Retrieval.html. See also '
+            'VehicleMetadataEnum. Underscores are required in place of spaces. '
             'An example would be: ["speed", "acceleration", "lane_position"]')
 
     geographic_coordinates: bool = Property(
         default=False,
-        doc='If True, geographic co-ordinates (longitude, latitude) will be added to the metadata of each state')
+        doc='If True, geographic co-ordinates (longitude, latitude) will be added to the metadata '
+            ' of each state')
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -120,8 +126,8 @@ class SUMOGroundTruthReader(GroundTruthReader):
 
         groundtruth_dict = dict()
         while self.step < self.sim_steps:
-            # Need to get id list at each timestamp since not all ids may be present through the whole of the
-            # simulation (spawning, exiting etc).
+            # Need to get id list at each timestamp since not all ids may be present through the
+            # whole of the simulation (spawning, exiting etc).
             vehicle_ids = traci.vehicle.getIDList()
             person_ids = traci.person.getIDList()
 
@@ -140,19 +146,21 @@ class SUMOGroundTruthReader(GroundTruthReader):
                 # Initialise and insert StateVector information
                 state_vector = StateVector([0.]*5)
                 np.put(state_vector, self.position_mapping, traci.person.getPosition3D(id_))
-                np.put(state_vector, self.velocity_mapping, self.calculate_velocity(traci.person.getSpeed(id_),
-                                                                                    traci.person.getAngle(id_),
-                                                                                    radians=False))
+                np.put(state_vector, self.velocity_mapping,
+                       self.calculate_velocity(traci.person.getSpeed(id_),
+                                               traci.person.getAngle(id_),
+                                               radians=False))
 
                 # Get information that is subscribed to for metadata
                 subscription = traci.person.getSubscriptionResults(id_)
-                metadata = {PersonMetadataEnum(key).name: subscription[key] for key in subscription.keys()}
+                metadata = {PersonMetadataEnum(key).name: subscription[key]
+                            for key in subscription.keys()}
 
                 # Add latitude / longitude to metadata
                 if self.geographic_coordinates:
-                    longitude, latitude = traci.simulation.convertGeo(*state_vector[self.position_mapping, :])
-                    metadata['longitude'] = longitude
-                    metadata['latitude'] = latitude
+                    long, lat = traci.simulation.convertGeo(*state_vector[self.position_mapping, :])
+                    metadata['longitude'] = long
+                    metadata['latitude'] = lat
 
                 state = GroundTruthState(
                     state_vector=state_vector,
@@ -174,19 +182,21 @@ class SUMOGroundTruthReader(GroundTruthReader):
                 # Initialise and insert StateVector information
                 state_vector = StateVector([0.]*5)
                 np.put(state_vector, self.position_mapping, traci.vehicle.getPosition3D(id_))
-                np.put(state_vector, self.velocity_mapping, self.calculate_velocity(traci.vehicle.getSpeed(id_),
-                                                                                    traci.vehicle.getAngle(id_),
-                                                                                    radians=False))
+                np.put(state_vector, self.velocity_mapping,
+                       self.calculate_velocity(traci.vehicle.getSpeed(id_),
+                                               traci.vehicle.getAngle(id_),
+                                               radians=False))
 
                 # Get information that is subscribed to for metadata
                 subscription = traci.vehicle.getSubscriptionResults(id_)
-                metadata = {VehicleMetadataEnum(key).name: subscription[key] for key in subscription.keys()}
+                metadata = {VehicleMetadataEnum(key).name: subscription[key]
+                            for key in subscription.keys()}
 
                 # Add latitude / longitude to metadata
                 if self.geographic_coordinates:
-                    longitude, latitude = traci.simulation.convertGeo(*state_vector[self.position_mapping, :])
-                    metadata['longitude'] = longitude
-                    metadata['latitude'] = latitude
+                    long, lat = traci.simulation.convertGeo(*state_vector[self.position_mapping, :])
+                    metadata['longitude'] = long
+                    metadata['latitude'] = lat
 
                 state = GroundTruthState(
                     state_vector=state_vector,
@@ -208,8 +218,8 @@ class SUMOGroundTruthReader(GroundTruthReader):
 
 class PersonMetadataEnum(Enum):
     """
-    A metadata Enum used to map the named variable of the person to the relevant id. Subscribing to this id
-    will retrieve the value and add it to the metadata of the GroundTruthState.
+    A metadata Enum used to map the named variable of the person to the relevant id. Subscribing to
+    this id will retrieve the value and add it to the metadata of the GroundTruthState.
     See https://sumo.dlr.de/docs/TraCI/Person_Value_Retrieval.html for a full list.
 
     """
@@ -236,8 +246,8 @@ class PersonMetadataEnum(Enum):
 
 class VehicleMetadataEnum(Enum):
     """
-    A metadata Enum used to map the named variable of the vehicle to the relevant id. Subscribing to this id will
-    retrieve the value and add it to the metadata of the GroundTruthState.
+    A metadata Enum used to map the named variable of the vehicle to the relevant id. Subscribing to
+    this id will retrieve the value and add it to the metadata of the GroundTruthState.
     See https://sumo.dlr.de/docs/TraCI/Vehicle_Value_Retrieval.html for a full list.
 
     """
