@@ -16,7 +16,7 @@ class SUMOGroundTruthReader(GroundTruthReader):
     r"""A Groundtruth reader for a SUMO simulation.
 
     At each time step, kinematic information from the objects in the SUMO simulation will be extracted and placed into a
-    :class:'~.GroundTruthState'. States with the same ID will be placed into a :class:'~.GroundTruthPath' in
+    :class:`~.GroundTruthState`. States with the same ID will be placed into a :class:`~.GroundTruthPath` in
     sequence.
 
     The state vector for each truth object is, by default,  of the form:
@@ -28,7 +28,8 @@ class SUMOGroundTruthReader(GroundTruthReader):
     .. note::
 
         This reader requires the installation of SUMO, see: https://www.eclipse.org/sumo/
-        This reader also requires a SUMO configuration file.
+
+        This reader requires a SUMO configuration file.
 
     Parameters
     ----------
