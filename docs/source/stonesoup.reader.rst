@@ -50,3 +50,7 @@ Astronomical
 .. automodule:: stonesoup.reader.astronomical
     :show-inheritance:
 
+SUMO
+----
+.. automodule:: stonesoup.reader.sumo
+    :show-inheritance:
