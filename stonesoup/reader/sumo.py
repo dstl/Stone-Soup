@@ -27,7 +27,7 @@ class SUMOGroundTruthReader(GroundTruthReader):
 
     .. note::
 
-        This reader requires the installation of SUMO, see: https://www.eclipse.org/sumo/
+        This reader requires the installation of SUMO, see: https://sumo.dlr.de/docs/Installing/index.html
 
         This reader requires a SUMO configuration file.
 
