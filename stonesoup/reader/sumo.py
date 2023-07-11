@@ -37,7 +37,7 @@ class SUMOGroundTruthReader(GroundTruthReader):
         doc='Path to SUMO config file')
 
     sumo_server_path: str = Property(
-        doc='Path to SUMO server, relative from SUMO_HOME environment variable. "/bin/sumo" to run on command line'
+        doc='Path to SUMO server, relative from SUMO_HOME environment variable. "/bin/sumo" to run on command line '
             '"/bin/sumo-gui" will run using the SUMO-GUI, this will require pressing play within the GUI.')
 
     sim_start: datetime.datetime = Property(
@@ -58,16 +58,16 @@ class SUMOGroundTruthReader(GroundTruthReader):
 
     person_metadata_fields: Collection[str] = Property(
         default=None,
-        doc='Collection of metadata fields for people that will be added to the metadata of each GroundTruthState.'
-            'Possible fields are documented in https://sumo.dlr.de/docs/TraCI/Person_Value_Retrieval.html.'
-            'See also PersonMetadataEnum. Underscores are required in place of spaces.'
+        doc='Collection of metadata fields for people that will be added to the metadata of each GroundTruthState. '
+            'Possible fields are documented in https://sumo.dlr.de/docs/TraCI/Person_Value_Retrieval.html. '
+            'See also PersonMetadataEnum. Underscores are required in place of spaces. '
             'An example would be: ["speed", "color", "slope", "road_id]')
 
     vehicle_metadata_fields: Collection[str] = Property(
         default=None,
-        doc='Collection of metadata fields for vehicles that will be added to the metadata of each GroundTruthState.'
-            'Possible fields are documented in https://sumo.dlr.de/docs/TraCI/Vehicle_Value_Retrieval.html.'
-            'See also VehicleMetadataEnum. Underscores are required in place of spaces.'
+        doc='Collection of metadata fields for vehicles that will be added to the metadata of each GroundTruthState. '
+            'Possible fields are documented in https://sumo.dlr.de/docs/TraCI/Vehicle_Value_Retrieval.html. '
+            'See also VehicleMetadataEnum. Underscores are required in place of spaces. '
             'An example would be: ["speed", "acceleration", "lane_position"]')
 
     geographic_coordinates: bool = Property(
