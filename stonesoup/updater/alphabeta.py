@@ -1,3 +1,5 @@
+from functools import lru_cache
+
 import numpy as np
 
 from ..base import Property
@@ -63,6 +65,7 @@ class AlphaBetaUpdater(Updater):
                                                   "assume that the velocity elements interleave "
                                                   "the position elements in the state vector.")
 
+    @lru_cache()
     def predict_measurement(self, prediction, measurement_model=None, **kwargs):
         """Return the predicted measurement
 
