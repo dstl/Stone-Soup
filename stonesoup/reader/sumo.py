@@ -13,10 +13,15 @@ from ..buffered_generator import BufferedGenerator
 
 
 class SUMOGroundTruthReader(GroundTruthReader):
-    """A groundtruth reader for SUMO simulations.
+    """A Groundtruth reader for a SUMO simulation.
 
-    Requires the installation of SUMO https://www.eclipse.org/sumo/.
-    Requires a SUMO configuration file
+    This reader requires the installation of SUMO, see: https://www.eclipse.org/sumo/
+    This reader also requires a SUMO configuration file.
+
+    At each time step, kinematic information from the objects in the SUMO simulation will be extracted and placed into a
+    :class:'~.GroundTruthState'. States with the same ID will be placed into a :class:'~.GroundTruthPath' in
+    sequence.
+
     Parameters
     ----------
     """
@@ -159,6 +164,10 @@ class SUMOGroundTruthReader(GroundTruthReader):
 
                 # Initialise and insert StateVector information
                 state_vector = StateVector([0.]*4)
+                print(id_)
+                print(f"3d position: {traci.vehicle.getPosition3D(id_)}")
+                print(f"2d position: {traci.vehicle.getPosition(id_)}")
+
                 np.put(state_vector, self.position_mapping, traci.vehicle.getPosition(id_))
                 np.put(state_vector, self.velocity_mapping, self.calculate_velocity(traci.vehicle.getSpeed(id_),
                                                                                     traci.vehicle.getAngle(id_),
@@ -193,6 +202,12 @@ class SUMOGroundTruthReader(GroundTruthReader):
 
 
 class PersonMetadataEnum(Enum):
+    """
+    A metadata Enum used to map the named variable of the person to the relevant id. Subscribing to this id
+    will retrieve the value and add it to the metadata of the GroundTruthState.
+    See https://sumo.dlr.de/docs/TraCI/Person_Value_Retrieval.html for a full list.
+
+    """
     id_list = 0x0
     count = 0x1
     speed = 0x40
@@ -215,6 +230,12 @@ class PersonMetadataEnum(Enum):
 
 
 class VehicleMetadataEnum(Enum):
+    """
+    A metadata Enum used to map the named variable of the vehicle to the relevant id. Subscribing to this id will
+    retrieve the value and add it to the metadata of the GroundTruthState.
+    See https://sumo.dlr.de/docs/TraCI/Vehicle_Value_Retrieval.html for a full list.
+
+    """
     id_list = 0x0
     count = 0x1
     speed = 0x40
