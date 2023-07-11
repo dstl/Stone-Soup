@@ -13,14 +13,22 @@ from ..buffered_generator import BufferedGenerator
 
 
 class SUMOGroundTruthReader(GroundTruthReader):
-    """A Groundtruth reader for a SUMO simulation.
-
-    This reader requires the installation of SUMO, see: https://www.eclipse.org/sumo/
-    This reader also requires a SUMO configuration file.
+    r"""A Groundtruth reader for a SUMO simulation.
 
     At each time step, kinematic information from the objects in the SUMO simulation will be extracted and placed into a
     :class:'~.GroundTruthState'. States with the same ID will be placed into a :class:'~.GroundTruthPath' in
     sequence.
+
+    The state vector for each truth object is, by default,  of the form:
+
+    .. math::
+
+        [\mathbf{x}, \mathbf{v}_x, \mathbf{y}, \mathbf{v}_y, \mathbf{z}]
+
+    .. note::
+
+        This reader requires the installation of SUMO, see: https://www.eclipse.org/sumo/
+        This reader also requires a SUMO configuration file.
 
     Parameters
     ----------
@@ -41,8 +49,8 @@ class SUMOGroundTruthReader(GroundTruthReader):
         doc='Number of steps you want your SUMO simulation to run for. Use numpy.inf to have no limit')
 
     position_mapping: Sequence[int] = Property(
-        default=[0, 2],
-        doc='Mapping for x, y position in state vector')
+        default=[0, 2, 4],
+        doc='Mapping for x, y, z position in state vector')
 
     velocity_mapping: Sequence[int] = Property(
         default=[1, 3],
@@ -129,8 +137,8 @@ class SUMOGroundTruthReader(GroundTruthReader):
                                                       data.name in self.person_metadata_fields))
 
                 # Initialise and insert StateVector information
-                state_vector = StateVector([0.]*4)
-                np.put(state_vector, self.position_mapping, traci.person.getPosition(id_))
+                state_vector = StateVector([0.]*5)
+                np.put(state_vector, self.position_mapping, traci.person.getPosition3D(id_))
                 np.put(state_vector, self.velocity_mapping, self.calculate_velocity(traci.person.getSpeed(id_),
                                                                                     traci.person.getAngle(id_),
                                                                                     radians=False))
@@ -163,12 +171,8 @@ class SUMOGroundTruthReader(GroundTruthReader):
                                                        data.name in self.vehicle_metadata_fields))
 
                 # Initialise and insert StateVector information
-                state_vector = StateVector([0.]*4)
-                print(id_)
-                print(f"3d position: {traci.vehicle.getPosition3D(id_)}")
-                print(f"2d position: {traci.vehicle.getPosition(id_)}")
-
-                np.put(state_vector, self.position_mapping, traci.vehicle.getPosition(id_))
+                state_vector = StateVector([0.]*5)
+                np.put(state_vector, self.position_mapping, traci.vehicle.getPosition3D(id_))
                 np.put(state_vector, self.velocity_mapping, self.calculate_velocity(traci.vehicle.getSpeed(id_),
                                                                                     traci.vehicle.getAngle(id_),
                                                                                     radians=False))
