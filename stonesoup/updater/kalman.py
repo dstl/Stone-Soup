@@ -188,6 +188,7 @@ class KalmanUpdater(Updater):
 
         return post_cov.view(CovarianceMatrix), kalman_gain
 
+    @lru_cache()
     def predict_measurement(self, predicted_state, measurement_model=None,
                             **kwargs):
         r"""Predict the measurement implied by the predicted state mean
