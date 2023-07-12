@@ -1,3 +1,5 @@
+from functools import lru_cache
+
 import numpy as np
 import scipy
 
@@ -104,6 +106,7 @@ class EnsembleUpdater(KalmanUpdater):
                 predicted_state, measurement_model=measurement_model, **kwargs)
         return hypothesis
 
+    @lru_cache()
     def predict_measurement(self, predicted_state, measurement_model=None,
                             **kwargs):
         r"""Predict the measurement implied by the predicted state mean
