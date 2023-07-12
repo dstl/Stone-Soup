@@ -97,7 +97,7 @@ def test_associationset():
     assoc2 = TimeRangeAssociation(objects=set(objects_list[1:]),
                                   time_range=time_range)
     assoc2_same_objects = TimeRangeAssociation(objects=set(objects_list[1:]),
-                                           time_range=time_range2)
+                                               time_range=time_range2)
 
     assoc_set = AssociationSet({assoc1, assoc2})
 

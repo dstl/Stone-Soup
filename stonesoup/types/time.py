@@ -185,8 +185,9 @@ class CompoundTimeRange(Intervals):
             return
         overlap_check = CompoundTimeRange()
         for time_range in self.time_ranges:
-            overlap_check.add(time_range - overlap_check & time_range)
-        self.time_ranges = overlap_check.time_ranges
+            if time_range - overlap_check:
+                overlap_check.add(time_range - overlap_check & time_range)
+        self.intervals = copy.copy(overlap_check.time_ranges)
 
     def _fuse_components(self):
         """Fuses two time ranges [a,b], [b,c] into [a,c] for all such pairs in this instance"""

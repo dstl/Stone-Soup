@@ -88,7 +88,7 @@ class AssociationSet(Type):
 
     def _simplify(self):
         """Where multiple associations describe the same pair of objects, combine them into one.
-        Note this is only implemented for pairs with a time_range attribute - others will be skipped
+        This is only implemented for pairs with a time_range attribute - others will be skipped
         """
         to_remove = set()
         for (assoc1, assoc2) in combinations(self.associations, 2):

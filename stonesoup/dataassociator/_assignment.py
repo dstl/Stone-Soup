@@ -348,7 +348,7 @@ def multidimensional_deconfliction(association_set):
     """
     # Check if there are any conflicts.  If none we can simply return the input
     if check_if_no_conflicts(association_set):
-        return association_set
+        return copy.copy(association_set)
 
     objects = list(association_set.object_set)
     length = len(objects)
@@ -371,8 +371,8 @@ def multidimensional_deconfliction(association_set):
         if i == j:
             # Can't associate with self
             continue
-        assoc = association_set.associations_including_objects({objects[i], objects[j]})
-        cleaned_set.add(assoc)
+        assoc = association_set_reduced.associations_including_objects({objects[i], objects[j]})
+        cleaned_set.add(copy.copy(assoc))
         association_set_reduced.remove(assoc)
     if len(cleaned_set) == 0:
         raise ValueError("Problem unsolvable using this method")
@@ -388,9 +388,9 @@ def multidimensional_deconfliction(association_set):
         runner_up_remaining_time = runner_up.time_range
         for winner in cleaned_set:
             if conflicts(runner_up, winner):
-                runner_up_remaining_time = runner_up_remaining_time - winner.time_range
+                runner_up_remaining_time -= winner.time_range
         if runner_up_remaining_time and runner_up_remaining_time.duration.total_seconds() > 0:
-            runner_up_copy = runner_up
+            runner_up_copy = copy.copy(runner_up)
             runner_up_copy.time_range = runner_up_remaining_time
             cleaned_set.add(runner_up_copy)
     return cleaned_set
@@ -399,7 +399,8 @@ def multidimensional_deconfliction(association_set):
 def conflicts(assoc1, assoc2):
     if hasattr(assoc1, 'time_range') and hasattr(assoc2, 'time_range') and \
             len(assoc1.objects.intersection(assoc2.objects)) > 0 and \
-            (assoc1.time_range & assoc2.time_range).duration.total_seconds() > 0:
+            (assoc1.time_range & assoc2.time_range).duration.total_seconds() > 0 and \
+            assoc1 != assoc2:
         return True
     else:
         return False
