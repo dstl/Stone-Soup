@@ -3,7 +3,7 @@ Bearings-only tracking example
 ==============================
 
 Non-linear bearing-only target tracking is a complex problem for estimating a
-target's states from bearing measurements towards a sensor.
+target's state from bearing measurements from a sensor.
 From bearing-only measurements we can estimate the parameters of the target
 motion (range and course). This is a non-linear problem caused by the non-linearity
 between the measurements and the target state vector.
