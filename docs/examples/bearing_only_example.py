@@ -225,35 +225,13 @@ for time, ctracks in kalman_tracker:
             groundtruth_paths[truth] = []
         groundtruth_paths[truth].append(loc)
 
-# generate the Platform positions
-Xp = [state.state_vector[0] for state in platform]
-Yp = [state.state_vector[2] for state in platform]
+from stonesoup.plotter import AnimatedPlotterly, AnimationPlotter
 
-# set up the plotter
-fig = plt.figure(figsize=(10, 6))
-ax = fig.add_subplot(1, 1, 1)
-ax.set_xlabel("$East$ (m)")
-ax.set_ylabel("$North$ (m)")
-ax.set_ylim(-1000, 400)  # change if there is a different model or seed
-ax.set_xlim(-900, 100)
-
-for key in groundtruth_paths:
-    X = [coord[0] for coord in groundtruth_paths[key]]
-    Y = [coord[1] for coord in groundtruth_paths[key]]
-    ax.plot(X, Y, color='r', lw=3, alpha=0.9, 
-                label='Ground truth track')  # Plot true locations in red
-
-for key in kalman_tracks:
-    X = [coord[0] for coord in kalman_tracks[key]]
-    Y = [coord[1] for coord in kalman_tracks[key]]
-    ax.plot(X, Y, color='b', lw=3, alpha=0.9, 
-                label='Track estimates')  # Plot track estimates in blue
-
-# plot platform location
-ax.plot(Xp, Yp, color='y', lw=2, label='Platform track')
-ax.scatter(0, 0, color='k', alpha=0.8, label='Platform origin')
-plt.legend(frameon=False, fontsize='medium')
-plt.show()
+plotter = AnimationPlotter()
+plotter.plot_ground_truths(groundtruth_paths, (0,2))
+plotter.plot_tracks(kalman_tracks, (0,2))
+plotter.plot_ground_truths(platform, (0,2), truths_label="Sensor Platform")
+plotter.run()
 
 # %%
 # This concludes this short tutorial on how to setup and run a simple single target
