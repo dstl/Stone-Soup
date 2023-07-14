@@ -206,7 +206,7 @@ kalman_tracker = SingleTargetTracker(
 # 5) Run the simulation and create the plots
 # ------------------------------------------
 # We have everything for running the simulation, we have the tracker, the sensor
-# detections and detector movements.
+# detections and platform movements.
 
 kalman_tracks = {}  # Store for plotting later
 groundtruth_paths = {}  # Store for plotting later
