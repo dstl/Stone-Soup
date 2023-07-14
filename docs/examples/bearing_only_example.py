@@ -55,7 +55,7 @@ start_time = datetime.now()
 # cartesian (x, y) movement direction. Then, we create a transition model (in 2D cartesian coordinates)
 # of the platform.
 # At this point, we can setup the Radar which receives only the bearing measurements from the targets using the
-# :class:`~.RadarBearing` object.
+# :class:`~.RadarBearing` sensor.
 
 # Import the platform to place the sensor
 from stonesoup.platform.base import MovingPlatform
