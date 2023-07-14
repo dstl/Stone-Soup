@@ -151,8 +151,9 @@ from stonesoup.simulator.platform import PlatformDetectionSimulator
 sim = PlatformDetectionSimulator(groundtruth=groundtruth_simulation,
                                  platforms=[platform])
 
-%%
+# %%
 # 4) Set up the tracker
+# ---------------------
 # Instantiate the filter components
 # Create an Extended Kalman Predictor
 predictor = ExtendedKalmanPredictor(transition_model)
@@ -161,7 +162,7 @@ predictor = ExtendedKalmanPredictor(transition_model)
 updater = ExtendedKalmanUpdater(measurement_model=None)
 
 
-%%
+# %%
 # Given the complexity of the bearing-only tracking, let's feed the
 # same initial state to both the ground truth measurements and tracker
 # as Stone Soup, currently, does not have a bearing only initiator.
@@ -226,7 +227,7 @@ for time, ctracks in kalman_tracker:
 
 from stonesoup.plotter import AnimatedPlotterly, AnimationPlotter
 
-plotter = AnimationPlotter()
+plotter = AnimationPlotter(legend_kwargs=dict(loc='upper left'))
 plotter.plot_ground_truths(groundtruth_paths, (0,2))
 plotter.plot_tracks(kalman_tracks, (0,2))
 plotter.plot_ground_truths(platform, (0,2), truths_label="Sensor Platform")
