@@ -152,6 +152,8 @@ from stonesoup.simulator.platform import PlatformDetectionSimulator
 sim = PlatformDetectionSimulator(groundtruth=groundtruth_simulation,
                                  platforms=[platform])
 
+%%
+# 4) Set up the tracker
 # Instantiate the filter components
 # Create an Extended Kalman Predictor
 predictor = ExtendedKalmanPredictor(transition_model)
