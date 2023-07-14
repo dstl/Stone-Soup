@@ -107,8 +107,8 @@ platform.add_sensor(radar)
 # %%
 # 2) Generate the target movements and ground truths
 # --------------------------------------------------
-# In this tutorial we build a single target ground truth simulator using a simple transition model
-# and a known initial target state.
+# We now build a ground truth simulator of a single target with a transition model
+# and a known initial state.
 
 # Load the single target ground truth simulator
 from stonesoup.simulator.simple import SingleTargetGroundTruthSimulator
