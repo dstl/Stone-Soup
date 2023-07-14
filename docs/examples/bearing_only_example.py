@@ -161,14 +161,14 @@ predictor = ExtendedKalmanPredictor(transition_model)
 # Create an Extended Kalman Updater
 updater = ExtendedKalmanUpdater(measurement_model=None)
 
-# Instantiate the single point initiator
-from stonesoup.initiator.simple import SinglePointInitiator
 
-# Define an initiator
+%%
 # Given the complexity of the bearing-only tracking, let's feed the
 # same initial state to both the ground truth measurements and tracker
 # as Stone Soup, currently, does not have a bearing only initiator.
 
+# Instantiate the single point initiator
+from stonesoup.initiator.simple import SinglePointInitiator
 initiator = SinglePointInitiator(
     prior_state=initial_target_state,
     measurement_model=meas_model)
