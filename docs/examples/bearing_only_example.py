@@ -60,7 +60,7 @@ start_time = datetime.now()
 # Import the platform to place the sensor
 from stonesoup.platform.base import MovingPlatform
 
-# Define the platform location, place it in the origin, and define its cartesian movements.
+# Define the platform location, place it in the origin, and define its Cartesian movements.
 # In addition specify the position and velocity mapping. This is done in 2D cartesian coordinates.
 
 platform_state_vector = StateVector([[0], [-5], [0], [-7]])
