@@ -87,8 +87,8 @@ platform = MovingPlatform(states=platform_state,
 # the range is not specified.
 from stonesoup.sensor.radar.radar import RadarBearing
 
-# Configure the radar noise, since we are using just a dimension we need to specify only the
-# noise associated with the bearing, we assume a bearing accuracy of +/- 0.025 degrees for 
+# Configure the radar noise, since we are using just a single dimension we need to specify only the
+# noise associated with the bearing dimension, we assume a bearing accuracy of +/- 0.025 degrees for 
 # each measurement
 noise_covar = CovarianceMatrix(np.array(np.diag([np.deg2rad(0.025) ** 2])))
 
