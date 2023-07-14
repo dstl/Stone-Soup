@@ -203,7 +203,7 @@ kalman_tracker = SingleTargetTracker(
 )
 
 # %%
-# 4) Run the simulation and create the plots
+# 5) Run the simulation and create the plots
 # ------------------------------------------
 # We have everything for running the simulation, we have the tracker, the sensor
 # detections and detector movements.
