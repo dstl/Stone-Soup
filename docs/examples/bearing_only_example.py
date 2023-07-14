@@ -105,7 +105,7 @@ platform.add_sensor(radar)
 # platform as shown in other tutorials.
 
 # %%
-# 2) Generate the target movements and ground truths
+# 2) Generate the ground truth target movements
 # --------------------------------------------------
 # We now build a ground truth simulator of a single target with a transition model
 # and a known initial state.
