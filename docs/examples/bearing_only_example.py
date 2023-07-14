@@ -70,8 +70,7 @@ velocity_mapping = (1, 3)
 # Create the initial state (position and time)
 platform_state = State(platform_state_vector, start_time)
 
-# Create a platform transition model, let's assume it is moving in a straight line
-# from its starting place
+# Create a platform transition model, let's assume it is moving with constant velocity
 platform_transition_model = CombinedLinearGaussianTransitionModel([
     ConstantVelocity(0.0), ConstantVelocity(0.0)])
 
