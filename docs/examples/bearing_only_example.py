@@ -21,7 +21,7 @@ distance-based data associator to merge the hypothesis and the detections from t
 # The layout of this example follows:
 #
 # 1) Create the moving platform and the :class:`~.RadarBearing` detector;
-# 2) Generate the target ground truths tracks;
+# 2) Generate the target ground truth paths;
 # 3) Set up the simulation for generating detections and ground truths;
 # 4) Run the simulation and create the plots
 
