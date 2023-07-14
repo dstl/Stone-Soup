@@ -118,8 +118,8 @@ transition_model = CombinedLinearGaussianTransitionModel([
     ConstantVelocity(1.0), ConstantVelocity(1.0)])
 
 # Define the initial target state
-# We use a gaussian state to specify the initial
-# 2D cartesian location and speed, and the accuracy
+# We use a Gaussian state to specify the initial
+# 2D Cartesian position and velocity, and the accuracy
 # using a covariance matrix.
 initial_target_state = GaussianState([50, 0, 50, 0],
                                      np.diag([1, 1, 1, 1]) ** 2,
