@@ -74,8 +74,8 @@ platform_state = State(platform_state_vector, start_time)
 platform_transition_model = CombinedLinearGaussianTransitionModel([
     ConstantVelocity(0.0), ConstantVelocity(0.0)])
 
-# We can instantiate the platform initial state, position and velocity mapping and 
-# the transition model
+# We can instantiate the platform's initial state, position and velocity mapping, and 
+# the transition model using the  :class:`~.MovingPlatform` platform class.
 platform = MovingPlatform(states=platform_state,
                           position_mapping=position_mapping,
                           velocity_mapping=velocity_mapping,
