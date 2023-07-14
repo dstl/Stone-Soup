@@ -61,7 +61,7 @@ start_time = datetime.now()
 from stonesoup.platform.base import MovingPlatform
 
 # Define the platform location, place it in the origin, and define its Cartesian movements.
-# In addition specify the position and velocity mapping. This is done in 2D cartesian coordinates.
+# In addition specify the position and velocity mapping. This is done in 2D Cartesian coordinates.
 
 platform_state_vector = StateVector([[0], [-5], [0], [-7]])
 position_mapping = (0, 2)
