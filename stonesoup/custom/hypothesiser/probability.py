@@ -5,6 +5,7 @@ import numpy as np
 from scipy.stats import multivariate_normal as mn
 
 from stonesoup.base import Property
+from stonesoup.functions import nearestSPD
 from stonesoup.hypothesiser import Hypothesiser
 from stonesoup.measures import SquaredMahalanobis
 from stonesoup.predictor import Predictor
@@ -156,6 +157,8 @@ class PDAHypothesiser(Hypothesiser):
                 # Compute measurement prediction and probability measure
                 measurement_prediction = self.updater.predict_measurement(
                     prediction, detection.measurement_model, **kwargs)
+                # Ensure covariance is positive definite
+                measurement_prediction.covar = nearestSPD(measurement_prediction.covar)
 
             # Calculate difference before to handle custom types (mean defaults to zero)
             # This is required as log pdf coverts arrays to floats
