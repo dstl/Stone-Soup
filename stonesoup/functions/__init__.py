@@ -627,9 +627,10 @@ def mod_elevation(x):
         x = np.pi - x
     elif N == 3:
         x = x - 2.0 * np.pi
-    elif N == 4:  # will only occur on occasions when first operation 
-                  # ('x = ..') returns 2pi to floating point limit. 
-        x = 0.0 
+    elif N == 4:
+        # will only occur on occasions when first operation ('x = ..') returns 2pi to floating
+        # point limit.
+        x = 0.0
     return x
 
 
