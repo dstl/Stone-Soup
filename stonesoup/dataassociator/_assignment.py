@@ -346,7 +346,6 @@ def multidimensional_deconfliction(association_set):
     : :class:`AssociationSet`
         The association set without contradictory associations
     """
-    # Check if there are any conflicts.  If none we can simply return the input
     if check_if_no_conflicts(association_set):
         return copy.copy(association_set)
 

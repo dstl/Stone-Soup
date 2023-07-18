@@ -198,7 +198,13 @@ def test_intervals_len():
 
 def test_intervals_str():
     assert str(A) == str([[interval.left, interval.right] for interval in A])
-    assert A.__repr__() == 'Intervals{intervals}'.format(intervals=str(A))
+    assert A.__repr__() == ('Intervals(\n'
+                            '    intervals=[Interval(\n'
+                            '                  start=0,\n'
+                            '                  end=1),\n'
+                            '               Interval(\n'
+                            '                  start=2,\n'
+                            '                  end=3)])')
 
 
 def test_intervals_iter():
