@@ -341,6 +341,7 @@ class BernoulliParticlePredictor(ParticlePredictor):
             existence_probability=predicted_existence,
             parent=untransitioned_state,
             timestamp=timestamp,
+            transition_model=self.transition_model
         )
         return new_particle_state
 

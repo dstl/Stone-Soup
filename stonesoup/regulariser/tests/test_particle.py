@@ -6,12 +6,15 @@ from ...types.particle import Particle
 from ...types.hypothesis import SingleHypothesis
 from ...types.prediction import ParticleStatePrediction, ParticleMeasurementPrediction
 from ...models.measurement.linear import LinearGaussian
+from ...models.transition.linear import CombinedLinearGaussianTransitionModel, ConstantVelocity
 from ...types.detection import Detection
 from ...types.update import ParticleStateUpdate
 from ..particle import MCMCRegulariser
 
 
 def test_regulariser():
+    transition_model = CombinedLinearGaussianTransitionModel([ConstantVelocity([0.05])])
+
     particles = ParticleState(state_vector=None, particle_list=[Particle(np.array([[10], [10]]),
                                                                          1 / 9),
                                                                 Particle(np.array([[10], [20]]),
@@ -32,20 +35,25 @@ def test_regulariser():
                                                                          1 / 9),
                                                                 ])
     timestamp = datetime.datetime.now()
-    prediction = ParticleStatePrediction(None, particle_list=particles.particle_list,
-                                         timestamp=timestamp)
-    meas_pred = ParticleMeasurementPrediction(None, particle_list=particles, timestamp=timestamp)
+    new_state_vector = transition_model.function(particles,
+                                                 noise=True,
+                                                 time_interval=datetime.timedelta(seconds=1))
+    prediction = ParticleStatePrediction(new_state_vector,
+                                         timestamp=timestamp,
+                                         transition_model=transition_model)
+    meas_pred = ParticleMeasurementPrediction(prediction, timestamp=timestamp)
     measurement_model = LinearGaussian(ndim_state=2, mapping=(0, 1), noise_covar=np.eye(2))
     measurement = [Detection(state_vector=np.array([[5], [7]]),
                              timestamp=timestamp, measurement_model=measurement_model)]
     state_update = ParticleStateUpdate(None, SingleHypothesis(prediction=prediction,
                                                               measurement=measurement,
                                                               measurement_prediction=meas_pred),
-                                       particle_list=particles.particle_list, timestamp=timestamp)
+                                       particle_list=particles.particle_list,
+                                       timestamp=timestamp+datetime.timedelta(seconds=1))
     regulariser = MCMCRegulariser()
 
     # state check
-    new_particles = regulariser.regularise(particles, state_update, measurement)
+    new_particles = regulariser.regularise(prediction, state_update, measurement, transition_model)
     # Check the shape of the new state vector
     assert new_particles.state_vector.shape == state_update.state_vector.shape
     # Check weights are unchanged

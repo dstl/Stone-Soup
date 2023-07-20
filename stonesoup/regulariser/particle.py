@@ -14,7 +14,7 @@ class MCMCRegulariser(Regulariser):
     of effectiveness. Sometimes this is not desirable, or possible, when a particular algorithm
     requires the introduction of new samples as part of the filtering process for example.
 
-    This is a particlar implementation of a MCMC move step that uses the Metropolis-Hastings
+    This is a particular implementation of a MCMC move step that uses the Metropolis-Hastings
     algorithm [1]_. After resampling, particles are moved a small amount, according do a Gaussian
     kernel, to a new state only if the Metropolis-Hastings acceptance probability is met by a
     random number assigned to each particle from a uniform random distribution, otherwise they
@@ -24,21 +24,23 @@ class MCMCRegulariser(Regulariser):
     ----------
     .. [1] Robert, Christian P. & Casella, George, Monte Carlo Statistical Methods, Springer, 1999.
 
-    .. [2] Ristic, Branco & Arulampalam, Sanjeev & Gordon, Neil, Beyond the Kalman Filter:
+    .. [2] Ristic, Branko & Arulampalam, Sanjeev & Gordon, Neil, Beyond the Kalman Filter:
         Particle Filters for Target Tracking Applications, Artech House, 2004. """
 
-    def regularise(self, prior, posterior, detections):
+    def regularise(self, prior, posterior, detections, transition_model=None):
         """Regularise the particles
 
         Parameters
         ----------
         prior : :class:`~.ParticleState` type or list of :class:`~.Particle`
-            prior particle distribution
+            prior particle distribution.
         posterior : :class:`~.ParticleState` type or list of :class:`~.Particle`
             posterior particle distribution
         detections : set of :class:`~.Detection`
             set of detections containing clutter,
             true detections or both
+        transition_model : :class:`~.TransitionModel`
+            Transition model used in the prediction step.
 
         Returns
         -------
@@ -54,6 +56,14 @@ class MCMCRegulariser(Regulariser):
 
         regularised_particles = copy.copy(posterior)
         moved_particles = copy.copy(posterior)
+        transitioned_prior = copy.copy(prior)
+
+        if transition_model is not None:
+            time_interval = posterior.timestamp - prior.timestamp
+            new_state_vector = transition_model.function(prior,
+                                                         noise=False,
+                                                         time_interval=time_interval)
+            transitioned_prior.state_vector = new_state_vector
 
         if detections is not None:
             ndim = prior.state_vector.shape[0]
@@ -70,13 +80,11 @@ class MCMCRegulariser(Regulariser):
                 hopt * cholesky_eps(covar_est) @ np.random.randn(ndim, nparticles)
 
             # Evaluate likelihoods
-            part_diff = moved_particles.state_vector - prior.state_vector
-            part_diff_mean = np.average(part_diff, axis=1)
-            move_likelihood = multivariate_normal.logpdf((part_diff - part_diff_mean).T,
+            part_diff = moved_particles.state_vector - transitioned_prior.state_vector
+            move_likelihood = multivariate_normal.logpdf(part_diff.T,
                                                          cov=covar_est)
-            post_part_diff = posterior.state_vector - prior.state_vector
-            post_part_diff_mean = np.average(post_part_diff, axis=1)
-            post_likelihood = multivariate_normal.logpdf((post_part_diff - post_part_diff_mean).T,
+            post_part_diff = posterior.state_vector - transitioned_prior.state_vector
+            post_likelihood = multivariate_normal.logpdf(post_part_diff.T,
                                                          cov=covar_est)
 
             # Evaluate measurement likelihoods
