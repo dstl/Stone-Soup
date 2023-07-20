@@ -1,5 +1,6 @@
 import numpy as np
 import datetime
+import pytest
 
 from ...types.state import ParticleState
 from ...types.particle import Particle
@@ -50,10 +51,10 @@ def test_regulariser():
                                                               measurement_prediction=meas_pred),
                                        particle_list=particles.particle_list,
                                        timestamp=timestamp+datetime.timedelta(seconds=1))
-    regulariser = MCMCRegulariser()
+    regulariser = MCMCRegulariser(transition_model=transition_model)
 
     # state check
-    new_particles = regulariser.regularise(prediction, state_update, measurement, transition_model)
+    new_particles = regulariser.regularise(prediction, state_update, measurement)
     # Check the shape of the new state vector
     assert new_particles.state_vector.shape == state_update.state_vector.shape
     # Check weights are unchanged
@@ -61,13 +62,17 @@ def test_regulariser():
     # Check that the timestamp is the same
     assert new_particles.timestamp == state_update.timestamp
 
-    # list check
-    new_particles = regulariser.regularise(particles.particle_list, state_update.particle_list,
-                                           measurement)
-    # Check the shape of the new state vector
-    assert new_particles.state_vector.shape == state_update.state_vector.shape
-    # Check weights are unchanged
-    assert any(new_particles.weight == state_update.weight)
+    # list check3
+    with pytest.raises(TypeError) as e:
+        new_particles = regulariser.regularise(particles.particle_list,
+                                               state_update,
+                                               measurement)
+    assert "Only ParticleState type is supported!" in str(e.value)
+    with pytest.raises(Exception) as e:
+        new_particles = regulariser.regularise(particles,
+                                               state_update.particle_list,
+                                               measurement)
+    assert "Only ParticleState type is supported!" in str(e.value)
 
 
 def test_no_measurement():
@@ -98,7 +103,7 @@ def test_no_measurement():
                                                               measurement=None,
                                                               measurement_prediction=meas_pred),
                                        particle_list=particles.particle_list, timestamp=timestamp)
-    regulariser = MCMCRegulariser()
+    regulariser = MCMCRegulariser(transition_model=None)
 
     new_particles = regulariser.regularise(particles, state_update, detections=None)
 

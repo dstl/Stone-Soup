@@ -5,6 +5,8 @@ from scipy.stats import multivariate_normal, uniform
 from .base import Regulariser
 from ..functions import cholesky_eps
 from ..types.state import ParticleState
+from ..models.transition import TransitionModel
+from ..base import Property
 
 
 class MCMCRegulariser(Regulariser):
@@ -27,20 +29,20 @@ class MCMCRegulariser(Regulariser):
     .. [2] Ristic, Branko & Arulampalam, Sanjeev & Gordon, Neil, Beyond the Kalman Filter:
         Particle Filters for Target Tracking Applications, Artech House, 2004. """
 
-    def regularise(self, prior, posterior, detections, transition_model=None):
+    transition_model: TransitionModel = Property(doc="Transition model used for prediction")
+
+    def regularise(self, prior, posterior, detections):
         """Regularise the particles
 
         Parameters
         ----------
-        prior : :class:`~.ParticleState` type or list of :class:`~.Particle`
+        prior : :class:`~.ParticleState` type
             prior particle distribution.
-        posterior : :class:`~.ParticleState` type or list of :class:`~.Particle`
+        posterior : :class:`~.ParticleState` type
             posterior particle distribution
         detections : set of :class:`~.Detection`
             set of detections containing clutter,
             true detections or both
-        transition_model : :class:`~.TransitionModel`
-            Transition model used in the prediction step.
 
         Returns
         -------
@@ -49,20 +51,20 @@ class MCMCRegulariser(Regulariser):
         """
 
         if not isinstance(posterior, ParticleState):
-            posterior = ParticleState(None, particle_list=posterior)
+            raise TypeError('Only ParticleState type is supported!')
 
         if not isinstance(prior, ParticleState):
-            prior = ParticleState(None, particle_list=prior)
+            raise TypeError('Only ParticleState type is supported!')
 
         regularised_particles = copy.copy(posterior)
         moved_particles = copy.copy(posterior)
         transitioned_prior = copy.copy(prior)
 
-        if transition_model is not None:
+        if self.transition_model is not None:
             time_interval = posterior.timestamp - prior.timestamp
-            new_state_vector = transition_model.function(prior,
-                                                         noise=False,
-                                                         time_interval=time_interval)
+            new_state_vector = self.transition_model.function(prior,
+                                                              noise=False,
+                                                              time_interval=time_interval)
             transitioned_prior.state_vector = new_state_vector
 
         if detections is not None:

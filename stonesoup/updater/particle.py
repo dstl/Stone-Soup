@@ -68,8 +68,7 @@ class ParticleUpdater(Updater):
         if self.regulariser is not None:
             predicted_state = self.regulariser.regularise(predicted_state.parent,
                                                           predicted_state,
-                                                          [hypothesis.measurement],
-                                                          hypothesis.prediction.transition_model)
+                                                          [hypothesis.measurement])
 
         return Update.from_state(
             state=hypothesis.prediction,
@@ -471,8 +470,7 @@ class BernoulliParticleUpdater(ParticleUpdater):
             if self.regulariser is not None:
                 regularised_parts = self.regulariser.regularise(updated_state.parent,
                                                                 updated_state,
-                                                                detections,
-                                                                prediction.transition_model)
+                                                                detections)
                 updated_state.state_vector = regularised_parts.state_vector
 
         return Update.from_state(

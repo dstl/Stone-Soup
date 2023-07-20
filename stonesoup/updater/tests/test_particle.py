@@ -140,7 +140,7 @@ def test_bernoulli_particle():
 
     prediction = predictor.predict(prior, timestamp=new_timestamp)
     resampler = SystematicResampler()
-    regulariser = MCMCRegulariser()
+    regulariser = MCMCRegulariser(transition_model=cv)
 
     updater = BernoulliParticleUpdater(measurement_model=None,
                                        resampler=resampler,
@@ -179,7 +179,7 @@ def test_regularised_particle():
     measurement_model = LinearGaussian(
         ndim_state=2, mapping=[0], noise_covar=np.array([[10]]))
 
-    updater = ParticleUpdater(regulariser=MCMCRegulariser(),
+    updater = ParticleUpdater(regulariser=MCMCRegulariser(transition_model=transition_model),
                               measurement_model=measurement_model)
     # Measurement model
     timestamp = datetime.datetime.now()
