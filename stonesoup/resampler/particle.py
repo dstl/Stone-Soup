@@ -8,8 +8,8 @@ from ..types.state import ParticleState
 class SystematicResampler(Resampler):
     """
     Traditional style resampler for particle filter. Calculates first random point in
-    (0, 1/nparts], then calculates nparts points that are equidistantly distributed across the
-    cdf. Complexity of order O(N) where N is the number of resampled particles.
+    (0, 1/nparts], then calculates `nparts` points that are equidistantly distributed across the
+    CDF. Complexity of order O(N) where N is the number of resampled particles.
 
     """
 
@@ -59,7 +59,7 @@ class ESSResampler(Resampler):
     """
     This wrapper uses a :class:`~.Resampler` to resample the particles inside
     an instance of :class:`~.Particles`, but only after checking if this is necessary
-    by comparing Effective Sample Size (ESS) with a supplied threshold (numeric).
+    by comparing the Effective Sample Size (ESS) with a supplied threshold (numeric).
     Kish's ESS is used, as recommended in Section 3.5 of this tutorial [1]_.
 
     References
@@ -107,7 +107,7 @@ class ESSResampler(Resampler):
 class MultinomialResampler(Resampler):
     """
     Traditional style resampler for particle filter. Calculates a random point in (0, 1]
-    individually for each particle, and picks the corresponding particle from the cdf calculated
+    individually for each particle, and picks the corresponding particle from the CDF calculated
     from particle weights. Complexity is of order O(NM) where N and M are the number of resampled
     and existing particles respectively.
     """
@@ -143,7 +143,7 @@ class MultinomialResampler(Resampler):
         # Pick random points for each of the particles
         u_j = np.random.rand(nparts)
 
-        # Pick particles that represent the chosen point from the cdf
+        # Pick particles that represent the chosen point from the CDF
         index = weight_order[np.searchsorted(cdf, np.log(u_j))]
 
         new_particles = particles[index]
@@ -153,7 +153,7 @@ class MultinomialResampler(Resampler):
 
 class StratifiedResampler(Resampler):
     """
-    Traditional style resampler for particle filter. Splits the cdf into N evenly sized
+    Traditional style resampler for particle filter. Splits the CDF into N evenly sized
     subpopulations ('strata'), then independently picks one value from each stratum. Complexity of
     order O(N).
 
@@ -193,7 +193,7 @@ class StratifiedResampler(Resampler):
         # Independently pick a point in each stratum
         u_j = np.random.uniform(s_l, s_l + (1 / nparts))
 
-        # Pick particles that represent the chosen point from the cdf
+        # Pick particles that represent the chosen point from the CDF
         index = weight_order[np.searchsorted(cdf, np.log(u_j))]
 
         new_particles = particles[index]
@@ -297,7 +297,7 @@ class ResidualResampler(Resampler):
             else:
                 raise ValueError("Invalid string variable given for stage 2 residual_method")
 
-            # Pick particles that represent the chosen point from the cdf
+            # Pick particles that represent the chosen point from the CDF
             stage_2_index = weight_order[np.searchsorted(cdf, np.log(u_j))]
             # Combine the indexes from both stages
             index = np.concatenate([stage_1_index, stage_2_index])

@@ -10,12 +10,12 @@ Particle Filter Resamplers: Tutorial
 # %%
 # Introduction
 # ------------
-# The stonesoup package comes with a number of resamplers, for the Particle Filter, that can be
+# Stone Soup comes with a number of resamplers, for the Particle Filter, that can be
 # used straight out of the box. This example explains each of the resamplers and compares the
 # results of using each one.
 #
 #
-# **Resamplers currently available in stonesoup:**
+# **Resamplers currently available in Stone Soup:**
 #
 # - :class:`~SystematicResampler`
 # - :class:`~MultinomialResampler`
@@ -91,7 +91,6 @@ def plot(norm_weights, u_j=None, stratified=False):
 
 
 particle_weights = [1, 5, 1.5, 0.5, 2]
-n_particles = len(particle_weights)
 normalised_weights = [particle/sum(particle_weights) for particle in particle_weights]
 plot(normalised_weights)
 
@@ -135,7 +134,7 @@ plot(normalised_weights, u_j)
 #      - 0.2
 #
 # As shown in the table, the resampler assigns a new weight to each sample - by default, each of
-# the resamplers included in stonesoup give all particles an equal weight of :math:`1/N` where
+# the resamplers included in Stone Soup give all particles an equal weight of :math:`1/N` where
 # :math:`N` = no. of resampled particles.
 
 # %%
@@ -235,7 +234,7 @@ plot(normalised_weights, u_j, s_lb)
 # expensive methods seen above. The Residual resampler also guarantees that any particle of weight
 # greater than :math:`1/N` will be represented in the set of resampled particles.
 #
-# When using the Residual resampler in stonesoup, the Resampler requires a property
+# When using the Residual resampler in Stone Soup, the Resampler requires a property
 # 'residual_resampler'. This property defines which resampler method to use for resampling the
 # residuals in stage 2.
 # The variable must be a string value from the following: 'multinomial', 'systematic',
@@ -253,14 +252,14 @@ plot(normalised_weights, u_j, s_lb)
 # :math:`\frac{1}{\sum \exp(2 * particle\_log\_weight)}1 \leq \frac{n\_particles}{2}`
 
 # %%
-# Example in stonesoup
-# ---------------------
+# Example in Stone Soup
+# ----------------------
 #
 # Generate some particles
 # ^^^^^^^^^^^^^^^^^^^^^^^
 #
-# An example of resampling particles using the stonesoup package. We generate some particles
-# using the :class:`~Particle` from stonesoup. In this example, we give every particle an equal
+# An example of resampling particles using the Stone Soup resamplers. We generate some particles
+# using the :class:`~Particle` class. In this example, we give every particle an equal
 # weight - each particle will have the same likelihood of being resampled. The resample
 # function returns a :class:`~.ParticleState`, the `state_vector` from which contains a
 # list of particles to be resampled.
@@ -279,7 +278,7 @@ particles = [Particle(np.array([[i]]), weight=1/5) for i in range(5)]
 #
 # There are situations where we may want to resample to a different number of particles - for
 # example if you want more granular information, or want to be more computationally efficient.
-# Excluding the :class:`~ResidualResampler`, all stonesoup resamplers can up or down-sample as
+# Excluding the :class:`~ResidualResampler`, all Stone Soup resamplers can up or down-sample as
 # shown below.
 
 
