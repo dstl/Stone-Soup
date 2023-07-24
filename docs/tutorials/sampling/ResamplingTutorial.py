@@ -17,11 +17,11 @@ Particle Filter Resamplers: Tutorial
 #
 # **Resamplers currently available in Stone Soup:**
 #
-# - :class:`~SystematicResampler`
-# - :class:`~MultinomialResampler`
-# - :class:`~StratifiedResampler`
-# - :class:`~ResidualResampler`
-# - :class:`~ESSResampler` (Effective Sample Size Resampler)
+# - :class:`~.SystematicResampler`
+# - :class:`~.MultinomialResampler`
+# - :class:`~.StratifiedResampler`
+# - :class:`~.ResidualResampler`
+# - :class:`~.ESSResampler` (Effective Sample Size Resampler)
 #
 # The last two resamplers (Residual and ESS) are preprocessing methods that require the use of
 # another resampler.
@@ -145,7 +145,7 @@ plot(normalised_weights, u_j)
 # Multinomial Resampler
 # ^^^^^^^^^^^^^^^^^^^^^
 #
-# The :class:`~MultinomialResampler` calculates :math:`N` independent random numbers from the
+# The :class:`~.MultinomialResampler` calculates :math:`N` independent random numbers from the
 # uniform distribution :math:`u \sim U(0,1]`, where :math:`N` is the target number of particles to
 # be resampled. In most cases, we use :math:`N = M`, where :math:`M` is the number of existing
 # particles to be resampled. However, the Multinomial resampler can upsample (:math:`N > M`) or
@@ -168,7 +168,7 @@ plot(normalised_weights, u_j)
 # Systematic Resampler
 # ^^^^^^^^^^^^^^^^^^^^
 #
-# Unlike the Multinomial resampler, the :class:`~SystematicResampler` doesn't calculate all points
+# Unlike the Multinomial resampler, the :class:`~.SystematicResampler` doesn't calculate all points
 # independently. Instead, a single random starting point is chosen. :math:`N` points are then
 # calculated at equidistant intervals along the CDF, so that there is a gap of :math:`1/N`
 # between any two consecutive points. The Systematic resampler has a computational complexity
@@ -190,7 +190,7 @@ plot(normalised_weights, u_j)
 # Stratified Resampler
 # ^^^^^^^^^^^^^^^^^^^^
 #
-# The S:class:`~StratifiedResampler` splits the whole CDF into :math:`N` evenly sized strata
+# The :class:`~.StratifiedResampler` splits the whole CDF into :math:`N` evenly sized strata
 # (subpopulations). A random point is then chosen, independently, from each stratum. This results
 # in the gap between any two consecutive points being in the range :math:`(0, 2/N]`. The
 # Stratified resampler has a computational complexity of :math:`O(N)` where :math:`N` is the
@@ -216,7 +216,7 @@ plot(normalised_weights, u_j, s_lb)
 # Residual Resampler
 # ^^^^^^^^^^^^^^^^^^
 #
-# The :class:`~ResidualResampler` consists of two stages.
+# The :class:`~.ResidualResampler` consists of two stages.
 #
 # **Stage 1**
 #
@@ -245,7 +245,7 @@ plot(normalised_weights, u_j, s_lb)
 # ESS Resampler
 # ^^^^^^^^^^^^^
 #
-# The :class:`~ESSResampler` (Effective Sample Size)  is a wrapper around another resampler. It
+# The :class:`~.ESSResampler` (Effective Sample Size) is a wrapper around another resampler. It
 # performs a check at each time step to determine whether it is necessary to resample the
 # particles. Resampling is only performed at a given time step if a defined criterion is met. By
 # default, this criterion is
@@ -273,8 +273,8 @@ particles = [Particle(np.array([[i]]), weight=1/5) for i in range(5)]
 # Simple Example
 # """"""""""""""
 #
-# In this example, we use the :class:`~MultinomialResampler` to resample the particles generated
-# above. We simply define the Resampler, call its `resample` method.
+# In this example, we use the :class:`~.MultinomialResampler` to resample the particles generated
+# above. We simply define the Resampler and call its `resample` method.
 #
 # There are situations where we may want to resample to a different number of particles - for
 # example if you want more granular information, or want to be more computationally efficient.
