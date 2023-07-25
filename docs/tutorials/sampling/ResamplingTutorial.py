@@ -260,9 +260,9 @@ plot(normalised_weights, u_j, s_lb)
 #
 # An example of resampling particles using the Stone Soup resamplers. We generate some particles
 # using the :class:`~Particle` class. In this example, we give every particle an equal
-# weight - each particle will have the same likelihood of being resampled. The resample
-# function returns a :class:`~.ParticleState`, the `state_vector` from which contains a
-# list of particles to be resampled.
+# weight - each particle will have the same likelihood of being resampled. The resample function
+# returns a :class:~.ParticleState. The state_vector property of which contains a list of
+# particles to be resampled.
 
 
 from stonesoup.types.particle import Particle
