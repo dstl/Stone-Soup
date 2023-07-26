@@ -145,7 +145,9 @@ plotter.fig
 # :class:`~.SystematicResampler`, which is passed to the updater. It should be noted that there are
 # many resampling schemes, and almost as many choices as to when to undertake resampling. The
 # systematic resampler is described in [#]_, and in what follows below resampling is undertaken
-# at each time-step.
+# at each time-step. More resamplers that are included in Stone Soup are covered in the
+# `Resampler Tutorial <https://stonesoup.readthedocs.io/en/latest/auto_tutorials/sampling/Resamp\
+# lingTutorial.html#sphx-glr-auto-tutorials-sampling-resamplingtutorial-py>`_
 
 # %%
 # Use of Effective Sample Size resampler (ESS)
