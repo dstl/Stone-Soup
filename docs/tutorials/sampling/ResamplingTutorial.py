@@ -7,6 +7,8 @@ Particle Filter Resamplers: Tutorial
 ====================================
 """
 
+import numpy as np
+
 # %%
 # Introduction
 # ------------
@@ -33,24 +35,31 @@ Particle Filter Resamplers: Tutorial
 import matplotlib.pyplot as plt
 
 
-def plot(norm_weights, u_j=None, stratified=False):
+def plot(normalised_weights, u_j=None, stratified=False, residual=False):
+    nparts = len(normalised_weights)
+    if residual is not False:
+        floors = np.floor(normalised_weights * nparts)
+
     # Plot
     fig, ax = plt.subplots()
     fig.set_size_inches(10, 1.5)
     plt.xlim([0, 1])
-    for i, particle_weight in enumerate(norm_weights):
-        left = 0
+    for i, particle_weight in enumerate(normalised_weights):
+        l = 0
         for j in range(i):
-            left += norm_weights[j]
-        ax.barh(['CDF'], [particle_weight], left=left)
+            l += normalised_weights[j]
+        ax.barh(['CDF'], [particle_weight], left=l)
+        if residual is not False:
+            if floors[i] != 0:
+                ax.barh(['CDF'], [(1 / nparts) * floors[i]], left=l, color='White')
+
     if u_j is not None:
         for point in u_j:
             plt.plot([u_j, u_j], [-0.4, 0.4], 'k-', lw=4)
     if stratified is not False:
-        n_parts = len(norm_weights)
-        s_lbs = np.arange(n_parts) * (1 / n_parts)
-        for lb in s_lbs:
-            plt.plot([lb, lb], [-0.4, 0.4], 'w:', lw=2)
+        s_lb = np.arange(nparts) * (1 / nparts)
+        for lb in s_lb:
+            plt.plot([s_lb, s_lb], [-0.4, 0.4], 'w:', lw=2)
 
 # %%
 # Cumulative Distribution Function
@@ -91,7 +100,9 @@ def plot(norm_weights, u_j=None, stratified=False):
 
 
 particle_weights = [1, 5, 1.5, 0.5, 2]
-normalised_weights = [particle/sum(particle_weights) for particle in particle_weights]
+n_particles = len(particle_weights)
+
+normalised_weights = np.array([particle/sum(particle_weights) for particle in particle_weights])
 plot(normalised_weights)
 
 # %%
@@ -220,15 +231,80 @@ plot(normalised_weights, u_j, s_lb)
 #
 # **Stage 1**
 #
-# The first stage determines which particles have weight :math:`w^{i}_{j} \geq N`. Each of these
-# particles is then resampled :math:`N^{i}_{j} = floor(Nw^{i}_{j})` times. Hence we resample
-# :math:`N_j = \sum_{i=1}^{N}N^i_j` particles in stage 1.
+# The first stage determines which particles have weight :math:`w^{i} \geq 1/N`, where
+# :math:`i \in 1, ..., N` denotes each particle. Each of these particles is then resampled
+# :math:`N^{i}_{j} = floor(Nw^{i}_{j})` times, where :math:`j=1` denotes stage 1. Hence,
+# :math:`N_1 = \sum_{i=1}^{N}N^i_1` represents the number of particles that are sampled in stage 1.
+# As these weights have been represented in the resampled set of particles, we are only interested
+# in the residual weights, left after the floor weights (:math:`N^{i}_{1}`) have been subtracted.
+#
+#
+# Reconsider our example with 5 particles, with weights shown by the plot below.
+
+plot(normalised_weights)
+
+# %%
+# As we're interested in particles of weight :math:`w^{i} \geq 1/N`, in this example we're looking
+# for particles with :math:`w^{i} \geq 1/5`. Hence particle 2 (orange, weight = 0.5) and particle
+# 5 (purple, weight = 0.1). We resample these particles :math:`N^{i}_{j} = floor(Nw^{i}_{j})`
+# times:
+#
+# - particle 2 gets resampled :math:`N^{2}_{1} = floor(Nw^{2}_{1}) = floor(5 * 0.5) = 2` times.
+# - particle 5 gets resampled :math:`N^{5}_{1} = floor(Nw^{5}_{1}) = floor(5 * 0.2) = 1` times.
+# - particles 1, 3 and 4 do not get resampled as their weights are :math:`\leq 1/5`.
+#
+#
+# A total of 3 particles were sampled from stage 1 (2x particle 2, 1x particle 5), hence
+# :math:`N_1 = \sum_{i=1}^{N}N^i_1 = 3`
+#
+#
+# Original CDF with integer weights removed:
+
+plot(normalised_weights, residual=True)
+
+
+# %%
+# New CDF:
+
+floors = np.floor(normalised_weights * n_particles)
+residuals = (normalised_weights - floors/n_particles)
+plot(residuals)
+
+# %%
+# The CDF of the residual weights is carried on to stage 2.
+#
 #
 # **Stage 2**
-# We now look to resample the remaining :math:`R_j = N - N_j` particles during stage 2. The
-# residual weights from each particle are carried over from stage 1. These residual weights are
-# normalised, and used to calculate a CDF. We then use any of the first 3 resamplers to sample
-# :math:`R_j` particles using the CDF.
+#
+#
+# We now look to resample the remaining :math:`N_2 = N - N_1` particles during stage 2. (Reminder:
+# N is the total number of particles we want to sample, while :math:`N_1` is the number of
+# particles we have already resampled from stage 1). The residual weights from each particle are
+# carried over from stage 1. These residual weights are normalised, and used to calculate a CDF,
+# which is shown below.
+#
+#
+# Normalised residual weight CDF:
+
+normalised_residual_weights = residuals*(1/sum(residuals))
+plot(normalised_residual_weights)
+
+# %%
+# We then use either the :class:`~.MultinomialResampler`, :class:`~.StratifiedResampler`, or
+# :class:`~.SystematicResampler` to sample the remaining :math:`N_2` particles using the CDF.
+#
+#
+# Continuing with our example, we want to resample the remaining :math:`N_2 = N - N_1 = 5 - 3 = 2`
+# particles in stage 2. Here we will choose to use the :class:`~.MultinomialResampler` (we could
+# also use :class:`~.StratifiedResampler` or :class:`~.SystematicResampler`) to sample
+# the :math:`N_2 = 2` particles from the normalised residual weight CDF - more detail on how this
+# is done can be found in the Multinomial Resampler section above.
+
+u_j = np.random.rand(2)
+
+plot(normalised_weights, u_j)
+
+# %%
 #
 # This method reduces the number of particles that are sampled through the more computationally
 # expensive methods seen above. The Residual resampler also guarantees that any particle of weight
@@ -259,7 +335,7 @@ plot(normalised_weights, u_j, s_lb)
 # ^^^^^^^^^^^^^^^^^^^^^^^
 #
 # An example of resampling particles using the Stone Soup resamplers. We generate some particles
-# using the :class:`~Particle` class. In this example, we give every particle an equal
+# using the :class:`~.Particle` class. In this example, we give every particle an equal
 # weight - each particle will have the same likelihood of being resampled. The resample function
 # returns a :class:~.ParticleState. The state_vector property of which contains a list of
 # particles to be resampled.
@@ -278,7 +354,7 @@ particles = [Particle(np.array([[i]]), weight=1/5) for i in range(5)]
 #
 # There are situations where we may want to resample to a different number of particles - for
 # example if you want more granular information, or want to be more computationally efficient.
-# Excluding the :class:`~ResidualResampler`, all Stone Soup resamplers can up or down-sample as
+# Excluding the :class:`~.ResidualResampler`, all Stone Soup resamplers can up- or down-sample as
 # shown below.
 
 

@@ -203,7 +203,8 @@ class StratifiedResampler(Resampler):
 
 class ResidualResampler(Resampler):
     """
-    Traditional resampler. Any particle, p with weight W >= 1/N, will be resampled floor(W_p)
+    Wrapper around a traditional resampler.
+    Any particle, p with weight W >= 1/N, will be resampled floor(W_p)
     times, providing N_stage_1 = sum(floor(W_p)) resampled particles.
 
     The residual weights of each particle are carried over and passed into another resampler, where
@@ -216,15 +217,13 @@ class ResidualResampler(Resampler):
                                     doc="Method used to resample particles from the residuals.")
 
     def resample(self, particles, nparts=None):
-        """Resample the particles
+        """Resample the particles.
+        For ResidualResampler, `nparts` must equal len(`particles`)
 
         Parameters
         ----------
         particles : :class:`~.ParticleState` or list of :class:`~.Particle`
             The particles or particle state to be resampled according to their weights
-        nparts : int
-            The number of particles to be returned from resampling. Must be equal to number of
-            particles from previous step
 
         Returns
         -------
