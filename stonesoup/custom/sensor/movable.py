@@ -116,7 +116,7 @@ class MovableUAVCamera(Sensor):
             if self.fov_in_km:
                 # distance = geopy.distance.distance(np.flip(self.position[0:2]),
                 #                                    np.flip(measurement_vector[0:2])).km
-                if not self._footprint.contains(Point(measurement_vector[0:2])):
+                if not self.footprint.contains(Point(measurement_vector[0:2])):
                     continue
             else:
                 # Normalise measurement vector relative to sensor position

@@ -308,8 +308,12 @@ class PseudoMeasExtractor(Base, BufferedGenerator):
 
     def get_scans_from_tracklets(self, tracklets, timestamp):
         measdata = self.get_pseudomeas(tracklets)
-        self._last_scan = timestamp
         scans = self.get_scans_from_measdata(measdata)
+        # if not len(scans):
+        #     scans = [Scan(start_time=self._last_scan,
+        #                   end_time=timestamp,
+        #                   sensor_scans=[])]
+        self._last_scan = timestamp
         # Sort the scans by start time
         scans.sort(key=lambda x: x.start_time)
         return scans

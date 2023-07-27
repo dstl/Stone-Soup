@@ -1,6 +1,7 @@
 import numpy as np
 
 from ..types.hypothesis import MultiHypothesis
+from ..types.tracklet import Scan
 from ...base import Base, Property
 from ...dataassociator.probability import JPDA
 from ...tracker import Tracker
@@ -55,6 +56,27 @@ class _BaseFuseTracker(Base):
 
         current_start_time = new_start_time
         current_end_time = new_end_time
+
+        if not len(scan.sensor_scans):
+            tracks = list(tracks)
+            detections = set()
+
+            # Perform data association
+            associations = self.associator.associate(tracks, detections,
+                                                     timestamp=current_end_time)
+            # Update tracks
+            for track in tracks:
+                self.update_track(track, associations[track], scan.id)
+
+            # Initiate new tracks on unassociated detections
+            if isinstance(self.associator, JPDA):
+                assoc_detections = set(
+                    [h.measurement for hyp in associations.values() for h in hyp if h])
+            else:
+                assoc_detections = set(
+                    [hyp.measurement for hyp in associations.values() if hyp])
+
+            tracks = set(tracks)
 
         for sensor_scan in scan.sensor_scans:
             tracks = list(tracks)
@@ -256,11 +278,13 @@ class FuseTracker2(_BaseFuseTracker):
         tracklets = self.tracklet_extractor.extract(alltracks, timestamp)
         # Extract pseudo-measurements
         scans = self.pseudomeas_extractor.extract(tracklets, timestamp)
+        if not len(scans) and self._current_end_time and timestamp - self._current_end_time >= self.tracklet_extractor.fuse_interval:
+            scans = [Scan(self._current_end_time, timestamp, [])]
 
         for scan in scans:
             self._tracks, self._current_end_time = self.process_scan(scan, self.tracks,
                                                                      self._current_end_time)
-        return timestamp, self.tracks
+        return self.tracks
 
     def process_scans(self, scans):
         for scan in scans:
