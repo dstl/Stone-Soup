@@ -12,24 +12,7 @@ from stonesoup.tracker.pointprocess import PointProcessMultiTargetTracker
 from stonesoup.feeder.track import Tracks2GaussianDetectionFeeder
 
 
-class DummyDetector(DetectionReader):
-    def __init__(self, *args, **kwargs):
-        self.current = kwargs['current']
-
-    @BufferedGenerator.generator_method
-    def detections_gen(self):
-        yield self.current
-
-
-class SimpleFusionTracker(Tracker):  # implement tracks method
-    """Presumes data from this node are detections, and from every other node are tracks
-    Acts as a wrapper around a base tracker. Track is fixed after the sliding window.
-    It exists within it, but the States may change. """
-    base_tracker: Tracker = Property(doc="Tracker given to the fusion node")
-    sliding_window = Property(default=30,
-                              doc="The number of time steps before the result is fixed")
-    queue = Property(default=None, doc="Queue which feeds in data")
-
+def FusionTracker(Tracker):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self._tracks = set()
@@ -37,6 +20,28 @@ class SimpleFusionTracker(Tracker):  # implement tracks method
 
     def set_time(self, time):
         self._current_time = time
+
+
+class DummyDetector(DetectionReader):
+    def __init__(self, *args, **kwargs):
+        super().__init__(self, *args, **kwargs)
+        self.current = kwargs['current']
+
+    @BufferedGenerator.generator_method
+    def detections_gen(self):
+        yield self.current
+
+
+class SimpleFusionTracker(FusionTracker):  # implement tracks method
+    """Presumes data from this node are detections, and from every other node are tracks
+    Acts as a wrapper around a base tracker. Track is fixed after the sliding window.
+    It exists within it, but the States may change. """
+    base_tracker: Tracker = Property(doc="Tracker given to the fusion node")
+    sliding_window = Property(default=30,
+                              doc="The number of time steps before the result is fixed")
+    queue = Property(default=None, doc="Queue which feeds in data")
+    track_fusion_tracker = Property(doc="Tracker for fusing of multiple tracks together")
+
 
     @property
     def tracks(self):
@@ -55,6 +60,7 @@ class SimpleFusionTracker(Tracker):  # implement tracks method
             # Need to feed in self.queue as base_tracker.detector_iter
             # Also need to give the base tracker our tracks to treat as its own
         elif isinstance(data_piece.data, Track):
+            pass
             # Must take account if one track has been fused together already
 
             # like this?
@@ -66,10 +72,5 @@ class SimpleFusionTracker(Tracker):  # implement tracks method
             #     self.track_fusion_tracker.update(tracks)
             #
             # return time, self.tracks
-        elif isinstance(data_piece.data, Hypothesis):
-            # do something
         else:
             raise TypeError(f"Data piece contained an incompatible type: {type(data_piece.data)}")
-
-
-    # Don't edit anything that comes before the current time - the sliding window. That's fixed forever.
