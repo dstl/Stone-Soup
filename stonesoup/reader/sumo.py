@@ -27,6 +27,11 @@ class SUMOGroundTruthReader(GroundTruthReader):
 
     .. note::
 
+        By default, the Carteisan co-ordinates use the UTM-projection with the origin shifted such that the bottom left
+        corner of the network is the origin (0,0). See: https://sumo.dlr.de/docs/Geo-Coordinates.html
+
+        To extract lat/long co-ordinates, it is required that the network is geo-referenced.
+
         This reader requires the installation of SUMO, see:
         https://sumo.dlr.de/docs/Installing/index.html
 
@@ -79,10 +84,13 @@ class SUMOGroundTruthReader(GroundTruthReader):
     geographic_coordinates: bool = Property(
         default=False,
         doc='If True, geographic co-ordinates (longitude, latitude) will be added to the metadata '
-            ' of each state')
+            ' of each state, as well as the lat/long of the origin of hte local co-ordinate frame')
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
+        # If network is geo-referenced, and geographic_coordinates == True, then self.origin will be lat/long
+        # position of the origin of the local Cartesian frame.
+        self.origin = None
         self.step = 0
         # Resort to default for sim_start
         if self.sim_start is None:
@@ -123,6 +131,8 @@ class SUMOGroundTruthReader(GroundTruthReader):
             sys.exit("Declare environment variable 'SUMO_HOME'")
 
         traci.start(self.sumoCmd)
+        if self.geographic_coordinates:
+            self.origin = traci.simulation.convertGeo(0, 0)   # long, lat
 
         groundtruth_dict = dict()
         while self.step < self.sim_steps:
@@ -155,12 +165,15 @@ class SUMOGroundTruthReader(GroundTruthReader):
                 subscription = traci.person.getSubscriptionResults(id_)
                 metadata = {PersonMetadataEnum(key).name: subscription[key]
                             for key in subscription.keys()}
-
                 # Add latitude / longitude to metadata
                 if self.geographic_coordinates:
                     long, lat = traci.simulation.convertGeo(*state_vector[self.position_mapping, :])
                     metadata['longitude'] = long
                     metadata['latitude'] = lat
+                    
+                # Add co-ordinates of origin to metadata
+                if self.origin:
+                    metadata['origin'] = self.origin
 
                 state = GroundTruthState(
                     state_vector=state_vector,
@@ -197,6 +210,10 @@ class SUMOGroundTruthReader(GroundTruthReader):
                     long, lat = traci.simulation.convertGeo(*state_vector[self.position_mapping, :])
                     metadata['longitude'] = long
                     metadata['latitude'] = lat
+
+                # Add co-ordinates of origin to metadata
+                if self.origin:
+                    metadata['origin'] = self.origin
 
                 state = GroundTruthState(
                     state_vector=state_vector,
