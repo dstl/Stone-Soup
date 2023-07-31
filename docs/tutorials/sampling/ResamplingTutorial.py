@@ -37,8 +37,7 @@ import matplotlib.pyplot as plt
 
 def plot(normalised_weights, u_j=None, stratified=False, residual=False):
     nparts = len(normalised_weights)
-    if residual:
-        floors = np.floor(normalised_weights * nparts)
+    floors = np.floor(normalised_weights * nparts)
 
     # Plot
     fig, ax = plt.subplots()
@@ -49,17 +48,14 @@ def plot(normalised_weights, u_j=None, stratified=False, residual=False):
         for j in range(i):
             l += normalised_weights[j]
         ax.barh(['CDF'], [particle_weight], left=l)
-        if residual:
+        if residual is not False:
             if floors[i] != 0:
                 ax.barh(['CDF'], [(1 / nparts) * floors[i]], left=l, color='White')
 
     if u_j is not None:
-        for point in u_j:
-            plt.plot([u_j, u_j], [-0.4, 0.4], 'k-', lw=4)
-    if stratified:
-        s_lb = np.arange(nparts) * (1 / nparts)
-        for lb in s_lb:
-            plt.plot([s_lb, s_lb], [-0.4, 0.4], 'w:', lw=2)
+        plt.plot([u_j, u_j], [-0.4, 0.4], 'k-', lw=4)
+    if stratified is not False:
+        plt.plot([s_lb, s_lb], [-0.4, 0.4], 'w:', lw=2)
 
 # %%
 # Cumulative Distribution Function
@@ -339,7 +335,7 @@ plot(normalised_weights, u_j)
 # An example of resampling particles using the Stone Soup resamplers. We generate some particles
 # using the :class:`~.Particle` class. In this example, we give every particle an equal
 # weight - each particle will have the same likelihood of being resampled. The resample function
-# returns a :class:~.ParticleState. The state_vector property of which contains a list of
+# returns a :class:`~.ParticleState`. The state_vector property of which contains a list of
 # particles to be resampled.
 
 
