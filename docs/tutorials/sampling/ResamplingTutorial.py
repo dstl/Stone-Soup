@@ -37,7 +37,7 @@ import matplotlib.pyplot as plt
 
 def plot(normalised_weights, u_j=None, stratified=False, residual=False):
     nparts = len(normalised_weights)
-    if residual is not False:
+    if residual:
         floors = np.floor(normalised_weights * nparts)
 
     # Plot
@@ -49,14 +49,14 @@ def plot(normalised_weights, u_j=None, stratified=False, residual=False):
         for j in range(i):
             l += normalised_weights[j]
         ax.barh(['CDF'], [particle_weight], left=l)
-        if residual is not False:
+        if residual:
             if floors[i] != 0:
                 ax.barh(['CDF'], [(1 / nparts) * floors[i]], left=l, color='White')
 
-    if u_j is not None:
+    if u_j:
         for point in u_j:
             plt.plot([u_j, u_j], [-0.4, 0.4], 'k-', lw=4)
-    if stratified is not False:
+    if stratified:
         s_lb = np.arange(nparts) * (1 / nparts)
         for lb in s_lb:
             plt.plot([s_lb, s_lb], [-0.4, 0.4], 'w:', lw=2)
@@ -180,7 +180,7 @@ plot(normalised_weights, u_j)
 # ^^^^^^^^^^^^^^^^^^^^
 #
 # Unlike the Multinomial resampler, the :class:`~.SystematicResampler` doesn't calculate all points
-# independently. Instead, a single random starting point is chosen. :math:`N` points are then
+# independently. Instead, a single random starting point in the range :math:`[0,1/N]` is chosen. :math:`N` points are then
 # calculated at equidistant intervals along the CDF, so that there is a gap of :math:`1/N`
 # between any two consecutive points. The Systematic resampler has a computational complexity
 # of :math:`O(N)` where :math:`N` is the number of resampled particles.
@@ -233,7 +233,7 @@ plot(normalised_weights, u_j, s_lb)
 #
 # The first stage determines which particles have weight :math:`w^{i} \geq 1/N`, where
 # :math:`i \in 1, ..., N` denotes each particle. Each of these particles is then resampled
-# :math:`N^{i}_{j} = floor(Nw^{i}_{j})` times, where :math:`j=1` denotes stage 1. Hence,
+# :math:`N^{i}_{j} = floor(Nw^{i}_{j})` times, where :math:`j \n 1, 2` denotes the stage. Hence,
 # :math:`N_1 = \sum_{i=1}^{N}N^i_1` represents the number of particles that are sampled in stage 1.
 # As these weights have been represented in the resampled set of particles, we are only interested
 # in the residual weights, left after the floor weights (:math:`N^{i}_{1}`) have been subtracted.
@@ -245,20 +245,20 @@ plot(normalised_weights)
 
 # %%
 # As we're interested in particles of weight :math:`w^{i} \geq 1/N`, in this example we're looking
-# for particles with :math:`w^{i} \geq 1/5`. Hence particle 2 (orange, weight = 0.5) and particle
-# 5 (purple, weight = 0.1). We resample these particles :math:`N^{i}_{j} = floor(Nw^{i}_{j})`
+# for particles with :math:`w^{i} \geq 1/5`. Hence Particle 2 (orange, weight = 0.5) and Particle
+# 5 (purple, weight = 0.2). We resample these particles :math:`N^{i}_{j} = floor(Nw^{i}_{j})`
 # times:
 #
-# - particle 2 gets resampled :math:`N^{2}_{1} = floor(Nw^{2}_{1}) = floor(5 * 0.5) = 2` times.
-# - particle 5 gets resampled :math:`N^{5}_{1} = floor(Nw^{5}_{1}) = floor(5 * 0.2) = 1` times.
-# - particles 1, 3 and 4 do not get resampled as their weights are :math:`\leq 1/5`.
+# - Particle 2 gets resampled :math:`N^{2}_{1} = floor(Nw^{2}_{1}) = floor(5 * 0.5) = 2` times.
+# - Particle 5 gets resampled :math:`N^{5}_{1} = floor(Nw^{5}_{1}) = floor(5 * 0.2) = 1` times.
+# - Particles 1, 3 and 4 do not get resampled as their weights are :math:`\leq 1/5`.
 #
 #
-# A total of 3 particles were sampled from stage 1 (2x particle 2, 1x particle 5), hence
+# A total of 3 particles were sampled from stage 1 (2x Particle 2, 1x Particle 5), hence
 # :math:`N_1 = \sum_{i=1}^{N}N^i_1 = 3`
 #
 #
-# Original CDF with integer weights removed:
+# Original CDF with floor weights removed:
 
 plot(normalised_weights, residual=True)
 
