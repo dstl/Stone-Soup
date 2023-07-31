@@ -324,8 +324,10 @@ plot(normalised_weights, u_j)
 # The :class:`~.ESSResampler` (Effective Sample Size) is a wrapper around another resampler. It
 # performs a check at each time step to determine whether it is necessary to resample the
 # particles. Resampling is only performed at a given time step if a defined criterion is met. By
-# default, this criterion is
-# :math:`\frac{1}{\sum \exp(2 * particle\_log\_weight)}1 \leq \frac{n\_particles}{2}`
+# default, this criterion is given by:
+#
+# .. math::
+#           ESS = \left(\sum_{i=1}^{N} (W_{n}^i)^2\right)^{-1}
 
 # %%
 # Example in Stone Soup
