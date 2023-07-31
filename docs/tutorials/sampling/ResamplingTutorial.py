@@ -53,7 +53,7 @@ def plot(normalised_weights, u_j=None, stratified=False, residual=False):
             if floors[i] != 0:
                 ax.barh(['CDF'], [(1 / nparts) * floors[i]], left=l, color='White')
 
-    if u_j:
+    if u_j is not None:
         for point in u_j:
             plt.plot([u_j, u_j], [-0.4, 0.4], 'k-', lw=4)
     if stratified:
