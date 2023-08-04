@@ -229,7 +229,7 @@ plot(normalised_weights, u_j, s_lb)
 #
 # The first stage determines which particles have weight :math:`w^{i} \geq 1/N`, where
 # :math:`i \in 1, ..., N` denotes each particle. Each of these particles is then resampled
-# :math:`N^{i}_{j} = floor(Nw^{i}_{j})` times, where :math:`j \n 1, 2` denotes the stage. Hence,
+# :math:`N^{i}_{j} = floor(Nw^{i}_{j})` times, where :math:`j \in 1, 2` denotes the stage. Hence,
 # :math:`N_1 = \sum_{i=1}^{N}N^i_1` represents the number of particles that are sampled in stage 1.
 # As these weights have been represented in the resampled set of particles, we are only interested
 # in the residual weights, left after the floor weights (:math:`N^{i}_{1}`) have been subtracted.
