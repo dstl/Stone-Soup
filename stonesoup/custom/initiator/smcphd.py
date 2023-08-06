@@ -53,6 +53,13 @@ class SMCPHDFilter(Base):
             'Default is "expansion"',
         default='expansion'
     )
+    scale_birth_weights: bool = Property(
+        doc="Whether to scale the birth weights by their likelihood, given the birth density. "
+            "Setting this to True can cause issues if the defined birth density is not a good "
+            "approximation to the true birth density. On the other hand, setting this to False "
+            "can lead to premature initialization of targets.",
+        default=False
+    )
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -92,6 +99,7 @@ class SMCPHDFilter(Base):
 
             # Sample birth particles
             birth_particles = np.zeros((pred_particles_sv.shape[0], 0))
+            birth_weights = np.zeros((0,))
             if isinstance(self.birth_density, GaussianMixture):
                 particles_per_component = num_birth // len(self.birth_density)
                 for i, component in enumerate(self.birth_density):
@@ -101,12 +109,30 @@ class SMCPHDFilter(Base):
                         component.mean.ravel(),
                         component.covar,
                         particles_per_component).T
+                    birth_weights_component = np.full((particles_per_component,),
+                                                      Probability(self.birth_rate / num_birth))
+                    if self.scale_birth_weights:
+                        # Scale birth weights by their likelihood, given the birth density
+                        birth_weights_component *= multivariate_normal.pdf(
+                            birth_particles_component.T,
+                            component.mean.ravel(),
+                            component.covar,
+                            allow_singular=True)
                     birth_particles = np.hstack((birth_particles, birth_particles_component))
+                    birth_weights = np.hstack((birth_weights, birth_weights_component))
             else:
                 birth_particles = multivariate_normal.rvs(self.birth_density.mean.ravel(),
                                                           self.birth_density.covar,
                                                           num_birth)
-            birth_weights = np.full((num_birth,), Probability(self.birth_rate / num_birth))
+                birth_weights = np.full((num_birth,),
+                                        Probability(self.birth_rate / num_birth))
+                if self.scale_birth_weights:
+                    # Scale birth weights by their likelihood, given the birth density
+                    birth_weights *= multivariate_normal.pdf(
+                        birth_particles,
+                        self.birth_density.mean.ravel(),
+                        self.birth_density.covar,
+                        allow_singular=True)
 
             # Surviving particle weights
             prob_survive = np.exp(-float(self.prob_death) * time_interval.total_seconds())
@@ -278,6 +304,7 @@ class SMCPHDFilter(Base):
 
 
 class ISMCPHDFilter(SMCPHDFilter):
+
     def predict(self, state, timestamp):
         """
         Predict the next state of the target density
@@ -376,9 +403,11 @@ class ISMCPHDFilter(SMCPHDFilter):
             log_num_targets_birth = logsumexp(log_post_weights_birth)  # N_{k|k}
             update2 = copy(birth_state)
             # Normalize weights
-            update2.weight = Probability.from_log_ufunc(log_post_weights_birth - log_num_targets_birth)
+            update2.weight = Probability.from_log_ufunc(
+                log_post_weights_birth - log_num_targets_birth)
             if self.resampler is not None:
-                update2 = self.resampler.resample(update2, update2.state_vector.shape[1])  # Resample
+                update2 = self.resampler.resample(update2,
+                                                  update2.state_vector.shape[1])  # Resample
             # De-normalize
             update2.weight = Probability.from_log_ufunc(np.log(update2.weight).astype(float)
                                                         + log_num_targets_birth)
@@ -405,7 +434,7 @@ class ISMCPHDFilter(SMCPHDFilter):
         # Sample birth particles
         num_birth = round(float(self.prob_birth) * self.num_samples)
         birth_particles = np.zeros((prediction.state_vector.shape[0], 0))
-        birth_weights= np.zeros((0, ))
+        birth_weights = np.zeros((0,))
         if len(detections):
             num_birth_per_detection = num_birth // len(detections)
             for i, detection in enumerate(detections):
@@ -418,10 +447,13 @@ class ISMCPHDFilter(SMCPHDFilter):
                 birth_particles_i = multivariate_normal.rvs(mu.ravel(),
                                                             cov,
                                                             num_birth_per_detection).T
-                birth_weights_i = multivariate_normal.pdf(birth_particles_i.T,
-                                                          mu.ravel(),
-                                                          cov,
-                                                          allow_singular=True) * Probability(self.birth_rate / num_birth)
+                birth_weights_i = np.full((num_birth_per_detection,),
+                                          Probability(self.birth_rate / num_birth))
+                if self.scale_birth_weights:
+                    birth_weights_i *= multivariate_normal.pdf(birth_particles_i.T,
+                                                               mu.ravel(),
+                                                               cov,
+                                                               allow_singular=True)
                 birth_particles = np.hstack((birth_particles, birth_particles_i))
                 birth_weights = np.hstack((birth_weights, birth_weights_i))
         else:
@@ -431,7 +463,8 @@ class ISMCPHDFilter(SMCPHDFilter):
             birth_weights = multivariate_normal.pdf(birth_particles.T,
                                                     self.birth_density.mean.ravel(),
                                                     self.birth_density.covar,
-                                                    allow_singular=True) * Probability(self.birth_rate / num_birth)
+                                                    allow_singular=True) * Probability(
+                self.birth_rate / num_birth)
         # birth_weights = np.full((num_birth,), Probability(self.birth_rate / num_birth))
         birth_particles = StateVectors(birth_particles)
         birth_state = Prediction.from_state(prediction,
@@ -520,7 +553,7 @@ class SMCPHDInitiator(Initiator):
             cov = np.cov(particles_sv, ddof=0, aweights=weight)
 
             hypothesis = SingleProbabilityHypothesis(prediction,
-                                                     measurement=detections[idx-1],
+                                                     measurement=detections[idx - 1],
                                                      probability=weights_per_hyp[:, idx])
 
             track_state = GaussianStateUpdate(mu, cov, hypothesis=hypothesis,
@@ -532,7 +565,7 @@ class SMCPHDInitiator(Initiator):
             track.exist_prob = Probability(log_intensity_per_hyp[idx], log_value=True)
             tracks.add(track)
 
-            weights[idx-1] = 0
+            weights[idx - 1] = 0
 
         # Update filter
         self._state = self.filter.update(prediction, detections, timestamp, weights)
@@ -557,20 +590,23 @@ class ISMCPHDInitiator(SMCPHDInitiator):
 
         # Calculate weights per hypothesis
         birth_state = self.filter.get_birth_state(prediction, detections, timestamp)
-        weights_per_hyp = self.filter.get_weights_per_hypothesis(prediction, detections, weights, birth_state)
+        weights_per_hyp = self.filter.get_weights_per_hypothesis(prediction, detections, weights,
+                                                                 birth_state)
         log_weights_per_hyp = np.log(weights_per_hyp[:self.filter.num_samples, :]).astype(float)
 
         # Calculate intensity per hypothesis
         log_intensity_per_hyp = logsumexp(log_weights_per_hyp, axis=0)
-        # print(np.exp(log_intensity_per_hyp))
+        print(np.exp(log_intensity_per_hyp))
         # Find detections with intensity above threshold and initiate
         valid_inds = np.flatnonzero(np.exp(log_intensity_per_hyp) > self.threshold)
         for idx in valid_inds:
             if not idx:
                 continue
 
-            particles_sv = copy(prediction.state_vector[:, :len(prediction)-len(prediction.birth_idx)])
-            weight = np.exp(log_weights_per_hyp[:self.filter.num_samples, idx] - log_intensity_per_hyp[idx])
+            particles_sv = copy(
+                prediction.state_vector[:, :len(prediction) - len(prediction.birth_idx)])
+            weight = np.exp(
+                log_weights_per_hyp[:self.filter.num_samples, idx] - log_intensity_per_hyp[idx])
 
             mu = np.average(particles_sv,
                             axis=1,
@@ -579,7 +615,8 @@ class ISMCPHDInitiator(SMCPHDInitiator):
 
             hypothesis = SingleProbabilityHypothesis(prediction,
                                                      measurement=detections[idx - 1],
-                                                     probability=weights_per_hyp[:self.filter.num_samples, idx])
+                                                     probability=weights_per_hyp[
+                                                                 :self.filter.num_samples, idx])
 
             track_state = GaussianStateUpdate(mu, cov, hypothesis=hypothesis,
                                               timestamp=timestamp)
