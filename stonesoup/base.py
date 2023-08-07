@@ -241,13 +241,10 @@ class BaseRepr(Repr):
         """Remove excess whitespace, replacing with ellipses"""
         large_whitespace = ' ' * (maxlen_whitespace+1)
         fixed_whitespace = ' ' * maxlen_whitespace
-        if large_whitespace in val:
-            excess = val.find(large_whitespace)  # Find the excess whitespace
+        while excess := val.find(large_whitespace) != -1:   # Find the excess whitespace, if any
             line_end = ''.join(val[excess:].partition('\n')[1:])
             val = ''.join([val[0:excess], fixed_whitespace, '...', line_end])
-            return cls.whitespace_remove(maxlen_whitespace, val)
-        else:
-            return val
+        return val
 
 
 class BaseMeta(ABCMeta):
