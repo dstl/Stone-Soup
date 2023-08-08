@@ -221,7 +221,8 @@ class ResidualResampler(Resampler):
     Cannot be used to upsample or downsample.
     """
     residual_method: ResidualMethod = Property(default=ResidualMethod.MULTINOMIAL,
-                                    doc="Method used to resample particles from the residuals.")
+                                               doc="Method used to resample particles from the "
+                                                   "residuals.")
 
     def resample(self, particles, nparts=None):
         """Resample the particles.
