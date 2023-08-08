@@ -7,7 +7,7 @@ Metrics example
 """
 
 # %%
-# This example demonstrates some of the different metrics available in Stonesoup and how they can be used with the
+# This example demonstrates some of the different metrics available in Stone Soup and how they can be used with the
 # :class:`~.MultiManager` to assess tracking performance. It also demonstrates how to use the :class:`~.MetricPlotter`
 # class to easily generate metric plots for visualisation.
 #
@@ -16,7 +16,7 @@ Metrics example
 #    compute the metrics themselves.
 #  - The :class:`~.MultiManager` metric manager - this is used to hold the metric generator(s) as well as all the ground
 #    truth, track, and detection sets we want to generate our metrics from. We will generate our metrics using the
-#    generate_metrics method of the :class:`~.MultiManager` class.
+#    :meth:`generate_metrics` method of the :class:`~.MultiManager` class.
 #
 # In this example, we will create a variety of metric generators for different types of metrics. These metrics will be
 # used to assess and compare tracks produced from the same set of ground truth paths and detections by the Extended
@@ -28,7 +28,7 @@ Metrics example
 # In this section we create the metric generators in preparation for generating metrics later on.
 #
 # First we create some Basic Metrics generators that will show us the number of tracks, the number of targets and the
-# ratio of tracks to targets. As with all the other metric generators, we must give our generator a unique name to
+# ratio of tracks to targets. As with all the metric generators, we must give our generator a unique name to
 # identify it later, and the keys for our tracks and ground truth data (and detections set if relevant). When we
 # generate the metrics, these keys will be used to access the data that we will store in the MultiManager and allow us
 # to specify which tracks or truths we want to generate metrics for.
@@ -344,7 +344,7 @@ tracker_PF = MultiTargetTracker(
 # -----------------------------------------------
 # Now that we have all of our ground truth, detections, and tracks data, we can add it to the metric manager.
 #
-# The MultiManager .add_data() method takes a dictionary of lists/sets of ground truth, detections, and/or tracks data.
+# The MultiManager :meth:`.add_data()` method takes a dictionary of lists/sets of ground truth, detections, and/or tracks data.
 # It can take multiple sets of each type. Each state set must have a unique key assigned to it. The track, truth, and
 # detection keys that we input into the metric generators will be used to extract the corresponding set from the
 # :class:`~.MultiManager` for metric generation.
