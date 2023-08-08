@@ -1,4 +1,5 @@
 import numpy as np
+from enum import Enum
 
 from .base import Resampler
 from ..base import Property
@@ -201,6 +202,12 @@ class StratifiedResampler(Resampler):
         return new_particles
 
 
+class ResidualMethod(Enum):
+    MULTINOMIAL = 'multinomial'
+    SYSTEMATIC = 'systematic'
+    STRATIFIED = 'stratified'
+
+
 class ResidualResampler(Resampler):
     """
     Wrapper around a traditional resampler.
@@ -213,7 +220,7 @@ class ResidualResampler(Resampler):
     Should be a more computationally efficient method than resampling all particles from a CDF.
     Cannot be used to upsample or downsample.
     """
-    residual_method: str = Property(default=None,
+    residual_method: ResidualMethod = Property(default=ResidualMethod.MULTINOMIAL,
                                     doc="Method used to resample particles from the residuals.")
 
     def resample(self, particles, nparts=None):
@@ -225,6 +232,10 @@ class ResidualResampler(Resampler):
         particles : :class:`~.ParticleState` or list of :class:`~.Particle`
             The particles or particle state to be resampled according to their weights
 
+        nparts : int
+            The number of particles to be returned from resampling - must equal number of particles
+            from previous step
+
         Returns
         -------
         particle state: :class:`~.ParticleState`
@@ -233,10 +244,12 @@ class ResidualResampler(Resampler):
         if not isinstance(particles, ParticleState):
             particles = ParticleState(None, particle_list=particles)
 
-        nparts = len(particles)
+        if nparts is None:
+            nparts = len(particles)
+        elif nparts != len(particles):
+            raise NotImplementedError("This resampler does not currently support up- or down-"
+                                      "sampling")
 
-        if self.residual_method is None:
-            self.residual_method = 'multinomial'
         log_weights = particles.log_weight
 
         # Get the true weight of each particle
@@ -274,11 +287,11 @@ class ResidualResampler(Resampler):
                 cdf = np.log(np.cumsum(np.exp(r_log_weights[weight_order] - max_log_value)))
             cdf += max_log_value
 
-            if self.residual_method == 'multinomial':
+            if self.residual_method == ResidualMethod.MULTINOMIAL:
                 # Pick random points for each of the particles
                 u_j = np.random.rand(n_stage_2_parts)
 
-            elif self.residual_method == 'systematic':
+            elif self.residual_method == ResidualMethod.SYSTEMATIC:
                 # Pick random starting point
                 u_i = np.random.uniform(0, 1 / n_stage_2_parts)
 
@@ -286,7 +299,7 @@ class ResidualResampler(Resampler):
                 # that pushed the score over the current value
                 u_j = u_i + (1 / n_stage_2_parts) * np.arange(n_stage_2_parts)
 
-            elif self.residual_method == 'stratified':
+            elif self.residual_method == ResidualMethod.STRATIFIED:
                 # Strata lower bounds:
                 s_l = np.arange(n_stage_2_parts) * (1 / n_stage_2_parts)
 

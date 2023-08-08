@@ -4,7 +4,7 @@ import pytest
 from ...types.particle import Particle
 from ...types.state import ParticleState
 from ..particle import SystematicResampler, MultinomialResampler, StratifiedResampler, \
-    ResidualResampler
+    ResidualResampler, ResidualMethod
 from ..particle import ESSResampler
 
 
@@ -213,7 +213,7 @@ def test_ess_residual_non_default():
                  for i in range(10)]
     particles = ParticleState(None, particle_list=particles)
 
-    subresampler = ResidualResampler(residual_method='stratified')
+    subresampler = ResidualResampler(residual_method=ResidualMethod.STRATIFIED)
 
     # This resampler should not resample
     resampler1 = ESSResampler(resampler=subresampler)
@@ -382,14 +382,14 @@ def test_residual_equal():
     # All particles have weight = 1/N so all should be resampled once
     assert all(np.array_equal(np.array([[i]]), new_particle.state_vector)
                for i, new_particle in enumerate(new_particles))
-    assert resampler.residual_method == 'multinomial'
+    assert resampler.residual_method == ResidualMethod.MULTINOMIAL
 
 
 def test_residual_multinomial_alternating():
     particles = [Particle(np.array([[i]]), weight=3 / 80 if i % 2 == 0 else 5 / 80) for i in
                  range(20)]
 
-    resampler = ResidualResampler(residual_method='multinomial')
+    resampler = ResidualResampler(residual_method=ResidualMethod.MULTINOMIAL)
 
     new_particles = resampler.resample(particles)
 
@@ -406,7 +406,7 @@ def test_residual_multinomial_alternating():
     # Odd indices should all automatically get resampled once each (50%), plus a chance that their
     # residual also gets resampled
     assert odd >= even
-    assert resampler.residual_method == 'multinomial'
+    assert resampler.residual_method == ResidualMethod.MULTINOMIAL
 
 
 def test_residual_stratified_alternating():
@@ -414,7 +414,7 @@ def test_residual_stratified_alternating():
     particles = [Particle(np.array([[i]]), weight=3 / 80 if i % 2 == 0 else 5 / 80) for i in
                  range(20)]
 
-    resampler = ResidualResampler(residual_method='stratified')
+    resampler = ResidualResampler(residual_method=ResidualMethod.STRATIFIED)
 
     new_particles = resampler.resample(particles)
 
@@ -431,7 +431,7 @@ def test_residual_stratified_alternating():
     # Odd indices should all automatically get resampled once each (50%), plus a chance that their
     # residual also gets resampled
     assert odd >= even
-    assert resampler.residual_method == 'stratified'
+    assert resampler.residual_method == ResidualMethod.STRATIFIED
 
 
 def test_residual_systematic_alternating():
@@ -439,7 +439,7 @@ def test_residual_systematic_alternating():
     particles = [Particle(np.array([[i]]), weight=3 / 80 if i % 2 == 0 else 5 / 80) for i in
                  range(20)]
 
-    resampler = ResidualResampler(residual_method='systematic')
+    resampler = ResidualResampler(residual_method=ResidualMethod.SYSTEMATIC)
 
     new_particles = resampler.resample(particles)
 
@@ -456,4 +456,4 @@ def test_residual_systematic_alternating():
     # Odd indices should all automatically get resampled once each (50%), plus a chance that their
     # residual also gets resampled
     assert odd >= even
-    assert resampler.residual_method == 'systematic'
+    assert resampler.residual_method == ResidualMethod.SYSTEMATIC

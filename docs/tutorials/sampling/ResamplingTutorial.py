@@ -319,11 +319,13 @@ plot(normalised_weights, u_j)
 #
 # The :class:`~.ESSResampler` (Effective Sample Size) is a wrapper around another resampler. It
 # performs a check at each time step to determine whether it is necessary to resample the
-# particles. Resampling is only performed at a given time step if a defined criterion is met. By
-# default, this criterion is given by:
+# particles. Resampling is only performed at a given time step if a defined criterion is met.
+# Kish's ESS criterion is used, which states that:
 #
 # .. math::
 #           ESS = \left(\sum_{i=1}^{N} (W_{n}^i)^2\right)^{-1}
+#
+# is less than or equal to the threshold, a float which is set by default to :math:`\frac{N}{2}`.
 
 # %%
 # Example in Stone Soup
