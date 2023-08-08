@@ -473,6 +473,8 @@ graph.plot_metrics(metrics, generator_names=['sum_cov_norms_EKF',
                                              'sum_cov_norms_PF'],
                    combine_plots=False,
                    color='purple', linestyle='--')
+graph.set_fig_title('Sum of Covariance Norms Metric')  # set figure title
+graph.set_ax_title(['Extended Kalman Filter', 'Particle Filter'])  # set title for each axis
 
 # %%
 # For both trackers, we start with the highest uncertainty as tracks are initiated. Uncertainty decreases until just
