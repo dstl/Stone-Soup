@@ -7,7 +7,7 @@ Metrics example
 """
 
 # %%
-# This example demonstrates some of the different metrics available in Stonesoup and how they can be used with the
+# This example demonstrates some of the different metrics available in Stone Soup and how they can be used with the
 # :class:`~.MultiManager` to assess tracking performance. It also demonstrates how to use the :class:`~.MetricPlotter`
 # class to easily generate metric plots for visualisation.
 #
