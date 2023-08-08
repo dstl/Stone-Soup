@@ -34,8 +34,9 @@ Metrics example
 # to specify which tracks or truths we want to generate metrics for.
 #
 # NB: in all metrics that take a track and a truth as input, it is possible to input two tracks instead for calculating
-# track to track comparisons. You would still input them as a tracks_key and a truths_key, but they would both be keys
-# for a tracks set.
+# track to track comparisons. This is relevant in scenarios where a second set of tracks is used as a proxy for ground
+# truth. To do this, set the `tracks_key` parameter to the tracks set and the `truths_key` parameter to the second
+# tracks set that is being used as a ground truth proxy.
 
 from stonesoup.metricgenerator.basicmetrics import BasicMetrics
 
