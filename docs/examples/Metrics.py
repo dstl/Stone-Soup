@@ -16,7 +16,7 @@ Metrics example
 #    compute the metrics themselves.
 #  - The :class:`~.MultiManager` metric manager - this is used to hold the metric generator(s) as well as all the ground
 #    truth, track, and detection sets we want to generate our metrics from. We will generate our metrics using the
-#    generate_metrics method of the :class:`~.MultiManager` class.
+#    :meth:`generate_metrics` method of the :class:`~.MultiManager` class.
 #
 # In this example, we will create a variety of metric generators for different types of metrics. These metrics will be
 # used to assess and compare tracks produced from the same set of ground truth paths and detections by the Extended
