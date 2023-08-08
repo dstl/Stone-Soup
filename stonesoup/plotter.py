@@ -919,6 +919,37 @@ class MetricPlotter(ABC):
             axis.legend(handles=[metric_handle],
                         labels=[metric.split(' at times')[0]])
 
+    def set_fig_title(self, title):
+        """
+        Set title for the figure.
+
+        Parameters
+        ----------
+        title: str
+            Figure title text.
+
+        Returns
+        -------
+        Text instance of figure title.
+        """
+        self.fig.suptitle(t=title)
+
+    def set_ax_title(self, titles):
+        """
+        Set axis titles for each axis in figure.
+
+        Parameters
+        ----------
+        titles: list of str
+            List of strings for title text for each axis.
+
+        Returns
+        -------
+        Text instance of axis titles.
+        """
+        for axis, title in zip(self.axes, titles):
+            axis.set(title=title)
+
 
 class Plotterly(_Plotter):
     """Plotting class for building graphs of Stone Soup simulations using plotly

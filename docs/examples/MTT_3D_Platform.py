@@ -379,6 +379,8 @@ fig1.plot_metrics(metrics, generator_names=['OSPA metrics'])
 fig2 = MetricPlotter()
 fig2.plot_metrics(metrics, metric_names=['SIAP Position Accuracy at times',
                                          'SIAP Velocity Accuracy at times'])
+fig2.set_fig_title('SIAP metrics')  # add optional figure title
+plt.show()
 
 
 # %%
@@ -388,5 +390,5 @@ fig2.plot_metrics(metrics, metric_names=['SIAP Position Accuracy at times',
 # most important to look at the trends of this graph rather than the values.
 fig3 = MetricPlotter()
 fig3.plot_metrics(metrics, generator_names=['Uncertainty metric'])
-fig3.fig.axes[0].set_title(label='Track uncertainty over time')
+fig3.set_ax_title(['Track uncertainty over time'])  # change default axis title
 plt.show()
