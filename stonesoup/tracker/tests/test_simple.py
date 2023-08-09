@@ -1,6 +1,6 @@
 import datetime
 from ..simple import SingleTargetTracker, MultiTargetTracker, \
-    MultiTargetMixtureTracker
+    MultiTargetMixtureTracker, SingleTargetMixtureTracker
 
 
 def test_single_target_tracker(
@@ -20,6 +20,24 @@ def test_single_target_tracker(
         previous_time = time
 
     assert len(total_tracks) >= 2  # Should of had at least 2 over all steps
+
+
+def test_single_target_mixture_tracker(
+        initiator, deleter, detector, data_mixture_associator, updater):
+    tracker = SingleTargetMixtureTracker(
+        initiator, deleter, detector, data_mixture_associator, updater)
+
+    previous_time = datetime.datetime(2018, 1, 1, 13, 59)
+    total_tracks = set()
+    for time, tracks in tracker:
+        assert time == previous_time + datetime.timedelta(minutes=1)
+        assert len(tracks) <= 1  # Shouldn't have more than one track
+        for track in tracks:
+            assert len(track.states) <= 10  # Deleter should delete them
+        total_tracks |= tracks
+
+        previous_time = time
+    assert len(total_tracks) >= 2
 
 
 def test_multi_target_tracker(
