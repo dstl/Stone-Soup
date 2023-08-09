@@ -27,10 +27,11 @@ class SUMOGroundTruthReader(GroundTruthReader):
 
     .. note::
 
-        By default, the Carteisan co-ordinates use the UTM-projection with the origin shifted such that the bottom left
-        corner of the network is the origin (0,0). See: https://sumo.dlr.de/docs/Geo-Coordinates.html
+        By default, the Carteisan co-ordinates use the UTM-projection with the origin shifted such
+        that the bottom left corner of the network is the origin (0,0).
+        See: https://sumo.dlr.de/docs/Geo-Coordinates.html
 
-        To extract lat/long co-ordinates, it is required that the network is geo-referenced.
+        To extract lat/lon co-ordinates, it is required that the network is geo-referenced.
 
         This reader requires the installation of SUMO, see:
         https://sumo.dlr.de/docs/Installing/index.html
@@ -44,9 +45,9 @@ class SUMOGroundTruthReader(GroundTruthReader):
         doc='Path to SUMO config file')
 
     sumo_server_path: str = Property(
-        doc='Path to SUMO server, relative from SUMO_HOME environment variable. "/bin/sumo" to run '
-            'on command line "/bin/sumo-gui" will run using the SUMO-GUI, this will require '
-            'pressing play within the GUI.')
+        doc='Path to SUMO server, relative from SUMO_HOME environment variable. '
+            '"/bin/sumo" to run on command line "/bin/sumo-gui" will run using the SUMO-GUI, '
+            'this will require pressing play within the GUI.')
 
     sim_start: datetime.datetime = Property(
         default=None,
@@ -54,8 +55,8 @@ class SUMOGroundTruthReader(GroundTruthReader):
 
     sim_steps: int = Property(
         default=200,
-        doc='Number of steps you want your SUMO simulation to run for. Use numpy.inf to have no'
-            ' limit')
+        doc='Number of steps you want your SUMO simulation to run for. Use numpy.inf to have no '
+            'limit')
 
     position_mapping: Sequence[int] = Property(
         default=[0, 2, 4],
@@ -75,8 +76,8 @@ class SUMOGroundTruthReader(GroundTruthReader):
 
     vehicle_metadata_fields: Collection[str] = Property(
         default=None,
-        doc='Collection of metadata fields for vehicles that will be added to the metadata of each '
-            'GroundTruthState. Possible fields are documented in '
+        doc='Collection of metadata fields for vehicles that will be added to the metadata'
+            ' of each GroundTruthState. Possible fields are documented in '
             'https://sumo.dlr.de/docs/TraCI/Vehicle_Value_Retrieval.html. See also '
             'VehicleMetadataEnum. Underscores are required in place of spaces. '
             'An example would be: ["speed", "acceleration", "lane_position"]')
@@ -84,12 +85,12 @@ class SUMOGroundTruthReader(GroundTruthReader):
     geographic_coordinates: bool = Property(
         default=False,
         doc='If True, geographic co-ordinates (longitude, latitude) will be added to the metadata '
-            ' of each state, as well as the lat/long of the origin of the local co-ordinate frame')
+            'of each state, as well as the lat/lon of the origin of the local co-ordinate frame')
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        # If network is geo-referenced, and geographic_coordinates == True, then self.origin will be lat/long
-        # position of the origin of the local Cartesian frame.
+        # If network is geo-referenced, and geographic_coordinates == True,
+        # then self.origin will be lat/lon position of the origin of the local Cartesian frame.
         self.origin = None
         self.step = 0
         # Resort to default for sim_start
@@ -132,7 +133,7 @@ class SUMOGroundTruthReader(GroundTruthReader):
 
         traci.start(self.sumoCmd)
         if self.geographic_coordinates:
-            self.origin = traci.simulation.convertGeo(0, 0)   # long, lat
+            self.origin = traci.simulation.convertGeo(0, 0)   # lon, lat
 
         groundtruth_dict = dict()
         while self.step < self.sim_steps:
@@ -167,8 +168,8 @@ class SUMOGroundTruthReader(GroundTruthReader):
                             for key in subscription.keys()}
                 # Add latitude / longitude to metadata
                 if self.geographic_coordinates:
-                    long, lat = traci.simulation.convertGeo(*state_vector[self.position_mapping, :])
-                    metadata['longitude'] = long
+                    lon, lat = traci.simulation.convertGeo(*state_vector[self.position_mapping, :])
+                    metadata['longitude'] = lon
                     metadata['latitude'] = lat
                     
                 # Add co-ordinates of origin to metadata
@@ -189,8 +190,9 @@ class SUMOGroundTruthReader(GroundTruthReader):
                 if id_ not in groundtruth_dict.keys():
                     groundtruth_dict[id_] = GroundTruthPath(id=id_)
                     # Subscribe to all specified metadata fields
-                    traci.vehicle.subscribe(id_, tuple(data.value for data in VehicleMetadataEnum if
-                                                       data.name in self.vehicle_metadata_fields))
+                    traci.vehicle.subscribe(id_,
+                                            tuple(data.value for data in VehicleMetadataEnum if
+                                                  data.name in self.vehicle_metadata_fields))
 
                 # Initialise and insert StateVector information
                 state_vector = StateVector([0.]*5)
@@ -207,8 +209,8 @@ class SUMOGroundTruthReader(GroundTruthReader):
 
                 # Add latitude / longitude to metadata
                 if self.geographic_coordinates:
-                    long, lat = traci.simulation.convertGeo(*state_vector[self.position_mapping, :])
-                    metadata['longitude'] = long
+                    lon, lat = traci.simulation.convertGeo(*state_vector[self.position_mapping, :])
+                    metadata['longitude'] = lon
                     metadata['latitude'] = lat
 
                 # Add co-ordinates of origin to metadata
@@ -235,8 +237,8 @@ class SUMOGroundTruthReader(GroundTruthReader):
 
 class PersonMetadataEnum(Enum):
     """
-    A metadata Enum used to map the named variable of the person to the relevant id. Subscribing to
-    this id will retrieve the value and add it to the metadata of the GroundTruthState.
+    A metadata Enum used to map the named variable of the person to the relevant id. Subscribing
+    to this id will retrieve the value and add it to the metadata of the GroundTruthState.
     See https://sumo.dlr.de/docs/TraCI/Person_Value_Retrieval.html for a full list.
 
     """
@@ -263,8 +265,8 @@ class PersonMetadataEnum(Enum):
 
 class VehicleMetadataEnum(Enum):
     """
-    A metadata Enum used to map the named variable of the vehicle to the relevant id. Subscribing to
-    this id will retrieve the value and add it to the metadata of the GroundTruthState.
+    A metadata Enum used to map the named variable of the vehicle to the relevant id. Subscribing
+    to this id will retrieve the value and add it to the metadata of the GroundTruthState.
     See https://sumo.dlr.de/docs/TraCI/Vehicle_Value_Retrieval.html for a full list.
 
     """
