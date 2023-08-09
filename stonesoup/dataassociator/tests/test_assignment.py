@@ -1,15 +1,20 @@
 from ...types.association import AssociationSet, TimeRangeAssociation
 from ...types.time import TimeRange, CompoundTimeRange
 from ...types.track import Track
-from .._assignment import multidimensional_deconfliction
+from .._assignment import multidimensional_deconfliction, check_if_no_conflicts
 import datetime
 import pytest
+
+
+def is_assoc_in_assoc_set(assoc, assoc_set):
+    return any(assoc.time_range == set_assoc.time_range and
+               assoc.objects == set_assoc.objects for set_assoc in assoc_set)
 
 
 def test_multi_deconfliction():
     test = AssociationSet()
     tested = multidimensional_deconfliction(test)
-    assert test == tested
+    assert test.associations == tested.associations
     tracks = [Track(id=0), Track(id=1), Track(id=2), Track(id=3)]
     times = [datetime.datetime(year=2022, month=6, day=1, hour=0),
              datetime.datetime(year=2022, month=6, day=1, hour=1),
@@ -52,7 +57,7 @@ def test_multi_deconfliction():
     # assoc1 and assoc4 should merge together, assoc3 should be removed, and assoc2 should remain
     tested4 = multidimensional_deconfliction(test4)
     assert len(tested4) == 2
-    assert assoc2 in tested4
+    assert is_assoc_in_assoc_set(assoc2, tested4)
     merged = tested4.associations_including_objects({tracks[0], tracks[1]})
     assert len(merged) == 1
     merged = next(iter(merged.associations))
@@ -62,7 +67,7 @@ def test_multi_deconfliction():
     # Very similar to above, but we add a duplicate assoc4 - should have no effect on the result.
     tested5 = multidimensional_deconfliction(test5)
     assert len(tested5) == 2
-    assert assoc2 in tested5
+    assert is_assoc_in_assoc_set(assoc2, tested5)
     merged = tested5.associations_including_objects({tracks[0], tracks[1]})
     assert len(merged) == 1
     merged = next(iter(merged.associations))

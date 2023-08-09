@@ -52,6 +52,10 @@ class TimeRangeAssociation(Association):
     time_range: Union[CompoundTimeRange, TimeRange] = Property(
         default=None, doc="Range of times that association exists over. Default is None")
 
+    @property
+    def duration(self):
+        return self.time_range.duration.total_seconds()
+
 
 class AssociationSet(Type):
     """AssociationSet type
@@ -70,9 +74,6 @@ class AssociationSet(Type):
         if not all(isinstance(member, Association) for member in self.associations):
             raise TypeError("Association set must contain only Association instances")
         self._simplify()
-
-    def __eq__(self, other):
-        return self.associations == other.associations
 
     def add(self, association):
         if association is None:

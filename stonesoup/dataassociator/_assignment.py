@@ -358,11 +358,10 @@ def multidimensional_deconfliction(association_set):
             raise ValueError("Supplied set must only contain pairs of associated objects")
         i, j = (objects.index(object_) for object_ in association.objects)
         totals[i, j] = association.time_range.duration.total_seconds()
-    make_symmetric(totals)
+    totals = numpy.maximum(totals, totals.transpose())  # make symmetric
 
     totals = numpy.rint(totals).astype(int)
     numpy.fill_diagonal(totals, 0)  # Don't want to count associations of an object with itself
-
     solved_2d = assign2D(totals, maximize=True)[1]
     cleaned_set = AssociationSet()
     association_set_reduced = copy.copy(association_set)
@@ -370,13 +369,23 @@ def multidimensional_deconfliction(association_set):
         if i == j:
             # Can't associate with self
             continue
-        assoc = association_set_reduced.associations_including_objects({objects[i], objects[j]})
-        cleaned_set.add(copy.copy(assoc))
-        association_set_reduced.remove(assoc)
+        try:
+            assoc = next(iter(association_set_reduced.associations_including_objects(
+                {objects[i], objects[j]})))  # There should only be 1 association in this set
+        except StopIteration:
+            # We took the association out previously in the loop
+            continue
+        if all(assoc.duration > clean_assoc.duration or not conflicts(assoc, clean_assoc)
+               for clean_assoc in cleaned_set):
+            cleaned_set.add(copy.copy(assoc))
+            association_set_reduced.remove(assoc)
+
     if len(cleaned_set) == 0:
         raise ValueError("Problem unsolvable using this method")
 
-    if check_if_no_conflicts(cleaned_set) and len(association_set_reduced) == 0:
+    if len(association_set_reduced) == 0:
+        if check_if_no_conflicts(cleaned_set):
+            raise RuntimeError("Conflicts still present in cleaned set")
         # If no conflicts after this iteration and all objects return
         return cleaned_set
     else:
@@ -411,8 +420,3 @@ def check_if_no_conflicts(association_set):
             if conflicts(list(association_set)[assoc1], list(association_set)[assoc2]):
                 return False
     return True
-
-
-def make_symmetric(matrix):
-    """Matrix must be square"""
-    return numpy.maximum(matrix, matrix.transpose())
