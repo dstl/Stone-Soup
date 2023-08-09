@@ -84,7 +84,7 @@ class SUMOGroundTruthReader(GroundTruthReader):
     geographic_coordinates: bool = Property(
         default=False,
         doc='If True, geographic co-ordinates (longitude, latitude) will be added to the metadata '
-            ' of each state, as well as the lat/long of the origin of hte local co-ordinate frame')
+            ' of each state, as well as the lat/long of the origin of the local co-ordinate frame')
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
