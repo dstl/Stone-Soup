@@ -75,6 +75,9 @@ class AssociationSet(Type):
             raise TypeError("Association set must contain only Association instances")
         self._simplify()
 
+    def __eq__(self, other):
+        return self.associations == other.associations
+
     def add(self, association):
         if association is None:
             return
