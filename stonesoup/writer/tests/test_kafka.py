@@ -1,4 +1,7 @@
-from ..kafka import KafkaWriter
+import pytest
+
+pytest.importorskip('confluent_kafka')
+from ..kafka import KafkaWriter  # noqa: E402
 
 
 def test_writer_default():
