@@ -31,11 +31,14 @@ class GOSPAMetric(MetricGenerator):
         default=Euclidean(),
         doc="Distance measure to use. Default :class:`~.measures.Euclidean()`")
     generator_name: str = Property(doc="Unique identifier to use when accessing generated metrics "
-                                       "from MultiManager")
-    tracks_key: str = Property(doc='Key to access set of tracks added to MultiManager')
-    truths_key: str = Property(doc="Key to access set of ground truths added to MultiManager. "
+                                       "from MultiManager",
+                                   default='gospa_generator')
+    tracks_key: str = Property(doc='Key to access set of tracks added to MetricManager',
+                               default='tracks')
+    truths_key: str = Property(doc="Key to access set of ground truths added to MetricManager. "
                                    "Or key to access a second set of tracks for track-to-track"
-                                   " metric generation")
+                                   " metric generation",
+                               default='groundtruth_paths')
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -382,6 +385,9 @@ class OSPAMetric(GOSPAMetric):
     """
     c: float = Property(doc='Maximum distance for possible association')
     p: float = Property(doc='Norm associated to distance')
+    generator_name: str = Property(doc="Unique identifier to use when accessing generated metrics "
+                                       "from MultiManager",
+                                   default='ospa_generator')
 
     def compute_over_time(self, measured_states, truth_states):
         """Compute the OSPA metric at every timestep from a list of measured

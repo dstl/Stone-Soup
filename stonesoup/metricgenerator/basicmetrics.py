@@ -9,11 +9,14 @@ class BasicMetrics(MetricGenerator):
     """Calculates simple metrics like number of tracks, truth and
     ratio of track-to-truth"""
     generator_name: str = Property(doc="Unique identifier to use when accessing generated "
-                                       "metrics from MultiManager")
-    tracks_key: str = Property(doc='Key to access set of tracks added to MultiManager')
-    truths_key: str = Property(doc="Key to access set of ground truths added to MultiManager. "
+                                       "metrics from MultiManager",
+                                   default='basic_generator')
+    tracks_key: str = Property(doc='Key to access set of tracks added to MetricManager',
+                               default='tracks')
+    truths_key: str = Property(doc="Key to access set of ground truths added to MetricManager. "
                                    "Or key to access a second set of tracks for track-to-track "
-                                   "metric generation")
+                                   "metric generation",
+                               default='groundtruth_paths')
 
     def compute_metric(self, manager, *args, **kwargs):
         """Compute the metric using the data in the metric manager
@@ -24,7 +27,7 @@ class BasicMetrics(MetricGenerator):
             containing the data to be used to create the metric(s)
 
         Returns
-        ----------
+        -------
         : list of :class:`~.Metric`
             Contains the metric information
         """

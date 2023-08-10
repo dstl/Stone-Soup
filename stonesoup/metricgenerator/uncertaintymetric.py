@@ -11,9 +11,11 @@ from ..base import Property
 
 class _CovarianceNormsMetric(MetricGenerator):
     _type = None
-    tracks_key: str = Property(doc='Key to access set of tracks added to MultiManager')
+    tracks_key: str = Property(doc='Key to access set of tracks added to MetricManager',
+                               default='tracks')
     generator_name: str = Property(doc="Unique identifier to use when accessing generated "
-                                       "metrics from MultiManager")
+                                       "metrics from MultiManager",
+                                   default='covNorms_generator')
 
     def compute_metric(self, manager, **kwargs):
         """Computes the metric using the data in the metric manager
@@ -115,6 +117,9 @@ class SumofCovarianceNormsMetric(_CovarianceNormsMetric):
     """
 
     _type = "Sum"
+    generator_name: str = Property(doc="Unique identifier to use when accessing generated "
+                                       "metrics from MultiManager",
+                                   default='sumCovNorms_generator')
 
     def compute_covariancenorms(self, track_states):
         """

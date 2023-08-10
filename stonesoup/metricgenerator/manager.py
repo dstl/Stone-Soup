@@ -1,10 +1,15 @@
 from itertools import chain
-from typing import Sequence, Dict
+from typing import Sequence, Dict, Iterable, Union
 
 from .base import MetricManager, MetricGenerator
 from ..base import Property
 from ..dataassociator import Associator
 from .basicmetrics import BasicMetrics
+
+from ..types.groundtruth import GroundTruthPath
+from ..types.track import Track
+from ..types.detection import Detection
+from ..platform import Platform
 
 
 class MultiManager(MetricManager):
@@ -62,6 +67,9 @@ class MultiManager(MetricManager):
         self.association_set = self.associator.associate_tracks(
             self.states_sets[generator.tracks_key], self.states_sets[generator.truths_key])
 
+    def _get_metrics(self):
+        return self.metrics
+
     def generate_metrics(self):
         """Generate metrics using the generators and data that has been added
 
@@ -89,22 +97,27 @@ class MultiManager(MetricManager):
 
         self.metrics = metrics
 
-        return self.metrics
+        return self._get_metrics()
 
-    def list_timestamps(self, generator):
-        """List all the unique timestamps used in the tracks and truth, in order
+    def list_timestamps(self, generator=None):
+        """List all the unique timestamps used in the tracks and truth associated
+        with a given generator, in order
 
         Parameters
         ----------
         generator : :class:`~.MetricGenerator`
             :class:`~.MetricGenerator` containing `tracks_key` and `truths_key` to extract
             tracks and truths from :class:`~.MetricManager` to extract timestamps from.
+            Default None to take tracks and truths values from first :class:`~.MetricGenerator`
+            in `self.generators`.
 
         Returns
         -------
         : list of :class:`datetime.datetime`
             unique timestamps present in the internal tracks and truths.
         """
+        if generator is None:
+            generator = self.generators[0]
         timestamps = {state.timestamp
                       for sequence in chain(self.states_sets[generator.tracks_key],
                                             self.states_sets[generator.truths_key])
@@ -129,8 +142,8 @@ class MultiManager(MetricManager):
 
         Parameters
         ----------
-        generator : :class:`~.MetricGenerator`
-            SIAP :class:`~.MetricGenerator`
+        generator_name : str
+            Name of SIAP :class:`~.MetricGenerator`
 
         Returns
         -------
@@ -141,3 +154,59 @@ class MultiManager(MetricManager):
                          if metric.startswith("SIAP") and not metric.endswith(" at times")}
 
         return siap_averages
+
+
+class SimpleManager(MultiManager):
+    """SimpleManager class for metric management
+
+    Simple :class:`~.MetricManager` for the generation of metrics on multiple
+    :class:`~.Track`, :class:`~.Detection` and :class:`~.GroundTruthPath`
+    objects.
+    """
+    generators: Sequence[MetricGenerator] = Property(doc='List of generators to use', default=None)
+    associator: Associator = Property(doc="Associator to combine tracks and truth", default=None)
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.states_sets = dict()
+        self.association_set = None
+        self.metrics = None
+
+    def add_data(self, groundtruth_paths: Iterable[Union[GroundTruthPath, Platform]] = None,
+                 tracks: Iterable[Track] = None, detections: Iterable[Detection] = None,
+                 overwrite=True):
+        """Adds data to the metric generator
+
+        Parameters
+        ----------
+        groundtruth_paths : list or set of :class:`~.GroundTruthPath`
+            Ground truth paths to be added to the manager.
+        tracks : list or set of :class:`~.Track`
+            Tracks objects to be added to the manager.
+        detections : list or set of :class:`~.Detection`
+            Detections to be added to the manager.
+        overwrite: bool
+            declaring whether pre-existing data will be overwritten. Note that
+            overwriting one field (e.g. tracks) does not affect the others
+        """
+
+        self._add(overwrite, groundtruth_paths=groundtruth_paths,
+                  tracks=tracks, detections=detections)
+
+    def _add(self, overwrite, **kwargs):
+        if overwrite:
+            for key, value in kwargs.items():
+                self.states_sets[key] = set(value)
+        else:
+            for key, value in kwargs.items():
+                if key not in self.states_sets.keys():
+                    self.states_sets[key] = set(value)
+                else:
+                    self.states_sets[key].update(value)
+
+    def _get_metrics(self):
+        metrics = {}
+        for key, value in self.metrics.items():
+            metrics.update(value)
+
+        return metrics

@@ -24,17 +24,18 @@ class TwoDPlotter(PlotGenerator):
                                  doc='If True the plot includes uncertainty ellipses')
     particle: bool = Property(default=False,
                               doc='If True the plot includes particles')
-    tracks_key: str = Property(doc='Key to access set of tracks added to MultiManager',
-                               default=None)
-    truths_key: str = Property(doc="Key to access set of ground truths added to MultiManager. "
+    tracks_key: str = Property(doc='Key to access set of tracks added to MetricManager',
+                               default='tracks')
+    truths_key: str = Property(doc="Key to access set of ground truths added to MetricManager. "
                                    "Or key to access a second set of tracks for track-to-track "
                                    "metric generation",
-                               default=None)
+                               default='groundtruth_paths')
     detections_key: str = Property(doc="Key to access desired set of detections added "
-                                       "to MultiManager",
-                                   default=None)
+                                       "to MetricManager",
+                                   default='detections')
     generator_name: str = Property(doc="Unique identifier to use when accessing generated "
-                                       "metrics from MultiManager")
+                                       "plots from MultiManager",
+                                   default='tracker_plot')
 
     def compute_metric(self, manager, *args, **kwargs):
         """Compute the metric using the data in the metric manager
@@ -50,11 +51,11 @@ class TwoDPlotter(PlotGenerator):
             Contains a matplotlib figure
         """
 
-        if self.truths_key is not None:
+        if self.truths_key in manager.states_sets.keys():
             groundtruth_paths = self._get_data(manager, self.truths_key)
-        if self.tracks_key is not None:
+        if self.tracks_key in manager.states_sets.keys():
             tracks = self._get_data(manager, self.tracks_key)
-        if self.detections_key is not None:
+        if self.detections_key in manager.states_sets.keys():
             detections = self._get_data(manager, self.detections_key)
 
         metric = self.plot_tracks_truth_detections(tracks,
@@ -91,9 +92,12 @@ class TwoDPlotter(PlotGenerator):
 
         plotter.ax.set_title(self.generator_name)
 
-        plotter.plot_measurements(detections, [self.detection_indices[0],
-                                               self.detection_indices[1]],
-                                  color='tab:blue')
+        if detections is not None:
+            plotter.plot_measurements(detections, [self.detection_indices[0],
+                                                   self.detection_indices[1]],
+                                      color='tab:blue')
+        else:
+            detections = []
 
         if groundtruth_paths is not None:
             plotter.plot_ground_truths(groundtruth_paths, [self.gtruth_indices[0],
