@@ -71,7 +71,7 @@ class _CovarianceNormsMetric(MetricGenerator):
             List of states created by a filter
 
         Returns
-        ----------
+        -------
         metric : TimeRangeMetric
             Covering the duration that states exist for in the parameters.
             Metric.value contains a list of the summarised covariance matrix norms

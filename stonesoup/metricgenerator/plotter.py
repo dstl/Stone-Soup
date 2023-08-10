@@ -82,7 +82,7 @@ class TwoDPlotter(PlotGenerator):
             If True, function plots particles.
 
         Returns
-        ----------
+        -------
         TimeRangePlottingMetric
             Contains the produced plot
         """

@@ -147,7 +147,7 @@ class GOSPAMetric(MetricGenerator):
         max_iter: Maximum number of iterations to perform
 
         Returns
-        ---------
+        -------
         truth_to_measured: np.ndarray
             Vector of size m, which has indices of the measured objects or '-1' if unassigned.
         measured_to_truth: np.ndarray
@@ -250,7 +250,7 @@ class GOSPAMetric(MetricGenerator):
             there is a mismatch in cardinality
 
         Returns
-        ----------
+        -------
         cost_matrix: np.ndarray
             Matrix of distance between each element in each list of states
         """

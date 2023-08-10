@@ -4,7 +4,6 @@ from typing import Sequence, Dict
 from .base import MetricManager, MetricGenerator
 from ..base import Property
 from ..dataassociator import Associator
-from .tracktotruthmetrics import SIAPMetrics
 from .basicmetrics import BasicMetrics
 
 
@@ -51,9 +50,14 @@ class MultiManager(MetricManager):
                     self.states_sets[key].update(value)
 
     def associate_tracks(self, generator):
-        """Associate tracks to truth using the associator
+        """Associate tracks to truth using the associator to produce an
+         :class:`~.AssociationSet`
 
-        The resultant :class:`~.AssociationSet` internally.
+        Parameters
+        ----------
+        generator : :class:`~.MetricGenerator`
+            :class:`~.MetricGenerator` containing `tracks_key` and `truths_key` to extract
+            tracks and truths from :class:`~.MetricManager` for association.
         """
         self.association_set = self.associator.associate_tracks(
             self.states_sets[generator.tracks_key], self.states_sets[generator.truths_key])
@@ -62,8 +66,8 @@ class MultiManager(MetricManager):
         """Generate metrics using the generators and data that has been added
 
         Returns
-        ----------
-        : set of :class:`~.Metric`
+        -------
+        : nested dict of :class:`~.Metric`
             Metrics generated
         """
 
@@ -72,12 +76,10 @@ class MultiManager(MetricManager):
         generators = self.generators if isinstance(self.generators, list) else [self.generators]
 
         for generator in generators:
-            if isinstance(generator, SIAPMetrics):
-                if self.associator is not None:
-                    self.associate_tracks(generator)
+            if self.associator is not None and hasattr(generator, 'tracks_key') and hasattr(generator, 'truths_key'):
+                self.associate_tracks(generator)
             metric_list = generator.compute_metric(self)
-            # If not already a list, force it to be one below
-            if not isinstance(metric_list, list):
+            if not isinstance(metric_list, list):  # If not already a list, force it to be one
                 metric_list = [metric_list]
             for metric in metric_list:
                 if generator.generator_name not in metrics.keys():
@@ -90,14 +92,19 @@ class MultiManager(MetricManager):
         return self.metrics
 
     def list_timestamps(self, generator):
-        """List all the timestamps used in the tracks and truth, in order
+        """List all the unique timestamps used in the tracks and truth, in order
+
+        Parameters
+        ----------
+        generator : :class:`~.MetricGenerator`
+            :class:`~.MetricGenerator` containing `tracks_key` and `truths_key` to extract
+            tracks and truths from :class:`~.MetricManager` to extract timestamps from.
 
         Returns
-        ----------
+        -------
         : list of :class:`datetime.datetime`
             unique timestamps present in the internal tracks and truths.
         """
-        # Make a list of all the unique timestamps used
         timestamps = {state.timestamp
                       for sequence in chain(self.states_sets[generator.tracks_key],
                                             self.states_sets[generator.truths_key])
@@ -120,8 +127,13 @@ class MultiManager(MetricManager):
         """
         Get SIAP averages metrics from SIAP metric generator specified by generator_name
 
-        Returns
+        Parameters
         ----------
+        generator : :class:`~.MetricGenerator`
+            SIAP :class:`~.MetricGenerator`
+
+        Returns
+        -------
         : dict of :class`SIAPMetrics` averages
         """
         siap_metrics = self.metrics[generator_name]
