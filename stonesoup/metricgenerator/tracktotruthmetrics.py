@@ -1,5 +1,3 @@
-from operator import attrgetter
-
 from .base import MetricGenerator
 from ..base import Property
 from ..measures import Measure
@@ -278,7 +276,7 @@ class SIAPMetrics(MetricGenerator):
             Number of associated tracks held by `manager` at `timestamp`.
         """
         associations = manager.association_set.associations_at_timestamp(timestamp)
-        association_objects = {thing for assoc in associations for thing in assoc.objects}
+        association_objects = associations.object_set
 
         return sum(1 for track in manager.tracks if track in association_objects)
 
@@ -355,15 +353,16 @@ class SIAPMetrics(MetricGenerator):
             return 0
 
         truth_timestamps = sorted(state.timestamp for state in truth.states)
-
         total_time = 0
         for current_time, next_time in zip(truth_timestamps[:-1], truth_timestamps[1:]):
+            time_range = TimeRange(current_time, next_time)
             for assoc in assocs:
-                # If both timestamps are in one association then add the difference to the total
-                # difference and stop looking
-                if current_time in assoc.time_range and next_time in assoc.time_range:
-                    total_time += (next_time - current_time).total_seconds()
-                    break
+                # If there is some overlap between time ranges, add this to total_time
+                if time_range & assoc.time_range:
+                    total_time += (time_range & assoc.time_range).duration.total_seconds()
+                    time_range = time_range - (time_range & assoc.time_range)
+                    if not time_range:
+                        break
         return total_time
 
     @staticmethod
@@ -385,7 +384,7 @@ class SIAPMetrics(MetricGenerator):
             Minimum number of tracks needed to track `truth`
         """
         assocs = sorted(manager.association_set.associations_including_objects([truth]),
-                        key=attrgetter('time_range.end_timestamp'),
+                        key=lambda assoc: assoc.time_range.key_times[-1],
                         reverse=True)
 
         if len(assocs) == 0:
@@ -402,7 +401,12 @@ class SIAPMetrics(MetricGenerator):
             if not assoc_at_time:
                 timestamp_index += 1
             else:
-                end_time = assoc_at_time.time_range.end_timestamp
+                key_times = assoc_at_time.time_range.key_times
+                # If the current time is a start of a TimeRange we need strict inequality
+                if current_time in key_times and key_times.index(current_time) % 2 == 0:
+                    end_time = min([time for time in key_times if time > current_time])
+                else:
+                    end_time = min([time for time in key_times if time >= current_time])
                 num_tracks_needed += 1
 
                 # If not yet at the end of the truth timestamps indices, move on to the next

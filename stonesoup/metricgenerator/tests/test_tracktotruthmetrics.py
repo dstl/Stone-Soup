@@ -70,7 +70,9 @@ def test_siap(trial_manager, trial_truths, trial_tracks, trial_associations, mea
 
     # Test longest_track_time_on_truth
     assert siap_generator.longest_track_time_on_truth(trial_manager, trial_truths[0]) == 2
-    assert siap_generator.longest_track_time_on_truth(trial_manager, trial_truths[1]) == 1
+    # Associations 1 and 2 (starting from 0) will join together
+    # because of the AssociationSet._simplify method, so this will be 2
+    assert siap_generator.longest_track_time_on_truth(trial_manager, trial_truths[1]) == 2
     assert siap_generator.longest_track_time_on_truth(trial_manager, trial_truths[2]) == 1
 
     # Test compute_metric
@@ -88,8 +90,8 @@ def test_siap(trial_manager, trial_truths, trial_tracks, trial_associations, mea
 
     for metric in metrics:
         assert isinstance(metric, TimeRangeMetric)
-        assert metric.time_range.start_timestamp == timestamps[0]
-        assert metric.time_range.end_timestamp == timestamps[3]
+        assert metric.time_range.start == timestamps[0]
+        assert metric.time_range.end == timestamps[3]
         assert metric.generator == siap_generator
 
         if metric.title.endswith(" at times"):
@@ -173,8 +175,8 @@ def test_id_siap(trial_manager, trial_truths, trial_tracks, trial_associations, 
 
     for metric in metrics:
         assert isinstance(metric, TimeRangeMetric)
-        assert metric.time_range.start_timestamp == timestamps[0]
-        assert metric.time_range.end_timestamp == timestamps[3]
+        assert metric.time_range.start == timestamps[0]
+        assert metric.time_range.end == timestamps[3]
         assert metric.generator == siap_generator
 
         if metric.title.endswith(" at times"):

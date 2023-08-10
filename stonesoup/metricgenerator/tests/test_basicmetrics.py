@@ -33,22 +33,22 @@ def test_basicmetrics():
     correct_metrics = {TimeRangeMetric(title='Number of targets',
                                        value=3,
                                        time_range=TimeRange(
-                                           start_timestamp=start_time,
-                                           end_timestamp=start_time +
+                                           start=start_time,
+                                           end=start_time +
                                            datetime.timedelta(seconds=4)),
                                        generator=generator),
                        TimeRangeMetric(title='Number of tracks',
                                        value=4,
                                        time_range=TimeRange(
-                                           start_timestamp=start_time,
-                                           end_timestamp=start_time +
+                                           start=start_time,
+                                           end=start_time +
                                            datetime.timedelta(seconds=4)),
                                        generator=generator),
                        TimeRangeMetric(title='Track-to-target ratio',
                                        value=4 / 3,
                                        time_range=TimeRange(
-                                           start_timestamp=start_time,
-                                           end_timestamp=start_time +
+                                           start=start_time,
+                                           end=start_time +
                                            datetime.timedelta(seconds=4)),
                                        generator=generator)}
     for metric_name in ["Number of targets",
