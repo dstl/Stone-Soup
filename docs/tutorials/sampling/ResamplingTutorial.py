@@ -298,7 +298,7 @@ plot(normalised_residual_weights)
 
 u_j = np.random.rand(2)
 
-plot(normalised_weights, u_j)
+plot(normalised_residual_weights, u_j)
 
 # %%
 #
