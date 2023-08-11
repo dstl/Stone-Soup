@@ -196,13 +196,15 @@ class SimpleManager(MultiManager):
     def _add(self, overwrite, **kwargs):
         if overwrite:
             for key, value in kwargs.items():
-                self.states_sets[key] = set(value)
+                if value is not None:
+                    self.states_sets[key] = set(value)
         else:
             for key, value in kwargs.items():
-                if key not in self.states_sets.keys():
-                    self.states_sets[key] = set(value)
-                else:
-                    self.states_sets[key].update(value)
+                if value is not None:
+                    if key not in self.states_sets.keys():
+                        self.states_sets[key] = set(value)
+                    else:
+                        self.states_sets[key].update(value)
 
     def _get_metrics(self):
         metrics = {}
