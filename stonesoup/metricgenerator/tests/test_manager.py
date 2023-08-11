@@ -1,6 +1,5 @@
 import datetime
 import numpy as np
-import pytest
 
 from ..manager import MultiManager, SimpleManager
 from ..base import MetricGenerator
@@ -19,19 +18,9 @@ class DummyMetricGenerator(MetricGenerator):
     tracks_key: str = Property(default='tracks')
     truths_key: str = Property(default='groundtruth_paths')
 
-    def compute_metric1(self, manager, *args, **kwargs):
+    def compute_metric(self, manager, *args, **kwargs):
         return Metric(title="Test metric1",
                       value=25,
-                      generator=self)
-
-    def compute_metric2(self, manager, *args, **kwargs):
-        return Metric(title="Test metric2",
-                      value=25,
-                      generator=self)
-
-    def compute_metric3(self, manager, *args, **kwargs):
-        return Metric(title="Test metric3 at times",
-                      value=50,
                       generator=self)
 
 
@@ -235,14 +224,14 @@ def test_generate_metrics_multimanager():
     metric3 = metrics['generator2']
 
     # test metric content generated correctly from generator1
-    assert isinstance(metric2, Metric)
+    assert isinstance(metric2['Test metric2'], Metric)
     assert list(metric2.keys()) == ["Test metric2"]
     assert metrics['generator1'].get("Test metric2") == metric2['Test metric2']
     assert np.array_equal(metric2['Test metric2'].value, 25)
     assert metric2['Test metric2'].generator == generator1
 
     # test metric content generated correctly from generator2
-    assert isinstance(metric3, Metric)
+    assert isinstance(metric3['Test metric3 at times'], Metric)
     assert list(metric3.keys()) == ["Test metric3 at times"]
     assert metrics['generator2'].get("Test metric3 at times") == metric3['Test metric3 at times']
     assert np.array_equal(metric3['Test metric3 at times'].value, 50)

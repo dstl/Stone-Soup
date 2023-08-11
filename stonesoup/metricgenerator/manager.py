@@ -84,7 +84,8 @@ class MultiManager(MetricManager):
         generators = self.generators if isinstance(self.generators, list) else [self.generators]
 
         for generator in generators:
-            if self.associator is not None and hasattr(generator, 'tracks_key') and hasattr(generator, 'truths_key'):
+            if self.associator is not None and \
+                    hasattr(generator, 'tracks_key') and hasattr(generator, 'truths_key'):
                 self.associate_tracks(generator)
             metric_list = generator.compute_metric(self)
             if not isinstance(metric_list, list):  # If not already a list, force it to be one
