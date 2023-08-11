@@ -16,10 +16,7 @@ def test_gospametric_extractstates():
     """Test GOSPA extract states."""
     generator = GOSPAMetric(
         c=10.0,
-        p=1,
-        generator_name='GOSPA',
-        tracks_key='tracks',
-        truths_key='truths'
+        p=1
     )
     # Test state extraction
     time_start = datetime.datetime.now()
@@ -43,10 +40,7 @@ def test_gospametric_compute_assignments(num_states):
     """Test GOSPA assignment algorithm."""
     generator = GOSPAMetric(
         c=10.0,
-        p=1,
-        generator_name='GOSPA',
-        tracks_key='tracks',
-        truths_key='truths'
+        p=1
     )
     time_now = datetime.datetime.now()
     track_obj = Track([State(state_vector=[[i]], timestamp=time_now)
@@ -99,10 +93,7 @@ def test_gospametric_cost_matrix():
     num_states = 5
     generator = GOSPAMetric(
         c=10.0,
-        p=1,
-        generator_name='GOSPA',
-        tracks_key='tracks',
-        truths_key='truths'
+        p=1
     )
     time_now = datetime.datetime.now()
     track_obj = Track([State(state_vector=[[i]], timestamp=time_now)
@@ -127,10 +118,7 @@ def test_gospametric_compute_gospa_metric():
     num_states = 5
     generator = GOSPAMetric(
         c=10.0,
-        p=1,
-        generator_name='GOSPA',
-        tracks_key='tracks',
-        truths_key='truths'
+        p=1
     )
     time_now = datetime.datetime.now()
     track_obj = Track([State(state_vector=[[i]], timestamp=time_now)
@@ -151,10 +139,7 @@ def test_gospametric_computemetric():
     """Test GOSPA compute metric."""
     generator = GOSPAMetric(
         c=10.0,
-        p=1,
-        generator_name='GOSPA',
-        tracks_key='tracks',
-        truths_key='truths'
+        p=1
     )
     time = datetime.datetime.now()
     # Multiple tracks and truths present at two timesteps
@@ -171,7 +156,7 @@ def test_gospametric_computemetric():
               for i in range(5)}
 
     manager = MultiManager([generator])
-    manager.add_data({'truths': truths, 'tracks': tracks})
+    manager.add_data({'groundtruth_paths': truths, 'tracks': tracks})
     main_metric = generator.compute_metric(manager)
 
     assert main_metric.title == "GOSPA Metrics"
@@ -199,10 +184,7 @@ def test_ospametric_extractstates():
     """Test OSPA metric extract states."""
     generator = OSPAMetric(
         c=10,
-        p=1,
-        generator_name='OSPA',
-        tracks_key='tracks',
-        truths_key='truths'
+        p=1
     )
 
     # Test state extraction
@@ -227,10 +209,7 @@ def test_ospametric_computecostmatrix():
     """Test OSPA metric compute cost matrix."""
     generator = OSPAMetric(
         c=10,
-        p=1,
-        generator_name='OSPA',
-        tracks_key='tracks',
-        truths_key='truths'
+        p=1
     )
 
     time = datetime.datetime.now()
@@ -269,10 +248,7 @@ def test_ospametric_computeospadistance():
     """Test OSPA metric compute OSPA distance."""
     generator = OSPAMetric(
         c=10,
-        p=1,
-        generator_name='OSPA',
-        tracks_key='tracks',
-        truths_key='truths'
+        p=1
     )
 
     time = datetime.datetime.now()
@@ -296,10 +272,7 @@ def test_ospametric_computemetric(p):
     """Test OSPA compute metric."""
     generator = OSPAMetric(
         c=10,
-        p=p,
-        generator_name='OSPA',
-        tracks_key='tracks',
-        truths_key='truths'
+        p=p
     )
 
     time = datetime.datetime.now()
@@ -317,7 +290,7 @@ def test_ospametric_computemetric(p):
               for i in range(5)}
 
     manager = MultiManager([generator])
-    manager.add_data({'truths': truths, 'tracks': tracks})
+    manager.add_data({'groundtruth_paths': truths, 'tracks': tracks})
     main_metric = generator.compute_metric(manager)
     first_association, second_association = main_metric.value
 
@@ -344,10 +317,7 @@ def test_ospametric_computemetric(p):
 def test_ospa_computemetric_cardinality_error(p, first_value, second_value):
     generator = OSPAMetric(
         c=10,
-        p=p,
-        generator_name='OSPA',
-        tracks_key='tracks',
-        truths_key='truths'
+        p=p
     )
 
     time = datetime.datetime.now()
@@ -363,7 +333,7 @@ def test_ospa_computemetric_cardinality_error(p, first_value, second_value):
               for i in range(5)}
 
     manager = MultiManager([generator])
-    manager.add_data({'truths': truths, 'tracks': tracks})
+    manager.add_data({'groundtruth_paths': truths, 'tracks': tracks})
     main_metric = generator.compute_metric(manager)
     first_association, second_association = main_metric.value
 

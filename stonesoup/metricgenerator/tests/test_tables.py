@@ -9,10 +9,7 @@ from ...types.time import TimeRange
 
 def test_siaptable():
     metric_generator = SIAPMetrics(position_measure=Euclidean((0, 2)),
-                                   velocity_measure=Euclidean((1, 3)),
-                                   generator_name='test_SIAP',
-                                   tracks_key='tracks',
-                                   truths_key='truths')
+                                   velocity_measure=Euclidean((1, 3)))
     metrics = set()
     # Add metrics to ensure the generator can handle a full range of values
     metrics.add(TimeRangeMetric(title="SIAP Completeness",

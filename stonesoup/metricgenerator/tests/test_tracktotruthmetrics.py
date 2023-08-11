@@ -13,10 +13,7 @@ def test_siap(trial_manager, trial_truths, trial_tracks, trial_associations, mea
     position_measure = measure_class((0, 2))
     velocity_measure = measure_class((1, 3))
     siap_generator = SIAPMetrics(position_measure=position_measure,
-                                 velocity_measure=velocity_measure,
-                                 generator_name='test_SIAP',
-                                 tracks_key='tracks',
-                                 truths_key='truths')
+                                 velocity_measure=velocity_measure)
 
     trial_manager.generators = [siap_generator]
 
@@ -118,9 +115,6 @@ def test_id_siap(trial_manager, trial_truths, trial_tracks, trial_associations, 
     truth_id = track_id = "colour"
     siap_generator = IDSIAPMetrics(position_measure=position_measure,
                                    velocity_measure=velocity_measure,
-                                   generator_name='test_ID_SIAP',
-                                   tracks_key='tracks',
-                                   truths_key='truths',
                                    truth_id=truth_id,
                                    track_id=track_id)
 

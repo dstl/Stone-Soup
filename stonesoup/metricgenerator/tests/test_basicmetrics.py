@@ -12,10 +12,7 @@ from ...types.track import Track
 
 
 def test_basicmetrics():
-    generator = BasicMetrics(generator_name='test_basic',
-                             tracks_key='tracks',
-                             truths_key='truths'
-                             )
+    generator = BasicMetrics()
     manager = MultiManager([generator])
 
     start_time = datetime.datetime.now()
@@ -29,7 +26,7 @@ def test_basicmetrics():
                       timestamp=start_time + datetime.timedelta(seconds=i))
                 for i in range(5)]) for j in range(3))
 
-    manager.add_data({'truths': truths, 'tracks': tracks})
+    manager.add_data({'groundtruth_paths': truths, 'tracks': tracks})
 
     metrics = manager.generate_metrics()
 
@@ -57,7 +54,7 @@ def test_basicmetrics():
     for metric_name in ["Number of targets",
                         "Number of tracks", "Track-to-target ratio"]:
         calc_metric = [i for i in correct_metrics if i.title == metric_name][0]
-        meas_metric = metrics['test_basic'].get(metric_name)
+        meas_metric = metrics['basic_generator'].get(metric_name)
         assert calc_metric.value == meas_metric.value
         assert calc_metric.time_range.start_timestamp == \
             meas_metric.time_range.start_timestamp

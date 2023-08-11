@@ -211,7 +211,7 @@ def trial_associations(trial_truths, trial_tracks, trial_timestamps):
 @pytest.fixture()
 def trial_manager(trial_truths, trial_tracks, trial_associations):
     manager = MultiManager()
-    manager.add_data({'truths': trial_truths,
+    manager.add_data({'groundtruth_paths': trial_truths,
                       'tracks': trial_tracks})
     manager.association_set = trial_associations
 

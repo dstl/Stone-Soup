@@ -135,13 +135,11 @@ def test_computemetric(prior, transition_model, measurement_model, groundtruth,
                       sensor_locations=sensor_locations,
                       position_mapping=position_mapping,
                       velocity_mapping=velocity_mapping,
-                      irf=irf_overall,
-                      truths_key='truths',
-                      generator_name='generator')
+                      irf=irf_overall)
 
     manager = MultiManager([pcrb])
 
-    manager.add_data({'truths': groundtruth})
+    manager.add_data({'groundtruth_paths': groundtruth})
 
     metric = pcrb.compute_metric(manager)[0]
 
