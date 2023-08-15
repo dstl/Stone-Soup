@@ -1,24 +1,31 @@
 """
 Track Fusion Example
 ===========================
-
-todo
+This example demonstrates how to use :class:`.TrackFusedTracker`. Two radar
+sensors with identical specification track two crossing targets. The individual
+tracks from these sensors is used as input for the `TrackFusedTracker`. Lastly a
+detection fused tracker is created and simulated for comparison.
 """
 
 
 # %%
 # Build the Scenario
 # ------------------
-# Todo
+# Waypoints are used to define the targets’ flight path. These waypoints are
+# interpolated to give a GroundTruthPath with states at every second. Two static
+# :class:`~.RadarElevationBearingRange` sensors are created and located ~100m
+# away from the targets’ starting location. The targets fly towards the sensors
+# during the simulation.
+
 
 # %%
+# First some general setup
+
 # Some general imports
 import datetime
 from typing import Collection
-
 import numpy as np
 
-# %%
 # Standard Stone Soup imports
 from stonesoup.dataassociator.neighbour import GlobalNearestNeighbour
 from stonesoup.dataassociator.tracktotrack import OneToOneTrackAssociator
@@ -36,7 +43,6 @@ from stonesoup.types.groundtruth import GroundTruthPath
 from stonesoup.types.state import GaussianState, State, StateVector
 from stonesoup.updater.kalman import ExtendedKalmanUpdater
 
-# %%
 # Imports required for track fusion
 from stonesoup.feeder.multi import SyncMultipleTrackFeedersToOneFeeder
 from stonesoup.feeder.track import SyncMultiTrackFeeder
@@ -46,14 +52,15 @@ from stonesoup.mixturereducer.gaussianmixture import BasicConvexCombination
 from stonesoup.non_state_measures import MeanMeasure, RecentStateSequenceMeasure
 from stonesoup.tracker.track_fusion import TrackFusedTracker
 
-# %%
 # Set up some initial parameters
+np.random.seed(2023)
+start_time = datetime.datetime(2023, 1, 1, 0, 0, 0)
+
+# Mapping indices
 _X = 0
 _Y = 2
 _Z = 4
-start_time = datetime.datetime(2023, 1, 1, 0, 0, 0)
 
-np.random.seed(2023)
 
 # %%
 # Create the Target Trajectories
@@ -104,9 +111,10 @@ target_2_truth = GroundTruthPath(target_2_states)
 # %%
 # Create Sensors
 # ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-# Two static :class:`~.RadarElevationBearingRange` sensors are created. Both have the same accuracy,
-# they have elevation accuracy* of ~14 degrees, a bearing angle accuracy* of ~25 degrees and a range
-# accuracy* of ~30m. The sensors are located 20m apart.
+# Two static :class:`~.RadarElevationBearingRange` sensors are created. Both
+# have the same accuracy, they have elevation accuracy* of ~14 degrees, a
+# bearing angle accuracy* of ~25 degrees and a range accuracy* of ~30m. The
+# sensors are located 20m apart.
 #
 # *The accuracy values is the standard deviation of the measures
 sensor_1_position = np.array([[20], [10], [0]])
@@ -204,8 +212,8 @@ plotterXZ.fig
 # The standard tracker uses an Extended Kalman Filter (EKF). Global Nearest Neighbour (GNN) is
 # used to associate detections to tracks. Tracks are initiated from any detections that aren’t
 # associated to a track. Tracks will be deleted after 10 seconds without a detection being
-# associated to them. The create_tracker_kwargs function generates the key word arguments for each
-# tracker
+# associated to them. The `create_tracker_kwargs` function generates the key word arguments for
+# each tracker
 def create_tracker_kwargs(transition_model, detector=None, measurement_model=None):
     initial_state = GaussianState(state_vector=[0] * 6, covar=np.diag([1000] * 6))
     initiator = SimpleMeasurementInitiator(initial_state, measurement_model=measurement_model,
@@ -226,7 +234,8 @@ def create_tracker_kwargs(transition_model, detector=None, measurement_model=Non
 # %%
 # Create Sensor One Tracker
 # ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-# Sensor One Tracker (S1 Tracker) uses the standard tracker inputs with a three dimensional constant velocity
+# Sensor One Tracker (S1 Tracker) uses the standard tracker inputs with a three
+# dimensional constant velocity
 # model.
 transition_noise = 0.02
 transition_model_xyz = CombinedLinearGaussianTransitionModel((
@@ -236,56 +245,72 @@ transition_model_xyz = CombinedLinearGaussianTransitionModel((
 
 s1_tracker = MultiTargetTracker(**create_tracker_kwargs(
     transition_model=transition_model_xyz,
-    detector=s1_detection_inputs))
-s1_track_multi_feeder = SyncMultiTrackFeeder(s1_tracker)
+    detector=s1_detection_inputs)
+)
+
 
 # %%
 # Create Sensor Two Tracker
 # ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-# Sensor Two Tracker (S2 Tracekr) is identical to the Sensor One Tracker. It uses the standard tracker inputs
-# with a three dimensional constant velocity model.
-transition_noise = 0.02
-transition_model_xyz = CombinedLinearGaussianTransitionModel((
-    ConstantVelocity(transition_noise),
-    ConstantVelocity(transition_noise),
-    ConstantVelocity(transition_noise)))
-
+# Sensor Two Tracker (S2 Tracekr) is identical to the Sensor One Tracker. It
+# uses the standard tracker inputs with a three dimensional constant velocity
+# model.
 s2_tracker = MultiTargetTracker(**create_tracker_kwargs(
     transition_model=transition_model_xyz,
-    detector=s2_detection_inputs))
-s2_track_multi_feeder = SyncMultiTrackFeeder(s2_tracker)
-
-
+    detector=s2_detection_inputs)
+)
 
 # %%
 # Create Track Fusion Tracker
 # ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-# The output of the S1 Tracker and S2 tracker are fed into the Track Fusion Tracker.
-# After being associated together the tracks are combined using :class:`~.BasicConvexCombination`.
+# The output of the S1 Tracker and S2 tracker are fed into a :class:`~.TrackFusedTracker`.
+# A track association algorithm will associate closely spaced tracks together.
+# After being associated together the tracks are combined using
+# :class:`~.BasicConvexCombination`. The tracker will output
+# (:class:`~.datetime`, Set[:class:`.Track`]) like a normal tracker.
 
 # %%
-# The output of S1 and S2 tracker are fed into the Track Fusion Tracker
+# A :class:`~.SyncMultiTrackFeeder` is used to send the output of tracker S1 and
+# tracker S2 to multiple locations. This allows the track output to be recorded
+# normally and the track fused tracker to receive the output
+s1_track_multi_feeder = SyncMultiTrackFeeder(s1_tracker)
+s2_track_multi_feeder = SyncMultiTrackFeeder(s2_tracker)
+
+# %%
+# A :class:`.SyncMultipleTrackFeedersToOneFeeder` is used to feed the output of
+# the S1 and S2 trackers into the track fused tracker.
 multi_track_feeder = SyncMultipleTrackFeedersToOneFeeder(readers=[
     s1_track_multi_feeder.create_track_feeder(),
     s2_track_multi_feeder.create_track_feeder()]
 )
 
 # %%
-# The track to track associator looks at the average Euclidean distance between tracks over the
-# last 5 time steps to associate them to each other.
+# An :class:`.OneToOneTrackAssociator` is used to associate tracks together.
+# The associator will look for pairs of tracks with the minimum average
+# Euclidean distance between them over the last 5 time steps. These tracks will
+# be combined together using :class:`.BasicConvexCombination`.
 track_associator = OneToOneTrackAssociator(
         measure=MeanMeasure(
             RecentStateSequenceMeasure(n_states_to_compare=5,
-                                       measure=Euclidean(mapping=[0, 2]))))
+                                       measure=Euclidean(mapping=[0, 2, 4]))))
 
 combined_tracker = TrackFusedTracker(
     multiple_track_feeder=multi_track_feeder,
     state_combiner=BasicConvexCombination(),
     track_associator=track_associator,
 )
+
+# %%
+# The unfiltered output of a :class:`.TrackFusedTracker` isn’t very useful and
+# won’t normally be used. However in this example is used to demonstrate its
+# impracticality in the :ref:`auto_examples/bcc_track_fusion:raw track fused tracking`
+# section. A :class:`.TrackerWithContinuityBuffer` is used with a
+# :class:`.BetaTrackContinuityBuffer` to filter the output to provide a more
+# valuable output.
 combined_tracks_feeder = SyncMultiTrackFeeder(combined_tracker)
 
 raw_combined_tracks_feeder = combined_tracks_feeder.create_track_feeder()
+
 processed_combined_tracks_feeder = TrackerWithContinuityBuffer(
     combined_tracks_feeder.create_track_feeder(),
     BetaTrackContinuityBuffer()
@@ -337,10 +362,10 @@ all_s1_tracks, all_s2_tracks, all_raw_combo_tracks, all_processed_combo_tracks =
 
 
 # %%
-# Run the detection fusion tracker. The detection fusion tracker can't be run with the other
-# trackers in the `run_trackers_concurrently` function. This is because the detection fusion
-# tracker takes double the number of processing steps as it has to process sensor one and sensor two
-# detections separately.
+# Run the detection fusion tracker. The detection fusion tracker can't be run
+# with the other trackers in the `run_trackers_concurrently` function. This is
+# because the detection fusion tracker takes double the number of processing
+# steps as it has to process sensor one and sensor two detections separately.
 all_tracks_fuse = set()
 for time, tracks in det_fuse_tracker:
     all_tracks_fuse |= tracks
@@ -360,13 +385,12 @@ def hide_plot_traces(fig, items_to_hide: set):
             fig_data.visible = None
 
 
-# Plot Tracks in XY
+# The XY plot will shown later in the example
 plotterXY.plot_tracks(all_s1_tracks, [_X, _Y], track_label="Sensor One Tracker")
 plotterXY.plot_tracks(all_s2_tracks, [_X, _Y], track_label="Sensor Two Tracker")
 plotterXY.plot_tracks(all_raw_combo_tracks, [_X, _Y], track_label="Raw Track Fused Tracker")
 plotterXY.plot_tracks(all_processed_combo_tracks, [_X, _Y],
                       track_label="Processed Track Fused Tracker")
-
 
 # Plot Tracks in XZ
 plotterXZ.plot_tracks(all_s1_tracks, [_X, _Z], track_label="Sensor One Tracker")
@@ -375,9 +399,10 @@ plotterXZ.plot_tracks(all_raw_combo_tracks, [_X, _Z], track_label="Raw Track Fus
 plotterXZ.plot_tracks(all_processed_combo_tracks, [_X, _Z],
                       track_label="Processed Track Fused Tracker")
 plotterXZ.fig
-
 # %%
-# Due to the close spaced targets in altitude, there isn't much to see here
+# Due to the close spaced targets in altitude, there isn't much to see in the XZ plot
+# Plot Tracks in XY
+
 
 # %%
 # Standard Tracking
@@ -397,8 +422,6 @@ hide_plot_traces(plotterXY.fig, {"Sensor One<br>(Detections)", "Sensor One Track
                                  "Detection Fusion Tracker"})
 plotterXY.fig
 
-# %%
-# Both sensor 1 & sensor 2 track ok
 
 # %%
 # Raw Track Fused Tracking
@@ -413,19 +436,21 @@ plotterXY.fig
 
 
 # %%
-# Combo Tracking
-# ^^^^^^^^^^^^^^^^^
-# For subsequent time-steps the :class:`~.BetaTrackContinuityBuffer` joins the tracks that have the
-# same `track_id`. When :class:`~.TrackFusedTracker` combines two tracks, the output track id is
-# created from the contributing tracks using the function :function:.`get_fused_id` (which is
-# reproducible). Other `TrackContinuityBuffer` classes exist and could be used.
+# Track Fused Tracking
+# ^^^^^^^^^^^^^^^^^^^^
+# For subsequent time-steps the :class:`~.BetaTrackContinuityBuffer` joins the
+# tracks that have the same :attr:`.Track.id`. When :class:`~.TrackFusedTracker`
+# combines two tracks, the output track id is created from the contributing
+# tracks using :func:`~.get_fused_id` (which is reproducible). Other
+# :class:`.TrackContinuityBuffer` classes could be used.
+
 hide_plot_traces(plotterXY.fig, {"Sensor One<br>(Detections)", "Sensor Two<br>(Detections)",
                                  "Raw Track Fused Tracker", "Detection Fusion Tracker",
                                  "Sensor Location"})
 plotterXY.fig
 
 # %%
-# The processed track fused track is in between the two individual sensor tracks
+# The processed track fused track should be in between the two individual sensor tracks
 
 # %%
 # Detection Fusion Tracking
@@ -437,7 +462,10 @@ hide_plot_traces(plotterXY.fig, {"Sensor One Tracker", "Sensor Two Tracker",
 plotterXY.fig
 
 # %%
-# Detection fusion works well
-
-hide_plot_traces(plotterXY.fig, set())
-plotterXY.fig.show()
+# Reproducibility
+# ^^^^^^^^^^^^^^^
+# Usually the individual sensors, track fused and detection fused trackers
+# perform well. However they can be confused during the target crossing
+# resulting in poor tracking (e.g. track breakages).  The standard tracker
+# isn’t optimised at all and optimising the trackers could improve the tracking
+# performance and reliability.

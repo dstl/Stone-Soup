@@ -281,6 +281,21 @@ class GaussianMixtureReducer(MixtureReducer):
 
 
 class BasicConvexCombination(MixtureReducer):
+    """
+    Combine 'n' :class:`~.GaussianState`s using Convex Combination.
+
+    .. math ::
+
+        P = (\sum_{n} P_n^{-1})^{-1}
+        \\\\
+        x = P(\sum P_n^{-1}x^n)
+
+    where :math:`\mathbf{x}_{n}` is the state of component `n`,
+    :math:`\mathbf{P}_{n}` is the covariance matrix of component `n`,
+    :math:`\mathbf{x}` is the combined state and
+    :math:`\mathbf{P}` is the covariance matrix of the combined state
+
+    """
     @staticmethod
     def merge_components(*components):
         """
@@ -288,7 +303,7 @@ class BasicConvexCombination(MixtureReducer):
 
         Parameters
         ----------
-        *components : :class:`~.GaussianState`
+        components : :class:`~.GaussianState`
             Components to be merged
 
         Returns

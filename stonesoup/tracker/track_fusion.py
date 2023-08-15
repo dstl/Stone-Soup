@@ -13,11 +13,18 @@ from stonesoup.types.track import Track, CompositeTrack
 
 
 class TrackFusedTracker(Tracker):
-    """Todo"""
+    """
+    Tracks from multiple sources arrive via the `multiple_track_feeder`. These tracks are
+    associated together using the `track_associator`. Associated tracks are combined by the
+    `state_combiner` to form a new state. A new :class:`~.CompositeTrack` is created with this
+    state. The track ID of the new track is created by combining the source track IDs. The
+    tracker yields (datetime, Set[Track]) with the tracks containing the new combined tracks and
+    the unassociated tracks.
+    """
 
+    multiple_track_feeder: MultipleTrackFeeder = Property()
     track_associator: TrackToTrackAssociator = Property()
     state_combiner: MixtureReducer = Property()
-    multiple_track_feeder: MultipleTrackFeeder = Property()
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -56,8 +63,10 @@ class TrackFusedTracker(Tracker):
     def combine_tracks(self, association: Association) -> Track:
         """
 
-        :param association:
-        :return:
+         # Combines the states from the associated tracks using the `state_combiner`.
+         # Create a new track from this state
+         # Assign new track_id using :function:`.get_fused_id`
+
         """
         states = (track.state for track in association.objects)
         new_state = self.state_combiner.merge_components(*states)

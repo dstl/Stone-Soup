@@ -43,13 +43,6 @@ Track
 .. automodule:: stonesoup.feeder.track
     :show-inheritance:
 
-
-Simple
-------
-
-.. automodule:: stonesoup.feeder.simple
-    :show-inheritance:
-
 Track Continuity Buffer
 -----------------------
 

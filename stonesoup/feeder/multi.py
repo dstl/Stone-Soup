@@ -2,7 +2,7 @@ import datetime
 import heapq
 import warnings
 from itertools import tee
-from typing import Collection, Iterable, Tuple, Set, Iterator, Sequence, Dict
+from typing import Collection, Iterable, Tuple, Set, Iterator, Sequence
 
 from .base import DetectionFeeder, GroundTruthFeeder, Feeder, TrackFeeder, MultipleTrackFeeder
 from ..base import Property
