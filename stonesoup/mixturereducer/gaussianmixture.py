@@ -14,9 +14,6 @@ from scipy.linalg import pinv
 from ..types.state import GaussianState
 
 
-
-
-
 class GaussianMixtureReducer(MixtureReducer):
     """
     Gaussian Mixture Reducer class:

@@ -10,7 +10,10 @@ from ..writer.base import TrackWriter
 
 
 class TrackContinuityBuffer(Base):
-    """Todo"""
+    """Track Continuity Buffer Base Class
+
+    Subclasses must consumes and output a set :class:`.Track` via the `update_tracks` method
+    """
 
     @abstractmethod
     def update_tracks(self, input_tracks: Set[Track]) -> Set[Track]:
@@ -22,9 +25,13 @@ class TrackContinuityBuffer(Base):
 
 
 class TrackerWithContinuityBuffer(TrackWriter, TrackFeeder):
-    """Todo"""
-    tracker: Tracker = Property()
-    continuity_buffer: TrackContinuityBuffer = Property()
+    """
+    This class is a wrapper around a :class:`.Tracker` to filter the output of the `Tracker`
+    """
+    tracker: Tracker = Property(doc="Tracker to supply tracks")
+    continuity_buffer: TrackContinuityBuffer = Property(
+        doc="Continuity buffer to filter the tracks"
+    )
 
     @property
     def tracks(self) -> Set[Track]:
@@ -37,9 +44,13 @@ class TrackerWithContinuityBuffer(TrackWriter, TrackFeeder):
 
 
 class AlphaTrackContinuityBuffer(TrackContinuityBuffer, ABC):
-    """Todo"""
+    """This is an abstract TrackContinuityBuffer class. It contains a dictionary to store track
+    and `tracks` to retrieve tracks from"""
 
-    track_library: Dict[str, Track] = Property(default=None)
+    track_library: Dict[str, Track] = Property(
+        default=None,
+        doc="This dictionary is store tracks with str keys. This property should not be "
+            "supplied as it will be overwritten on initialisation")
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -51,7 +62,8 @@ class AlphaTrackContinuityBuffer(TrackContinuityBuffer, ABC):
 
 
 class BetaTrackContinuityBuffer(AlphaTrackContinuityBuffer):
-    """Todo"""
+    """This Track Continuity Buffer will combine tracks if they have the same
+    track id for subsequent time-steps. Tracks that aren't updated are deleted"""
 
     def update_tracks(self, input_tracks: Set[Track]) -> Set[Track]:
 

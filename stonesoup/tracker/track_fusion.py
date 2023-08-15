@@ -30,23 +30,20 @@ class TrackFusedTracker(Tracker):
     def __next__(self):
         raise NameError
 
-    def update_tracker(self, time, input_tracks: Sequence[Set[Track]]) -> Tuple[datetime, Set[Track]]:
-        # print("Input Tracks:", *[[track.id[0:5] for track in track_set]
-        #                          for track_set in input_tracks])
+    def update_tracker(self, time, input_tracks: Sequence[Set[Track]]) \
+            -> Tuple[datetime, Set[Track]]:
+
         associated_track_sets, unassociated_tracks = self.associate_tracks(input_tracks)
         combined_tracks = {self.combine_tracks(association) for association in
                            associated_track_sets}
-        # print("Output Tracks:",
-        #       "c", [track.id[0:5] for track in combined_tracks],
-        #       "i", *[track.id[0:5] for track in unassociated_tracks])
 
         return time, {*combined_tracks, *unassociated_tracks}
 
-    def associate_tracks(self, received_track_sets: Sequence[Set[Track]]) -> Tuple[AssociationSet, Collection[Track]]:
+    def associate_tracks(self, received_track_sets: Sequence[Set[Track]]) \
+            -> Tuple[AssociationSet, Collection[Track]]:
         """
         This method determines which tracks should be associated together and returns a collection
         of AssociationSet objects which contain tracks and a collection of unassociated tracks
-        :return:
         """
 
         associated_track_sets, unassociated_tracks_sets = \
@@ -54,7 +51,6 @@ class TrackFusedTracker(Tracker):
 
         all_unassociated_tracks = [track for unassociated_tracks in unassociated_tracks_sets
                                    for track in unassociated_tracks]
-
         return associated_track_sets, all_unassociated_tracks
 
     def combine_tracks(self, association: Association) -> Track:

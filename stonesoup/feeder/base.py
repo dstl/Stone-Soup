@@ -56,8 +56,8 @@ class GroundTruthFeeder(Feeder, GroundTruthReader):
 class TrackFeeder(Base):
     """ Track feeder base class
 
-    Feeder that produces (:class:`.datetime.datetime`, Set[:class:`.Track`]). Output matches that of
-    a tracker.
+    Feeder that produces (:class:`.datetime`, Set[:class:`.Track`]).
+    Output matches that of a tracker.
     """
 
     @abstractmethod

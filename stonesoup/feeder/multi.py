@@ -26,6 +26,13 @@ class MultiDataFeeder(DetectionFeeder, GroundTruthFeeder):
 
 
 class SyncMultipleTrackFeedersToOneFeeder(MultipleTrackFeeder):
+    """
+    This class takes multiple :class:`.TrackFeeder` input. Each `TrackFeeder`
+    should be producing (:class:`.datetime`, Set[:class:`.Track`]). The datetime
+    must be equal. This class combines the track sets from each source into one
+    set.
+    The output is :class:`.datetime`, Set[:class:`.Track`]
+    """
     readers: Collection[TrackFeeder] = Property(doc='Readers to yield from')
 
     def __iter__(self) -> Iterator[Tuple[datetime.datetime, Sequence[Set[Track]]]]:
@@ -43,29 +50,30 @@ class SyncMultipleTrackFeedersToOneFeeder(MultipleTrackFeeder):
 
 class FeederToMultipleFeeders(Feeder):
     """
-    Todo make formatting better
     This takes output from one feeder/reader and distributes it to multiple feeders
 
     Process:
-    > Object Creation:
-        > A empty dictionary 'iterator_clones_dict' is set up to contain all iterators clones
-    > [Repeated 'x' times] create_feeder is called
-        > A generator function is created 'iterator_clone_generator'
-        > An entry is added to the 'iterator_clone_generator' with the key of this function and the
-        value is 'None
-        > The generator function is returned
-    > First next call on any of the iterator clones
-        > Tries to retrieve a copy of the iterator from the 'iterator_clones_dict' using function as
-        it's key. This returns None.
-        > As the returned value from the dictionary is None. '_activate_feeders' is called
-        > _activate_feeders
-            > Generates 'x' iterator copies using the 'tee' function
-            > Each copy is assigned to a value in the dictionary
-        > Tries to retrieve a copy of the iterator from the 'iterator_clones_dict' using function as
-        it's key. This now returns an iterator clone
-        > This iterator is now iterated over
+     * Object Creation:
+        * A empty dictionary 'iterator_clones_dict' is set up to contain all
+          iterators clones
+     * [Repeated 'x' times] create_feeder is called
+        * A generator function is created 'iterator_clone_generator'
+        * An entry is added to the 'iterator_clone_generator' with the key of
+          this function and the value is 'None
+        * The generator function is returned
+     * First next call on any of the iterator clones
+        * Tries to retrieve a copy of the iterator from the 'iterator_clones_dict'
+          using function as it's key. This returns None.
+        * As the returned value from the dictionary is None. '_activate_feeders'
+          is called _activate_feeders
+           * Generates 'x' iterator copies using the 'tee' function
+           * Each copy is assigned to a value in the dictionary
+        * Tries to retrieve a copy of the iterator from the 'iterator_clones_dict'
+          using function as it's key. This now returns an iterator clone
+        * This iterator is now iterated over
     """
-    reader: Iterable = Property(readonly=True)
+    reader: Iterable = Property(readonly=True,
+                                doc="Source of data to send to multiple feeders")
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)

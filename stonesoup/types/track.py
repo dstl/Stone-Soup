@@ -147,11 +147,11 @@ class Track(StateMutableSequence):
 class CompositeTrack(Track):
     """Composite Track type
 
-    A class to represent a track where the source of the track is multiple or singular other tracks
-    rather than detections
+    A class to represent a track where the source of the track is multiple or singular other
+    tracks rather than detections
     """
 
-    sub_tracks: OrderedSet[Track] = Property(
+    sub_tracks: OrderedSet = Property(
         default=None,
         doc="The initial sub tracks of the track. Default `None` which initialises with empty "
             "OrderedSet.")

@@ -41,7 +41,12 @@ class Tracks2GaussianDetectionFeeder(DetectionFeeder):
 
 class SyncMultiTrackFeeder(TrackFeeder, FeederToMultipleFeeders):
     """
-    Todo
+    This class takes a :class:`.TrackFeeder` or equivalent and can produce
+    multiple track feeders that produce the same output
+
+    Notes:
+        The track feeders produced must be iterated over synchronously. This is due to the
+        output :class:`.Track` objects being the same object across track feeders.
     """
 
     reader: TrackFeeder = Property()
