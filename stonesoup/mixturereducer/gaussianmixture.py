@@ -9,6 +9,12 @@ from .base import MixtureReducer
 from ..types.state import TaggedWeightedGaussianState, WeightedGaussianState
 from ..measures import SquaredMahalanobis
 from operator import attrgetter
+from scipy.linalg import pinv
+
+from ..types.state import GaussianState
+
+
+
 
 
 class GaussianMixtureReducer(MixtureReducer):
@@ -275,3 +281,28 @@ class GaussianMixtureReducer(MixtureReducer):
                 truncated_weight_sum / self.max_number_components
 
         return remaining_components
+
+
+class BasicConvexCombination(MixtureReducer):
+    @staticmethod
+    def merge_components(*components):
+        """
+        Merge two similar components
+
+        Parameters
+        ----------
+        *components : :class:`~.GaussianState`
+            Components to be merged
+
+        Returns
+        -------
+        merged_component : :class:`~.GaussianState`
+            Merged Gaussian component
+        """
+        inv_covs = [pinv(component.covar) for component in components]
+        P = pinv(sum(inv_covs))
+        x = P @ sum(inv_cov @ component.state_vector
+                    for inv_cov, component in zip(inv_covs, components))
+
+        new_component = GaussianState.from_state(next(iter(components)), x, P)
+        return new_component
