@@ -13,9 +13,9 @@ Track Stitching Example
 # Track Stitching considers a set of broken fragments of track (which we call tracklets), and aims
 # to identify which fragments should be stitched (joined) together to form one track. This is done
 # by considering the state of a tracked object and predicting its state at a future (or past) time.
-# This example generates a set of `tracklets`, before applying track stitching. The figure below
-# visualizes the aim of track stitching: taking a set of tracklets (left, black) and producing a set
-# of tracks (right, blue/red).
+# This example generates a set of `tracklets` and applies track stitching to them. The figure below
+# visualizes the aim of track stitching: taking a set of tracklets (left, black) and producing a
+# set of tracks (right, blue/red).
 
 # %%
 # .. image:: ../_static/track_stitching_basic_example.png
@@ -25,30 +25,29 @@ Track Stitching Example
 # %%
 # Track Stitching Method
 # ^^^^^^^^^^^^^^^^^^^^^^
-# Consider the following scenario: We have a bunch of sections of track that are all disconnected
-# from each other. We aim to stitch the track sections together into full tracks. We can use the
-# known states of tracklets at known times to predict where the tracked object would be at a
-# different time. We can use this information to associate tracklets with each other. Methods of
-# associating tracklets are explained below.
+# In a scenario where there are many sections of tracks that are all disconnected from each other,
+# we aim to stitch the track sections together into full tracks. We can use the known states of
+# tracklets at known times to predict where the tracked object would be at a different time.
+# We can use this information to associate tracklets with each other using the following methods:
 #
 # Predicting forward
 # ^^^^^^^^^^^^^^^^^^
-# For a given track section, we consider the state at the end-point of the track, say state
-# :math:`x` at the time that the observation was made, call this time :math:`k`. We use the state of
-# the object to predict the state at time :math:`k + \delta k`. If the state at the start point of
-# another track section falls within an acceptable range of this prediction, we may associate the
+# For a given track section, consider the state at the end-point of the track :math:`x` at
+# the time :math:`k` that the observation was made. We use the state of the object to predict its
+# state at time :math:`k + \delta k`. If the state at the start point of
+# another track section falls within an acceptable range of this prediction, we associate the
 # tracks and stitch them together. This method is used in the function `forward_predict`.
 #
 # Predicting backward
 # ^^^^^^^^^^^^^^^^^^^
-# Similarly to predicting forward, we can consider the state at the start point of a track section,
-# call this time :math:`k`, and predict what the state would have been at time :math:`k - \delta k`.
-# We can then associate and stitch tracks together as before. This method is used in the function
+# Similarly to predicting forward, we can consider the state at the start point of a track section
+# at time :math:`k` and backwards-predict the state to time :math:`k - \delta k`. We can then
+# associate and stitch tracks together as before. This method is used in the function
 # `backward_predict`.
 #
 # Using both predictions
 # ^^^^^^^^^^^^^^^^^^^^^^
-# We can use both methods at the same time to calculate the probability that two track sections are
+# We can use both methods simultaneously to calculate the probability that two track sections are
 # part of the same track. The track stitcher in this example uses the `KalmanPredictor` to make
 # predictions about which tracklets should be stitched into the same track.
 
@@ -74,19 +73,9 @@ import numpy as np
 # Each truth object is split into a number of segments chosen randomly from the range
 # (1, `max_segments`).
 #
-# You can define the minimum and maximum length that segments can be, by setting
-# `min_segment_length` and `max_segment_length`, respectively.
-#
-# Similarly, the length of disjoint sections can be bounded by `min_disjoint_length` and
-# `max_disjoint_length`.
-#
 # The start time of each truth path is bounded between :math:`t` = 0 and :math:`t` =
 # `max_track_start`.
-#
-# The simulation will run for any number of spacial dimensions, given by `n_spacial_dimensions`.
-#
-# Finally, the transition model can be set by setting `TM` to either "CV" or "KTR" as indicated in
-# the comments in the code below.
+
 start_time = datetime.now().replace(second=0, microsecond=0)
 np.random.seed(100)
 
@@ -253,8 +242,8 @@ print(len(all_tracks), " tracklets have been produced.")
 # %%
 # Plot the set of tracklets
 # ^^^^^^^^^^^^^^^^^^^^^^^^^
-# The following plots present the tracks which have been generated, as well as, for reference, the
-# ground truths used to generate them. A 2D graph is plotted for each 2D plane in the N-D space.
+# The following plots present the generated tracks and the underlying ground truths.
+# A 2D graph is plotted for each 2D plane in the N-D space.
 
 from stonesoup.plotter import Plotter, Dimension
 
@@ -279,7 +268,7 @@ if n_spacial_dimensions == 3:
 # ^^^^^^^^^^^^^^^^^^^^
 # The cell below contains the track stitcher class. The functions `forward_predict` and
 # `backward_predict` perform the forward and backward predictions respectively (as noted above). If
-# using fowards and backwards stitching, predictions from both methods are merged together.
+# using forwards and backwards stitching, predictions from both methods are merged together.
 # They calculate which pairs of tracks could possibly be stitched together. The function `stitch`
 # uses `forward_predict` and `backward_predict` to pair and 'stitch' track sections together.
 
@@ -290,12 +279,11 @@ from stonesoup.stitcher import TrackStitcher
 # ^^^^^^^^^^^^^^^^^^^^^^^^^^^
 # Now that we have a set of tracklets, we can apply the Track Stitching method to stitch tracklets
 # together into tracks. The code in the following cell applies this process using the class
-# `TrackStitcher` and plots the stitched tracks.
-# `TrackStitcher` has a property search_window that enables you to reduce compute time by filtering
-# out track segments that are not within a determined time window. When forward stitching, the
-# associator will consider any track that has a start point that falls within the time window
-# :math:`(t, t + search_window)`. When backward stitching, the associator will consider tracks that
-# have an endpoint within the time window :math:`(t - search_window, t)`.
+# `TrackStitcher` and plots the stitched tracks. `TrackStitcher` has a property 'search_window' that
+# reduces computation time by filtering out track segments that outside a defined time window. When
+# forward stitching, the associator will consider any track that has a start point that falls within
+# the time window :math:`(t, t + search_window)`. When backward stitching, the associator will
+# consider tracks that have an endpoint within the time window :math:`(t - search_window, t)`.
 
 transition_model = CombinedLinearGaussianTransitionModel([OrnsteinUhlenbeck(0.001, 2e-2)] *
                                                          n_spacial_dimensions, seed=12)
@@ -319,21 +307,23 @@ if n_spacial_dimensions == 3:
 # %%
 # Applying Metrics
 # ----------------
-# Now that we have stitched the tracklets into tracks, we can compare the tracks to the ground
-# truths that were used to generate the tracklets. This can be done by using metrics: find below a
-# range of SIAP (Single Integrated Air Picture) metrics as well as a custom metric specialized for
-# track stitching.
+# Now tracklets are stitched into tracks, we can compare the tracks to the ground truths. This can
+# be done by using SIAP metrics as well as a custom metric specialized for track stitching.
 
 # %%
 # % of tracklets stitched to the correct previous tracklet
 # ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 
-def StitcherCorrectness(stitchedtracks):
+def stitcher_correctness(stitchedtracks):
+
     stitchedtracks = list(stitchedtracks)
     total, count = 0, 0
-    for track in stitchedtracks:
-        for j, state in enumerate(track):
+
+    for track in stitchedtracks:  # loop through all stitched tracks
+
+        for j, state in enumerate(track):  # for every state of a stitched track
+
             if j == len(track) - 1:
                 continue
             id1 = [int(s) for s in state.hypothesis.measurement.groundtruth_path.id.split('::')
@@ -348,7 +338,7 @@ def StitcherCorrectness(stitchedtracks):
     return count / total * 100
 
 
-print("Tracklets stitched correctly: ", StitcherCorrectness(stitched_tracks), "%")
+print("Tracklets stitched correctly: ", stitcher_correctness(stitched_tracks), "%")
 
 # %%
 # SIAP Metrics
