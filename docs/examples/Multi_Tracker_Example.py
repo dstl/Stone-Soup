@@ -465,7 +465,9 @@ for tracking_filter in tracking_filters:
 from stonesoup.metricgenerator.metrictables import SIAPTableGenerator
 
 # generate metrics for EKF
-siap_averages_EKF = metric_manager.get_siap_averages(generator_name='EKF SIAP metrics')
+siap_metrics = metrics['EKF SIAP metrics']
+siap_averages_EKF = {siap_metrics.get(metric) for metric in siap_metrics
+                     if metric.startswith("SIAP") and not metric.endswith(" at times")}
 
 _ = SIAPTableGenerator(siap_averages_EKF).compute_metric()
 print("\n\nSIAP metrics for EKF:")

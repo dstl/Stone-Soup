@@ -392,5 +392,8 @@ metric_manager.add_data({'truths': truths, 'tracks': set(all_tracks)})
 
 # generate metrics and extract SIAP averages to display in SIAP table
 metrics = metric_manager.generate_metrics()
-siap_averages = metric_manager.get_siap_averages(generator_name='SIAPs')
+siap_metrics = metrics['SIAPs']
+siap_averages = {siap_metrics.get(metric) for metric in siap_metrics
+                 if metric.startswith("SIAP") and not metric.endswith(" at times")}
+
 _ = SIAPTableGenerator(siap_averages).compute_metric()

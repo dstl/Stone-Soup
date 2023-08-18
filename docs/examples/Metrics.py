@@ -379,10 +379,14 @@ metrics = metric_manager.generate_metrics()
 # %%
 # We can see from the plots above that the two trackers exhibit similar performance in tracking the ground truths.
 #
-# Let's look at the metrics we've generated to compare them further. We'll start by printing out the basic metrics with
-# the .display_basic_metrics method, which gives us information on the number of tracks versus targets.
+# Let's look at the metrics we've generated to compare them further. We'll start by printing out the basic metrics,
+# which give us information on the number of tracks versus targets.
 
-metric_manager.display_basic_metrics()
+for generator in metrics.keys():
+    if 'basic' in generator:
+        print(f'\n{generator}:')
+        for metric_key, metric in metrics[generator].items():
+            print(f"{metric.title}: {metric.value}")
 
 # %%
 # The basic metrics show that both the EKF and the PF have successfully produced tracks for each of the ground truth
@@ -390,21 +394,24 @@ metric_manager.display_basic_metrics()
 #
 # Next we'll look at the averages of each of the SIAP metrics to compare.
 #
-# First we extract the SIAP averages from the :class:`~.MultiManager` using the :meth:`get_siap_averages()` method. Then
-# we use the :class:`~.SIAPTableGenerator` to display the average metrics in a table which shows us descriptions for
-# each metric.
+# First we extract the SIAP averages from the :class:`~.MultiManager`. Then we use the :class:`~.SIAPTableGenerator` to
+# display the average metrics in a table which shows us descriptions for each metric.
 #
 # We will create a table for the EKF SIAPs first.
 
 from stonesoup.metricgenerator.metrictables import SIAPTableGenerator
 
-siap_averages_EKF = metric_manager.get_siap_averages('SIAP_EKF-truth')
+siap_metrics = metrics['SIAP_EKF-truth']
+siap_averages_EKF = {siap_metrics.get(metric) for metric in siap_metrics
+                     if metric.startswith("SIAP") and not metric.endswith(" at times")}
 siap_table = SIAPTableGenerator(siap_averages_EKF).compute_metric()
 
 # %%
 # Now we produce a table for the PF SIAPs for comparison.
 
-siap_averages_PF = metric_manager.get_siap_averages('SIAP_PF-truth')
+siap_metrics = metrics['SIAP_PF-truth']
+siap_averages_PF = {siap_metrics.get(metric) for metric in siap_metrics
+                    if metric.startswith("SIAP") and not metric.endswith(" at times")}
 siap_table = SIAPTableGenerator(siap_averages_PF).compute_metric()
 
 # %%

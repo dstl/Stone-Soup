@@ -126,36 +126,6 @@ class MultiManager(MetricManager):
 
         return sorted(timestamps)
 
-    def display_basic_metrics(self):
-        """
-        Print basic metrics generated for each :class:`BasicMetrics` generator.
-        """
-        for generator_name, generator in self.metrics.items():
-            if "Number of targets" in generator.keys():
-                print(f'\nGenerator: {generator_name}')
-                for metric_key, metric in generator.items():
-                    if isinstance(metric.generator, BasicMetrics):
-                        print(f"{metric.title}: {metric.value}")
-
-    def get_siap_averages(self, generator_name):
-        """
-        Get SIAP averages metrics from SIAP metric generator specified by generator_name
-
-        Parameters
-        ----------
-        generator_name : str
-            Name of SIAP :class:`~.MetricGenerator`
-
-        Returns
-        -------
-        : dict of :class`SIAPMetrics` averages
-        """
-        siap_metrics = self.metrics[generator_name]
-        siap_averages = {siap_metrics.get(metric) for metric in siap_metrics
-                         if metric.startswith("SIAP") and not metric.endswith(" at times")}
-
-        return siap_averages
-
 
 class SimpleManager(MultiManager):
     """SimpleManager class for metric management
