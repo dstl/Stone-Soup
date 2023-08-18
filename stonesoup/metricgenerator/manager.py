@@ -4,7 +4,6 @@ from typing import Sequence, Dict, Iterable, Union
 from .base import MetricManager, MetricGenerator
 from ..base import Property
 from ..dataassociator import Associator
-from .basicmetrics import BasicMetrics
 
 from ..types.groundtruth import GroundTruthPath
 from ..types.track import Track
