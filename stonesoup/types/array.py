@@ -258,7 +258,7 @@ class PrecisionMatrix(Matrix):
             raise ValueError("Information matrix should have ndim of 2: got {}"
                              "".format(array.ndim))
         if not np.all(np.linalg.eigvals(array) > 0):
-            raise ValueError("Covariance matrix should be positive definite.")
+            raise ValueError("Information matrix should be positive definite.")
         return array.view(cls)
 
     # TODO: overwrite/provide the inverse function to return a covariance matrix
