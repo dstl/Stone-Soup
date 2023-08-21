@@ -1,6 +1,7 @@
 import copy
 import numpy as np
 from scipy.stats import multivariate_normal, uniform
+from typing import Sequence
 
 from .base import Regulariser
 from ..functions import cholesky_eps
@@ -29,9 +30,10 @@ class MCMCRegulariser(Regulariser):
     .. [2] Ristic, Branko & Arulampalam, Sanjeev & Gordon, Neil, Beyond the Kalman Filter:
         Particle Filters for Target Tracking Applications, Artech House, 2004. """
 
-    transition_model: TransitionModel = Property(doc="Transition model used for prediction")
+    transition_model: TransitionModel = Property(doc="Transition model used for prediction",
+                                                 default=None)
 
-    def regularise(self, prior, posterior, detections):
+    def regularise(self, prior, posterior):
         """Regularise the particles
 
         Parameters
@@ -39,10 +41,7 @@ class MCMCRegulariser(Regulariser):
         prior : :class:`~.ParticleState` type
             prior particle distribution.
         posterior : :class:`~.ParticleState` type
-            posterior particle distribution
-        detections : set of :class:`~.Detection`
-            set of detections containing clutter,
-            true detections or both
+            posterior particle distribution.
 
         Returns
         -------
@@ -60,14 +59,18 @@ class MCMCRegulariser(Regulariser):
         moved_particles = copy.copy(posterior)
         transitioned_prior = copy.copy(prior)
 
-        if self.transition_model is not None:
-            time_interval = posterior.timestamp - prior.timestamp
-            new_state_vector = self.transition_model.function(prior,
-                                                              noise=False,
-                                                              time_interval=time_interval)
-            transitioned_prior.state_vector = new_state_vector
+        hypotheses = posterior.hypothesis if isinstance(posterior.hypothesis, Sequence) \
+            else [posterior.hypothesis]
 
-        if detections is not None:
+        transition_model = hypotheses[0].prediction.transition_model or self.transition_model
+        if transition_model is not None:
+            time_interval = posterior.timestamp - prior.timestamp
+            transitioned_prior.state_vector = \
+                transition_model.function(prior, noise=False, time_interval=time_interval)
+
+        detections = {hypothesis.measurement for hypothesis in hypotheses if hypothesis}
+
+        if detections:
             ndim = prior.state_vector.shape[0]
             nparticles = len(posterior)
 

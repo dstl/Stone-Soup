@@ -54,6 +54,7 @@ class ParticlePredictor(Predictor):
             **kwargs)
 
         return Prediction.from_state(prior,
+                                     parent=prior,
                                      state_vector=new_state_vector,
                                      timestamp=timestamp,
                                      transition_model=self.transition_model)

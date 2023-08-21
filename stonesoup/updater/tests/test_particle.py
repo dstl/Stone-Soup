@@ -173,14 +173,28 @@ def test_bernoulli_particle():
     assert update.existence_probability is not None
 
 
-def test_regularised_particle():
+@pytest.mark.parametrize("transition_model, model_flag", [
+        (
+            CombinedLinearGaussianTransitionModel([ConstantVelocity([0.05])]),  # transition_model
+            False  # model_flag
+        ),
+        (
+            CombinedLinearGaussianTransitionModel([ConstantVelocity([0.05])]),  # transition_model
+            True  # model_flag
+        )
+    ], ids=["with_transition_model_init", "without_transition_model_init"]
+)
+def test_regularised_particle(transition_model, model_flag):
 
-    transition_model = CombinedLinearGaussianTransitionModel([ConstantVelocity([0.05])])
     measurement_model = LinearGaussian(
         ndim_state=2, mapping=[0], noise_covar=np.array([[10]]))
 
-    updater = ParticleUpdater(regulariser=MCMCRegulariser(transition_model=transition_model),
-                              measurement_model=measurement_model)
+    if model_flag:
+        updater = ParticleUpdater(regulariser=MCMCRegulariser(),
+                                  measurement_model=measurement_model)
+    else:
+        updater = ParticleUpdater(regulariser=MCMCRegulariser(transition_model=transition_model),
+                                  measurement_model=measurement_model)
     # Measurement model
     timestamp = datetime.datetime.now()
     particles = [Particle([[10], [10]], 1 / 9),
@@ -198,11 +212,17 @@ def test_regularised_particle():
     predicted_state = transition_model.function(particles,
                                                 noise=True,
                                                 time_interval=datetime.timedelta(seconds=1))
-    prediction = ParticleStatePrediction(predicted_state,
-                                         weight=np.array([1/9]*9),
-                                         timestamp=timestamp,
-                                         transition_model=transition_model,
-                                         parent=particles)
+    if not model_flag:
+        prediction = ParticleStatePrediction(predicted_state,
+                                             weight=np.array([1/9]*9),
+                                             timestamp=timestamp,
+                                             parent=particles)
+    else:
+        prediction = ParticleStatePrediction(predicted_state,
+                                             weight=np.array([1 / 9] * 9),
+                                             timestamp=timestamp,
+                                             transition_model=transition_model,
+                                             parent=particles)
 
     measurement = Detection([[40.0]], timestamp=timestamp, measurement_model=measurement_model)
     eval_measurement_prediction = ParticleMeasurementPrediction(

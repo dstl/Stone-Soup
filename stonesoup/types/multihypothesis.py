@@ -1,5 +1,5 @@
-from collections.abc import Sized, Iterable, Container
-from typing import Sequence
+from collections.abc import Sequence
+import typing
 
 from .detection import MissedDetection
 from .numeric import Probability
@@ -10,13 +10,13 @@ from ..types.hypothesis import SingleHypothesis, CompositeHypothesis
 from ..types.prediction import Prediction
 
 
-class MultipleHypothesis(Type, Sized, Iterable, Container):
+class MultipleHypothesis(Type, Sequence):
     """Multiple Hypothesis base type
 
     A Multiple Hypothesis is a container to store a collection of hypotheses.
     """
 
-    single_hypotheses: Sequence[SingleHypothesis] = Property(
+    single_hypotheses: typing.Sequence[SingleHypothesis] = Property(
         default=None,
         doc="The initial list of :class:`~.SingleHypothesis`. Default `None` "
             "which initialises with empty list.")
@@ -119,7 +119,7 @@ class MultipleHypothesis(Type, Sized, Iterable, Container):
         return None
 
 
-class MultipleCompositeHypothesis(Type, Sized, Iterable, Container):
+class MultipleCompositeHypothesis(Type, Sequence):
     """Multiple composite hypothesis type
 
     A Multiple Composite Hypothesis is a container to store a collection of composite hypotheses.
@@ -128,7 +128,7 @@ class MultipleCompositeHypothesis(Type, Sized, Iterable, Container):
     redefined.
     """
 
-    single_hypotheses: Sequence[CompositeHypothesis] = Property(
+    single_hypotheses: typing.Sequence[CompositeHypothesis] = Property(
         default=None,
         doc="The initial list of :class:`~.CompositeHypothesis`. Default `None` which initialises "
             "with empty list.")
