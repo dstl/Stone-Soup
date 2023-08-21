@@ -5,7 +5,7 @@ from ..types.time import TimeRange
 from ..types.track import Track
 from ..types.detection import Detection
 from ..types.hypothesis import Hypothesis
-from .functions import _dict_set
+from node import _dict_set
 
 from typing import Union, Tuple, List, TYPE_CHECKING
 from datetime import datetime, timedelta
