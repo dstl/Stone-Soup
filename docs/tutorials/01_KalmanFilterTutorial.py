@@ -273,8 +273,8 @@ plotter.fig
 # ^^^^^^^^^^^^^^^^^^^^^^^^^
 #
 # We're now ready to build a tracker. We'll use a Kalman filter as it's conceptually the simplest
-# to start with. The Kalman filter is described extensively elsewhere [#]_$^,$ [#]_, so for the
-# moment we just assert that the prediction step proceeds as:
+# to start with. The Kalman filter is described extensively elsewhere [#]_ math:`^,` [#]_,
+# so for the moment we just assert that the prediction step proceeds as:
 #
 # .. math::
 #           \mathbf{x}_{k|k-1} &= F_{k}\mathbf{x}_{k-1} + B_{k}\mathbf{u}_{k}\\
