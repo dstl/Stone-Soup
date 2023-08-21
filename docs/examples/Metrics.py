@@ -344,10 +344,10 @@ tracker_PF = MultiTargetTracker(
 # -----------------------------------------------
 # Now that we have all of our ground truth, detections, and tracks data, we can add it to the metric manager.
 #
-# The MultiManager :meth:`.add_data()` method takes a dictionary of lists/sets of ground truth, detections, and/or tracks data.
-# It can take multiple sets of each type. Each state set must have a unique key assigned to it. The track, truth, and
-# detection keys that we input into the metric generators will be used to extract the corresponding set from the
-# :class:`~.MultiManager` for metric generation.
+# The MultiManager :meth:`~.MultiManager.add_data()` method takes a dictionary of lists/sets of ground truth,
+# detections, and/or tracks data. It can take multiple sets of each type. Each state set must have a unique key assigned
+# to it. The track, truth, and detection keys that we input into the metric generators will be used to extract the
+# corresponding set from the :class:`~.MultiManager` for metric generation.
 #
 # Setting overwrite to False allows new data to be added to the :class:`~.MultiManager` without overwriting data that is
 # already in it, as demonstrated in the code below.
