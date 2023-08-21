@@ -273,7 +273,7 @@ plotter.fig
 # ^^^^^^^^^^^^^^^^^^^^^^^^^
 #
 # We're now ready to build a tracker. We'll use a Kalman filter as it's conceptually the simplest
-# to start with. The Kalman filter is described extensively elsewhere [#]_^, [#]_, so for the
+# to start with. The Kalman filter is described extensively elsewhere [#]_$^,$ [#]_, so for the
 # moment we just assert that the prediction step proceeds as:
 #
 # .. math::
