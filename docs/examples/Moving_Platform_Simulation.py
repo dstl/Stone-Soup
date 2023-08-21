@@ -405,5 +405,5 @@ animation.ArtistAnimation(fig, frames)
 # ----------
 # 1. Platforms, static or moving, can be used as targets for sensor platforms.
 # 2. Simulations can only be built with known platform behaviours when you want to test specific
-# scenarios.
+#    scenarios.
 # 3. A tracker can be configured to exploit all sensor data created in a simulation.
