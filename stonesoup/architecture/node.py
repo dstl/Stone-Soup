@@ -83,7 +83,7 @@ class FusionNode(Node):
         default=FusionQueue(),
         doc="The queue from which this node draws data to be fused")
     track_fusion_tracker: Tracker = Property(
-        default=SimpleFusionTracker(),
+        default=None, #SimpleFusionTracker(),
         doc="Tracker for associating tracks at the node")
     tracks: set = Property(default=None,
                            doc="Set of tracks tracked by the fusion node")

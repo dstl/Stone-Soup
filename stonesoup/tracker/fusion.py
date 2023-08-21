@@ -38,21 +38,13 @@ class SimpleFusionTracker(Tracker):  # implement tracks method
     """Presumes data from this node are detections, and from every other node are tracks
     Acts as a wrapper around a base tracker. Track is fixed after the sliding window.
     It exists within it, but the States may change. """
-    base_tracker: Tracker = Property(
-        default=MultiTargetTracker(initiator=SimpleCategoricalMeasurementInitiator(
-            prior_state=CategoricalState([1 / 2, 1 / 2],
-                                         categories=['Friendly', 'Enemy']),
-            updater=HMMUpdater()),
-                                   deleter=UpdateTimeStepsDeleter(2),
-                                   detector=detector,
-                                   data_associator=GNNWith2DAssignment(
-                                       HMMHypothesiser(
-                                           predictor=HMMPredictor(MarkovianTransitionModel(
-                                               transition_matrix=np.array([[0.6, 0.4],
-                                                                           [0.39, 0.61]]))),
-                                           updater=HMMUpdater())),
-                                   updater=HMMUpdater()),
-        doc="Tracker given to the fusion node")
+    base_tracker: Tracker = Property(default=None,#MultiTargetTracker(
+                                    # initiator=SimpleCategoricalMeasurementInitiator(prior_state=CategoricalState([1 / 2, 1 / 2], categories=['Friendly', 'Enemy']), updater=HMMUpdater()),
+                                    # deleter=UpdateTimeStepsDeleter(2),
+                                    # detector=,
+                                    # data_associator=GNNWith2DAssignment(HMMHypothesiser(predictor=HMMPredictor(MarkovianTransitionModel(transition_matrix=np.array([[0.6, 0.4], [0.39, 0.61]]))), updater=HMMUpdater())),
+                                    # updater=HMMUpdater()),
+                                     doc="Tracker given to the fusion node")
     sliding_window: int = Property(default=30,
                               doc="The number of time steps before the result is fixed")
     queue: FusionQueue = Property(default=None, doc="Queue which feeds in data")
