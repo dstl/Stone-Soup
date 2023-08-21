@@ -5,10 +5,9 @@ from ..types.hypothesis import Hypothesis
 from ..types.track import Track
 from ..tracker.base import Tracker
 from .edge import DataPiece, FusionQueue
-from ..tracker.fusion import SimpleFusionTracker
+from ..tracker.fusion import FusionTracker
 from datetime import datetime
 from typing import Tuple
-from .functions import _dict_set
 
 
 class Node(Base):
@@ -78,14 +77,11 @@ class SensorNode(Node):
 class FusionNode(Node):
     """A node that does not measure new data, but does process data it receives"""
     # feeder probably as well
-    tracker: Tracker = Property(
+    tracker: FusionTracker = Property(
         doc="Tracker used by this Node to fuse together Tracks and Detections")
     fusion_queue: FusionQueue = Property(
         default=FusionQueue(),
         doc="The queue from which this node draws data to be fused")
-    track_fusion_tracker: Tracker = Property(
-        default=None, #SimpleFusionTracker(),
-        doc="Tracker for associating tracks at the node")
     tracks: set = Property(default=None,
                            doc="Set of tracks tracked by the fusion node")
 
@@ -147,3 +143,29 @@ class RepeaterNode(Node):
             self.node_dim = (0.5, 0.3)
 
 
+def _dict_set(my_dict, value, key1, key2=None):
+    """Utility function to add value to my_dict at the specified key(s)
+    Returns True iff the set increased in size, ie the value was new to its position"""
+    if not my_dict:
+        if key2:
+            my_dict = {key1: {key2: {value}}}
+        else:
+            my_dict = {key1: {value}}
+    elif key2:
+        if key1 in my_dict:
+            if key2 in my_dict[key1]:
+                old_len = len(my_dict[key1][key2])
+                my_dict[key1][key2].add(value)
+                return len(my_dict[key1][key2]) == old_len + 1, my_dict
+            else:
+                my_dict[key1][key2] = {value}
+        else:
+            my_dict[key1] = {key2: {value}}
+    else:
+        if key1 in my_dict:
+            old_len = len(my_dict[key1])
+            my_dict[key1].add(value)
+            return len(my_dict[key1]) == old_len + 1, my_dict
+        else:
+            my_dict[key1] = {value}
+    return True, my_dict
