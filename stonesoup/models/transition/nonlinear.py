@@ -3,7 +3,7 @@ from typing import Sequence
 import numpy as np
 from scipy.linalg import block_diag
 
-from ...types.array import StateVector, StateVectors
+from ...types.array import StateVector, StateVectors, Matrix
 from .base import TransitionModel
 from ..base import GaussianModel, TimeVariantModel
 from ...base import Property
@@ -95,7 +95,8 @@ class ConstantTurn(GaussianTransitionModel, TimeVariantModel):
         sv1 = state.state_vector
         turn_rate = sv1[4, :]
         # Avoid divide by zero in the function evaluation
-        turn_rate[turn_rate == 0.] = np.finfo(float).eps
+        if turn_rate[0] == 0:
+            turn_rate = Matrix([np.finfo(float).eps])
         dAngle = turn_rate * time_interval_sec
         cos_dAngle = np.cos(dAngle)
         sin_dAngle = np.sin(dAngle)
