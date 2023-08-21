@@ -1,6 +1,6 @@
 from abc import abstractmethod
 from ..base import Base, Property
-from .node import Node, SensorNode, RepeaterNode #, FusionNode
+from .node import Node, FusionNode, SensorNode, RepeaterNode
 from .edge import Edge, Edges, DataPiece
 from ..types.groundtruth import GroundTruthPath
 from ..types.detection import TrueDetection, Detection, Clutter
