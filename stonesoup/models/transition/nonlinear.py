@@ -67,16 +67,11 @@ class ConstantTurn(GaussianTransitionModel, TimeVariantModel):
 
         .. math::
              Q_t & = & \begin{bmatrix}
-                          \frac{dt^4q_x^2}{4} & \frac{dt^3q_x^2}{2} & \frac{dt^4q_xq_y}{4} &
-                              \frac{dt^3q_xq_y}{2} & \frac{dt^2q_xq_\omega}{2} \\
-                          \frac{dt^3q_x^2}{2} & dt^2q_x^2 & \frac{dt^3q_xq_y}{2} & dt^2q_xq_y &
-                              dt q_x q_\omega \\
-                          \frac{dt^4q_xq_y}{4} & \frac{dt^3q_xq_y}{2} & \frac{dt^4q_y^2}{4} &
-                              \frac{dt^3q_y^2}{2} & \frac{dt^2q_y q_\omega}{2} \\
-                          \frac{dt^3q_x q_y}{2} & dt^2q_xq_y & \frac{dt^3q_y^2}{2} &
-                              dt^2q_y^2 & dt q_y q_\omega \\
-                          \frac{dt^2q_xq_\omega}{2} & dtq_xq_\omega & \frac{dt^2q_yq_\omega}{2} &
-                              dt q_y q_\omega & q_\omega^2
+                          \frac{dt^3q_x^2}{3} & \frac{dt^2q_x^2}{2} & 0 & 0 & 0 \\
+                          \frac{dt^2q_x^2}{2} & dtq_x^2 & 0 & 0 & 0 \\
+                          0 & 0 & \frac{dt^3q_y^2}{3} & \frac{dt^2q_y^2}{2} & 0 \\
+                          0 & 0 & \frac{dt^2q_y^2}{2} & dtq_y^2 & 0 \\
+                          0 & 0 & 0 & 0 & q_\omega^2
                      \end{bmatrix}
     """
     linear_noise_coeffs: np.ndarray = Property(
@@ -134,7 +129,7 @@ class ConstantTurn(GaussianTransitionModel, TimeVariantModel):
 
         Q = np.array([[dt**3 / 3., dt**2 / 2.],
                       [dt**2 / 2., dt]])
-        C = block_diag(Q*q_x**2, Q*q_y**2, q**2/dt)
+        C = block_diag(Q*q_x**2, Q*q_y**2, q**2)
 
         return CovarianceMatrix(C)
 
