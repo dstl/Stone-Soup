@@ -3,7 +3,7 @@ import pytest
 import numpy as np
 
 
-from ..architecture import InformationArchitecture
+from stonesoup.architecture import InformationArchitecture
 from ..edge import Edge, Edges
 from ..node import RepeaterNode, SensorNode
 from ...sensor.categorical import HMMSensor
