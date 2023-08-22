@@ -27,6 +27,12 @@ class FusionQueue(Queue):
     def set_message(self, value):
         self.put(value)
 
+    def __iter__(self):
+        return self
+
+    def __next__(self):
+        return self.get_message()
+
 
 class DataPiece(Base):
     """A piece of data for use in an architecture. Sent via Messages, and stored in a Node's data_held"""
