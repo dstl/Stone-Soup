@@ -17,22 +17,16 @@ if TYPE_CHECKING:
 
 
 class FusionQueue(Queue):
-    """A queue from which fusion nodes draw data they have yet to fuse"""
-    def __init__(self):
-        super().__init__(maxsize=999999)
+    """A queue from which fusion nodes draw data they have yet to fuse
 
-    def get_message(self):
-        value = self.get()
-        return value
-
-    def set_message(self, value):
-        self.put(value)
+    Iterable, where it blocks attempting to yield items on the queue
+    """
 
     def __iter__(self):
         return self
 
     def __next__(self):
-        return self.get_message()
+        return self.get()
 
 
 class DataPiece(Base):
