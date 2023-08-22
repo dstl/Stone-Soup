@@ -1,3 +1,5 @@
+import datetime
+
 import numpy as np
 from scipy.stats import poisson
 from typing import Set, Union, Callable, Tuple, Optional
@@ -57,7 +59,8 @@ class ClutterModel(Model, ABC):
         else:
             self.random_state = None
 
-    def function(self, ground_truths: Set[GroundTruthState], **kwargs) -> Set[Clutter]:
+    def function(self, ground_truths: Set[GroundTruthState], timestamp: datetime.datetime,
+                 **kwargs) -> Set[Clutter]:
         """
         Use the defined distribution and parameters to create simulated clutter
         for the current time step. Return this clutter to the calling sensor so
@@ -73,12 +76,6 @@ class ClutterModel(Model, ABC):
         : set of :class:`~.Clutter`
             The simulated clutter.
         """
-        # Extract the timestamp from the ground_truths. Groundtruth is
-        # necessary to get the proper timestamp. If there is no
-        # groundtruth return a set of no Clutter.
-        if not ground_truths:
-            return set()
-        timestamp = next(iter(ground_truths)).timestamp
 
         # Generate the clutter for this time step
         clutter = set()

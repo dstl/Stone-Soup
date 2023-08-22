@@ -41,6 +41,7 @@ class PDAHypothesiser(Hypothesiser):
         doc="Target Detection Probability")
     predict: bool = Property(default=True, doc="Perform prediction step")
     per_measurement: bool = Property(default=False, doc="Generate per measurement predictions")
+    normalise: bool = Property(default=True, doc="Normalise probabilities")
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -182,7 +183,7 @@ class PDAHypothesiser(Hypothesiser):
                     probability,
                     measurement_prediction))
 
-        return MultipleHypothesis(hypotheses, normalise=True, total_weight=1)
+        return MultipleHypothesis(hypotheses, normalise=self.normalise, total_weight=1)
 
 
 class IPDAHypothesiser(PDAHypothesiser):

@@ -47,6 +47,7 @@ class _BaseTracker(Base):
     start_time: datetime = Property(doc='Start time of the tracker', default=None)
 
     def __init__(self, *args, **kwargs):
+        self._clutter_intensity = kwargs.pop('clutter_intensity', None)
         super().__init__(*args, **kwargs)
         self.prob_detect = self.prob_detection
         self._tracks = set()
@@ -73,6 +74,18 @@ class _BaseTracker(Base):
                 self._hypothesiser.prob_detect = self._prob_detect
         if hasattr(self, '_initiator'):
             self._initiator.filter.prob_detect = self._prob_detect
+
+    @property
+    def clutter_intensity(self):
+        return self._clutter_intensity
+
+    @clutter_intensity.setter
+    def clutter_intensity(self, clutter_intensity):
+        self._clutter_intensity = clutter_intensity
+        if hasattr(self, '_hypothesiser'):
+            self._hypothesiser.clutter_spatial_density = self._clutter_intensity
+        if hasattr(self, '_initiator'):
+            self._initiator.filter.clutter_intensity = self._clutter_intensity
 
     @abstractmethod
     def track(self, detections, timestamp, *args, **kwargs):
@@ -239,9 +252,10 @@ class SMCPHD_IGNN(_BaseTracker):
         self._hypothesiser = PDAHypothesiser(self._predictor, self._updater,
                                              self.clutter_intensity,
                                              prob_detect=self.prob_detect,
-                                             predict=self.predict)
-        self._hypothesiser = DistanceHypothesiser(self._predictor, self._updater,
-                                                  Mahalanobis(), 10)
+                                             predict=self.predict,
+                                             normalise=False)
+        # self._hypothesiser = DistanceHypothesiser(self._predictor, self._updater,
+        #                                           Mahalanobis(), 10)
         self._associator = GNNWith2DAssignment(self._hypothesiser)
 
         resampler = SystematicResampler()

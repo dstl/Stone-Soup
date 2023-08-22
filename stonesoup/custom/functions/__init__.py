@@ -1,3 +1,4 @@
+import copy
 from functools import partial
 import math
 from typing import Set, List, Sequence
@@ -513,6 +514,97 @@ def eval_rfi(rfi: RFI, tracks: Sequence[Track], sensors: Sequence[Sensor],
 
     return config_metric
 
+
+def eval_rfi_new(rfi: RFI, tracks: Sequence[Track], timestamp,
+                 phd_state: ParticleState = None, use_variance=True):
+    num_samples = 100
+    mu_overall = 0
+    var_overall = 0  # np.inf if len(valid_tracks) == 0  else 0
+    config_metric = 0
+
+    target_types = [t.target_type.value for t in rfi.targets]
+    valid_tracks = [track for track in tracks
+                    if not (target_types)
+                    or (target_types and any(item in track.metadata['target_type_confidences']
+                                             for item in target_types))]
+    for roi in rfi.region_of_interest:
+
+        xmin, ymin = roi.corners[0].longitude, roi.corners[0].latitude
+        xmax, ymax = roi.corners[1].longitude, roi.corners[1].latitude
+        geom = Polygon([(xmin, ymin), (xmax, ymin), (xmax, ymax), (xmin, ymax)])
+        path_p = Path(geom.boundary.coords)
+
+        # Calculate PHD density inside polygon
+        if phd_state is not None:
+            points = phd_state.state_vector[[0, 2], :].T
+            inside_points = path_p.contains_points(points)
+            if np.sum(inside_points) > 0:
+                # The mean of the PHD density inside the polygon is the sum of the weights of the
+                # particles inside the polygon
+                mu_overall = np.exp(logsumexp(np.log(phd_state.weight[inside_points].astype(float))))
+                # The variance of a Poisson distribution is equal to the mean
+                var_overall = mu_overall
+
+        # Calculate number of tracks inside polygon
+        for track in valid_tracks:
+            # Sample points from the track state
+            points = multivariate_normal.rvs(mean=track.state_vector[[0, 2]].ravel(),
+                                             cov=track.covar[[0, 2], :][:, [0, 2]],
+                                             size=num_samples)
+
+            # Check which points are inside the polygon
+            inside_points = path_p.contains_points(points)
+            # Probability of existence inside the polygon is the fraction of points inside the polygon
+            # times the probability of existence
+            p_success = float(track.exist_prob) * (np.sum(inside_points) / num_samples)
+            # Mean of a Bernoulli distribution is equal to the probability of success
+            mu_overall += p_success
+            # Variance of a Bernoulli distribution is equal to the probability of success,
+            # times the probability of failure
+            var_overall += p_success * (1 - p_success)
+
+        # Compute time varying reward
+        # NOTE: We assume that the priority over time is monotonically decreasing
+        potential_reward = 0   # Default reward
+        # Find index of the closest earlier timestamp
+        inds_lt = np.flatnonzero(np.array(rfi.priority_over_time.timescale) <= timestamp)
+        # If there are no earlier timestamps, it means that the RFI has not been active yet
+        if len(inds_lt) > 0:
+            max_reward_idx = inds_lt[-1]
+            max_reward_time = rfi.priority_over_time.timescale[max_reward_idx]
+            max_potential_reward = rfi.priority_over_time.priority[max_reward_idx]
+            # Find index of the closest later timestamp
+            inds_gt = np.flatnonzero(np.array(rfi.priority_over_time.timescale) > timestamp)
+            # If there are later timestamps, we interpolate between the two points
+            if len(inds_gt) > 0:
+                min_reward_idx = inds_gt[0]
+                min_reward_time = rfi.priority_over_time.timescale[min_reward_idx]
+                min_potential_reward = rfi.priority_over_time.priority[min_reward_idx]
+                dt_total = min_reward_time - max_reward_time
+                dt = timestamp - max_reward_time
+                dy = max_potential_reward - min_potential_reward
+                # Linearly interpolate between the two points
+                potential_reward = max_potential_reward - dy * (dt / dt_total)
+            else:
+                # If there are no later timestamps, we reward the max potential reward
+                potential_reward = max_potential_reward
+
+        if rfi.task_type == TaskType.COUNT:
+            if mu_overall > 0 and var_overall < rfi.threshold_over_time.threshold[0]:
+                config_metric += potential_reward
+                if use_variance:
+                    config_metric += 1 / var_overall
+            else:
+                a=2
+        elif rfi.task_type == TaskType.FOLLOW:
+            for target in rfi.targets:
+                track = next((track for track in tracks if track.id == str(target.target_UUID)), None)
+                if track is not None:
+                    var = track.covar[0, 0] + track.covar[2, 2]
+                    if var < rfi.threshold_over_time.threshold[0]:
+                        config_metric += potential_reward
+
+    return config_metric
 
 proj_wgs84 = pyproj.Proj('+proj=longlat +datum=WGS84')
 
