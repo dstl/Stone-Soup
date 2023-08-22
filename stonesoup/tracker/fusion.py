@@ -1,8 +1,9 @@
 import datetime
+from abc import ABC
 
 from stonesoup.architecture.edge import FusionQueue
 from .base import Tracker
-from ..base import Property
+from ..base import Property, Base
 from stonesoup.buffered_generator import BufferedGenerator
 from stonesoup.dataassociator.tracktotrack import TrackToTrackCounting
 from stonesoup.reader.base import DetectionReader
@@ -13,7 +14,7 @@ from stonesoup.tracker.pointprocess import PointProcessMultiTargetTracker
 from stonesoup.feeder.track import Tracks2GaussianDetectionFeeder
 
 
-class FusionTracker(Tracker):
+class FusionTracker(Tracker, ABC):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self._tracks = set()

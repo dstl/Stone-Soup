@@ -7,6 +7,7 @@ from ..types.detection import Detection
 from ..types.hypothesis import Hypothesis
 from .functions import _dict_set
 
+from collections.abc import Collection
 from typing import Union, Tuple, List, TYPE_CHECKING
 from datetime import datetime, timedelta
 from queue import Queue
@@ -102,33 +103,39 @@ class Edge(Base):
         self.time_ranges_failed.append(TimeRange(current_time, end_time))
 
     @property
-    def child(self):
+    def sender(self):
         return self.nodes[0]
 
     @property
-    def parent(self):
+    def recipient(self):
         return self.nodes[1]
 
     @property
     def ovr_latency(self):
         """Overall latency including the two Nodes and the edge latency."""
-        return self.child.latency + self.edge_latency + self.parent.latency
+        return self.sender.latency + self.edge_latency + self.recipient.latency
 
     @property
     def unsent_data(self):
         """Data held by the child that has not been sent to the parent."""
         unsent = []
         for status in ["fused", "created"]:
-            for time_pertaining in self.child.data_held[status]:
-                for data_piece in self.child.data_held[status][time_pertaining]:
-                    if self.parent not in data_piece.sent_to:
+            for time_pertaining in self.sender.data_held[status]:
+                for data_piece in self.sender.data_held[status][time_pertaining]:
+                    if self.recipient not in data_piece.sent_to:
                         unsent.append((data_piece, time_pertaining))
         return unsent
 
 
-class Edges(Base):
+class Edges(Base, Collection):
     """Container class for Edge"""
     edges: List[Edge] = Property(doc="List of Edge objects", default=None)
+
+    def __iter__(self):
+        return self.edges.__iter__()
+
+    def __contains__(self, item):
+        return item in self.edges
 
     def add(self, edge):
         self.edges.append(edge)
@@ -176,12 +183,12 @@ class Message(Base):
         self.status = "sending"
 
     @property
-    def generator_node(self):
-        return self.edge.child
+    def sender_node(self):
+        return self.edge.sender
 
     @property
     def recipient_node(self):
-        return self.edge.parent
+        return self.edge.recipient
 
     @property
     def arrival_time(self):
@@ -190,9 +197,9 @@ class Message(Base):
 
     def update(self, current_time):
         progress = (current_time - self.time_sent).total_seconds()
-        if progress < self.edge.child.latency:
+        if progress < self.edge.sender.latency:
             self.status = "sending"
-        elif progress < self.edge.child.latency + self.edge.edge_latency:
+        elif progress < self.edge.sender.latency + self.edge.edge_latency:
             self.status = "transferring"
         elif progress < self.edge.ovr_latency:
             self.status = "receiving"
