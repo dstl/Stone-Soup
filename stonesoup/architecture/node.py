@@ -29,7 +29,7 @@ class Node(Base):
         default=None,
         doc='Shape used to display nodes')
     font_size: int = Property(
-        default=None,
+        default=5,
         doc='Font size for node labels')
     node_dim: tuple = Property(
         default=None,
@@ -62,17 +62,15 @@ class Node(Base):
 class SensorNode(Node):
     """A node corresponding to a Sensor. Fresh data is created here"""
     sensor: Sensor = Property(doc="Sensor corresponding to this node")
-
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        if not self.colour:
-            self.colour = '#1f77b4'
-        if not self.shape:
-            self.shape = 'oval'
-        if not self.font_size:
-            self.font_size = 5
-        if not self.node_dim:
-            self.node_dim = (0.5, 0.3)
+    colour: str = Property(
+        default='#1f77b4',
+        doc='Colour to be displayed on graph. Default is the hex colour code #1f77b4')
+    shape: str = Property(
+        default='oval',
+        doc='Shape used to display nodes. Default is an oval')
+    node_dim: tuple = Property(
+        default=(0.5, 0.3),
+        doc='Width and height of nodes for graph icons. Default is (0.5, 0.3)')
 
 
 class FusionNode(Node):
@@ -88,17 +86,18 @@ class FusionNode(Node):
         doc="Tracker for associating tracks at the node")
     tracks: set = Property(default=None,
                            doc="Set of tracks tracked by the fusion node")
+    colour: str = Property(
+        default='#006400',
+        doc='Colour to be displayed on graph. Default is the hex colour code #006400')
+    shape: str = Property(
+        default='hexagon',
+        doc='Shape used to display nodes. Default is a hexagon')
+    node_dim: tuple = Property(
+        default=(0.6, 0.3),
+        doc='Width and height of nodes for graph icons. Default is (0.6, 0.3)')
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        if not self.colour:
-            self.colour = '#006400'
-        if not self.shape:
-            self.shape = 'hexagon'
-        if not self.font_size:
-            self.font_size = 5
-        if not self.node_dim:
-            self.node_dim = (0.6, 0.3)
         self.tracks = set()  # Set of tracks this Node has recorded
 
     def fuse(self):
@@ -120,30 +119,25 @@ class FusionNode(Node):
 
 class SensorFusionNode(SensorNode, FusionNode):
     """A node that is both a sensor and also processes data"""
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        if self.colour in ['#006400', '#1f77b4']:
-            self.colour = '#909090'  # attr dict in Architecture.__init__ also needs updating
-        if self.shape in ['oval', 'hexagon']:
-            self.shape = 'rectangle'
-        if not self.font_size:
-            self.font_size = 5
-        if not self.node_dim:
-            self.node_dim = (0.1, 0.3)
+    colour: str = Property(
+        default='#909090',
+        doc='Colour to be displayed on graph. Default is the hex colour code #909090')
+    shape: str = Property(
+        default='rectangle',
+        doc='Shape used to display nodes. Default is a rectangle')
+    node_dim: tuple = Property(
+        default=(0.1, 0.3),
+        doc='Width and height of nodes for graph icons. Default is (0.1, 0.3)')
 
 
 class RepeaterNode(Node):
     """A node which simply passes data along to others, without manipulating the data itself. """
-    # Latency property could go here
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        if not self.colour:
-            self.colour = '#ff7f0e'
-        if not self.shape:
-            self.shape = 'circle'
-        if not self.font_size:
-            self.font_size = 5
-        if not self.node_dim:
-            self.node_dim = (0.5, 0.3)
-
-
+    colour: str = Property(
+        default='#ff7f0e',
+        doc='Colour to be displayed on graph. Default is the hex colour code #ff7f0e')
+    shape: str = Property(
+        default='circle',
+        doc='Shape used to display nodes. Default is a circle')
+    node_dim: tuple = Property(
+        default=(0.5, 0.3),
+        doc='Width and height of nodes for graph icons. Default is (0.5, 0.3)')

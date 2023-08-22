@@ -654,7 +654,7 @@ class ParticleState(State):
                 StateVectors([particle.state_vector for particle in self.particle_list])
             self.weight = \
                 np.array([Probability(particle.weight) for particle in self.particle_list])
-            parent_list = [particle.parent for particle in self.particle_list]
+            parent_list = [particle.recipient for particle in self.particle_list]
 
             if parent_list.count(None) == 0:
                 self.parent = ParticleState(None, particle_list=parent_list)
