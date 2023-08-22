@@ -986,7 +986,7 @@ class Plotterly(_Plotter):
 
         c, s = np.cos(orient), np.sin(orient)
         rotational_matrix = np.array(((c, -s), (s, c)))
-
+        points.append(points[0])
         points = np.array([[a * np.sin(i), b * np.cos(i)] for i in points])
         points = rotational_matrix @ points.T
         return points + state.mean[mapping[:2], :]
