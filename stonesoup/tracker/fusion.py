@@ -1,5 +1,6 @@
 import datetime
 
+from stonesoup.architecture.edge import FusionQueue
 from .base import Tracker
 from ..base import Property
 from stonesoup.buffered_generator import BufferedGenerator
@@ -12,7 +13,7 @@ from stonesoup.tracker.pointprocess import PointProcessMultiTargetTracker
 from stonesoup.feeder.track import Tracks2GaussianDetectionFeeder
 
 
-def FusionTracker(Tracker):
+class FusionTracker(Tracker):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self._tracks = set()
@@ -37,11 +38,11 @@ class SimpleFusionTracker(FusionTracker):  # implement tracks method
     Acts as a wrapper around a base tracker. Track is fixed after the sliding window.
     It exists within it, but the States may change. """
     base_tracker: Tracker = Property(doc="Tracker given to the fusion node")
-    sliding_window = Property(default=30,
-                              doc="The number of time steps before the result is fixed")
-    queue = Property(default=None, doc="Queue which feeds in data")
-    track_fusion_tracker = Property(doc="Tracker for fusing of multiple tracks together")
-
+    sliding_window: int = Property(default=30,
+                                   doc="The number of time steps before the result is fixed")
+    queue: FusionQueue = Property(default=None,
+                                  doc="Queue which feeds in data")
+    track_fusion_tracker: Tracker = Property(doc="Tracker for fusing of multiple tracks together")
 
     @property
     def tracks(self):

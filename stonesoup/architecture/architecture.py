@@ -1,6 +1,6 @@
 from abc import abstractmethod
 from ..base import Base, Property
-from .node import Node, SensorNode, RepeaterNode #, FusionNode
+from .node import Node, SensorNode, RepeaterNode, FusionNode
 from .edge import Edge, Edges, DataPiece
 from ..types.groundtruth import GroundTruthPath
 from ..types.detection import TrueDetection, Detection, Clutter
@@ -174,7 +174,7 @@ class Architecture(Base):
         return processing
 
     def plot(self, dir_path, filename=None, use_positions=False, plot_title=False,
-             bgcolour="lightgray", node_style="filled"):
+             bgcolour="lightgray", node_style="filled", show_plot=True):
         """Creates a pdf plot of the directed graph and displays it
 
         :param dir_path: The path to save the pdf and .gv files to
@@ -280,7 +280,8 @@ class Architecture(Base):
         if not filename:
             filename = self.name
         viz_graph = graphviz.Source(dot, filename=filename, directory=dir_path, engine='neato')
-        viz_graph.view()
+        if show_plot:
+            viz_graph.view()
 
     @property
     def density(self):
