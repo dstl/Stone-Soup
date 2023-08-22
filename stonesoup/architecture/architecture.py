@@ -1,9 +1,9 @@
 from abc import abstractmethod
 from ..base import Base, Property
 from .node import Node, SensorNode, RepeaterNode, FusionNode
-from .edge import Edge, Edges, DataPiece
+from .edge import Edges, DataPiece
 from ..types.groundtruth import GroundTruthPath
-from ..types.detection import TrueDetection, Detection, Clutter
+from ..types.detection import TrueDetection, Clutter
 
 from typing import List, Collection, Tuple, Set, Union, Dict
 import numpy as np
@@ -13,6 +13,7 @@ from string import ascii_uppercase as auc
 from datetime import datetime, timedelta
 import threading
 
+
 class Architecture(Base):
     edges: Edges = Property(
         doc="An Edges object containing all edges. For A to be connected to B we would have an "
@@ -20,8 +21,8 @@ class Architecture(Base):
     current_time: datetime = Property(
         default=datetime.now(),
         doc="The time which the instance is at for the purpose of simulation. "
-            "This is increased by the propagate method. This should be set to the earliest timestep"
-            " from the ground truth")
+            "This is increased by the propagate method. This should be set to the earliest "
+            "timestep from the ground truth")
     name: str = Property(
         default=None,
         doc="A name for the architecture, to be used to name files and/or title plots. Default is "
@@ -315,8 +316,6 @@ class Architecture(Base):
     @property
     def is_centralised(self):
         n_parents = 0
-        one_parent = 0
-        multiple_parents = 0
         for node in self.all_nodes:
             if len(node.children) == 0:
                 n_parents += 1
