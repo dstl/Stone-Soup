@@ -1,3 +1,8 @@
+import threading
+from datetime import datetime
+from queue import Empty
+from typing import Tuple
+
 from ..base import Property, Base
 from ..sensor.sensor import Sensor
 from ..types.detection import Detection
@@ -5,9 +10,7 @@ from ..types.hypothesis import Hypothesis
 from ..types.track import Track
 from ..tracker.base import Tracker
 from .edge import DataPiece, FusionQueue
-from ..tracker.fusion import SimpleFusionTracker
-from datetime import datetime
-from typing import Tuple
+from ..tracker.fusion import FusionTracker
 from .functions import _dict_set
 
 
@@ -53,8 +56,8 @@ class Node(Base):
             new_data_piece = DataPiece(self, data_piece.originator, data_piece.data, time_arrived, track)
 
         added, self.data_held[category] = _dict_set(self.data_held[category], new_data_piece, time_pertaining)
-        if isinstance(self, FusionNode):
-            self.fusion_queue.set_message(new_data_piece)
+        if isinstance(self, FusionNode) and category in ("created", "unfused"):
+            self.fusion_queue.put((time_pertaining, {data_piece.data}))
 
         return added
 
@@ -76,14 +79,11 @@ class SensorNode(Node):
 class FusionNode(Node):
     """A node that does not measure new data, but does process data it receives"""
     # feeder probably as well
-    tracker: Tracker = Property(
+    tracker: FusionTracker = Property(
         doc="Tracker used by this Node to fuse together Tracks and Detections")
     fusion_queue: FusionQueue = Property(
         default=FusionQueue(),
         doc="The queue from which this node draws data to be fused")
-    track_fusion_tracker: Tracker = Property(
-        default=None, #SimpleFusionTracker(),
-        doc="Tracker for associating tracks at the node")
     tracks: set = Property(default=None,
                            doc="Set of tracks tracked by the fusion node")
     colour: str = Property(
@@ -100,21 +100,46 @@ class FusionNode(Node):
         super().__init__(*args, **kwargs)
         self.tracks = set()  # Set of tracks this Node has recorded
 
+        self._track_queue = FusionQueue()
+        self._tracking_thread = threading.Thread(
+            target=self._track_thread,
+            args=(self.tracker, self.fusion_queue, self._track_queue),
+            daemon=True)
+
+    def update(self, *args, **kwargs):
+        added = super().update(*args, **kwargs)
+        if not self._tracking_thread.is_alive():
+            try:
+                self._tracking_thread.start()
+            except RuntimeError:
+                pass  # Previously started
+        return added
+
     def fuse(self):
-        print("A node be fusin")
-        # we have a queue.
-        data = self.fusion_queue.get_message()
-
-        # Sort detections and tracks and group by time
-
-        if data:
+        data = None
+        timeout = self.latency
+        while True:
+            try:
+                data = self._track_queue.get(timeout=timeout)
+            except Empty:
+                break
+            timeout = 0.1
             # track it
-            print("there's data")
-            for time, track in self.tracker:
-                self.tracks.update(track)
-        else:
-            print("no data")
-            return
+            time, tracks = data
+            self.tracks.update(tracks)
+
+            for track in tracks:
+                data_piece = DataPiece(self, self, track, time, True)
+            added, self.data_held['fused'] = _dict_set(self.data_held['fused'], data_piece, time)
+
+        if data is None or self.fusion_queue.unfinished_tasks:
+            print(f"{self.label}: {self.fusion_queue.unfinished_tasks} still being processed")
+
+    @staticmethod
+    def _track_thread(tracker, input_queue, output_queue):
+        for time, tracks in tracker:
+            output_queue.put((time, tracks))
+            input_queue.task_done()
 
 
 class SensorFusionNode(SensorNode, FusionNode):

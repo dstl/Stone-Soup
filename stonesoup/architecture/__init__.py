@@ -358,7 +358,7 @@ class InformationArchitecture(Architecture):
             if isinstance(node, RepeaterNode):
                 raise TypeError("Information architecture should not contain any repeater nodes")
         for fusion_node in self.fusion_nodes:
-            fusion_node.tracker.set_time(self.current_time)
+            pass # fusion_node.tracker.set_time(self.current_time)
 
     def measure(self, ground_truths: List[GroundTruthPath], noise: Union[bool, np.ndarray] = True,
                 **kwargs) -> Dict[SensorNode, Set[Union[TrueDetection, Clutter]]]:
@@ -415,12 +415,11 @@ class InformationArchitecture(Architecture):
             return
 
         for fuse_node in self.fusion_nodes:
-            x = threading.Thread(target=fuse_node.fuse)
-            x.start()
+            fuse_node.fuse()
 
         self.current_time += timedelta(seconds=time_increment)
         for fusion_node in self.fusion_nodes:
-            fusion_node.tracker.set_time(self.current_time)
+            pass # fusion_node.tracker.set_time(self.current_time)
 
 
 class NetworkArchitecture(Architecture):
