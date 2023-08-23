@@ -175,7 +175,7 @@ class Architecture(Base):
         return processing
 
     def plot(self, dir_path, filename=None, use_positions=False, plot_title=False,
-             bgcolour="lightgray", node_style="filled", show_plot=True):
+             bgcolour="lightgray", node_style="filled", produce_plot=True, plot_style=None):
         """Creates a pdf plot of the directed graph and displays it
 
         :param dir_path: The path to save the pdf and .gv files to
@@ -189,7 +189,11 @@ class Architecture(Base):
         One alternative is "white"
         :param node_style: String containing the node style for the plot.
         Default is "filled". See graphviz attributes for more information.
-        One alternative is "solid"
+        One alternative is "solid".
+        :param produce_plot: Boolean set to true by default. Setting to False prevents the plot from
+        being displayed.
+        :param plot_style: String providing a style to be used to plot the graph. Currently only
+        one option for plot style given by plot_style = 'hierarchical'.
         :return:
         """
         if use_positions:
@@ -199,7 +203,7 @@ class Architecture(Base):
                                     "position, given as a Tuple of length 2")
                 attr = {"pos": f"{node.position[0]},{node.position[1]}!"}
                 self.di_graph.nodes[node].update(attr)
-        elif self.is_hierarchical:
+        elif self.is_hierarchical or plot_style == 'hierarchical':
 
             # Find top node and assign location
             top_nodes = self.top_nodes
@@ -281,7 +285,7 @@ class Architecture(Base):
         if not filename:
             filename = self.name
         viz_graph = graphviz.Source(dot, filename=filename, directory=dir_path, engine='neato')
-        if show_plot:
+        if produce_plot:
             viz_graph.view()
 
     @property
