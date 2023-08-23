@@ -120,6 +120,7 @@ class FusionNode(Node):
         data = None
         added = False
         timeout = self.latency or 0.1
+        updated_tracks = set()
         while True:
             try:
                 data = self._track_queue.get(timeout=timeout)
@@ -129,14 +130,15 @@ class FusionNode(Node):
             # track it
             time, tracks = data
             self.tracks.update(tracks)
-
-            for track in tracks:
-                data_piece = DataPiece(self, self, copy.copy(track), time, True)
-            if tracks:
-                added, self.data_held['fused'] = _dict_set(self.data_held['fused'], data_piece, time)
+            updated_tracks |= tracks
 
         if data is None or self.fusion_queue.unfinished_tasks:
             print(f"{self.label}: {self.fusion_queue.unfinished_tasks} still being processed")
+
+        for track in updated_tracks:
+            data_piece = DataPiece(self, self, copy.copy(track), track.timestamp, True)
+            added, self.data_held['fused'] = _dict_set(
+                self.data_held['fused'], data_piece, track.timestamp)
         return added
 
     @staticmethod
