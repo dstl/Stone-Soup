@@ -30,7 +30,8 @@ class FusionQueue(Queue):
 
 
 class DataPiece(Base):
-    """A piece of data for use in an architecture. Sent via Messages, and stored in a Node's data_held"""
+    """A piece of data for use in an architecture. Sent via a :class:`~.Message`,
+    and stored in a Node's data_held"""
     node: "Node" = Property(
         doc="The Node this data piece belongs to")
     originator: "Node" = Property(
@@ -46,7 +47,7 @@ class DataPiece(Base):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.sent_to = set() # all Nodes the data_piece has been sent to, to avoid duplicates
+        self.sent_to = set()  # all Nodes the data_piece has been sent to, to avoid duplicates
 
 
 class Edge(Base):
