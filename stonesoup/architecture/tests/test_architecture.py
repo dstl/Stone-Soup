@@ -199,9 +199,9 @@ def test_leaf_nodes(fixtures):
     decentralised_edges = fixtures["decentralised_edges"]
     disconnected_edges = fixtures["disconnected_edges"]
 
-    # Simple architecture should be connected
+    # Simple architecture should have 2 leaf nodes
     simple_architecture = InformationArchitecture(edges=simple_edges)
-    assert simple_architecture.leaf_nodes == set([nodes[1], nodes[2]])
+    assert simple_architecture.leaf_nodes == {nodes[1], nodes[2]}
 
 
 
