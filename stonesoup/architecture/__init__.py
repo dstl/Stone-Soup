@@ -167,11 +167,11 @@ class Architecture(Base):
 
     @property
     def fusion_nodes(self):
-        processing = set()
+        fusion = set()
         for node in self.all_nodes:
             if isinstance(node, FusionNode):
-                processing.add(node)
-        return processing
+                fusion.add(node)
+        return fusion
 
     def plot(self, dir_path, filename=None, use_positions=False, plot_title=False,
              bgcolour="lightgray", node_style="filled", produce_plot=True, plot_style=None):

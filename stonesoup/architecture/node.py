@@ -1,3 +1,4 @@
+import copy
 import threading
 from datetime import datetime
 from queue import Empty
@@ -117,7 +118,8 @@ class FusionNode(Node):
 
     def fuse(self):
         data = None
-        timeout = self.latency
+        added = False
+        timeout = self.latency or 0.1
         while True:
             try:
                 data = self._track_queue.get(timeout=timeout)
@@ -129,11 +131,13 @@ class FusionNode(Node):
             self.tracks.update(tracks)
 
             for track in tracks:
-                data_piece = DataPiece(self, self, track, time, True)
-            added, self.data_held['fused'] = _dict_set(self.data_held['fused'], data_piece, time)
+                data_piece = DataPiece(self, self, copy.copy(track), time, True)
+            if tracks:
+                added, self.data_held['fused'] = _dict_set(self.data_held['fused'], data_piece, time)
 
         if data is None or self.fusion_queue.unfinished_tasks:
             print(f"{self.label}: {self.fusion_queue.unfinished_tasks} still being processed")
+        return added
 
     @staticmethod
     def _track_thread(tracker, input_queue, output_queue):
