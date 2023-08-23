@@ -55,7 +55,7 @@ class Architecture(Base):
             raise ValueError("The graph is not connected. Use force_connected=False, "
                              "if you wish to override this requirement")
 
-        # Set attributes such as label, colour, shape, etc for each node
+        # Set attributes such as label, colour, shape, etc. for each node
         last_letters = {'SensorNode': '', 'FusionNode': '', 'SensorFusionNode': '',
                         'RepeaterNode': ''}
         for node in self.di_graph.nodes:
@@ -69,57 +69,56 @@ class Architecture(Base):
                     "height": f"{node.node_dim[1]}", "fixedsize": True}
             self.di_graph.nodes[node].update(attr)
 
-    def parents(self, node: Node):
+    def recipients(self, node: Node):
         """Returns a set of all nodes to which the input node has a direct edge to"""
         if node not in self.all_nodes:
             raise ValueError("Node not in this architecture")
-        parents = set()
+        recipients = set()
         for other in self.all_nodes:
             if (node, other) in self.edges.edge_list:
-                parents.add(other)
-        return parents
+                recipients.add(other)
+        return recipients
 
-    def children(self, node: Node):
+    def senders(self, node: Node):
         """Returns a set of all nodes to which the input node has a direct edge from"""
         if node not in self.all_nodes:
             raise ValueError("Node not in this architecture")
-        children = set()
+        senders = set()
         for other in self.all_nodes:
             if (other, node) in self.edges.edge_list:
-                children.add(other)
-        return children
+                senders.add(other)
+        return senders
 
     def sibling_group(self, node: Node):
         """Returns a set of siblings of the given node. The given node is included in this set."""
         siblings = set()
-        for parent in self.parents(node):
-            for child in self.children(parent):
-                siblings.add(child)
+        for recipient in self.recipients(node):
+            for sender in self.senders(recipient):
+                siblings.add(sender)
         return siblings
 
     @property
     def shortest_path_dict(self):
-        g = nx.DiGraph()
-        for edge in self.edges.edge_list:
-            g.add_edge(edge[0], edge[1])
-        path = nx.all_pairs_shortest_path_length(g)
+        path = nx.all_pairs_shortest_path_length(self.di_graph)
         dpath = {x[0]: x[1] for x in path}
         return dpath
 
-    def _parent_position(self, node: Node):
-        """Returns a tuple of (x_coord, y_coord) giving the location of a node's parent"""
-        parents = self.parents(node)
-        if len(parents) == 1:
-            parent = parents.pop()
+    def _recipient_position(self, node: Node):
+        """Returns a tuple of (x_coord, y_coord) giving the location of a node's recipient.
+        If the node has more than one recipient, a ValueError will be raised. """
+        recipients = self.recipients(node)
+        if len(recipients) == 1:
+            recipient = recipients.pop()
         else:
-            raise ValueError("Node has more than one parent")
-        return parent.position
+            raise ValueError("Node has more than one recipient")
+        return recipient.position
 
     @property
-    def top_nodes(self):
+    def top_level_nodes(self):
+        """Returns a list of nodes with no recipients"""
         top_nodes = list()
         for node in self.all_nodes:
-            if len(self.parents(node)) == 0:
+            if len(self.recipients(node)) == 0:
                 # This node must be the top level node
                 top_nodes.append(node)
 
@@ -145,7 +144,7 @@ class Architecture(Base):
     def leaf_nodes(self):
         leaf_nodes = set()
         for node in self.all_nodes:
-            if len(self.children(node)) == 0:
+            if len(self.senders(node)) == 0:
                 # This must be a leaf node
                 leaf_nodes.add(node)
         return leaf_nodes
@@ -206,7 +205,7 @@ class Architecture(Base):
         elif self.is_hierarchical or plot_style == 'hierarchical':
 
             # Find top node and assign location
-            top_nodes = self.top_nodes
+            top_nodes = self.top_level_nodes
             if len(top_nodes) == 1:
                 top_node = top_nodes[0]
             else:
@@ -220,7 +219,7 @@ class Architecture(Base):
             plotted_nodes = set()
             plotted_nodes.add(top_node)
 
-            # Set of nodes that have been plotted, but need to have parent nodes plotted
+            # Set of nodes that have been plotted, but need to have recipient nodes plotted
             layer_nodes = set()
             layer_nodes.add(top_node)
 
@@ -232,38 +231,38 @@ class Architecture(Base):
                 next_layer_nodes = set()
 
                 # Iterate through nodes on the current layer (nodes that have been plotted but have
-                # child nodes that are not plotted)
+                # sender nodes that are not plotted)
                 for layer_node in layer_nodes:
 
-                    # Find children of the parent node
-                    children = self.children(layer_node)
+                    # Find senders of the recipient node
+                    senders = self.senders(layer_node)
 
-                    # Find number of leaf nodes that descend from the parent
-                    n_parent_leaves = self.number_of_leaves(layer_node)
+                    # Find number of leaf nodes that are senders to the recipient
+                    n_recipient_leaves = self.number_of_leaves(layer_node)
 
-                    # Get parent x_loc
-                    parent_x_loc = layer_node.position[0]
+                    # Get recipient x_loc
+                    recipient_x_loc = layer_node.position[0]
 
                     # Get location of left limit of the range that leaf nodes will be plotted in
-                    l_x_loc = parent_x_loc - n_parent_leaves/2
+                    l_x_loc = recipient_x_loc - n_recipient_leaves/2
                     left_limit = l_x_loc
 
-                    for child in children:
-                        # Calculate x_loc of the child node
-                        x_loc = left_limit + self.number_of_leaves(child)/2
+                    for sender in senders:
+                        # Calculate x_loc of the sender node
+                        x_loc = left_limit + self.number_of_leaves(sender)/2
 
                         # Update the left limit
-                        left_limit += self.number_of_leaves(child)
+                        left_limit += self.number_of_leaves(sender)
 
-                        # Update the position of the child node
-                        child.position = (x_loc, layer)
-                        attr = {"pos": f"{child.position[0]},{child.position[1]}!"}
-                        self.di_graph.nodes[child].update(attr)
+                        # Update the position of the sender node
+                        sender.position = (x_loc, layer)
+                        attr = {"pos": f"{sender.position[0]},{sender.position[1]}!"}
+                        self.di_graph.nodes[sender].update(attr)
 
-                        # Add child node to list of nodes to be considered in next iteration, and
+                        # Add sender node to list of nodes to be considered in next iteration, and
                         # to list of nodes that have been plotted
-                        next_layer_nodes.add(child)
-                        plotted_nodes.add(child)
+                        next_layer_nodes.add(sender)
+                        plotted_nodes.add(sender)
 
                 # Set list of nodes to be considered next iteration
                 layer_nodes = next_layer_nodes
@@ -300,34 +299,19 @@ class Architecture(Base):
     @property
     def is_hierarchical(self):
         """Returns `True` if the :class:`Architecture` is hierarchical, otherwise `False`"""
-        # if len(list(nx.simple_cycles(self.di_graph))) > 0 or not self.is_connected:
-        no_parents = 0
-        one_parent = 0
-        multiple_parents = 0
-        for node in self.all_nodes:
-            if len(self.parents(node)) == 0:
-                no_parents += 1
-            elif len(self.parents(node)) == 1:
-                one_parent += 1
-            elif len(self.parents(node)) > 1:
-                multiple_parents += 1
-
-        if multiple_parents == 0 and no_parents == 1:
-            return True
-        else:
+        if not len(self.top_level_nodes) == 1:
             return False
+        for node in self.all_nodes:
+            if node not in self.top_level_nodes and len(self.recipients(node)) != 1:
+                return False
+        return True
 
     @property
     def is_centralised(self):
-        n_parents = 0
         for node in self.all_nodes:
-            if len(node.children) == 0:
-                n_parents += 1
-
-        if n_parents == 0:
-            return True
-        else:
-            return False
+            if len(node.senders) == 0:
+                return False
+        return True
 
     @property
     def is_connected(self):
@@ -343,7 +327,7 @@ class Architecture(Base):
     @property
     def fully_propagated(self):
         """Checks if all data for each node have been transferred
-        to its parents. With zero latency, this should be the case after running propagate"""
+        to its recipients. With zero latency, this should be the case after running propagate"""
         for edge in self.edges.edges:
             if len(edge.unsent_data) != 0:
                 return False
@@ -434,9 +418,9 @@ class NetworkArchitecture(Architecture):
         # Still have to deal with latency/bandwidth
         self.current_time += timedelta(seconds=time_increment)
         for node in self.all_nodes:
-            for parent in self.parents(node):
+            for recipient in self.recipients(node):
                 for data in node.data_held:
-                    parent.update(self.current_time, data)
+                    recipient.update(self.current_time, data)
 
 
 class CombinedArchitecture(Base):
