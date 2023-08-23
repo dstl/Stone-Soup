@@ -53,7 +53,7 @@ class Edge(Base):
     nodes: Tuple["Node", "Node"] = Property(doc="A pair of nodes in the form (sender, recipient)")
     edge_latency: float = Property(doc="The latency stemming from the edge itself, "
                                        "and not either of the nodes",
-                                   default=0)
+                                   default=0.0)
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -106,7 +106,7 @@ class Edge(Base):
     @property
     def ovr_latency(self):
         """Overall latency including the two Nodes and the edge latency."""
-        return self.sender.latency + self.edge_latency + self.recipient.latency
+        return self.sender.latency + self.edge_latency
 
     @property
     def unsent_data(self):
