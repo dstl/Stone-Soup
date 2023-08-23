@@ -1,5 +1,3 @@
-from __future__ import annotations
-
 from ..base import Base, Property
 from ..types.time import TimeRange
 from ..types.track import Track
@@ -52,7 +50,7 @@ class DataPiece(Base):
 
 class Edge(Base):
     """Comprised of two connected Nodes"""
-    nodes: Tuple[Node, Node] = Property(doc="A pair of nodes in the form (sender, recipient)")
+    nodes: Tuple["Node", "Node"] = Property(doc="A pair of nodes in the form (sender, recipient)")
     edge_latency: float = Property(doc="The latency stemming from the edge itself, "
                                        "and not either of the nodes",
                                    default=0)
