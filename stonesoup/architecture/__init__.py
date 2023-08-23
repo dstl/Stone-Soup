@@ -89,14 +89,6 @@ class Architecture(Base):
                 senders.add(other)
         return senders
 
-    def sibling_group(self, node: Node):
-        """Returns a set of siblings of the given node. The given node is included in this set."""
-        siblings = set()
-        for recipient in self.recipients(node):
-            for sender in self.senders(recipient):
-                siblings.add(sender)
-        return siblings
-
     @property
     def shortest_path_dict(self):
         path = nx.all_pairs_shortest_path_length(self.di_graph)
@@ -107,7 +99,9 @@ class Architecture(Base):
         """Returns a tuple of (x_coord, y_coord) giving the location of a node's recipient.
         If the node has more than one recipient, a ValueError will be raised. """
         recipients = self.recipients(node)
-        if len(recipients) == 1:
+        if len(recipients) == 0:
+            raise ValueError("Node has no recipients")
+        elif len(recipients) == 1:
             recipient = recipients.pop()
         else:
             raise ValueError("Node has more than one recipient")
@@ -127,18 +121,19 @@ class Architecture(Base):
     def number_of_leaves(self, node: Node):
         node_leaves = set()
         non_leaves = 0
-        for leaf_node in self.leaf_nodes:
-            try:
-                shortest_path = self.shortest_path_dict[leaf_node][node]
-                if shortest_path != 0:
-                    node_leaves.add(leaf_node)
-            except KeyError:
-                non_leaves += 1
 
-        if len(node_leaves) == 0:
+        if node in self.leaf_nodes:
             return 1
         else:
-            return len(node_leaves)
+            for leaf_node in self.leaf_nodes:
+                try:
+                    shortest_path = self.shortest_path_dict[leaf_node][node]
+                    if shortest_path != 0:
+                        node_leaves.add(leaf_node)
+                except KeyError:
+                    non_leaves += 1
+            else:
+                return len(node_leaves)
 
     @property
     def leaf_nodes(self):
@@ -174,7 +169,7 @@ class Architecture(Base):
         return fusion
 
     def plot(self, dir_path, filename=None, use_positions=False, plot_title=False,
-             bgcolour="lightgray", node_style="filled", produce_plot=True, plot_style=None):
+             bgcolour="lightgray", node_style="filled", save_plot=True, plot_style=None):
         """Creates a pdf plot of the directed graph and displays it
 
         :param dir_path: The path to save the pdf and .gv files to
@@ -189,7 +184,7 @@ class Architecture(Base):
         :param node_style: String containing the node style for the plot.
         Default is "filled". See graphviz attributes for more information.
         One alternative is "solid".
-        :param produce_plot: Boolean set to true by default. Setting to False prevents the plot from
+        :param save_plot: Boolean set to true by default. Setting to False prevents the plot from
         being displayed.
         :param plot_style: String providing a style to be used to plot the graph. Currently only
         one option for plot style given by plot_style = 'hierarchical'.
@@ -284,7 +279,7 @@ class Architecture(Base):
         if not filename:
             filename = self.name
         viz_graph = graphviz.Source(dot, filename=filename, directory=dir_path, engine='neato')
-        if produce_plot:
+        if save_plot:
             viz_graph.view()
 
     @property
