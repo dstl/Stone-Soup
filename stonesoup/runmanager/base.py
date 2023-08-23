@@ -53,7 +53,6 @@ class RunManager:
                 output_dir : str
                     The path to store all run manager output files
         """
-
         self.config_path = rm_args.get("config")
         self.parameters_path = rm_args.get("parameters")
         self.config_dir = rm_args.get("config_dir")
@@ -547,22 +546,21 @@ class RunManager:
         List
             List of file paths pair together
         """
-
         pairs = set()
         files = self.get_filepaths(self.config_dir)
-        for search_file in files:
-            split = search_file.split(".", 1)
-            for file in files:
-                if search_file is not file:
-                    if split[1] == "json":
-                        json_split = split[0].split("_parameters")[0]
-                        if file == json_split + ".yaml":
-                            pairs.add((file, search_file))
-                    elif split[1] == "yaml":
-                        if file == split[1] + ".json" or file == split[1] + "_parameters.json":
-                            pairs.add((search_file, file))
-                    else:
-                        print("Error: File is not a configuration or parameter file.")
+        json_files = [file for file in files if file.endswith('.json')]
+        yaml_files = [file for file in files if file.endswith('.yaml')]
+
+        for file in files:
+            if not file.endswith('.json') or not file.endswith('.yaml'):
+                print(f"Warning: {file} in {self.config_dir} is not a configuration or parameter file. File"
+                      f"skipped.")
+
+        for json_file in json_files:
+            for yaml_file in yaml_files:
+                if os.path.splitext(json_file)[0] == os.path.splitext(yaml_file)[0] or \
+                        os.path.splitext(json_file)[0] == os.path.splitext(yaml_file)[0] + '_parameters':
+                            pairs.add((yaml_file, json_file))
 
         return sorted(list(pairs))
 

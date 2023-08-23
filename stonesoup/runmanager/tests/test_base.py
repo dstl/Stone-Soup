@@ -7,9 +7,11 @@ import pathos.multiprocessing
 from ..base import RunManager
 
 test_config = "stonesoup/runmanager/tests/test_configs/test_config_all.yaml"
+test_config_all = "stonesoup/runmanager/tests/test_configs/test_additional_pairs/test_config_all.yaml"
 test_config_nomm = "stonesoup/runmanager/tests/test_configs/test_config_nomm.yaml"
 test_config_trackeronly = "stonesoup/runmanager/tests/test_configs/test_config_trackeronly.yaml"
 test_json = "stonesoup/runmanager/tests/test_configs/dummy_parameters.json"
+test_json_all = "stonesoup/runmanager/tests/test_configs/test_additional_pairs/test_config_all_parameters.json"
 test_json_no_run = "stonesoup/runmanager/tests/test_configs/dummy_parameters_no_run.json"
 
 test_config_dir = "stonesoup/runmanager/tests/test_configs/"
@@ -40,13 +42,19 @@ test_rm_args3 = {"config": None,
                  "processes": 1}
 rmc_config_dir_w = RunManager(test_rm_args3)
 
+test_rm_args4 = {"config": test_config_all,
+                 "parameters": test_json_all,
+                 "config_dir": test_config_dir,
+                 "nruns": 1,
+                 "processes": 1}
+rmc_config_params_dir = RunManager(test_rm_args4)
+
 
 def test_cwd_path():
-    assert os.path.isdir('stonesoup/runmanager/tests/test_configs') is True
+    assert os.path.isdir('stonesoup/runmanager/tests/test_configs/') is True
 
 
 def test_read_json():
-
     test_json_data = rmc.read_json(test_json)
     assert type(test_json_data) is dict
 
@@ -115,10 +123,24 @@ def test_prepare_monte_carlo(tmpdir):
 
 
 def test_config_parameter_pairing(tmpdir):
+    # Test with config_path and parameters_path
     rmc.output_dir = tmpdir
-    test_pairs = rmc.config_parameter_pairing()
-    assert type(test_pairs) is list
-    assert len(test_pairs) == 1
+    test_pairs0 = rmc.config_parameter_pairing()
+    assert type(test_pairs0) is list
+    assert len(test_pairs0) == 1
+
+    # Test with config_dir
+    rmc_config_dir.output_dir = tmpdir
+    test_pairs1 = rmc_config_dir.config_parameter_pairing()
+    assert type(test_pairs1) is list
+    assert len(test_pairs1) == 1
+
+    # Test with config_dir and config_path and parameters_path
+    # This also tests params file names: x_parameters.json and x.json both work
+    rmc_config_params_dir.output_dir = tmpdir
+    test_pairs2 = rmc_config_params_dir.config_parameter_pairing()
+    assert type(test_pairs2) is list
+    assert len(test_pairs2) == 2
 
 
 def test_check_ground_truth(tmpdir):
@@ -284,7 +306,7 @@ def test_get_config_and_param_lists(tmpdir):
     rmc.output_dir = tmpdir
     pairs = rmc_config_dir.get_config_and_param_lists()
     assert type(pairs) is list
-    assert len(pairs) == 2
+    assert len(pairs) == 1
     assert len(pairs[0]) == 2
     assert 'stonesoup/runmanager/tests/test_configs/dummy_parameters.json' == (pairs[0][1])
     assert 'stonesoup/runmanager/tests/test_configs/dummy.yaml' in (pairs[0][0])
