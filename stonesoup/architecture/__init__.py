@@ -116,11 +116,11 @@ class Architecture(Base):
     @property
     def top_level_nodes(self):
         """Returns a list of nodes with no recipients"""
-        top_nodes = list()
+        top_nodes = set()
         for node in self.all_nodes:
             if len(self.recipients(node)) == 0:
                 # This node must be the top level node
-                top_nodes.append(node)
+                top_nodes.add(node)
 
         return top_nodes
 
@@ -207,7 +207,7 @@ class Architecture(Base):
             # Find top node and assign location
             top_nodes = self.top_level_nodes
             if len(top_nodes) == 1:
-                top_node = top_nodes[0]
+                top_node = top_nodes.pop()
             else:
                 raise ValueError("Graph with more than one top level node provided.")
 
@@ -308,8 +308,15 @@ class Architecture(Base):
 
     @property
     def is_centralised(self):
-        for node in self.all_nodes:
-            if len(node.senders) == 0:
+        top_nodes = self.top_level_nodes
+        if len(top_nodes) != 1:
+            return False
+        else:
+            top_node = top_nodes.pop()
+        for node in self.all_nodes - self.top_level_nodes:
+            try:
+                dist = self.shortest_path_dict[node][top_node]
+            except KeyError:
                 return False
         return True
 
