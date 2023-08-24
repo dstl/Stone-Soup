@@ -444,3 +444,76 @@ def test_all_nodes(nodes, edge_lists):
     circular_architecture = InformationArchitecture(edges=circular_edges)
     assert circular_architecture.all_nodes == {nodes['s1'], nodes['s2'], nodes['s3'], nodes['s4'],
                                                nodes['s5']}
+
+
+def test_sensor_nodes(edge_lists, ground_truths, radar_nodes):
+    radar_edges = edge_lists["radar_edges"]
+    hierarchical_edges = edge_lists["hierarchical_edges"]
+
+    network = InformationArchitecture(edges=radar_edges)
+
+    assert network.sensor_nodes == {radar_nodes['a'], radar_nodes['b'], radar_nodes['d'],
+                                    radar_nodes['e'], radar_nodes['h']}
+
+    h_arch = InformationArchitecture(edges=hierarchical_edges)
+
+    assert h_arch.sensor_nodes == h_arch.all_nodes
+    assert len(h_arch.sensor_nodes) == 7
+
+
+def test_fusion_nodes(edge_lists, ground_truths, radar_nodes):
+    radar_edges = edge_lists["radar_edges"]
+    hierarchical_edges = edge_lists["hierarchical_edges"]
+
+    network = InformationArchitecture(edges=radar_edges)
+
+    assert network.fusion_nodes == {radar_nodes['c'], radar_nodes['f'], radar_nodes['g']}
+
+    h_arch = InformationArchitecture(edges=hierarchical_edges)
+
+    assert h_arch.fusion_nodes == set()
+
+
+def test_information_arch_measure(edge_lists, ground_truths, times):
+    edges = edge_lists["radar_edges"]
+    start_time = times['start']
+
+    network = InformationArchitecture(edges=edges)
+    all_detections = network.measure(ground_truths=ground_truths, current_time=start_time)
+
+    sensornodes = network.sensor_nodes
+
+    # Check all_detections is a dictionary
+    assert type(all_detections) == dict
+
+    # Check that number all_detections contains data for all sensor nodes
+    assert all_detections.keys() == network.sensor_nodes
+
+    # Check that correct number of detections recorded for each sensor node is equal to the number
+    # of targets
+    for sensornode in sensornodes:
+        assert(len(all_detections[sensornode])) == 3
+
+    # Reset and repeat first 2 assertions with noise=False
+    edges = edge_lists["radar_edges"]
+    start_time = times['start']
+    network = InformationArchitecture(edges=edges)
+    all_detections = network.measure(ground_truths=ground_truths, current_time=start_time)
+
+    assert type(all_detections) == dict
+    assert all_detections.keys() == network.sensor_nodes
+    for sensornode in sensornodes:
+        assert(len(all_detections[sensornode])) == 3
+
+    # Reset and repeat first 2 assertions with no ground truth paths
+    edges = edge_lists["radar_edges"]
+    start_time = times['start']
+    network = InformationArchitecture(edges=edges)
+    all_detections = network.measure(ground_truths=[], current_time=start_time)
+
+    assert type(all_detections) == dict
+    assert all_detections.keys() == network.sensor_nodes
+
+    # There should exist a key for each sensor node containing an empty list
+    for sensornode in sensornodes:
+        assert(len(all_detections[sensornode])) == 0
