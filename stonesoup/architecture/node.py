@@ -111,27 +111,22 @@ class FusionNode(Node):
         if not self._tracking_thread.is_alive():
             try:
                 self._tracking_thread.start()
-            except RuntimeError:
-                pass  # Previously started
+            except RuntimeError:  # Previously started
+                raise RuntimeError(f"Tracking thread in {self.label!r} unexpectedly ended")
 
-        data = None
         added = False
-        timeout = self.latency or 0.1
         updated_tracks = set()
         while True:
+            waiting_for_data = self.fusion_queue.waiting_for_data
             try:
-                data = self._track_queue.get(timeout=timeout)
+                data = self._track_queue.get(timeout=1e-6)
             except Empty:
-                if self.fusion_queue.waiting_for_data:
+                if not self._tracking_thread.is_alive() or waiting_for_data:
                     break
             else:
-                timeout = 0.1
                 time, tracks = data
                 self.tracks.update(tracks)
                 updated_tracks |= tracks
-
-        if data is None or self.fusion_queue.unfinished_tasks:
-            print(f"{self.label}: {self.fusion_queue.unfinished_tasks} still being processed")
 
         for track in updated_tracks:
             data_piece = DataPiece(self, self, copy.copy(track), track.timestamp, True)
