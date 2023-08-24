@@ -117,12 +117,18 @@ def test_fusion_queue():
     q = FusionQueue()
     iter_q = iter(q)
     assert q._to_consume == 0
+    assert not q.waiting_for_data
+    assert not q._consuming
     q.put("item")
     q.put("another item")
+
+    with pytest.raises(NotImplementedError):
+        q.get("anything")
+
     assert q._to_consume == 2
     a = next(iter_q)
     assert a == "item"
-    assert q.to_consume == 2
+    assert q._to_consume == 2
     b = next(iter_q)
     assert b == "another item"
-    assert q.to_consume == 1
+    assert q._to_consume == 1
