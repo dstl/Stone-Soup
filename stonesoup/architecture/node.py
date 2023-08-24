@@ -1,7 +1,7 @@
 import copy
 import threading
 from datetime import datetime
-from queue import Empty
+from queue import Queue, Empty
 from typing import Tuple
 
 from ..base import Property, Base
@@ -101,7 +101,7 @@ class FusionNode(Node):
         super().__init__(*args, **kwargs)
         self.tracks = set()  # Set of tracks this Node has recorded
 
-        self._track_queue = FusionQueue()
+        self._track_queue = Queue()
         self._tracking_thread = threading.Thread(
             target=self._track_thread,
             args=(self.tracker, self.fusion_queue, self._track_queue),
@@ -125,7 +125,7 @@ class FusionNode(Node):
             try:
                 data = self._track_queue.get(timeout=timeout)
             except Empty:
-                if not self.fusion_queue.to_consume:
+                if not self.fusion_queue.waiting_for_data:
                     break
             else:
                 timeout = 0.1
