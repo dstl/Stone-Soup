@@ -1,5 +1,5 @@
 from ..base import Base, Property
-from ..types.time import TimeRange
+from ..types.time import TimeRange, CompoundTimeRange
 from ..types.track import Track
 from ..types.detection import Detection
 from ..types.hypothesis import Hypothesis
@@ -67,9 +67,11 @@ class Edge(Base):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
+        if not isinstance(self.edge_latency, float):
+            raise TypeError(f"edge_latency should be a float, not a {type(self.edge_latency)}")
         self.messages_held = {"pending": {},  # For pending, messages indexed by time sent.
                               "received": {}}  # For received, by time received
-        self.time_ranges_failed = [] # List of time ranges during which this edge was failed
+        self.time_range_failed = CompoundTimeRange()  # Times during which this edge was failed
 
     def send_message(self, data_piece, time_pertaining, time_sent):
         if not isinstance(data_piece, DataPiece):
@@ -102,10 +104,11 @@ class Edge(Base):
             if len(self.messages_held['pending'][time]) == 0:
                 del self.messages_held['pending'][time]
 
-    def failed(self, current_time, duration):
-        """Keeps track of when this edge was failed using the time_ranges_failed property. """
-        end_time = current_time + timedelta(duration)
-        self.time_ranges_failed.append(TimeRange(current_time, end_time))
+    def failed(self, current_time, delta):
+        """"Keeps track of when this edge was failed using the time_ranges_failed property.
+        Delta should be a timedelta instance"""
+        end_time = current_time + delta
+        self.time_range_failed.add(TimeRange(current_time, end_time))
 
     @property
     def sender(self):
@@ -131,10 +134,23 @@ class Edge(Base):
                         unsent.append((data_piece, time_pertaining))
         return unsent
 
+    def __eq__(self, other):
+        if not isinstance(other, type(self)):
+            return False
+        return all(getattr(self, name) == getattr(other, name) for name in type(self).properties)
+
+    def __hash__(self):
+        return hash(tuple(getattr(self, name) for name in type(self).properties))
+
 
 class Edges(Base, Collection):
     """Container class for Edge"""
     edges: List[Edge] = Property(doc="List of Edge objects", default=None)
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        if self.edges is None:
+            self.edges = []
 
     def __iter__(self):
         return self.edges.__iter__()
@@ -159,10 +175,9 @@ class Edges(Base, Collection):
     @property
     def edge_list(self):
         """Returns a list of tuples in the form (sender, recipient)"""
-        edge_list = []
-        for edge in self.edges:
-            edge_list.append(edge.nodes)
-        return edge_list
+        if not self.edges:
+            return []
+        return [edge.nodes for edge in self.edges]
 
     def __len__(self):
         return len(self.edges)
@@ -197,17 +212,18 @@ class Message(Base):
 
     @property
     def arrival_time(self):
-        # TODO: incorporate failed time ranges here. Not essential for a first PR. Could do with merging of PR #664
+        # TODO: incorporate failed time ranges here.
+        # Not essential for a first PR. Could do with merging of PR #664
         return self.time_sent + timedelta(seconds=self.edge.ovr_latency)
 
     def update(self, current_time):
         progress = (current_time - self.time_sent).total_seconds()
+        if progress < 0:
+            raise ValueError("Current time cannot be before the Message was sent")
         if progress < self.edge.sender.latency:
             self.status = "sending"
-        elif progress < self.edge.sender.latency + self.edge.edge_latency:
-            self.status = "transferring"
         elif progress < self.edge.ovr_latency:
-            self.status = "receiving"
+            self.status = "transferring"
         else:
             self.status = "received"
 
