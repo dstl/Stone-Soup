@@ -125,12 +125,13 @@ class FusionNode(Node):
             try:
                 data = self._track_queue.get(timeout=timeout)
             except Empty:
-                break
-            timeout = 0.1
-            # track it
-            time, tracks = data
-            self.tracks.update(tracks)
-            updated_tracks |= tracks
+                if not self.fusion_queue.to_consume:
+                    break
+            else:
+                timeout = 0.1
+                time, tracks = data
+                self.tracks.update(tracks)
+                updated_tracks |= tracks
 
         if data is None or self.fusion_queue.unfinished_tasks:
             print(f"{self.label}: {self.fusion_queue.unfinished_tasks} still being processed")

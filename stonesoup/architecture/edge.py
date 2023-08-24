@@ -19,12 +19,22 @@ class FusionQueue(Queue):
 
     Iterable, where it blocks attempting to yield items on the queue
     """
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self._to_consume = 0
+
+    def _put(self, *args, **kwargs):
+        super()._put(*args, **kwargs)
+        self._to_consume += 1
 
     def __iter__(self):
-        return self
+        while True:
+            yield self.get()
+            self._to_consume -= 1
 
-    def __next__(self):
-        return self.get()
+    @property
+    def to_consume(self):
+        return self._to_consume
 
 
 class DataPiece(Base):
