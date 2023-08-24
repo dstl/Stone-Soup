@@ -1,14 +1,15 @@
+from collections.abc import Collection
+from typing import Union, Tuple, List, TYPE_CHECKING
+from numbers import Number
+from datetime import datetime, timedelta
+from queue import Queue
+
 from ..base import Base, Property
 from ..types.time import TimeRange, CompoundTimeRange
 from ..types.track import Track
 from ..types.detection import Detection
 from ..types.hypothesis import Hypothesis
 from .functions import _dict_set
-
-from collections.abc import Collection
-from typing import Union, Tuple, List, TYPE_CHECKING
-from datetime import datetime, timedelta
-from queue import Queue
 
 if TYPE_CHECKING:
     from .node import Node
@@ -74,7 +75,7 @@ class Edge(Base):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        if not isinstance(self.edge_latency, float):
+        if not isinstance(self.edge_latency, Number):
             raise TypeError(f"edge_latency should be a float, not a {type(self.edge_latency)}")
         self.messages_held = {"pending": {},  # For pending, messages indexed by time sent.
                               "received": {}}  # For received, by time received
