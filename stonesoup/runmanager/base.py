@@ -110,25 +110,32 @@ class RunManager:
         else:
             pairs = self.config_parameter_pairing()
             if not pairs and not self.config_path:
-                info_logger.info(f"{datetime.now()} No files in " +
-                                 f"current directory: {self.config_dir}")
+                info_logger.info(f"{datetime.now()} "
+                                 f"No config/parameter file pairs found in current directory: {self.config_dir}. "
+                                 f"Ensure file pairs in directory have the same filename.\n"
+                                 f"Checking for config files.")
+
+                config_files = self.get_config_list()
+                for config_file in config_files:
+                    self.config_path = config_file
+                    info_logger.info(f'Found config file: {config_file} \n'
+                                     f'Running {self.config_path} with default parameters.')
+                    self.parameters_path = None
+                    self.run_single_config()
+
+                    self.average_metrics()
+                    self.total_trackers = 0
 
             for path in pairs:
                 # Read the param data
-                if len(path) == 1:
-                    self.config_path = path[0]
-                    info_logger.info(f'Running {self.config_path}')
-                    self.parameters_path = None
-                    self.run_single_config()
-                else:
-                    self.config_path, param_path = path[0], path[1]
-                    info_logger.info(f'Running {self.config_path}')
-                    json_data = self.read_json(param_path)
-                    self.nruns = self.set_runs_number(self.nruns, json_data)
-                    nprocesses = self.set_processes_number(self.nprocesses, json_data)
-                    combo_dict = self.prepare_monte_carlo(json_data)
-                    self.prepare_monte_carlo_simulation(combo_dict, self.nruns,
-                                                        nprocesses)
+                self.config_path, param_path = path[0], path[1]
+                info_logger.info(f'Running {self.config_path}')
+                json_data = self.read_json(param_path)
+                self.nruns = self.set_runs_number(self.nruns, json_data)
+                nprocesses = self.set_processes_number(self.nprocesses, json_data)
+                combo_dict = self.prepare_monte_carlo(json_data)
+                self.prepare_monte_carlo_simulation(combo_dict, self.nruns,
+                                                    nprocesses)
                 self.average_metrics()
                 self.total_trackers = 0
 
@@ -220,7 +227,7 @@ class RunManager:
             try:
                 nruns = json_data['configuration']['runs_num']
                 self.set_runs_number(nruns, None)
-            except Exception as f:
+            except KeyError as f:
                 info_logger.error(f, "runs_num value from json not found, defaulting to 1")
                 nruns = 1
         elif nruns > 1:
@@ -548,21 +555,38 @@ class RunManager:
         """
         pairs = set()
         files = self.get_filepaths(self.config_dir)
-        json_files = [file for file in files if file.endswith('.json')]
-        yaml_files = [file for file in files if file.endswith('.yaml')]
 
         for file in files:
-            if not file.endswith('.json') or not file.endswith('.yaml'):
+            if not file.endswith('.json') and not file.endswith('.yaml'):
                 print(f"Warning: {file} in {self.config_dir} is not a configuration or parameter file. File"
                       f"skipped.")
+
+        json_files = [file for file in files if file.endswith('.json')]
+        yaml_files = [file for file in files if file.endswith('.yaml')]
 
         for json_file in json_files:
             for yaml_file in yaml_files:
                 if os.path.splitext(json_file)[0] == os.path.splitext(yaml_file)[0] or \
                         os.path.splitext(json_file)[0] == os.path.splitext(yaml_file)[0] + '_parameters':
-                            pairs.add((yaml_file, json_file))
+                    pairs.add((yaml_file, json_file))
 
         return sorted(list(pairs))
+
+    def get_config_list(self):
+        """Returns a list of config files found in config_dir
+
+        Returns
+        -------
+        List
+            List of config files paths
+        """
+        if self.config_dir:
+            files = self.get_filepaths(self.config_dir)
+            yaml_files = [file for file in files if file.endswith('.yaml')]
+        else:
+            yaml_files = []
+
+        return yaml_files
 
     def prepare_single_simulation(self):
         """Prepares a single simulation run by setting tracker,
