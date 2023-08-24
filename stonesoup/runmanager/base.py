@@ -115,6 +115,8 @@ class RunManager:
                                  f"Ensure file pairs in directory have the same filename.\n"
                                  f"Checking for config files.")
 
+                # Check if config_dir and check if contains config files
+                # Run series of single config simulations
                 config_files = self.get_config_list()
                 for config_file in config_files:
                     self.config_path = config_file
@@ -214,7 +216,7 @@ class RunManager:
         Parameters
         ----------
         nruns : Optional[int]
-            number of run from the terminal
+            number of runs from the terminal
         json_data : Optional[dict]
             json parameter object
 
@@ -230,9 +232,7 @@ class RunManager:
             except KeyError as f:
                 info_logger.error(f, "runs_num value from json not found, defaulting to 1")
                 nruns = 1
-        elif nruns > 1:
-            pass
-        else:
+        elif nruns < 1:
             nruns = 1
 
         return nruns
@@ -259,10 +259,9 @@ class RunManager:
             except Exception as f:
                 info_logger.error(f, "proc_num value from json not found, defaulting to 1")
                 nprocess = 1
-        elif nprocess > 1:
-            pass
-        else:
+        elif nprocess < 1:
             nprocess = 1
+
         return nprocess
 
     def prepare_monte_carlo(self, json_data):
@@ -682,10 +681,12 @@ class RunManager:
         tracker = config_data[self.TRACKER]
         ground_truth = config_data[self.GROUNDTRUTH]
         metric_manager = config_data[self.METRIC_MANAGER]
+
         # Generate all the trackers from the loaded tracker
         trackers, ground_truths, metric_managers = self.set_trackers(
             combo_dict, tracker, ground_truth, metric_manager)
         self.total_trackers = len(trackers)
+
         try:
             now = datetime.now()
             dt_string = now.strftime("%Y_%m_%d_%H_%M_%S")
