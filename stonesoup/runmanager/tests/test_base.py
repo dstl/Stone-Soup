@@ -1,20 +1,22 @@
 import multiprocessing as mp
 import os
 from datetime import datetime
+import pytest
 
 import pathos.multiprocessing
 
 from ..base import RunManager
 
 test_config = "stonesoup/runmanager/tests/test_configs/test_config_all.yaml"
-test_config_all = "stonesoup/runmanager/tests/test_configs/test_additional_pairs/test_config_all.yaml"
 test_config_nomm = "stonesoup/runmanager/tests/test_configs/test_config_nomm.yaml"
 test_config_trackeronly = "stonesoup/runmanager/tests/test_configs/test_config_trackeronly.yaml"
+test_config_dummy = "stonesoup/runmanager/tests/test_configs/dummy.yaml"
 test_json = "stonesoup/runmanager/tests/test_configs/dummy_parameters.json"
-test_json_all = "stonesoup/runmanager/tests/test_configs/test_additional_pairs/test_config_all_parameters.json"
 test_json_no_run = "stonesoup/runmanager/tests/test_configs/dummy_parameters_no_run.json"
 
 test_config_dir = "stonesoup/runmanager/tests/test_configs/"
+test_config_dir_single_file = "stonesoup/runmanager/tests/test_configs/test_single_file/"
+test_config_dir_additional_pairs = "stonesoup/runmanager/tests/test_configs/test_additional_pairs/"
 
 test_rm_args0 = {"config": test_config,
                  "parameters": test_json,
@@ -42,12 +44,19 @@ test_rm_args3 = {"config": None,
                  "processes": 1}
 rmc_config_dir_w = RunManager(test_rm_args3)
 
-test_rm_args4 = {"config": test_config_all,
-                 "parameters": test_json_all,
-                 "config_dir": test_config_dir,
+test_rm_args4 = {"config": test_config_dummy,
+                 "parameters": test_json,
+                 "config_dir": test_config_dir_additional_pairs,
                  "nruns": 1,
                  "processes": 1}
 rmc_config_params_dir = RunManager(test_rm_args4)
+
+test_rm_args5 = {"config": None,
+                 "parameters": None,
+                 "config_dir": test_config_dir_single_file,
+                 "nruns": 1,
+                 "processes": 1}
+rmc_config_dir_single_file = RunManager(test_rm_args5)
 
 
 def test_cwd_path():
@@ -304,12 +313,24 @@ def test_get_filepaths_empty(tmpdir):
 
 def test_get_config_and_param_lists(tmpdir):
     rmc.output_dir = tmpdir
-    pairs = rmc_config_dir.get_config_and_param_lists()
-    assert type(pairs) is list
-    assert len(pairs) == 1
-    assert len(pairs[0]) == 2
-    assert 'stonesoup/runmanager/tests/test_configs/dummy_parameters.json' == (pairs[0][1])
-    assert 'stonesoup/runmanager/tests/test_configs/dummy.yaml' in (pairs[0][0])
+    pairs0 = rmc_config_dir.get_config_and_param_lists()
+    assert type(pairs0) is list
+    assert len(pairs0) == 1
+    assert len(pairs0[0]) == 2
+    assert os.path.samefile('stonesoup/runmanager/tests/test_configs/dummy_parameters.json', (pairs0[0][1]))
+    assert os.path.samefile('stonesoup/runmanager/tests/test_configs/dummy.yaml', (pairs0[0][0]))
+
+    # Test method can only work with pairs of files
+    rmc_config_dir_single_file.output_dir = tmpdir
+    pairs1 = rmc_config_dir_single_file.get_config_and_param_lists()
+    assert len(pairs1) == 0
+
+
+def test_get_config_list(tmpdir):
+    rmc_config_dir_single_file.output_dir = tmpdir
+    config_list = rmc_config_dir_single_file.get_config_list()
+    assert len(config_list) == 1
+    assert os.path.samefile("stonesoup/runmanager/tests/test_configs/test_single_file/test_config_all.yaml", config_list[0])
 
 
 def test_set_components(tmpdir):
