@@ -22,19 +22,26 @@ class FusionQueue(Queue):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self._to_consume = 0
+        self._consuming = False
 
     def _put(self, *args, **kwargs):
         super()._put(*args, **kwargs)
         self._to_consume += 1
 
     def __iter__(self):
+        if self._consuming:
+            raise RuntimeError("Queue can only be iterated over once.")
+        self._consuming = True
         while True:
-            yield self.get()
+            yield super().get()
             self._to_consume -= 1
 
     @property
-    def to_consume(self):
-        return self._to_consume
+    def waiting_for_data(self):
+        return self._consuming and self._to_consume
+
+    def get(self, *args, **kwargs):
+        raise NotImplementedError("Getting items from queue must use iteration")
 
 
 class DataPiece(Base):
