@@ -9,17 +9,16 @@ from ..sensor.sensor import Sensor
 from ..types.detection import Detection
 from ..types.hypothesis import Hypothesis
 from ..types.track import Track
-from ..tracker.base import Tracker
 from .edge import DataPiece, FusionQueue
 from ..tracker.fusion import FusionTracker
-from .functions import _dict_set
+from ._functions import _dict_set
 
 
 class Node(Base):
     """Base node class. Should be abstract"""
     latency: float = Property(
         doc="Contribution to edge latency stemming from this node",
-        default=0)
+        default=0.0)
     label: str = Property(
         doc="Label to be displayed on graph",
         default=None)
@@ -47,16 +46,20 @@ class Node(Base):
         if not isinstance(time_pertaining, datetime) and isinstance(time_arrived, datetime):
             raise TypeError("Times must be datetime objects")
         if not track:
-            if not isinstance(data_piece.data, Detection) and not isinstance(data_piece.data, Track):
-                raise TypeError(f"Data provided without accompanying Track must be a Detection or a Track, not a "
+            if not isinstance(data_piece.data, Detection) and \
+                    not isinstance(data_piece.data, Track):
+                raise TypeError(f"Data provided without accompanying Track must be a Detection or "
+                                f"a Track, not a "
                                 f"{type(data_piece.data).__name__}")
             new_data_piece = DataPiece(self, data_piece.originator, data_piece.data, time_arrived)
         else:
             if not isinstance(data_piece.data, Hypothesis):
                 raise TypeError("Data provided with Track must be a Hypothesis")
-            new_data_piece = DataPiece(self, data_piece.originator, data_piece.data, time_arrived, track)
+            new_data_piece = DataPiece(self, data_piece.originator, data_piece.data,
+                                       time_arrived, track)
 
-        added, self.data_held[category] = _dict_set(self.data_held[category], new_data_piece, time_pertaining)
+        added, self.data_held[category] = _dict_set(self.data_held[category],
+                                                    new_data_piece, time_pertaining)
         if isinstance(self, FusionNode) and category in ("created", "unfused"):
             self.fusion_queue.put((time_pertaining, {data_piece.data}))
 

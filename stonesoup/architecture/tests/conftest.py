@@ -12,7 +12,8 @@ from ..node import Node, RepeaterNode, SensorNode, FusionNode, SensorFusionNode
 from ...types.track import Track
 from ...sensor.categorical import HMMSensor
 from ...models.measurement.categorical import MarkovianMeasurementModel
-from stonesoup.models.transition.linear import CombinedLinearGaussianTransitionModel, ConstantVelocity
+from stonesoup.models.transition.linear import CombinedLinearGaussianTransitionModel, \
+    ConstantVelocity
 from stonesoup.types.groundtruth import GroundTruthPath, GroundTruthState
 from ordered_set import OrderedSet
 from stonesoup.types.state import StateVector
@@ -35,6 +36,7 @@ from stonesoup.architecture.edge import FusionQueue
 from stonesoup.updater.wrapper import DetectionAndTrackSwitchingUpdater
 from stonesoup.updater.chernoff import ChernoffUpdater
 from stonesoup.feeder.track import Tracks2GaussianDetectionFeeder
+from ...types.hypothesis import Hypothesis
 
 
 @pytest.fixture
@@ -81,7 +83,11 @@ def data_pieces(times, nodes):
                              data=Track([]), time_arrived=times['a'])
     data_piece_b = DataPiece(node=nodes['a'], originator=nodes['b'],
                              data=Track([]), time_arrived=times['b'])
-    return {'a': data_piece_a, 'b': data_piece_b}
+    data_piece_fail = DataPiece(node=nodes['a'], originator=nodes['b'],
+                                data="Not a compatible data type", time_arrived=times['b'])
+    data_piece_hyp = DataPiece(node=nodes['a'], originator=nodes['b'],
+                               data=Hypothesis(), time_arrived=times['b'])
+    return {'a': data_piece_a, 'b': data_piece_b, 'fail': data_piece_fail, 'hyp': data_piece_hyp}
 
 
 @pytest.fixture
