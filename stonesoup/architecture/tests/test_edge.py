@@ -2,6 +2,9 @@ import pytest
 
 from ..edge import Edges, Edge, DataPiece, Message
 from ...types.track import Track
+from ...types.time import CompoundTimeRange, TimeRange
+
+from datetime import timedelta
 
 
 def test_data_piece(nodes, times):
@@ -16,7 +19,9 @@ def test_data_piece(nodes, times):
 
 def test_edge_init(nodes, times, data_pieces):
     with pytest.raises(TypeError):
-        edge_fail = Edge()
+        Edge()
+    with pytest.raises(TypeError):
+        Edge(nodes['a'], nodes['b'])  # e.g. forgetting to put nodes inside a tuple
     edge = Edge((nodes['a'], nodes['b']))
     assert edge.edge_latency == 0.0
     assert edge.sender == nodes['a']
@@ -56,5 +61,57 @@ def test_send_update_message(edges, times, data_pieces):
     assert message in edge.messages_held['received'][times['a']]
 
 
-def test_failed():
+def test_failed(edges, times):
+    edge = edges['a']
+    assert edge.time_range_failed == CompoundTimeRange()
+    edge.failed(times['a'], timedelta(seconds=5))
+    new_time_range = TimeRange(times['a'], times['a'] + timedelta(seconds=5))
+    assert edge.time_range_failed == CompoundTimeRange([new_time_range])
+
+
+def test_edges(edges, nodes):
+    edges_list = Edges([edges['a'], edges['b']])
+    assert edges_list.edges == [edges['a'], edges['b']]
+    edges_list.add(edges['c'])
+    assert edges['c'] in edges_list
+    edges_list.add(Edge((nodes['a'], nodes['b'])))
+    assert len(edges_list) == 4
+    assert (nodes['a'], nodes['b']) in edges_list.edge_list
+    assert (nodes['a'], nodes['b']) in edges_list.edge_list
+
+    empty_edges = Edges()
+    assert len(empty_edges) == 0
+    assert empty_edges.edge_list == []
+    assert empty_edges.edges == []
+    assert [edge for edge in empty_edges] == []
+    empty_edges.add(Edge((nodes['a'], nodes['b'])))
+    assert [edge for edge in empty_edges] == [Edge((nodes['a'], nodes['b']))]
+
+
+def test_message(edges, data_pieces, times):
+    with pytest.raises(TypeError):
+        Message()
+    edge = edges['a']
+    message = Message(edge=edge, time_pertaining=times['a'], time_sent=times['b'],
+                      data_piece=data_pieces['a'])
+    assert message.sender_node == edge.sender
+    assert message.recipient_node == edge.recipient
+    edge.edge_latency = 5.0
+    edge.sender.latency = 1.0
+    assert message.arrival_time == times['b'] + timedelta(seconds=6.0)
+    assert message.status == 'sending'
+    with pytest.raises(ValueError):
+        message.update(times['a'])
+
+    message.update(times['b'])
+    assert message.status == 'sending'
+
+    message.update(times['b'] + timedelta(seconds=3))
+    assert message.status == 'transferring'
+
+    message.update(times['b'] + timedelta(seconds=8))
+    assert message.status == 'received'
+
+
+def test_fusion_queue():
     assert True
