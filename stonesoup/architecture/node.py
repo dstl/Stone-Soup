@@ -107,16 +107,13 @@ class FusionNode(Node):
             args=(self.tracker, self.fusion_queue, self._track_queue),
             daemon=True)
 
-    def update(self, *args, **kwargs):
-        added = super().update(*args, **kwargs)
+    def fuse(self):
         if not self._tracking_thread.is_alive():
             try:
                 self._tracking_thread.start()
             except RuntimeError:
                 pass  # Previously started
-        return added
 
-    def fuse(self):
         data = None
         added = False
         timeout = self.latency or 0.1
@@ -125,7 +122,7 @@ class FusionNode(Node):
             try:
                 data = self._track_queue.get(timeout=timeout)
             except Empty:
-                if not self.fusion_queue.waiting_for_data:
+                if self.fusion_queue.waiting_for_data:
                     break
             else:
                 timeout = 0.1
