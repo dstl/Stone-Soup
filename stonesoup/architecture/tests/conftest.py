@@ -9,7 +9,7 @@ from ...types.track import Track
 
 @pytest.fixture
 def edges():
-    edge_a = Edge(Node(label="edge_a sender"), Node("edge_a_recipient"))
+    edge_a = Edge((Node(label="edge_a sender"), Node(label="edge_a_recipient")))
     return {'a': edge_a}
 
 
