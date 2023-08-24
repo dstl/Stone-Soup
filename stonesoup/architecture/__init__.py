@@ -1,6 +1,6 @@
 from abc import abstractmethod
 from ..base import Base, Property
-from .node import Node, SensorNode, RepeaterNode, FusionNode
+from .node import Node, SensorNode, RepeaterNode, FusionNode, SensorFusionNode
 from .edge import Edges, DataPiece
 from ..types.groundtruth import GroundTruthPath
 from ..types.detection import TrueDetection, Clutter
@@ -91,6 +91,11 @@ class Architecture(Base):
 
     @property
     def shortest_path_dict(self):
+        """
+        Returns a dictionary where dict[key1][key2] gives the distance of the shortest path
+        from node1 to node2 if key1=node1 and key2=node2. If no path exists from node1 to node2,
+        a KeyError is raised.
+        """
         path = nx.all_pairs_shortest_path_length(self.di_graph)
         dpath = {x[0]: x[1] for x in path}
         return dpath
@@ -119,6 +124,10 @@ class Architecture(Base):
         return top_nodes
 
     def number_of_leaves(self, node: Node):
+        """
+        Returns the number of leaf nodes which are connected to the node given as a parameter by a
+        path from the leaf node to the parameter node.
+        """
         node_leaves = set()
         non_leaves = 0
 
@@ -137,6 +146,10 @@ class Architecture(Base):
 
     @property
     def leaf_nodes(self):
+        """
+        Returns all the nodes in the :class:`Architecture` which have no sender nodes. i.e. all
+        nodes that do not receive any data from other nodes.
+        """
         leaf_nodes = set()
         for node in self.all_nodes:
             if len(self.senders(node)) == 0:
@@ -150,10 +163,16 @@ class Architecture(Base):
 
     @property
     def all_nodes(self):
+        """
+        Returns a set of all Nodes in the :class:`Architecture`.
+        """
         return set(self.di_graph.nodes)
 
     @property
     def sensor_nodes(self):
+        """
+        Returns a set of all SensorNodes in the :class:`Architecture`.
+        """
         sensor_nodes = set()
         for node in self.all_nodes:
             if isinstance(node, SensorNode):
@@ -162,11 +181,25 @@ class Architecture(Base):
 
     @property
     def fusion_nodes(self):
+        """
+        Returns a set of all FusionNodes in the :class:`Architecture`.
+        """
         fusion = set()
         for node in self.all_nodes:
             if isinstance(node, FusionNode):
                 fusion.add(node)
         return fusion
+
+    @property
+    def sensor_fusion_nodes(self):
+        """
+        Returns a set of all SensorFusionNodes in the :class:`Architecture`.
+        """
+        sensorfusion = set()
+        for node in self.all_nodes:
+            if isinstance(node, SensorFusionNode):
+                sensorfusion.add(node)
+        return sensorfusion
 
     def plot(self, dir_path, filename=None, use_positions=False, plot_title=False,
              bgcolour="lightgray", node_style="filled", save_plot=True, plot_style=None):
@@ -293,7 +326,9 @@ class Architecture(Base):
 
     @property
     def is_hierarchical(self):
-        """Returns `True` if the :class:`Architecture` is hierarchical, otherwise `False`"""
+        """Returns `True` if the :class:`Architecture` is hierarchical, otherwise `False`. Uses
+        the following logic: An architecture is hierarchical if and only if there exists only
+        one node with 0 recipients, all other nodes have exactly 1 recipient."""
         if not len(self.top_level_nodes) == 1:
             return False
         for node in self.all_nodes:
@@ -303,6 +338,12 @@ class Architecture(Base):
 
     @property
     def is_centralised(self):
+        """
+        Returns 'True' if the :class:`Architecture` is hierarchical, otherwise 'False'.
+        Uses the following logic: An architecture is centralised if and only if there exists only
+        one node with 0 recipients, and there exists a path to this node from every other node in
+        the architecture.
+        """
         top_nodes = self.top_level_nodes
         if len(top_nodes) != 1:
             return False
