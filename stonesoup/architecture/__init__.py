@@ -4,7 +4,7 @@ from .node import Node, SensorNode, RepeaterNode, FusionNode, SensorFusionNode
 from .edge import Edges, DataPiece
 from ..types.groundtruth import GroundTruthPath
 from ..types.detection import TrueDetection, Clutter
-from .functions import _default_letters, _default_label
+from ._functions import _default_letters, _default_label
 
 from typing import List, Collection, Tuple, Set, Union, Dict
 import numpy as np
@@ -56,7 +56,7 @@ class Architecture(Base):
                              "if you wish to override this requirement")
 
         # Set attributes such as label, colour, shape, etc. for each node
-        last_letters = {'SensorNode': '', 'FusionNode': '', 'SensorFusionNode': '',
+        last_letters = {'Node': '', 'SensorNode': '', 'FusionNode': '', 'SensorFusionNode': '',
                         'RepeaterNode': ''}
         for node in self.di_graph.nodes:
             if node.label:

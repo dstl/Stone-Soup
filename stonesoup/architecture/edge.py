@@ -9,7 +9,7 @@ from ..types.time import TimeRange, CompoundTimeRange
 from ..types.track import Track
 from ..types.detection import Detection
 from ..types.hypothesis import Hypothesis
-from .functions import _dict_set
+from ._functions import _dict_set
 
 if TYPE_CHECKING:
     from .node import Node
