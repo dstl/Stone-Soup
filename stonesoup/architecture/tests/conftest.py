@@ -88,7 +88,7 @@ def data_pieces(times, nodes):
 def times():
     time_a = datetime.strptime("23/08/2023 13:36:00", "%d/%m/%Y %H:%M:%S")
     time_b = datetime.strptime("23/08/2023 13:37:00", "%d/%m/%Y %H:%M:%S")
-    start_time = datetime.now().replace(microsecond=0)
+    start_time = datetime.strptime("25/12/1306 23:47:00", "%d/%m/%Y %H:%M:%S")
     return {'a': time_a, 'b': time_b, 'start': start_time}
 
 
@@ -233,7 +233,7 @@ def fusion_queue():
 @pytest.fixture
 def track_tracker():
     track_tracker = MultiTargetTracker(
-        initiator, deleter, Tracks2GaussianDetectionFeeder(fq), data_associator,
+        initiator, deleter, Tracks2GaussianDetectionFeeder(fusion_queue), data_associator,
         detection_track_updater)
     return track_tracker
 

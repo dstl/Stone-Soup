@@ -1,8 +1,9 @@
 import pytest
 
 from stonesoup.architecture import InformationArchitecture
-from ..edge import Edge, Edges
-from ..node import RepeaterNode
+from ..edge import Edge, Edges, DataPiece
+from ..node import RepeaterNode#
+from stonesoup.types.detection import TrueDetection
 
 
 def test_hierarchical_plot(tmpdir, nodes, edge_lists):
@@ -204,6 +205,10 @@ def test_is_connected(edge_lists):
     disconnected_architecture = InformationArchitecture(edges=disconnected_edges,
                                                         force_connected=False)
     assert disconnected_architecture.is_connected is False
+
+    # Raise error with force_connected=True on a disconnected graph
+    with pytest.raises(ValueError):
+        _ = InformationArchitecture(edges=disconnected_edges)
 
 
 def test_recipients(nodes, edge_lists):
@@ -474,14 +479,46 @@ def test_fusion_nodes(edge_lists, ground_truths, radar_nodes):
     assert h_arch.fusion_nodes == set()
 
 
+def test_len(edge_lists):
+    simple_edges = edge_lists["simple_edges"]
+    hierarchical_edges = edge_lists["hierarchical_edges"]
+    centralised_edges = edge_lists["centralised_edges"]
+    linear_edges = edge_lists["linear_edges"]
+    decentralised_edges = edge_lists["decentralised_edges"]
+    disconnected_edges = edge_lists["disconnected_edges"]
+
+    # Simple architecture should be connected
+    simple_architecture = InformationArchitecture(edges=simple_edges)
+    assert len(simple_architecture) == len(simple_architecture.all_nodes)
+
+    # Hierarchical architecture should be connected
+    hierarchical_architecture = InformationArchitecture(edges=hierarchical_edges)
+    assert len(hierarchical_architecture) == len(hierarchical_architecture.all_nodes)
+
+    # Centralised architecture should be connected
+    centralised_architecture = InformationArchitecture(edges=centralised_edges)
+    assert len(centralised_architecture) == len(centralised_architecture.all_nodes)
+
+    # Decentralised architecture should be connected
+    decentralised_architecture = InformationArchitecture(edges=decentralised_edges)
+    assert len(decentralised_architecture) == len(decentralised_architecture.all_nodes)
+
+    # Linear architecture should be connected
+    linear_architecture = InformationArchitecture(edges=linear_edges)
+    assert len(linear_architecture) == len(linear_architecture.all_nodes)
+
+    # Disconnected architecture should not be connected
+    disconnected_architecture = InformationArchitecture(edges=disconnected_edges,
+                                                        force_connected=False)
+    assert len(disconnected_architecture) == len(disconnected_architecture.all_nodes)
+
+
 def test_information_arch_measure(edge_lists, ground_truths, times):
     edges = edge_lists["radar_edges"]
     start_time = times['start']
 
     network = InformationArchitecture(edges=edges)
     all_detections = network.measure(ground_truths=ground_truths, current_time=start_time)
-
-    sensornodes = network.sensor_nodes
 
     # Check all_detections is a dictionary
     assert type(all_detections) == dict
@@ -491,29 +528,66 @@ def test_information_arch_measure(edge_lists, ground_truths, times):
 
     # Check that correct number of detections recorded for each sensor node is equal to the number
     # of targets
-    for sensornode in sensornodes:
+    for sensornode in network.sensor_nodes:
         assert(len(all_detections[sensornode])) == 3
+        assert type(all_detections[sensornode]) == set
+        for detection in all_detections[sensornode]:
+            assert type(detection) == TrueDetection
 
-    # Reset and repeat first 2 assertions with noise=False
+
+def test_information_arch_measure_no_noise(edge_lists, ground_truths, times):
     edges = edge_lists["radar_edges"]
     start_time = times['start']
     network = InformationArchitecture(edges=edges)
-    all_detections = network.measure(ground_truths=ground_truths, current_time=start_time)
+    all_detections = network.measure(ground_truths=ground_truths, current_time=start_time,
+                                     noise=False)
 
     assert type(all_detections) == dict
     assert all_detections.keys() == network.sensor_nodes
-    for sensornode in sensornodes:
+    for sensornode in network.sensor_nodes:
         assert(len(all_detections[sensornode])) == 3
+        assert type(all_detections[sensornode]) == set
+        for detection in all_detections[sensornode]:
+            assert type(detection) == TrueDetection
 
-    # Reset and repeat first 2 assertions with no ground truth paths
+
+def test_information_arch_measure_no_detections(edge_lists, ground_truths, times):
     edges = edge_lists["radar_edges"]
     start_time = times['start']
-    network = InformationArchitecture(edges=edges)
+    network = InformationArchitecture(edges=edges, current_time=None)
     all_detections = network.measure(ground_truths=[], current_time=start_time)
 
     assert type(all_detections) == dict
     assert all_detections.keys() == network.sensor_nodes
 
     # There should exist a key for each sensor node containing an empty list
-    for sensornode in sensornodes:
+    for sensornode in network.sensor_nodes:
         assert(len(all_detections[sensornode])) == 0
+        assert type(all_detections[sensornode]) == set
+
+
+def test_information_arch_measure_no_time(edge_lists, ground_truths):
+    edges = edge_lists["radar_edges"]
+    network = InformationArchitecture(edges=edges)
+    all_detections = network.measure(ground_truths=ground_truths)
+
+    assert type(all_detections) == dict
+    assert all_detections.keys() == network.sensor_nodes
+    for sensornode in network.sensor_nodes:
+        assert(len(all_detections[sensornode])) == 3
+        assert type(all_detections[sensornode]) == set
+        for detection in all_detections[sensornode]:
+            assert type(detection) == TrueDetection
+
+#
+# def test_information_arch_propagate(edge_lists, ground_truths, times):
+#     edges = edge_lists["radar_edges"]
+#     start_time = times['start']
+#     network = InformationArchitecture(edges=edges)
+#     network.measure(ground_truths=ground_truths, current_time=start_time)
+#
+#     network.propagate(time_increment=0.1)
+# 
+#     for node in network.sensor_nodes:
+#         print(len(node.data_held))
+

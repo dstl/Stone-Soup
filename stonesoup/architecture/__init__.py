@@ -190,17 +190,6 @@ class Architecture(Base):
                 fusion.add(node)
         return fusion
 
-    @property
-    def sensor_fusion_nodes(self):
-        """
-        Returns a set of all SensorFusionNodes in the :class:`Architecture`.
-        """
-        sensorfusion = set()
-        for node in self.all_nodes:
-            if isinstance(node, SensorFusionNode):
-                sensorfusion.add(node)
-        return sensorfusion
-
     def plot(self, dir_path, filename=None, use_positions=False, plot_title=False,
              bgcolour="lightgray", node_style="filled", save_plot=True, plot_style=None):
         """Creates a pdf plot of the directed graph and displays it
