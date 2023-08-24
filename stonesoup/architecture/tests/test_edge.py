@@ -1,6 +1,6 @@
 import pytest
 
-from ..edge import Edges, Edge, DataPiece, Message
+from ..edge import Edges, Edge, DataPiece, Message, FusionQueue
 from ...types.track import Track
 from ...types.time import CompoundTimeRange, TimeRange
 
@@ -114,4 +114,15 @@ def test_message(edges, data_pieces, times):
 
 
 def test_fusion_queue():
-    assert True
+    q = FusionQueue()
+    iter_q = iter(q)
+    assert q._to_consume == 0
+    q.put("item")
+    q.put("another item")
+    assert q._to_consume == 2
+    a = next(iter_q)
+    assert a == "item"
+    assert q.to_consume == 2
+    b = next(iter_q)
+    assert b == "another item"
+    assert q.to_consume == 1
