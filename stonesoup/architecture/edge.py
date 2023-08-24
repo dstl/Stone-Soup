@@ -89,6 +89,8 @@ class Edge(Base):
 
         for time, message in to_remove:
             self.messages_held['pending'][time].remove(message)
+            if len(self.messages_held['pending'][time]) == 0:
+                del self.messages_held['pending'][time]
 
     def failed(self, current_time, duration):
         """Keeps track of when this edge was failed using the time_ranges_failed property. """
@@ -198,3 +200,11 @@ class Message(Base):
             self.status = "receiving"
         else:
             self.status = "received"
+
+    def __eq__(self, other):
+        if not isinstance(other, type(self)):
+            return False
+        return all(getattr(self, name) == getattr(other, name) for name in type(self).properties)
+
+    def __hash__(self):
+        return hash(tuple(getattr(self, name) for name in type(self).properties))
