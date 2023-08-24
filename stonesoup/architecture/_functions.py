@@ -3,7 +3,7 @@ from string import ascii_uppercase as auc
 
 def _dict_set(my_dict, value, key1, key2=None):
     """Utility function to add value to my_dict at the specified key(s)
-    Returns True iff the set increased in size, ie the value was new to its position"""
+    Returns True if the set increased in size, i.e. the value was new to its position"""
     if not my_dict:
         if key2:
             my_dict = {key1: {key2: {value}}}
