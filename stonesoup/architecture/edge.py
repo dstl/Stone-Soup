@@ -39,7 +39,7 @@ class FusionQueue(Queue):
 
     @property
     def waiting_for_data(self):
-        return self._consuming and self._to_consume
+        return self._consuming and not self._to_consume
 
     def get(self, *args, **kwargs):
         raise NotImplementedError("Getting items from queue must use iteration")
