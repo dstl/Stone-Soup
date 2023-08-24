@@ -12,8 +12,10 @@ from ...models.measurement.categorical import MarkovianMeasurementModel
 
 @pytest.fixture
 def edges():
-    edge_a = Edge((Node(label="edge_a sender"), Node(label="edge_a_recipient")))
-    return {'a': edge_a}
+    edge_a = Edge((Node(label="edge_a sender"), Node(label="edge_a recipient")))
+    edge_b = Edge((Node(label="edge_b sender"), Node(label="edge_b recipient")))
+    edge_c = Edge((Node(label="edge_c sender"), Node(label="edge_c recipient")))
+    return {'a': edge_a, 'b': edge_b, 'c': edge_c}
 
 
 @pytest.fixture
