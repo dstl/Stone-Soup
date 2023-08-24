@@ -46,11 +46,6 @@ def test_send_update_message(edges, times, data_pieces):
     assert len(edge.messages_held['pending']) == 1
     assert times['a'] in edge.messages_held['pending']
     assert len(edge.messages_held['pending'][times['a']]) == 1
-    print("\n\n\n")
-    print(message)
-    print("\n\n\n")
-    print(edge.messages_held['pending'][times['a']])
-    print(message)
     assert message in edge.messages_held['pending'][times['a']]
     assert len(edge.messages_held['received']) == 0
     # times_b is 1 min later
@@ -58,7 +53,7 @@ def test_send_update_message(edges, times, data_pieces):
 
     assert len(edge.messages_held['received']) == 1
     assert len(edge.messages_held['pending']) == 0
-    #assert message in edge.messages_held['received'][times['a']]
+    assert message in edge.messages_held['received'][times['a']]
 
 
 def test_failed():
