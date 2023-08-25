@@ -68,13 +68,14 @@ def nodes():
     sensornode_6 = SensorNode(sensor=hmm_sensor, label='s6')
     sensornode_7 = SensorNode(sensor=hmm_sensor, label='s7')
     sensornode_8 = SensorNode(sensor=hmm_sensor, label='s8')
+    repeaternode_1 = RepeaterNode()
     pnode_1 = SensorNode(sensor=hmm_sensor, label='p1', position=(0, 0))
     pnode_2 = SensorNode(sensor=hmm_sensor, label='p2', position=(-1, -1))
     pnode_3 = SensorNode(sensor=hmm_sensor, label='p3', position=(1, -1))
 
     return {"a": node_a, "b": node_b, "s1": sensornode_1, "s2": sensornode_2, "s3": sensornode_3,
             "s4": sensornode_4, "s5": sensornode_5, "s6": sensornode_6, "s7": sensornode_7,
-            "s8": sensornode_8, "p1": pnode_1, "p2": pnode_2, "p3": pnode_3}
+            "s8": sensornode_8, "r1": repeaternode_1, "p1": pnode_1, "p2": pnode_2, "p3": pnode_3}
 
 
 @pytest.fixture
@@ -308,6 +309,8 @@ def edge_lists(nodes, radar_nodes):
         [Edge((nodes['s2'], nodes['s1'])), Edge((nodes['s4'], nodes['s3'])),
          Edge((nodes['s3'], nodes['s4']))])
 
+    repeater_edges = Edges([Edge((nodes['s2'], nodes['r1'])), Edge((nodes['s4'], nodes['r1']))])
+
     radar_edges = Edges([Edge((radar_nodes['a'], radar_nodes['c'])),
                          Edge((radar_nodes['b'], radar_nodes['c'])),
                          Edge((radar_nodes['d'], radar_nodes['f'])),
@@ -320,6 +323,7 @@ def edge_lists(nodes, radar_nodes):
             "simple_edges": simple_edges, "linear_edges": linear_edges,
             "decentralised_edges": decentralised_edges, "disconnected_edges": disconnected_edges,
             "k4_edges": k4_edges, "circular_edges": circular_edges,
-            "disconnected_loop_edges": disconnected_loop_edges, "radar_edges": radar_edges}
+            "disconnected_loop_edges": disconnected_loop_edges, "repeater_edges": repeater_edges,
+            "radar_edges": radar_edges}
 
 
