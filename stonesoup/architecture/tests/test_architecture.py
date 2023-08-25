@@ -1,9 +1,19 @@
 import pytest
+import datetime
 
 from stonesoup.architecture import InformationArchitecture
-from ..edge import Edge, Edges, DataPiece
-from ..node import RepeaterNode#
+from ..edge import Edge, Edges
+from ..node import RepeaterNode
 from stonesoup.types.detection import TrueDetection
+
+
+def test_architecture_init(edge_lists, times):
+    time = times['start']
+    edges = edge_lists["decentralised_edges"]
+    arch = InformationArchitecture(edges=edges, name='Name of Architecture', current_time=time)
+
+    assert arch.name == 'Name of Architecture'
+    assert arch.current_time == time
 
 
 def test_hierarchical_plot(tmpdir, nodes, edge_lists):
@@ -258,10 +268,10 @@ def test_shortest_path_dict(nodes, edge_lists):
     assert h_arch.shortest_path_dict[nodes['s5']][nodes['s1']] == 2
 
     with pytest.raises(KeyError):
-        dist = h_arch.shortest_path_dict[nodes['s2']][nodes['s3']]
+        _ = h_arch.shortest_path_dict[nodes['s2']][nodes['s3']]
 
     with pytest.raises(KeyError):
-        dist = h_arch.shortest_path_dict[nodes['s3']][nodes['s6']]
+        _ = h_arch.shortest_path_dict[nodes['s3']][nodes['s6']]
 
     disconnected_arch = InformationArchitecture(edges=disconnected_edges, force_connected=False)
 
@@ -529,10 +539,15 @@ def test_information_arch_measure(edge_lists, ground_truths, times):
     # Check that correct number of detections recorded for each sensor node is equal to the number
     # of targets
     for sensornode in network.sensor_nodes:
+        # Check that a detection is made for all 3 targets
         assert(len(all_detections[sensornode])) == 3
         assert type(all_detections[sensornode]) == set
         for detection in all_detections[sensornode]:
             assert type(detection) == TrueDetection
+
+    for node in network.sensor_nodes:
+        # Check that each sensor node has data held for the detection of all 3 targets
+        assert len(node.data_held['created'][datetime.datetime(1306, 12, 25, 23, 47, 59)]) == 3
 
 
 def test_information_arch_measure_no_noise(edge_lists, ground_truths, times):
@@ -579,15 +594,47 @@ def test_information_arch_measure_no_time(edge_lists, ground_truths):
         for detection in all_detections[sensornode]:
             assert type(detection) == TrueDetection
 
-#
-# def test_information_arch_propagate(edge_lists, ground_truths, times):
-#     edges = edge_lists["radar_edges"]
-#     start_time = times['start']
-#     network = InformationArchitecture(edges=edges)
-#     network.measure(ground_truths=ground_truths, current_time=start_time)
-#
-#     network.propagate(time_increment=0.1)
-# 
-#     for node in network.sensor_nodes:
-#         print(len(node.data_held))
+
+def test_fully_propagated(edge_lists, times, ground_truths):
+    edges = edge_lists["radar_edges"]
+    start_time = times['start']
+
+    network = InformationArchitecture(edges=edges)
+
+    for node in network.sensor_nodes:
+        # Check that each sensor node has data held for the detection of all 3 targets
+        for key in node.data_held['created'].keys():
+            print(key)
+            assert len(node.data_held['created'][key]) == 3
+
+    # Network should not be fully propagated
+    assert network.fully_propagated is False
+
+    network.propagate(time_increment=1)
+
+    # Network should now be fully propagated
+    assert network.fully_propagated
+
+
+def test_information_arch_propagate(edge_lists, ground_truths, times):
+    edges = edge_lists["radar_edges"]
+    start_time = times['start']
+    network = InformationArchitecture(edges=edges)
+    network.measure(ground_truths=ground_truths, current_time=start_time)
+
+    for _ in range(1):
+        network.measure(ground_truths=ground_truths, current_time=start_time)
+        network.propagate(time_increment=0.1)
+
+    assert network.fully_propagated
+
+
+def test_information_arch_init(edge_lists):
+    edges = edge_lists["repeater_edges"]
+
+    # Network contains a repeater node, InformationArchitecture should raise a type error.
+    with pytest.raises(TypeError):
+        _ = InformationArchitecture(edges=edges)
+
+
 
