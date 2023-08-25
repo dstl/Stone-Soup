@@ -14,7 +14,7 @@ Track Stitching Example
 # to identify which fragments should be stitched (joined) together to form one track. This is done
 # by considering the state of a tracked object and predicting its state at a future (or past) time.
 # This example generates a set of `tracklets` and applies track stitching to them. The figure below
-# visualizes the aim of track stitching: taking a set of tracklets (left, black) and producing a
+# visualises the aim of track stitching: taking a set of tracklets (left, black) and producing a
 # set of tracks (right, blue/red).
 
 # %%
