@@ -10,7 +10,7 @@ from ..types.detection import Detection
 from ..types.hypothesis import Hypothesis
 from ..types.track import Track
 from .edge import DataPiece, FusionQueue
-from ..tracker.fusion import FusionTracker
+from ..tracker.base import Tracker
 from ._functions import _dict_set
 
 
@@ -83,7 +83,7 @@ class SensorNode(Node):
 class FusionNode(Node):
     """A node that does not measure new data, but does process data it receives"""
     # feeder probably as well
-    tracker: FusionTracker = Property(
+    tracker: Tracker = Property(
         doc="Tracker used by this Node to fuse together Tracks and Detections")
     fusion_queue: FusionQueue = Property(
         default=FusionQueue(),
