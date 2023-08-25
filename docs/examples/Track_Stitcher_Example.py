@@ -13,9 +13,9 @@ Track Stitching Example
 # Track Stitching considers a set of broken fragments of track (which we call tracklets), and aims
 # to identify which fragments should be stitched (joined) together to form one track. This is done
 # by considering the state of a tracked object and predicting its state at a future (or past) time.
-# This example generates a set of `tracklets` and applies track stitching to them. The figure below
-# visualises the aim of track stitching: taking a set of tracklets (left, black) and producing a
-# set of tracks (right, blue/red).
+# This example generates a set of ``tracklets`` and applies track stitching to them. The figure
+# below visualises the aim of track stitching: taking a set of tracklets (left, black) and
+# producing a set of tracks (right, blue/red).
 
 # %%
 # .. image:: ../_static/track_stitching_basic_example.png
@@ -36,20 +36,20 @@ Track Stitching Example
 # the time :math:`k` that the observation was made. We use the state of the object to predict its
 # state at time :math:`k + \delta k`. If the state at the start point of
 # another track section falls within an acceptable range of this prediction, we associate the
-# tracks and stitch them together. This method is used in the function `forward_predict`.
+# tracks and stitch them together. This method is used in the function :func:`forward_predict`.
 #
 # Predicting backward
 # ^^^^^^^^^^^^^^^^^^^
 # Similarly to predicting forward, we can consider the state at the start point of a track section
 # at time :math:`k` and backwards-predict the state to time :math:`k - \delta k`. We can then
 # associate and stitch tracks together as before. This method is used in the function
-# `backward_predict`.
+# :func:`backward_predict`.
 #
 # Using both predictions
 # ^^^^^^^^^^^^^^^^^^^^^^
 # We can use both methods simultaneously to calculate the probability that two track sections are
-# part of the same track. The track stitcher in this example uses the `KalmanPredictor` to make
-# predictions about which tracklets should be stitched into the same track.
+# part of the same track. The track stitcher in this example uses the :class:`~.KalmanPredictor`
+# to make predictions about which tracklets should be stitched into the same track.
 
 # %%
 # Import Modules
@@ -65,16 +65,16 @@ import numpy as np
 # ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 # The code below contains parameters used to generate input truth paths.
 #
-# The `number_of_targets` is the total number of truth paths generated in the initial simulation.
+# ``number_of_targets`` is the total number of truth paths generated in the initial simulation.
 #
-# The starting location of each truth path is defined in the region (-`range_value`, `range_value`)
-# in all dimensions.
+# The starting location of each truth path is defined in the region (-``range_value``,
+# ``range_value``) in all dimensions.
 #
 # Each truth object is split into a number of segments chosen randomly from the range
-# (1, `max_segments`).
+# (1, ``max_segments``).
 #
 # The start time of each truth path is bounded between :math:`t` = 0 and :math:`t` =
-# `max_track_start`.
+# ``max_track_start``.
 
 start_time = datetime.now().replace(second=0, microsecond=0)
 np.random.seed(100)
@@ -266,11 +266,12 @@ if n_spacial_dimensions == 3:
 # %%
 # Track Stitcher Class
 # ^^^^^^^^^^^^^^^^^^^^
-# The cell below contains the track stitcher class. The functions `forward_predict` and
-# `backward_predict` perform the forward and backward predictions respectively (as noted above). If
-# using forwards and backwards stitching, predictions from both methods are merged together.
-# They calculate which pairs of tracks could possibly be stitched together. The function `stitch`
-# uses `forward_predict` and `backward_predict` to pair and 'stitch' track sections together.
+# The cell below contains the track stitcher class. The functions :func:`forward_predict` and
+# :func:`backward_predict` perform the forward and backward predictions respectively (as noted
+# above). If using forwards and backwards stitching, predictions from both methods are merged
+# together. They calculate which pairs of tracks could possibly be stitched together. The function
+# :func:`stitch` uses :func:`forward_predict` and :func:`backward_predict` to pair and 'stitch'
+# track sections together.
 
 from stonesoup.stitcher import TrackStitcher
 
@@ -278,12 +279,13 @@ from stonesoup.stitcher import TrackStitcher
 # Applying the Track Stitcher
 # ^^^^^^^^^^^^^^^^^^^^^^^^^^^
 # Now that we have a set of tracklets, we can apply the Track Stitching method to stitch tracklets
-# together into tracks. The code in the following cell applies this process using the class
-# `TrackStitcher` and plots the stitched tracks. `TrackStitcher` has a property 'search_window' that
-# reduces computation time by filtering out track segments that outside a defined time window. When
-# forward stitching, the associator will consider any track that has a start point that falls within
-# the time window :math:`(t, t + search_window)`. When backward stitching, the associator will
-# consider tracks that have an endpoint within the time window :math:`(t - search_window, t)`.
+# together into tracks. The code in the following cell applies this process using the
+# :class:`~.TrackStitcher` and plots the stitched tracks. :class:`~.TrackStitcher` has a property
+# 'search_window' that reduces computation time by filtering out track segments that outside a
+# defined time window. When forward stitching, the associator will consider any track that has a
+# start point that falls within the time window :math:`(t, t + search\_window)`. When backward
+# stitching, the associator will consider tracks that have an endpoint within the time window
+# :math:`(t - search\_window, t)`.
 
 transition_model = CombinedLinearGaussianTransitionModel([OrnsteinUhlenbeck(0.001, 2e-2)] *
                                                          n_spacial_dimensions, seed=12)
