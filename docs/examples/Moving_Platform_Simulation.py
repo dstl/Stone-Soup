@@ -186,7 +186,7 @@ sensor_platform.add_sensor(imager)
 
 # %%
 # Notice that we have added sensors to specific locations on the aircraft, defined by the
-# mounting_offset parameter. The values in this array are defined in the platforms local
+# ``mounting_offset`` parameter. The values in this array are defined in the platform's local
 # coordinate frame of reference. Here, an offset of :math:`[0, 8, -1]` means the sensor is
 # located 8 meters to the right and 1 meter below the center point of the platform.
 #
