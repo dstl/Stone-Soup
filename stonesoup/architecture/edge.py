@@ -51,12 +51,13 @@ class DataPiece(Base):
     node: "Node" = Property(
         doc="The Node this data piece belongs to")
     originator: "Node" = Property(
-        doc="The node which first created this data, ie by sensing or fusing information together. "
-            "If the data is simply passed along the chain, the originator remains unchanged. ")
+        doc="The node which first created this data, ie by sensing or fusing information together."
+            " If the data is simply passed along the chain, the originator remains unchanged. ")
     data: Union[Detection, Track, Hypothesis] = Property(
         doc="A Detection, Track, or Hypothesis")
     time_arrived: datetime = Property(
-        doc="The time at which this piece of data was received by the Node, either by Message or by sensing.")
+        doc="The time at which this piece of data was received by the Node, either by Message or "
+            "by sensing.")
     track: Track = Property(
         doc="The Track in the event of data being a Hypothesis",
         default=None)

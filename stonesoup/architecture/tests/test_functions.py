@@ -1,4 +1,3 @@
-import pytest
 
 from .._functions import _dict_set, _default_label, _default_letters
 from ..node import RepeaterNode

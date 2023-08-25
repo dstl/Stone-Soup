@@ -9,7 +9,7 @@ from datetime import timedelta
 
 def test_data_piece(nodes, times):
     with pytest.raises(TypeError):
-        data_piece_fail = DataPiece()
+        _ = DataPiece()
 
     data_piece = DataPiece(node=nodes['a'], originator=nodes['a'],
                            data=Track([]), time_arrived=times['a'])

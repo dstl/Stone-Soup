@@ -7,15 +7,6 @@ from ..node import RepeaterNode
 from stonesoup.types.detection import TrueDetection
 
 
-def test_architecture_init(edge_lists, times):
-    time = times['start']
-    edges = edge_lists["decentralised_edges"]
-    arch = InformationArchitecture(edges=edges, name='Name of Architecture', current_time=time)
-
-    assert arch.name == 'Name of Architecture'
-    assert arch.current_time == time
-
-
 def test_hierarchical_plot(tmpdir, nodes, edge_lists):
 
     edges = edge_lists["hierarchical_edges"]
@@ -599,12 +590,12 @@ def test_fully_propagated(edge_lists, times, ground_truths):
     edges = edge_lists["radar_edges"]
     start_time = times['start']
 
-    network = InformationArchitecture(edges=edges)
+    network = InformationArchitecture(edges=edges, current_time=start_time)
+    network.measure(ground_truths=ground_truths, noise=True)
 
     for node in network.sensor_nodes:
         # Check that each sensor node has data held for the detection of all 3 targets
         for key in node.data_held['created'].keys():
-            print(key)
             assert len(node.data_held['created'][key]) == 3
 
     # Network should not be fully propagated
@@ -619,14 +610,21 @@ def test_fully_propagated(edge_lists, times, ground_truths):
 def test_information_arch_propagate(edge_lists, ground_truths, times):
     edges = edge_lists["radar_edges"]
     start_time = times['start']
-    network = InformationArchitecture(edges=edges)
-    network.measure(ground_truths=ground_truths, current_time=start_time)
+    network = InformationArchitecture(edges=edges, current_time=start_time)
 
-    for _ in range(1):
-        network.measure(ground_truths=ground_truths, current_time=start_time)
-        network.propagate(time_increment=0.1)
+    network.measure(ground_truths=ground_truths, noise=True)
+    network.propagate(time_increment=1)
 
     assert network.fully_propagated
+
+
+def test_architecture_init(edge_lists, times):
+    time = times['start']
+    edges = edge_lists["decentralised_edges"]
+    arch = InformationArchitecture(edges=edges, name='Name of Architecture', current_time=time)
+
+    assert arch.name == 'Name of Architecture'
+    assert arch.current_time == time
 
 
 def test_information_arch_init(edge_lists):
@@ -635,6 +633,3 @@ def test_information_arch_init(edge_lists):
     # Network contains a repeater node, InformationArchitecture should raise a type error.
     with pytest.raises(TypeError):
         _ = InformationArchitecture(edges=edges)
-
-
-

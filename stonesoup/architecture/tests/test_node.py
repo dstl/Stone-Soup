@@ -1,6 +1,6 @@
 import pytest
 
-from ..node import Node, SensorNode, FusionNode, SensorFusionNode
+from ..node import Node
 from ...types.hypothesis import Hypothesis
 from ...types.track import Track
 from ...types.state import State, StateVector

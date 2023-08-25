@@ -1,28 +1,22 @@
 import pytest
 
-
 import numpy as np
-import random
 from ordered_set import OrderedSet
 from datetime import datetime, timedelta
 import copy
 
 from ..edge import Edge, DataPiece, Edges
-from ..node import Node, RepeaterNode, SensorNode, FusionNode, SensorFusionNode
+from ..node import Node, RepeaterNode, SensorNode, FusionNode
 from ...types.track import Track
 from ...sensor.categorical import HMMSensor
 from ...models.measurement.categorical import MarkovianMeasurementModel
 from stonesoup.models.transition.linear import CombinedLinearGaussianTransitionModel, \
     ConstantVelocity
 from stonesoup.types.groundtruth import GroundTruthPath, GroundTruthState
-from ordered_set import OrderedSet
 from stonesoup.types.state import StateVector
 from stonesoup.sensor.radar.radar import RadarRotatingBearingRange
 from stonesoup.types.angle import Angle
-from stonesoup.architecture import Architecture, NetworkArchitecture, InformationArchitecture, \
-    CombinedArchitecture
-from stonesoup.architecture.node import FusionNode, RepeaterNode, SensorNode, SensorFusionNode
-from stonesoup.architecture.edge import Edge, Edges
+
 from stonesoup.predictor.kalman import KalmanPredictor
 from stonesoup.updater.kalman import ExtendedKalmanUpdater
 from stonesoup.hypothesiser.distance import DistanceHypothesiser
@@ -104,6 +98,14 @@ def transition_model():
     transition_model = CombinedLinearGaussianTransitionModel([ConstantVelocity(0.005),
                                                               ConstantVelocity(0.005)])
     return transition_model
+
+
+@pytest.fixture
+def timesteps(times):
+    start_time = times["start"]
+    time_max = 60  # timestamps the simulation is observed over
+    timesteps = [start_time + timedelta(seconds=k) for k in range(time_max)]
+    return timesteps
 
 
 @pytest.fixture
@@ -274,7 +276,8 @@ def radar_nodes(radar_sensors, fusion_queue):
 def edge_lists(nodes, radar_nodes):
     hierarchical_edges = Edges([Edge((nodes['s2'], nodes['s1'])), Edge((nodes['s3'], nodes['s1'])),
                                 Edge((nodes['s4'], nodes['s2'])), Edge((nodes['s5'], nodes['s2'])),
-                                Edge((nodes['s6'], nodes['s3'])), Edge((nodes['s7'], nodes['s6']))])
+                                Edge((nodes['s6'], nodes['s3'])), Edge((nodes['s7'], nodes['s6']))]
+                               )
 
     centralised_edges = Edges(
         [Edge((nodes['s2'], nodes['s1'])), Edge((nodes['s3'], nodes['s1'])),
@@ -293,7 +296,8 @@ def edge_lists(nodes, radar_nodes):
          Edge((nodes['s3'], nodes['s4'])), Edge((nodes['s3'], nodes['s5'])),
          Edge((nodes['s5'], nodes['s4']))])
 
-    disconnected_edges = Edges([Edge((nodes['s2'], nodes['s1'])), Edge((nodes['s4'], nodes['s3']))])
+    disconnected_edges = Edges([Edge((nodes['s2'], nodes['s1'])),
+                                Edge((nodes['s4'], nodes['s3']))])
 
     k4_edges = Edges(
         [Edge((nodes['s1'], nodes['s2'])), Edge((nodes['s1'], nodes['s3'])),
@@ -325,5 +329,3 @@ def edge_lists(nodes, radar_nodes):
             "k4_edges": k4_edges, "circular_edges": circular_edges,
             "disconnected_loop_edges": disconnected_loop_edges, "repeater_edges": repeater_edges,
             "radar_edges": radar_edges}
-
-
