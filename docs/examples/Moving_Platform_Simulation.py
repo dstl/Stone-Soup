@@ -284,7 +284,7 @@ sim = PlatformDetectionSimulator(groundtruth=truths, platforms=[sensor_platform,
 # %%
 # Create a Tracker
 # ------------------------------------
-# Now that we have set-up our sensor platform, target, and simulation, we need to create a tracker.
+# Now that we have set up our sensor platform, target, and simulation, we need to create a tracker.
 # For this example we will use a Particle Filter as this enables us to handle the non-linear
 # nature of the imaging sensor. We will also use an inflated constant noise model to account for
 # target motion uncertainty.
