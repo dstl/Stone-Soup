@@ -199,7 +199,7 @@ sensor_platform.sensors
 # Create a Target Platform
 # ------------------------
 # There are two ways of generating a target in Stone Soup. Firstly, we can use the inbuilt
-# ground-truth generator functionality within Stone Soup, which we demonstrated in the previous
+# ground truth generator functionality within Stone Soup, which we demonstrated in the previous
 # example, which creates a random target based on our selected parameters. The second method
 # provides a means to generate a target which will perform specific behaviours, this is the
 # approach we will take here.
