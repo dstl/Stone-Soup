@@ -21,7 +21,7 @@ from stonesoup.types.groundtruth import GroundTruthState
 
 # %%
 # Ground Truth, Categorical, and Composite States
-# ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+# ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 # We will attempt to track and classify 3 targets.
 
 # %%
