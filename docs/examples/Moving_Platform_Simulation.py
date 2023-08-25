@@ -10,7 +10,7 @@ exploiting a defined moving platform as a sensor target.
 # %%
 # Building a Simulated Multi-Sensor Moving Platform
 # -------------------------------------------------
-# This example shows how to set-up and configure a simulation environment
+# This example shows how to set up and configure a simulation environment
 # to provide a multi-sensor moving platform, as such the application of a tracker will not be
 # covered in detail. For more information about trackers and how to configure them review of the
 # tutorials and demonstrations is recommended.
@@ -23,7 +23,7 @@ exploiting a defined moving platform as a sensor target.
 # imported upfront. New functionality within this example will be imported at the relevant point
 # to draw attention to the new features.
 
-# Some general imports and set-up
+# Some general imports and set up
 from datetime import datetime
 from datetime import timedelta
 from matplotlib import pyplot as plt
