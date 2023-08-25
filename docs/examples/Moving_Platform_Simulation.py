@@ -396,7 +396,7 @@ animation.ArtistAnimation(fig, frames)
 
 # %%
 # To increase your confidence with simulated platform targets, it would be good practice to modify
-# the target to fly pre-defined shapes such as a race-track oval. You could also experiment with
+# the target to fly pre-defined shapes such as a racetrack-style oval. You could also experiment with
 # different sensor performance levels to see at what point the tracker is no longer able to
 # generate a reasonable estimate of the target location.
 
