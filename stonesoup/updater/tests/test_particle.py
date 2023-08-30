@@ -12,13 +12,14 @@ from ...types.detection import Detection
 from ...types.hypothesis import SingleHypothesis
 from ...types.multihypothesis import MultipleHypothesis
 from ...types.particle import Particle
+from ...types.state import ParticleState
 from ...types.prediction import (
     ParticleStatePrediction, ParticleMeasurementPrediction)
 from ...updater.particle import (
     ParticleUpdater, GromovFlowParticleUpdater,
     GromovFlowKalmanParticleUpdater, BernoulliParticleUpdater)
 from ...predictor.particle import BernoulliParticlePredictor
-from ...models.transition.linear import ConstantVelocity
+from ...models.transition.linear import ConstantVelocity, CombinedLinearGaussianTransitionModel
 from ...types.update import BernoulliParticleStateUpdate
 from ...regulariser.particle import MCMCRegulariser
 from ...sampler.particle import ParticleSampler
@@ -139,7 +140,7 @@ def test_bernoulli_particle():
 
     prediction = predictor.predict(prior, timestamp=new_timestamp)
     resampler = SystematicResampler()
-    regulariser = MCMCRegulariser()
+    regulariser = MCMCRegulariser(transition_model=cv)
 
     updater = BernoulliParticleUpdater(measurement_model=None,
                                        resampler=resampler,
@@ -170,3 +171,76 @@ def test_bernoulli_particle():
     assert update.hypothesis == hypotheses
     # Check that the existence probability is returned
     assert update.existence_probability is not None
+
+
+@pytest.mark.parametrize("transition_model, model_flag", [
+        (
+            CombinedLinearGaussianTransitionModel([ConstantVelocity([0.05])]),  # transition_model
+            False  # model_flag
+        ),
+        (
+            CombinedLinearGaussianTransitionModel([ConstantVelocity([0.05])]),  # transition_model
+            True  # model_flag
+        )
+    ], ids=["with_transition_model_init", "without_transition_model_init"]
+)
+def test_regularised_particle(transition_model, model_flag):
+
+    measurement_model = LinearGaussian(
+        ndim_state=2, mapping=[0], noise_covar=np.array([[10]]))
+
+    if model_flag:
+        updater = ParticleUpdater(regulariser=MCMCRegulariser(),
+                                  measurement_model=measurement_model)
+    else:
+        updater = ParticleUpdater(regulariser=MCMCRegulariser(transition_model=transition_model),
+                                  measurement_model=measurement_model)
+    # Measurement model
+    timestamp = datetime.datetime.now()
+    particles = [Particle([[10], [10]], 1 / 9),
+                 Particle([[10], [20]], 1 / 9),
+                 Particle([[10], [30]], 1 / 9),
+                 Particle([[20], [10]], 1 / 9),
+                 Particle([[20], [20]], 1 / 9),
+                 Particle([[20], [30]], 1 / 9),
+                 Particle([[30], [10]], 1 / 9),
+                 Particle([[30], [20]], 1 / 9),
+                 Particle([[30], [30]], 1 / 9),
+                 ]
+
+    particles = ParticleState(None, particle_list=particles, timestamp=timestamp)
+    predicted_state = transition_model.function(particles,
+                                                noise=True,
+                                                time_interval=datetime.timedelta(seconds=1))
+    if not model_flag:
+        prediction = ParticleStatePrediction(predicted_state,
+                                             weight=np.array([1/9]*9),
+                                             timestamp=timestamp,
+                                             parent=particles)
+    else:
+        prediction = ParticleStatePrediction(predicted_state,
+                                             weight=np.array([1 / 9] * 9),
+                                             timestamp=timestamp,
+                                             transition_model=transition_model,
+                                             parent=particles)
+
+    measurement = Detection([[40.0]], timestamp=timestamp, measurement_model=measurement_model)
+    eval_measurement_prediction = ParticleMeasurementPrediction(
+        StateVectors([prediction.state_vector[0, :]]), timestamp=timestamp)
+
+    measurement_prediction = updater.predict_measurement(prediction)
+
+    assert np.all(eval_measurement_prediction.state_vector == measurement_prediction.state_vector)
+    assert measurement_prediction.timestamp == timestamp
+
+    updated_state = updater.update(SingleHypothesis(
+        prediction, measurement, measurement_prediction))
+
+    # Don't know what the particles will exactly be due to randomness so check
+    # some obvious properties
+
+    assert np.all(weight == 1 / 9 for weight in updated_state.weight)
+    assert updated_state.timestamp == timestamp
+    assert updated_state.hypothesis.measurement_prediction == measurement_prediction
+    assert updated_state.hypothesis.prediction == prediction
+    assert updated_state.hypothesis.measurement == measurement
