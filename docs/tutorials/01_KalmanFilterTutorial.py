@@ -303,7 +303,7 @@ plotter.fig
 # responsibility, a :class:`~.Predictor` takes a :class:`~.TransitionModel` as input and
 # an :class:`~.Updater` takes a :class:`~.MeasurementModel` as input. Note that for now we're using
 # the same models used to generate the ground truth and the simulated measurements. This won't
-# usually be possible and it's an interesting exercise to explore what happens when these
+# usually be possible, and it's an interesting exercise to explore what happens when these
 # parameters are mismatched.
 from stonesoup.predictor.kalman import KalmanPredictor
 predictor = KalmanPredictor(transition_model)
