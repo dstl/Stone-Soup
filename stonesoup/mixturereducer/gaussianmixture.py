@@ -37,9 +37,9 @@ class GaussianMixtureReducer(MixtureReducer):
     """
 
     prune_threshold: float = Property(default=1e-9, doc='Mixture component weight '
-                                      'threshold for pruning')
+                                                        'threshold for pruning')
     merge_threshold: float = Property(default=16, doc='Squared Mahalanobis distance '
-                                      'threshold for merging')
+                                                      'threshold for merging')
     max_number_components: int = Property(default=np.iinfo(np.int64).max,
                                           doc='Maximum number of components to keep '
                                               'in the Gaussian mixture')
@@ -132,11 +132,11 @@ class GaussianMixtureReducer(MixtureReducer):
         weight_sum = component_1.weight + component_2.weight
         w1 = component_1.weight / weight_sum
         w2 = component_2.weight / weight_sum
-        merged_mean = component_1.mean*w1 + component_2.mean*w2
-        merged_covar = component_1.covar*w1 + component_2.covar*w2
+        merged_mean = component_1.mean * w1 + component_2.mean * w2
+        merged_covar = component_1.covar * w1 + component_2.covar * w2
         mu1_minus_m2 = component_1.mean - component_2.mean
         merged_covar = merged_covar + \
-            mu1_minus_m2*mu1_minus_m2.T*w1*w2
+                       mu1_minus_m2 * mu1_minus_m2.T * w1 * w2
         if weight_sum > 1:
             weight_sum = 1
         if isinstance(component_1, TaggedWeightedGaussianState):
@@ -226,7 +226,7 @@ class GaussianMixtureReducer(MixtureReducer):
                 for shared_tag in components_tags:
                     shared_components = sorted(
                         (component for component in merged_components
-                            if component.tag == shared_tag),
+                         if component.tag == shared_tag),
                         key=attrgetter('weight'),
                         reverse=True)
                     final_merged_components.append(shared_components[0])
@@ -281,8 +281,8 @@ class GaussianMixtureReducer(MixtureReducer):
 
 
 class BasicConvexCombination(MixtureReducer):
-    """
-    Combine 'n' :class:`~.GaussianState`s using Convex Combination.
+    r"""
+    Combine *n* :class:`~.GaussianState` using Convex Combination.
 
     .. math ::
 

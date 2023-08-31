@@ -62,10 +62,11 @@ class TrackFusedTracker(Tracker):
 
     def combine_tracks(self, association: Association) -> Track:
         """
+        Three steps to combine the tracks:
 
-         # Combines the states from the associated tracks using the `state_combiner`.
-         # Create a new track from this state
-         # Assign new track_id using :function:`.get_fused_id`
+         #. Combines the states from the associated tracks using the :attr:`.state_combiner`.
+         #. Create a new track from this state
+         #. Assign new track_id using :func:`.get_fused_id`
 
         """
         states = (track.state for track in association.objects)
@@ -83,12 +84,8 @@ class TrackFusedTracker(Tracker):
 
 
 def get_fused_id(*track_ids: str) -> str:
-    """
-    Combines `n` track ids 128 bit hex str into another 128 bit hex str
-    :param track_ids:
-    :return:
-    """
-    #
+    """ Combines `n` track ids 128 bit hex str into another 128 bit hex str """
+
     output_int = 0
     for track_id in track_ids:
         id_int = uuid.UUID(track_id).int

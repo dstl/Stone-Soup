@@ -112,11 +112,11 @@ target_2_truth = GroundTruthPath(target_2_states)
 # Create Sensors
 # ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 # Two static :class:`~.RadarElevationBearingRange` sensors are created. Both
-# have the same accuracy, they have elevation accuracy* of ~14 degrees, a
-# bearing angle accuracy* of ~25 degrees and a range accuracy* of ~30m. The
+# have the same accuracy, they have elevation accuracy of ~14 degrees, a
+# bearing angle accuracy of ~25 degrees and a range accuracy* of ~30m. The
 # sensors are located 20m apart.
 #
-# *The accuracy values is the standard deviation of the measures
+# The accuracy values is the standard deviation of the measures
 sensor_1_position = np.array([[20], [10], [0]])
 sensor_2_position = np.array([[40], [10], [0]])
 
