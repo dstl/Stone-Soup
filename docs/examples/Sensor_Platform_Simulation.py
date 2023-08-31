@@ -200,17 +200,17 @@ radar.rotation_offset
 # using the following parameters:
 #
 #  * :math:`x` is Gaussian-distributed around the platform location with variance of
-#  :math:`\mathrm{2}km`.
+#    :math:`\mathrm{2}km`.
 #  * :math:`y` is Gaussian-distributed around the platform location with variance of
-#  :math:`\mathrm{2}km`.
+#    :math:`\mathrm{2}km`.
 #  * :math:`z` is Gaussian-distributed around an altitude of :math:`\mathrm{9}km` with variance
-#  of :math:`\mathrm{0.1}km`.
+#    of :math:`\mathrm{0.1}km`.
 #  * :math:`\dot{x}` is Gaussian-distributed around :math:`\mathrm{100}ms^{-1}` with variance of
-#  :math:`\mathrm{50}ms^{-1}`.
+#    :math:`\mathrm{50}ms^{-1}`.
 #  * :math:`\dot{y}` is Gaussian-distributed around :math:`\mathrm{100}ms^{-1}` with variance
-#  of :math:`\mathrm{50}ms^{-1}`.
+#    of :math:`\mathrm{50}ms^{-1}`.
 #  * :math:`\dot{z}` is Gaussian-distributed around :math:`\mathrm{0}ms^{-1}` with variance of
-#  :math:`\mathrm{1}ms^{-1}`.
+#    :math:`\mathrm{1}ms^{-1}`.
 #
 # We will also configure our simulator to randomly create and delete targets based on a specified
 # birth rate and death rate. We set the birth rate to be 0.10. I.e. on any given time step there is

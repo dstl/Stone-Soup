@@ -5,7 +5,7 @@ Creating an Actionable Sensor
 =============================
 This example demonstrates the process of creating an actionable sensor, i.e., a sensor that has an
 actionable property. This includes creation of :class:`~.Action` and :class:`~.ActionGenerator`
- classes that handle how this property evolves over time, and how to interface with the sensor via
+classes that handle how this property evolves over time, and how to interface with the sensor via
 given actions.
 """
 
