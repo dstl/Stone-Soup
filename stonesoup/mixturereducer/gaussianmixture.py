@@ -135,8 +135,7 @@ class GaussianMixtureReducer(MixtureReducer):
         merged_mean = component_1.mean * w1 + component_2.mean * w2
         merged_covar = component_1.covar * w1 + component_2.covar * w2
         mu1_minus_m2 = component_1.mean - component_2.mean
-        merged_covar = merged_covar + \
-                       mu1_minus_m2 * mu1_minus_m2.T * w1 * w2
+        merged_covar = merged_covar + mu1_minus_m2 * mu1_minus_m2.T * w1 * w2
         if weight_sum > 1:
             weight_sum = 1
         if isinstance(component_1, TaggedWeightedGaussianState):
