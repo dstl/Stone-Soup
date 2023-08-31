@@ -3,7 +3,7 @@ from typing import Sequence
 import numpy as np
 from scipy.linalg import block_diag
 
-from ...types.array import StateVector, StateVector
+from ...types.array import StateVector, StateVectors
 from .base import TransitionModel
 from ..base import GaussianModel, TimeVariantModel
 from ...base import Property
