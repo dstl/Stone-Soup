@@ -165,7 +165,7 @@ particles = [Particle(sample.reshape(-1, 1), weight=weight)
 from stonesoup.resampler.particle import SystematicResampler
 from stonesoup.types.track import Track
 from stonesoup.dataassociator.tracktotrack import TrackToTruth
-from stonesoup.metricgenerator.manager import SimpleManager
+from stonesoup.metricgenerator.manager import MultiManager
 from stonesoup.metricgenerator.tracktotruthmetrics import SIAPMetrics
 from stonesoup.plotter import Plotter
 from stonesoup.measures import Euclidean
@@ -173,10 +173,15 @@ from stonesoup.measures import Euclidean
 updaters[0].resampler = SystematicResampler()  # Allow particle filter to re-sample
 
 pa = dict()
-siap_gen = SIAPMetrics(position_measure=Euclidean((0, 2)), velocity_measure=Euclidean((1, 3)))
+siap_gens = [SIAPMetrics(position_measure=Euclidean((0, 2)), velocity_measure=Euclidean((1, 3)),
+                       generator_name=filter, tracks_key=f'tracks_{filter}', truths_key='truth')
+            for filter in filters]
 
-for predictor, updater, colour, filter, particle_count \
-        in zip(predictors, updaters, colours, filters, particle_counts):
+metric_manager = MultiManager(siap_gens, associator=TrackToTruth(association_threshold=np.inf))
+metric_manager.add_data({'truth': {truth}})
+
+for predictor, updater, colour, filter, particle_count, generators \
+        in zip(predictors, updaters, colours, filters, particle_counts, siap_gens):
     track = Track()
     prior = ParticleState(None, particle_list=particles[:particle_count], timestamp=start_time)
 
@@ -195,32 +200,20 @@ for predictor, updater, colour, filter, particle_count \
     plotter.ax.set_xlim(0, 30)
     plotter.ax.set_ylim(0, 30)
 
-    metric_manager = SimpleManager(
-        [siap_gen], associator=TrackToTruth(association_threshold=np.inf))
-    metric_manager.add_data(tracks={track}, groundtruth_paths={truth})
-
-    metrics = metric_manager.generate_metrics()
-    pa[filter] = metrics.get("SIAP Position Accuracy at times")
+    metric_manager.add_data({f'tracks_{filter}': {track}}, overwrite=False)
 
 # %%
 # Positional Accuracy
 # ^^^^^^^^^^^^^^^^^^^
-from matplotlib.lines import Line2D
+metrics = metric_manager.generate_metrics()
 
-fig2 = plt.figure(figsize=(10, 6))
-ax2 = fig2.add_subplot(1, 1, 1)
-ax2.axis('equal')
+from stonesoup.plotter import MetricPlotter
 
-handles = list()
-labels = list()
-
-for (filter, value), colour in zip(pa.items(), colours):
-    ax2.plot(range(len(value.value)), [elem.value for elem in value.value], color=colour)
-    handles.append(Line2D([], [], color=colour))
-    labels.append(filter)
-ax2.legend(handles=handles, labels=labels)
-ax2.set_ylim(0, 6)
-_ = ax2.set_title('Positional Accuracy')
+fig2 = MetricPlotter()
+fig2.plot_metrics(metrics, metric_names=['SIAP Position Accuracy at times'])
+fig2.axes[0].set_ylim(-2, 6)
+fig2.axes[0].set_title('Positional Accuracy')
+fig2.fig.show()
 
 # sphinx_gallery_thumbnail_number = 1
 
