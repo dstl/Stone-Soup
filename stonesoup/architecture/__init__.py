@@ -197,7 +197,8 @@ class Architecture(Base):
         return fusion
 
     def plot(self, dir_path, filename=None, use_positions=False, plot_title=False,
-             bgcolour="lightgray", node_style="filled", save_plot=True, plot_style=None):
+             bgcolour="white", node_style="filled", font_name='helvetica', save_plot=True,
+             plot_style=None):
         """Creates a pdf plot of the directed graph and displays it
 
         :param dir_path: The path to save the pdf and .gv files to
@@ -316,6 +317,7 @@ class Architecture(Base):
         dot = graph.to_string()
         dot_split = dot.split('{', maxsplit=1)
         dot_split.insert(1, '\n' + f"graph [bgcolor={bgcolour}]")
+        dot_split.insert(1, '\n' + f"node [fontname={font_name}]")
         dot_split.insert(1, '{ \n' + f"node [style={node_style}]")
         dot = ''.join(dot_split)
 
