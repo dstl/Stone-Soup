@@ -1364,25 +1364,25 @@ class IsotropicPlume(GaussianModel, MeasurementModel):
 
     def function(self, state: State, noise: Union[bool, np.ndarray] = False, **kwargs) -> Union[
                  StateVector, StateVectors]:
-    r"""Model function :math:`h(\vec{x}_t,\vec{v}_t)`
+        r"""Model function :math:`h(\vec{x}_t,\vec{v}_t)`
 
-    Parameters
-    ----------
-    state: :class:`~.StateVector`
-        An input source term state vector
+        Parameters
+        ----------
+        state: :class:`~.StateVector`
+            An input source term state vector
 
-    noise: :class:`numpy.ndarray` or bool
-        An externally generated random process noise sample (the default is
-       `False`, in which case no noise will be added
-        if 'True', the output of :meth:`~.Model.rvs` is added). If `False`,
-        then the model also does not consider the :attr:`sensing_threshold`
-        and :attr:`missed_detection_probability`
+        noise: :class:`numpy.ndarray` or bool
+            An externally generated random process noise sample (the default is
+            `False`, in which case no noise will be added
+            if 'True', the output of :meth:`~.Model.rvs` is added). If `False`,
+            then the model also does not consider the :attr:`sensing_threshold`
+            and :attr:`missed_detection_probability`
 
-    Returns
-    -------
-    : :class:`numpy.ndarray` of shape (1, 1)
-        The model function evaluated with the provided source term
-    """
+        Returns
+        -------
+        : :class:`numpy.ndarray` of shape (1, 1)
+            The model function evaluated with the provided source term
+        """
 
         x, y, z, Q, u, phi, ci, cii = state.state_vector[self.mapping].view(np.ndarray)
 
@@ -1529,12 +1529,6 @@ class IsotropicPlume(GaussianModel, MeasurementModel):
         """
 
         random_state = random_state if random_state is not None else self.random_state
-
-        # noise = multivariate_normal.rvs(
-        #     np.zeros(self.ndim_meas),
-        #     np.array([[(state*self.standard_deviation_percentage)**2]]),
-        #     num_samples,
-        #     random_state=random_state)
 
         generator = np.random.RandomState(random_state)
         noise = generator.normal(np.zeros(self.ndim_meas),
