@@ -6,7 +6,7 @@ from datetime import datetime, timedelta
 import copy
 
 from ..edge import Edge, DataPiece, Edges
-from ..node import Node, RepeaterNode, SensorNode, FusionNode
+from ..node import Node, RepeaterNode, SensorNode, FusionNode, SensorFusionNode
 from ...types.track import Track
 from ...sensor.categorical import HMMSensor
 from ...models.measurement.categorical import MarkovianMeasurementModel
@@ -142,7 +142,7 @@ def ground_truths(transition_model, times):
 @pytest.fixture
 def radar_sensors(times):
     start_time = times["start"]
-    total_no_sensors = 5
+    total_no_sensors = 6
     sensor_set = OrderedSet()
     for n in range(0, total_no_sensors):
         sensor = RadarRotatingBearingRange(
@@ -268,8 +268,14 @@ def radar_nodes(radar_sensors, fusion_queue):
 
     node_G = FusionNode(tracker=track_tracker, fusion_queue=fusion_queue, latency=0)
 
+    node_I_tracker = copy.deepcopy(tracker)
+    node_I_tracker.detector = FusionQueue()
+
+    node_I = SensorFusionNode(sensor=sensor_set[5], tracker=node_I_tracker,
+                              fusion_queue=node_I_tracker.detector)
+
     return {'a': node_A, 'b': node_B, 'c': node_C, 'd': node_D, 'e': node_E, 'f': node_F,
-            'g': node_G, 'h': node_H}
+            'g': node_G, 'h': node_H, 'i':node_I}
 
 
 @pytest.fixture
@@ -323,9 +329,18 @@ def edge_lists(nodes, radar_nodes):
                          Edge((radar_nodes['f'], radar_nodes['g']), edge_latency=0),
                          Edge((radar_nodes['h'], radar_nodes['g']))])
 
+    sf_radar_edges = Edges([Edge((radar_nodes['a'], radar_nodes['c'])),
+                            Edge((radar_nodes['b'], radar_nodes['c'])),
+                            Edge((radar_nodes['d'], radar_nodes['f'])),
+                            Edge((radar_nodes['e'], radar_nodes['f'])),
+                            Edge((radar_nodes['c'], radar_nodes['g']), edge_latency=0),
+                            Edge((radar_nodes['f'], radar_nodes['g']), edge_latency=0),
+                            Edge((radar_nodes['h'], radar_nodes['i'])),
+                            Edge((radar_nodes['i'], radar_nodes['g']))])
+
     return {"hierarchical_edges": hierarchical_edges, "centralised_edges": centralised_edges,
             "simple_edges": simple_edges, "linear_edges": linear_edges,
             "decentralised_edges": decentralised_edges, "disconnected_edges": disconnected_edges,
             "k4_edges": k4_edges, "circular_edges": circular_edges,
             "disconnected_loop_edges": disconnected_loop_edges, "repeater_edges": repeater_edges,
-            "radar_edges": radar_edges}
+            "radar_edges": radar_edges, "sf_radar_edges": sf_radar_edges}
