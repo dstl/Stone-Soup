@@ -1,4 +1,7 @@
 from abc import abstractmethod
+
+import pydot
+
 from ..base import Base, Property
 from .node import Node, SensorNode, RepeaterNode, FusionNode
 from .edge import Edges, DataPiece
@@ -290,11 +293,32 @@ class Architecture(Base):
                 # Update layer count for correct y location
                 layer -= 1
 
-        dot = nx.drawing.nx_pydot.to_pydot(self.di_graph).to_string()
-        dot_split = dot.split('\n')
-        dot_split.insert(1, f"graph [bgcolor={bgcolour}]")
-        dot_split.insert(1, f"node [style={node_style}]")
-        dot = "\n".join(dot_split)
+        strict = nx.number_of_selfloops(self.di_graph) == 0 and not self.di_graph.is_multigraph()
+        graph = pydot.Dot(graph_name='', strict=strict, graph_type='digraph')
+        for node in self.all_nodes:
+            if use_positions or self.is_hierarchical or plot_style == 'hierarchical':
+                str_position = '"' + str(node.position[0]) + ',' + str(node.position[1]) + '!"'
+                new_node = pydot.Node('"' + node.label + '"', label=node.label, shape=node.shape,
+                                      pos=str_position, color=node.colour, fontsize=node.font_size,
+                                      height=str(node.node_dim[1]), width=str(node.node_dim[0]),
+                                      fixedsize=True)
+            else:
+                new_node = pydot.Node('"' + node.label + '"', label=node.label, shape=node.shape,
+                                      color=node.colour, fontsize=node.font_size,
+                                      height=str(node.node_dim[1]), width=str(node.node_dim[0]),
+                                      fixedsize=True)
+            graph.add_node(new_node)
+
+        for edge in self.edges.edge_list:
+            new_edge = pydot.Edge('"' + edge[0].label + '"', '"' + edge[1].label + '"')
+            graph.add_edge(new_edge)
+
+        dot = graph.to_string()
+        dot_split = dot.split('{', maxsplit=1)
+        dot_split.insert(1, '\n' + f"graph [bgcolor={bgcolour}]")
+        dot_split.insert(1, '{ \n' + f"node [style={node_style}]")
+        dot = ''.join(dot_split)
+
         if plot_title:
             if plot_title is True:
                 plot_title = self.name
