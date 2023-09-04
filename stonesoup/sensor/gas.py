@@ -4,24 +4,32 @@ import numpy as np
 
 from .sensor import Sensor
 from ..base import Property
-from ..types.array import StateVector
 from ..types.detection import TrueDetection
 from ..types.groundtruth import GroundTruthState
-from ..models.measurement.nonlinear import PasquilGaussianPlume
+from ..models.measurement.nonlinear import IsotropicPlume
 from ..types.numeric import Probability
 
 
 class GasIntensitySensor(Sensor):
 
-    noise: float = Property(default=0.6)
+    min_noise: float = Property(
+        default=1e-4,
+        doc="The minimum noise added to sensor measurements"
+    )
+
+    standard_deviation_percentage: float = Property(
+        default=0.5,
+        doc="Standard deviation as a percentage of the concentration level"
+    )
 
     missed_detection_probability: Probability = Property(
         default=0.1,
-        doc="The probability that the detection has detection has been affected by turbulence."
+        doc="The probability that the detection has detection has been affected by turbulence "
+            "and therefore not sensed the gas."
     )
 
     sensing_threshold: float = Property(
-        default=0.1,
+        default=1e-4,
         doc="Measurement threshold. Should be set high enough to minimise false detections."
     )
 
@@ -32,10 +40,7 @@ class GasIntensitySensor(Sensor):
 
         detections = set()
         for truth in ground_truths:
-            if (noise and np.random.rand > self.missed_detection_probability) or not noise:
-                measurement_vector = measurement_model.function(truth, noise=noise, **kwargs)
-            else:
-                measurement_vector = StateVector([[0.0]])
+            measurement_vector = measurement_model.function(truth, noise=noise, **kwargs)
 
             detection = TrueDetection(measurement_vector,
                                       measurement_model=measurement_model,
@@ -48,7 +53,8 @@ class GasIntensitySensor(Sensor):
 
     @property
     def measurement_model(self):
-        return PasquilGaussianPlume(noise=self.noise,
-                                    translation_offset=self.position,
-                                    missed_detection_probability=self.missed_detection_probability,
-                                    sensing_threshold=self.sensing_threshold)
+        return IsotropicPlume(min_noise=self.min_noise,
+                              standard_deviation_percentage=self.standard_deviation_percentage,
+                              translation_offset=self.position,
+                              missed_detection_probability=self.missed_detection_probability,
+                              sensing_threshold=self.sensing_threshold)
