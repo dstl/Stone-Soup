@@ -54,7 +54,7 @@ def nodes():
 
     node_a = Node(label="node a")
     node_b = Node(label="node b")
-    sensornode_1 = SensorNode(sensor=hmm_sensor, label='s1')
+    sensornode_1 = SensorNode(sensor=hmm_sensor, label="s1")
     sensornode_2 = SensorNode(sensor=hmm_sensor, label='s2')
     sensornode_3 = SensorNode(sensor=hmm_sensor, label='s3')
     sensornode_4 = SensorNode(sensor=hmm_sensor, label='s4')
