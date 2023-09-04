@@ -1374,7 +1374,9 @@ class IsotropicPlume(GaussianModel, MeasurementModel):
         noise: :class:`numpy.ndarray` or bool
             An externally generated random process noise sample (the default is
            `False`, in which case no noise will be added
-            if 'True', the output of :meth:`~.Model.rvs` is added)
+            if 'True', the output of :meth:`~.Model.rvs` is added). If `False`,
+            then the model also does not consider the :attr:`sensing_threshold`
+            and :attr:`missed_detection_probability`
 
         Returns
         -------
