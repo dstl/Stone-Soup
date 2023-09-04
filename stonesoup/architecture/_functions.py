@@ -37,7 +37,7 @@ def _default_label(node, last_letters):
     type_letters = last_letters[node_type]  # eg 'A', or 'AA', or 'ABZ'
     new_letters = _default_letters(type_letters)
     last_letters[node_type] = new_letters
-    return node_type + ' ' + new_letters, last_letters
+    return node_type + ' ' + '\n' + new_letters, last_letters
 
 
 def _default_letters(type_letters) -> str:

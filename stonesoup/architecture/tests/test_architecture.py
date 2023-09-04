@@ -10,6 +10,7 @@ from stonesoup.types.detection import TrueDetection
 def test_hierarchical_plot(tmpdir, nodes, edge_lists):
 
     edges = edge_lists["hierarchical_edges"]
+    sf_radar_edges = edge_lists["sf_radar_edges"]
 
     arch = InformationArchitecture(edges=edges)
 
@@ -40,6 +41,10 @@ def test_hierarchical_plot(tmpdir, nodes, edge_lists):
 
     with pytest.raises(ValueError):
         arch.plot(dir_path=tmpdir.join('test.pdf'), save_plot=False, plot_style='hierarchical')
+
+    arch2 = InformationArchitecture(edges=sf_radar_edges)
+
+    arch2.plot(dir_path=tmpdir.join('test2.pdf'))
 
 
 def test_plot_title(nodes, tmpdir, edge_lists):

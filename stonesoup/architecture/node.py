@@ -26,16 +26,16 @@ class Node(Base):
         default=None,
         doc="Cartesian coordinates for node")
     colour: str = Property(
-        default=None,
+        default='#909090',
         doc='Colour to be displayed on graph')
     shape: str = Property(
-        default=None,
+        default='rectangle',
         doc='Shape used to display nodes')
     font_size: int = Property(
         default=5,
         doc='Font size for node labels')
     node_dim: tuple = Property(
-        default=None,
+        default=(0.5, 0.5),
         doc='Width and height of nodes for graph icons, default is (0.5, 0.5)')
 
     def __init__(self, *args, **kwargs):
@@ -70,14 +70,14 @@ class SensorNode(Node):
     """A node corresponding to a Sensor. Fresh data is created here"""
     sensor: Sensor = Property(doc="Sensor corresponding to this node")
     colour: str = Property(
-        default='#1f77b4',
-        doc='Colour to be displayed on graph. Default is the hex colour code #1f77b4')
+        default='#006eff',
+        doc='Colour to be displayed on graph. Default is the hex colour code #006eff')
     shape: str = Property(
         default='oval',
         doc='Shape used to display nodes. Default is an oval')
     node_dim: tuple = Property(
-        default=(0.5, 0.3),
-        doc='Width and height of nodes for graph icons. Default is (0.5, 0.3)')
+        default=(0.6, 0.3),
+        doc='Width and height of nodes for graph icons. Default is (0.6, 0.3)')
 
 
 class FusionNode(Node):
@@ -91,14 +91,14 @@ class FusionNode(Node):
     tracks: set = Property(default=None,
                            doc="Set of tracks tracked by the fusion node")
     colour: str = Property(
-        default='#006400',
-        doc='Colour to be displayed on graph. Default is the hex colour code #006400')
+        default='#00b53d',
+        doc='Colour to be displayed on graph. Default is the hex colour code #00b53d')
     shape: str = Property(
         default='hexagon',
         doc='Shape used to display nodes. Default is a hexagon')
     node_dim: tuple = Property(
-        default=(0.6, 0.3),
-        doc='Width and height of nodes for graph icons. Default is (0.6, 0.3)')
+        default=(0.8, 0.4),
+        doc='Width and height of nodes for graph icons. Default is (0.8, 0.4)')
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -147,24 +147,24 @@ class FusionNode(Node):
 class SensorFusionNode(SensorNode, FusionNode):
     """A node that is both a sensor and also processes data"""
     colour: str = Property(
+        default='#fc9000',
+        doc='Colour to be displayed on graph. Default is the hex colour code #fc9000')
+    shape: str = Property(
+        default='diamond',
+        doc='Shape used to display nodes. Default is a diamond')
+    node_dim: tuple = Property(
+        default=(0.9, 0.5),
+        doc='Width and height of nodes for graph icons. Default is (0.9, 0.5)')
+
+
+class RepeaterNode(Node):
+    """A node which simply passes data along to others, without manipulating the data itself. """
+    colour: str = Property(
         default='#909090',
         doc='Colour to be displayed on graph. Default is the hex colour code #909090')
     shape: str = Property(
         default='rectangle',
         doc='Shape used to display nodes. Default is a rectangle')
     node_dim: tuple = Property(
-        default=(0.1, 0.3),
-        doc='Width and height of nodes for graph icons. Default is (0.1, 0.3)')
-
-
-class RepeaterNode(Node):
-    """A node which simply passes data along to others, without manipulating the data itself. """
-    colour: str = Property(
-        default='#ff7f0e',
-        doc='Colour to be displayed on graph. Default is the hex colour code #ff7f0e')
-    shape: str = Property(
-        default='circle',
-        doc='Shape used to display nodes. Default is a circle')
-    node_dim: tuple = Property(
-        default=(0.5, 0.3),
-        doc='Width and height of nodes for graph icons. Default is (0.5, 0.3)')
+        default=(0.7, 0.4),
+        doc='Width and height of nodes for graph icons. Default is (0.7, 0.4)')
