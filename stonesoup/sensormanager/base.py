@@ -98,7 +98,7 @@ class BruteForceSensorManager(SensorManager):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
-    def choose_actions(self, tracks, timestamp, nchoose=1, **kwargs):
+    def choose_actions(self, tracks, timestamp, nchoose=1, return_reward=False, **kwargs):
         """Returns a chosen [list of] action(s) from the action set for each sensor.
         Chosen action(s) is selected by finding the configuration of sensors: actions which returns
         the maximum reward, as calculated by a reward function.
@@ -111,7 +111,8 @@ class BruteForceSensorManager(SensorManager):
             Time at which the actions are carried out until
         nchoose : int
             Number of actions from the set to choose (default is 1)
-
+        return_reward: bool
+            Whether to return the reward for chosen actions (default is False)
         Returns
         -------
         : dict
@@ -141,6 +142,9 @@ class BruteForceSensorManager(SensorManager):
             if reward > min(best_rewards):
                 selected_configs[np.argmin(best_rewards)] = config
                 best_rewards[np.argmin(best_rewards)] = reward
-
-        # Return mapping of sensors and chosen actions for sensors
-        return selected_configs
+        if return_reward:
+            # Return mapping of sensors and chosen actions for sensors
+            # Also returns rewards
+            return selected_configs, best_rewards    
+        else:
+            return selected_configs
