@@ -96,6 +96,7 @@ roadnet = [
 architectures = [
     "graphviz",
     "networkx",
+    "pydot",
 ]
 
 [tool.setuptools]

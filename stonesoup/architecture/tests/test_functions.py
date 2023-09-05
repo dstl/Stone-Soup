@@ -44,13 +44,13 @@ def test_default_label(nodes):
     node = nodes['a']
     label, last_letters = _default_label(node, last_letters)
     assert last_letters['Node'] == 'A'
-    assert label == 'Node A'
+    assert label == 'Node \nA'
 
     repeater = RepeaterNode()
     assert last_letters['RepeaterNode'] == 'Z'
     label, last_letters = _default_label(repeater, last_letters)
     assert last_letters['RepeaterNode'] == 'AA'
-    assert label == 'RepeaterNode AA'
+    assert label == 'RepeaterNode \nAA'
 
 
 def test_default_letters():

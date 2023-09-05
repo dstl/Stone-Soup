@@ -44,7 +44,7 @@ def test_hierarchical_plot(tmpdir, nodes, edge_lists):
 
     arch2 = InformationArchitecture(edges=sf_radar_edges)
 
-    arch2.plot(dir_path=tmpdir.join('test2.pdf'))
+    arch2.plot(dir_path=tmpdir.join('test2.pdf'), save_plot=False)
 
 
 def test_plot_title(nodes, tmpdir, edge_lists):
@@ -609,12 +609,12 @@ def test_fully_propagated(edge_lists, times, ground_truths):
             print(edge.unsent_data)
 
     # Network should not be fully propagated
-    #assert network.fully_propagated is False
+    # assert network.fully_propagated is False
 
     network.propagate(time_increment=1)
 
     # Network should now be fully propagated
-    #assert network.fully_propagated
+    # assert network.fully_propagated
 
 
 def test_information_arch_propagate(edge_lists, ground_truths, times):
