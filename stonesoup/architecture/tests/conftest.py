@@ -275,7 +275,7 @@ def radar_nodes(radar_sensors, fusion_queue):
                               fusion_queue=node_I_tracker.detector)
 
     return {'a': node_A, 'b': node_B, 'c': node_C, 'd': node_D, 'e': node_E, 'f': node_F,
-            'g': node_G, 'h': node_H, 'i':node_I}
+            'g': node_G, 'h': node_H, 'i': node_I}
 
 
 @pytest.fixture

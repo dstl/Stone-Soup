@@ -39,9 +39,9 @@ def test_sensor_node(nodes):
     sensor = nodes['s1'].sensor
     snode = SensorNode(sensor=sensor)
     assert snode.sensor == sensor
-    assert snode.colour == '#1f77b4'
+    assert snode.colour == '#006eff'
     assert snode.shape == 'oval'
-    assert snode.node_dim == (0.5, 0.3)
+    assert snode.node_dim == (0.6, 0.3)
 
 
 def test_fusion_node(tracker):
@@ -49,9 +49,9 @@ def test_fusion_node(tracker):
     fnode_tracker.detector = FusionQueue()
     fnode = FusionNode(tracker=fnode_tracker, fusion_queue=fnode_tracker.detector, latency=0)
 
-    assert fnode.colour == '#006400'
+    assert fnode.colour == '#00b53d'
     assert fnode.shape == 'hexagon'
-    assert fnode.node_dim == (0.6, 0.3)
+    assert fnode.node_dim == (0.8, 0.4)
     assert fnode.tracks == set()
 
     with pytest.raises(TypeError):
@@ -68,9 +68,9 @@ def test_sf_node(tracker, nodes):
     sfnode = SensorFusionNode(tracker=sfnode_tracker, fusion_queue=sfnode_tracker.detector,
                               latency=0, sensor=nodes['s1'].sensor)
 
-    assert sfnode.colour == '#909090'
-    assert sfnode.shape == 'rectangle'
-    assert sfnode.node_dim == (0.1, 0.3)
+    assert sfnode.colour == '#fc9000'
+    assert sfnode.shape == 'diamond'
+    assert sfnode.node_dim == (0.9, 0.5)
 
     assert sfnode.tracks == set()
 
@@ -78,6 +78,6 @@ def test_sf_node(tracker, nodes):
 def test_repeater_node():
     rnode = RepeaterNode()
 
-    assert rnode.colour == '#ff7f0e'
-    assert rnode.shape == 'circle'
-    assert rnode.node_dim == (0.5, 0.3)
+    assert rnode.colour == '#909090'
+    assert rnode.shape == 'rectangle'
+    assert rnode.node_dim == (0.7, 0.4)
