@@ -4,13 +4,43 @@ from abc import abstractmethod
 from datetime import datetime
 from typing import Sequence, List, Optional, Collection
 
-from .base import Property
-from .measures import Measure, GenericMeasure
+from .base import Property, Base
+from .measures import Measure
 from .types.state import StateMutableSequence
 from .types.track import Track
 
 
+class GenericMeasure(Base):
+    """Measure base type
+
+    A measure provides a means to assess the separation between two
+    objects item1 and item2.
+    """
+
+    @abstractmethod
+    def __call__(self, item1, item2) -> float:
+        r"""
+        Compute the distance between a pair of objects
+
+        Parameters
+        ----------
+        item1 :
+        item2 :
+
+        Returns
+        -------
+        float
+            distance measure between a pair of input objects
+
+        """
+        raise NotImplementedError
+
+
 class MultipleMeasure(GenericMeasure):
+    """ MultipleMeasure base type
+    This measure produces a list of ``float`` values instead of a singular ``float`` value. This
+    can be used when comparing objects that contain multiple other objects.
+    """
     @abstractmethod
     def __call__(self, item1, item2) -> List[float]:
         raise NotImplementedError
@@ -18,8 +48,9 @@ class MultipleMeasure(GenericMeasure):
 
 class TrackMeasure(GenericMeasure):
     """Track Measure base type
-    A measure provides a means to assess the separation between two track objects track1 and
-    track2. It should return the float of the distance measure between the two tracks
+
+    A measure provides a means to assess the separation between two track objects *track_1* and
+    *track_2*. It should return the float of the distance measure between the two tracks.
     """
 
     @abstractmethod
@@ -30,7 +61,7 @@ class TrackMeasure(GenericMeasure):
 
 class StateSequenceMeasure(MultipleMeasure):
     """
-    Applies a state measure to each state in the state sequence with matching times
+    Applies a state measure to each state in the state sequence with matching times.
     """
 
     measure: Measure = Property()
@@ -40,7 +71,8 @@ class StateSequenceMeasure(MultipleMeasure):
                  times_to_measure: Sequence[datetime] = None) -> List[float]:
         """
         Compare the states from each state sequence for every time in `times_to_measure`.
-        If `times_to_measure` is None. Find all times that both state sequences have in common
+
+        If `times_to_measure` is None. Find all times that both state sequences have in common.
         """
 
         if times_to_measure is None:
@@ -60,8 +92,8 @@ class StateSequenceMeasure(MultipleMeasure):
 
 class RecentStateSequenceMeasure(MultipleMeasure):
     """
-    Applies a state measure to each state in the state sequence with for the most recent n matching
-    times
+    Applies a state measure to each state in the state sequence with for the most recent *n*
+    matching times.
     """
 
     measure: Measure = Property()
@@ -83,7 +115,7 @@ class RecentStateSequenceMeasure(MultipleMeasure):
 
 class MeanMeasure(GenericMeasure):
     """
-    This class converts multiple measures into one mean average measure
+    This class converts multiple measures into one mean average measure.
     """
     measure: MultipleMeasure = Property()
 
@@ -100,12 +132,12 @@ class SetComparisonMeasure(GenericMeasure):
     """
     This class measures how many items are present in both collections. The type of the collections
     is ignored and duplicate items are ignored.
-        The measure output is between 0 and 1 (inclusive).
-        An output of 1 is for both collections to contain the same items.
-        An output of 0 is when there are zero items in common between the two sets.
+     * The measure output is between 0 and 1 (inclusive).
+     * An output of 1 is for both collections to contain the same items.
+     * An output of 0 is when there are zero items in common between the two sets.
 
-    This class compares an object/item’s identity. It doesn't directly compare objects (obj1 is
-    obj2 rather than obj1 == obj2).
+    This class compares an object/item’s identity. It doesn't directly compare objects
+    (``obj1 is obj2`` rather than ``obj1 == obj2``).
 
     """
 

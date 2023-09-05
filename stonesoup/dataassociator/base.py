@@ -65,11 +65,11 @@ class TrackToTrackAssociator(Associator):
     @abstractmethod
     def associate_tracks(self, *tracks_sets: Set[Track]) \
             -> AssociationSet:
-        """Associate n sets of tracks together.
+        """Associate *n* sets of tracks together.
 
         Parameters
         ----------
-        tracks_sets : n sets of :class:`~.Track` objects
+        tracks_sets : *n* sets of :class:`~.Track` objects
             Tracks to associate to other track sets
 
         Returns
@@ -79,13 +79,14 @@ class TrackToTrackAssociator(Associator):
 
         """
 
-    def associate_tracks_plus(self, *tracks_sets: Set[Track]) \
+    def associated_and_unassociated_tracks(self, *tracks_sets: Set[Track]) \
             -> Tuple[AssociationSet, Tuple[Set[Track]]]:
-        """Associate n sets of tracks together.
+        """Associate n sets of tracks together. The unassociated tracks are returned with
+         the associated tracks.
 
         Parameters
         ----------
-        tracks_sets : n sets of :class:`~.Track` objects
+        tracks_sets : *n* sets of :class:`~.Track` objects
             Tracks to associate to other track sets
 
         Returns
@@ -93,7 +94,7 @@ class TrackToTrackAssociator(Associator):
         AssociationSet
             Contains a set of :class:`~.Association` objects
         Tuple
-            n sets of tracks (that were input variables) minus any associated tracks
+            *n* sets of tracks (that were input variables) minus any associated tracks
 
         """
 

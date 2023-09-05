@@ -5,34 +5,39 @@ from scipy.optimize import linear_sum_assignment
 
 from ..base import Property
 from ..dataassociator.base import Associator
-from ..measures import GenericMeasure
+from ..non_state_measures import GenericMeasure
 from ..types.association import Association, AssociationSet
 
 
 class OneToOneAssociator(Associator):
     """
     This a general one to one associator. It can be used to associate objects/values that have a
-    `GenericMeasure` to compare them.
-    Uses scipy.optimize.linear_sum_assignment to find the minimum (or maximum) measure by
+    :class:`.GenericMeasure` to compare them.
+    Uses :func:`~scipy.optimize.linear_sum_assignment` to find the minimum (or maximum) measure by
     combination objects from two sources.
+
+    Notes
+    -----
+    As default the association threshold is set to +- a large number (1e10 was chosen arbitrarily).
+    Infinity can't be used, as it breaks the association algorithm.
     """
 
-    measure: GenericMeasure = Property()
+    measure: GenericMeasure = Property(
+        doc="This will compare two objects that could be associated together and will provide an "
+            "indication of the separation between the objects.")
     association_threshold: float = Property(
         default=None, doc="The maximum (minimum if `maximise_measure` is true) value from the "
                           "`measure` needed to associate two objects. If the default value of None"
                           " is used then the association threshold is set to plus/minus an "
-                          "arbitrarily large number that shouldn't cut off ")
+                          "arbitrarily large number that shouldn't limit associations.")
 
     maximise_measure: bool = Property(
         default=False, doc="Should the association algorithm attempt to maximise or minimise the "
-                           "output of the measure")
+                           "output of the measure.")
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
-        # As default the association threshold is set to +- a large number (1e10 was chosen
-        # arbitrarily). Infinity can't be used, as it breaks the association algorithm
         if self.association_threshold is None:
             if self.maximise_measure:
                 self.association_threshold = -1e10
@@ -108,14 +113,14 @@ class OneToOneAssociator(Associator):
         """
         For an association to be valid is must be over (or under if maximise_measure is True)
         (non-inclusive). Therefore setting the value to the association threshold will result in
-        the association not taking place
+        the association not taking place.
         """
         return self.association_threshold
 
     def individual_weighting(self, a, b):
         """ This wrapper around the measure function allows for filtering/error checking of the
-        measure function. It can gives an easy access point for sub-classes that want to apply
-        additional filtering or gating"""
+        measure function. It can give an easy access point for subclasses that want to apply
+        additional filtering or gating."""
         measure_output = self.measure(a, b)
         if measure_output is None:
             return self.fail_value
@@ -129,18 +134,18 @@ class OneToOneAssociator(Associator):
         """
         This is a wrapper function around the `associate` function. The two collections of objects
         are associated to each other. The objects are entered into a dictionary:
-            The dictionary key is an object from either collection.
-            The value is the object it is associated to. If the key object isn't associated to an
-            object then the value
-        is None.
+
+        * The dictionary key is an object from either collection.
+        * The value is the object it is associated to. If the key object isn't associated to an
+          object then the value is None.
 
         As the objects are used as dictionary keys, they must be hashable or a `TypeError` will be
-        raised
+        raised.
 
         Parameters
         ----------
-        objects_a : collection of hashable objects to associate to the objects in `objects_b`
-        objects_b : collection of hashable objects to associate to the objects in `objects_a`
+        objects_a : collection of hashable objects to associate to the objects in ``objects_b``
+        objects_b : collection of hashable objects to associate to the objects in ``objects_a``
 
         Returns
         -------

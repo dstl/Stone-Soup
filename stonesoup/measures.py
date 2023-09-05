@@ -9,58 +9,6 @@ from .base import Base, Property
 from .types.state import State
 
 
-class GenericMeasure(Base):
-    """Measure base type
-
-    A measure provides a means to assess the seperation between two
-     objects item1 and item2.
-    """
-
-    @abstractmethod
-    def __call__(self, item1, item2) -> float:
-        r"""
-        Compute the distance between a pair of objects
-
-        Parameters
-        ----------
-        item1 :
-        item2 :
-
-        Returns
-        -------
-        float
-            distance measure between a pair of input objects
-
-        """
-        return NotImplementedError
-
-
-class TrackMeasure(GenericMeasure):
-    """Measure base type
-
-    A measure provides a means to assess the separation between two
-    objects item1 and item2.
-    """
-
-    @abstractmethod
-    def __call__(self, item1, item2) -> float:
-        r"""
-        Compute the distance between a pair of objects
-
-        Parameters
-        ----------
-        item1 :
-        item2 :
-
-        Returns
-        -------
-        float
-            distance measure between a pair of input objects
-
-        """
-        return NotImplementedError
-
-
 class Measure(Base):
     """Measure base type
 

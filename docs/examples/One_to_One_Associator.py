@@ -1,18 +1,19 @@
 """
-Generic One to One Association Examples
+Generic One-to-One Association Examples
 ===============================================
-These examples demonstrate how to use the :class:`~.OneToOneAssociator` class for three varied uses.
-The three examples include associating States, Tracks and words.
+These examples demonstrate how to use the :class:`~.OneToOneAssociator` class for three varied
+uses. The three examples include associating States, Tracks and words.
 """
 
 # %%
-# First some generic imports and variables are set up as they are needed for all of the examples
+# First some generic imports and variables are set up as they are needed for all the examples.
 import datetime
 
 from stonesoup.dataassociator.general import OneToOneAssociator
-from stonesoup.non_state_measures import StateSequenceMeasure, MeanMeasure, SetComparisonMeasure
+from stonesoup.non_state_measures import StateSequenceMeasure, MeanMeasure, SetComparisonMeasure, \
+    GenericMeasure
 from stonesoup.dataassociator.tracktotrack import OneToOneTrackAssociator
-from stonesoup.measures import GenericMeasure, Euclidean
+from stonesoup.measures import Euclidean
 from stonesoup.plotter import Plotterly
 from stonesoup.types.state import State
 from stonesoup.types.track import Track
@@ -20,10 +21,10 @@ from stonesoup.types.track import Track
 colours = ["darkgreen", "firebrick", "gold", "mediumvioletred", "dodgerblue", "black", "blue",
            "lime"]
 # %%
-# One to One States Association Example
+# One-to-One States Association Example
 # ---------------------------------------
-# The :class:`~.OneToOneAssociator` can be used for associating states with the right
-# :attr:`~.OneToOneAssociator.measure`. Consider the scenario having two conflicting sources
+# The :class:`~.OneToOneAssociator` can be used for associating states with the appropriate
+# :attr:`~.OneToOneAssociator.measure` function. Consider the scenario having two conflicting sources
 # reporting the location of objects. An associator can be used to judge where multiple sensors are
 # observing the same object. For simplicity a standard :class:`~.State` with no uncertainty
 # information is used. This means the :class:`~.Euclidean` metric is appropriate to compare the
@@ -61,7 +62,8 @@ plotter.plot_tracks(tracks=[Track(state) for state in states_from_b],
 plotter.fig
 
 # %%
-# It’s not immediately clear which states should be associated to each other
+# This scenario has been created so it’s not immediately clear which states should be associated
+# to each other.
 
 # %%
 # Create Associator & Associate States
@@ -149,7 +151,7 @@ plotter.fig
 # %%
 # Create Tracks
 # ^^^^^^^^^^^^^^^^
-# Six tracks are created and are plotted
+# Six tracks are created and are plotted.
 
 start_time = datetime.datetime(2023, 1, 1, 0, 0, 0)
 
@@ -187,7 +189,7 @@ tracks_a = {track_a1, track_a2, track_a3}
 tracks_b = {track_b1, track_b2, track_b3}
 
 # %%
-# Plot the tracks
+# Plot the tracks.
 colours_iter = iter(colours)
 
 plotter = Plotterly()
@@ -206,13 +208,13 @@ plotter.fig
 # **Track a1** and **Track b1** are close to each other. They should be associated to each other
 # unless the tolerance for association is very high.
 #
-# **Track a2** and **Track b2** are close to each other. Depending on the association threshold they
-# may or may not be associated to each other.
+# **Track a2** and **Track b2** are close to each other. Depending on the association threshold
+# they may or may not be associated to each other.
 #
 # **Track a3** is too far away to associated with any of the other tracks.
 #
-# **Track b3** appears to be closer to `Track a1` than `Track b1` is. However `Track b3` is takes
-# place 20 seconds after track `Track a1` and `Track b1`, therefore there are no overlapping time
+# **Track b3** appears to be closer to `Track a1` than `Track b1` is. However, `Track b3` takes
+# place 20 seconds after `Track a1` and `Track b1`, therefore there are no overlapping time
 # periods for association.
 
 # %%
@@ -220,13 +222,14 @@ plotter.fig
 # ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 # %%
-# The `full_state_sequence_measure` measure will apply the Euclidean state measure to each state in
-# the tracks, with the same time. This produces a multiple measures for each state.
+# The ``full_state_sequence_measure`` (:class:`~.StateSequenceMeasure`) measure will apply the
+# Euclidean state measure to each state in the tracks, with the same time. This produces a multiple
+# measures for each state.
 full_state_sequence_measure = StateSequenceMeasure(measure=Euclidean(mapping=[0, 1]))
 
 # %%
-# The `track_measure` will take the multiple measures from `full_state_sequence_measure` and
-# condense it down into one single measure by taking the mean
+# ``track_measure`` (:class:`~.MeanMeasure`) will take the multiple measures from
+# ``full_state_sequence_measure`` and condense it down into one single measure by taking the mean.
 track_measure = MeanMeasure(measure=full_state_sequence_measure)
 
 # %%
@@ -242,7 +245,7 @@ associations, unassociated_a, unassociated_b = associator.associate(tracks_a, tr
 # %%
 # Results of Track Association
 # ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-# The results will be visualised and printed
+# The results will be visualised and printed.
 plotter = Plotterly()
 colours_iter = iter(colours)
 
@@ -266,31 +269,33 @@ plotter.fig
 # %%
 # Generic Association Example
 # -----------------------------------
-# The association algorithm can be to associated many things. In this example we'll associate words
-# to demonstrate the versatility of the algorithm
+# The association algorithm can be used to associate many things. In this example we'll associate
+# words to demonstrate the versatility of the algorithm.
 
 # %%
-# Example 1 - Measure 1
+# In the example scenario an application can only accept standard colour names. However, the user
+# interface also accepts CCS colours. The association algorithm  must try to match the user's
+# input to a 'standard' colour. The 'standard' colours the application can use.
+standard_colours = ["White", "Black", "Yellow", "Red", "Blue", "Green", "Orange", "Purple",
+                    "Grey"]
+
+# %%
+# Measure 1 - Example 1
 # ^^^^^^^^^^^^^^^^^^^^^^^
+# ``WordMeasure`` is a crude measure to compare how similar words are. It calculates the
+# number of letters that both words have in common and then divides it by the total number of
+# unique letters.
 class WordMeasure(GenericMeasure):
-    """
-    This a crude measure to compare how similar words are
-    This measure calculates the number of letters that both words have in common and then
-    divides it by the total number of unique letters
-    """
     def __call__(self, word_1: str, word_2: str) -> float:
         return SetComparisonMeasure()(set(word_1.lower()), set(word_2.lower()))
 
 
 # %%
-# An example scenario where an application can only accept standard colour names. However the
-# input parameter can accept CCS colours
-standard_colours = ["White", "Black", "Yellow", "Red", "Blue", "Green", "Orange", "Purple",
-                    "Grey"]
-
+# The colours that are inputted by a user:
 received_colours_scheme = ["FloralWhite", "LightGreen", "Magenta"]
 
-
+# %%
+# The association process
 associator = OneToOneAssociator(measure=WordMeasure(),
                                 maximise_measure=True,
                                 association_threshold=0.3)
@@ -303,18 +308,15 @@ for received_colour in received_colours_scheme:
     print(received_colour, "matched with: \t", standard_colour)
 
 # %%
-# Magneta shouldn't be match with Orange. We need a better measure
+# Magneta shouldn't be match with Orange. We need a better measure.
 
 
 # %%
-# Example 1 - Measure 2
+# Measure 2 - Example 1
 # ^^^^^^^^^^^^^^^^^^^^^^^
+# ``BetterWordMeasure`` looks for words that are identical or is a word/phrase is contained within
+# another word/phrase.
 class BetterWordMeasure(GenericMeasure):
-    """
-    This measure looks if:
-        the words are identical or
-        a phrase or word is contained within another word/phrase
-    """
     def __call__(self, word_1: str, word_2: str) -> float:
         word_1 = word_1.lower()
         word_2 = word_2.lower()
@@ -327,6 +329,8 @@ class BetterWordMeasure(GenericMeasure):
             return 0.0
 
 
+# %%
+# The association process
 associator = OneToOneAssociator(measure=BetterWordMeasure(),
                                 maximise_measure=True,
                                 association_threshold=0.3
@@ -341,7 +345,7 @@ for received_colour in received_colours_scheme:
 
 
 # %%
-# Example 2 - Measure 2
+# Measure 2 - Example 2
 # ^^^^^^^^^^^^^^^^^^^^^^^
 
 received_colours_scheme = ["LightSeaGreen", "OrangeRed", "MediumVioletRed"]
