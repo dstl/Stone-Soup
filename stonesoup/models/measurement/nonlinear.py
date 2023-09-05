@@ -1407,7 +1407,6 @@ class IsotropicPlume(GaussianModel, MeasurementModel):
             # measurement thresholding
             C[C < self.sensing_threshold] = 0
             # missed detections
-            print(np.random.uniform())
             flag = np.random.uniform(size=state.state_vector.shape[1]) \
                 > (1 - self.missed_detection_probability)
             C[:, flag] = 0
