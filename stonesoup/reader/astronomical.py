@@ -134,6 +134,7 @@ class TLEDictReader(Reader):
         r"""Represents the first derivative of the mean motion , otherwise known as the ballistic
         coefficient. This is encoded in the TLE divided by two and in units of revolutions per
         day :math:`^2`. Here it is returned in units of :math:`mathrm{rad s}^{-2}`. It is unused in
+
         SGP4.
         """
 

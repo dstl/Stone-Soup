@@ -66,13 +66,13 @@ def stumpff_c(z):
 
     Parameters
     ----------
-    z : float
+    z : float, array-like
         input parameter, :math:`z`
 
     Returns
     -------
-    : float
-        Output value, :math:`C(z)`
+    : float, array-like
+        Output value, :math:`C(z)` in same format and size as input
 
     """
     gti = z > 0
@@ -102,7 +102,7 @@ def universal_anomaly_newton(o_state_vector, delta_t,
 
     Parameters
     ----------
-    o_state_vector : :class:`~StateVector, ~StateVectors`
+    o_state_vector : :class:`~.StateVector`, :class:`~.StateVectors`
         The orbital state vector formed as
         :math:`[r_x, r_y, r_z, \dot{r}_x, \dot{r}_y, \dot{r}_z]^T`
     delta_t : timedelta
@@ -119,7 +119,7 @@ def universal_anomaly_newton(o_state_vector, delta_t,
 
     Returns
     -------
-    : float
+    : numpy.ndarray
         The universal anomaly, :math:`\chi`
 
     References
@@ -127,6 +127,7 @@ def universal_anomaly_newton(o_state_vector, delta_t,
     .. [1] Curtis H.D. 2010, Orbital Mechanics for Engineering Students, 3rd Ed., Elsevier
 
     """
+
 
     # For loop across StateVectors
     #out = Matrix(np.zeros((1, np.shape(o_state_vector)[1])))
@@ -175,7 +176,7 @@ def lagrange_coefficients_from_universal_anomaly(o_state_vector, delta_t,
 
     Parameters
     ----------
-    o_state_vector : StateVector
+    o_state_vector : :class:`~.StateVector`, :class:`~.StateVectors`
         The (Cartesian) orbital state vector,
         :math:`[r_x, r_y, r_z, \dot{r}_x, \dot{r}_y, \dot{r}_z]^T`
     delta_t : timedelta
@@ -192,7 +193,7 @@ def lagrange_coefficients_from_universal_anomaly(o_state_vector, delta_t,
 
     Returns
     -------
-    : float, float, float, float
+    : tuple(numpy.ndarray, numpy.ndarray, numpy.ndarray, numpy.ndarray)
         The Lagrange coefficients, :math:`f, g, \dot{f}, \dot{g}`, in that order.
 
     References
@@ -371,7 +372,8 @@ def perifocal_velocity(eccentricity, semimajor_axis, true_anomaly, grav_paramete
     rot_v = np.reshape(np.array([-s_tran, eccentricity + c_tran, np.zeros(np.shape(c_tran))]),
                        (3, np.shape(np.atleast_2d(true_anomaly))[1]))
 
-    a_1_e_2 = np.array(semimajor_axis).astype(float) * (1 - np.array(eccentricity).astype(float) ** 2)
+    a_1_e_2 = np.array(semimajor_axis).astype(float) * \
+        (1 - np.array(eccentricity).astype(float) ** 2)
 
     return np.sqrt(grav_parameter / a_1_e_2) * rot_v
 
@@ -395,7 +397,6 @@ def perifocal_to_geocentric_matrix(inclination, raan, argp):
         coordinates
 
     """
-
     # Cache some trig functions
     s_incl = np.sin(inclination)
     c_incl = np.cos(inclination)
