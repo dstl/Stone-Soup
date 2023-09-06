@@ -113,6 +113,7 @@ class BruteForceSensorManager(SensorManager):
             Number of actions from the set to choose (default is 1)
         return_reward: bool
             Whether to return the reward for chosen actions (default is False)
+            When True, returns a tuple of 1d arrays: (dictionaries of chosen actions, rewards)
         Returns
         -------
         : dict
