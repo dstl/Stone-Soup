@@ -128,7 +128,6 @@ def universal_anomaly_newton(o_state_vector, delta_t,
 
     """
 
-
     # For loop across StateVectors
     #out = Matrix(np.zeros((1, np.shape(o_state_vector)[1])))
 

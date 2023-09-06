@@ -112,11 +112,11 @@ class Orbital(Type):
 
     References
     ----------
-    .. [1] NASA, Definition of Two-line Element Set Coordinate System, [spaceflight.nasa.gov](
+    .. 1. NASA, Definition of Two-line Element Set Coordinate System, [spaceflight.nasa.gov](
            https://spaceflight.nasa.gov/realdata/sightings/SSapplications/Post/JavaSSOP/
            SSOP_Help/tle_def.html)
 
-    .. [2] Broucke, R. A. & Cefola, P. J. 1972, Celestial Mechanics, Volume 5, Issue 3, pp. 303-310
+    .. 2. Broucke, R. A. & Cefola, P. J. 1972, Celestial Mechanics, Volume 5, Issue 3, pp. 303-310
 
     """
 

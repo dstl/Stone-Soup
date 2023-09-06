@@ -871,7 +871,7 @@ class BernoulliParticleState(ParticleState):
 
     References
     ----------
-    .. [1] Ristic, Branko & Vo, Ba-Toung & Vo, Ba-Ngu & Farina, Alfonso, A
+    .. 1. Ristic, Branko & Vo, Ba-Toung & Vo, Ba-Ngu & Farina, Alfonso, A
        Tutorial on Bernoulli Filters: Theory, Implementation and Applications,
        2013, IEEE Transactions on Signal Processing, 61(13), 3406-3430.
 

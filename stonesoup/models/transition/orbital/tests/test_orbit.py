@@ -121,7 +121,7 @@ def test_sampling():
     propagator_c.process_noise = CovarianceMatrix(np.diag([10, 10, 10, 10e-3, 10e-3, 10e-3]))
     samp_states_c = propagator_c.rvs(num_samples=100, time_interval=deltat)
 
-    for state in samp_states_c.T:
+    for state in samp_states_c:
         assert(propagator_c.pdf(OrbitalState(state,
                                              timestamp=initial_state.timestamp
                                              + deltat,
@@ -130,7 +130,7 @@ def test_sampling():
                                 initial_state, time_interval=deltat) >= 0)
         # PDF must be positive
 
-    for state in samp_states_sm.T:
+    for state in samp_states_sm:
         assert(propagator_sm.pdf(OrbitalState(state,
                                               timestamp=initial_state.timestamp
                                               + deltat, coordinates='TLE',
