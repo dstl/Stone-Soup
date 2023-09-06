@@ -145,6 +145,6 @@ class BruteForceSensorManager(SensorManager):
         if return_reward:
             # Return mapping of sensors and chosen actions for sensors
             # Also returns rewards
-            return selected_configs, best_rewards    
+            return selected_configs, best_rewards
         else:
             return selected_configs
