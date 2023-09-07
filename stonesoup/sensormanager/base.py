@@ -116,8 +116,8 @@ class BruteForceSensorManager(SensorManager):
             When True, returns a tuple of 1d arrays: (dictionaries of chosen actions, rewards)
         Returns
         -------
-        : dict
-            The pairs of :class:`~.Sensor`: [:class:`~.Action`] selected
+        : list(dict) or (list(dict), :class:`numpy.ndarray`)
+            The pairs of :class:`~.Sensor`: [:class:`~.Action`] selected and the array contains the corresponding reward.
         """
 
         all_action_choices = dict()
