@@ -117,7 +117,7 @@ class BruteForceSensorManager(SensorManager):
         Returns
         -------
         : list(dict) or (list(dict), :class:`numpy.ndarray`)
-            The pairs of :class:`~.Sensor`: [:class:`~.Action`] selected and the array contains 
+            The pairs of :class:`~.Sensor`: [:class:`~.Action`] selected and the array contains
             the corresponding reward.
         """
 
