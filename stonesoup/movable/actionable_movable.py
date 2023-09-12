@@ -1,21 +1,38 @@
+from typing import Callable
+from ..base import Property
+
 from stonesoup.movable import FixedMovable
-from stonesoup.sensor.action.move_position_action import GridActionGenerator
+from stonesoup.movable.action.move_position_action import GridActionGenerator
+from stonesoup.types.state import State
 
 
 class GridActionableMovable(FixedMovable):
     """  """
+
+    generator: Callable = Property(
+        doc="The generator used to provide possible actions"
+    )
+
+    generator_params: dict = Property(
+        default={},
+        doc="Dictionary of specific parameters for :attr:`generator`"
+    )
+
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self._next_action = None
+        if not issubclass(self.generator, GridActionGenerator):
+            raise TypeError('Only GridActionGenerator types are compatible with this movable.')
 
     #         self.scheduled_actions = dict()
 
     def actions(self, timestamp, start_timestamp=None):
         generators = set()
-        generators.add(GridActionGenerator(owner=self,
-                                           attribute="position",
-                                           start_time=start_timestamp,
-                                           end_time=timestamp))
+        generators.add(self.generator(owner=self,
+                                      attribute="position",
+                                      start_time=start_timestamp,
+                                      end_time=timestamp,
+                                      **self.generator_params))
 
         return generators
 
