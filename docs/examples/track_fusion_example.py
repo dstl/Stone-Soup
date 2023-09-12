@@ -31,7 +31,8 @@
 # radars using :class:`~.RadarBearingRange` placed on two
 # separate :class:`~.FixedPlatform`. For the target we
 # simulate a single object moving on a straight trajectory.
-#
+# The example setup is simple to it is easier to understand
+# how the Stone soup components are working.
 
 # Load the various packages
 import numpy as np
@@ -88,7 +89,7 @@ clutter_spatial_density = clutter_model.clutter_rate/clutter_area
 from stonesoup.sensor.radar.radar import RadarBearingRange
 
 # Let's assume that both radars have the same noise covariance for simplicity
-# These radars will have the +/-0.005 degrees accuracy in bearing and 2 meters in range
+# These radars will have the +/-0.005 degrees accuracy in bearing and +/- 2 meters in range
 radar_noise = CovarianceMatrix(np.diag([np.deg2rad(0.005), 2.01**2]))
 
 # Define the specifications of the two radars
@@ -97,7 +98,7 @@ radar1 = RadarBearingRange(
     position_mapping= (0, 2),
     noise_covar= radar_noise,
     clutter_model= clutter_model,
-    max_range= 3000)
+    max_range= 3000)  # max_range can be removed and use the default value
 
 # deep copy the first radar specs. Changes in the first one does not influence the second
 radar2 = deepcopy(radar1)
@@ -183,7 +184,7 @@ s2_detections = []
 # are slightly different one from the
 # other, that will lead to two separate
 # tracks. Now, we initialise the two trackers
-# one using a Kalman filter and the other
+# components, one using a Kalman filter and the other
 # a particle filter.
 #
 
@@ -201,7 +202,7 @@ from stonesoup.initiator.simple import SimpleMeasurementInitiator, GaussianParti
 # Load a single target tracker
 from stonesoup.tracker.simple import SingleTargetTracker
 
-# define an helper function to minimise the number of times
+# Lets define an helper function to minimise the number of times
 # we have to initialise the same tracker object
 
 def general_tracker(tracker_class, detector,
@@ -275,7 +276,7 @@ prior_state=  SimpleMeasurementInitiator(
 # Particle filter initiator
 PF_initiator = GaussianParticleInitiator(
     initiator= prior_state,
-    number_particles= 500)
+    number_particles= 500)  # low number for quicker computations
 
 # %%
 # At this stage we have all the components needed to
@@ -283,9 +284,9 @@ PF_initiator = GaussianParticleInitiator(
 # filters. We need to create a way to perform the track fusion.
 # To perform such fusion, we employ the covariance
 # intersection algorithm
-# adopting the :class:`ChernoffUpdater` class, and
+# adopting the :class:`~.ChernoffUpdater` class, and
 # treating the tracks as measurements and we consider
-# the measurements as GaussianMixture objects - [explain better]
+# the measurements as GaussianMixture objects.
 
 # Instantiate a dummy detector to read the detections
 from stonesoup.buffered_generator import BufferedGenerator
@@ -331,7 +332,7 @@ base_hypothesiser = DistanceHypothesiser(
 hypothesiser= GaussianMixtureHypothesiser(base_hypothesiser,
                                           order_by_detection= True)
 
-# Gaussian mixture reducer to prune the various tracks
+# Gaussian mixture reducer to prune and merge the various tracks
 ch_reducer = GaussianMixtureReducer(
     prune_threshold= 1e-10,
     pruning= True,
@@ -362,7 +363,7 @@ track_fusion_tracker = PointProcessMultiTargetTracker(
 # %%
 # 3) Run the trackers, generate the partial tracks and the final composite track;
 # -------------------------------------------------------------------------------
-# So far we have shown how  to instantiate the various tracker components
+# So far we have shown how to instantiate the various tracker components
 # as well as the track fusion tracker. Now, we run the trackers to generate
 # the tracks and we perform the track fusion. Furthermore, we want to measure
 # how good are the track fusions in comparisons to the groundtruths, so we
@@ -424,7 +425,6 @@ metric_manager = MultiManager([basic_KF,
                                ospa_PF2_truth],
                               associator)
 
-
 # Create the tracks for the Particle filters, kalman and merged ones
 PF_track1, PF_track2, KF_track1, KF_track2 = set(), set(), set(), set()
 PF_fused_track, KF_fused_track = set(), set()
@@ -468,7 +468,7 @@ for _ in range(number_of_steps):
 
     PF_tracker_2.detector = DummyDetector(current=radar2_detections)
     PF_tracker_2.__iter__()
-    _, PF_sensor_track2 = next(PF_tracker_2)
+    time, PF_sensor_track2 = next(PF_tracker_2)
     PF_track2.update(PF_sensor_track2)
 
     KF_tracker_2.detector = DummyDetector(current=radar2_detections)
@@ -477,8 +477,8 @@ for _ in range(number_of_steps):
     KF_track2.update(KF_sensor_track2)
 
     # load the various bits
-    metric_manager.add_data({'KF_1_tracks': KF_track1}, overwrite=False)
-    metric_manager.add_data({'KF_2_tracks': KF_track2}, overwrite=False)
+#    metric_manager.add_data({'KF_1_tracks': KF_track1}, overwrite=False)
+#    metric_manager.add_data({'KF_2_tracks': KF_track2}, overwrite=False)
     metric_manager.add_data({'PF_1_tracks': PF_track1}, overwrite=False)
     metric_manager.add_data({'PF_2_tracks': PF_track2}, overwrite=False)
 
@@ -490,7 +490,7 @@ for _ in range(number_of_steps):
     #     track_fusion_tracker.__iter__()
     #     _, tracks = next(track_fusion_tracker)
     #     PF_fused_track.update(tracks)
-    #     # ERROR TypeError: __init__() missing 1 required positional argument: 'covar'
+        # ERROR TypeError: __init__() missing 1 required positional argument: 'covar'
     #metric_manager.add_data({'PF_fused_track': PF_fused_track}, overwrite=False)
 
     for KF_track_meas in [KF_track1, KF_track2]:
@@ -499,6 +499,7 @@ for _ in range(number_of_steps):
         track_fusion_tracker.__iter__()
         _, tracks = next(track_fusion_tracker)
         KF_fused_track.update(tracks)
+    sys.exit()
     metric_manager.add_data({'KF_fused_track': KF_fused_track}, overwrite=False)
 
 truths = set()
