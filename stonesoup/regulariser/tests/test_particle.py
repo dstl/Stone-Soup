@@ -39,7 +39,7 @@ def dummy_constraint_function(particles):
         (
             CombinedLinearGaussianTransitionModel([ConstantVelocity([0.05])]),  # transition_model
             False,  # model_flag
-            dummy_constraint_function # constraint_function
+            dummy_constraint_function  # constraint_function
         )
     ],
     ids=["with_transition_model_init", "without_transition_model_init", "no_transition_model",
