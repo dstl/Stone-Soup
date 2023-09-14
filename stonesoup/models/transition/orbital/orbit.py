@@ -115,7 +115,7 @@ class TLEKeplerianTransitionModel(OrbitalGaussianTransitionModel, LinearModel):
     fashion. It returns a state vector in TLE format. The function is linear (hence it's a linear
     model) but the uncertainty can't be multivariate normal distributed. That's because the
     elements of the state vector are strongly coupled. Rather than employ any coordinate
-    transforms this class makes the simplifying assumption that all orbital elements] are fixed
+    transforms this class makes the simplifying assumption that all orbital elements are fixed
     with the exception of the mean anomaly which is normal-distributed with zero mean and standard
     deviation given by the (scalar) standard deviation (:math:`\sigma`). This class therefore
     differs from :class:`~.CartesianKeplerianTransitionModel` only in the addition of noise.

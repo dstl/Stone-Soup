@@ -311,6 +311,7 @@ def tru_anom_from_mean_anom(mean_anomaly, eccentricity, precision=1e-8, max_iter
 
     return semimajor_axis * (1 - eccentricity ** 2) / (1 + eccentricity * c_tran) * rot_v
 
+
 def perifocal_position(eccentricity, semimajor_axis, true_anomaly):
     r"""The position vector in perifocal coordinates calculated from the Keplerian elements
 
