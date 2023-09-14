@@ -38,8 +38,9 @@ class ParticleUpdater(Updater):
         doc="Callable, user defined function for applying "
             "constraints to the states. This is done by setting the weights "
             "of particles to 0 for particles that are not correctly constrained. "
-            "The function should accept a :class:`~.ParticleState` object and "
-            "return a np.ndarray of logical indices. "
+            "This function provides indices of the unconstrained particles and "
+            "should accept a :class:`~.ParticleState` object and return an array-like "
+            "object of logical indices. "
     )
 
     def update(self, hypothesis, **kwargs):

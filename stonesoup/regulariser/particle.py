@@ -35,10 +35,12 @@ class MCMCRegulariser(Regulariser):
     constraint_func: Callable = Property(
         default=None,
         doc="Callable, user defined function for applying "
-            "constraints to particle states. This is done by reverting "
+            "constraints to particle states. This is done by reverting particles "
             "that are moved to a state outside of the defined constraints "
             "back to the state prior to the move step. Particle states that are "
-            "input are assumed to be constrained."
+            "input are assumed to be constrained. This function provides indices "
+            "of the unconstrained particles and should accept a :class:`~.ParticleState` "
+            "object and return an array-like object of logical indices. "
     )
 
     def regularise(self, prior, posterior):
