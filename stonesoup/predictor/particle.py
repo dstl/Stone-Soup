@@ -54,6 +54,7 @@ class ParticlePredictor(Predictor):
             **kwargs)
 
         return Prediction.from_state(prior,
+                                     parent=prior,
                                      state_vector=new_state_vector,
                                      timestamp=timestamp,
                                      transition_model=self.transition_model)
@@ -341,6 +342,7 @@ class BernoulliParticlePredictor(ParticlePredictor):
             existence_probability=predicted_existence,
             parent=untransitioned_state,
             timestamp=timestamp,
+            transition_model=self.transition_model
         )
         return new_particle_state
 

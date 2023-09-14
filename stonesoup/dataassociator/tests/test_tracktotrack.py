@@ -94,6 +94,16 @@ def test_euclidiantracktotrack(tracks):
 
     association_set_4 = complete_associator.associate_tracks({tracks[0]}, {tracks[5]})
 
+    complete_associator_one2one = TrackToTrackCounting(
+        association_threshold=10,
+        consec_pairs_confirm=3,
+        consec_misses_end=2,
+        use_positional_only=False)
+    start_time = datetime.datetime(2019, 1, 1, 14, 0, 0)
+
+    association_set_one2one = complete_associator_one2one.associate_tracks(
+        {tracks[0], tracks[2]}, {tracks[1], tracks[3], tracks[4]})
+
     assert len(association_set_1.associations) == 1
     assoc1 = list(association_set_1.associations)[0]
     assert set(assoc1.objects) == {tracks[0], tracks[1]}
@@ -120,6 +130,15 @@ def test_euclidiantracktotrack(tracks):
         == start_time + datetime.timedelta(seconds=1)
     assert assoc4.time_range.end_timestamp \
         == start_time + datetime.timedelta(seconds=7)
+
+    assert len(association_set_one2one) == 1
+    assoc5 = list(association_set_one2one)[0]
+    # assoc5 should be equal to assoc1
+    assert set(assoc5.objects) == {tracks[0], tracks[1]}
+    assert assoc5.time_range.start_timestamp \
+        == start_time + datetime.timedelta(seconds=1)
+    assert assoc5.time_range.end_timestamp \
+        == start_time + datetime.timedelta(seconds=6)
 
 
 def test_euclidiantracktotruth(tracks):

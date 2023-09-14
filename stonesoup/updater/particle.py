@@ -46,7 +46,12 @@ class ParticleUpdater(Updater):
         : :class:`~.ParticleState`
             The state posterior
         """
-        predicted_state = copy.copy(hypothesis.prediction)
+
+        predicted_state = Update.from_state(
+            state=hypothesis.prediction,
+            hypothesis=hypothesis,
+            timestamp=hypothesis.prediction.timestamp
+        )
 
         if hypothesis.measurement.measurement_model is None:
             measurement_model = self.measurement_model
@@ -65,13 +70,12 @@ class ParticleUpdater(Updater):
         if self.resampler is not None:
             predicted_state = self.resampler.resample(predicted_state)
 
-        return Update.from_state(
-            state=hypothesis.prediction,
-            state_vector=predicted_state.state_vector,
-            log_weight=predicted_state.log_weight,
-            hypothesis=hypothesis,
-            timestamp=hypothesis.measurement.timestamp,
-            )
+        if self.regulariser is not None:
+            prior = hypothesis.prediction.parent
+            predicted_state = self.regulariser.regularise(prior,
+                                                          predicted_state)
+
+        return predicted_state
 
     @lru_cache()
     def predict_measurement(self, state_prediction, measurement_model=None,
@@ -414,8 +418,12 @@ class BernoulliParticleUpdater(ParticleUpdater):
         # copy prediction
         prediction = hypotheses.single_hypotheses[0].prediction
 
-        updated_state = copy.copy(prediction)
-
+        # updated_state = copy.copy(prediction)
+        updated_state = Update.from_state(
+            state=prediction,
+            hypothesis=hypotheses,
+            timestamp=prediction.timestamp
+        )
         if any(hypotheses):
             detections = [single_hypothesis.measurement
                           for single_hypothesis in hypotheses.single_hypotheses]
@@ -463,16 +471,10 @@ class BernoulliParticleUpdater(ParticleUpdater):
         if any(hypotheses):
             # Regularisation
             if self.regulariser is not None:
-                regularised_parts = self.regulariser.regularise(updated_state.parent,
-                                                                updated_state,
-                                                                detections)
-                updated_state.state_vector = regularised_parts.state_vector
+                updated_state = self.regulariser.regularise(updated_state.parent,
+                                                            updated_state)
 
-        return Update.from_state(
-            updated_state,
-            timestamp=updated_state.timestamp,
-            hypothesis=hypotheses,
-        )
+        return updated_state
 
     @staticmethod
     def _log_space_product(A, B):

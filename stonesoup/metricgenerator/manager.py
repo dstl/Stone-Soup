@@ -1,16 +1,132 @@
 from itertools import chain
-from typing import Sequence, Iterable, Union
+from typing import Sequence, Dict, Iterable, Union
 
 from .base import MetricManager, MetricGenerator
 from ..base import Property
 from ..dataassociator import Associator
-from ..platform import Platform
-from ..types.detection import Detection
+
 from ..types.groundtruth import GroundTruthPath
 from ..types.track import Track
+from ..types.detection import Detection
+from ..platform import Platform
 
 
-class SimpleManager(MetricManager):
+class MultiManager(MetricManager):
+    """MultiManager class for metric management
+
+    :class:`~.MetricManager` for the generation of metrics on multiple sets of
+    :class:`~.Track`, :class:`~.Detection` and :class:`~.GroundTruthPath`
+    objects passed in as dictionaries.
+    """
+    generators: Sequence[MetricGenerator] = Property(doc='List of generators to use', default=None)
+    associator: Associator = Property(doc="Associator to combine tracks and truth", default=None)
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.states_sets = dict()
+        self.association_set = None
+        self.metrics = None
+
+    def add_data(self, metric_data: Dict = None, overwrite=True):
+        """Adds data to the metric generator
+
+        Parameters
+        ----------
+        metric_data : dict of lists or dict of sets of :class:`~.GroundTruthPath`, \
+        :class:`~.Track`, and/or :class:`~.Detection`
+            Ground truth paths, Tracks, and/or detections to be added to the manager.
+        overwrite: bool
+            Declaring whether pre-existing data will be overwritten. Note that
+            overwriting one key-value pair (e.g. 'tracks') does not affect the others.
+
+        """
+        self._add(overwrite, metric_data=metric_data)
+
+    def _add(self, overwrite, metric_data):
+        if overwrite:
+            for key, value in metric_data.items():
+                self.states_sets[key] = set(value)
+        else:
+            for key, value in metric_data.items():
+                if key not in self.states_sets.keys():
+                    self.states_sets[key] = set(value)
+                else:
+                    self.states_sets[key].update(value)
+
+    def associate_tracks(self, generator):
+        """Associate tracks to truth using the associator to produce an
+         :class:`~.AssociationSet`
+
+        Parameters
+        ----------
+        generator : :class:`~.MetricGenerator`
+            :class:`~.MetricGenerator` containing `tracks_key` and `truths_key` to extract
+            tracks and truths from :class:`~.MetricManager` for association.
+        """
+        self.association_set = self.associator.associate_tracks(
+            self.states_sets[generator.tracks_key], self.states_sets[generator.truths_key])
+
+    def _get_metrics(self):
+        return self.metrics
+
+    def generate_metrics(self):
+        """Generate metrics using the generators and data that has been added
+
+        Returns
+        -------
+        : nested dict of :class:`~.Metric`
+            Metrics generated
+        """
+
+        metrics = {}
+
+        generators = self.generators if isinstance(self.generators, list) else [self.generators]
+
+        for generator in generators:
+            if self.associator is not None and \
+                    hasattr(generator, 'tracks_key') and hasattr(generator, 'truths_key'):
+                self.associate_tracks(generator)
+            metric_list = generator.compute_metric(self)
+            if not isinstance(metric_list, list):  # If not already a list, force it to be one
+                metric_list = [metric_list]
+            for metric in metric_list:
+                if generator.generator_name not in metrics.keys():
+                    metrics[generator.generator_name] = {metric.title: metric}
+                else:
+                    metrics[generator.generator_name][metric.title] = metric
+
+        self.metrics = metrics
+
+        return self._get_metrics()
+
+    def list_timestamps(self, generator=None):
+        """List all the unique timestamps used in the tracks and truth associated
+        with a given generator, in order
+
+        Parameters
+        ----------
+        generator : :class:`~.MetricGenerator`
+            :class:`~.MetricGenerator` containing `tracks_key` and `truths_key` to extract
+            tracks and truths from :class:`~.MetricManager` to extract timestamps from.
+            Default None to take tracks and truths values from first :class:`~.MetricGenerator`
+            in `self.generators`.
+
+        Returns
+        -------
+        : list of :class:`datetime.datetime`
+            unique timestamps present in the internal tracks and truths.
+        """
+        if generator is None:
+            generator = self.generators[0]
+        timestamps = {state.timestamp
+                      for sequence in chain(self.states_sets[generator.tracks_key],
+                                            self.states_sets[generator.truths_key])
+                      for state in sequence}
+
+        return sorted(timestamps)
+
+
+class SimpleManager(MultiManager):
     """SimpleManager class for metric management
 
     Simple :class:`~.MetricManager` for the generation of metrics on multiple
@@ -22,10 +138,9 @@ class SimpleManager(MetricManager):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.tracks = set()
-        self.groundtruth_paths = set()
-        self.detections = set()
+        self.states_sets = dict()
         self.association_set = None
+        self.metrics = None
 
     def add_data(self, groundtruth_paths: Iterable[Union[GroundTruthPath, Platform]] = None,
                  tracks: Iterable[Track] = None, detections: Iterable[Detection] = None,
@@ -49,55 +164,21 @@ class SimpleManager(MetricManager):
                   tracks=tracks, detections=detections)
 
     def _add(self, overwrite, **kwargs):
-        for key, value in kwargs.items():
-            if value is not None:
-                if overwrite:
-                    setattr(self, key, set(value))
-                else:
-                    getattr(self, key).update(value)
+        if overwrite:
+            for key, value in kwargs.items():
+                if value is not None:
+                    self.states_sets[key] = set(value)
+        else:
+            for key, value in kwargs.items():
+                if value is not None:
+                    if key not in self.states_sets.keys():
+                        self.states_sets[key] = set(value)
+                    else:
+                        self.states_sets[key].update(value)
 
-    def associate_tracks(self):
-        """Associate tracks to truth using the associator
-
-        The resultant :class:`~.AssociationSet` internally.
-        """
-
-        self.association_set = self.associator.associate_tracks(
-            self.tracks, self.groundtruth_paths)
-
-    def generate_metrics(self):
-        """Generate metrics using the generators and data that has been added
-
-        Returns
-        ----------
-        : set of :class:`~.Metric`
-            Metrics generated
-        """
-
-        if self.associator is not None and self.association_set is None:
-            self.associate_tracks()
-
+    def _get_metrics(self):
         metrics = {}
-        for generator in self.generators:
-            metric_list = generator.compute_metric(self)
-            # If not already a list, force it to be one below
-            if not isinstance(metric_list, list):
-                metric_list = [metric_list]
-            for metric in metric_list:
-                metrics[metric.title] = metric
+        for key, value in self.metrics.items():
+            metrics.update(value)
+
         return metrics
-
-    def list_timestamps(self):
-        """List all the timestamps used in the tracks and truth, in order
-
-        Returns
-        ----------
-        : list of :class:`datetime.datetime`
-            unique timestamps present in the internal tracks and truths.
-        """
-
-        # Make a list of all the unique timestamps used
-        timestamps = {state.timestamp
-                      for sequence in chain(self.tracks, self.groundtruth_paths)
-                      for state in sequence}
-        return sorted(timestamps)

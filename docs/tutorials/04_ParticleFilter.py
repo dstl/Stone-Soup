@@ -145,19 +145,22 @@ plotter.fig
 # :class:`~.SystematicResampler`, which is passed to the updater. It should be noted that there are
 # many resampling schemes, and almost as many choices as to when to undertake resampling. The
 # systematic resampler is described in [#]_, and in what follows below resampling is undertaken
-# at each time-step.
+# at each time-step. More resamplers that are included in Stone Soup are covered in the
+# `Resampler Tutorial <https://stonesoup.readthedocs.io/en/latest/auto_tutorials/sampling/Resamp\
+# lingTutorial.html#sphx-glr-auto-tutorials-sampling-resamplingtutorial-py>`_
 
 # %%
 # Use of Effective Sample Size resampler (ESS)
 # ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 # Resampling removes particles with a low weight and duplicates particles with a high weight.
-# A side-effect of this is that additional variance is added. Use of `~.SystematicResampler`
+# A side effect of this is that additional variance is added. Use of :class:`~.SystematicResampler`
 # at each time-step means that additional variance is being introduced when it may not necessarily
 # be required. To reduce the additional variance, it may be optimal to resample less frequently.
 #
-# The Effective Sample Size resampler (`~.ESSResampler`) compares the variance of the unnormalised weights
-# of the particles to a pre-specified threshold, and only resamples when the variance is greater than this threshold.
-# This threshold is often calculated by the ESS criterion (at time n) given by:
+# The Effective Sample Size resampler (:class:`~.ESSResampler`) compares the variance of the
+# unnormalised weights of the particles to a pre-specified threshold, and only resamples when the
+# variance is greater than this threshold. This threshold is often calculated by the ESS criterion
+# (at time n) given by:
 #
 # .. math::
 #           ESS = \left(\sum_{i=1}^{N} (W_{n}^i)^2\right)^{-1}
