@@ -2128,8 +2128,8 @@ class AnimatedPlotterly(_Plotter):
         self.plotting_function_called = True
 
     def plot_measurements(self, measurements, mapping, measurement_model=None,
-                          resize=True, measurements_label="Measurements", convert_measurements=True,
-                          **kwargs):
+                          resize=True, measurements_label="Measurements",
+                          convert_measurements=True, **kwargs):
         """Plots measurements
 
         Plots detections and clutter, generating a legend automatically. Detections are plotted as
