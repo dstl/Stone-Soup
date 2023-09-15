@@ -8,14 +8,14 @@ This example shows how to animate several 2D state sequences to be plotted in ti
 truths, detections, and tracks are created. These are then plotted as animations using two
 options that are provided by Stone Soup: Matplotlib-based :class:`~.AnimationPlotter`, and
 Plotly-based :class:`~.AnimatedPlotterly`. The two options are then compared with pros and cons
-given for both.
+given for both options.
 """
 
 # %%
 # Creating Ground Truths, Detections, and Tracks
 # ----------------------------------------------
 # For simplicity, we are going to quickly make a simulation with a basic Kalman Tracker using
-# Stone Soup simulators. To see the animations in action, scroll down to "Creating animations".
+# Stone Soup simulators. To see the animations in action, scroll down to "Creating Animations".
 
 # %%
 # All non-generic imports will be given in order of usage.
@@ -58,7 +58,7 @@ groundtruth_sim = MultiTargetGroundTruthSimulator(
         timestamp=start_time),
     timestep=timestep,
     number_steps=60,
-    birth_rate=0.15,
+    birth_rate=0.2,
     death_probability=0.05
 )
 detection_sim = SimpleDetectionSimulator(
@@ -133,7 +133,7 @@ print("The simulation produced:\n",
 # %%
 # Creating Animations
 # -------------------
-# Now we have our data, we can show off the animation functionality in Stone Soup and compare them.
+# We now create animations using both plotters and compare them.
 
 # %%
 # AnimationPlotter
@@ -151,8 +151,8 @@ plotter.plot_measurements(detections, mapping=[0, 2])
 plotter.plot_tracks(all_tracks, mapping=[0, 2])
 
 # %%
-# To run the animation, the following is needed to ensure that it is playable via interactive
-# player in Jupyter Notebooks:
+# The following command ensures the animation is playable via the interactive player in
+# Jupyter Notebooks:
 import matplotlib
 matplotlib.rcParams['animation.html'] = 'jshtml'
 
@@ -168,8 +168,8 @@ plotter.save('example_animation.gif')
 # %%
 # AnimatedPlotterly
 # ^^^^^^^^^^^^^^^^^
-# We now create the Plotly-based :class:`~.AnimatedPlotterly`. For the plotter to initialise, we
-# must provide it with a list of equally-spaced simulation timesteps. There are also optional
+# We now create the Plotly-based :class:`~.AnimatedPlotterly`. We must provide the plotter with a
+# list of equally space simulation timesteps for it to initialise. There are also optional
 # arguments that are explained in the docs.
 
 from stonesoup.plotter import AnimatedPlotterly
@@ -188,23 +188,23 @@ fig.show()
 # Comparing Plotters
 # ------------------
 #
-# Looking at the two plotters, it's fairly apparent that :class:`~.AnimatedPlotterly` offers
-# more functionality and interaction than :class:`~.AnimationPlotter`. The user can view
-# information on each data point by hovering over it, zoom into a specific area, and turn on and
-# off specific traces. This is especially useful for this example because the ground truth is
-# impossible to view if the tracks are plotted over it. I.e. in :class:`~.AnimationPlotter`,
-# to view ground truth, you would need to make a new plotter that doesn't plot ground truth.
+# It is fairly apparent that :class:`~.AnimatedPlotterly` offers more functionality and interaction
+# than :class:`~.AnimationPlotter`. The user can view information on each data point by hovering
+# over it, zoom into a specific area, and turn on and off specific traces. This is especially
+# useful for this example because the ground truth is impossible to view if the tracks are plotted
+# over it. I.e. in :class:`~.AnimationPlotter`,
+# to view ground truth, you would need to make a separate plotter that doesn't plot the tracks.
 #
 # However, there are a couple of drawbacks to :class:`~.AnimatedPlotterly`. If you can't extract
 # a list of equally-spaced timesteps from your simulation, :class:`~.AnimatedPlotterly` won't work.
 # It also more computationally expensive than :class:`~.AnimationPlotter`, so struggles to load
 # and render large volumes of data. This can be seen by forcing the animation in Tutorial 4 to
-# display every particle - set the plotter's `tail_length` to 1. Then, when plotting tracks, set
-# `particle` to True, and `plot_history` to True. In addition, there is no current functionality
+# display every particle - set the plotter's `tail_length` to 1. Then set both `particle` and
+# `plot_history` to True when plotting tracks. In addition, there is no current functionality
 # to save the animation without using a screen-capturing tool.
 #
-# A final comment when comparing these animations is to note that :class:`~.AnimatedPlotterly` has
-# a more complex framework than :class:`~.AnimationPlotter`, meaning that adding custom data is
+# Finally, :class:`~.AnimatedPlotterly` has a more complex framework than
+# :class:`~.AnimationPlotter`, hence adding custom data is
 # harder. An example is somewhat shown in the sensor management tutorials, where a sensor's field
 # of view is manually added, but a dedicated example may be written in the future.
 
@@ -212,9 +212,9 @@ fig.show()
 # %%
 # Conclusion
 # ^^^^^^^^^^
-# In conclusion, AnimatedPlotterly provides a more detailed and interactive user experience than
-# AnimationPlotter, so is recommended for most use cases. However, AnimationPlotter may be the
-# better choice if:
+# In conclusion, the Plotterly-derived :class:`~.AnimatedPlotterly` provides a more detailed and
+# interactive user experience than the Matplotlib-derived :class:`~.AnimationPlotter`, so is
+# recommended for most use cases. However, :class:`~.AnimatedPlotterly` may be a better choice if:
 #
 # 1. the simulation timesteps are non-linear, or cannot be easily extracted
 # 2. many data points are being displayed at once
