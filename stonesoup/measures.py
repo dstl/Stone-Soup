@@ -1,5 +1,4 @@
 import copy
-import math
 from abc import abstractmethod
 from functools import lru_cache
 
@@ -7,7 +6,7 @@ import numpy as np
 from scipy.spatial import distance
 
 from .base import Base, Property
-from .types.state import State, ParticleState, GaussianState
+from .types.state import State, ParticleState
 
 
 class Measure(Base):
@@ -403,32 +402,62 @@ class ObservationAccuracy(Measure):
         maxs = [max(s1, s2) for s1, s2 in zip(s1, s2)]
         return np.sum(mins)/np.sum(maxs)
 
+
 class KLDivergence(Measure):
-    """  """
+    r"""Kullback-Leibler divergence between two distributions
+
+    Kullback-Leibler divergence, also referred to as relative entropy, is a
+    statistical distance. It describes how a probability distribution is
+    different from another. The expression for Kullback-Leibler divergence
+    is given by [1]_
+
+    .. math::
+        D_{KL}(P\Vert Q) = \sum_x P(x)\log \frac{P(x)}{Q(x)},
+
+    where :math:`P(x)` is the first distribution, or ``state1`` and :math:`Q(x)`
+    is the second distribution or, ``state2``. It is worth noting that Kullback-Leibler
+    divergence is not symmetric under interchange of :math:`P(x)` and :math:`Q(x)`. The
+    implementation here uses natural log meaning the returned divergence has units in nats.
+    This implementation assumes a discrete probability space and therefore only accepts
+    :class:`~.ParticleState`.
+
+    References
+    ----------
+    .. [1] MacKay, David J. C. 2003. Information Theory, Inference and Learning
+       Algorithms, 1st Ed. Cambridge University Press, """
 
     def __call__(self, state1, state2):
         r"""
-        Computes the Kullback–Leibler divergence from :class:`~.State` object1 to :class: '~.State object2
+        Computes the Kullback–Leibler divergence from ``state1`` to ``state2``
 
         Parameters
         ----------
-        state1 : :class:`~.State`
-        state2 : :class:`~.State`
+        state1 : :class:`~.ParticleState`
+        state2 : :class:`~.ParticleState`
 
         Returns
         -------
         float
-            Kullback–Leibler divergence from :class:`~.State` object1 to :class: '~.State object2
+            Kullback–Leibler divergence from ``state1`` to ``state2``
 
         """
         if isinstance(state1, ParticleState) and isinstance(state2, ParticleState):
             if len(state1.particles) == len(state2.particles):
-                kld = 0
-                for ii in range(0, len(state1.particles)):
-                    kld += math.exp(state1.log_weight[ii])*(state1.log_weight[ii] - state2.log_weight[ii])
+
+                log_term = np.zeros(state1.log_weight.shape)
+
+                invalid_indx = (np.isinf(state1.log_weight) | np.isnan(state1.log_weight)
+                                | np.isinf(state2.log_weight) | np.isnan(state2.log_weight))
+
+                # Do not consider NANs and inf in the subtraction
+                log_term[~invalid_indx] = state1.log_weight[~invalid_indx] \
+                    - state2.log_weight[~invalid_indx]
+
+                kld = np.sum(np.exp(state1.log_weight)*log_term)
             else:
-                raise ValueError('The input objects different number of particles.')
+                raise ValueError(f'The input sizes are not compatible '
+                                 f'({len(state1.particles)} != {len(state2.particles)})')
         else:
-            raise TypeError('The inputs are possible states')
+            raise TypeError('state1 or state2 is not a ParticleState')
 
         return kld
