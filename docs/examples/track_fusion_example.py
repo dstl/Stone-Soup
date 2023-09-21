@@ -53,8 +53,11 @@ number_of_steps = 75  # Number of timestep for the simulation
 np.random.seed(1908)  # Random seed for reproducibility
 
 # Instantiate the target transition model
-transition_model = CombinedLinearGaussianTransitionModel([
+gnd_transition_model = CombinedLinearGaussianTransitionModel([
     ConstantVelocity(0.00), ConstantVelocity(0.00)])
+
+transition_model = CombinedLinearGaussianTransitionModel([
+    ConstantVelocity(0.01), ConstantVelocity(0.01)])
 
 # Define the initial target state
 initial_target_state = GaussianState([25, 1, 75, -0.5],
@@ -66,7 +69,7 @@ from stonesoup.simulator.simple import SingleTargetGroundTruthSimulator
 
 # Set up the ground truth simulation
 groundtruth_simulation = SingleTargetGroundTruthSimulator(
-    transition_model=transition_model,
+    transition_model=gnd_transition_model,
     initial_state=initial_target_state,
     timestep=timedelta(seconds=1),
     number_steps=number_of_steps)
@@ -356,9 +359,36 @@ track_fusion_tracker = PointProcessMultiTargetTracker(
     detector= None,
     hypothesiser= hypothesiser,
     updater= updater,
-    reducer= ch_reducer,
-    birth_component= ch_birth_component,
+    reducer= deepcopy(ch_reducer),
+    birth_component= deepcopy(ch_birth_component),
     extraction_threshold= 0.9)
+
+from stonesoup.initiator.simple import MultiMeasurementInitiator
+from stonesoup.types.state import GaussianState
+from stonesoup.dataassociator.neighbour import GNNWith2DAssignment
+from stonesoup.hypothesiser.distance import DistanceHypothesiser
+from stonesoup.measures import Mahalanobis
+init = MultiMeasurementInitiator(
+    GaussianState(
+        np.array([[20], [0], [10], [0]]),  # Prior State
+        np.diag([1, 0, 1, 0])),
+    measurement_model=None,
+    deleter=deleter,
+    data_associator=ch_birth_component,
+    # GNNWith2DAssignment(
+    #     DistanceHypothesiser(PF_predictor, updater, Mahalanobis(), missed_distance=5)),
+    updater=updater,
+    min_points=2)
+
+from stonesoup.tracker.simple import MultiTargetTracker
+test_track_fusion = MultiTargetTracker(
+updater = updater,
+#hypothesiser = hypothesiser,
+    initiator= init,
+    detector = None,
+    deleter= deleter,
+    data_associator= data_associator_PF
+)
 
 # %%
 # 3) Run the trackers, generate the partial tracks and the final composite track;
@@ -484,23 +514,24 @@ for _ in range(number_of_steps):
 
     # We have now the track for each radar now let's perform the
     # track fusion
-    # for PF_track_meas in [PF_track1, PF_track2]:
-    #     dummy_detector_PF = DummyDetector(current=[time, PF_track_meas])
-    #     track_fusion_tracker.detector = Tracks2GaussianDetectionFeeder(dummy_detector_PF)
+    for PF_track_meas in [PF_track1, PF_track2]:
+        dummy_detector_PF = DummyDetector(current=[time, PF_track_meas])
+        test_track_fusion.detector = Tracks2GaussianDetectionFeeder(dummy_detector_PF)
+        test_track_fusion.__iter__()
+        _, tracks = next(test_track_fusion)
+        PF_fused_track.update(tracks)
+    # for KF_track_meas in [KF_track1, KF_track2]:
+    #     dummy_detector_KF = DummyDetector(current=[time, KF_track_meas])
+    #     track_fusion_tracker.detector = Tracks2GaussianDetectionFeeder(dummy_detector_KF)
     #     track_fusion_tracker.__iter__()
     #     _, tracks = next(track_fusion_tracker)
-    #     PF_fused_track.update(tracks)
+    #     KF_fused_track.update(tracks)
+   # sys.exit()
+    metric_manager.add_data({'KF_fused_track': KF_fused_track}, overwrite=False)
+
+
         # ERROR TypeError: __init__() missing 1 required positional argument: 'covar'
     #metric_manager.add_data({'PF_fused_track': PF_fused_track}, overwrite=False)
-
-    for KF_track_meas in [KF_track1, KF_track2]:
-        dummy_detector_KF = DummyDetector(current=[time, KF_track_meas])
-        track_fusion_tracker.detector = Tracks2GaussianDetectionFeeder(dummy_detector_KF)
-        track_fusion_tracker.__iter__()
-        _, tracks = next(track_fusion_tracker)
-        KF_fused_track.update(tracks)
-    sys.exit()
-    metric_manager.add_data({'KF_fused_track': KF_fused_track}, overwrite=False)
 
 truths = set()
 truths = set(groundtruth_simulation.groundtruth_paths)
@@ -510,14 +541,15 @@ metric_manager.add_data({'truths': truths}, overwrite=False)
 # %%
 # Let's visualise the various tracks and detections in the cases
 # using the Kalman and Particle filters.
-#
+
+print(KF_fused_track)
 plotter = Plotterly()
-#plotter.plot_tracks(PF_track1, [0,2])
-#plotter.plot_tracks(PF_track2, [0,2])
+plotter.plot_tracks(PF_track1, [0,2])
+plotter.plot_tracks(PF_track2, [0,2])
 #plotter.plot_tracks(PF_fused_track, [0, 2])
-plotter.plot_tracks(KF_fused_track, [0, 2])
-plotter.plot_tracks(KF_track1, [0, 2])
-plotter.plot_tracks(KF_track2, [0, 2])
+# plotter.plot_tracks(KF_fused_track, [0, 2], line=dict(color="brown"))
+# plotter.plot_tracks(KF_track1, [0, 2])
+# plotter.plot_tracks(KF_track2, [0, 2])
 plotter.plot_ground_truths(truths, [0, 2])
 plotter.fig.show()
 
