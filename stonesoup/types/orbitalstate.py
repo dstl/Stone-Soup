@@ -719,6 +719,10 @@ class Orbital(Type):
                                           (60 * 24) + tst.second / (3600 * 24) + tst.microsecond /
                                           (1e6 * 3600 * 24))
 
+        if self.catalogue_number is None:
+            raise TypeError('tle_dict can only be called if the Orbital State was initialised ' 
+                            'with TLE metadata.')
+
         line1 = "1 " + f"{self.catalogue_number:5}" + self.classification + ' ' + \
                 f"{self.international_designator:8}" + ' ' + f"{float(timest):014.8f}" + ' ' + \
                 _tlefmt1(self.ballistic_coefficient/(4 * np.pi) * 86400**2) + ' ' + \

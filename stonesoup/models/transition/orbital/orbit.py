@@ -279,12 +279,18 @@ class SGP4TransitionModel(OrbitalGaussianTransitionModel):
 
     def _advance_by_metadata(self, orbitalstate, time_interval):
         # Evaluated at initial timestamp
-        tle_as_dict = orbitalstate.tle_dict
+        try:
+            tle_as_dict = orbitalstate.tle_dict
+        except Exception as error:
+            raise Exception(
+                "Use of the SGP4 propagator requires that the Orbital State was initialised "
+                "with TLE metadata. ") from error
+
         tle_ext = Satrec.twoline2rv(tle_as_dict['line_1'], tle_as_dict['line_2'])
 
         # scale factor in [length]/km - will multiply the outputs by this factor because the
         # output of sgp4 is in km.
-        scale_fac = np.cbrt(orbitalstate.grav_parameter/3.986004418e5)
+        scale_fac = np.cbrt(orbitalstate.grav_parameter / 3.986004418e5)
 
         # Predict over time interval
         tt = orbitalstate.timestamp + time_interval
@@ -295,8 +301,7 @@ class SGP4TransitionModel(OrbitalGaussianTransitionModel):
         # WARNING: r and v returned as km and km/s so mut be multiplied by scale_fac
         e, bold_r, bold_v = tle_ext.sgp4(jd, fr)
 
-        return e, tuple(br*scale_fac for br in bold_r), tuple(bv*scale_fac for bv in bold_v)
-
+        return e, tuple(br * scale_fac for br in bold_r), tuple(bv * scale_fac for bv in bold_v)
     def transition(self, orbital_state, noise=False, time_interval=timedelta(seconds=0), **kwargs):
         r"""Just passes parameters to the :meth:`function()` function
 
