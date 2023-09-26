@@ -5,3 +5,5 @@ Functions
 
 .. automodule:: stonesoup.functions.orbital
 
+.. automodule:: stonesoup.functions.interpolate
+
