@@ -1,11 +1,17 @@
+#!/usr/bin/env python
+# coding: utf-8
+
+"""
+==========================================================
+Performance comparison between Kalman and Particle Filters
+==========================================================
+"""
+
 # %%
-# Sensor Data fusion: performance comparison between Kalman and particle filters
-# ------------------------------------------------------------------------------
-#
-# In this example, we present the case of data fusion, in
-# detail measurement fusion, from two sensors in the context
-# of multi-target tracking and we compare the performances
-# of separate filters, an unscented Kalamn filter (KF),
+# In this example, we present the case of data fusion. In particular,
+# we are looking at measurement fusion from two sensors. The context
+# is a multi-target tracking scenario, where we are looking to compare
+# the performances of separate filters:  an unscented Kalman filter (KF),
 # an extended Kalman filter (EKF) and a particle filter (PF).
 #
 # The example layout is as follows:
@@ -18,85 +24,101 @@
 #
 
 # %%
-# 1) Define the targets trajectories and the sensors collecting the measurements;
-# -------------------------------------------------------------------------------
+# 1) Define the targets trajectories and the sensors collecting the measurements
+# ------------------------------------------------------------------------------
 # Let's define the targets trajectories, assuming a simple case
 # of a straight movement and using the same specifics for both
-# sensors. We consider a two :class:`~.RadarBearingRange` class radars
-# collecting the detections of the targets, in the same cartesian space.
-# The first radar is placed onto a :class:`~.FixedPlatform` while the
+# sensors. We consider two :class:`~.RadarBearingRange` radars
+# collecting the detections of the targets, in cartesian space.
+# The first radar is placed onto a :class:`~.FixedPlatform`, while the
 # second is on a :class:`~.MovingPlatform`.
 # The targets follow a straight line trajectory for simplicity.
 # For the targets we instantiate the origins and a transition model
 # with :class:`~.ConstantVelocity` equal to 0.
 #
 
+# %%
 # General imports
+# ^^^^^^^^^^^^^^^
 import numpy as np
-import datetime
-from datetime import datetime
-from datetime import timedelta
+from datetime import datetime ,timedelta
 
+# %%
 # Stone Soup general imports
+# ^^^^^^^^^^^^^^^^^^^^^^^^^^
 from stonesoup.models.transition.linear import CombinedLinearGaussianTransitionModel, \
     ConstantVelocity
 from stonesoup.types.state import GaussianState
 from stonesoup.types.array import CovarianceMatrix
 from stonesoup.simulator.simple import MultiTargetGroundTruthSimulator
 
+# %%
 # Simulation parameters setup
-start_time = datetime(2023, 8, 1, 10,0,0) # For simplicity fix a date, or datetime.now()
-number_of_steps = 50  # Number of timestep for the simulation
+# ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+start_time = datetime(2023, 8, 1, 10, 0, 0) # For simplicity fix a date, or datetime.now()
+number_of_steps = 50  # Number of time-steps for the simulation
 np.random.seed(1908)  # Random seed for reproducibility
+n_particles = 2**10  # Fix the number of particles
+
+# %%
+# Generate Ground Truths
+# ^^^^^^^^^^^^^^^^^^^^^^
 
 # Specify the ground truth transition model
 gnd_transition_model = CombinedLinearGaussianTransitionModel([
     ConstantVelocity(0.00), ConstantVelocity(0.00)])
 
-# Instantiate the target transition model 2D case,
-# insert some noise for the prediction in particle
-# filters
+# Instantiate the target transition model with two dimensions and
+# insert some noise for the prediction in particle filter
+
 transition_model = CombinedLinearGaussianTransitionModel([
     ConstantVelocity(0.1), ConstantVelocity(0.1)])
 
 # Define the initial target state
-initial_target_state_1 = GaussianState([25, 1, 50, -0.5 ],
-                                     np.diag([1, 0.1, 1, 0.1]) ** 2,
-                                     timestamp=start_time)
+initial_target_state_1 = GaussianState([25, 1, 50, -0.5],
+                                       np.diag([1, 0.1, 1, 0.1]) ** 2,
+                                       timestamp=start_time)
 # Define the initial target state
 initial_target_state_2 = GaussianState([25, 1, -50, 0.5],
-                                     np.diag([1, 0.1, 1, 0.1]) ** 2,
-                                     timestamp=start_time)
+                                       np.diag([1, 0.1, 1, 0.1]) ** 2,
+                                       timestamp=start_time)
 
-# Create a ground truth simulator, specify the number of initial targets as
-# 0 so no new targets will be created a side from the two provided
+# Create a ground truth simulator and specify the number of initial targets as
+# 0, so that no new targets will be created aside from the two provided
 ground_truth_simulator = MultiTargetGroundTruthSimulator(
-    transition_model= gnd_transition_model,
-    initial_state= GaussianState([10,1, 0,0.5],
+    transition_model=gnd_transition_model,
+    initial_state=GaussianState([10, 1, 0, 0.5],
                                  np.diag([5, 0.1, 5, 0.1]),
                                  timestamp= start_time),
-    birth_rate= 0.0,
-    death_probability= 0.0,
-    number_steps= number_of_steps,
-    preexisting_states= [initial_target_state_1.state_vector,
-                         initial_target_state_2.state_vector],
-    initial_number_targets= 0)
+    birth_rate=0.0,
+    death_probability=0.0,
+    number_steps=number_of_steps,
+    preexisting_states=[initial_target_state_1.state_vector,
+                        initial_target_state_2.state_vector],
+    initial_number_targets=0)
 
-# Load a clutter model
+# %%
+# Generate clutter
+# ^^^^^^^^^^^^^^^^
+
 from stonesoup.models.clutter.clutter import ClutterModel
 
-# Define the clutter model, this will be the same for both sensors
+# Define the clutter model which will be the same for both sensors
 # Keep the clutter rate low due to particle filter errors
 clutter_model = ClutterModel(
     clutter_rate=0.1,
     distribution=np.random.default_rng().uniform,
-    dist_params=((0,150), (-105,105)))
+    dist_params=((0, 150), (-105, 105)))
 
 # Define the clutter area and spatial density for the tracker
 clutter_area = np.prod(np.diff(clutter_model.dist_params))
 clutter_spatial_density = clutter_model.clutter_rate/clutter_area
 
-# Instantiate the radars to collect measurements - Use a BearingRange radar
+# %%
+# Radar sensor and platform set-up
+# ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+# Instantiate the radars to collect measurements - Use a :class:`~.RadarBearingRange`.
 from stonesoup.sensor.radar.radar import RadarBearingRange
 
 # Let's assume that both radars have the same noise covariance for simplicity
@@ -105,18 +127,18 @@ radar_noise = CovarianceMatrix(np.diag([np.deg2rad(0.005), 2]))
 
 # Define the specifications of the two radars
 radar1 = RadarBearingRange(
-    ndim_state= 4,
-    position_mapping= (0,2),
-    noise_covar= radar_noise,
-    clutter_model= clutter_model,
-    max_range= 3000)
+    ndim_state=4,
+    position_mapping=(0, 2),
+    noise_covar=radar_noise,
+    clutter_model=clutter_model,
+    max_range=3000)
 
 radar2 = RadarBearingRange(
-    ndim_state= 4,
-    position_mapping= (0, 2),
-    noise_covar= radar_noise,
-    clutter_model= clutter_model,
-    max_range= 3000)
+    ndim_state=4,
+    position_mapping=(0, 2),
+    noise_covar=radar_noise,
+    clutter_model=clutter_model,
+    max_range=3000)
 
 # Import the platform to place the sensors on
 from stonesoup.platform.base import FixedPlatform
@@ -126,15 +148,15 @@ from stonesoup.platform.base import MovingPlatform
 sensor1_platform = FixedPlatform(
     states=GaussianState([10, 0, 5, 0],
                          np.diag([1, 0, 1, 0, ])),
-    position_mapping= (0, 2),
-    sensors= [radar1])
+    position_mapping=(0, 2),
+    sensors=[radar1])
 
 sensor2_platform = MovingPlatform(
-    states=GaussianState([120, 0,-50, 1.5],
-    np.diag([1, 0, 5, 1])),
-    position_mapping= (0, 2),
+    states=GaussianState([120, 0, -50, 1.5],
+                         np.diag([1, 0, 5, 1])),
+    position_mapping=(0, 2),
     velocity_mapping=(0, 2),
-    transition_model=transition_model,
+    transition_model=gnd_transition_model,
     sensors=[radar2])
 
 
@@ -143,31 +165,36 @@ sensor2_platform = MovingPlatform(
 from stonesoup.simulator.platform import PlatformDetectionSimulator
 
 radar_simulator1 = PlatformDetectionSimulator(
-    groundtruth= ground_truth_simulator,
-    platforms= [sensor1_platform])
+    groundtruth=ground_truth_simulator,
+    platforms=[sensor1_platform])
 
 radar_simulator2 = PlatformDetectionSimulator(
-    groundtruth= ground_truth_simulator,
-    platforms = [sensor2_platform])
+    groundtruth=ground_truth_simulator,
+    platforms=[sensor2_platform])
 
 
 # %%
 # 2) Define the various filter components and build the trackers
 # --------------------------------------------------------------
-# We have presented the scenario with two separate targets moving
+# We have presented the scenario with two separate moving targets
 # and two sensors collecting the measurements. Now, we focus on
 # building the various tracker components: we use a
 # :class:`~.DistanceHypothesiser`
 # hypothesiser using :class:`~.Mahalanobis` distance measure
 # to assign detections to tracks.
 # We consider an Unscented Kalman filter (KF), an Extended Kalman filter
-# (EKF) and a particle filter (PF) using the same components specifications.
+# (EKF) and a Particle filter (PF) using the same components specifications.
 # For the deleter we consider a :class:`~.UpdateTimeDeleter`.
 #
+
+# %%
+# Stone Soup imports
+# ^^^^^^^^^^^^^^^^^^
 
 # We use a Distance hypothesiser
 from stonesoup.hypothesiser.distance import DistanceHypothesiser
 from stonesoup.measures import Mahalanobis
+
 # Use a GNN 2D assignment
 from stonesoup.dataassociator.neighbour import GNNWith2DAssignment
 from stonesoup.deleter.time import  UpdateTimeDeleter
@@ -182,79 +209,80 @@ from stonesoup.updater.kalman import ExtendedKalmanUpdater
 from stonesoup.predictor.kalman import ExtendedKalmanPredictor
 
 
-# prepare the particle components
+# prepare the Particle filter components
 from stonesoup.predictor.particle import ParticlePredictor
 from stonesoup.updater.particle import ParticleUpdater
 from stonesoup.resampler.particle import ESSResampler
 
-# prapare the particle initiator
+# prepare the Particle initiator
 from stonesoup.initiator.simple import SimpleMeasurementInitiator, GaussianParticleInitiator
 
+# %%
 # Design the trackers components
+# ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 # load the Kalman filter updater
-KF_updater = UnscentedKalmanUpdater(measurement_model= None)
+KF_updater = UnscentedKalmanUpdater(measurement_model=None)
 KF_predictor = UnscentedKalmanPredictor(transition_model)
 
 # load the Kalman filter predictor
 EKF_predictor = ExtendedKalmanPredictor(transition_model)
 
 # load the Kalman filter updater
-EKF_updater = ExtendedKalmanUpdater(measurement_model= None)
+EKF_updater = ExtendedKalmanUpdater(measurement_model=None)
 
 # define the hypothesiser
 hypothesiser_KF = DistanceHypothesiser(
     predictor=KF_predictor,
-    updater= KF_updater,
-    measure= Mahalanobis(),
-    missed_distance= 20) # use a large distance measure
+    updater=KF_updater,
+    measure=Mahalanobis(),
+    missed_distance=20) # use a large distance measure
 
 # define the distance data associator
 data_associator_KF = GNNWith2DAssignment(hypothesiser_KF)
 
-
 # define the hypothesiser
 hypothesiser_EKF = DistanceHypothesiser(
     predictor=EKF_predictor,
-    updater= EKF_updater,
-    measure= Mahalanobis(),
-    missed_distance= 20) # use a large distance measure
+    updater=EKF_updater,
+    measure=Mahalanobis(),
+    missed_distance=20) # use a large distance measure
 
 # define the distance data associator
 data_associator_EKF = GNNWith2DAssignment(hypothesiser_EKF)
 
 # define a track deleter based on time measurements
-deleter = UpdateTimeDeleter(timedelta(seconds=3), delete_last_pred= True)
+deleter = UpdateTimeDeleter(timedelta(seconds=3), delete_last_pred=True)
 
-# create an track initiator placed on the target tracks origin
+# create a track initiator placed on the target tracks origin
 KF_initiator = MultiMeasurementInitiator(
-    prior_state=GaussianState([10,0,10,0],
-                              np.diag([1,1,1,1])),
+    prior_state=GaussianState([10, 0, 10, 0],
+                              np.diag([1, 1, 1, 1])),
     measurement_model=None,
-    deleter= deleter,
-    updater= KF_updater,
-    data_associator= data_associator_KF)
+    deleter=deleter,
+    updater=KF_updater,
+    data_associator=data_associator_KF)
 
 EKF_initiator = MultiMeasurementInitiator(
-    prior_state=GaussianState([10,0,10,0],
-                              np.diag([1,1,1,1])),
+    prior_state=GaussianState([10, 0, 10, 0],
+                              np.diag([1, 1, 1, 1])),
     measurement_model=None,
-    deleter= deleter,
-    updater= EKF_updater,
-    data_associator= data_associator_EKF)
+    deleter=deleter,
+    updater=EKF_updater,
+    data_associator=data_associator_EKF)
 
-# Instantiate the predictor, particle resampler and particle
+# Instantiate the predictor, Particle resampler and Particle
 # filter updater
 PF_predictor = ParticlePredictor(transition_model)
-resampler = ESSResampler(threshold=1000)
-PF_updater = ParticleUpdater(measurement_model= None,
-                             resampler= resampler)
+resampler = ESSResampler(threshold=n_particles/2.)
+PF_updater = ParticleUpdater(measurement_model=None,
+                             resampler=resampler)
 
 hypothesiser_PF = DistanceHypothesiser(
-    predictor= PF_predictor,
-    updater= PF_updater,
-    measure= Mahalanobis(),
-    missed_distance= 20)
+    predictor=PF_predictor,
+    updater=PF_updater,
+    measure=Mahalanobis(),
+    missed_distance=20)
 
 # define the data associator
 data_associator_PF = GNNWith2DAssignment(hypothesiser_PF)
@@ -262,15 +290,15 @@ data_associator_PF = GNNWith2DAssignment(hypothesiser_PF)
 # To instantiate the track initiator we define a prior state
 # as gaussian state with the target track origin
 initiator_particles= SimpleMeasurementInitiator(
-    prior_state=GaussianState([10, 0, 10,0],
+    prior_state=GaussianState([10, 0, 10, 0],
                  np.diag([5, 0.1, 5, 0.1]) ** 2),
-    measurement_model= None,
-    skip_non_reversible= True)
+    measurement_model=None,
+    skip_non_reversible=True)
 
-# Particle filter initiator, use 1024 particle
+# Particle filter initiator, use 1024 particles
 PF_initiator = GaussianParticleInitiator(
-    initiator= initiator_particles,
-    number_particles= 2**10)
+    initiator=initiator_particles,
+    number_particles=n_particles)
 
 # Load the multitarget trackers
 from stonesoup.tracker.simple import MultiTargetTracker
@@ -278,6 +306,7 @@ from stonesoup.tracker.simple import MultiTargetTracker
 # Load a detection reader
 from stonesoup.buffered_generator import BufferedGenerator
 from stonesoup.reader.base import DetectionReader
+
 
 # Create a dummy detector to parse the detections
 class DummyDetector(DetectionReader):
@@ -288,39 +317,44 @@ class DummyDetector(DetectionReader):
     def detections_gen(self):
         yield self.current
 
+
 # Instantiate the Kalman Tracker, without
 # specifying the detector
 KF_tracker = MultiTargetTracker(
-    initiator= KF_initiator,
+    initiator=KF_initiator,
     deleter=deleter,
-    data_associator= data_associator_KF,
-    updater= KF_updater,
-    detector= None)
+    data_associator=data_associator_KF,
+    updater=KF_updater,
+    detector=None)
 
 EKF_tracker = MultiTargetTracker(
-    initiator= EKF_initiator,
+    initiator=EKF_initiator,
     deleter=deleter,
-    data_associator= data_associator_EKF,
-    updater= EKF_updater,
-    detector= None)
+    data_associator=data_associator_EKF,
+    updater=EKF_updater,
+    detector=None)
 
 # Instantiate the Particle filter as well
 PF_tracker = MultiTargetTracker(
-    initiator= PF_initiator,
-    deleter= deleter,
-    data_associator= data_associator_PF,
-    updater= PF_updater,
-    detector= None)
+    initiator=PF_initiator,
+    deleter=deleter,
+    data_associator=data_associator_PF,
+    updater=PF_updater,
+    detector=None)
 
 # %%
 # 3) Run the measurement fusion algorithm and the trackers
 # --------------------------------------------------------
 # We have instantiated all the relevant components for the two
-# filters and now we can run the simulation to generate the
+# filters, and now we can run the simulation to generate the
 # various detections, clutter and track associations.
 # The final tracks will be passed onto a metric generator
 # plotter to measure the track accuracy.
 # We start composing the various metrics statistics available.
+
+# %%
+# Stone Soup imports
+# ^^^^^^^^^^^^^^^^^^
 
 # Load the plotter
 from stonesoup.plotter import Plotterly
@@ -328,23 +362,30 @@ from stonesoup.plotter import Plotterly
 # Load the metric manager
 from stonesoup.metricgenerator.basicmetrics import BasicMetrics
 
-# load the metrics for the kalman and particle filter
-basic_KF = BasicMetrics(generator_name='Unscented Kalman Filter', tracks_key='KF_tracks', truths_key='truths')
-basic_EKF = BasicMetrics(generator_name='Extended Kalman Filter', tracks_key='EKF_tracks', truths_key='truths')
-basic_PF = BasicMetrics(generator_name='Particle Filter', tracks_key='PF_tracks', truths_key='truths')
+# %%
+# Metrics
+# ^^^^^^^
+
+# load the metrics for the Kalman and Particle filter
+basic_KF = BasicMetrics(generator_name='Unscented Kalman Filter', tracks_key='KF_tracks',
+                        truths_key='truths')
+basic_EKF = BasicMetrics(generator_name='Extended Kalman Filter', tracks_key='EKF_tracks',
+                         truths_key='truths')
+basic_PF = BasicMetrics(generator_name='Particle Filter', tracks_key='PF_tracks',
+                        truths_key='truths')
 
 # Load the OSPA metric managers
 from stonesoup.metricgenerator.ospametric import OSPAMetric
 ospa_KF_truth = OSPAMetric(c=40, p=1, generator_name='OSPA_KF_truths',
-                           tracks_key= 'KF_tracks',  truths_key='truths')
+                           tracks_key='KF_tracks',  truths_key='truths')
 ospa_EKF_truth = OSPAMetric(c=40, p=1, generator_name='OSPA_EKF_truths',
-                           tracks_key= 'EKF_tracks',  truths_key='truths')
+                            tracks_key='EKF_tracks',  truths_key='truths')
 ospa_PF_truth = OSPAMetric(c=40, p=1, generator_name='OSPA_PF_truths',
-                           tracks_key= 'PF_tracks',  truths_key='truths')
+                           tracks_key='PF_tracks',  truths_key='truths')
 
 # Define a data associator between the tracks and the truths
 from stonesoup.dataassociator.tracktotrack import TrackToTruth
-associator = TrackToTruth(association_threshold= 30)
+associator = TrackToTruth(association_threshold=30)
 
 from stonesoup.metricgenerator.manager import MultiManager
 metric_manager = MultiManager([basic_KF,
@@ -354,6 +395,10 @@ metric_manager = MultiManager([basic_KF,
                                ospa_EKF_truth,
                                ospa_PF_truth],
                               associator)
+
+# %%
+# Run simulation
+# ^^^^^^^^^^^^^^
 
 # define the Detections from the two sensors
 s1_detections = []
@@ -373,7 +418,7 @@ truths = set()
 # list for all detections
 full_detections = []
 
-# loop over the various timesteps
+# loop over the various time-steps
 for t in range(number_of_steps):
     detections_1 = next(g1)
     s1_detections.extend(detections_1[1])
@@ -421,17 +466,17 @@ metric_manager.add_data({'truths': truths,
 # to evaluate the performances.
 
 plotter = Plotterly()
-plotter.plot_measurements(s1_detections, [0,2], marker= dict(color='blue'),
+plotter.plot_measurements(s1_detections, [0, 2], marker= dict(color='blue'),
                          measurements_label='Radar 1 detections')
-plotter.plot_measurements(s2_detections, [0,2], marker= dict(color='cyan'),
+plotter.plot_measurements(s2_detections, [0, 2], marker= dict(color='cyan'),
                          measurements_label='Radar 2 detections')
-plotter.plot_tracks(kf_tracks, [0,2], line= dict(color='grey'), track_label='KF tracks')
-plotter.plot_tracks(ekf_tracks, [0,2], line= dict(color='black'), track_label='EKF tracks')
-plotter.plot_tracks(pf_tracks, [0,2], particle=False, line= dict(color='red'), track_label='PF tracks')
-plotter.plot_ground_truths(truths, [0,2])
-plotter.plot_sensors(sensor1_platform, [0,1], marker=dict(color='black', symbol='129', size=15),
+plotter.plot_tracks(kf_tracks, [0, 2], line= dict(color='grey'), track_label='KF tracks')
+plotter.plot_tracks(ekf_tracks, [0, 2], line= dict(color='black'), track_label='EKF tracks')
+plotter.plot_tracks(pf_tracks, [0, 2], particle=False, line= dict(color='red'),
+                    track_label='PF tracks')
+plotter.plot_ground_truths(truths, [0, 2])
+plotter.plot_sensors(sensor1_platform, [0, 1], marker=dict(color='black', symbol='129', size=15),
                      sensor_label='Fixed Platform') # 131 is a diamond cross
-
 plotter.plot_sensors(sensor2_platform, [0, 1], marker=dict(color='darkslategray', symbol='cross',
                                                            size=15),
                      sensor_label='Moving Platform')
@@ -450,14 +495,14 @@ graph.plot_metrics(metrics, generator_names=['OSPA_KF_truths',
                                              'OSPA_PF_truths'],
                    color=['green', 'blue', 'orange'])
 graph.axes[0].set(ylabel='OSPA metrics', title='OSPA distances over time')
-graph.fig.show()
+graph.fig
 
 
 # %%
 # This concludes this example where we have shown
-# how to perform a measurement fusion using two
-# radars and we have shown the performances
+# how to perform measurement fusion using two
+# radars, and we have shown the performances
 # of the tracks obtained by an Unscented Kalman filter,
-# an extended Kalman Filter and a particle filter, using
-# distance hypothesiser as data associatior.
+# an extended Kalman Filter and a Particle filter, using
+# distance hypothesiser as data associator.
 #
