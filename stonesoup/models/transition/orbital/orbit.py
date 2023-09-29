@@ -11,6 +11,7 @@ from ....base import Property
 from ....types.state import State
 from ....types.array import StateVector, StateVectors, Matrix, CovarianceMatrix
 from ....types.angle import Inclination, EclipticLongitude
+from ....types.orbitalstate import OrbitalState
 from .base import OrbitalGaussianTransitionModel
 from ...base import LinearModel
 from ....functions.orbital import lagrange_coefficients_from_universal_anomaly
@@ -277,7 +278,8 @@ class SGP4TransitionModel(OrbitalGaussianTransitionModel):
         """Dimension of the state vector is 6"""
         return 6
 
-    def _advance_by_metadata(self, orbitalstate, time_interval):
+    @staticmethod
+    def _advance_by_metadata(orbitalstate, time_interval):
         # Evaluated at initial timestamp
         try:
             tle_as_dict = orbitalstate.tle_dict
@@ -302,6 +304,7 @@ class SGP4TransitionModel(OrbitalGaussianTransitionModel):
         e, bold_r, bold_v = tle_ext.sgp4(jd, fr)
 
         return e, tuple(br * scale_fac for br in bold_r), tuple(bv * scale_fac for bv in bold_v)
+
     def transition(self, orbital_state, noise=False, time_interval=timedelta(seconds=0), **kwargs):
         r"""Just passes parameters to the :meth:`function()` function
 
@@ -348,7 +351,19 @@ class SGP4TransitionModel(OrbitalGaussianTransitionModel):
         """
         noise = self._noiseinrightform(noise, time_interval=time_interval)
 
-        e, bold_r, bold_v = self._advance_by_metadata(orbital_state, time_interval, **kwargs)
+        # Handle StateVectors
+        if type(orbital_state.state_vector) is StateVectors:
+            bold_rvs = []
+            current_state = OrbitalState(None, coordinates='TLE', metadata=orbital_state.tle_dict,
+                                         grav_parameter=398600.4418)
+            for state_vector in orbital_state.state_vector:
+                current_state.state_vector = state_vector
+                e, bold_r, bold_v = self._advance_by_metadata(current_state, time_interval, **kwargs)
+                bold_rvs.append(np.concatenate((bold_r, bold_v), axis=0))
 
-        # And put them together
-        return StateVector(np.concatenate((bold_r, bold_v), axis=0)) + noise
+            return StateVectors(bold_rvs) + noise
+        else:
+            e, bold_r, bold_v = self._advance_by_metadata(orbital_state, time_interval, **kwargs)
+
+            # And put them together
+            return StateVector(np.concatenate((bold_r, bold_v), axis=0)) + noise

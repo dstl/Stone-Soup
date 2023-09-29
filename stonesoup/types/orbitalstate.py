@@ -356,7 +356,7 @@ class Orbital(Type):
         # convention in these situations, we set the node line as a unit vector
         # pointing along x. Note that the magnitude of the vector is not
         # consistent with that produced by the cross product. (But we assume
-        # that the node line is only used for directional information.
+        # that the node line is only used for directional information).
         boldn[:, n.flatten() < np.finfo(n.dtype).eps] = StateVector([1, 0, 0])
 
         return boldn
@@ -723,6 +723,8 @@ class Orbital(Type):
             raise TypeError('tle_dict can only be called if the Orbital State was initialised ' 
                             'with TLE metadata.')
 
+        # TODO: Adjust for StateVectors
+
         line1 = "1 " + f"{self.catalogue_number:5}" + self.classification + ' ' + \
                 f"{self.international_designator:8}" + ' ' + f"{float(timest):014.8f}" + ' ' + \
                 _tlefmt1(self.ballistic_coefficient/(4 * np.pi) * 86400**2) + ' ' + \
@@ -735,7 +737,8 @@ class Orbital(Type):
                 + f"{self.eccentricity:7.7f}"[2:] + ' ' \
                 + f"{self.argument_periapsis*180/np.pi:8.4f}" + ' ' \
                 + f"{self.mean_anomaly*180/np.pi:8.4f}" + ' ' \
-                + f"{self.mean_motion/(2*np.pi) *3600*24:11.8f}" + f"{self.revolution_number:5.0f}"
+                + f"{self.mean_motion/(2*np.pi) *3600*24:11.8f}" + ' ' \
+                + f"{self.revolution_number:5.0f}"
 
         line1 = line1 + str(TLEDictReader.checksum(line1))
         line2 = line2 + str(TLEDictReader.checksum(line2))
@@ -764,6 +767,8 @@ class GaussianOrbitalState(Orbital, GaussianState):
     a particular coordinate reference which must be understood.
     All methods provided by :class:`~.Orbital` are available.
     """
+
+    # Add init here??
 
 
 class ParticleOrbitalState(Orbital, ParticleState):
