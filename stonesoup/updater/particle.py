@@ -1,5 +1,6 @@
 import copy
 from functools import lru_cache
+from typing import Callable
 
 import numpy as np
 from scipy.linalg import inv
@@ -32,6 +33,16 @@ class ParticleUpdater(Updater):
     regulariser: Regulariser = Property(default=None, doc="Regulariser to prevent particle "
                                                           "impoverishment")
 
+    constraint_func: Callable = Property(
+        default=None,
+        doc="Callable, user defined function for applying "
+            "constraints to the states. This is done by setting the weights "
+            "of particles to 0 for particles that are not correctly constrained. "
+            "This function provides indices of the unconstrained particles and "
+            "should accept a :class:`~.ParticleState` object and return an array-like "
+            "object of logical indices. "
+    )
+
     def update(self, hypothesis, **kwargs):
         """Particle Filter update step
 
@@ -60,6 +71,11 @@ class ParticleUpdater(Updater):
 
         new_weight = predicted_state.log_weight + measurement_model.logpdf(
             hypothesis.measurement, predicted_state, **kwargs)
+
+        # Apply constraints if defined
+        if self.constraint_func is not None:
+            part_indx = self.constraint_func(predicted_state)
+            new_weight[part_indx] = -1*np.inf
 
         # Normalise the weights
         new_weight -= logsumexp(new_weight)

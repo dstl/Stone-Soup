@@ -13,25 +13,39 @@ from ...types.update import Update, ParticleStateUpdate
 from ..particle import MCMCRegulariser
 
 
+def dummy_constraint_function(particles):
+    part_indx = particles.state_vector[1, :] > 20
+    return part_indx
+
+
 @pytest.mark.parametrize(
-    "transition_model, model_flag",
+    "transition_model, model_flag, constraint_func",
     [
         (
             CombinedLinearGaussianTransitionModel([ConstantVelocity([0.05])]),  # transition_model
             False,  # model_flag
+            None  # constraint_function
         ),
         (
             CombinedLinearGaussianTransitionModel([ConstantVelocity([0.05])]),  # transition_model
             True,  # model_flag
+            None  # constraint_function
         ),
         (
             None,  # transition_model
             False,  # model_flag
+            None  # constraint_function
+        ),
+        (
+            CombinedLinearGaussianTransitionModel([ConstantVelocity([0.05])]),  # transition_model
+            False,  # model_flag
+            dummy_constraint_function  # constraint_function
         )
     ],
-    ids=["with_transition_model_init", "without_transition_model_init", "no_transition_model"]
+    ids=["with_transition_model_init", "without_transition_model_init", "no_transition_model",
+         "with_constraint_function"]
 )
-def test_regulariser(transition_model, model_flag):
+def test_regulariser(transition_model, model_flag, constraint_func):
     particles = ParticleState(state_vector=None, particle_list=[Particle(np.array([[10], [10]]),
                                                                          1 / 9),
                                                                 Particle(np.array([[10], [20]]),
@@ -78,9 +92,10 @@ def test_regulariser(transition_model, model_flag):
     state_update.weight = np.array([1/6, 5/48, 5/48, 5/48, 5/48, 5/48, 5/48, 5/48, 5/48])
 
     if model_flag:
-        regulariser = MCMCRegulariser()
+        regulariser = MCMCRegulariser(constraint_func=constraint_func)
     else:
-        regulariser = MCMCRegulariser(transition_model=transition_model)
+        regulariser = MCMCRegulariser(transition_model=transition_model,
+                                      constraint_func=constraint_func)
 
     # state check
     new_particles = regulariser.regularise(prediction, state_update)
@@ -90,6 +105,10 @@ def test_regulariser(transition_model, model_flag):
     assert any(new_particles.weight == state_update.weight)
     # Check that the timestamp is the same
     assert new_particles.timestamp == state_update.timestamp
+    # Check that moved particles have been reverted back to original states if constrained
+    if constraint_func is not None:
+        indx = constraint_func(prediction)  # likely unconstrained particles
+        assert np.all(new_particles.state_vector[:, indx] == prediction.state_vector[:, indx])
 
     # list check3
     with pytest.raises(TypeError) as e:

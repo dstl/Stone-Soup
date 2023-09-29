@@ -26,11 +26,17 @@ from ...sampler.particle import ParticleSampler
 from ...sampler.detection import SwitchingDetectionSampler, GaussianDetectionParticleSampler
 
 
+def dummy_constraint_function(particles):
+    part_indx = particles.state_vector[1, :] > 20
+    return part_indx
+
+
 @pytest.fixture(params=(
         ParticleUpdater,
         partial(ParticleUpdater, resampler=SystematicResampler()),
         GromovFlowParticleUpdater,
-        GromovFlowKalmanParticleUpdater))
+        GromovFlowKalmanParticleUpdater,
+        partial(ParticleUpdater, constraint_func=dummy_constraint_function)))
 def updater(request):
     updater_class = request.param
     measurement_model = LinearGaussian(
@@ -71,12 +77,19 @@ def test_particle(updater):
     # Don't know what the particles will exactly be due to randomness so check
     # some obvious properties
 
-    assert np.all(weight == 1 / 9 for weight in updated_state.weight)
+    if hasattr(updater, 'constraint_func') and updater.constraint_func is not None:
+        indx = dummy_constraint_function(prediction)
+        assert np.all(updated_state.weight[indx] == 0)
+
+    assert np.isclose(np.sum(updated_state.weight.astype(np.float_)), 1.0, rtol=1e-5)
     assert updated_state.timestamp == timestamp
     assert updated_state.hypothesis.measurement_prediction == measurement_prediction
     assert updated_state.hypothesis.prediction == prediction
     assert updated_state.hypothesis.measurement == measurement
-    assert np.allclose(updated_state.mean, StateVectors([[20.0], [20.0]]), rtol=2e-2)
+    if hasattr(updater, 'constraint_func') and updater.constraint_func is not None:
+        assert np.allclose(updated_state.mean, StateVectors([[20.0], [15.0]]), rtol=2e-2)
+    else:
+        assert np.allclose(updated_state.mean, StateVectors([[20.0], [20.0]]), rtol=2e-2)
 
 
 def test_bernoulli_particle():
