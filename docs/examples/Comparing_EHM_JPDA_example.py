@@ -1,32 +1,36 @@
-"""
+#!/usr/bin/env python
+# coding: utf-8
 
+"""
+============================================================================
 Comparing Efficient Hypothesis Management (EHM) with probability associators
 ============================================================================
-
-In this example, we compare the performances between efficient hypothesis management
-(EHM) and standard joint probabilistic data association.
-The problem we face when dealing with multi-target tracking is the potential
-association of measurements to prediction, which can be ambiguous and
-that could lead into a combinatorial explosion. To reduce the computational
-cost of the operations a number of algorithms have been developed to
-match measurements and predictions to tracks. One of this methods is the
-efficient hypothesis management, explained in details in [1]_, [2]_ and under
-patent in [3]_; this algorithm improves the joint probability data association,
-which is a brute force approach, with improved capability of hypothesis matching
-and rejection with, significantly, cost reduction.
-
-As it stands, there is not a Stone Soup implementation yet, however we
-base these comparisons on the publicly available, under patent license agreement,
-Python package PyEHM developed by ` Dr. Lyudmil Vladimirov `_.
-.. _Lyudmil Vladimirov: https://github.com/sglvladi/pyehm
-
-
-This example follows the usual setup:
-1) Generate a simple multi-target scenario simulation;
-2) Prepare the trackers components with the different data associators;
-3) Run the trackers to collect the tracks;
-4) Compare the trackers performances;
 """
+
+# In this example, we compare the performances between efficient hypothesis management
+# (EHM) and standard joint probabilistic data association.
+# The problem we face when dealing with multi-target tracking is the potential
+# association of measurements to prediction, which can be ambiguous and
+# that could lead into a combinatorial explosion. To reduce the computational
+# cost of the operations a number of algorithms have been developed to
+# match measurements and predictions to tracks. One of this methods is the
+# efficient hypothesis management, explained in details in [1]_, [2]_ and under
+# patent in [3]_; this algorithm improves the joint probability data association,
+# which is a brute force approach, with improved capability of hypothesis matching
+# and rejection with, significantly, cost reduction.
+#
+# As it stands, there is not a Stone Soup implementation yet, however we
+# base these comparisons on the publicly available, under patent license agreement,
+# Python package PyEHM developed by ` Dr. Lyudmil Vladimirov `_.
+# .. _Lyudmil Vladimirov: https://github.com/sglvladi/pyehm
+#
+#
+# This example follows the usual setup:
+# 1) Generate a simple multi-target scenario simulation;
+# 2) Prepare the trackers components with the different data associators;
+# 3) Run the trackers to collect the tracks;
+# 4) Compare the trackers performances;
+#
 
 # %%
 # 1) Generate a simple multi-target scenario simulation;
@@ -38,21 +42,29 @@ This example follows the usual setup:
 # need to install the independent package PyEHM
 # using "pip install pyehm".
 
-
+# %%
 # General imports
+# ^^^^^^^^^^^^^^^
+
 import numpy as np
-from datetime import datetime
-from datetime import timedelta
+from datetime import datetime, timedelta
 from copy import deepcopy
 
 # Load the pyehm plugins
 from pyehm.plugins.stonesoup import JPDAWithEHM, JPDAWithEHM2
 
-# load general Stone soup components
+# %%
+# Stone Soup Imports
+#
+
 from stonesoup.types.array import StateVector, CovarianceMatrix
 from stonesoup.types.state import GaussianState
 from stonesoup.models.transition.linear import (
     CombinedLinearGaussianTransitionModel, ConstantVelocity)
+
+# %%
+# Simulation parameters setup
+# ^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 np.random.seed(1908)  # set the random seed for the simulation
 simulation_start_time = datetime.now().replace(microsecond=0)  # simulation start
@@ -61,14 +73,14 @@ simulation_start_time = datetime.now().replace(microsecond=0)  # simulation star
 initial_state_mean = StateVector([0, 0, 0, 0])
 initial_state_covariance = CovarianceMatrix(np.diag([5, 0.5, 5, 0.5]))
 timestep_size = timedelta(seconds=1)
-number_of_steps = 50
+number_of_steps = 50  # number of time-steps
 birth_rate = 0.25   # probability of new target to appear
 death_probability = 0.01  # 5% probability of target to disappear
 
 # setup the initial state of the simulation
-initial_state = GaussianState(state_vector= initial_state_mean,
-                              covar= initial_state_covariance,
-                              timestamp= simulation_start_time)
+initial_state = GaussianState(state_vector=initial_state_mean,
+                              covar=initial_state_covariance,
+                              timestamp=simulation_start_time)
 
 # create the targets transition model
 transition_model = CombinedLinearGaussianTransitionModel(
@@ -96,7 +108,10 @@ measurement_model = LinearGaussian(4,
 # probability of detection
 probability_detection = 0.99
 
-# clutter will be generated uniformly in this are around the target
+# %%
+# Generate clutter
+# ^^^^^^^^^^^^^^^^
+
 clutter_area = np.array([[-1, 1], [-1, 1]])*30
 surveillance_area = ((clutter_area[0][1]-clutter_area[0][0])*
                      (clutter_area[1][1]-clutter_area[1][0]))
@@ -113,7 +128,7 @@ detection_sim = SimpleDetectionSimulator(
     meas_range=clutter_area,
     clutter_rate=clutter_rate)
 
-# To make 1 to 1 comparison between different trackers we have
+# To make a 1 to 1 comparison between different trackers we have
 # to feed the same detections to each trackers, so we have to
 # copy the detection simulations.
 from itertools import tee
@@ -125,14 +140,17 @@ detection, *detection_sims = tee(detection_sim, 4)
 # We have setup the multi-target scenario, we instantiate all
 # the relevant tracker components. We consider a
 # :class:`~.UnscentedKalmanPredictor` and :class:`~.UnscentedKalmanUpdater`
-# components for the tracker. Then for the data association we
+# components for the tracker. Then, for the data association we
 # use the :class:`~.JPDA` data associator implementation
-# present in Stone soup and the JPDA PyEHM implementation to
+# present in Stone Soup and the JPDA PyEHM implementation to
 # gather relevant comparisons. Please note that we have to
 # create multiple copies of the same detector simulator
 # to provide each tracker with the same set of detections for
 # a fairer comparison.
 
+# %%
+# Stone Soup tracker components
+# ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 # Load the various Kalman components as the predictor and
 # updater
@@ -155,17 +173,21 @@ from stonesoup.hypothesiser.probability import PDAHypothesiser
 from stonesoup.dataassociator.probability import JPDA
 from stonesoup.tracker.simple import MultiTargetMixtureTracker
 
+# %%
+# Design the trackers
+# ^^^^^^^^^^^^^^^^^^^
+
 # Lets start with the standard JPDA
 initiator = MultiMeasurementInitiator(
     prior_state=GaussianState(np.array([0, 0, 0, 0]),
-                              np.diag([5, 0.5, 5, 0.5])**2,
+                              np.diag([5, 0.5, 5, 0.5]) ** 2,
                               timestamp=simulation_start_time),
     measurement_model=None,
     deleter=deleter,
     data_associator=GlobalNearestNeighbour(PDAHypothesiser(predictor=predictor,
                                          updater=updater,
                                          clutter_spatial_density=clutter_spatial_density,
-                                         prob_detect= probability_detection)),
+                                         prob_detect=probability_detection)),
     updater=updater,
     min_points=2)
 
@@ -173,24 +195,24 @@ initiator = MultiMeasurementInitiator(
 JPDA_tracker = MultiTargetMixtureTracker(
     initiator=initiator,
     deleter=deleter,
-    detector= detection_sims[0],
-    data_associator= JPDA(PDAHypothesiser(predictor=predictor,
+    detector=detection_sims[0],
+    data_associator=JPDA(PDAHypothesiser(predictor=predictor,
                                          updater=updater,
                                          clutter_spatial_density=clutter_spatial_density,
-                                         prob_detect= probability_detection)),
+                                         prob_detect=probability_detection)),
     updater=updater)
 
 # Now lets load the EHMJPDA, if you note the initiator is the same
 EHM_initiator = MultiMeasurementInitiator(
     prior_state=GaussianState(np.array([0, 0, 0, 0]),
-                              np.diag([5, 0.5, 5, 0.5])**2,
+                              np.diag([5, 0.5, 5, 0.5]) ** 2,
                               timestamp=simulation_start_time),
     measurement_model=None,
     deleter=deleter,
     data_associator=GlobalNearestNeighbour(PDAHypothesiser(predictor=predictor,
                                          updater=updater,
                                          clutter_spatial_density=clutter_spatial_density,
-                                         prob_detect= probability_detection,)),
+                                         prob_detect=probability_detection,)),
     updater=updater,
     min_points=2)
 
@@ -198,11 +220,11 @@ EHM_initiator = MultiMeasurementInitiator(
 EHM1_tracker = MultiTargetMixtureTracker(
     initiator=EHM_initiator,
     deleter=deleter,
-    detector= detection_sims[1],
+    detector=detection_sims[1],
     data_associator=JPDAWithEHM(PDAHypothesiser(predictor=predictor,
                                          updater=updater,
                                          clutter_spatial_density=clutter_spatial_density,
-                                         prob_detect= probability_detection)),
+                                         prob_detect=probability_detection)),
     updater=updater)
 
 # Copy the same initiator for EHM
@@ -240,12 +262,19 @@ EHM2_tracker = MultiTargetMixtureTracker(
 # computing time we measure the time while running the
 # three different trackers.
 
+# %%
+# Stone Soup Metrics imports
+# ^^^^^^^^^^^^^^^^^^^^^^^^^^
+
 # Instantiate the metrics tracker
 from stonesoup.metricgenerator.basicmetrics import BasicMetrics
 
-basic_JPDA = BasicMetrics(generator_name='basic_JPDA', tracks_key='JPDA_tracks', truths_key='truths')
-EHM1 = BasicMetrics(generator_name='EHM1', tracks_key='EHM1_tracks', truths_key='truths')
-EHM2 = BasicMetrics(generator_name='EHM2', tracks_key='EHM2_tracks', truths_key='truths')
+basic_JPDA = BasicMetrics(generator_name='basic_JPDA', tracks_key='JPDA_tracks',
+                          truths_key='truths')
+EHM1 = BasicMetrics(generator_name='EHM1', tracks_key='EHM1_tracks',
+                    truths_key='truths')
+EHM2 = BasicMetrics(generator_name='EHM2', tracks_key='EHM2_tracks',
+                    truths_key='truths')
 
 # Compare the generated tracks to verify they obtain the same
 # accuracy
@@ -288,6 +317,10 @@ metric_manager = MultiManager([basic_JPDA,
                                plot_generator_EHM1,
                                plot_generator_EHM2
                                ], associator)
+
+# %%
+# Run simulation
+# ^^^^^^^^^^^^^^
 
 # Now lets plot the various tracker results
 JPDA_tracks = set()
@@ -346,12 +379,19 @@ from stonesoup.plotter import Plotterly
 
 plotter = Plotterly()
 
-plotter.plot_ground_truths(groundtruths, [0,2])
+plotter.plot_ground_truths(groundtruths, [0, 2])
 plotter.plot_measurements(detections_set, [0, 2])
-plotter.plot_tracks(JPDA_tracks, [0,2], line= dict(color='orange'), track_label='JPDA tracks')
-plotter.plot_tracks(EHM1_tracks, [0,2], line= dict(color='green', dash='dot'), track_label='EHM1 tracks')
-plotter.plot_tracks(EHM2_tracks, [0,2], line= dict(color='red', dash='dot'), track_label='EHM2 tracks')
-plotter.fig.show()
+plotter.plot_tracks(JPDA_tracks, [0, 2], line= dict(color='orange'),
+                    track_label='JPDA tracks')
+plotter.plot_tracks(EHM1_tracks, [0, 2], line= dict(color='green', dash='dot'),
+                    track_label='EHM1 tracks')
+plotter.plot_tracks(EHM2_tracks, [0, 2], line= dict(color='red', dash='dot'),
+                    track_label='EHM2 tracks')
+plotter.fig
+
+# %%
+# Show the metrics
+# ^^^^^^^^^^^^^^^^
 
 # Now we process the metrics
 metrics = metric_manager.generate_metrics()
@@ -366,7 +406,7 @@ graph.plot_metrics(metrics, generator_names=['OSPA_JPDA-EHM1',
 
 # update y-axis label and title, other subplots are displaying auto-generated title and labels
 graph.axes[0].set(ylabel='OSPA metrics', title='OSPA distances over time between JPDA and EHMs tracks')
-graph.fig.show()
+graph.fig
 
 # %%
 # Conclusion
@@ -392,3 +432,4 @@ graph.fig.show()
 # Conference on Information Fusion (pp. 1-8). IEEE
 # [3] Maskell, S., 2003, July. Signal Processing with Reduced Combinatorial
 # Complexity. Patent Reference:0315349.1
+#
