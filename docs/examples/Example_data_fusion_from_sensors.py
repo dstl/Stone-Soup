@@ -11,7 +11,7 @@ Performance comparison between Kalman and Particle Filters
 # In this example, we present the case of data fusion. In particular,
 # we are looking at measurement fusion from two sensors. The context
 # is a multi-target tracking scenario, where we are looking to compare
-# the performances of separate filters:  an unscented Kalman filter (KF),
+# the performances of separate filters:  an unscented Kalman filter (UKF),
 # an extended Kalman filter (EKF) and a particle filter (PF).
 #
 # The example layout is as follows:
@@ -29,19 +29,19 @@ Performance comparison between Kalman and Particle Filters
 # Let's define the targets trajectories, assuming a simple case
 # of a straight movement and using the same specifics for both
 # sensors. We consider two :class:`~.RadarBearingRange` radars
-# collecting the detections of the targets, in cartesian space.
+# collecting the detections of the targets, in Cartesian space.
 # The first radar is placed onto a :class:`~.FixedPlatform`, while the
 # second is on a :class:`~.MovingPlatform`.
 # The targets follow a straight line trajectory for simplicity.
 # For the targets we instantiate the origins and a transition model
-# with :class:`~.ConstantVelocity` equal to 0.
+# with a :class:`~.ConstantVelocity` model with noise equal to 0.
 #
 
 # %%
 # General imports
 # ^^^^^^^^^^^^^^^
 import numpy as np
-from datetime import datetime ,timedelta
+from datetime import datetime, timedelta
 
 # %%
 # Stone Soup general imports
@@ -147,7 +147,7 @@ from stonesoup.platform.base import MovingPlatform
 # Instantiate the first sensor platform and add the sensor
 sensor1_platform = FixedPlatform(
     states=GaussianState([10, 0, 5, 0],
-                         np.diag([1, 0, 1, 0, ])),
+                         np.diag([1, 0, 1, 0])),
     position_mapping=(0, 2),
     sensors=[radar1])
 
@@ -182,9 +182,9 @@ radar_simulator2 = PlatformDetectionSimulator(
 # :class:`~.DistanceHypothesiser`
 # hypothesiser using :class:`~.Mahalanobis` distance measure
 # to assign detections to tracks.
-# We consider an Unscented Kalman filter (KF), an Extended Kalman filter
+# We consider an Unscented Kalman filter (UKF), an Extended Kalman filter
 # (EKF) and a Particle filter (PF) using the same components specifications.
-# For the deleter we consider a :class:`~.UpdateTimeDeleter`.
+# For the deleter we consider an :class:`~.UpdateTimeDeleter`.
 #
 
 # %%
@@ -200,7 +200,7 @@ from stonesoup.dataassociator.neighbour import GNNWith2DAssignment
 from stonesoup.deleter.time import  UpdateTimeDeleter
 from stonesoup.initiator.simple import MultiMeasurementInitiator
 
-# Load the KF components
+# Load the UKF components
 from stonesoup.updater.kalman import UnscentedKalmanUpdater
 from stonesoup.predictor.kalman import UnscentedKalmanPredictor
 
@@ -222,8 +222,8 @@ from stonesoup.initiator.simple import SimpleMeasurementInitiator, GaussianParti
 # ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 # load the Kalman filter updater
-KF_updater = UnscentedKalmanUpdater(measurement_model=None)
-KF_predictor = UnscentedKalmanPredictor(transition_model)
+UKF_updater = UnscentedKalmanUpdater(measurement_model=None)
+UKF_predictor = UnscentedKalmanPredictor(transition_model)
 
 # load the Kalman filter predictor
 EKF_predictor = ExtendedKalmanPredictor(transition_model)
@@ -232,14 +232,14 @@ EKF_predictor = ExtendedKalmanPredictor(transition_model)
 EKF_updater = ExtendedKalmanUpdater(measurement_model=None)
 
 # define the hypothesiser
-hypothesiser_KF = DistanceHypothesiser(
-    predictor=KF_predictor,
-    updater=KF_updater,
+hypothesiser_UKF = DistanceHypothesiser(
+    predictor=UKF_predictor,
+    updater=UKF_updater,
     measure=Mahalanobis(),
     missed_distance=20) # use a large distance measure
 
 # define the distance data associator
-data_associator_KF = GNNWith2DAssignment(hypothesiser_KF)
+data_associator_UKF = GNNWith2DAssignment(hypothesiser_UKF)
 
 # define the hypothesiser
 hypothesiser_EKF = DistanceHypothesiser(
@@ -255,13 +255,13 @@ data_associator_EKF = GNNWith2DAssignment(hypothesiser_EKF)
 deleter = UpdateTimeDeleter(timedelta(seconds=3), delete_last_pred=True)
 
 # create a track initiator placed on the target tracks origin
-KF_initiator = MultiMeasurementInitiator(
+UKF_initiator = MultiMeasurementInitiator(
     prior_state=GaussianState([10, 0, 10, 0],
                               np.diag([1, 1, 1, 1])),
     measurement_model=None,
     deleter=deleter,
-    updater=KF_updater,
-    data_associator=data_associator_KF)
+    updater=UKF_updater,
+    data_associator=data_associator_UKF)
 
 EKF_initiator = MultiMeasurementInitiator(
     prior_state=GaussianState([10, 0, 10, 0],
@@ -271,8 +271,7 @@ EKF_initiator = MultiMeasurementInitiator(
     updater=EKF_updater,
     data_associator=data_associator_EKF)
 
-# Instantiate the predictor, Particle resampler and Particle
-# filter updater
+# Instantiate the particle predictor, resampler and updater
 PF_predictor = ParticlePredictor(transition_model)
 resampler = ESSResampler(threshold=n_particles/2.)
 PF_updater = ParticleUpdater(measurement_model=None,
@@ -320,11 +319,11 @@ class DummyDetector(DetectionReader):
 
 # Instantiate the Kalman Tracker, without
 # specifying the detector
-KF_tracker = MultiTargetTracker(
-    initiator=KF_initiator,
+UKF_tracker = MultiTargetTracker(
+    initiator=UKF_initiator,
     deleter=deleter,
-    data_associator=data_associator_KF,
-    updater=KF_updater,
+    data_associator=data_associator_UKF,
+    updater=UKF_updater,
     detector=None)
 
 EKF_tracker = MultiTargetTracker(
@@ -353,8 +352,8 @@ PF_tracker = MultiTargetTracker(
 # We start composing the various metrics statistics available.
 
 # %%
-# Stone Soup imports
-# ^^^^^^^^^^^^^^^^^^
+# Stone Soup plotting imports
+# ^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 # Load the plotter
 from stonesoup.plotter import Plotterly
@@ -367,7 +366,7 @@ from stonesoup.metricgenerator.basicmetrics import BasicMetrics
 # ^^^^^^^
 
 # load the metrics for the Kalman and Particle filter
-basic_KF = BasicMetrics(generator_name='Unscented Kalman Filter', tracks_key='KF_tracks',
+basic_UKF = BasicMetrics(generator_name='Unscented Kalman Filter', tracks_key='UKF_tracks',
                         truths_key='truths')
 basic_EKF = BasicMetrics(generator_name='Extended Kalman Filter', tracks_key='EKF_tracks',
                          truths_key='truths')
@@ -376,8 +375,8 @@ basic_PF = BasicMetrics(generator_name='Particle Filter', tracks_key='PF_tracks'
 
 # Load the OSPA metric managers
 from stonesoup.metricgenerator.ospametric import OSPAMetric
-ospa_KF_truth = OSPAMetric(c=40, p=1, generator_name='OSPA_KF_truths',
-                           tracks_key='KF_tracks',  truths_key='truths')
+ospa_UKF_truth = OSPAMetric(c=40, p=1, generator_name='OSPA_UKF_truths',
+                           tracks_key='UKF_tracks',  truths_key='truths')
 ospa_EKF_truth = OSPAMetric(c=40, p=1, generator_name='OSPA_EKF_truths',
                             tracks_key='EKF_tracks',  truths_key='truths')
 ospa_PF_truth = OSPAMetric(c=40, p=1, generator_name='OSPA_PF_truths',
@@ -388,10 +387,10 @@ from stonesoup.dataassociator.tracktotrack import TrackToTruth
 associator = TrackToTruth(association_threshold=30)
 
 from stonesoup.metricgenerator.manager import MultiManager
-metric_manager = MultiManager([basic_KF,
+metric_manager = MultiManager([basic_UKF,
                                basic_EKF,
                                basic_PF,
-                               ospa_KF_truth,
+                               ospa_UKF_truth,
                                ospa_EKF_truth,
                                ospa_PF_truth],
                               associator)
@@ -410,7 +409,7 @@ g1 = radar_simulator1.detections_gen()
 g2 = radar_simulator2.detections_gen()
 
 # initiate the tracks
-kf_tracks = set()
+ukf_tracks = set()
 ekf_tracks = set()
 pf_tracks = set()
 truths = set()
@@ -430,10 +429,10 @@ for t in range(number_of_steps):
     for detections in [detections_1, detections_2]:
 
         # Run the Kalman tracker
-        KF_tracker.detector = DummyDetector(current=detections)
-        KF_tracker.__iter__()
-        _, tracks = next(KF_tracker)
-        kf_tracks.update(tracks)
+        UKF_tracker.detector = DummyDetector(current=detections)
+        UKF_tracker.__iter__()
+        _, tracks = next(UKF_tracker)
+        ukf_tracks.update(tracks)
         del tracks
 
         # Run the extended Kalman filter
@@ -449,7 +448,7 @@ for t in range(number_of_steps):
         _, tracks = next(PF_tracker)
         pf_tracks.update(tracks)
 
-metric_manager.add_data({'KF_tracks': kf_tracks}, overwrite=False)
+metric_manager.add_data({'UKF_tracks': ukf_tracks}, overwrite=False)
 metric_manager.add_data({'PF_tracks': pf_tracks}, overwrite=False)
 metric_manager.add_data({'EKF_tracks': ekf_tracks}, overwrite=False)
 
@@ -470,7 +469,7 @@ plotter.plot_measurements(s1_detections, [0, 2], marker= dict(color='blue'),
                          measurements_label='Radar 1 detections')
 plotter.plot_measurements(s2_detections, [0, 2], marker= dict(color='cyan'),
                          measurements_label='Radar 2 detections')
-plotter.plot_tracks(kf_tracks, [0, 2], line= dict(color='grey'), track_label='KF tracks')
+plotter.plot_tracks(ukf_tracks, [0, 2], line= dict(color='grey'), track_label='UKF tracks')
 plotter.plot_tracks(ekf_tracks, [0, 2], line= dict(color='black'), track_label='EKF tracks')
 plotter.plot_tracks(pf_tracks, [0, 2], particle=False, line= dict(color='red'),
                     track_label='PF tracks')
@@ -482,7 +481,6 @@ plotter.plot_sensors(sensor2_platform, [0, 1], marker=dict(color='darkslategray'
                      sensor_label='Moving Platform')
 plotter.fig
 
-
 # Loaded the plotter for the various metrics.
 from stonesoup.plotter import MetricPlotter
 
@@ -490,7 +488,7 @@ metrics = metric_manager.generate_metrics()
 
 graph = MetricPlotter()
 
-graph.plot_metrics(metrics, generator_names=['OSPA_KF_truths',
+graph.plot_metrics(metrics, generator_names=['OSPA_UKF_truths',
                                              'OSPA_EKF_truths',
                                              'OSPA_PF_truths'],
                    color=['green', 'blue', 'orange'])
