@@ -155,8 +155,8 @@ def test_random_choose_actions():
     ids=['UncertaintySMTest', 'KLDivergenceSMTest', 'MultiUpdateKLDivergenceSMTest',
          'KLDivergenceRaisesTest', 'MultiUpdateKLDivergenceRaisesTest']
 )
-def test_uncertainty_based_managers(predictor_obj, updater_obj, reward_function_obj, track1_state1,
-                                    track1_state2, track2_state1, track2_state2, error_flag):
+def test_sensor_managers(predictor_obj, updater_obj, reward_function_obj, track1_state1,
+                         track1_state2, track2_state1, track2_state2, error_flag):
     time_start = datetime.now()
 
     track1_state1.timestamp = time_start
