@@ -104,8 +104,10 @@ class MCMCRegulariser(Regulariser):
             max_likelihood_idx = np.argmax(np.sum(move_meas_likelihood, axis=1))
 
             # Calculate acceptance probability (alpha)
-            alpha = np.exp((move_meas_likelihood[max_likelihood_idx] + move_likelihood) -
-                           (post_meas_likelihood[max_likelihood_idx] + post_likelihood))
+            # with np.errstate(invalid="ignore"):
+            with np.errstate(invalid='ignore', over='ignore'):
+                alpha = np.exp((move_meas_likelihood[max_likelihood_idx] + move_likelihood) -
+                               (post_meas_likelihood[max_likelihood_idx] + post_likelihood))
 
             # All 'jittered' particles that are above the alpha threshold are kept, the rest are
             # rejected and the original posterior used
