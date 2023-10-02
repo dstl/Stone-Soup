@@ -1,6 +1,7 @@
 import copy
 from functools import lru_cache
 from typing import Callable
+import warnings
 
 import numpy as np
 from scipy.linalg import inv
@@ -30,8 +31,14 @@ class ParticleUpdater(Updater):
     """
 
     resampler: Resampler = Property(default=None, doc='Resampler to prevent particle degeneracy')
-    regulariser: Regulariser = Property(default=None, doc="Regulariser to prevent particle "
-                                                          "impoverishment")
+    regulariser: Regulariser = Property(
+        default=None,
+        doc='Regulariser to prevent particle impoverishment. The regulariser '
+            'is normally used after resampling. If a class:`~.Resampler` is defined,'
+            ' then regularisation will only take place if the particles have been '
+            'resampled. If the class:`~.Resampler` is not defined but a '
+            'class:`~.Regulariser` is, then regularisation will be conducted under the '
+            'assumption that the user intends for this to occur.')
 
     constraint_func: Callable = Property(
         default=None,
@@ -42,6 +49,13 @@ class ParticleUpdater(Updater):
             "should accept a :class:`~.ParticleState` object and return an array-like "
             "object of logical indices. "
     )
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+
+        if self.resampler is None and self.regulariser is not None:
+            warnings.warn('`regulariser` has been defined but a `resampler` has not. This'
+                          ' is not normal procedure.')
 
     def update(self, hypothesis, **kwargs):
         """Particle Filter update step
@@ -83,13 +97,20 @@ class ParticleUpdater(Updater):
         predicted_state.log_weight = new_weight
 
         # Resample
+        resample_flag = True
         if self.resampler is not None:
-            predicted_state = self.resampler.resample(predicted_state)
+            resampled_state = self.resampler.resample(predicted_state)
+            if resampled_state == predicted_state:
+                resample_flag = False
 
-        if self.regulariser is not None:
+        if self.regulariser is not None and resample_flag:
             prior = hypothesis.prediction.parent
-            predicted_state = self.regulariser.regularise(prior,
-                                                          predicted_state)
+            if self.resampler is None:
+                predicted_state = self.regulariser.regularise(prior,
+                                                              predicted_state)
+            else:
+                predicted_state = self.regulariser.regularise(prior,
+                                                              resampled_state)
 
         return predicted_state
 
