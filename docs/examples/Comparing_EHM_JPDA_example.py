@@ -10,11 +10,11 @@ Comparing Efficient Hypothesis Management (EHM) with probability associators
 # In this example, we compare the performances between efficient hypothesis management
 # (EHM) and standard joint probabilistic data association.
 # The problem we face when dealing with multi-target tracking is the potential
-# association of measurements to prediction, which can be ambiguous and
-# that could lead into a combinatorial explosion. To reduce the computational
-# cost of the operations a number of algorithms have been developed to
+# association of measurements to predictions, which can be ambiguous and
+# that could lead to a combinatorial explosion. To reduce the computational
+# cost of the operations, a number of algorithms have been developed to
 # match measurements and predictions to tracks. One of this methods is the
-# efficient hypothesis management, explained in details in [1]_, [2]_ and under
+# efficient hypothesis management, explained in detail in [1]_, [2]_ and under
 # patent in [3]_; this algorithm improves the joint probability data association,
 # which is a brute force approach, with improved capability of hypothesis matching
 # and rejection with, significantly, cost reduction.
@@ -96,7 +96,7 @@ groundtruth_sim = MultiTargetGroundTruthSimulator(
     birth_rate=birth_rate,
     death_probability=death_probability)
 
-# Load the measurements model
+# Load the measurement model
 from stonesoup.models.measurement.linear import LinearGaussian
 
 # initialise the measurement model
@@ -118,7 +118,7 @@ surveillance_area = ((clutter_area[0][1]-clutter_area[0][0])*
 clutter_rate = 1.2
 clutter_spatial_density = clutter_rate/surveillance_area
 
-# Instantiate the detector simulator
+# Instantiate the detection simulator
 from stonesoup.simulator.simple import SimpleDetectionSimulator
 
 detection_sim = SimpleDetectionSimulator(
@@ -137,8 +137,8 @@ detection, *detection_sims = tee(detection_sim, 4)
 # %%
 # 2) Prepare the trackers components with the different data associators;
 # -----------------------------------------------------------------------
-# We have setup the multi-target scenario, we instantiate all
-# the relevant tracker components. We consider a
+# We have set up the multi-target scenario, we instantiate all
+# the relevant tracker components. We consider the
 # :class:`~.UnscentedKalmanPredictor` and :class:`~.UnscentedKalmanUpdater`
 # components for the tracker. Then, for the data association we
 # use the :class:`~.JPDA` data associator implementation
@@ -413,10 +413,10 @@ graph.fig
 # ----------
 # In this example we have shown how the
 # performances of the tracker changes
-# by employing or not a efficient management
+# by employing or not an efficient management
 # system. We measure a significant improvement (depending on
 # the number of simulation steps, number of tracks and
-# clutter rate) in the computation time in using EHM approach
+# clutter rate) in the computation time in using EHM approaches
 # compared to the brute force JPDA. In the overall tracks
 # we don't measure significant differences between the
 # various trackers.

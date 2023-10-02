@@ -1,3 +1,5 @@
 # Additional requirement for CircleCI and Read The Docs
 # Needed to generate thumbnails in Sphinx-Gallery
 kaleido
+# Additional requirement for EHM example [To fix the failing tests]
+pyehm
