@@ -354,14 +354,15 @@ class SGP4TransitionModel(OrbitalGaussianTransitionModel):
         # Handle StateVectors
         if type(orbital_state.state_vector) is StateVectors:
             bold_rvs = []
-            current_state = OrbitalState(None, coordinates='TLE', metadata=orbital_state.tle_dict,
-                                         grav_parameter=398600.4418)
-            for state_vector in orbital_state.state_vector:
+
+            for i, state_vector in enumerate(orbital_state.state_vector):
+                current_state = OrbitalState(None, coordinates='TLE', metadata=orbital_state.tle_dict[i],
+                                             grav_parameter=398600.4418)
                 current_state.state_vector = state_vector
                 e, bold_r, bold_v = self._advance_by_metadata(current_state, time_interval, **kwargs)
-                bold_rvs.append(np.concatenate((bold_r, bold_v), axis=0))
+                bold_rvs.append(StateVector(np.concatenate((bold_r, bold_v), axis=0)) + noise)
 
-            return StateVectors(bold_rvs) + noise
+            return StateVectors(bold_rvs)
         else:
             e, bold_r, bold_v = self._advance_by_metadata(orbital_state, time_interval, **kwargs)
 

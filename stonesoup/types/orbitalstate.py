@@ -723,27 +723,44 @@ class Orbital(Type):
             raise TypeError('tle_dict can only be called if the Orbital State was initialised ' 
                             'with TLE metadata.')
 
-        # TODO: Adjust for StateVectors
-
+        # TODO: Adjust for StateVectors, write tests for StateVectors stuff?
         line1 = "1 " + f"{self.catalogue_number:5}" + self.classification + ' ' + \
                 f"{self.international_designator:8}" + ' ' + f"{float(timest):014.8f}" + ' ' + \
-                _tlefmt1(self.ballistic_coefficient/(4 * np.pi) * 86400**2) + ' ' + \
-                _tlefmt2(self.second_derivative_mean_motion/(6 * np.pi) * 86400**3) + ' ' + \
+                _tlefmt1(self.ballistic_coefficient / (4 * np.pi) * 86400 ** 2) + ' ' + \
+                _tlefmt2(self.second_derivative_mean_motion / (6 * np.pi) * 86400 ** 3) + ' ' + \
                 _tlefmt2(self.bstar * 6.371e6) + ' ' + f"{self.ephemeris_type:1}" + ' ' + \
                 f"{self.element_set_number:4}"
 
-        line2 = "2 " + f"{self.catalogue_number:5}" + ' ' + f"{self.inclination*180/np.pi:8.4f}" \
-                + ' ' + f"{self.longitude_ascending_node*180/np.pi:8.4f}" + ' ' \
-                + f"{self.eccentricity:7.7f}"[2:] + ' ' \
-                + f"{self.argument_periapsis*180/np.pi:8.4f}" + ' ' \
-                + f"{self.mean_anomaly*180/np.pi:8.4f}" + ' ' \
-                + f"{self.mean_motion/(2*np.pi) *3600*24:11.8f}" + ' ' \
-                + f"{self.revolution_number:5.0f}"
+        if type(self.state_vector) is StateVectors:
+            dicts = []
+            for i, state in enumerate(self.state_vector):
+                line2 = "2 " + f"{self.catalogue_number:5}" + ' ' + f"{self.inclination[0][i] * 180 / np.pi:8.4f}" \
+                        + ' ' + f"{self.longitude_ascending_node[0][i] * 180 / np.pi:8.4f}" + ' ' \
+                        + f"{self.eccentricity[0][i]:7.7f}"[2:] + ' ' \
+                        + f"{self.argument_periapsis[0][i] * 180 / np.pi:8.4f}" + ' ' \
+                        + f"{self.mean_anomaly[0][i] * 180 / np.pi:8.4f}" + ' ' \
+                        + f"{self.mean_motion[0][i] / (2 * np.pi) * 3600 * 24:11.8f}" + ' ' \
+                        + f"{self.revolution_number:5.0f}"
 
-        line1 = line1 + str(TLEDictReader.checksum(line1))
-        line2 = line2 + str(TLEDictReader.checksum(line2))
+                line1 = line1 + str(TLEDictReader.checksum(line1))
+                line2 = line2 + str(TLEDictReader.checksum(line2))
+                tle_dict = {'line_1': line1, 'line_2': line2}
+                dicts.append(tle_dict)
 
-        return {'line_1': line1, 'line_2': line2}
+            return dicts
+        else:
+            line2 = "2 " + f"{self.catalogue_number:5}" + ' ' + f"{self.inclination*180/np.pi:8.4f}" \
+                    + ' ' + f"{self.longitude_ascending_node*180/np.pi:8.4f}" + ' ' \
+                    + f"{self.eccentricity:7.7f}"[2:] + ' ' \
+                    + f"{self.argument_periapsis*180/np.pi:8.4f}" + ' ' \
+                    + f"{self.mean_anomaly*180/np.pi:8.4f}" + ' ' \
+                    + f"{self.mean_motion/(2*np.pi) *3600*24:11.8f}" + ' ' \
+                    + f"{self.revolution_number:5.0f}"
+
+            line1 = line1 + str(TLEDictReader.checksum(line1))
+            line2 = line2 + str(TLEDictReader.checksum(line2))
+
+            return {'line_1': line1, 'line_2': line2}
 
 
 class OrbitalState(Orbital, State):
