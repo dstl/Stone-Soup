@@ -183,7 +183,7 @@ platform.sensors
 radar.mounting_offset
 
 # %%
-# and that the rotation_offsets have been applied:
+# and that the rotation offsets have been applied:
 radar.rotation_offset
 
 # %%
