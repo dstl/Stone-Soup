@@ -8,11 +8,12 @@ from ..deleter import Deleter
 from ..models.base import LinearModel, ReversibleModel
 from ..models.measurement import MeasurementModel
 from ..types.hypothesis import SingleHypothesis
+from ..types.mixture import GaussianMixture
 from ..types.numeric import Probability
 from ..types.particle import Particle
-from ..types.state import State, GaussianState, ParticleState
+from ..types.state import State, GaussianState, ParticleState, TaggedWeightedGaussianState
 from ..types.track import Track
-from ..types.update import GaussianStateUpdate, ParticleStateUpdate, Update
+from ..types.update import GaussianStateUpdate, ParticleStateUpdate, Update, GaussianMixtureUpdate
 from ..updater import Updater
 from ..updater.kalman import ExtendedKalmanUpdater
 
@@ -292,5 +293,67 @@ class GaussianParticleInitiator(ParticleInitiator):
                 particle_list=particles,
                 fixed_covar=track.covar if self.use_fixed_covar else None,
                 timestamp=track.timestamp)
+
+        return tracks
+
+
+class GaussianMixtureInitiator(GaussianInitiator):
+    """Gaussian Mixture Initiator class
+
+    Utilising Gaussian Initiator, applying the resultant track's state
+    to generate a Tagged Weighted Gaussian State, overwriting with a
+    :class:`~.GaussianMixture`.
+    """
+
+    initiator: GaussianInitiator = Property(
+        doc="Gaussian Initiator which will be used to generate tracks.")
+
+    def __init__(self, *args, **kwargs):
+
+        super().__init__(*args, **kwargs)
+
+        # Create prior particle state
+        try:
+            state = self.initiator.prior_state.state_vector
+            covar = self.initiator.prior_state.covar
+
+        except AttributeError:
+            raise AttributeError("No prior state")
+
+        self.prior_state = GaussianMixture([
+            TaggedWeightedGaussianState(
+                state_vector=state,
+                covar=covar,
+                weight=Probability(1),
+                tag=[])])
+
+    def initiate(self, detections, timestamp, **kwargs):
+        """Initiates tracks given unassociated measurements
+
+        Parameters
+        ----------
+        detections : set of :class:`~.Detection`
+            A list of unassociated detections
+        timestamp: datetime.datetime
+            Current timestamp
+
+        Returns
+        -------
+        : set of :class:`~.Track`
+            A list of new tracks with an initial :class:`~.GaussianMixture`
+        """
+        tracks = self.initiator.initiate(detections, timestamp, **kwargs)
+
+        for track in tracks:
+            mixture = [
+                TaggedWeightedGaussianState(
+                    state_vector=track.state_vector,
+                    covar=track.covar,
+                    weight=Probability(1),
+                    timestamp=track.timestamp,
+                    tag=[])]
+            track[-1] = GaussianMixtureUpdate(
+                hypothesis=track.hypothesis,
+                components=mixture)
 
         return tracks

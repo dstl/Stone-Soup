@@ -20,10 +20,11 @@ from ...types.detection import Detection, TrueDetection
 from ...types.hypothesis import SingleHypothesis
 from ...types.prediction import Prediction
 from ...types.state import GaussianState
-from ...types.update import ParticleStateUpdate, Update
+from ...types.update import ParticleStateUpdate, Update, GaussianMixtureUpdate
 from ..simple import (
     SinglePointInitiator, SimpleMeasurementInitiator,
-    MultiMeasurementInitiator, GaussianParticleInitiator
+    MultiMeasurementInitiator, GaussianParticleInitiator,
+    GaussianMixtureInitiator
 )
 
 
@@ -368,4 +369,34 @@ def test_gaussian_particle(gaussian_initiator):
             assert track.state.hypothesis.measurement is detections[1]
         assert track.timestamp == timestamp
 
+        assert np.allclose(track.covar, np.array([[1]]), atol=0.4)
+
+@pytest.mark.parametrize("gaussian_initiator", [
+    SinglePointInitiator(
+        GaussianState(np.array([[0]]), np.array([[100]])),
+        LinearGaussian(1, [0], np.array([[1]]))
+    ),
+    SimpleMeasurementInitiator(
+        GaussianState(np.array([[0]]), np.array([[100]])),
+        LinearGaussian(1, [0], np.array([[1]]))
+    ),
+], ids=['SinglePoint', 'LinearMeasurement'])
+def test_gaussian_mixture(gaussian_initiator):
+    mixture_initiator = GaussianMixtureInitiator(gaussian_initiator)
+
+    timestamp = datetime.datetime.now()
+    detections = [Detection(np.array([[5]]), timestamp),
+                  Detection(np.array([[-5]]), timestamp)]
+    tracks = mixture_initiator.initiate(detections, timestamp)
+
+    for track in tracks:
+        assert isinstance(track.state, GaussianMixtureUpdate)
+
+        if track.state.mean > 0:
+            assert np.allclose(track.state.mean, np.array([[5]]), atol=0.4)
+            assert track.state.hypothesis.measurement is detections[0]
+        else:
+            assert np.allclose(track.state.mean, np.array([[-5]]), atol=0.4)
+            assert track.state.hypothesis.measurement is detections[1]
+        assert track.timestamp == timestamp
         assert np.allclose(track.covar, np.array([[1]]), atol=0.4)
