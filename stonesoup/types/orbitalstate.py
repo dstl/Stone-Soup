@@ -1,5 +1,4 @@
 # -*- coding: utf-8 -*-
-import datetime
 from enum import Enum
 from typing import Mapping, Any
 
@@ -448,7 +447,6 @@ class Orbital(Type):
         else:  # StateVector
             return Inclination(inclination)
 
-
     @property
     def longitude_ascending_node(self):
         r"""The longitude (or right ascension) of ascending node, :math:`\Omega \; (0 \leq \Omega <
@@ -720,7 +718,7 @@ class Orbital(Type):
                                           (1e6 * 3600 * 24))
 
         if self.catalogue_number is None:
-            raise TypeError('tle_dict can only be called if the Orbital State was initialised ' 
+            raise TypeError('tle_dict can only be called if the Orbital State was initialised '
                             'with TLE metadata.')
 
         # TODO: Adjust for StateVectors, write tests for StateVectors stuff?
@@ -734,7 +732,8 @@ class Orbital(Type):
         if type(self.state_vector) is StateVectors:
             dicts = []
             for i, state in enumerate(self.state_vector):
-                line2 = "2 " + f"{self.catalogue_number:5}" + ' ' + f"{self.inclination[0][i] * 180 / np.pi:8.4f}" \
+                line2 = "2 " + f"{self.catalogue_number:5}" + ' ' \
+                        + f"{self.inclination[0][i] * 180 / np.pi:8.4f}" \
                         + ' ' + f"{self.longitude_ascending_node[0][i] * 180 / np.pi:8.4f}" + ' ' \
                         + f"{self.eccentricity[0][i]:7.7f}"[2:] + ' ' \
                         + f"{self.argument_periapsis[0][i] * 180 / np.pi:8.4f}" + ' ' \
@@ -749,7 +748,8 @@ class Orbital(Type):
 
             return dicts
         else:
-            line2 = "2 " + f"{self.catalogue_number:5}" + ' ' + f"{self.inclination*180/np.pi:8.4f}" \
+            line2 = "2 " + f"{self.catalogue_number:5}" + ' ' \
+                    + f"{self.inclination*180/np.pi:8.4f}" \
                     + ' ' + f"{self.longitude_ascending_node*180/np.pi:8.4f}" + ' ' \
                     + f"{self.eccentricity:7.7f}"[2:] + ' ' \
                     + f"{self.argument_periapsis*180/np.pi:8.4f}" + ' ' \
@@ -790,8 +790,8 @@ class GaussianOrbitalState(Orbital, GaussianState):
 
 class ParticleOrbitalState(Orbital, ParticleState):
     """An orbital state for use in Particle filters and SMC estimation. Inherits from
-    ParticleState. Again, no checks on the validity are made. The propagator will generally require
-    a particular coordinate reference which must be understood.
+    ParticleState. Again, no checks on the validity are made. The propagator will
+    generally require a particular coordinate reference which must be understood.
 
     All methods provided by :class:`~.Orbital` are available.
 

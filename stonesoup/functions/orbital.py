@@ -9,7 +9,7 @@ Functions used within multiple orbital classes in Stone Soup
 import numpy as np
 
 from . import dotproduct
-from ..types.array import StateVector, StateVectors, Matrix
+from ..types.array import StateVector, StateVectors
 
 
 def stumpff_s(z):
@@ -128,12 +128,9 @@ def universal_anomaly_newton(o_state_vector, delta_t,
 
     """
 
-    # For loop across StateVectors
-    #out = Matrix(np.zeros((1, np.shape(o_state_vector)[1])))
-
     # This should really have the calculation abstracted out and then do
     # if statevector do code, else do iteration over code
-    #if type(o_state_vector) != StateVectors:
+    # if type(o_state_vector) != StateVectors:
     #    o_state_vector = StateVectors([o_state_vector])
 
     mag_r_0 = np.sqrt(dotproduct(o_state_vector[0:3, :], o_state_vector[0:3, :]))
@@ -151,13 +148,12 @@ def universal_anomaly_newton(o_state_vector, delta_t,
         # Do Newton's method
         while np.abs(ratio) > precision and count <= max_iterations:
             z_i = iinv_sma * cchi_i ** 2
-            f_chi_i = mmag_r_0 * vv_rad_0 / root_mu * cchi_i ** 2 * stumpff_c(z_i) + \
-                      (1 - iinv_sma * mmag_r_0) * cchi_i ** 3 * stumpff_s(z_i) + \
-                      mmag_r_0 * cchi_i - root_mu * delta_t.total_seconds()
-            fp_chi_i = mmag_r_0 * vv_rad_0 / root_mu * cchi_i * \
-                       (1 - iinv_sma * cchi_i ** 2 * stumpff_s(z_i)) + \
-                       (1 - iinv_sma * mmag_r_0) * cchi_i ** 2 * stumpff_c(z_i) + \
-                       mmag_r_0
+            f_chi_i = (mmag_r_0 * vv_rad_0 / root_mu * cchi_i ** 2 * stumpff_c(z_i) +
+                       (1 - iinv_sma * mmag_r_0) * cchi_i ** 3 * stumpff_s(z_i) + mmag_r_0
+                       * cchi_i - root_mu * delta_t.total_seconds())
+            fp_chi_i = (mmag_r_0 * vv_rad_0 / root_mu * cchi_i *
+                        (1 - iinv_sma * cchi_i ** 2 * stumpff_s(z_i)) +
+                        (1 - iinv_sma * mmag_r_0) * cchi_i ** 2 * stumpff_c(z_i) + mmag_r_0)
             ratio = f_chi_i / fp_chi_i
             cchi_i = cchi_i - ratio
             count += 1
@@ -309,8 +305,6 @@ def tru_anom_from_mean_anom(mean_anomaly, eccentricity, precision=1e-8, max_iter
                                    sin_ecc_anom,
                                    cos_ecc_anom - eccentricity), 2 * np.pi)
 
-    return semimajor_axis * (1 - eccentricity ** 2) / (1 + eccentricity * c_tran) * rot_v
-
 
 def perifocal_position(eccentricity, semimajor_axis, true_anomaly):
     r"""The position vector in perifocal coordinates calculated from the Keplerian elements
@@ -372,8 +366,8 @@ def perifocal_velocity(eccentricity, semimajor_axis, true_anomaly, grav_paramete
     rot_v = np.reshape(np.array([-s_tran, eccentricity + c_tran, np.zeros(np.shape(c_tran))]),
                        (3, np.shape(np.atleast_2d(true_anomaly))[1]))
 
-    a_1_e_2 = np.array(semimajor_axis).astype(float) * \
-        (1 - np.array(eccentricity).astype(float) ** 2)
+    a_1_e_2 = (np.array(semimajor_axis).astype(float) *
+               (1 - np.array(eccentricity).astype(float) ** 2))
 
     return np.sqrt(grav_parameter / a_1_e_2) * rot_v
 
@@ -476,7 +470,7 @@ def keplerian_to_rv(state_vector, grav_parameter=3.986004418e14):
 
         outrv = np.zeros(np.shape(state_vector))
         for i, sv in enumerate(state_vector):
-            outrv[:, slice(i, i+1)] = _kep_to_rv_statevector(sv)
+            outrv[:, slice(i, i + 1)] = _kep_to_rv_statevector(sv)
 
         return StateVectors(outrv)
     else:
