@@ -9,6 +9,9 @@ from .base import MixtureReducer
 from ..types.state import TaggedWeightedGaussianState, WeightedGaussianState
 from ..measures import SquaredMahalanobis
 from operator import attrgetter
+from scipy.linalg import pinv
+
+from ..types.state import GaussianState
 
 
 class GaussianMixtureReducer(MixtureReducer):
@@ -34,9 +37,9 @@ class GaussianMixtureReducer(MixtureReducer):
     """
 
     prune_threshold: float = Property(default=1e-9, doc='Mixture component weight '
-                                      'threshold for pruning')
+                                                        'threshold for pruning')
     merge_threshold: float = Property(default=16, doc='Squared Mahalanobis distance '
-                                      'threshold for merging')
+                                                      'threshold for merging')
     max_number_components: int = Property(default=np.iinfo(np.int64).max,
                                           doc='Maximum number of components to keep '
                                               'in the Gaussian mixture')
@@ -129,11 +132,10 @@ class GaussianMixtureReducer(MixtureReducer):
         weight_sum = component_1.weight + component_2.weight
         w1 = component_1.weight / weight_sum
         w2 = component_2.weight / weight_sum
-        merged_mean = component_1.mean*w1 + component_2.mean*w2
-        merged_covar = component_1.covar*w1 + component_2.covar*w2
+        merged_mean = component_1.mean * w1 + component_2.mean * w2
+        merged_covar = component_1.covar * w1 + component_2.covar * w2
         mu1_minus_m2 = component_1.mean - component_2.mean
-        merged_covar = merged_covar + \
-            mu1_minus_m2*mu1_minus_m2.T*w1*w2
+        merged_covar = merged_covar + mu1_minus_m2 * mu1_minus_m2.T * w1 * w2
         if weight_sum > 1:
             weight_sum = 1
         if isinstance(component_1, TaggedWeightedGaussianState):
@@ -223,7 +225,7 @@ class GaussianMixtureReducer(MixtureReducer):
                 for shared_tag in components_tags:
                     shared_components = sorted(
                         (component for component in merged_components
-                            if component.tag == shared_tag),
+                         if component.tag == shared_tag),
                         key=attrgetter('weight'),
                         reverse=True)
                     final_merged_components.append(shared_components[0])
@@ -275,3 +277,43 @@ class GaussianMixtureReducer(MixtureReducer):
                 truncated_weight_sum / self.max_number_components
 
         return remaining_components
+
+
+class BasicConvexCombination(MixtureReducer):
+    r"""
+    Combine *n* :class:`~.GaussianState` using Convex Combination.
+
+    .. math ::
+
+        P = (\sum_{n} P_n^{-1})^{-1}
+        \\\\
+        x = P(\sum P_n^{-1}x^n)
+
+    where :math:`\mathbf{x}_{n}` is the state of component `n`,
+    :math:`\mathbf{P}_{n}` is the covariance matrix of component `n`,
+    :math:`\mathbf{x}` is the combined state and
+    :math:`\mathbf{P}` is the covariance matrix of the combined state
+
+    """
+    @staticmethod
+    def merge_components(*components):
+        """
+        Merge two similar components
+
+        Parameters
+        ----------
+        components : :class:`~.GaussianState`
+            Components to be merged
+
+        Returns
+        -------
+        merged_component : :class:`~.GaussianState`
+            Merged Gaussian component
+        """
+        inv_covs = [pinv(component.covar) for component in components]
+        P = pinv(sum(inv_covs))
+        x = P @ sum(inv_cov @ component.state_vector
+                    for inv_cov, component in zip(inv_covs, components))
+
+        new_component = GaussianState.from_state(next(iter(components)), x, P)
+        return new_component

@@ -1,6 +1,8 @@
 import copy
 import uuid
-from typing import MutableSequence, MutableMapping
+from typing import MutableSequence, MutableMapping, Collection, Set
+
+from ordered_set import OrderedSet
 
 from .multihypothesis import MultipleHypothesis
 from .state import State, StateMutableSequence
@@ -140,3 +142,36 @@ class Track(StateMutableSequence):
                 hypothesis = state.hypothesis
                 if hypothesis and hypothesis.measurement.metadata is not None:
                     self.metadata.update(hypothesis.measurement.metadata)
+
+
+class CompositeTrack(Track):
+    """Composite Track type
+
+    A class to represent a track where the source of the track is multiple or singular other
+    tracks rather than detections
+    """
+
+    sub_tracks: OrderedSet = Property(
+        default=None,
+        doc="The initial sub tracks of the track. Default `None` which initialises with empty "
+            "OrderedSet.")
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        if self.sub_tracks is None:
+            self.sub_tracks = OrderedSet()
+        elif isinstance(self.sub_tracks, Track):
+            self.sub_tracks = OrderedSet(Track)
+        elif isinstance(self.sub_tracks, Collection) and all(isinstance(track, Track)
+                                                             for track in self.sub_tracks):
+            self.sub_tracks = OrderedSet(self.sub_tracks)
+
+    @property
+    def root_tracks(self) -> Set[Track]:
+        root_tracks = set()
+        for track in self.sub_tracks:
+            if isinstance(track, CompositeTrack):
+                root_tracks.update(track.root_tracks)
+            else:  # Is not composite track
+                root_tracks.add(track)
+        return root_tracks

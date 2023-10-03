@@ -15,3 +15,10 @@ Point Process
 
 .. automodule:: stonesoup.tracker.pointprocess
     :show-inheritance:
+
+
+Fusion
+------
+
+.. automodule:: stonesoup.tracker.track_fusion
+    :show-inheritance:

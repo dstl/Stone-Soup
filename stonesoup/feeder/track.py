@@ -1,13 +1,19 @@
+from datetime import datetime
+from typing import Tuple, Set, Iterator
+
 import numpy as np
 
-from stonesoup.types.detection import GaussianDetection
-from stonesoup.feeder.base import DetectionFeeder
-from stonesoup.models.measurement.linear import LinearGaussian
+from .base import DetectionFeeder, TrackFeeder
+from .multi import FeederToMultipleFeeders
+from ..base import Property
 from ..buffered_generator import BufferedGenerator
+from ..models.measurement.linear import LinearGaussian
+from ..types.detection import GaussianDetection
+from ..types.track import Track
 
 
 class Tracks2GaussianDetectionFeeder(DetectionFeeder):
-    '''
+    """
     Feeder consumes Track objects and outputs GaussianDetection objects.
 
     At each time step, the :attr:`Reader` feeds in a set of live tracks. The feeder takes the most
@@ -15,7 +21,7 @@ class Tracks2GaussianDetectionFeeder(DetectionFeeder):
     :class:`~.GaussianDetection` objects. Each detection is given a :class:`~.LinearGaussian`
     measurement model whose covariance is equal to the state covariance. The feeder assumes that
     the tracks are all live, that is each track has a state at the most recent time step.
-    '''
+    """
     @BufferedGenerator.generator_method
     def data_gen(self):
         for time, tracks in self.reader:
@@ -31,3 +37,22 @@ class Tracks2GaussianDetectionFeeder(DetectionFeeder):
                 )
 
             yield time, detections
+
+
+class SyncMultiTrackFeeder(TrackFeeder, FeederToMultipleFeeders):
+    """
+    This class takes a :class:`.TrackFeeder` or equivalent and can produce
+    multiple track feeders that produce the same output
+
+    Notes:
+        The track feeders produced must be iterated over synchronously. This is due to the
+        output :class:`.Track` objects being the same object across track feeders.
+    """
+
+    reader: TrackFeeder = Property()
+
+    def create_track_feeder(self) -> TrackFeeder:
+        return self.create_feeder()
+
+    def __iter__(self) -> Iterator[Tuple[datetime, Set[Track]]]:
+        yield from self.create_feeder()
