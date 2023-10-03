@@ -10,7 +10,7 @@ capability.
 # %%
 # Building a Simulated Sensor Platform
 # ------------------------------------
-# The focus of this example is to show how to set up and configure simulations. as such, the
+# The focus of this example is to show how to set up and configure simulations. As such, the
 # application of a tracker will not be covered in detail. For more information about trackers
 # and how to configure them, review of the tutorials and demonstrations is recommended.
 #
