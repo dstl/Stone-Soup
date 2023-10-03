@@ -95,7 +95,7 @@ def test_particle(updater):
     else:
         if not hasattr(updater, 'regulariser') or updater.regulariser is None:
             # Skip state check for regularised version
-            assert np.allclose(updated_state.mean, StateVectors([[15.0], [20.0]]), rtol=2e-2)
+            assert np.allclose(updated_state.mean, StateVectors([[15.0], [20.0]]), rtol=5e-2)
 
 
 def test_bernoulli_particle():
