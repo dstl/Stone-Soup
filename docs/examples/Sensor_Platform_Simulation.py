@@ -179,7 +179,7 @@ platform.sensors
 # You will notice that ``platform.sensors`` returns a list which contains our single sensor.
 # This hints at the multi-sensor platform functionality which is shown in a subsequent example.
 #
-# We can also check that the default mounting_offsets have been applied:
+# We can also check that the default mounting offsets have been applied:
 radar.mounting_offset
 
 # %%
