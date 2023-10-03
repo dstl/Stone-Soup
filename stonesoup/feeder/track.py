@@ -19,10 +19,11 @@ class Tracks2GaussianDetectionFeeder(DetectionFeeder):
     @BufferedGenerator.generator_method
     def data_gen(self):
         for time, tracks in self.reader:
-            detections = []
+            detections = set()
             for track in tracks:
                 dim = len(track.state.state_vector)
                 detections.append(
+                detections.add(
                     GaussianDetection.from_state(
                         track.state,
                         measurement_model=LinearGaussian(
