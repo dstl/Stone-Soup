@@ -65,12 +65,13 @@
 # .. math::
 #           p(\mathbf{x}_k | \mathbf{z}_{1:k}) =
 #           \frac{ p(\mathbf{z}_{k} | \mathbf{x}_k) p(\mathbf{x}_k | \mathbf{z}_{1:k-1})}
-#           {p(\mathbf{z}_k)}
+#           {p(\mathbf{z}_k | \mathbf{z}_{1:k-1})}
 #
 # where :math:`p(\mathbf{x}_k | \mathbf{z}_{1:k-1})` is the output of the prediction stage,
-# :math:`p(\mathbf{z}_{k} | \mathbf{x}_k)` is known as the likelihood, and :math:`p(\mathbf{z}_k)`
-# the evidence. In Stone Soup, this calculation is undertaken by the :class:`~.Updater` class.
-# Updaters use a :class:`~.MeasurementModel` class which models the effect of :math:`h(\cdot)`.
+# :math:`p(\mathbf{z}_{k} | \mathbf{x}_k)` is known as the likelihood, and
+# :math:`p(\mathbf{z}_k | \mathbf{z}_{1:k-1})` the evidence. In Stone Soup, this calculation is
+# undertaken by the :class:`~.Updater` class. Updaters use a :class:`~.MeasurementModel` class
+# which models the effect of :math:`h(\cdot)`.
 #
 # .. image:: ../_static/predict_update.png
 #   :width: 500
