@@ -23,7 +23,8 @@ from ...types.state import GaussianState
 from ...types.update import ParticleStateUpdate, Update
 from ..simple import (
     SinglePointInitiator, SimpleMeasurementInitiator,
-    MultiMeasurementInitiator, GaussianParticleInitiator
+    MultiMeasurementInitiator, GaussianParticleInitiator,
+    NoHistoryMultiMeasurementInitiator
 )
 
 
@@ -278,8 +279,7 @@ def test_linear_measurement_extra_state_dim():
             measurement_model.matrix().T == approx(measurement_model.covar())
 
 
-@pytest.mark.parametrize('updates_only', [False, True])
-def test_multi_measurement(updates_only):
+def create_multi_measurement_initiator(obj_class, updates_only: bool):
     transition_model = CombinedLinearGaussianTransitionModel(
         (ConstantVelocity(0.05), ConstantVelocity(0.05)))
     measurement_model = LinearGaussian(
@@ -292,10 +292,17 @@ def test_multi_measurement(updates_only):
     data_associator = NearestNeighbour(hypothesiser)
     deleter = UpdateTimeDeleter(datetime.timedelta(seconds=59))
 
-    measurement_initiator = MultiMeasurementInitiator(
-        GaussianState([[0], [0], [0], [0]], np.diag([0, 15, 0, 15])),
-        deleter, data_associator, updater,
+    measurement_initiator = obj_class(
+        prior_state=GaussianState([[0], [0], [0], [0]], np.diag([0, 15, 0, 15])),
+        deleter=deleter, data_associator=data_associator, updater=updater,
         measurement_model=measurement_model, updates_only=updates_only)
+    return measurement_initiator
+
+
+@pytest.mark.parametrize('updates_only', [False, True])
+def test_multi_measurement(updates_only):
+    measurement_initiator = create_multi_measurement_initiator(MultiMeasurementInitiator,
+                                                               updates_only=updates_only)
 
     timestamp = datetime.datetime.now()
     first_detections = {Detection(np.array([[5], [2]]), timestamp),
@@ -317,6 +324,26 @@ def test_multi_measurement(updates_only):
         assert any(isinstance(track.state, Prediction) for track in second_tracks)
     assert any(isinstance(track.state, Update) for track in second_tracks)
     assert len(measurement_initiator.holding_tracks) == 0
+
+
+def test_multi_measurement2():
+    measurement_initiator = create_multi_measurement_initiator(NoHistoryMultiMeasurementInitiator,
+                                                               updates_only=False)
+
+    timestamp = datetime.datetime.now()
+    first_detections = {Detection(np.array([[5], [2]]), timestamp),
+                        Detection(np.array([[-5], [-2]]), timestamp)}
+
+    first_tracks = measurement_initiator.initiate(first_detections, timestamp)
+    assert len(first_tracks) == 0
+    assert len(measurement_initiator.holding_tracks) == 2
+
+    timestamp = datetime.datetime.now() + datetime.timedelta(seconds=60)
+    second_detections = {Detection(np.array([[5], [3]]), timestamp)}
+
+    second_tracks = measurement_initiator.initiate(second_detections, timestamp)
+    for track in second_tracks:
+        assert len(track) == 1
 
 
 @pytest.mark.parametrize("initiator", [
