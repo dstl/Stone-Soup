@@ -34,10 +34,10 @@ class ParticleUpdater(Updater):
     regulariser: Regulariser = Property(
         default=None,
         doc='Regulariser to prevent particle impoverishment. The regulariser '
-            'is normally used after resampling. If a class:`~.Resampler` is defined,'
-            ' then regularisation will only take place if the particles have been '
-            'resampled. If the class:`~.Resampler` is not defined but a '
-            'class:`~.Regulariser` is, then regularisation will be conducted under the '
+            'is normally used after resampling. If a :class:`~.Resampler` is defined, '
+            'then regularisation will only take place if the particles have been '
+            'resampled. If the :class:`~.Resampler` is not defined but a '
+            ':class:`~.Regulariser` is, then regularisation will be conducted under the '
             'assumption that the user intends for this to occur.')
 
     constraint_func: Callable = Property(
