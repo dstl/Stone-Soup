@@ -1361,6 +1361,238 @@ class Plotterly(_Plotter):
                 fig_data.visible = None
 
 
+class PolarPlotterly(_Plotter):
+
+    def __init__(self, dimension=Dimension.TWO, **kwargs):
+        if go is None:
+            raise RuntimeError("Usage of Plotterly plotter requires installation of `plotly`")
+        if isinstance(dimension, type(Dimension.TWO)):
+            self.dimension = dimension
+        elif isinstance(dimension, int):
+            self.dimension = Dimension(dimension)
+        else:
+            raise TypeError("%s is an unsupported type for \'dimension\'; "
+                            "expected type %s" % (type(dimension), type(Dimension.TWO)))
+        if self.dimension != dimension.TWO:
+            raise TypeError("Only 2D plotting currently supported")
+
+        layout_kwargs = dict()
+        layout_kwargs.update(kwargs)
+
+        # Generate plot axes
+        self.fig = go.Figure(layout=layout_kwargs)
+
+    def plot_state_sequence(self, state_sequences, angle_mapping: int, range_mapping: int = None,
+                            label="", **kwargs):
+        """Plots state sequence(s)
+
+        Plots each state sequence passed in to :attr:`state_sequences` and generates a legend
+        automatically.
+
+        Users can change line style, color and marker using keyword arguments. Any changes
+        will apply to all ground truths.
+
+        Parameters
+        ----------
+        state_sequences : Collection of :class:`~.StateMutableSequence`
+            Collection of  state sequences which will be plotted. If not a collection,
+            and instead a single :class:`~.StateMutableSequence` type, the argument is modified
+            to be a set to allow for iteration.
+        angle_mapping: int
+            Specifying the mapping of the angular component of the state space to be plotted.
+        range_mapping: int
+            Specifying the mapping of the range component of the state space to be plotted. If
+            `None` the angular component will be plotted against time
+        label: str
+            Label for truth data.
+        \\*\\*kwargs: dict
+            Additional arguments to be passed to scatter function. Default is
+            ``mode=marker``.
+            The default unit for the angular component is radians, this can be changed to degrees
+            with the keyword argument ``thetaunit='degrees'``.
+        """
+
+        if not isinstance(state_sequences, Collection) \
+                or isinstance(state_sequences, StateMutableSequence):
+            state_sequences = {state_sequences}
+
+        plotting_kwargs = dict(
+            mode="markers", legendgroup=label, legendrank=200,
+            name=label, thetaunit="radians")
+        plotting_kwargs.update(kwargs)
+        add_legend = plotting_kwargs['legendgroup'] not in {trace.legendgroup
+                                                            for trace in self.fig.data}
+
+        for state_sequence in state_sequences:
+            if range_mapping is None:
+                r = [state.timestamp for state in state_sequence]
+            else:
+                r = [float(state.state_vector[range_mapping]) for state in state_sequence]
+            bearings = [float(state.state_vector[angle_mapping]) for state in state_sequence]
+
+            scatter_kwargs = plotting_kwargs.copy()
+            if add_legend:
+                scatter_kwargs['showlegend'] = True
+                add_legend = False
+            else:
+                scatter_kwargs['showlegend'] = False
+
+            polar_plot = go.Scatterpolar(
+                r=r,
+                theta=bearings, **scatter_kwargs)
+            self.fig.add_trace(polar_plot)
+
+    def plot_ground_truths(self, truths, mapping, truths_label="Ground Truth", **kwargs):
+        """Plots ground truth(s)
+
+        Plots each ground truth path passed in to :attr:`truths` and generates a legend
+        automatically. Ground truths are plotted as dashed lines with default colors.
+
+        Users can change line style, color and marker using keyword arguments. Any changes
+        will apply to all ground truths.
+
+        Parameters
+        ----------
+        truths : Collection of :class:`~.GroundTruthPath`
+            Collection of  ground truths which will be plotted. If not a collection,
+            and instead a single :class:`~.GroundTruthPath` type, the argument is modified to be a
+            set to allow for iteration.
+        mapping: list
+            List of items specifying the mapping of the position components of the state space.
+        truths_label: str
+            Label for truth data. Default is "Ground Truth"
+        \\*\\*kwargs: dict
+            Additional arguments to be passed to scatter function. Default is
+            ``line=dict(dash="dash")``.
+        """
+        truths_kwargs = dict(mode="lines", line=dict(dash="dash"), legendrank=100)
+        truths_kwargs.update(kwargs)
+        angle_mapping = mapping[0]
+        if len(mapping) > 1:
+            range_mapping = mapping[1]
+        else:
+            range_mapping = None
+        self.plot_state_sequence(state_sequences=truths, angle_mapping=angle_mapping,
+                                 range_mapping=range_mapping, label=truths_label, **truths_kwargs)
+
+    def plot_measurements(self, measurements, mapping, measurement_model=None,
+                          measurements_label="Measurements", convert_measurements=True, **kwargs):
+        """Plots measurements
+
+        Plots detections and clutter, generating a legend automatically. Detections are plotted as
+        blue circles by default unless the detection type is clutter.
+        If the detection type is :class:`~.Clutter` it is plotted as a yellow 'tri-up' marker.
+
+        Users can change the color and marker of detections using keyword arguments but not for
+        clutter detections.
+
+        Parameters
+        ----------
+        measurements : Collection of :class:`~.Detection`
+            Detections which will be plotted. If measurements is a set of lists it is flattened.
+        mapping: list
+            List of items specifying the mapping of the position components of the state space.
+        measurement_model : :class:`~.Model`, optional
+            User-defined measurement model to be used in finding measurement state inverses if
+            they cannot be found from the measurements themselves.
+        measurements_label : str
+            Label for the measurements.  Default is "Measurements".
+        convert_measurements: bool
+            Should the measurements be converted before being plotted. Default is True
+        \\*\\*kwargs: dict
+            Additional arguments to be passed to scatter function for detections. Defaults are
+            ``marker=dict(color="#636EFA")``.
+        """
+
+        if not isinstance(measurements, Collection):
+            measurements = {measurements}
+
+        if any(isinstance(item, set) for item in measurements):
+            measurements_set = chain.from_iterable(measurements)  # Flatten into one set
+        else:
+            measurements_set = set(measurements)
+
+        plot_detections, plot_clutter = self._conv_measurements(measurements_set,
+                                                                mapping,
+                                                                measurement_model,
+                                                                convert_measurements)
+
+        angle_mapping = 0
+        if len(mapping) > 1:
+            range_mapping = 1
+        else:
+            range_mapping = None
+
+        if plot_detections:
+            name = measurements_label + "<br>(Detections)"
+            measurement_kwargs = dict(mode='markers', marker=dict(color='#636EFA'), legendrank=200)
+            measurement_kwargs.update(kwargs)
+            plotting_data = [State(state_vector=plotting_state_vector,
+                                   timestamp=det.timestamp)
+                             for det, plotting_state_vector in plot_detections.items()]
+
+            self.plot_state_sequence(state_sequences=[plotting_data], angle_mapping=angle_mapping,
+                                     range_mapping=range_mapping, label=name,
+                                     **measurement_kwargs)
+
+        if plot_clutter:
+            name = measurements_label + "<br>(Clutter)"
+            measurement_kwargs = dict(mode='markers', legendrank=210,
+                                      marker=dict(symbol="star-triangle-up", color='#FECB52'))
+            measurement_kwargs.update(kwargs)
+            plotting_data = [State(state_vector=plotting_state_vector,
+                                   timestamp=det.timestamp)
+                             for det, plotting_state_vector in plot_clutter.items()]
+
+            self.plot_state_sequence(state_sequences=[plotting_data], angle_mapping=angle_mapping,
+                                     range_mapping=range_mapping, label=name,
+                                     **measurement_kwargs)
+
+    def plot_tracks(self, tracks, mapping, uncertainty=False, particle=False, track_label="Tracks",
+                    **kwargs):
+        """Plots track(s)
+
+        Plots each track generated, generating a legend automatically. If ``uncertainty=True``
+        error ellipses are plotted.
+        Tracks are plotted as solid lines with point markers and default colors.
+
+        Users can change line style, color and marker using keyword arguments.
+
+        Parameters
+        ----------
+        tracks : Collection of :class:`~.Track`
+            Collection of tracks which will be plotted. If not a collection, and instead a single
+            :class:`~.Track` type, the argument is modified to be a set to allow for iteration.
+        mapping: list
+            List of items specifying the mapping of the position
+            components of the state space.
+        uncertainty : bool
+            If True, function plots uncertainty ellipses.
+        particle : bool
+            If True, function plots particles.
+        track_label: str
+            Label to apply to all tracks for legend.
+        \\*\\*kwargs: dict
+            Additional arguments to be passed to scatter function. Defaults are
+            ``mode='markers+lines'``
+        """
+        if uncertainty or particle:
+            raise NotImplementedError
+
+        track_kwargs = dict(mode='markers+lines', legendrank=300)
+        track_kwargs.update(kwargs)
+        angle_mapping = mapping[0]
+        if len(mapping) > 1:
+            range_mapping = mapping[1]
+        else:
+            range_mapping = None
+        self.plot_state_sequence(state_sequences=tracks, angle_mapping=angle_mapping,
+                                 range_mapping=range_mapping, label=track_label, **track_kwargs)
+
+    def plot_sensors(self, sensors, sensor_label="Sensors", **kwargs):
+        raise NotImplementedError
+
+
 class _AnimationPlotterDataClass(Base):
     plotting_data = Property(Iterable[State])
     plotting_label: str = Property()
