@@ -71,7 +71,7 @@ import numpy as np
 
 from datetime import datetime
 from datetime import timedelta
-start_time = datetime.now()
+start_time = datetime.now().replace(microsecond=0)
 
 # %%
 
@@ -85,20 +85,22 @@ from stonesoup.types.groundtruth import GroundTruthPath, GroundTruthState
 
 transition_model = CombinedLinearGaussianTransitionModel([ConstantVelocity(0.05),
                                                           ConstantVelocity(0.05)])
+timesteps = [start_time]
 truth = GroundTruthPath([GroundTruthState([0, 1, 0, 1], timestamp=start_time)])
 
 # %%
 # Create the truth path
 for k in range(1, 21):
+    timesteps.append(start_time+timedelta(seconds=k))
     truth.append(GroundTruthState(
         transition_model.function(truth[k-1], noise=True, time_interval=timedelta(seconds=1)),
-        timestamp=start_time+timedelta(seconds=k)))
+        timestamp=timesteps[k]))
 
 # %%
 # Plot the ground truth.
 
-from stonesoup.plotter import Plotterly
-plotter = Plotterly()
+from stonesoup.plotter import AnimatedPlotterly
+plotter = AnimatedPlotterly(timesteps, tail_length=0.3)
 plotter.plot_ground_truths(truth, [0, 2])
 plotter.fig
 
@@ -143,19 +145,22 @@ plotter.fig
 # :class:`~.SystematicResampler`, which is passed to the updater. It should be noted that there are
 # many resampling schemes, and almost as many choices as to when to undertake resampling. The
 # systematic resampler is described in [#]_, and in what follows below resampling is undertaken
-# at each time-step.
+# at each time-step. More resamplers that are included in Stone Soup are covered in the
+# `Resampler Tutorial <https://stonesoup.readthedocs.io/en/latest/auto_tutorials/sampling/Resamp\
+# lingTutorial.html#sphx-glr-auto-tutorials-sampling-resamplingtutorial-py>`_
 
 # %%
 # Use of Effective Sample Size resampler (ESS)
 # ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 # Resampling removes particles with a low weight and duplicates particles with a high weight.
-# A side-effect of this is that additional variance is added. Use of `~.SystematicResampler`
+# A side effect of this is that additional variance is added. Use of :class:`~.SystematicResampler`
 # at each time-step means that additional variance is being introduced when it may not necessarily
 # be required. To reduce the additional variance, it may be optimal to resample less frequently.
 #
-# The Effective Sample Size resampler (`~.ESSResampler`) compares the variance of the unnormalised weights
-# of the particles to a pre-specified threshold, and only resamples when the variance is greater than this threshold.
-# This threshold is often calculated by the ESS criterion (at time n) given by:
+# The Effective Sample Size resampler (:class:`~.ESSResampler`) compares the variance of the
+# unnormalised weights of the particles to a pre-specified threshold, and only resamples when the
+# variance is greater than this threshold. This threshold is often calculated by the ESS criterion
+# (at time n) given by:
 #
 # .. math::
 #           ESS = \left(\sum_{i=1}^{N} (W_{n}^i)^2\right)^{-1}
@@ -209,9 +214,10 @@ for measurement in measurements:
     prior = track[-1]
 
 # %%
-# Plot the resulting track with the sample points at each iteration.
+# Plot the resulting track with the sample points at each iteration. Can also change 'plot_history'
+# to True if wanted.
 
-plotter.plot_tracks(track, [0, 2], particle=True)
+plotter.plot_tracks(track, [0, 2], particle=True, plot_history=False)
 plotter.fig
 
 # %%
@@ -233,4 +239,4 @@ plotter.fig
 # .. [#] Carpenter J., Clifford P., Fearnhead P. 1999, An improved particle filter for non-linear
 #        problems, IEE Proc., Radar Sonar Navigation, 146:2–7
 
-# sphinx_gallery_thumbnail_number = 3
+# sphinx_gallery_thumbnail_path = '_static/sphinx_gallery/Tutorial_4.PNG'

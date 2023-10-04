@@ -6,7 +6,8 @@ from .mixture import GaussianMixture
 from .state import CreatableFromState, CompositeState
 from .state import State, GaussianState, ParticleState, EnsembleState, \
     SqrtGaussianState, InformationState, CategoricalState, ASDGaussianState, \
-    MultiModelParticleState, RaoBlackwellisedParticleState
+    WeightedGaussianState, TaggedWeightedGaussianState, \
+    MultiModelParticleState, RaoBlackwellisedParticleState, BernoulliParticleState
 from ..base import Property
 
 
@@ -45,6 +46,22 @@ class SqrtGaussianStateUpdate(Update, SqrtGaussianState):
     """
 
 
+class WeightedGaussianStateUpdate(Update, WeightedGaussianState):
+    """ WeightedGaussianStateUpdate type
+
+    This is a simple Gaussian state update object, which, as the name suggests, is described
+    by a Gaussian distribution with an associated weight.
+    """
+
+
+class TaggedWeightedGaussianStateUpdate(Update, TaggedWeightedGaussianState):
+    """ TaggedWeightedGaussianStateUpdate type
+
+    This is a simple Gaussian state update object, which, as the name suggests, is described
+    by a Gaussian distribution, with an associated weight and unique tag.
+    """
+
+
 class GaussianMixtureUpdate(Update, GaussianMixture):
     """ GaussianMixtureUpdate type
 
@@ -79,6 +96,13 @@ class RaoBlackwellisedParticleStateUpdate(Update, RaoBlackwellisedParticleState)
     """RaoBlackwellisedStateUpdate type
 
     This is a simple Rao Blackwellised Particle state update object.
+    """
+
+
+class BernoulliParticleStateUpdate(Update, BernoulliParticleState):
+    """BernoulliStateUpdate type
+
+    This is a simple Bernoulli Particle state update object.
     """
 
 

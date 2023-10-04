@@ -18,7 +18,7 @@ from ...sensor.action.dwell_action import DwellActionsGenerator
 from ...sensor.actionable import ActionableProperty
 from ...sensor.sensor import Sensor, SimpleSensor
 from ...types.array import CovarianceMatrix
-from ...types.detection import TrueDetection
+from ...types.detection import TrueDetection, Detection
 from ...types.groundtruth import GroundTruthState
 from ...types.numeric import Probability
 from ...types.state import StateVector
@@ -62,6 +62,9 @@ class RadarBearingRange(SimpleSensor):
         measurement_vector = self.measurement_model.function(state, noise=False)
         true_range = measurement_vector[1, 0]  # Bearing(0), Range(1)
         return true_range <= self.max_range
+
+    def is_clutter_detectable(self, state: Detection) -> bool:
+        return state.state_vector[1, 0] <= self.max_range
 
 
 class RadarBearing(SimpleSensor):
@@ -109,6 +112,9 @@ class RadarBearing(SimpleSensor):
         measurement_vector = tmp_meas_model.function(state, noise=False)
         true_range = measurement_vector[1, 0]  # Bearing(0), Range(1)
         return true_range <= self.max_range
+
+    def is_clutter_detectable(self, state: Detection) -> bool:
+        return True
 
 
 class RadarRotatingBearingRange(RadarBearingRange):
@@ -170,6 +176,17 @@ class RadarRotatingBearingRange(RadarBearingRange):
 
     def is_detectable(self, state: GroundTruthState) -> bool:
         measurement_vector = self.measurement_model.function(state, noise=False)
+
+        # Check if state falls within sensor's FOV
+        fov_min = -self.fov_angle / 2
+        fov_max = +self.fov_angle / 2
+        bearing_t = measurement_vector[0, 0]
+        true_range = measurement_vector[1, 0]
+
+        return fov_min <= bearing_t <= fov_max and true_range <= self.max_range
+
+    def is_clutter_detectable(self, state: Detection) -> bool:
+        measurement_vector = state.state_vector
 
         # Check if state falls within sensor's FOV
         fov_min = -self.fov_angle / 2

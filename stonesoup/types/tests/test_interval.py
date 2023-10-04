@@ -38,11 +38,6 @@ def test_interval_contains():
     assert 'a string' not in a
 
 
-def test_interval_str():
-    assert str(a) == '[{left}, {right}]'.format(left=0, right=1)
-    assert a.__repr__() == 'Interval{interval}'.format(interval=str(a))
-
-
 def test_interval_eq():
     assert a == Interval(0, 1)
     assert a != (0, 1)
@@ -122,6 +117,7 @@ def test_interval_disjoint():
     assert a.isdisjoint(b)  # No overlap
     assert not a.isdisjoint(c)  # Overlap
     assert not a.isdisjoint(d)  # Meet and no overlap
+    assert not a.isdisjoint(a)  # a is not disjoint with itself
 
 
 def test_intervals_init():
@@ -134,7 +130,7 @@ def test_intervals_init():
     assert len(temp.intervals) == 1
     assert temp.intervals[0] == a
 
-    with pytest.raises(ValueError, match="Must contain Interval types"):
+    with pytest.raises(TypeError, match="Must contain Interval types"):
         Intervals('a string')
 
     temp = Intervals((0, 1))
@@ -146,7 +142,7 @@ def test_intervals_init():
     assert len(A.intervals) == 2
     assert A.intervals == [a, b]  # Converts lists of tuples to lists of Interval types
 
-    with pytest.raises(ValueError,
+    with pytest.raises(TypeError,
                        match="Individual intervals must be an Interval or Sequence type"):
         Intervals([(0, 1), 'a string'])
 
@@ -171,11 +167,9 @@ def test_intervals_overlap():
 
 
 def test_intervals_disjoint():
-    with pytest.raises(ValueError, match="Can only compare Intervals to Intervals"):
-        A.isdisjoint('a string')
-    assert not A.isdisjoint(B)  # Overlap
     assert not A.isdisjoint(C)  # Meet with no overlap
     assert A.isdisjoint(D)
+    assert not A.isdisjoint(A)
 
 
 def test_intervals_merge():
@@ -196,15 +190,21 @@ def test_intervals_contains():
     assert Intervals([Interval(0.25, 0.75)]) in A
 
 
-def test_intervals_str():
-    assert str(A) == str([[interval.left, interval.right] for interval in A])
-    assert A.__repr__() == 'Intervals{intervals}'.format(intervals=str(A))
-
-
 def test_intervals_len():
     assert Intervals([]).length == 0
     assert A.length == 2
     assert Intervals([Interval(0.5, 0.75), Interval(0.1, 0.2)]).length == 0.35
+
+
+def test_intervals_str():
+    assert str(A) == str([[interval.left, interval.right] for interval in A])
+    assert A.__repr__() == ('Intervals(\n'
+                            '    intervals=[Interval(\n'
+                            '                  start=0,\n'
+                            '                  end=1),\n'
+                            '               Interval(\n'
+                            '                  start=2,\n'
+                            '                  end=3)])')
 
 
 def test_intervals_iter():

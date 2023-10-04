@@ -59,9 +59,8 @@ from reprlib import Repr
 from abc import ABCMeta
 from collections import OrderedDict
 from copy import copy
+from functools import cached_property
 from types import MappingProxyType
-
-from ._util import cached_property
 
 
 class Property:
@@ -242,13 +241,10 @@ class BaseRepr(Repr):
         """Remove excess whitespace, replacing with ellipses"""
         large_whitespace = ' ' * (maxlen_whitespace+1)
         fixed_whitespace = ' ' * maxlen_whitespace
-        if large_whitespace in val:
-            excess = val.find(large_whitespace)  # Find the excess whitespace
+        while (excess := val.find(large_whitespace)) != -1:   # Find the excess whitespace, if any
             line_end = ''.join(val[excess:].partition('\n')[1:])
             val = ''.join([val[0:excess], fixed_whitespace, '...', line_end])
-            return cls.whitespace_remove(maxlen_whitespace, val)
-        else:
-            return val
+        return val
 
 
 class BaseMeta(ABCMeta):
@@ -294,7 +290,8 @@ class BaseMeta(ABCMeta):
 
                 if not (isinstance(value.cls, type)
                         or getattr(value.cls, '__module__', "") == 'typing'
-                        or value.cls == name):
+                        or value.cls == name
+                        or isinstance(value.cls, str)):  # Forward declaration for type hinting
                     raise ValueError(f'Invalid type specification ({str(value.cls)}) '
                                      f'for property {key} of class {name}')
 

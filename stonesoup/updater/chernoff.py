@@ -1,3 +1,5 @@
+from functools import lru_cache
+
 import numpy as np
 
 from ..base import Property
@@ -78,6 +80,7 @@ class ChernoffUpdater(Updater):
         default=0.5,
         doc="A weighting parameter in the range :math:`(0,1]`")
 
+    @lru_cache()
     def predict_measurement(self, predicted_state, measurement_model=None,  **kwargs):
         r"""
         This function predicts the measurement of a state in situations where measurements consist

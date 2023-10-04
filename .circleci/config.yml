@@ -3,7 +3,6 @@ workflows:
   version: 2
   test:
     jobs:
-      - test-37
       - test-38
       - test-39
       - test-310
@@ -12,9 +11,9 @@ workflows:
     jobs:
       - docs
 jobs:
-  test-37: &test-template
+  test-38: &test-template
     docker:
-      - image: cimg/python:3.7
+      - image: cimg/python:3.8
     steps:
       - checkout
       - restore_cache:
@@ -37,7 +36,7 @@ jobs:
             mkdir test-reports
             pytest --junitxml=test-reports/junit.xml --flake8 --cov --cov-report=xml:test-reports/coverage.xml stonesoup
       - store_test_results:
-          path: test-reports
+          path: test-reports/junit.xml
       - store_artifacts:
           path: test-reports 
       - run:
@@ -47,10 +46,6 @@ jobs:
               -f test-reports/coverage.xml \
               -F unittests \
               -n ${CIRCLE_BUILD_NUM}
-  test-38:
-    <<: *test-template
-    docker:
-      - image: cimg/python:3.8
   test-39:
     <<: *test-template
     docker:
@@ -86,13 +81,13 @@ jobs:
           name: Build Docs
           command: |
             . venv/bin/activate
-            coverage run -m sphinx -b html -W --keep-going -D sphinx_gallery_conf.junit=../../../test-reports/sphinx-gallery/junit.xml docs/source docs/build/html
+            coverage run -m sphinx -b html -d build/.doctrees -W --keep-going -D sphinx_gallery_conf.junit=../../../test-reports/sphinx-gallery/junit.xml docs/source docs/build/html
             coverage xml -o test-reports/coverage.xml
       - store_artifacts:
           path: docs/build/html
           destination: docs
       - store_test_results:
-          path: test-reports
+          path: test-reports/sphinx-gallery/junit.xml
       - store_artifacts:
           path: test-reports
       - run:

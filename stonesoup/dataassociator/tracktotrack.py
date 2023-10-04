@@ -8,8 +8,9 @@ from ..measures import Measure, Euclidean, EuclideanWeighted
 from ..non_state_measures import TrackMeasure
 from ..types.association import AssociationSet, TimeRangeAssociation, Association
 from ..types.groundtruth import GroundTruthPath
-from ..types.time import TimeRange
 from ..types.track import Track
+from ..types.time import TimeRange
+from ._assignment import multidimensional_deconfliction
 
 
 class TrackToTrackCounting(TwoTrackToTrackAssociator):
@@ -78,6 +79,11 @@ class TrackToTrackCounting(TwoTrackToTrackAssociator):
         doc="If :attr:`use_positional_only` is set to False, this decides how much to weight "
             "position components compared to others (such as velocity).  "
             "Default is 0.6"
+    )
+    one_to_one: bool = Property(
+        default=False,
+        doc="If True, it is ensured no two associations ever contain the same track "
+            "at the same time"
     )
 
     def associate_tracks(self, tracks_set_1: Set[Track], tracks_set_2: Set[Track]):
@@ -182,7 +188,10 @@ class TrackToTrackCounting(TwoTrackToTrackAssociator):
                         (track1, track2),
                         TimeRange(start_timestamp, end_timestamp)))
 
-        return AssociationSet(associations)
+        if self.one_to_one:
+            return multidimensional_deconfliction(AssociationSet(associations))
+        else:
+            return AssociationSet(associations)
 
 
 class TrackToTruth(TwoTrackToTrackAssociator):

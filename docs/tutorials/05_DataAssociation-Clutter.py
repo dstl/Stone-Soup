@@ -65,14 +65,17 @@ from stonesoup.types.groundtruth import GroundTruthPath, GroundTruthState
 
 np.random.seed(1991)
 
-start_time = datetime.now()
+start_time = datetime.now().replace(microsecond=0)
 transition_model = CombinedLinearGaussianTransitionModel([ConstantVelocity(0.005),
                                                           ConstantVelocity(0.005)])
-truth = GroundTruthPath([GroundTruthState([0, 1, 0, 1], timestamp=start_time)])
+timesteps = [start_time]
+truth = GroundTruthPath([GroundTruthState([0, 1, 0, 1], timestamp=timesteps[0])])
+
 for k in range(1, 21):
+    timesteps.append(start_time+timedelta(seconds=k))
     truth.append(GroundTruthState(
         transition_model.function(truth[k-1], noise=True, time_interval=timedelta(seconds=1)),
-        timestamp=start_time+timedelta(seconds=k)))
+        timestamp=timesteps[k]))
 
 # %%
 # Probability of detection
@@ -125,8 +128,8 @@ for state in truth:
 # Plot the ground truth and measurements with clutter.
 
 # Plot ground truth.
-from stonesoup.plotter import Plotterly
-plotter = Plotterly()
+from stonesoup.plotter import AnimatedPlotterly
+plotter = AnimatedPlotterly(timesteps, tail_length=0.3)
 plotter.plot_ground_truths(truth, [0, 2])
 
 # Plot true detections and clutter.
@@ -231,4 +234,4 @@ plotter.fig
 # seduction*, and is a common feature of 'greedy' methods of association such as the nearest
 # neighbour algorithm.
 
-# sphinx_gallery_thumbnail_number = 2
+# sphinx_gallery_thumbnail_path = '_static/sphinx_gallery/Tutorial_5.PNG'

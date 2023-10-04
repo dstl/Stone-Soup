@@ -14,5 +14,6 @@ __copyright__ = '''\
 © Copyright 2018-2023 University of Liverpool UK
 © Copyright 2020-2023 Fraunhofer FKIE
 © Copyright 2020-2023 John Hiles
+© Copyright 2021-2023 Roke Manor Research Ltd UK
 '''  # noqa: E501
 __license__ = 'MIT'
