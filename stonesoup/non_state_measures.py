@@ -132,6 +132,7 @@ class SetComparisonMeasure(GenericMeasure):
     """
     This class measures how many items are present in both collections. The type of the collections
     is ignored and duplicate items are ignored.
+
      * The measure output is between 0 and 1 (inclusive).
      * An output of 1 is for both collections to contain the same items.
      * An output of 0 is when there are zero items in common between the two sets.
