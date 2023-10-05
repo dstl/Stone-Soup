@@ -1402,13 +1402,13 @@ class PolarPlotterly(_Plotter):
             Specifying the mapping of the angular component of the state space to be plotted.
         range_mapping: int
             Specifying the mapping of the range component of the state space to be plotted. If
-            `None` the angular component will be plotted against time
+            `None`, the angular component will be plotted against time.
         label: str
             Label for truth data.
         \\*\\*kwargs: dict
             Additional arguments to be passed to scatter function. Default is
             ``mode=marker``.
-            The default unit for the angular component is radians, this can be changed to degrees
+            The default unit for the angular component is radians. This can be changed to degrees
             with the keyword argument ``thetaunit='degrees'``.
         """
 
@@ -1460,7 +1460,7 @@ class PolarPlotterly(_Plotter):
         mapping: list
             List of items specifying the mapping of the position components of the state space.
         truths_label: str
-            Label for truth data. Default is "Ground Truth"
+            Label for truth data. Default is "Ground Truth".
         \\*\\*kwargs: dict
             Additional arguments to be passed to scatter function. Default is
             ``line=dict(dash="dash")``.
@@ -1498,7 +1498,7 @@ class PolarPlotterly(_Plotter):
         measurements_label : str
             Label for the measurements.  Default is "Measurements".
         convert_measurements: bool
-            Should the measurements be converted before being plotted. Default is True
+            Should the measurements be converted before being plotted. Default is True.
         \\*\\*kwargs: dict
             Additional arguments to be passed to scatter function for detections. Defaults are
             ``marker=dict(color="#636EFA")``.
@@ -1574,7 +1574,7 @@ class PolarPlotterly(_Plotter):
             Label to apply to all tracks for legend.
         \\*\\*kwargs: dict
             Additional arguments to be passed to scatter function. Defaults are
-            ``mode='markers+lines'``
+            ``mode='markers+lines'``.
         """
         if uncertainty or particle:
             raise NotImplementedError

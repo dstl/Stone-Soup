@@ -12,7 +12,7 @@ angular one. Angular ground truth is created using measurements without noise. D
 """
 
 # %%
-# First some general imports and setup
+# First, include some standard imports and initialise the start time:
 from datetime import datetime
 from datetime import timedelta
 
@@ -34,19 +34,20 @@ start_time = datetime(2023, 1, 1)
 # %%
 # Generate Cartesian State Space Data
 # -----------------------------------
+# Two targets are created:
+#  #. Target 1 moves in a ‘C’ shape. First it moves west (negative x), then it starts a slow,
+#     long 180-degree turn moving south, until it is moving west (positive x).
+#  #. Target 2 moves in a straight line from north to south.
 
 # Create manoeuvre behaviours and durations for our moving platform
 straight_level = CombinedLinearGaussianTransitionModel(
     [ConstantVelocity(0.), ConstantVelocity(0.)])
 
-# Configure the aircraft turn behaviour
+# Configure target 1's turn behaviour
 turn_noise_diff_coeffs = np.array([0., 0.])
-turn_rate = np.deg2rad(5)  # specified in radians per seconds...
+turn_rate = np.deg2rad(5)  # specified in radians per second
 turn_model = KnownTurnRate(turn_noise_diff_coeffs=turn_noise_diff_coeffs, turn_rate=turn_rate)
-
-# Configure turn model to maintain current altitude
-turning = CombinedLinearGaussianTransitionModel(
-    [turn_model])
+turning = CombinedLinearGaussianTransitionModel([turn_model])
 
 manoeuvre_list = [straight_level, turning, straight_level]
 manoeuvre_times = [timedelta(seconds=12),
@@ -82,7 +83,7 @@ for t in timesteps:
 # %%
 # Display ground truth in Cartesian state space using the standard
 # :class:`~.Plotterly` plotting class:
-plotter_xy = Plotterly(title="God's Eye View of Targets")
+plotter_xy = Plotterly(title="Bird's Eye View of Targets")
 plotter_xy.plot_ground_truths(target_1, mapping=[0, 2])
 plotter_xy.plot_ground_truths(target_2, mapping=[0, 2])
 plotter_xy.fig
@@ -97,7 +98,13 @@ plotter_xy.fig
 # Create sensor:
 sensor = RadarBearingRange(ndim_state=4,
                            position_mapping=[0, 2],
-                           noise_covar=np.diag([np.radians(0.06), 25]))
+                           noise_covar=np.diag([np.radians(0.06), 50]),
+                           position=StateVector([0, 0]))
+
+# %%
+# Plot sensor's location on XY plot
+plotter_xy.plot_sensors({sensor}, mapping=[0, 1])
+plotter_xy.fig
 
 # %%
 # Measure each ground truth individually and without noise to create ground truth paths:
@@ -126,6 +133,15 @@ plotter.plot_measurements(detections, mapping=mapping, convert_measurements=Fals
 plotter.fig
 
 # %%
+# The range component of the polar plot represents time and the angle component represents the
+# bearing of the sensor to the targets.
+
+# %%
+# Here we can see how the bearing of the target to the sensor changes over time.  Both targets move
+# from 45° to 135°. Target 1 moves anti-clockwise around the sensor and target 2 moves clockwise.
+# The detections have a good bearing accuracy and do not deviate far from the ground truth.
+
+# %%
 # Azimuth Angle (Degrees) vs Range (m)
 # ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 plotter = PolarPlotterly(title="Azimuth Angle (Degrees) vs Range (m)")
@@ -134,6 +150,11 @@ plotter.plot_ground_truths({angular_ground_truth_1, angular_ground_truth_2}, map
 plotter.plot_measurements(detections, mapping=mapping, convert_measurements=False)
 plotter.fig
 
+# %%
+# The range component of the polar plot represents range and the angle component represents the
+# bearing of the sensor to the targets. As a result the target motion looks identical in a polar
+# plot and in a cartesian plot.
+
 
 # %%
 # Reference XY Plot
@@ -141,3 +162,9 @@ plotter.fig
 # This is similar to the previous x/y plot but also contains the detections.
 plotter_xy.plot_measurements(detections, mapping=[0, 2])
 plotter_xy.fig
+
+# %%
+# **Summary**
+#
+# Polar plots allow a more intuitive view of plotting angular data. This is especially true when
+# a data source moves over the 2π limit and wraps around.
