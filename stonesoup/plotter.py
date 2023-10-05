@@ -1044,6 +1044,12 @@ class Plotterly(_Plotter):
         truths_kwargs.update(kwargs)
         add_legend = truths_kwargs['legendgroup'] not in {trace.legendgroup
                                                           for trace in self.fig.data}
+
+        if len(mapping) == 0:
+            raise ValueError("No indices in mapping to reference to")
+        elif len(mapping) > 2:
+            warnings.warn("Mapping has length over 2. Additional mapping indices are ignored")
+
         for truth in truths:
             scatter_kwargs = truths_kwargs.copy()
             if add_legend:
@@ -1051,11 +1057,18 @@ class Plotterly(_Plotter):
                 add_legend = False
             else:
                 scatter_kwargs['showlegend'] = False
-            self.fig.add_scatter(
-                x=[state.state_vector[mapping[0]] for state in truth],
-                y=[state.state_vector[mapping[1]] for state in truth],
-                text=[self._format_state_text(state) for state in truth],
-                **scatter_kwargs)
+            if len(mapping) == 1:
+                self.fig.add_scatter(
+                    x=[state.timestamp for state in truth],
+                    y=[state.state_vector[mapping[0]] for state in truth],
+                    text=[self._format_state_text(state) for state in truth],
+                    **scatter_kwargs)
+            elif len(mapping) > 1:
+                self.fig.add_scatter(
+                    x=[state.state_vector[mapping[0]] for state in truth],
+                    y=[state.state_vector[mapping[1]] for state in truth],
+                    text=[self._format_state_text(state) for state in truth],
+                    **scatter_kwargs)
 
     def plot_measurements(self, measurements, mapping, measurement_model=None,
                           measurements_label="Measurements", convert_measurements=True, **kwargs):
@@ -1095,6 +1108,11 @@ class Plotterly(_Plotter):
         else:
             measurements_set = set(measurements)
 
+        if len(mapping) == 0:
+            raise ValueError("No indices in mapping to reference to")
+        elif len(mapping) > 2:
+            warnings.warn("Mapping has length over 2. Additional mapping indices are ignored")
+
         plot_detections, plot_clutter = self._conv_measurements(measurements_set,
                                                                 mapping,
                                                                 measurement_model,
@@ -1112,12 +1130,24 @@ class Plotterly(_Plotter):
             else:
                 measurement_kwargs['showlegend'] = False
             detection_array = np.asfarray(list(plot_detections.values()))
-            self.fig.add_scatter(
-                x=detection_array[:, 0],
-                y=detection_array[:, 1],
-                text=[self._format_state_text(state) for state in plot_detections.keys()],
-                **measurement_kwargs,
-            )
+
+            if len(mapping) == 1:
+                self.fig.add_scatter(
+                    x=[state.timestamp for state in plot_detections.keys()],
+                    y=detection_array[:, 0],
+                    text=[self._format_state_text(state) for state in plot_detections.keys()],
+                    **measurement_kwargs,
+                )
+            elif len(mapping) > 1:
+                if len(mapping) > 2:
+                    warnings.warn("Mapping has length over 2. "
+                                  "Additional mapping indices are ignored")
+                self.fig.add_scatter(
+                    x=detection_array[:, 0],
+                    y=detection_array[:, 1],
+                    text=[self._format_state_text(state) for state in plot_detections.keys()],
+                    **measurement_kwargs,
+                )
 
         if plot_clutter:
             name = measurements_label + "<br>(Clutter)"
@@ -1131,12 +1161,25 @@ class Plotterly(_Plotter):
             else:
                 measurement_kwargs['showlegend'] = False
             clutter_array = np.asfarray(list(plot_clutter.values()))
-            self.fig.add_scatter(
-                x=clutter_array[:, 0],
-                y=clutter_array[:, 1],
-                text=[self._format_state_text(state) for state in plot_clutter.keys()],
-                **measurement_kwargs,
-            )
+
+            if len(mapping) == 1:
+                self.fig.add_scatter(
+                    x=[state.timestamp for state in plot_clutter.keys()],
+                    y=clutter_array[:, 0],
+                    text=[self._format_state_text(state) for state in plot_clutter.keys()],
+                    **measurement_kwargs,
+                )
+            elif len(mapping) > 1:
+                if len(mapping) > 2:
+                    warnings.warn("Mapping has length over 2. "
+                                  "Additional mapping indices are ignored")
+
+                self.fig.add_scatter(
+                    x=clutter_array[:, 0],
+                    y=clutter_array[:, 1],
+                    text=[self._format_state_text(state) for state in plot_clutter.keys()],
+                    **measurement_kwargs,
+                )
 
     def get_next_color(self):
         """
@@ -1202,6 +1245,16 @@ class Plotterly(_Plotter):
         track_kwargs.update(kwargs)
         add_legend = track_kwargs['legendgroup'] not in {trace.legendgroup
                                                          for trace in self.fig.data}
+
+        if len(mapping) == 0:
+            raise ValueError("No indices in mapping to reference to")
+        elif len(mapping) == 1:
+            if uncertainty or particle:
+                raise NotImplementedError("Plotting against time hasn't been implemented for "
+                                          "uncertainty or particles ")
+        elif len(mapping) > 2:
+            warnings.warn("Mapping has length over 2. Additional mapping indices are ignored")
+
         if same_color:
             color = track_kwargs.get('marker', {}).get('color') or \
                     track_kwargs.get('line', {}).get('color')
@@ -1225,11 +1278,28 @@ class Plotterly(_Plotter):
                 scatter_kwargs['marker']['symbol'] = [
                     'square' if isinstance(state, Update) else 'circle' for state in track]
 
-            self.fig.add_scatter(
-                x=[getattr(state, 'mean', state.state_vector)[mapping[0]] for state in track],
-                y=[getattr(state, 'mean', state.state_vector)[mapping[1]] for state in track],
-                text=[self._format_state_text(state) for state in track],
-                **scatter_kwargs)
+            if len(self.fig.data) > 0:
+                track_colors[track] = (self.fig.data[-1].line.color
+                                       or self.fig.data[-1].marker.color
+                                       or self.get_next_color())
+            else:
+                track_colors[track] = self.get_next_color()
+
+            if len(mapping) == 1:
+                self.fig.add_scatter(
+                    x=[state.timestamp for state in track],
+                    y=[float(getattr(state, 'mean', state.state_vector)[mapping[0]])
+                       for state in track],
+                    text=[self._format_state_text(state) for state in track],
+                    **scatter_kwargs)
+            elif len(mapping) > 1:
+                self.fig.add_scatter(
+                    x=[float(getattr(state, 'mean', state.state_vector)[mapping[0]])
+                       for state in track],
+                    y=[float(getattr(state, 'mean', state.state_vector)[mapping[1]])
+                       for state in track],
+                    text=[self._format_state_text(state) for state in track],
+                    **scatter_kwargs)
 
             track_colors[track] = (self.fig.data[-1].line.color
                                    or self.fig.data[-1].marker.color

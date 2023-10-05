@@ -84,8 +84,9 @@ for t in timesteps:
 # Display ground truth in Cartesian state space using the standard
 # :class:`~.Plotterly` plotting class:
 plotter_xy = Plotterly(title="Bird's Eye View of Targets")
-plotter_xy.plot_ground_truths(target_1, mapping=[0, 2])
-plotter_xy.plot_ground_truths(target_2, mapping=[0, 2])
+mapping = [0, 2]
+plotter_xy.plot_ground_truths(target_1, mapping=[0, 2], truths_label="Target 1")
+plotter_xy.plot_ground_truths(target_2, mapping=[0, 2], truths_label="Target 2")
 plotter_xy.fig
 
 # %%
@@ -120,17 +121,42 @@ for t in timesteps:
     detections.extend(sensor.measure({target_1[t], target_2[t]}, noise=True))
 
 # %%
-# Create Polar Plot
-# -----------------
+# Time (s) vs Azimuth Angle (Radians)
+# ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+mapping = [0]
+plotter_az_t_cart = Plotterly(title="Cartesian - Time (s) vs Azimuth Angle (Radians)",
+                              xaxis=dict(title=dict(text="Time (seconds)")),
+                              yaxis=dict(title=dict(text="Bearing (Radians)"))
+                              )
+plotter_az_t_cart.plot_ground_truths({angular_ground_truth_1},
+                                     mapping=mapping, truths_label="Target 1")
+plotter_az_t_cart.plot_ground_truths({angular_ground_truth_2},
+                                     mapping=mapping, truths_label="Target 2")
+plotter_az_t_cart.plot_measurements(detections, mapping=mapping, convert_measurements=False)
+plotter_az_t_cart.fig
+
+# %%
+# This plot shows the current method to visualise angular data. Despite the steady motion of
+# Target 1 there is a sharp discontinuity between 30s and 31s. The bearing from the sensor to
+# Target 1 passes over π and the bearing wraps around to -3.1 radians. This can make the
+# visualisation of data unclear. This isn’t an issue in a polar plot and is displayed in the next
+# section.
+
+# %%
+# Create Polar Plots
+# ------------------
+# :class:`~.PolarPlotterly` inherits from :class:`~._Plotter` and therefore has all the same
+# methods are the other plotters.
 
 # %%
 # Azimuth Angle (Degrees) vs Time (s)
 # ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 mapping = [0]
-plotter = PolarPlotterly(title="Azimuth Angle (Degrees) vs Time (s)")
-plotter.plot_ground_truths({angular_ground_truth_1, angular_ground_truth_2}, mapping=mapping)
-plotter.plot_measurements(detections, mapping=mapping, convert_measurements=False)
-plotter.fig
+plotter_az_t = PolarPlotterly(title="Azimuth Angle (Degrees) vs Time (s)")
+plotter_az_t.plot_ground_truths({angular_ground_truth_1}, mapping=mapping, truths_label="Target 1")
+plotter_az_t.plot_ground_truths({angular_ground_truth_2}, mapping=mapping, truths_label="Target 2")
+plotter_az_t.plot_measurements(detections, mapping=mapping, convert_measurements=False)
+plotter_az_t.fig
 
 # %%
 # The range component of the polar plot represents time and the angle component represents the
@@ -144,11 +170,12 @@ plotter.fig
 # %%
 # Azimuth Angle (Degrees) vs Range (m)
 # ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-plotter = PolarPlotterly(title="Azimuth Angle (Degrees) vs Range (m)")
+plotter_az_r = PolarPlotterly(title="Azimuth Angle (Degrees) vs Range (m)")
 mapping = [0, 1]
-plotter.plot_ground_truths({angular_ground_truth_1, angular_ground_truth_2}, mapping=mapping)
-plotter.plot_measurements(detections, mapping=mapping, convert_measurements=False)
-plotter.fig
+plotter_az_r.plot_ground_truths({angular_ground_truth_1}, mapping=mapping, truths_label="Target 1")
+plotter_az_r.plot_ground_truths({angular_ground_truth_2}, mapping=mapping, truths_label="Target 2")
+plotter_az_r.plot_measurements(detections, mapping=mapping, convert_measurements=False)
+plotter_az_r.fig
 
 # %%
 # The range component of the polar plot represents range and the angle component represents the
