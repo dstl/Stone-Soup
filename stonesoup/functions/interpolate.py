@@ -4,8 +4,8 @@ import warnings
 from typing import Union, List, Iterable
 
 import numpy as np
-from scipy.interpolate import interp1d
 
+from ..types.array import StateVectors
 from ..types.state import StateMutableSequence, State
 
 
@@ -98,14 +98,18 @@ def interpolate_state_mutable_sequence(sms: StateMutableSequence,
 
     if len(times_to_interpolate) > 0:
         # Only interpolate if required
-        state_vectors = [state.state_vector for state in time_state_dict.values()]
-        state_times = [time.timestamp() for time in time_state_dict.keys()]
-        interpolate_object = interp1d(state_times, np.stack(state_vectors, axis=0), axis=0)
+        state_vectors = StateVectors([state.state_vector for state in time_state_dict.values()])
+        state_timestamps = [time.timestamp() for time in time_state_dict.keys()]
+        interp_timestamps = [time.timestamp() for time in times_to_interpolate]
 
-        interp_output = interpolate_object([time.timestamp() for time in times_to_interpolate])
+        interp_output = np.empty((sms.state.ndim, len(times_to_interpolate)))
+        for element_index in range(sms.state.ndim):
+            interp_output[element_index][:] = np.interp(x=interp_timestamps,
+                                                        xp=state_timestamps,
+                                                        fp=state_vectors[element_index][:])
 
-        for idx, time in enumerate(times_to_interpolate):
-            time_state_dict[time] = State(interp_output[idx, :, :], timestamp=time)
+        for state_index, time in enumerate(times_to_interpolate):
+            time_state_dict[time] = State(interp_output[:, state_index], timestamp=time)
 
     new_sms.states = [time_state_dict[time] for time in times]
 
