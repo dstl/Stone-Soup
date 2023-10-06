@@ -436,6 +436,7 @@ class EnsembleInitiator(GaussianInitiator):
     initiator: GaussianInitiator = Property(
         doc="Gaussian Initiator which will be used to generate tracks.")
     ensemble_size: int = Property(
+        default=100,
         doc="Integer to determine the size of the Gaussian Ensemble State.")
 
     def __init__(self, *args, **kwargs):

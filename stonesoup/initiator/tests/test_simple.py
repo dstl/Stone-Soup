@@ -447,8 +447,7 @@ def test_asd_gaussian(gaussian_initiator):
     ),
 ], ids=['SinglePoint', 'LinearMeasurement'])
 def test_ensemble_1d(gaussian_initiator):
-    ensemble_initiator = EnsembleInitiator(gaussian_initiator,
-                                           ensemble_size=100)
+    ensemble_initiator = EnsembleInitiator(gaussian_initiator)
 
     timestamp = datetime.datetime.now()
     detections = [Detection(np.array([[5]]), timestamp),
@@ -465,6 +464,7 @@ def test_ensemble_1d(gaussian_initiator):
             assert np.allclose(np.mean(track.state.mean), np.array([[-5]]), atol=0.4)
             assert track.state.hypothesis.measurement is detections[1]
         assert track.timestamp == timestamp
+        print(track.covar)
         assert np.allclose(track.covar, np.array([[1]]), atol=0.4)
 
 
