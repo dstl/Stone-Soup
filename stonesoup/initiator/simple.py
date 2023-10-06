@@ -1,5 +1,6 @@
 import numpy as np
 from scipy.stats import multivariate_normal
+import datetime
 
 from .base import GaussianInitiator, ParticleInitiator, Initiator
 from ..base import Property
@@ -7,13 +8,16 @@ from ..dataassociator import DataAssociator
 from ..deleter import Deleter
 from ..models.base import LinearModel, ReversibleModel
 from ..models.measurement import MeasurementModel
+from ..types.array import StateVector, StateVectors
 from ..types.hypothesis import SingleHypothesis
 from ..types.mixture import GaussianMixture
 from ..types.numeric import Probability
 from ..types.particle import Particle
-from ..types.state import State, GaussianState, ParticleState, TaggedWeightedGaussianState
+from ..types.state import State, GaussianState, ParticleState, TaggedWeightedGaussianState, ASDGaussianState, \
+    EnsembleState
 from ..types.track import Track
-from ..types.update import GaussianStateUpdate, ParticleStateUpdate, Update, GaussianMixtureUpdate
+from ..types.update import GaussianStateUpdate, ParticleStateUpdate, Update, GaussianMixtureUpdate, \
+    ASDGaussianStateUpdate, EnsembleStateUpdate
 from ..updater import Updater
 from ..updater.kalman import ExtendedKalmanUpdater
 
@@ -355,5 +359,139 @@ class GaussianMixtureInitiator(GaussianInitiator):
             track[-1] = GaussianMixtureUpdate(
                 hypothesis=track.hypothesis,
                 components=mixture)
+
+        return tracks
+
+
+class ASDGaussianInitiator(GaussianInitiator):
+    """Gaussian Mixture Initiator class
+
+    Utilising Gaussian Initiator, sample from the resultant track's state
+    to generate a Gaussian Mixture, overwriting with a
+    :class:`~.GaussianMixture`.
+    """
+
+    initiator: GaussianInitiator = Property(
+        doc="Gaussian Initiator which will be used to generate tracks.")
+    timestamp: datetime.datetime = Property(
+        doc="Starting timestep attributed to the prior state")
+
+    def __init__(self, *args, **kwargs):
+
+        super().__init__(*args, **kwargs)
+
+        # Create prior particle state
+        try:
+            state = self.initiator.prior_state.state_vector
+            covar = self.initiator.prior_state.covar
+
+        except AttributeError:
+            raise AttributeError("No prior state")
+
+        self.prior_state = ASDGaussianState(multi_state_vector=state,
+                                            timestamps=self.timestamp,
+                                            max_nstep=0,
+                                            multi_covar=covar)
+
+    def initiate(self, detections, timestamp, **kwargs):
+        """Initiates tracks given unassociated measurements
+
+        Parameters
+        ----------
+        detections : set of :class:`~.Detection`
+            A list of unassociated detections
+        timestamp: datetime.datetime
+            Current timestamp
+
+        Returns
+        -------
+        : set of :class:`~.Track`
+            A list of new tracks with an initial :class:`~.GaussianMixture`
+        """
+        tracks = self.initiator.initiate(detections, timestamp, **kwargs)
+
+        for track in tracks:
+            state = track.state_vector
+            covar = track.covar
+            timestamp = track.timestamp
+
+            track[-1] = ASDGaussianStateUpdate(
+                multi_state_vector=state,
+                timestamps=timestamp,
+                max_nstep=0,
+                multi_covar=covar,
+                hypothesis=track.hypothesis)
+
+        return tracks
+
+
+class EnsembleInitiator(GaussianInitiator):
+    """Gaussian Mixture Initiator class
+
+    Utilising Gaussian Initiator, sample from the resultant track's state
+    to generate a Gaussian Mixture, overwriting with a
+    :class:`~.GaussianMixture`.
+    """
+
+    initiator: GaussianInitiator = Property(
+        doc="Gaussian Initiator which will be used to generate tracks.")
+    ensemble_size: int = Property(
+        doc="Integer to determine the size of the Gaussian Ensemble State"
+    )
+
+    def __init__(self, *args, **kwargs):
+
+        super().__init__(*args, **kwargs)
+
+        # Create prior particle state
+        try:
+            state = self.initiator.prior_state.state_vector
+            covar = self.initiator.prior_state.covar
+
+        except AttributeError:
+            raise AttributeError("No prior state")
+
+        ensemble = StateVectors(self.create_ensemble(state, covar))
+        self.prior_state = EnsembleState(ensemble)
+
+    def create_ensemble(self, state, covar):
+        ensemble = []
+        std = np.sqrt(covar)
+        for _ in range(self.ensemble_size):
+            new_state = []
+            for i in range(len(state)):
+                if len(state) == 1:
+                    new_state.append([np.random.normal(state[i], std[i])])
+                else:
+                    new_state.append([np.random.normal(state[i], std[i][i])])
+            ensemble.append(StateVector(new_state))
+        return ensemble
+
+    def initiate(self, detections, timestamp, **kwargs):
+        """Initiates tracks given unassociated measurements
+
+        Parameters
+        ----------
+        detections : set of :class:`~.Detection`
+            A list of unassociated detections
+        timestamp: datetime.datetime
+            Current timestamp
+
+        Returns
+        -------
+        : set of :class:`~.Track`
+            A list of new tracks with an initial :class:`~.GaussianMixture`
+        """
+        tracks = self.initiator.initiate(detections, timestamp, **kwargs)
+
+        for track in tracks:
+            state = track.state_vector
+            covar = track.covar
+            ensemble = StateVectors(self.create_ensemble(state, covar))
+
+            track[-1] = EnsembleStateUpdate(
+                state_vector=ensemble,
+                hypothesis=track.hypothesis,
+                timestamp=track.timestamp)
 
         return tracks
