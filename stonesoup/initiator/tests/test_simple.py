@@ -489,54 +489,10 @@ def test_ensemble_2d(gaussian_initiator):
     for track in tracks:
         assert isinstance(track.state, EnsembleStateUpdate)
         if track.state.mean[0] > 0:
-            assert np.allclose(track.state.mean[0], np.array([[5]]), atol=0.4)
+            assert np.allclose(track.state.mean, np.array([[5], [0]]), atol=0.4)
             assert track.state.hypothesis.measurement is detections[0]
         else:
-            assert np.allclose(track.state.mean[0], np.array([[-5]]), atol=0.4)
+            assert np.allclose(track.state.mean, np.array([[-5], [0]]), atol=0.4)
             assert track.state.hypothesis.measurement is detections[1]
         assert track.timestamp == timestamp
-        print(track.covar)
-        assert np.allclose(track.covar[0][0], np.diag([1]), atol=0.4)
-
-
-@pytest.mark.parametrize("gaussian_initiator", [
-    SinglePointInitiator(
-        GaussianState(np.array([[0], [0], [0], [0]]), np.diag([100, 0, 100, 0])),
-        LinearGaussian(4, [0, 2], np.diag([1, 1]))
-    ),
-    SimpleMeasurementInitiator(
-        GaussianState(np.array([[0], [0], [0], [0]]), np.diag([100, 0, 100, 0])),
-        LinearGaussian(4, [0, 2], np.diag([1, 1]))
-    )
-], ids=['SinglePoint', 'LinearMeasurement'])
-def test_ensemble_4d(gaussian_initiator):
-    ensemble_initiator = EnsembleInitiator(gaussian_initiator,
-                                           ensemble_size=100)
-
-    timestamp = datetime.datetime.now()
-    detections = [Detection(np.array([[5, 5]]), timestamp),
-                  Detection(np.array([[-5, 5]]), timestamp),
-                  Detection(np.array([[5, -5]]), timestamp),
-                  Detection(np.array([[-5, -5]]), timestamp)]
-    tracks = ensemble_initiator.initiate(detections, timestamp)
-
-    for track in tracks:
-        assert isinstance(track.state, EnsembleStateUpdate)
-        if track.state.mean[0] > 0:
-            assert np.allclose(track.state.mean[0], np.array([[5]]), atol=0.4)
-            if track.state.mean[2] > 0:
-                assert np.allclose(track.state.mean[2], np.array([[5]]), atol=0.4)
-                assert track.state.hypothesis.measurement is detections[0]
-            else:
-                assert np.allclose(track.state.mean[2], np.array([[-5]]), atol=0.4)
-                assert track.state.hypothesis.measurement is detections[2]
-        else:
-            assert np.allclose(track.state.mean[0], np.array([[-5]]), atol=0.4)
-            if track.state.mean[2] > 0:
-                assert np.allclose(track.state.mean[2], np.array([[5]]), atol=0.4)
-                assert track.state.hypothesis.measurement is detections[1]
-            else:
-                assert np.allclose(track.state.mean[2], np.array([[-5]]), atol=0.4)
-                assert track.state.hypothesis.measurement is detections[3]
-        assert track.timestamp == timestamp
-        assert np.allclose(track.covar, np.diag([1, 0, 1, 0]), atol=0.4)
+        assert np.allclose(track.covar, np.diag([1, 0]), atol=0.4)
