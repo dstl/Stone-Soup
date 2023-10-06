@@ -464,7 +464,6 @@ def test_ensemble_1d(gaussian_initiator):
             assert np.allclose(np.mean(track.state.mean), np.array([[-5]]), atol=0.4)
             assert track.state.hypothesis.measurement is detections[1]
         assert track.timestamp == timestamp
-        print(track.covar)
         assert np.allclose(track.covar, np.array([[1]]), atol=0.4)
 
 
