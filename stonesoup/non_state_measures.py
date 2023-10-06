@@ -4,40 +4,15 @@ from abc import abstractmethod
 from datetime import datetime
 from typing import Sequence, List, Optional, Collection
 
-from .base import Property, Base
-from .measures import Measure
+from .base import Property
+from .measures import Measure, BaseMeasure
 from .types.state import StateMutableSequence
 from .types.track import Track
 
 
-class GenericMeasure(Base):
-    """Measure base type
+class MultipleMeasure(BaseMeasure):
+    """ MultipleMeasure base class.
 
-    A measure provides a means to assess the separation between two
-    objects item1 and item2.
-    """
-
-    @abstractmethod
-    def __call__(self, item1, item2) -> float:
-        r"""
-        Compute the distance between a pair of objects
-
-        Parameters
-        ----------
-        item1 :
-        item2 :
-
-        Returns
-        -------
-        float
-            distance measure between a pair of input objects
-
-        """
-        raise NotImplementedError
-
-
-class MultipleMeasure(GenericMeasure):
-    """ MultipleMeasure base type
     This measure produces a list of ``float`` values instead of a singular ``float`` value. This
     can be used when comparing objects that contain multiple other objects.
     """
@@ -46,16 +21,16 @@ class MultipleMeasure(GenericMeasure):
         raise NotImplementedError
 
 
-class TrackMeasure(GenericMeasure):
-    """Track Measure base type
+class TrackMeasure(BaseMeasure):
+    """TrackMeasure base class.
 
-    A measure provides a means to assess the separation between two track objects *track_1* and
-    *track_2*. It should return the float of the distance measure between the two tracks.
+    A measure provides a means to assess the separation between two track objects ``track_1``
+    and ``track_2``. It should return a float value of the distance measure between the two tracks.
     """
 
     @abstractmethod
     def __call__(self, track_1: Track, track_2: Track) -> float:
-        r"""Compute the distance between a pair of tracks"""
+        """Compute the distance between a pair of tracks."""
         raise NotImplementedError
 
 
@@ -64,15 +39,32 @@ class StateSequenceMeasure(MultipleMeasure):
     Applies a state measure to each state in the state sequence with matching times.
     """
 
-    measure: Measure = Property()
+    state_measure: Measure = Property(doc="The measure used to compare individual states.")
 
     def __call__(self, state_sequence_1: StateMutableSequence,
                  state_sequence_2: StateMutableSequence,
                  times_to_measure: Sequence[datetime] = None) -> List[float]:
         """
-        Compare the states from each state sequence for every time in `times_to_measure`.
+        Compare the states from each state sequence for every time in ``times_to_measure``.
 
-        If `times_to_measure` is None. Find all times that both state sequences have in common.
+        If ``times_to_measure`` is None. Find all times that both state sequences have in common.
+
+        Parameters
+        ----------
+        state_sequence_1 : :class:`.~StateMutableSequence`
+            a state sequence to compare against ``state_sequence_2``.
+        state_sequence_2 : :class:`.~StateMutableSequence`
+            a state sequence to compare against ``state_sequence_1``.
+        times_to_measure : Sequence of :class:`.~datetime`
+            Calculate the state measure for states in the state sequences at these times. Default
+            value is ``None``. If ``None``, ``times_to_measure`` is calculated as all the times
+            that both state sequences have in common.
+
+        Returns
+        -------
+        List[float]
+            a list of distance measures between a states in the state sequence inputs.
+
         """
 
         if times_to_measure is None:
@@ -82,9 +74,9 @@ class StateSequenceMeasure(MultipleMeasure):
 
             if len(times_to_measure) == 0:
                 warnings.warn("No measures are calculated as there are not any times that match "
-                              "between the two state sequences ")
+                              "between the two state sequences.")
 
-        measures = [self.measure(state_sequence_1[time], state_sequence_2[time])
+        measures = [self.state_measure(state_sequence_1[time], state_sequence_2[time])
                     for time in times_to_measure]
 
         return measures
@@ -96,11 +88,28 @@ class RecentStateSequenceMeasure(MultipleMeasure):
     matching times.
     """
 
-    measure: Measure = Property()
-    n_states_to_compare: int = Property()
+    state_measure: Measure = Property(doc="The measure used to compare individual states.")
+    n_states_to_compare: int = Property(doc="How states should be compared.")
 
     def __call__(self, state_sequence_1: StateMutableSequence,
                  state_sequence_2: StateMutableSequence) -> List[float]:
+        """
+        Compare the states from each state sequence for the most recent ``n_states_to_compare``
+        times.
+
+        Parameters
+        ----------
+        state_sequence_1 : :class:`.~StateMutableSequence`
+            a state sequence to compare against ``state_sequence_2``.
+        state_sequence_2 : :class:`.~StateMutableSequence`
+            a state sequence to compare against ``state_sequence_1``.
+
+        Returns
+        -------
+        float
+            a list of distance measures between a states in the state sequence inputs.
+
+        """
 
         track_1_times = {state.timestamp for state in state_sequence_1.states}
         track_2_times = {state.timestamp for state in state_sequence_2.states}
@@ -109,11 +118,11 @@ class RecentStateSequenceMeasure(MultipleMeasure):
 
         times_to_measure = heapq.nlargest(self.n_states_to_compare, times_in_both)
 
-        return StateSequenceMeasure(self.measure)(state_sequence_1, state_sequence_2,
-                                                  times_to_measure)
+        state_sequence_measure = StateSequenceMeasure(self.state_measure)
+        return state_sequence_measure(state_sequence_1, state_sequence_2, times_to_measure)
 
 
-class MeanMeasure(GenericMeasure):
+class MeanMeasure(BaseMeasure):
     """
     This class converts multiple measures into one mean average measure.
     """
@@ -128,7 +137,7 @@ class MeanMeasure(GenericMeasure):
             return sum(measures)/len(measures)
 
 
-class SetComparisonMeasure(GenericMeasure):
+class SetComparisonMeasure(BaseMeasure):
     """
     This class measures how many items are present in both collections. The type of the collections
     is ignored and duplicate items are ignored.
@@ -143,9 +152,9 @@ class SetComparisonMeasure(GenericMeasure):
     """
 
     def __call__(self, collection_1: Collection, collection_2: Collection) -> float:
-        r"""
+        """
         The measure is calculated by finding the number of items in common between the two
-        collections and divides it by the total number of unique items in the combined collection
+        collections and divides it by the total number of unique items in the combined collection.
 
         Parameters
         ----------
@@ -155,7 +164,7 @@ class SetComparisonMeasure(GenericMeasure):
         Returns
         -------
         float
-            distance measure between a pair of input objects
+            distance measure between a pair of input objects.
 
         """
         set_1 = set(collection_1)

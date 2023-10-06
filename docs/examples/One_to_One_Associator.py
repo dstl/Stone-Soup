@@ -2,18 +2,23 @@
 Generic One-to-One Association Examples
 ===============================================
 These examples demonstrate how to use the :class:`~.OneToOneAssociator` class for three varied
-uses. The three examples include associating States, Tracks and words.
+uses. The three examples include associating :class:`~.State`, :class:`~.Track` and words.
 """
+
+# %%
+# The :class:`~.OneToOneAssociator` is used for associating objects with an appropriate
+# :class:`~.BaseMeasure` object. Subclasses of :class:`~.BaseMeasure` take two objects and return
+# a float value to assess the separation between the two objects. This is used by the
+# :class:`~.OneToOneAssociator` to optimally associate objects.
 
 # %%
 # First some generic imports and variables are set up as they are needed for all the examples.
 import datetime
 
 from stonesoup.dataassociator.general import OneToOneAssociator
-from stonesoup.non_state_measures import StateSequenceMeasure, MeanMeasure, SetComparisonMeasure, \
-    GenericMeasure
+from stonesoup.non_state_measures import StateSequenceMeasure, MeanMeasure, SetComparisonMeasure
 from stonesoup.dataassociator.tracktotrack import OneToOneTrackAssociator
-from stonesoup.measures import Euclidean
+from stonesoup.measures import Euclidean, BaseMeasure
 from stonesoup.plotter import Plotterly
 from stonesoup.types.state import State
 from stonesoup.types.track import Track
@@ -23,12 +28,11 @@ colours = ["darkgreen", "firebrick", "gold", "mediumvioletred", "dodgerblue", "b
 # %%
 # One-to-One States Association Example
 # ---------------------------------------
-# The :class:`~.OneToOneAssociator` can be used for associating states with the appropriate
-# :attr:`~.OneToOneAssociator.measure` function. Consider the scenario having two conflicting sources
-# reporting the location of objects. An associator can be used to judge where multiple sensors are
-# observing the same object. For simplicity a standard :class:`~.State` with no uncertainty
-# information is used. This means the :class:`~.Euclidean` metric is appropriate to compare the
-# states.
+# In this example the :class:`~.OneToOneAssociator` is used to associate :class:`~.State` objects.
+# Consider the scenario having two conflicting sources reporting the location of objects. An
+# associator can be used to judge where multiple sensors are observing the same object. For
+# simplicity a standard :class:`~.State` with no uncertainty information is used. This means the
+# :class:`~.Euclidean` metric is appropriate to compare the states.
 
 
 # %%
@@ -36,7 +40,7 @@ colours = ["darkgreen", "firebrick", "gold", "mediumvioletred", "dodgerblue", "b
 # ^^^^^^^^^^^^^^^^
 
 # %%
-# We have states from source A and source B marked as `states_from_a` and `states_from_b`
+# We have states from source A and source B marked as ``states_from_a`` and ``states_from_b``
 # respectively.
 states_from_a = [State([1, 5]), State([0, 5]), State([1, 0]), State([2, 2]), State([4, 3]),
                  State([8, 6])]
@@ -47,7 +51,8 @@ state_names = {**{state: f"state a{idx}" for idx, state in enumerate(states_from
                **{state: f"state b{idx}" for idx, state in enumerate(states_from_b)}}
 
 # %%
-# Visualise the scenario
+# Next, use Plotly to visualise the scenario, with source A states shown in green crosses and
+# source B states shown in red circles:
 colours_iter = iter(colours)
 
 plotter = Plotterly()
@@ -62,7 +67,7 @@ plotter.plot_tracks(tracks=[Track(state) for state in states_from_b],
 plotter.fig
 
 # %%
-# This scenario has been created so it’s not immediately clear which states should be associated
+# This scenario has been created, so it’s not immediately clear which states should be associated
 # to each other.
 
 # %%
@@ -71,17 +76,19 @@ plotter.fig
 
 # %%
 # **Create Associator**.
-# Create an :class:`~.OneToOneAssociator` which can associate :class:`~.State` objects. The
+# Create a :class:`~.OneToOneAssociator` which can associate :class:`~.State` objects. The
 # :class:`~.Euclidean` metric is used to compare the objects.
 state_associator = OneToOneAssociator(measure=Euclidean(mapping=[0, 1]),
                                       maximise_measure=False,
                                       association_threshold=3)
 
 # %%
-# **Associate States**.
-# The :class:`~.OneToOneAssociator` will minimise the total measure, in this case Euclidean
-# distance between pairs of objects. For pairs of objects with a measure equal to or above the
-# :attr:`~.OneToOneAssociator.threshold`, these pairs won’t be associated together.
+# **Associate States**. The :class:`~.OneToOneAssociator` will minimise the total measure
+# (:class:`~.Euclidean` distance) between the two states. The ``OneToOneAssociator`` uses scipy's
+# :func:`~.scipy.optimize.linear_sum_assignment` function (a modified Jonker-Volgenant algorithm)
+# to minimise the distance. For pairs of objects with a distance equal to or above the threshold,
+# these pairs won’t be associated together.
+#
 associations, unassociated_states_a, unassociated_states_b = \
     state_associator.associate(states_from_a, states_from_b)
 
@@ -89,7 +96,7 @@ associations, unassociated_states_a, unassociated_states_b = \
 # %%
 # Results of State Association
 # ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-# The results will be visualised and printed
+# The results are visualised below using Plotly:
 
 colours_iter = iter(colours)
 plotter = Plotterly()
@@ -108,6 +115,11 @@ for idx, assoc in enumerate(associations.associations):
     plotter.plot_tracks(track, mapping=[0, 1], mode="markers",
                         track_label=f"{state_names[state_from_b]}, Association {idx}",
                         marker=dict(symbol="circle", color=colour))
+
+    track = Track([state_from_a, state_from_b], init_metadata=dict(association=idx))
+    plotter.plot_tracks(track, mapping=[0, 1], mode="lines",
+                        track_label=f"Association {idx}",
+                        line=dict(color=colour))
 
     dist_between_states = Euclidean()(state_from_a, state_from_b)
     print(f"State {list(state_from_a.state_vector)} from source A is associated to state "
@@ -133,6 +145,10 @@ for state in unassociated_states_b:
                         track_label=f"{state_names[state]}, No Association",
                         mode="markers", marker=dict(symbol="circle", color=colour))
 
+# %%
+# The plot below shows the states. Source A states are shown with crosses and source B states are
+# shown with circles. Associations are shown by matching colours and lines between the states.
+
 plotter.fig
 
 # %%
@@ -146,12 +162,13 @@ plotter.fig
 # Track to Track Association Example
 # -----------------------------------
 # This example demonstrates the ability of the :class:`~.OneToOneTrackAssociator` to associate
-# tracks together.
+# tracks together. This can be used in Track to Track Fusion.
 
 # %%
 # Create Tracks
 # ^^^^^^^^^^^^^^^^
-# Six tracks are created and are plotted.
+# Six tracks are created that represent three tracks from each source ‘A’ and ‘B’. These tracks
+# represent a varied scenario for a track association algorithm.
 
 start_time = datetime.datetime(2023, 1, 1, 0, 0, 0)
 
@@ -160,8 +177,7 @@ track_a1 = Track(states=[State(state_vector=[[i], [i]],
                          for i in range(10)],
                  id="Track a1")
 
-track_b1 = Track(states=[State(state_vector=[[0], [0]], timestamp=start_time)] +
-                        [State(state_vector=[[i + 2], [i + 2.3]],
+track_b1 = Track(states=[State(state_vector=[[i + 0], [i + 1]],
                                timestamp=start_time + datetime.timedelta(seconds=i))
                          for i in range(1, 7)], id="Track b1")
 
@@ -175,7 +191,7 @@ track_b2 = Track(states=[State(state_vector=[[6 - i/6], [i]],
                          for i in range(10)],
                  id="Track b2")
 
-track_b3 = Track(states=[State(state_vector=[[i+0.1], [i]],
+track_b3 = Track(states=[State(state_vector=[[i+0.5], [i]],
                                timestamp=start_time + datetime.timedelta(seconds=i + 20))
                          for i in range(10)],
                  id="Track b3")
@@ -189,7 +205,8 @@ tracks_a = {track_a1, track_a2, track_a3}
 tracks_b = {track_b1, track_b2, track_b3}
 
 # %%
-# Plot the tracks.
+# The tracks are plotted. As before, we use different colours to separate ``tracks_a`` from
+# ``tracks_b``.
 colours_iter = iter(colours)
 
 plotter = Plotterly()
@@ -267,7 +284,7 @@ plotter.fig
 
 
 # %%
-# Generic Association Example
+# Word Association Example
 # -----------------------------------
 # The association algorithm can be used to associate many things. In this example we'll associate
 # words to demonstrate the versatility of the algorithm.
@@ -275,17 +292,18 @@ plotter.fig
 # %%
 # In the example scenario an application can only accept standard colour names. However, the user
 # interface also accepts CCS colours. The association algorithm  must try to match the user's
-# input to a 'standard' colour. The 'standard' colours the application can use.
+# input to a 'standard' colour. The 'standard' colours the application can use are:
 standard_colours = ["White", "Black", "Yellow", "Red", "Blue", "Green", "Orange", "Purple",
                     "Grey"]
+
 
 # %%
 # Measure 1 - Example 1
 # ^^^^^^^^^^^^^^^^^^^^^^^
 # ``WordMeasure`` is a crude measure to compare how similar words are. It calculates the
-# number of letters that both words have in common and then divides it by the total number of
+# number of letters that both words have in common and divides by the total number of
 # unique letters.
-class WordMeasure(GenericMeasure):
+class WordMeasure(BaseMeasure):
     def __call__(self, word_1: str, word_2: str) -> float:
         return SetComparisonMeasure()(set(word_1.lower()), set(word_2.lower()))
 
@@ -295,12 +313,15 @@ class WordMeasure(GenericMeasure):
 received_colours_scheme = ["FloralWhite", "LightGreen", "Magenta"]
 
 # %%
-# The association process
+# The association process:
 associator = OneToOneAssociator(measure=WordMeasure(),
                                 maximise_measure=True,
                                 association_threshold=0.3)
 
 association_dict = associator.association_dict(standard_colours, received_colours_scheme)
+
+# %%
+# Print association results
 
 print("Received Colour:\tAssociated Standard Colour")
 for received_colour in received_colours_scheme:
@@ -316,27 +337,34 @@ for received_colour in received_colours_scheme:
 # ^^^^^^^^^^^^^^^^^^^^^^^
 # ``BetterWordMeasure`` looks for words that are identical or is a word/phrase is contained within
 # another word/phrase.
-class BetterWordMeasure(GenericMeasure):
+class MatchingWordMeasure(BaseMeasure):
+    PERFECT_MATCH = 1.0
+    PARTIAL_MATCH = 0.5
+    NO_MATCH = 0.0
+
     def __call__(self, word_1: str, word_2: str) -> float:
         word_1 = word_1.lower()
         word_2 = word_2.lower()
 
         if word_1 == word_2:
-            return 1.0
+            return self.PERFECT_MATCH
         elif word_1 in word_2 or word_2 in word_1:
-            return 0.5
+            return self.PARTIAL_MATCH
         else:
-            return 0.0
+            return self.NO_MATCH
 
 
 # %%
 # The association process
-associator = OneToOneAssociator(measure=BetterWordMeasure(),
+associator = OneToOneAssociator(measure=MatchingWordMeasure(),
                                 maximise_measure=True,
-                                association_threshold=0.3
+                                association_threshold=0.3  # Just below PARTIAL_MATCH
                                 )
 
 association_dict = associator.association_dict(standard_colours, received_colours_scheme)
+
+# %%
+# Print association results
 
 print("Received Colour:\tAssociated Standard Colour")
 for received_colour in received_colours_scheme:
@@ -352,7 +380,18 @@ received_colours_scheme = ["LightSeaGreen", "OrangeRed", "MediumVioletRed"]
 
 association_dict = associator.association_dict(standard_colours, received_colours_scheme)
 
+# %%
+# Print association results
+
 print("Received Colour:\tAssociated Standard Colour")
 for received_colour in received_colours_scheme:
     standard_colour = association_dict[received_colour]
     print(received_colour, "matched with: \t", standard_colour)
+
+# %%
+# **Summary**
+#
+# The :class:`~.OneToOneAssociator` can be used for multiple varied purposes. It was created
+# originally for track association but can be used to associate anything. The examples above show
+# its use in associating :class:`~.StateMutualSequence`, :class:`~.State` and :class:`str`.
+# It’s a flexible association class that can be tailored for the scenario.

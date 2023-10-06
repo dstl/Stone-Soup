@@ -1,11 +1,11 @@
-from typing import Tuple, Collection
+from typing import Tuple, Collection, Union
 
 import numpy as np
 from scipy.optimize import linear_sum_assignment
 
 from ..base import Property
 from ..dataassociator.base import Associator
-from ..non_state_measures import GenericMeasure
+from ..measures import Measure, BaseMeasure
 from ..types.association import Association, AssociationSet
 
 
@@ -22,7 +22,7 @@ class OneToOneAssociator(Associator):
     Infinity can't be used, as it breaks the association algorithm.
     """
 
-    measure: GenericMeasure = Property(
+    measure: Union[BaseMeasure, Measure] = Property(
         doc="This will compare two objects that could be associated together and will provide an "
             "indication of the separation between the objects.")
     association_threshold: float = Property(
@@ -46,7 +46,9 @@ class OneToOneAssociator(Associator):
 
     def associate(self, objects_a: Collection, objects_b: Collection) \
             -> Tuple[AssociationSet, Collection, Collection]:
-        """Associate two collections of objects together.
+        """Associate two collections of objects together. Calculate the measure between each
+         object. :func:`~scipy.optimize.linear_sum_assignment` is used to find
+         the minimum (or maximum) measure by combination objects from two sources.
 
         Parameters
         ----------
@@ -68,6 +70,7 @@ class OneToOneAssociator(Associator):
         list_of_as = list(objects_a)
         list_of_bs = list(objects_b)
 
+        # Calculate the measure for each combination of objects
         for i, a in enumerate(list_of_as):
             for j, b in enumerate(list_of_bs):
                 distance_matrix[i, j] = self.individual_weighting(a, b)
@@ -132,8 +135,8 @@ class OneToOneAssociator(Associator):
 
     def association_dict(self, objects_a: Collection, objects_b: Collection) -> dict:
         """
-        This is a wrapper function around the `associate` function. The two collections of objects
-        are associated to each other. The objects are entered into a dictionary:
+        This is a wrapper function around the :func:`~.associate` function. The two collections of
+        objects are associated to each other. The objects are entered into a dictionary:
 
         * The dictionary key is an object from either collection.
         * The value is the object it is associated to. If the key object isn't associated to an

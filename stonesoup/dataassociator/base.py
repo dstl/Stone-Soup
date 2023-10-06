@@ -60,7 +60,7 @@ class Associator(Base):
 
 
 class TrackToTrackAssociator(Associator):
-    """Associates 'n' sets of :class:`~.Track` objects together"""
+    """Associates *n* sets of :class:`~.Track` objects together"""
 
     @abstractmethod
     def associate_tracks(self, *tracks_sets: Set[Track]) \

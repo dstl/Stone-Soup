@@ -1,6 +1,7 @@
 import copy
 from abc import abstractmethod
 from functools import lru_cache
+from typing import Any
 
 import numpy as np
 from scipy.spatial import distance
@@ -9,7 +10,33 @@ from .base import Base, Property
 from .types.state import State
 
 
-class Measure(Base):
+class BaseMeasure(Base):
+    """Abstract Measure Base Type
+
+    A measure provides a means to assess the separation between two
+    objects item1 and item2.
+    """
+
+    @abstractmethod
+    def __call__(self, item1: Any, item2: Any) -> float:
+        r"""
+        Compute the distance between a pair of objects
+
+        Parameters
+        ----------
+        item1 : Any
+        item2 : Any
+
+        Returns
+        -------
+        float
+            distance measure between a pair of input objects
+
+        """
+        raise NotImplementedError
+
+
+class Measure(BaseMeasure):
     """Measure base type
 
     A measure provides a means to assess the separation between two
