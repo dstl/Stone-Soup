@@ -372,6 +372,7 @@ def test_gaussian_particle(gaussian_initiator):
 
         assert np.allclose(track.covar, np.array([[1]]), atol=0.4)
 
+
 @pytest.mark.parametrize("gaussian_initiator", [
     SinglePointInitiator(
         GaussianState(np.array([[0]]), np.array([[100]])),
