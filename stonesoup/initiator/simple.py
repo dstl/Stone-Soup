@@ -364,17 +364,17 @@ class GaussianMixtureInitiator(GaussianInitiator):
 
 
 class ASDGaussianInitiator(GaussianInitiator):
-    """Gaussian Mixture Initiator class
+    """ASD Gaussian State Initiator class
 
     Utilising Gaussian Initiator, sample from the resultant track's state
-    to generate a Gaussian Mixture, overwriting with a
-    :class:`~.GaussianMixture`.
+    to generate an ASD Gaussian State, overwriting with a
+    :class:`~.ASDGaussianState`.
     """
 
     initiator: GaussianInitiator = Property(
         doc="Gaussian Initiator which will be used to generate tracks.")
     timestamp: datetime.datetime = Property(
-        doc="Starting timestep attributed to the prior state")
+        doc="Starting timestep attributed to the prior state.")
 
     def __init__(self, *args, **kwargs):
 
@@ -406,7 +406,7 @@ class ASDGaussianInitiator(GaussianInitiator):
         Returns
         -------
         : set of :class:`~.Track`
-            A list of new tracks with an initial :class:`~.GaussianMixture`
+            A list of new tracks with an initial :class:`~.ASDGaussianState`
         """
         tracks = self.initiator.initiate(detections, timestamp, **kwargs)
 
@@ -426,18 +426,17 @@ class ASDGaussianInitiator(GaussianInitiator):
 
 
 class EnsembleInitiator(GaussianInitiator):
-    """Gaussian Mixture Initiator class
+    """Ensemble State Initiator class
 
     Utilising Gaussian Initiator, sample from the resultant track's state
-    to generate a Gaussian Mixture, overwriting with a
-    :class:`~.GaussianMixture`.
+    to generate an Ensemble, overwriting with a
+    :class:`~.EnsembleState`.
     """
 
     initiator: GaussianInitiator = Property(
         doc="Gaussian Initiator which will be used to generate tracks.")
     ensemble_size: int = Property(
-        doc="Integer to determine the size of the Gaussian Ensemble State"
-    )
+        doc="Integer to determine the size of the Gaussian Ensemble State.")
 
     def __init__(self, *args, **kwargs):
 
@@ -451,10 +450,25 @@ class EnsembleInitiator(GaussianInitiator):
         except AttributeError:
             raise AttributeError("No prior state")
 
-        ensemble = StateVectors(self.create_ensemble(state, covar))
+        ensemble = self.create_ensemble(state, covar)
         self.prior_state = EnsembleState(ensemble)
 
     def create_ensemble(self, state, covar):
+        """Generates an ensemble based on a provided single Gaussian State
+
+        Parameters
+        ----------
+        state : array of :class:`~.StateVector`
+            The state from which the ensemble will be sampled.
+        covar: array of :class: '~.CovarianceMatrix'
+            The covariance used to generate the ensemble.
+
+        Returns
+        -------
+        : array of :class:`~.StateVectors`
+            The generated ensemble of new state vectors
+        """
+
         ensemble = []
         std = np.sqrt(covar)
         for _ in range(self.ensemble_size):
@@ -465,7 +479,7 @@ class EnsembleInitiator(GaussianInitiator):
                 else:
                     new_state.append([np.random.normal(state[i], std[i][i])])
             ensemble.append(StateVector(new_state))
-        return ensemble
+        return StateVectors(ensemble)
 
     def initiate(self, detections, timestamp, **kwargs):
         """Initiates tracks given unassociated measurements
@@ -480,14 +494,14 @@ class EnsembleInitiator(GaussianInitiator):
         Returns
         -------
         : set of :class:`~.Track`
-            A list of new tracks with an initial :class:`~.GaussianMixture`
+            A list of new tracks with an initial :class:`~.EnsembleState`
         """
         tracks = self.initiator.initiate(detections, timestamp, **kwargs)
 
         for track in tracks:
             state = track.state_vector
             covar = track.covar
-            ensemble = StateVectors(self.create_ensemble(state, covar))
+            ensemble = self.create_ensemble(state, covar)
 
             track[-1] = EnsembleStateUpdate(
                 state_vector=ensemble,

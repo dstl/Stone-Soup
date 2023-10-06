@@ -24,8 +24,8 @@ from ...types.update import ParticleStateUpdate, Update, GaussianMixtureUpdate, 
     EnsembleStateUpdate
 from ..simple import (
     SinglePointInitiator, SimpleMeasurementInitiator,
-    MultiMeasurementInitiator, GaussianParticleInitiator,
-    GaussianMixtureInitiator, ASDGaussianInitiator, EnsembleInitiator
+    MultiMeasurementInitiator, GaussianParticleInitiator, GaussianMixtureInitiator, ASDGaussianInitiator,
+    EnsembleInitiator
 )
 
 
