@@ -20,12 +20,12 @@ from ...types.detection import Detection, TrueDetection
 from ...types.hypothesis import SingleHypothesis
 from ...types.prediction import Prediction
 from ...types.state import GaussianState
-from ...types.update import ParticleStateUpdate, Update, GaussianMixtureUpdate, ASDGaussianStateUpdate, \
-    EnsembleStateUpdate
+from ...types.update import ParticleStateUpdate, Update, GaussianMixtureUpdate, \
+    ASDGaussianStateUpdate, EnsembleStateUpdate
 from ..simple import (
     SinglePointInitiator, SimpleMeasurementInitiator,
-    MultiMeasurementInitiator, GaussianParticleInitiator, GaussianMixtureInitiator, ASDGaussianInitiator,
-    EnsembleInitiator
+    MultiMeasurementInitiator, GaussianParticleInitiator, GaussianMixtureInitiator,
+    ASDGaussianInitiator, EnsembleInitiator
 )
 
 

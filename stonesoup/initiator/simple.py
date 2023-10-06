@@ -13,11 +13,11 @@ from ..types.hypothesis import SingleHypothesis
 from ..types.mixture import GaussianMixture
 from ..types.numeric import Probability
 from ..types.particle import Particle
-from ..types.state import State, GaussianState, ParticleState, TaggedWeightedGaussianState, ASDGaussianState, \
-    EnsembleState
+from ..types.state import State, GaussianState, ParticleState, TaggedWeightedGaussianState, \
+    ASDGaussianState, EnsembleState
 from ..types.track import Track
-from ..types.update import GaussianStateUpdate, ParticleStateUpdate, Update, GaussianMixtureUpdate, \
-    ASDGaussianStateUpdate, EnsembleStateUpdate
+from ..types.update import GaussianStateUpdate, ParticleStateUpdate, Update, \
+    GaussianMixtureUpdate, ASDGaussianStateUpdate, EnsembleStateUpdate
 from ..updater import Updater
 from ..updater.kalman import ExtendedKalmanUpdater
 
