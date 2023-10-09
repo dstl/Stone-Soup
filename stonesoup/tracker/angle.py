@@ -1,3 +1,4 @@
+from ..feeder.simple import OriginalStateDetectionSpaceFeeder
 from ..tracker.simple import SingleTargetTracker
 from ..types.angle import Elevation, Bearing
 

@@ -47,14 +47,15 @@ class OriginalStateDetectionSpaceFeeder(IterDetectionFeeder):
 
     ndim_state: int = Property(default=None,
                                doc="Number of state dimensions position and velocity for detection"
-                                   "state space. Using None, takes this from the measurement model")
+                                   "state space. Using None, takes this from the measurement model"
+                               )
     mapping: List[int] = Property(default=None, doc="Index of position components in the state")
 
     def convert_detection(self, a_detection: Detection) -> Detection:
         new_detection = copy.deepcopy(a_detection)
 
         new_detection.measurement_model = LinearGaussian(
-                ndim_state=self.ndim_state or a_detection.measurement_model.ndim_state,  # Number of
+                ndim_state=self.ndim_state or a_detection.measurement_model.ndim_state,
                 mapping=self.mapping or a_detection.measurement_model.mapping,
                 noise_covar=a_detection.measurement_model.noise_covar
         )
@@ -77,5 +78,6 @@ class OriginalStateDetectionSpaceFeeder2D(OriginalStateDetectionSpaceFeeder):
 
     ndim_state: int = Property(default=4,
                                doc="Number of state dimensions position and velocity for detection"
-                                   "state space. Using None, takes this from the measurement model")
+                                   "state space. Using None, takes this from the measurement model"
+                               )
     mapping: List[int] = Property(default=(0, 2), doc="Index of position components in the state")

@@ -19,7 +19,6 @@ from ....functions import rotz, rotx, roty, cart2sphere
 from ....types.angle import Bearing, Elevation
 from ....types.array import StateVector, StateVectors
 from ....types.state import State, CovarianceMatrix, GaussianState, ParticleState
-from ....types.particle import Particles
 
 
 def h1d(state_vector, pos_map, translation_offset, rotation_offset):

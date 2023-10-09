@@ -12,7 +12,7 @@ from ...types.numeric import Probability
 
 from ...functions import cart2pol, pol2cart, \
     cart2sphere, sphere2cart, cart2angles, \
-    rotx, roty, rotz, build_rotation_matrix, cartrate2sphererate, sphererate2cartrate,\
+    build_rotation_matrix, cartrate2sphererate, sphererate2cartrate,\
     jacobian as compute_jacobian
 from ...types.array import StateVector, CovarianceMatrix, StateVectors
 from ...types.angle import Bearing, Elevation

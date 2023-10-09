@@ -7,7 +7,7 @@ from pytest import approx, raises
 from .. import (
     cholesky_eps, jacobian, gm_reduce_single, mod_bearing, mod_elevation, gauss2sigma,
     rotx, roty, rotz, cart2sphere, cart2angles, pol2cart, sphere2cart, dotproduct,
-    cartrate2sphererate, sphererate2cartrate
+    cartrate2sphererate, sphererate2cartrate, gm_sample
 )
 from ...types.array import StateVector, StateVectors, Matrix
 from ...types.state import State, GaussianState
