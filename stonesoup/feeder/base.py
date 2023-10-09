@@ -1,9 +1,16 @@
 """Base classes for Stone Soup feeder"""
+import datetime
 from abc import abstractmethod
+from typing import Tuple, Set
 
 from ..base import Property
-from ..reader import Reader, DetectionReader, GroundTruthReader
 from ..buffered_generator import BufferedGenerator
+from ..reader import Reader, DetectionReader, GroundTruthReader
+from ..types.detection import Detection
+from ..types.track import Track
+
+DetectionOutput = Tuple[datetime.datetime, Set[Detection]]
+TrackOutput = Tuple[datetime.datetime, Set[Track]]
 
 
 class Feeder(Reader):

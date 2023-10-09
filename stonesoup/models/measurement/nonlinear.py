@@ -1,23 +1,23 @@
-from abc import ABC
 import copy
+from abc import ABC
+from math import sqrt
 from typing import Sequence, Tuple, Union
 
-from math import sqrt
 import numpy as np
 from scipy.linalg import inv, pinv, block_diag
 from scipy.stats import multivariate_normal
 
+from .base import MeasurementModel
+from ..base import LinearModel, GaussianModel, ReversibleModel
 from ...base import Property, clearable_cached_property
-from ...types.numeric import Probability
-
 from ...functions import cart2pol, pol2cart, \
     cart2sphere, sphere2cart, cart2angles, \
-    build_rotation_matrix, cartrate2sphererate, sphererate2cartrate,\
+    build_rotation_matrix, sphererate2cartrate, cartrate2sphererate, \
     jacobian as compute_jacobian
-from ...types.array import StateVector, CovarianceMatrix, StateVectors
 from ...types.angle import Bearing, Elevation
-from ..base import LinearModel, GaussianModel, ReversibleModel
-from .base import MeasurementModel
+from ...types.array import StateVector, CovarianceMatrix, StateVectors
+from ...types.numeric import Probability
+from ...types.state import GaussianState, State
 
 
 class CombinedReversibleGaussianMeasurementModel(ReversibleModel, GaussianModel, MeasurementModel):
@@ -943,9 +943,9 @@ class CartesianToElevationBearingRangeRate(NonLinearGaussianMeasurement, Reversi
         x, y, z = sphere2cart(rho, phi, theta)
         # because only rho_rate is known, only the components in
         # x,y and z of the range rate can be found.
-        x_rate = np.cos(phi) * np.cos(theta) * rho_rate
-        y_rate = np.cos(phi) * np.sin(theta) * rho_rate
-        z_rate = np.sin(phi) * rho_rate
+        x_rate = np.cos(theta) * np.cos(phi) * rho_rate
+        y_rate = np.cos(theta) * np.sin(phi) * rho_rate
+        z_rate = np.sin(theta) * rho_rate
 
         inv_rotation_matrix = inv(self.rotation_matrix)
 
@@ -958,6 +958,8 @@ class CartesianToElevationBearingRangeRate(NonLinearGaussianMeasurement, Reversi
             inv_rotation_matrix @ out_vector[self.velocity_mapping, :]
 
         out_vector[self.mapping, :] = out_vector[self.mapping, :] + self.translation_offset
+        out_vector[self.velocity_mapping, :] = out_vector[self.velocity_mapping, :] + \
+            self.velocity
 
         return out_vector
 
@@ -1157,9 +1159,9 @@ class CartesianRateToElevationRateBearingRateRangeRate(NonLinearGaussianMeasurem
 
         return 6
 
-    @property
-    def _rotation_matrix(self) -> np.ndarray:
-        """_rotation_matrix getter method
+    @clearable_cached_property('rotation_offset')
+    def rotation_matrix(self) -> np.ndarray:
+        """rotation_matrix getter method
 
         Calculates and returns the (3D) axis rotation matrix for full 3d 6-state state vector of
         position and velocity.
@@ -1198,10 +1200,11 @@ class CartesianRateToElevationRateBearingRateRangeRate(NonLinearGaussianMeasurem
         xyz = state.state_vector[self.mapping, :] - self.translation_offset
 
         # Rotate coordinates
-        xyz_rot = self._rotation_matrix @ xyz
+        xyz_rot = self.rotation_matrix @ xyz
 
         # Convert to Spherical
-        theta, dtheta, phi, dphi, rho, drho = cartrate2sphererate(*xyz_rot)
+        theta, dtheta, phi, dphi, rho, drho = cartrate2sphererate(*(xyz_rot[i, :]
+                                                                    for i in range(6)))
         elevations = [Elevation(i) for i in np.atleast_1d(theta)]
         bearings = [Bearing(i) for i in np.atleast_1d(phi)]
         rhos = np.atleast_1d(rho)
@@ -1226,23 +1229,23 @@ class CartesianRateToElevationRateBearingRateRangeRate(NonLinearGaussianMeasurem
         :class:`numpy.ndarray` of shape (:py:attr:`~ndim_state`, 1)
             The inverse model function evaluated given the provided time interval.
         """
-        theta, dtheta, phi, dphi, rho, drho = state.state_vector
+        # theta, dtheta, phi, dphi, rho, drho = state.state_vector
         xyz = StateVectors(sphererate2cartrate(
-            np.atleast_1d(theta),
-            np.atleast_1d(dtheta),
-            np.atleast_1d(phi),
-            np.atleast_1d(dphi),
-            np.atleast_1d(rho),
-            np.atleast_1d(drho)))
+            np.atleast_1d(state.state_vector[0, :]),
+            np.atleast_1d(state.state_vector[1, :]),
+            np.atleast_1d(state.state_vector[2, :]),
+            np.atleast_1d(state.state_vector[3, :]),
+            np.atleast_1d(state.state_vector[4, :]),
+            np.atleast_1d(state.state_vector[5, :])))
 
-        xyz = inv(self._rotation_matrix) @ xyz
+        xyz = inv(self.rotation_matrix) @ xyz
 
         res = xyz
         res[self.mapping, :] = xyz[self.mapping, :] + self.translation_offset
 
         return res
 
-    def cart2ebr(self, state):
+    def cart2ebr(self, state: State):
         """Conversion of Cartesian state to Spherical State function
 
         Parameters
@@ -1254,15 +1257,16 @@ class CartesianRateToElevationRateBearingRateRangeRate(NonLinearGaussianMeasurem
         -------
         :class:`~.State` in Spherical polar.
         """
-
-        new_state = copy.deepcopy(state)
+        # TODO: Check conversion with tests
+        new_state = State.from_state(state)
         new_sv = self.function(state, noise=False)
         new_sv[0] = Elevation(new_sv[0])
         new_sv[2] = Bearing(new_sv[2])
-        J = self.jacobian(state)
-        new_covar = J @ state.covar @ J.T
         new_state.state_vector = new_sv
-        new_state.covar = new_covar
+        if isinstance(state, GaussianState):
+            J = self.jacobian(state)
+            new_covar = J @ state.covar @ J.T
+            new_state.covar = new_covar
         return new_state
 
     def ebr2cart(self, state):
@@ -1277,13 +1281,14 @@ class CartesianRateToElevationRateBearingRateRangeRate(NonLinearGaussianMeasurem
         -------
         :class:`~.State` in Spherical polar.
         """
-
-        new_state = copy.deepcopy(state)
+        # TODO: Check conversion with tests
+        new_state = State.from_state(state)
         new_sv = self.inverse_function(state, noise=False)
-        J = self.jacobian(state, self.inverse_function)
-        new_covar = J @ state.covar @ J.T
         new_state.state_vector = new_sv
-        new_state.covar = new_covar
+        if isinstance(state, GaussianState):
+            J = self.jacobian(state, self.inverse_function)
+            new_covar = J @ state.covar @ J.T
+            new_state.covar = new_covar
         return new_state
 
     def jacobian(self, state, function=None, **kwargs):

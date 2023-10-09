@@ -1,83 +1,63 @@
 import copy
+import datetime
 from abc import abstractmethod
-from typing import Iterable, List
+from typing import Iterable, List, Tuple
 
 from ..base import Property
 from ..buffered_generator import BufferedGenerator
 from ..feeder import Feeder
-from stonesoup.feeder.base import DetectionFeeder
-from stonesoup.types.detection import Detection
-from stonesoup.models.measurement.linear import LinearGaussian
+from .base import DetectionFeeder, GroundTruthFeeder, DetectionOutput, Feeder
 
 
 class SimpleFeeder(Feeder):
-    """Simple data feeder
-
-    Creates a generator from an iterable.
+    """
+    A wrapper around an iterable. This is wrapper is used if you only want a feeder to be used once
     """
     reader: Iterable = Property(doc="Source of states")
+    # reader is of 'iterable' type - something you can iterate over
 
     @BufferedGenerator.generator_method
     def data_gen(self):
+        """
+        Buffered generator takes this function and gives SimpleFeeder an iterable call.
+        Allows user to use instantiation of class as an iterable
+        ie: for item in simpleFeeder: ...
+        Calling this function will return every item in reader.
+        """
         for item in self.reader:
             yield item
 
 
-class IterDetectionFeeder(DetectionFeeder):
+class IterFeeder(DetectionFeeder, GroundTruthFeeder):
+    """Base class for other iterating detection feeders
 
+    """
     def __iter__(self):
         return self
 
     @abstractmethod
-    def __next__(self):
+    def __next__(self) -> Tuple[datetime.datetime, set]:
+        """Abstract method for going to the next item
+
+        This makes it a requirement for any future __next__ to output something
+        that is of type Tuple[datetime.datetime, set].
+        """
         ...
 
     @BufferedGenerator.generator_method
     def data_gen(self):
-        detection_iter = iter(self)
-        for time, detections in detection_iter:
-            yield (time, detections)
+        """allows object to be an iterable
+
+        will yield the detection time and detection for each
+        detection in the Feeder
+        """
+        feeder_iter = iter(self)
+        for time, items in feeder_iter:
+            yield time, items
 
 
-class OriginalStateDetectionSpaceFeeder(IterDetectionFeeder):
+class IterDetectionFeeder(IterFeeder):
 
-    reader: DetectionFeeder = Property(doc="Source of detections")
-
-    measurement_model_key = "original measurement model"
-
-    ndim_state: int = Property(default=None,
-                               doc="Number of state dimensions position and velocity for detection"
-                                   "state space. Using None, takes this from the measurement model"
-                               )
-    mapping: List[int] = Property(default=None, doc="Index of position components in the state")
-
-    def convert_detection(self, a_detection: Detection) -> Detection:
-        new_detection = copy.deepcopy(a_detection)
-
-        new_detection.measurement_model = LinearGaussian(
-                ndim_state=self.ndim_state or a_detection.measurement_model.ndim_state,
-                mapping=self.mapping or a_detection.measurement_model.mapping,
-                noise_covar=a_detection.measurement_model.noise_covar
-        )
-        new_detection.metadata[self.measurement_model_key] = a_detection.measurement_model
-
-        return new_detection
-
-    def __iter__(self):
-        self.reader_iter = iter(self.reader)
-        return self
-
-    def __next__(self):
-        time, detections = next(self.reader_iter)
-        new_detections = set([self.convert_detection(a_detection) for a_detection in detections])
-
-        return time, new_detections
-
-
-class OriginalStateDetectionSpaceFeeder2D(OriginalStateDetectionSpaceFeeder):
-
-    ndim_state: int = Property(default=4,
-                               doc="Number of state dimensions position and velocity for detection"
-                                   "state space. Using None, takes this from the measurement model"
-                               )
-    mapping: List[int] = Property(default=(0, 2), doc="Index of position components in the state")
+    @abstractmethod
+    def __next__(self) -> DetectionOutput:
+        ...
