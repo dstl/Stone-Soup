@@ -6,7 +6,6 @@ import pytest
 from scipy.spatial import distance
 
 from .. import measures
-from ..measures import ObservationAccuracy
 from ..types.array import StateVector, CovarianceMatrix
 from ..types.state import GaussianState, State
 
@@ -61,7 +60,7 @@ def test_hellinger():
 
 
 def test_observation_accuracy():
-    measure = ObservationAccuracy()
+    measure = measures.ObservationAccuracy()
     for _ in range(5):
         TP = np.random.random()
         TN = 1 - TP

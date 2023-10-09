@@ -70,7 +70,7 @@ class StateSequenceMeasure(MultipleMeasure):
         if times_to_measure is None:
             track_1_times = {state.timestamp for state in state_sequence_1.states}
             track_2_times = {state.timestamp for state in state_sequence_2.states}
-            times_to_measure = track_1_times & track_2_times
+            times_to_measure = sorted(track_1_times & track_2_times)
 
             if len(times_to_measure) == 0:
                 warnings.warn("No measures are calculated as there are not any times that match "
@@ -85,11 +85,12 @@ class StateSequenceMeasure(MultipleMeasure):
 class RecentStateSequenceMeasure(MultipleMeasure):
     """
     Applies a state measure to each state in the state sequence with for the most recent *n*
+    matching times. It will return less than ``n_states_to_compare`` values if there are less
     matching times.
     """
 
     state_measure: Measure = Property(doc="The measure used to compare individual states.")
-    n_states_to_compare: int = Property(doc="How states should be compared.")
+    n_states_to_compare: int = Property(doc="Maximum number of states to be compared.")
 
     def __call__(self, state_sequence_1: StateMutableSequence,
                  state_sequence_2: StateMutableSequence) -> List[float]:
@@ -107,7 +108,8 @@ class RecentStateSequenceMeasure(MultipleMeasure):
         Returns
         -------
         float
-            a list of distance measures between a states in the state sequence inputs.
+            a list of distance measures between a states in the state sequence inputs. These are
+            returned in ascending state time order.
 
         """
 
@@ -117,6 +119,9 @@ class RecentStateSequenceMeasure(MultipleMeasure):
         times_in_both = track_1_times & track_2_times
 
         times_to_measure = heapq.nlargest(self.n_states_to_compare, times_in_both)
+
+        # Not strictly needed but means output will be in ascending time order
+        times_to_measure = list(reversed(times_to_measure))
 
         state_sequence_measure = StateSequenceMeasure(self.state_measure)
         return state_sequence_measure(state_sequence_1, state_sequence_2, times_to_measure)

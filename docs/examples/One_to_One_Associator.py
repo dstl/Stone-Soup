@@ -242,7 +242,7 @@ plotter.fig
 # The ``full_state_sequence_measure`` (:class:`~.StateSequenceMeasure`) measure will apply the
 # Euclidean state measure to each state in the tracks, with the same time. This produces a multiple
 # measures for each state.
-full_state_sequence_measure = StateSequenceMeasure(measure=Euclidean(mapping=[0, 1]))
+full_state_sequence_measure = StateSequenceMeasure(state_measure=Euclidean(mapping=[0, 1]))
 
 # %%
 # ``track_measure`` (:class:`~.MeanMeasure`) will take the multiple measures from
