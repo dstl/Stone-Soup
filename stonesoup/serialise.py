@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """Provides an ability to serialise Stone Soup objects into and from YAML.
 
 Stone Soup utilises YAML_ for serialisation. The :doc:`stonesoup.base`

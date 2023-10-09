@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-# coding: utf-8
 """
 Video processing, Object detection & Tracking
 ==============================================
@@ -11,7 +10,7 @@ Video processing, Object detection & Tracking
 # This notebook will guide you progressively through the steps necessary to:
 #
 # 1. Use the Stone Soup :class:`~.FrameReader` components to open and process video data;
-# 2. Use the :class:`~.TensorFlowBoxObjectDetector` to detect objects in video data, making use of Tensorflow object detection models;
+# 2. Use the :class:`~.TensorFlowBoxObjectDetector` to detect objects in video data, making use of TensorFlow object detection models;
 # 3. Build a :class:`~.MultiTargetTracker` to perform tracking of multiple object in video data.
 #
 # .. _MoviePy: https://zulko.github.io/moviepy/index.html
@@ -79,7 +78,7 @@ Video processing, Object detection & Tracking
 # Download and store the video
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 # First we will download the video that we will use throughout this tutorial. The code snippet
-# shown bellow will download the video and save it your working directory as ``sample1.mp4``.
+# shown below will download the video and save it your working directory as ``sample1.mp4``.
 
 import os
 from pytube import YouTube
@@ -89,7 +88,7 @@ VIDEO_PATH = os.path.join(os.getcwd(), VIDEO_FILENAME+VIDEO_EXTENTION)
 
 if not os.path.exists(VIDEO_PATH):
     yt = YouTube('http://www.youtube.com/watch?v=MNn9qKG2UFI')
-    yt.streams[0].download(filename=VIDEO_FILENAME)
+    yt.streams.get_by_itag(18).download(filename=VIDEO_PATH)
 
 # %%
 # Building the video reader
@@ -181,7 +180,7 @@ ani = animation.ArtistAnimation(fig, artists, interval=20, blit=True, repeat_del
 # :class:`~.TensorFlowBoxObjectDetector` can utilise both pre-trained and custom-trained TensorFlow
 # object detection models which generate detection in the form of bounding boxes. In this example,
 # we will make use of a pre-trained model from the
-# `TensorFlow detection model zoo <https://github.com/tensorflow/models/blob/master/research/object_detection/g3doc/detection_model_zoo.md>`_,
+# `TensorFlow detection model zoo <https://github.com/tensorflow/models/blob/master/research/object_detection/g3doc/tf2_detection_zoo.md>`_,
 # but the process of using a custom-trained TensorFlow model is the same.
 
 # %%
@@ -470,8 +469,8 @@ from stonesoup.deleter.time import UpdateTimeStepsDeleter
 prior_state = GaussianState(StateVector(np.zeros((6,1))),
                             CovarianceMatrix(np.diag([100**2, 30**2, 100**2, 30**2, 100**2, 100**2])))
 deleter_init = UpdateTimeStepsDeleter(time_steps_since_update=3)
-initiator = MultiMeasurementInitiator(prior_state, measurement_model, deleter_init,
-                                      data_associator, updater, min_points=10)
+initiator = MultiMeasurementInitiator(prior_state, deleter_init, data_associator, updater,
+                                      measurement_model, min_points=10)
 
 # %%
 # Track Deletion

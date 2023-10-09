@@ -41,7 +41,8 @@ def test_distance(predictor, updater, detections, gate_threshold, num_gated):
 
     timestamp = datetime.datetime.now()
 
-    hypothesiser = PDAHypothesiser(predictor, updater, clutter_spatial_density=0.000001)
+    hypothesiser = PDAHypothesiser(
+        predictor, updater, clutter_spatial_density=0.000001, include_all=True)
     gater = DistanceGater(hypothesiser, measure=measure, gate_threshold=gate_threshold)
 
     track = Track([GaussianStateUpdate(

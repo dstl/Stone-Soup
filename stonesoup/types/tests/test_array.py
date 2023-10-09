@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 import numpy as np
 import pytest
 
@@ -35,6 +34,17 @@ def test_statevectors():
     assert np.array_equal(svs1, vecs1)
     assert np.array_equal(svs2, vecs1)
     assert svs3.shape != vecs1.shape
+
+    for sv in svs2:
+        assert isinstance(sv, StateVector)
+
+
+def test_statevectors_mean():
+    svs = StateVectors([[1., 2., 3.], [4., 5., 6.]])
+    mean = StateVector([[2., 5.]])
+
+    assert np.allclose(np.average(svs, axis=1), mean)
+    assert np.allclose(np.mean(svs, axis=1, keepdims=True), mean)
 
 
 def test_standard_statevector_indexing():

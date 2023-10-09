@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 import pytest
 import numpy as np
 
@@ -39,6 +37,9 @@ def measurement_model():
 @pytest.fixture()
 def sensor_model1():
     class TestSensor(Sensor):
+        @property
+        def measurement_model(self):
+            raise NotImplementedError
 
         def measure(self, ground_truths):
             detections = set()
@@ -51,6 +52,9 @@ def sensor_model1():
 @pytest.fixture()
 def sensor_model2():
     class TestSensor(Sensor):
+        @property
+        def measurement_model(self):
+            raise NotImplementedError
 
         def measure(self, ground_truths):
             detections = set()

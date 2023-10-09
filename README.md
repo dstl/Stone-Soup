@@ -15,8 +15,6 @@ estimation algorithms.
 
 An article is [available](https://www.gov.uk/government/news/dstl-shares-new-open-source-framework-initiative) that details the background to the project, and contains links to sample data.
 
-Stone Soup is currently in *beta*.
-
 Please see the
 [Stone Soup documentation](https://stonesoup.readthedocs.org/) for more
 information.
@@ -31,7 +29,7 @@ Stone Soup uses the following dependencies:
 
 | Name | License |
 | ---- | ------- |
-| [Python](https://www.python.org/) (v3.7+) | PSFL |
+| [Python](https://www.python.org/) (v3.8+) | PSFL |
 | [numpy](https://numpy.org/) | BSD |
 | [SciPy](https://www.scipy.org/) | BSD |
 | [matplotlib](https://matplotlib.org/) | [PSF/BSD-compatible](https://matplotlib.org/users/license.html) |

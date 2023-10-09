@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 from typing import List, Any
 
 import pytest
@@ -10,6 +9,18 @@ def test_properties(base):
     assert 'property_a' in base.properties
     assert base(1, "2").property_a == 1
     assert base(1, "2").property_c == 123
+
+    with pytest.raises(TypeError, match="too many positional arguments"):
+        base(1, 2, 3, 4, 5)
+
+    with pytest.raises(TypeError, match="multiple values for argument 'property_a'"):
+        base(1, "2", property_a=2)
+
+    with pytest.raises(TypeError, match="missing a required argument: 'property_b'"):
+        base(1)
+
+    with pytest.raises(TypeError, match="got an unexpected keyword argument 'property_d'"):
+        assert base(1, "2", property_d=True)
 
 
 def test_subclass(base):
@@ -320,16 +331,6 @@ def test_type_hint_checking():
     class TestClass(Base):
         i = Property(List[int], doc='Test')
     _ = TestClass(i=1)
-
-    with pytest.raises(ValueError):
-        class TestClass(Base):
-            i: 'string' = Property(doc='Test')  # noqa: F821
-        _ = TestClass(i=1)
-
-    with pytest.raises(ValueError):
-        class TestClass(Base):
-            i = Property('string', doc='Test')
-        _ = TestClass(i=1)
 
     # errors for any
     with pytest.raises(ValueError):

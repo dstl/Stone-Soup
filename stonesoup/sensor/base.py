@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 from abc import ABC
 from typing import Optional
 

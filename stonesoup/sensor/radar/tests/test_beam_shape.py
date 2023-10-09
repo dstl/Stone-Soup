@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 from pytest import approx, raises
 
 from ..beam_shape import BeamShape, Beam2DGaussian

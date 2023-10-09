@@ -1,33 +1,37 @@
-# -*- coding: utf-8 -*-
-
 import numpy as np
+import pytest
 
 from ..tracktotruthmetrics import SIAPMetrics, IDSIAPMetrics
-from ...measures import Euclidean
+from ...measures import Euclidean, Mahalanobis
 from ...types.groundtruth import GroundTruthPath
 from ...types.metric import SingleTimeMetric, TimeRangeMetric
 from ...types.track import Track
 
 
-def test_siap(trial_manager, trial_truths, trial_tracks, trial_associations):
-    position_measure = Euclidean((0, 2))
-    velocity_measure = Euclidean((1, 3))
+@pytest.mark.parametrize('measure_class', [Euclidean, Mahalanobis])
+def test_siap(trial_manager, trial_truths, trial_tracks, trial_associations, measure_class):
+    position_measure = measure_class((0, 2))
+    velocity_measure = measure_class((1, 3))
     siap_generator = SIAPMetrics(position_measure=position_measure,
                                  velocity_measure=velocity_measure)
 
     trial_manager.generators = [siap_generator]
 
-    timestamps = trial_manager.list_timestamps()
+    timestamps = trial_manager.list_timestamps(siap_generator)
 
     # Test num_tracks_at_time
     for timestamp in timestamps:
-        assert siap_generator.num_tracks_at_time(trial_manager, timestamp) == 3
+        assert siap_generator.num_tracks_at_time(trial_tracks, timestamp) == 3
 
     # Test num_associated_tracks_at_time
-    assert siap_generator.num_associated_tracks_at_time(trial_manager, timestamps[0]) == 2
-    assert siap_generator.num_associated_tracks_at_time(trial_manager, timestamps[1]) == 3
-    assert siap_generator.num_associated_tracks_at_time(trial_manager, timestamps[2]) == 3
-    assert siap_generator.num_associated_tracks_at_time(trial_manager, timestamps[3]) == 2
+    assert siap_generator.num_associated_tracks_at_time(trial_manager, trial_tracks,
+                                                        timestamps[0]) == 2
+    assert siap_generator.num_associated_tracks_at_time(trial_manager, trial_tracks,
+                                                        timestamps[1]) == 3
+    assert siap_generator.num_associated_tracks_at_time(trial_manager, trial_tracks,
+                                                        timestamps[2]) == 3
+    assert siap_generator.num_associated_tracks_at_time(trial_manager, trial_tracks,
+                                                        timestamps[3]) == 2
 
     # Test accuracy_at_time
     assoc0_pos_accuracy = np.sqrt(0.1 ** 2 + 0.1 ** 2)
@@ -62,7 +66,7 @@ def test_siap(trial_manager, trial_truths, trial_tracks, trial_associations):
 
     # Test rate_of_track_number_changes
     exp_rate = (2 - 1 + 2 - 1 + 1 - 1) / (3 + 2 + 1)
-    assert siap_generator.rate_of_track_number_changes(trial_manager) == exp_rate
+    assert siap_generator.rate_of_track_number_changes(trial_manager, trial_truths) == exp_rate
 
     # Test truth_lifetime
     for truth in trial_truths:
@@ -70,7 +74,9 @@ def test_siap(trial_manager, trial_truths, trial_tracks, trial_associations):
 
     # Test longest_track_time_on_truth
     assert siap_generator.longest_track_time_on_truth(trial_manager, trial_truths[0]) == 2
-    assert siap_generator.longest_track_time_on_truth(trial_manager, trial_truths[1]) == 1
+    # Associations 1 and 2 (starting from 0) will join together
+    # because of the AssociationSet._simplify method, so this will be 2
+    assert siap_generator.longest_track_time_on_truth(trial_manager, trial_truths[1]) == 2
     assert siap_generator.longest_track_time_on_truth(trial_manager, trial_truths[2]) == 1
 
     # Test compute_metric
@@ -88,8 +94,8 @@ def test_siap(trial_manager, trial_truths, trial_tracks, trial_associations):
 
     for metric in metrics:
         assert isinstance(metric, TimeRangeMetric)
-        assert metric.time_range.start_timestamp == timestamps[0]
-        assert metric.time_range.end_timestamp == timestamps[3]
+        assert metric.time_range.start == timestamps[0]
+        assert metric.time_range.end == timestamps[3]
         assert metric.generator == siap_generator
 
         if metric.title.endswith(" at times"):
@@ -104,9 +110,10 @@ def test_siap(trial_manager, trial_truths, trial_tracks, trial_associations):
             assert isinstance(metric.value, (float, int))
 
 
-def test_id_siap(trial_manager, trial_truths, trial_tracks, trial_associations):
-    position_measure = Euclidean((0, 2))
-    velocity_measure = Euclidean((1, 3))
+@pytest.mark.parametrize('measure_class', [Euclidean, Mahalanobis])
+def test_id_siap(trial_manager, trial_truths, trial_tracks, trial_associations, measure_class):
+    position_measure = measure_class((0, 2))
+    velocity_measure = measure_class((1, 3))
     truth_id = track_id = "colour"
     siap_generator = IDSIAPMetrics(position_measure=position_measure,
                                    velocity_measure=velocity_measure,
@@ -115,7 +122,7 @@ def test_id_siap(trial_manager, trial_truths, trial_tracks, trial_associations):
 
     trial_manager.generators = [siap_generator]
 
-    timestamps = trial_manager.list_timestamps()
+    timestamps = trial_manager.list_timestamps(siap_generator)
 
     # Test find_track_id
     assert siap_generator.find_track_id(trial_tracks[0], timestamps[0]) == "red"
@@ -134,22 +141,22 @@ def test_id_siap(trial_manager, trial_truths, trial_tracks, trial_associations):
     assert siap_generator.find_track_id(trial_tracks[2], timestamps[3]) == "green"
 
     # Test num_id_truths_at_time
-    u, c, i = siap_generator.num_id_truths_at_time(trial_manager, timestamps[0])
+    u, c, i = siap_generator.num_id_truths_at_time(trial_manager, trial_truths, timestamps[0])
     assert u == 0
     assert c == 1
     assert i == 1
 
-    u, c, i = siap_generator.num_id_truths_at_time(trial_manager, timestamps[1])
+    u, c, i = siap_generator.num_id_truths_at_time(trial_manager, trial_truths, timestamps[1])
     assert u == 1
     assert c == 0
     assert i == 1
 
-    u, c, i = siap_generator.num_id_truths_at_time(trial_manager, timestamps[2])
+    u, c, i = siap_generator.num_id_truths_at_time(trial_manager, trial_truths, timestamps[2])
     assert u == 0
     assert c == 2
     assert i == 0
 
-    u, c, i = siap_generator.num_id_truths_at_time(trial_manager, timestamps[3])
+    u, c, i = siap_generator.num_id_truths_at_time(trial_manager, trial_truths, timestamps[3])
     assert u == 0
     assert c == 1
     assert i == 1
@@ -172,8 +179,8 @@ def test_id_siap(trial_manager, trial_truths, trial_tracks, trial_associations):
 
     for metric in metrics:
         assert isinstance(metric, TimeRangeMetric)
-        assert metric.time_range.start_timestamp == timestamps[0]
-        assert metric.time_range.end_timestamp == timestamps[3]
+        assert metric.time_range.start == timestamps[0]
+        assert metric.time_range.end == timestamps[3]
         assert metric.generator == siap_generator
 
         if metric.title.endswith(" at times"):

@@ -21,11 +21,11 @@ def prediction():
         np.array([[4.1123, 0.0013],
                   [0.0013, 0.0365]]),
         weight=1,
-        tag=1)
+        tag=1,
+        timestamp=datetime.datetime(2022, 9, 16))
 
 
 @pytest.fixture()
 def measurement():
     return Detection(np.array([[-6.23]]),
-                     timestamp=datetime.datetime.now() +
-                     datetime.timedelta(seconds=1))
+                     timestamp=datetime.datetime(2022, 9, 16))

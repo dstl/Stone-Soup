@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-# coding: utf-8
 
 """
 =============================================================
@@ -60,7 +59,8 @@ timestep_size = datetime.timedelta(seconds=5)
 number_of_steps = 20
 birth_rate = 0.3
 death_probability = 0.05
-initial_state = GaussianState(initial_state_mean, initial_state_covariance)
+start_time = datetime.datetime.now().replace(microsecond=0)
+initial_state = GaussianState(initial_state_mean, initial_state_covariance, start_time)
 
 # %%
 # Create the transition model - default set to 2d nearly-constant velocity with small (0.05)
@@ -203,8 +203,7 @@ tracker = MultiTargetTracker(
 #
 # Plot the outputs
 # ^^^^^^^^^^^^^^^^
-# We plot the output using a Stone Soup :class:`MetricGenerator` which does plots (in this instance
-# :class:`TwoDPlotter`. This will produce plots equivalent to that seen in previous tutorials.
+# We plot the ground truth, detections and the tracker output using the Stone Soup :class:`Plotter`.
 groundtruth = set()
 detections = set()
 tracks = set()
@@ -214,10 +213,15 @@ for time, ctracks in tracker:
     detections.update(detection_sim.detections)
     tracks.update(ctracks)
 
-from stonesoup.metricgenerator.plotter import TwoDPlotter
-plotter = TwoDPlotter(track_indices=[0, 2], gtruth_indices=[0, 2], detection_indices=[0, 2])
-fig = plotter.plot_tracks_truth_detections(tracks, groundtruth, detections).value
+# %%
+# sphinx_gallery_thumbnail_path = '_static/sphinx_gallery/Tutorial_10.PNG'
 
-ax = fig.axes[0]
-ax.set_xlim([-30, 30])
-_ = ax.set_ylim([-30, 30])
+from stonesoup.plotter import AnimatedPlotterly
+
+timesteps = [start_time + timestep_size*k for k in range(number_of_steps)]
+
+plotter = AnimatedPlotterly(timesteps, tail_length=1)
+plotter.plot_ground_truths(groundtruth, mapping=[0, 2])
+plotter.plot_measurements(detections, mapping=[0, 2])
+plotter.plot_tracks(tracks, mapping=[0, 2])
+plotter.fig

@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-# coding: utf-8
 
 """
 ===========================================
@@ -61,14 +60,16 @@ from stonesoup.types.groundtruth import GroundTruthPath, GroundTruthState
 
 np.random.seed(1991)
 
-start_time = datetime.now()
+start_time = datetime.now().replace(microsecond=0)
 transition_model = CombinedLinearGaussianTransitionModel([ConstantVelocity(0.005),
                                                           ConstantVelocity(0.005)])
-truth = GroundTruthPath([GroundTruthState([0, 1, 0, 1], timestamp=start_time)])
+timesteps = [start_time]
+truth = GroundTruthPath([GroundTruthState([0, 1, 0, 1], timestamp=timesteps[0])])
 for k in range(1, 21):
+    timesteps.append(start_time+timedelta(seconds=k))
     truth.append(GroundTruthState(
         transition_model.function(truth[k-1], noise=True, time_interval=timedelta(seconds=1)),
-        timestamp=start_time+timedelta(seconds=k)))
+        timestamp=timesteps[k]))
 
 # %%
 # Add clutter.
@@ -112,13 +113,13 @@ for state in truth:
 # %%
 # Plot the ground truth and measurements with clutter.
 
-from stonesoup.plotter import Plotter
-plotter = Plotter()
-plotter.ax.set_ylim(0, 25)
+from stonesoup.plotter import AnimatedPlotterly
+plotter = AnimatedPlotterly(timesteps, tail_length=0.3)
 plotter.plot_ground_truths(truth, [0, 2])
 
 # Plot true detections and clutter.
 plotter.plot_measurements(all_measurements, [0, 2])
+plotter.fig
 
 
 # %%
@@ -209,4 +210,4 @@ plotter.fig
 # 1. Bar-Shalom Y, Daum F, Huang F 2009, The Probabilistic Data Association Filter, IEEE Control
 # Systems Magazine
 
-# sphinx_gallery_thumbnail_number = 2
+# sphinx_gallery_thumbnail_path = '_static/sphinx_gallery/Tutorial_7.PNG'

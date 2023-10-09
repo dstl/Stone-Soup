@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """Video readers for Stone Soup.
 
 This is a collection of video readers for Stone Soup, allowing quick reading

@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 from .base import DataAssociator
 from ..base import Property
 from ..hypothesiser import Hypothesiser

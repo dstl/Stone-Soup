@@ -1,5 +1,5 @@
-# -*- coding: utf-8 -*-
 import numpy as np
+import pytest
 
 from stonesoup.mixturereducer.gaussianmixture import GaussianMixtureReducer
 from stonesoup.types.mixture import GaussianMixture
@@ -7,7 +7,12 @@ from stonesoup.types.state import (TaggedWeightedGaussianState,
                                    WeightedGaussianState)
 
 
-def test_gaussianmixture_reducer_w_tags():
+@pytest.fixture(params=[None, 10])
+def kdtree_max_distance(request):
+    return request.param
+
+
+def test_gaussianmixture_reducer_w_tags(kdtree_max_distance):
     dim = 4
     num_states = 10
     low_weight_states = [
@@ -32,13 +37,15 @@ def test_gaussianmixture_reducer_w_tags():
     )
     merge_threshold = 16
     prune_threshold = 1e-6
-    mixturereducer = GaussianMixtureReducer(prune_threshold=prune_threshold,
-                                            merge_threshold=merge_threshold)
+    mixturereducer = GaussianMixtureReducer(
+        prune_threshold=prune_threshold,
+        merge_threshold=merge_threshold,
+        kdtree_max_distance=kdtree_max_distance)
     reduced_mixture_state = mixturereducer.reduce(mixturestate)
     assert len(reduced_mixture_state) == 1
 
 
-def test_gaussianmixture_reducer():
+def test_gaussianmixture_reducer(kdtree_max_distance):
     dim = 4
     num_states = 10
     low_weight_states = [
@@ -61,7 +68,34 @@ def test_gaussianmixture_reducer():
     )
     merge_threshold = 16
     prune_threshold = 1e-6
-    mixturereducer = GaussianMixtureReducer(prune_threshold=prune_threshold,
-                                            merge_threshold=merge_threshold)
+    mixturereducer = GaussianMixtureReducer(
+        prune_threshold=prune_threshold,
+        merge_threshold=merge_threshold,
+        kdtree_max_distance=kdtree_max_distance)
     reduced_mixture_state = mixturereducer.reduce(mixturestate)
     assert len(reduced_mixture_state) == 1
+
+
+def test_gaussianmixture_truncating():
+    """
+    Test that the trucating function of the GaussianMixtureReducer works
+    properly. It should remove low weight components and keep only a certain
+    number of them (in this case, 5).
+    """
+    dim = 4
+    num_states = 10
+    states = [
+        WeightedGaussianState(
+            state_vector=np.random.rand(dim, 1)*10,
+            covar=np.eye(dim),
+            weight=i/10,
+        ) for i in range(1, num_states+1)
+    ]
+    mixture = GaussianMixture(components=states)
+
+    prune_threshold = 0.15  # one component will be pruned
+    mixturereducer = GaussianMixtureReducer(prune_threshold=prune_threshold,
+                                            merging=False,
+                                            max_number_components=5)
+    reduced_mixture = mixturereducer.reduce(mixture)
+    assert len(reduced_mixture) == 5

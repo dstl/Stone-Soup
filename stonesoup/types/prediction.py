@@ -1,12 +1,16 @@
-# -*- coding: utf-8 -*-
+import datetime
+from typing import Sequence
 
-from stonesoup.types.state import CreatableFromState
-from ..base import Property
 from .array import CovarianceMatrix
 from .base import Type
-from .state import (State, GaussianState, ParticleState, SqrtGaussianState, InformationState,
-                    TaggedWeightedGaussianState, WeightedGaussianState, CategoricalState)
+from .state import (State, GaussianState, EnsembleState,
+                    ParticleState, MultiModelParticleState, RaoBlackwellisedParticleState,
+                    SqrtGaussianState, InformationState, TaggedWeightedGaussianState,
+                    WeightedGaussianState, CategoricalState, ASDGaussianState,
+                    BernoulliParticleState)
+from ..base import Property
 from ..models.transition.base import TransitionModel
+from ..types.state import CreatableFromState, CompositeState
 
 
 class Prediction(Type, CreatableFromState):
@@ -51,6 +55,16 @@ class GaussianStatePrediction(Prediction, GaussianState):
     This is a simple Gaussian state prediction object, which, as the name
     suggests, is described by a Gaussian distribution.
     """
+
+
+class ASDGaussianStatePrediction(Prediction, ASDGaussianState):
+    """ ASDGaussianStatePrediction type
+
+    This is a simple ASDGaussian state prediction object, which, as the name
+    suggests, is described by a Gaussian distribution.
+    """
+    act_timestamp: datetime.datetime = Property(
+        doc="The timestamp for which the state is predicted")
 
 
 class SqrtGaussianStatePrediction(Prediction, SqrtGaussianState):
@@ -103,6 +117,12 @@ CreatableFromState.class_mapping[MeasurementPrediction][SqrtGaussianState] = \
     GaussianMeasurementPrediction
 
 
+class ASDGaussianMeasurementPrediction(MeasurementPrediction, ASDGaussianState):
+    """ASD Gaussian Measurement Prediction"""
+    cross_covar: CovarianceMatrix = Property(
+        doc="The state-measurement cross covariance matrix", default=None)
+
+
 class ParticleStatePrediction(Prediction, ParticleState):
     """ParticleStatePrediction type
 
@@ -117,9 +137,72 @@ class ParticleMeasurementPrediction(MeasurementPrediction, ParticleState):
     """
 
 
+class MultiModelParticleStatePrediction(Prediction, MultiModelParticleState):
+    """MultiModelParticleStatePrediction type
+
+    This is a simple multi-model Particle state prediction object.
+    """
+
+
+class RaoBlackwellisedParticleStatePrediction(Prediction, RaoBlackwellisedParticleState):
+    """RaoBlackwellisedParticleStatePrediction type
+
+    This is a simple Rao Blackwellised Particle state prediction object.
+    """
+
+
+class BernoulliParticleStatePrediction(Prediction, BernoulliParticleState):
+    """BernoulliParticleStatePrediction type
+
+    This is a simple Bernoulli Particle state prediction object"""
+
+
+class EnsembleStatePrediction(Prediction, EnsembleState):
+    """EnsembleStatePrediction type
+
+    This is a simple Ensemble measurement prediction object.
+    """
+
+
+class EnsembleMeasurementPrediction(MeasurementPrediction, EnsembleState):
+    """EnsembleMeasurementPrediction type
+
+    This is a simple Ensemble measurement prediction object.
+    """
+
+
 class CategoricalStatePrediction(Prediction, CategoricalState):
     """Categorical state prediction type"""
 
 
 class CategoricalMeasurementPrediction(MeasurementPrediction, CategoricalState):
     """Categorical measurement prediction type"""
+
+
+class CompositePrediction(Prediction, CompositeState):
+    """Composite prediction type
+
+    Composition of :class:`~.Prediction`.
+    """
+
+    sub_states: Sequence[Prediction] = Property(
+        doc="Sequence of sub-predictions comprising the composite prediction. All sub-predictions "
+            "must have matching timestamp. Must not be empty.")
+
+
+Prediction.register(CompositeState)  # noqa: E305
+
+
+class CompositeMeasurementPrediction(MeasurementPrediction, CompositeState):
+    """Composite measurement prediction type
+
+    Composition of :class:`~.MeasurementPrediction`.
+    """
+
+    sub_states: Sequence[MeasurementPrediction] = Property(
+        default=None,
+        doc="Sequence of sub-measurement-predictions comprising the composite measurement "
+            "prediction. All sub-measurement-predictions must have matching timestamp.")
+
+
+MeasurementPrediction.register(CompositeState)  # noqa: E305

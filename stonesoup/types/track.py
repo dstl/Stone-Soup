@@ -1,4 +1,4 @@
-# -*- coding: utf-8 -*-
+import copy
 import uuid
 from typing import MutableSequence, MutableMapping
 
@@ -47,6 +47,11 @@ class Track(StateMutableSequence):
         if index < 0:
             index = len(self.states) + index
         self._update_metadatas(index)
+
+    def __copy__(self):
+        inst = super().__copy__()
+        inst.__dict__['metadatas'] = copy.copy(self.__dict__['metadatas'])
+        return inst
 
     def insert(self, index, value):
         """Insert value at index of :attr:`states`.
@@ -124,10 +129,13 @@ class Track(StateMutableSequence):
                 # from all hypotheses are retained, but more likely
                 # hypotheses will over-write the metadata set by less likely
                 # ones.
-                for hypothesis in sorted(state.hypothesis, reverse=True):
-                    if hypothesis \
-                            and hypothesis.measurement.metadata is not None:
-                        self.metadata.update(hypothesis.measurement.metadata)
+                try:
+                    for hypothesis in sorted(state.hypothesis, reverse=True):
+                        if hypothesis \
+                                and hypothesis.measurement.metadata is not None:
+                            self.metadata.update(hypothesis.measurement.metadata)
+                except TypeError:
+                    pass
             else:
                 hypothesis = state.hypothesis
                 if hypothesis and hypothesis.measurement.metadata is not None:

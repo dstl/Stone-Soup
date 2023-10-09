@@ -1,6 +1,6 @@
-# -*- coding: utf-8 -*-
 from math import log, floor, ceil, trunc, sqrt
 
+import numpy as np
 import pytest
 from pytest import approx
 
@@ -13,10 +13,19 @@ def test_probability_init():
     assert probability == 0.2
     assert probability.log_value == log(0.2)
 
-    Probability(log(0.2), log_value=True)
+    probability = Probability(log(0.2), log_value=True)
 
     assert probability == 0.2
     assert probability.log_value == log(0.2)
+
+    probability = Probability.from_log(log(0.2))
+    assert probability == 0.2
+    assert probability.log_value == log(0.2)
+
+    probabilities = Probability.from_log_ufunc(np.log(np.array([0.2, 0.3])))
+    for probability, val in zip(probabilities, [0.2, 0.3]):
+        assert float(probability) == pytest.approx(val)
+        assert probability.log_value == pytest.approx(log(val))
 
     with pytest.raises(ValueError, match="value must be greater than 0"):
         Probability(-0.2)

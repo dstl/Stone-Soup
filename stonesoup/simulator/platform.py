@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 from typing import Sequence
 
 from ..base import Property
@@ -23,8 +22,14 @@ class PlatformDetectionSimulator(DetectionSimulator):
     @BufferedGenerator.generator_method
     def detections_gen(self):
         for time, truths in self.groundtruth:
+
+            # Move platforms and carry out sensor actions.
             for platform in self.platforms:
                 platform.move(time)
+                for sensor in platform.sensors:
+                    sensor.act(time)
+
+            # Make measurements from sensors
             for platform in self.platforms:
                 for sensor in platform.sensors:
                     truths_to_be_measured = truths.union(self.platforms) - {platform}

@@ -245,13 +245,19 @@ def test_cart_sphere_inversions(x, y, z):
         (StateVector([-1, 1, -4]), StateVector([-2, 1, 1])),
         (StateVector([-2, 0, 3, -1]), StateVector([1, 0, -1, 4])),
         (StateVector([-1, 0]), StateVector([1, -2, 3])),
-        (Matrix([[1, 0], [0, 1]]), Matrix([[3, 1], [1, -3]]))
+        (Matrix([[1, 0], [0, 1]]), Matrix([[3, 1], [1, -3]])),
+        (StateVectors([[1, 0], [0, 1]]), StateVectors([[3, 1], [1, -3]])),
+        (StateVectors([[1, 0], [0, 1]]), StateVector([3, 1]))
      ]
 )
 def test_dotproduct(state_vector1, state_vector2):
 
     # Test that they raise the right error if not 1d, i.e. vectors
-    if np.shape(state_vector1)[1] != 1 | np.shape(state_vector2)[1] != 1:
+    if type(state_vector1) != type(state_vector2):
+        with pytest.raises(ValueError):
+            dotproduct(state_vector1, state_vector2)
+    elif type(state_vector1) != StateVectors and type(state_vector2) != StateVectors and \
+            type(state_vector2) != StateVector and type(state_vector1) != StateVector:
         with pytest.raises(ValueError):
             dotproduct(state_vector1, state_vector2)
     else:
@@ -265,7 +271,69 @@ def test_dotproduct(state_vector1, state_vector2):
             for a_i, b_i in zip(state_vector1, state_vector2):
                 out += a_i * b_i
 
-            assert dotproduct(state_vector1, state_vector2) == out
+            assert np.allclose(dotproduct(state_vector1, state_vector2),
+                               np.reshape(out, np.shape(dotproduct(state_vector1, state_vector2))))
+
+
+@pytest.mark.parametrize(
+    "means, covars, weights, size",
+    [
+        (
+            [np.array([10, 10]), np.array([20, 20]), np.array([30, 30])],  # means
+            [np.eye(2), np.eye(2), np.eye(2)],  # covars
+            np.array([1/3]*3),  # weights
+            20  # size
+        ), (
+            StateVectors(np.array([[20, 30, 40, 50], [20, 30, 40, 50]])),  # means
+            [np.eye(2), np.eye(2), np.eye(2), np.eye(2)],  # covars
+            np.array([1/4]*4),  # weights
+            20  # size
+        ), (
+            [np.array([10, 10]), np.array([20, 20]), np.array([30, 30])],  # means
+            np.array([np.eye(2), np.eye(2), np.eye(2)]),  # covars
+            np.array([1/3]*3),  # weights
+            20  # size
+        ), (
+            [StateVector(np.array([10, 10])), StateVector(np.array([20, 20])),
+             StateVector(np.array([30, 30]))],  # means
+            [np.eye(2), np.eye(2), np.eye(2)],  # covars
+            np.array([1/3]*3),  # weights
+            20  # size
+        ), (
+            StateVector(np.array([10, 10])),  # means
+            [np.eye(2)],  # covars
+            np.array([1]),  # weights
+            20  # size
+        ), (
+            np.array([10, 10]),  # means
+            [np.eye(2)],  # covars
+            np.array([1]),  # weights
+            20  # size
+        ), (
+            [np.array([10, 10]), np.array([20, 20]), np.array([30, 30])],  # means
+            [np.eye(2), np.eye(2), np.eye(2)],  # covars
+            None,  # weights
+            20  # size
+        ), (
+            StateVectors(np.array([[20, 30, 40, 50], [20, 30, 40, 50]])),  # means
+            [np.eye(2), np.eye(2), np.eye(2), np.eye(2)],  # covars
+            None,  # weights
+            20  # size
+        )
+    ], ids=["mean_list", "mean_statevectors", "3d_covar_array", "mean_statevector_list",
+            "single_statevector_mean", "single_ndarray_mean", "no_weight_mean_list",
+            "no_weight_mean_statevectors"]
+)
+def test_gm_sample(means, covars, weights, size):
+    samples = gm_sample(means, covars, size, weights=weights)
+
+    # check orientation and size of samples
+    assert samples.shape[1] == size
+    # check number of dimensions
+    if isinstance(means, list):
+        assert samples.shape[0] == means[0].shape[0]
+    else:
+        assert samples.shape[0] == means.shape[0]
 
 
 cart_vectors = [(1000.0, 10.0, 1000.0, 20.0, 8000.0, 0.0),  # test dtype=float

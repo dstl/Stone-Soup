@@ -1,19 +1,19 @@
-# -*- coding: utf-8 -*-
 import datetime
 
 import numpy as np
 import pytest
 
-from ..particle import Particle
 from ..prediction import (
     Prediction, MeasurementPrediction,
     StatePrediction, StateMeasurementPrediction,
     GaussianStatePrediction, GaussianMeasurementPrediction,
     SqrtGaussianStatePrediction, TaggedWeightedGaussianStatePrediction,
-    ParticleStatePrediction, ParticleMeasurementPrediction)
+    ParticleStatePrediction, ParticleMeasurementPrediction,
+    ASDGaussianStatePrediction, ASDGaussianMeasurementPrediction)
 from ..state import (
     State, GaussianState, SqrtGaussianState, TaggedWeightedGaussianState, ParticleState)
 from ..track import Track
+from ..array import StateVectors
 
 
 def test_stateprediction():
@@ -166,8 +166,8 @@ def test_from_state(prediction_type):
         assert prediction.weight == 0.5
         assert prediction.tag == state.tag
 
-    state = ParticleState([Particle([[0]], weight=0.5)], timestamp=datetime.datetime.now())
-    prediction = prediction_type.from_state(state, particles=[Particle([[1]], weight=0.8)])
+    state = ParticleState(StateVectors([[1]]), weight=0.5, timestamp=datetime.datetime.now())
+    prediction = prediction_type.from_state(state)
     if prediction_type is Prediction:
         assert isinstance(prediction, ParticleStatePrediction)
     else:
@@ -190,3 +190,61 @@ def test_from_state_sequence(prediction_type):
     assert prediction.timestamp == sequence.timestamp
     assert prediction.state_vector[0] == 1
     assert prediction.covar[0] == 3
+
+
+def test_asdgaussianstateprediction():
+    """ GaussianStatePrediction test """
+
+    with pytest.raises(TypeError):
+        ASDGaussianStatePrediction()
+
+    mean = np.array([[-1.8513], [0.9994], [0], [0]]) * 1e4
+    covar = np.array([[2.2128, 0, 0, 0],
+                      [0.0002, 2.2130, 0, 0],
+                      [0.3897, -0.00004, 0.0128, 0],
+                      [0, 0.3897, 0.0013, 0.0135]]) * 1e3
+    timestamp = datetime.datetime.now()
+
+    with pytest.raises(TypeError):
+        ASDGaussianStatePrediction(mean)
+
+    # Test state prediction
+    state_prediction = ASDGaussianStatePrediction(
+        multi_state_vector=mean, multi_covar=covar,
+        timestamps=[timestamp], act_timestamp=timestamp)
+    assert(np.array_equal(mean, state_prediction.mean))
+    assert(np.array_equal(covar, state_prediction.covar))
+    assert(state_prediction.ndim == mean.shape[0])
+    assert(state_prediction.timestamp == timestamp)
+
+
+def test_asdgaussianmeasurementprediction():
+    """ GaussianMeasurementPrediction test """
+
+    with pytest.raises(TypeError):
+        ASDGaussianMeasurementPrediction()
+
+    mean = np.array([[-1.8513], [0.9994], [0], [0]]) * 1e4
+    covar = np.array([[2.2128, 0, 0, 0],
+                      [0.0002, 2.2130, 0, 0],
+                      [0.3897, -0.00004, 0.0128, 0],
+                      [0, 0.3897, 0.0013, 0.0135]]) * 1e3
+    cross_covar = np.array([[2.2128, 0, 0, 0],
+                            [0.0002, 2.2130, 0, 0],
+                            [0.3897, -0.00004, 0.0128, 0],
+                            [0, 0.3897, 0.0013, 0.0135]]) * 1e3
+    timestamp = datetime.datetime.now()
+
+    with pytest.raises(TypeError):
+        ASDGaussianMeasurementPrediction(mean)
+
+    # Test measurement prediction initiation with cross_covar
+    measurement_prediction = ASDGaussianMeasurementPrediction(
+        mean, multi_covar=covar,
+        cross_covar=cross_covar,
+        timestamps=timestamp)
+    assert(np.array_equal(mean, measurement_prediction.mean))
+    assert(np.array_equal(covar, measurement_prediction.covar))
+    assert(np.array_equal(cross_covar, measurement_prediction.cross_covar))
+    assert(measurement_prediction.ndim == mean.shape[0])
+    assert(measurement_prediction.timestamp == timestamp)

@@ -77,7 +77,7 @@ state estimation as well.
 The figure above shows an example of a :class:`~.MultiTargetTracker`, but note that other types of
 algorithms may use different components, and different combination/sequence. In this examples, this
 is processing detections over time, which then is predicting, associating, updating, initiating and
-deleting tracks. By using in here an :class:`~.KalmanPredictor`, a :class:`~.KalmanUpdater`, and a
+deleting tracks. By using in here a :class:`~.KalmanPredictor`, a :class:`~.KalmanUpdater`, and a
 :class:`~.GaussianInitiator`, this becomes a Kalman tracker; but with a
 :class:`~.ParticlePredictor`, a :class:`~.ParticleUpdater`, and a :class:`~.ParticleInitiator`,
 this becomes a Particle tracker.
@@ -112,4 +112,3 @@ instances, allowing models to be used for both target prediction (in case with
    framework for tracking and state estimation"**, Proc. SPIE 11018, Signal Processing,
    Sensor/Information Fusion, and Target Recognition XXVIII, 1101807 (7 May 2019);
    https://doi.org/10.1117/12.2518514
-   [`PDF <https://isif-ostewg.org/uploads/stone-soup-spie-2019-paper.pdf>`_]

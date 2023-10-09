@@ -85,8 +85,8 @@ def test_timerangemetric():
     value = 5
     timestamp1 = datetime.datetime.now()
     timestamp2 = timestamp1 + datetime.timedelta(seconds=10)
-    time_range = TimeRange(start_timestamp=timestamp1,
-                           end_timestamp=timestamp2)
+    time_range = TimeRange(start=timestamp1,
+                           end=timestamp2)
 
     class temp_generator(MetricGenerator):
 
@@ -113,8 +113,8 @@ def test_timerangeplottingmetric():
     value = 5
     timestamp1 = datetime.datetime.now()
     timestamp2 = timestamp1 + datetime.timedelta(seconds=10)
-    time_range = TimeRange(start_timestamp=timestamp1,
-                           end_timestamp=timestamp2)
+    time_range = TimeRange(start=timestamp1,
+                           end=timestamp2)
 
     class temp_generator(MetricGenerator):
 

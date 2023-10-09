@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 from ..base import Base
 from ..reader.base import DetectionReader, GroundTruthReader, SensorDataReader
 from stonesoup.buffered_generator import BufferedGenerator

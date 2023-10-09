@@ -33,4 +33,4 @@ ln -s ../../docs/demos/UAV_Rot.csv notebooks/auto_demos/
 ln -s ../../docs/demos/OpenSky_Plane_States.csv notebooks/auto_demos/
 
 # Install Stone Soup and any extra packages required
-pip install -e . folium
+pip install -e . folium plotly

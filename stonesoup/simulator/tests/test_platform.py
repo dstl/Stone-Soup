@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 import datetime
 from copy import deepcopy
 

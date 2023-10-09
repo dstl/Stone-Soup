@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-# coding: utf-8
 
 """
 =======================================
@@ -54,7 +53,7 @@
 # %%
 # Set up a simulation
 # -------------------
-# As in previous tutorials, we start with a target moving linearly in the 2D cartesian plane.
+# As in previous tutorials, we start with a target moving linearly in the 2D Cartesian plane.
 import numpy as np
 from scipy.stats import uniform
 from datetime import datetime
@@ -66,14 +65,17 @@ from stonesoup.types.groundtruth import GroundTruthPath, GroundTruthState
 
 np.random.seed(1991)
 
-start_time = datetime.now()
+start_time = datetime.now().replace(microsecond=0)
 transition_model = CombinedLinearGaussianTransitionModel([ConstantVelocity(0.005),
                                                           ConstantVelocity(0.005)])
-truth = GroundTruthPath([GroundTruthState([0, 1, 0, 1], timestamp=start_time)])
+timesteps = [start_time]
+truth = GroundTruthPath([GroundTruthState([0, 1, 0, 1], timestamp=timesteps[0])])
+
 for k in range(1, 21):
+    timesteps.append(start_time+timedelta(seconds=k))
     truth.append(GroundTruthState(
         transition_model.function(truth[k-1], noise=True, time_interval=timedelta(seconds=1)),
-        timestamp=start_time+timedelta(seconds=k)))
+        timestamp=timesteps[k]))
 
 # %%
 # Probability of detection
@@ -126,19 +128,20 @@ for state in truth:
 # Plot the ground truth and measurements with clutter.
 
 # Plot ground truth.
-from stonesoup.plotter import Plotter
-plotter = Plotter()
-plotter.ax.set_ylim(0, 25)  # Can set additional axes properties e.g. limits
+from stonesoup.plotter import AnimatedPlotterly
+plotter = AnimatedPlotterly(timesteps, tail_length=0.3)
 plotter.plot_ground_truths(truth, [0, 2])
 
 # Plot true detections and clutter.
 plotter.plot_measurements(all_measurements, [0, 2])
 
+plotter.fig
+
 # %%
 # Distance Hypothesiser and Nearest Neighbour
 # -------------------------------------------
 #
-# Perhaps the simplest way to associate a detection with a predition is to measure a 'distance'
+# Perhaps the simplest way to associate a detection with a prediction is to measure a 'distance'
 # to each detection and hypothesise that the detection with the lowest distance
 # is correctly associated with that prediction.
 #
@@ -231,4 +234,4 @@ plotter.fig
 # seduction*, and is a common feature of 'greedy' methods of association such as the nearest
 # neighbour algorithm.
 
-# sphinx_gallery_thumbnail_number = 2
+# sphinx_gallery_thumbnail_path = '_static/sphinx_gallery/Tutorial_5.PNG'

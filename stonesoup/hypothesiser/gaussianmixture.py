@@ -1,6 +1,7 @@
-# -*- coding: utf-8 -*-
 from . import Hypothesiser
 from ..base import Property
+from ..dataassociator.tree import DetectionKDTreeMixIn
+from ..types.detection import MissedDetection
 from ..types.multihypothesis import MultipleHypothesis
 from ..types.prediction import (TaggedWeightedGaussianStatePrediction,
                                 WeightedGaussianStatePrediction)
@@ -21,6 +22,11 @@ class GaussianMixtureHypothesiser(Hypothesiser):
         default=False,
         doc="Flag to order the :class:`~.MultipleHypothesis` "
             "list by detection or component")
+
+    def generate_hypotheses(self, components, detections, timestamp, **kwargs):
+        return {component: self.hypothesiser.hypothesise(
+            component, detections, timestamp, **kwargs)
+            for component in components}
 
     def hypothesise(self, components, detections, timestamp, **kwargs):
         """Form hypotheses for associations between Detections and Gaussian
@@ -50,19 +56,25 @@ class GaussianMixtureHypothesiser(Hypothesiser):
         if len(timestamps) > 1:
             raise ValueError("All detections must have the same timestamp")
 
+        components_hypotheses = self.generate_hypotheses(
+            components, detections, timestamp, **kwargs)
+
         hypotheses = list()
-        for component in components:
-            # Get hypotheses for that component for all measurements
-            component_hypotheses = self.hypothesiser.hypothesise(component,
-                                                                 detections,
-                                                                 timestamp,
-                                                                 **kwargs)
+        for component, component_hypotheses in components_hypotheses.items():
             for hypothesis in component_hypotheses:
                 if isinstance(component, TaggedWeightedGaussianState):
+                    # Ensure that a birth component without a measurement retains
+                    # the birth tag. This will prevent a track from being made
+                    if component.tag == component.BIRTH and \
+                            isinstance(hypothesis.measurement, MissedDetection):
+                        tag = component.BIRTH
+                    elif component.tag == component.BIRTH:
+                        tag = None  # a new tag will be made
+                    else:
+                        tag = component.tag
                     hypothesis.prediction = \
                         TaggedWeightedGaussianStatePrediction(
-                            tag=component.tag if component.tag != "birth"
-                            else None,
+                            tag=tag,
                             weight=component.weight,
                             state_vector=hypothesis.prediction.state_vector,
                             covar=hypothesis.prediction.covar,
@@ -104,3 +116,7 @@ class GaussianMixtureHypothesiser(Hypothesiser):
             hypotheses = reordered_hypotheses
 
         return hypotheses
+
+
+class GaussianMixtureKDTreeHypothesiser(DetectionKDTreeMixIn, GaussianMixtureHypothesiser):
+    pass

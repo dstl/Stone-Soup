@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 import pytest
 import numpy as np
 
@@ -34,7 +33,8 @@ def updater(measurement_model):
 def probability_hypothesiser(predictor, updater):
     return PDAHypothesiser(predictor, updater,
                            clutter_spatial_density=1.2e-2,
-                           prob_detect=0.9, prob_gate=0.99)
+                           prob_detect=0.9, prob_gate=0.99,
+                           include_all=True)
 
 
 @pytest.fixture()

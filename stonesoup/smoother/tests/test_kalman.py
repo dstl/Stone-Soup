@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """Tests the various Kalman-based smoothers. This test replicates that the exists/existed in
 test_lineargaussian"""
 

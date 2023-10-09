@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 import datetime
 
 import numpy as np
@@ -23,7 +22,7 @@ def test_point_process_multi_target_tracker_cycle(detector, predictor):
         birth_mean,
         birth_covar,
         weight=0.3,
-        tag="birth",
+        tag=TaggedWeightedGaussianState.BIRTH,
         timestamp=timestamp)
 
     # Initialise a Kalman Updater

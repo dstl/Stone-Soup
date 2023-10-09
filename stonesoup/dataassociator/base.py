@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 import datetime
 from abc import abstractmethod
 from typing import Set, Mapping
@@ -53,7 +52,7 @@ class Associator(Base):
     """Associator base class
 
     An associator is used to associate objects for the generation of
-    metrics. It returns a :class:`~.AssociationSet` containing
+    metrics. It returns an :class:`~.AssociationSet` containing
     a set of :class:`~.Association`
     objects.
     """

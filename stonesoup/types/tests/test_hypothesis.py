@@ -1,17 +1,14 @@
-# -*- coding: utf-8 -*-
+from copy import deepcopy
+
 import numpy as np
 import pytest
 
+from ..detection import Detection, MissedDetection
+from ..hypothesis import (SingleHypothesis, SingleDistanceHypothesis, SingleProbabilityHypothesis,
+                          JointHypothesis, ProbabilityJointHypothesis, DistanceJointHypothesis,
+                          CompositeHypothesis, CompositeProbabilityHypothesis)
 from ..prediction import StatePrediction, StateMeasurementPrediction
-from ..detection import Detection
 from ..track import Track
-from ..hypothesis import (
-    SingleHypothesis,
-    SingleDistanceHypothesis,
-    SingleProbabilityHypothesis,
-    JointHypothesis,
-    ProbabilityJointHypothesis,
-    DistanceJointHypothesis)
 
 prediction = StatePrediction(np.array([[1], [0]]))
 measurement_prediction = StateMeasurementPrediction(np.array([[1], [0]]))
@@ -193,3 +190,98 @@ def test_invalid_single_joint_hypothesis():
 
     with pytest.raises(NotImplementedError):
         JointHypothesis(hypotheses)
+
+
+def test_composite_hypothesis(sub_predictions1, composite_prediction1,
+                              sub_measurements1, composite_measurement1,
+                              sub_hypotheses1, composite_hypothesis1,
+                              sub_predictions2, sub_measurements2, sub_hypotheses2):
+    # Test empty composite
+    with pytest.raises(ValueError, match="Cannot create an empty composite hypothesis"):
+        CompositeHypothesis(prediction=composite_prediction1, measurement=composite_measurement1,
+                            sub_hypotheses=list())
+
+    # Test bool
+    assert composite_hypothesis1
+    temp_sub_hypotheses = deepcopy(sub_hypotheses1)
+    temp_sub_hypotheses[0].measurement = MissedDetection()
+    # not null as second sub-hypothesis is not null
+    assert CompositeHypothesis(prediction=composite_prediction1,
+                               measurement=composite_measurement1,
+                               sub_hypotheses=temp_sub_hypotheses)
+    temp_sub_hypotheses[1].measurement = MissedDetection()
+    # null as all sub-hypotheses are null
+    assert not CompositeHypothesis(prediction=composite_prediction1,
+                                   measurement=composite_measurement1,
+                                   sub_hypotheses=temp_sub_hypotheses)
+    # in the above, sub-hypotheses and sub-measurements don't have correct correspondence
+    # which is not the intended use of CompositeHypothesis, but serves the purpose of testing null
+    # instances
+
+    # Test contains
+    assert sub_predictions1[0] in composite_hypothesis1
+    assert sub_predictions2[0] not in composite_hypothesis1
+    assert sub_measurements1[1] in composite_hypothesis1
+    assert sub_measurements2[1] not in composite_hypothesis1
+    assert sub_hypotheses1[0] in composite_hypothesis1
+    assert sub_hypotheses2[0] not in composite_hypothesis1
+    assert "a" not in composite_hypothesis1
+
+    # Test get
+    assert composite_hypothesis1[0] is sub_hypotheses1[0]
+    assert composite_hypothesis1[sub_predictions1[1]] is sub_hypotheses1[1]
+    assert composite_hypothesis1[sub_predictions2[1]] is None
+    assert composite_hypothesis1[sub_measurements1[0]] is sub_hypotheses1[0]
+    assert composite_hypothesis1[sub_measurements2[0]] is None
+    assert composite_hypothesis1["a"] is None
+    # Test get slice
+    hypothesis_slice = composite_hypothesis1[1:]
+    assert isinstance(hypothesis_slice, CompositeHypothesis)
+    assert hypothesis_slice.sub_hypotheses == sub_hypotheses1[1:]
+
+    # Test iter
+    for i, sub_state in enumerate(composite_hypothesis1):
+        assert sub_state == sub_hypotheses1[i]
+
+    # Test len
+    assert len(composite_hypothesis1) == 2
+
+
+def test_composite_probability_hypothesis(composite_prediction1,
+                                          composite_measurement1,
+                                          sub_hypotheses1,
+                                          sub_probability_hypotheses1,
+                                          composite_probability_hypothesis1):
+    # Test non-probability sub-hypotheses
+    with pytest.raises(ValueError, match="CompositeProbabilityHypothesis must be composed of "
+                                         "SingleProbabilityHypothesis types"):
+        # sub_hypotheses1 contains non-probability hypotheses
+        CompositeProbabilityHypothesis(prediction=composite_prediction1,
+                                       measurement=composite_measurement1,
+                                       sub_hypotheses=sub_hypotheses1)
+
+    # Test probability
+
+    # product of sub-hypotheses' probabilities
+    assert composite_probability_hypothesis1.probability == 0.5 ** 2
+
+    # sub-null-hypotheses
+    sub_probability_hypotheses1[0].measurement = MissedDetection()
+    # ignore sub-null-hypotheses for non-null-composite-hypothesis
+    assert CompositeProbabilityHypothesis(
+        prediction=composite_prediction1,
+        measurement=composite_measurement1,
+        sub_hypotheses=sub_probability_hypotheses1).probability == 0.5
+
+    # null-composite-hypothesis
+    sub_probability_hypotheses1[1].measurement = MissedDetection()
+    # consider all sub-hypotheses' probabilities if null
+    assert CompositeProbabilityHypothesis(
+        prediction=composite_prediction1,
+        measurement=composite_measurement1,
+        sub_hypotheses=sub_probability_hypotheses1).probability == 0.5 ** 2
+    # takes argument value if not `None`
+    assert CompositeProbabilityHypothesis(
+        prediction=composite_prediction1,
+        measurement=composite_measurement1,
+        sub_hypotheses=sub_probability_hypotheses1, probability=0.4).probability == 0.4

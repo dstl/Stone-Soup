@@ -4,7 +4,7 @@ import datetime
 import numpy as np
 import pytest
 
-from ..manager import SimpleManager
+from ..manager import MultiManager
 from ..uncertaintymetric import SumofCovarianceNormsMetric, MeanofCovarianceNormsMetric
 from ...types.detection import Detection
 from ...types.groundtruth import GroundTruthPath, GroundTruthState
@@ -69,21 +69,16 @@ def test_covariancenormsmetric_compute_metric(generator):
     """Test Covariance Norms compute metric."""
     time = datetime.datetime.now()
 
-    # Multiple tracks and truths present at two timesteps
+    # Multiple tracks present at two timesteps
     tracks = {Track(states=[GaussianState(state_vector=[[1], [2], [1], [2]], timestamp=time,
                                           covar=np.diag([i, i, i, i])),
                             GaussianState(state_vector=[[1.5], [2.5], [1.5], [2.5]],
                                           timestamp=time + datetime.timedelta(seconds=1),
                                           covar=np.diag([i+0.5, i+0.5, i+0.5, i+0.5]))])
               for i in range(5)}
-    truths = {GroundTruthPath(states=[GroundTruthState(state_vector=[[0], [1], [0], [1]],
-                                                       timestamp=time),
-                                      GroundTruthState(state_vector=[[0.5], [1.5], [0.5], [1.5]],
-                                                       timestamp=time + datetime.timedelta(
-                                                           seconds=1))])}
 
-    manager = SimpleManager([generator])
-    manager.add_data(truths, tracks)
+    manager = MultiManager([generator])
+    manager.add_data({'tracks': tracks})
     main_metric = generator.compute_metric(manager)
     first_association, second_association = main_metric.value
 

@@ -28,7 +28,7 @@ Video processing, Object detection & Tracking
 This notebook will guide you progressively through the steps necessary to:
 
 1. Use the Stone Soup :class:`~.FrameReader` components to open and process video data;
-2. Use the :class:`~.TensorFlowBoxObjectDetector` to detect objects in video data, making use of Tensorflow object detection models;
+2. Use the :class:`~.TensorFlowBoxObjectDetector` to detect objects in video data, making use of TensorFlow object detection models;
 3. Build a :class:`~.MultiTargetTracker` to perform tracking of multiple object in video data.
 
 .. _MoviePy: https://zulko.github.io/moviepy/index.html
@@ -99,7 +99,7 @@ later will also be provided
 Download and store the video
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 First we will download the video that we will use throughout this tutorial. The code snippet
-shown bellow will download the video and save it your working directory as ``sample1.mp4``.
+shown below will download the video and save it your working directory as ``sample1.mp4``.
 
 .. GENERATED FROM PYTHON SOURCE LINES 83-94
 
@@ -114,7 +114,7 @@ shown bellow will download the video and save it your working directory as ``sam
 
     if not os.path.exists(VIDEO_PATH):
         yt = YouTube('http://www.youtube.com/watch?v=MNn9qKG2UFI')
-        yt.streams[0].download(filename=VIDEO_FILENAME)
+        yt.streams.get_by_itag(18).download(filename=VIDEO_PATH)
 
 
 
@@ -239,7 +239,6 @@ read and visualise these frames using `matplotlib`.
     ani = animation.ArtistAnimation(fig, artists, interval=20, blit=True, repeat_delay=200)
 
 
-
 .. image::  ./images/sphx_glr_Video_Processing_001.gif
    :align: center
 
@@ -270,7 +269,7 @@ objects, and more specifically cars, within the frames read in by our ``video_re
 :class:`~.TensorFlowBoxObjectDetector` can utilise both pre-trained and custom-trained TensorFlow
 object detection models which generate detection in the form of bounding boxes. In this example,
 we will make use of a pre-trained model from the
-`TensorFlow detection model zoo <https://github.com/tensorflow/models/blob/master/research/object_detection/g3doc/detection_model_zoo.md>`_,
+`TensorFlow detection model zoo <https://github.com/tensorflow/models/blob/master/research/object_detection/g3doc/tf2_detection_zoo.md>`_,
 but the process of using a custom-trained TensorFlow model is the same.
 
 .. GENERATED FROM PYTHON SOURCE LINES 188-204
@@ -530,7 +529,6 @@ of how to read and visualise these detections using `matplotlib`.
     ani2 = animation.ArtistAnimation(fig2, artists2, interval=20, blit=True, repeat_delay=200)
 
 
-
 .. image:: ./images/sphx_glr_Video_Processing_002.gif
    :align: center
 
@@ -736,8 +734,8 @@ that have not been associated to a measurement in the last 3 frames.
     prior_state = GaussianState(StateVector(np.zeros((6,1))),
                                 CovarianceMatrix(np.diag([100**2, 30**2, 100**2, 30**2, 100**2, 100**2])))
     deleter_init = UpdateTimeStepsDeleter(time_steps_since_update=3)
-    initiator = MultiMeasurementInitiator(prior_state, measurement_model, deleter_init,
-                                          data_associator, updater, min_points=10)
+    initiator = MultiMeasurementInitiator(prior_state, deleter_init, data_associator, updater,
+                                          measurement_model, min_points=10)
 
 
 
@@ -904,7 +902,7 @@ Running the tracker
 
 .. rst-class:: sphx-glr-timing
 
-   **Total running time of the script:** ( 4 minutes  21.159 seconds)
+   **Total running time of the script:** ( 2 minutes  38.615 seconds)
 
 
 .. _sphx_glr_download_auto_demos_Video_Processing.py:

@@ -1,4 +1,3 @@
-# coding: utf-8
 from numbers import Real
 
 import numpy as np

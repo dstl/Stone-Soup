@@ -19,14 +19,32 @@ Particle
 .. automodule:: stonesoup.predictor.particle
     :show-inheritance:
 
-Categorical
------------
+Ensemble
+--------
 
-.. automodule:: stonesoup.predictor.categorical
+.. automodule:: stonesoup.predictor.ensemble
     :show-inheritance:
 
 Information
 -----------
 
 .. automodule:: stonesoup.predictor.information
+    :show-inheritance:
+
+Accumulated State Densities
+---------------------------
+
+.. automodule:: stonesoup.predictor.asd
+    :show-inheritance:
+
+Categorical
+-----------
+
+.. automodule:: stonesoup.predictor.categorical
+    :show-inheritance:
+
+Composite
+---------
+
+.. automodule:: stonesoup.predictor.composite
     :show-inheritance:

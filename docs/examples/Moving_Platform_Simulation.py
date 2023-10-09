@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-# coding: utf-8
 
 """
 Multi-Sensor Moving Platform Simulation Example
@@ -356,6 +355,8 @@ for time, ctracks in tracker:
             # obtain measurement angles and map to cartesian
             e, a = detection.state_vector
             x, y, _ = sphere2cart(r, a + az_offset, e + el_offset)
+            x += detection.measurement_model.translation_offset[0]
+            y += detection.measurement_model.translation_offset[1]
             color = 'g'
         X = [sensor_platform.state_vector[0], x]
         Y = [sensor_platform.state_vector[2], y]
@@ -366,8 +367,8 @@ for time, ctracks in tracker:
     artists.extend(ax.plot(X, Y, color='r'))
 
     for track in ctracks:
-        X = [state.state_vector[0] for state in track]
-        Y = [state.state_vector[2] for state in track]
+        X = [state.mean[0] for state in track]
+        Y = [state.mean[2] for state in track]
         artists.extend(ax.plot(X, Y, color='k'))
 
     frames.append(artists)

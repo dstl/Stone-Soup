@@ -3,7 +3,7 @@ include LICENSE
 
 # Tests
 recursive-include stonesoup *.py
-include .coveragerc tox.ini
+include .coveragerc .flake8
 
 # Docs
 recursive-include docs/source *.py *.rst

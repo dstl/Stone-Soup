@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-# coding: utf-8
 
 """
 ==============================================
@@ -72,7 +71,7 @@
 import numpy as np
 
 from datetime import datetime, timedelta
-start_time = datetime.now()
+start_time = datetime.now().replace(microsecond=0)
 
 # %%
 
@@ -88,19 +87,22 @@ from stonesoup.models.transition.linear import CombinedLinearGaussianTransitionM
 
 transition_model = CombinedLinearGaussianTransitionModel([ConstantVelocity(0.05),
                                                           ConstantVelocity(0.05)])
-truth = GroundTruthPath([GroundTruthState([0, 1, 0, 1], timestamp=start_time)])
+timesteps = [start_time]
+truth = GroundTruthPath([GroundTruthState([0, 1, 0, 1], timestamp=timesteps[0])])
 
 for k in range(1, 21):
+    timesteps.append(start_time+timedelta(seconds=k))
     truth.append(GroundTruthState(
         transition_model.function(truth[k-1], noise=True, time_interval=timedelta(seconds=1)),
-        timestamp=start_time+timedelta(seconds=k)))
+        timestamp=timesteps[k]))
 
 # %%
 # Set-up plot to render ground truth, as before.
 
-from stonesoup.plotter import Plotter
-plotter = Plotter()
+from stonesoup.plotter import AnimatedPlotterly
+plotter = AnimatedPlotterly(timesteps, tail_length=0.3)
 plotter.plot_ground_truths(truth, [0, 2])
+plotter.fig
 
 # %%
 # Simulate the measurement
@@ -169,7 +171,7 @@ for measurement in measurements:
 # %%
 # And plot
 
-plotter.plot_tracks(track, [0, 2], uncertainty=True, color='r')
+plotter.plot_tracks(track, [0, 2], uncertainty=True)
 plotter.fig
 
 # %%
@@ -218,7 +220,7 @@ samples = multivariate_normal.rvs(prediction.state_vector.ravel(),
 particles = [
     Particle(sample.reshape(-1, 1), weight=Probability(1/number_particles)) for sample in samples]
 # Create prior particle state.
-pred_samples = ParticleState(particles, timestamp=start_time)
+pred_samples = ParticleState(None, particle_list=particles, timestamp=start_time)
 
 from stonesoup.resampler.particle import SystematicResampler
 resampler = SystematicResampler()
@@ -247,7 +249,7 @@ ax.plot(data[:, 0].ravel()+noise[:, 0],
         marker=".",
         markersize=1.5,
         alpha=0.4,
-        label="Measurements")
+        label="Particles")
 ax.legend()
 
 # %%
@@ -267,6 +269,7 @@ ekf_pred_meas = extended_updater.predict_measurement(prediction)
 
 # Plot UKF's predicted measurement distribution
 from matplotlib.patches import Ellipse
+from stonesoup.plotter import Plotter
 w, v = np.linalg.eig(ukf_pred_meas.covar)
 max_ind = np.argmax(w)
 min_ind = np.argmin(w)
@@ -294,7 +297,7 @@ ax.add_artist(ekf_ellipse)
 # Add ellipses to legend
 label_list = ["UKF Prediction", "EKF Prediction"]
 color_list = ['r', 'g']
-plotter.ellipse_legend(ax, label_list, color_list)
+Plotter.ellipse_legend(ax, label_list, color_list)
 fig
 
 # %%
@@ -319,4 +322,4 @@ fig
 #        Control Conference (IEEE Cat. No.CH37301), Anchorage, AK, USA, 2002, pp. 4555-4559 vol.6,
 #        doi: 10.1109/ACC.2002.1025369.
 
-# sphinx_gallery_thumbnail_number = 5
+# sphinx_gallery_thumbnail_path = '_static/sphinx_gallery/Tutorial_3.PNG'

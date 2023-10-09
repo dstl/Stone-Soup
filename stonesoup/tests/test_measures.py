@@ -1,5 +1,5 @@
-# -*- coding: utf-8 -*-
 import datetime
+import pickle
 
 import numpy as np
 import pytest
@@ -18,11 +18,13 @@ u = StateVector([[10.], [1.], [10.], [1.]])
 ui = CovarianceMatrix(np.diag([100., 10., 100., 10.]))
 
 state_u = GaussianState(u, ui, timestamp=t)
+stateB_u = State(u, timestamp=t)
 
 v = StateVector([[11.], [10.], [100.], [2.]])
 vi = CovarianceMatrix(np.diag([20., 3., 7., 10.]))
 
 state_v = GaussianState(v, vi, timestamp=t)
+stateB_v = State(v, timestamp=t)
 
 
 def test_measure_raise_error():
@@ -41,6 +43,7 @@ def test_euclideanweighted():
     weight = np.array([1, 2, 3, 1])
     measure = measures.EuclideanWeighted(weight)
     assert measure(state_u, state_v) == distance.euclidean(u[:, 0], v[:, 0], weight)
+    assert measure(stateB_u, stateB_v) == distance.euclidean(u[:, 0], v[:, 0], weight)
 
 
 def test_mahalanobis():
@@ -248,3 +251,26 @@ def test_euclideanweighted_partial_mapping(mapping_type):
     measure = measures.EuclideanWeighted(weight, mapping=mapping, mapping2=mapping2)
     assert measure(state_u, state_v) == \
         distance.euclidean([10, 1], [11, 2], weight)
+
+
+@pytest.mark.parametrize(
+    'measure,result',
+    [
+        (measures.Mahalanobis(), distance.mahalanobis(u[:, 0], v[:, 0], np.linalg.inv(ui))),
+        (measures.Mahalanobis(state_covar_inv_cache_size=0),
+         distance.mahalanobis(u[:, 0], v[:, 0], np.linalg.inv(ui))),
+        (measures.SquaredMahalanobis(),
+         distance.mahalanobis(u[:, 0], v[:, 0], np.linalg.inv(ui))**2),
+    ],
+    ids=['Mahalanobis', 'Mahalanobis-no-cache', 'SquaredMahalanobis'],
+)
+def test_mahalanobis_pickle(measure, result):
+    assert measure(state_u, state_v) == pytest.approx(result)
+    if measure.state_covar_inv_cache_size > 0:
+        assert measure._inv_cov.cache_info().currsize == 1
+
+    measure = pickle.loads(pickle.dumps(measure))
+    assert measure(state_u, state_v) == pytest.approx(result)
+    if measure.state_covar_inv_cache_size > 0:
+        assert measure._inv_cov.cache_info().hits == 0  # Cache not pickled currently
+        assert measure._inv_cov.cache_info().currsize == 1

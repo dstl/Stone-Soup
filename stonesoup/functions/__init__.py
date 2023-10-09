@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """Mathematical functions used within Stone Soup"""
 import copy
 
@@ -172,7 +171,7 @@ def gauss2sigma(state, alpha=1.0, beta=2.0, kappa=None):
 
     # Put these sigma points into s State object list
     sigma_points_states = []
-    for sigma_point in sigma_points.T:
+    for sigma_point in sigma_points:
         state_copy = copy.copy(state)
         state_copy.state_vector = StateVector(sigma_point)
         sigma_points_states.append(state_copy)
@@ -588,6 +587,47 @@ def rotz(theta):
                      [zero, zero, one]])
 
 
+def gm_sample(means, covars, size, weights=None):
+    """Sample from a mixture of multi-variate Gaussians
+
+    Parameters
+    ----------
+    means : :class:`~.StateVector`, :class:`~.StateVectors`, :class:`np.ndarray` of shape \
+    (num_dims, num_components)
+        The means of GM components
+    covars : :class:`np.ndarray` of shape (num_components, num_dims, num_dims) or list of \
+    :class:`np.ndarray` of shape (num_dims, num_dims)
+        Covariance matrices of the GM components
+    size : int
+        Number of samples to return.
+    weights : :class:`np.ndarray` of shape (num_components, ), optional
+        The weights of the GM components. If not defined, assumed equal.
+
+    Returns
+    -------
+    : :class:`~.StateVectors` of shape (num_dims, :attr:`size`)"""
+
+    if isinstance(means, np.ndarray):
+        if len(means.shape) == 1:
+            means = StateVectors(np.array([means]).T)
+        else:
+            means = StateVectors(means)
+
+    if isinstance(means, StateVector):
+        means = means.view(StateVectors)
+
+    if isinstance(means, StateVectors) and weights is None:
+        weights = np.array([1/means.shape[1]]*means.shape[1])
+    elif weights is None:
+        weights = np.array([1/len(means)]*len(means))
+
+    n_samples = np.random.multinomial(size, weights)
+    samples = np.vstack([np.random.multivariate_normal(mean.ravel(), covar, sample)
+                         for (mean, covar, sample) in zip(means, covars, n_samples)]).T
+
+    return StateVectors(samples)
+
+
 def gm_reduce_single(means, covars, weights):
     """Reduce mixture of multi-variate Gaussians to single Gaussian
 
@@ -665,6 +705,10 @@ def mod_elevation(x):
         x = np.pi - x
     elif N == 3:
         x = x - 2.0 * np.pi
+    elif N == 4:
+        # will only occur on occasions when first operation ('x = ..') returns 2pi to floating
+        # point limit.
+        x = 0.0
     return x
 
 
@@ -689,41 +733,37 @@ def build_rotation_matrix(angle_vector: np.ndarray):
     theta_x = -angle_vector[0, 0]  # roll
     theta_y = angle_vector[1, 0]  # pitch#elevation
     theta_z = -angle_vector[2, 0]  # yaw#azimuth
-    return rotz(theta_z) @ roty(theta_y) @ rotx(theta_x)
+    return rotx(theta_x) @ roty(theta_y) @ rotz(theta_z)
 
 
 def dotproduct(a, b):
-    r"""Returns the dot (or scalar) product of two StateVectors.
+    r"""Returns the dot (or scalar) product of two StateVectors or two sets of StateVectors.
 
-    The result for vectors of length :math:`n` is
-    :math:`\Sigma_i^n a_i b_i`.
-
-    Inputs are state vectors, i.e. the second dimension is 1
+    The result for vectors of length :math:`n` is :math:`\Sigma_i^n a_i b_i`.
 
     Parameters
     ----------
-    a : StateVector
-        A state vector
-    b : StateVector
-        A state vector of equal length to :math:`a`
+    a : StateVector, StateVectors
+        A (set of) state vector(s)
+    b : StateVector, StateVectors
+        A state vector(s) object of equal dimension to :math:`a`
 
     Returns
     -------
-    : float
-        A scalar value representing the dot product of the vectors.
+    : float, numpy.array
+        A (set of) scalar value(s) representing the dot product of the vectors.
     """
-    if np.shape(a)[1] != 1 or np.shape(b)[1] != 1 or np.ndim(a) != 2 or \
-            np.ndim(b) != 2:
-        raise ValueError("Inputs must be column vectors")
 
-    if np.shape(a)[0] != np.shape(b)[0]:
-        raise ValueError("Input vectors must be the same length")
+    if np.shape(a) != np.shape(b):
+        raise ValueError("Inputs must be (a collection of) column vectors of the same dimension")
 
-    out = 0
-    for a_i, b_i in zip(a, b):
-        out += a_i*b_i
-
-    return out
+    # Decide whether this is a StateVector or a StateVectors
+    if type(a) is StateVector and type(b) is StateVector:
+        return np.sum(a*b)
+    elif type(a) is StateVectors and type(b) is StateVectors:
+        return np.atleast_2d(np.asarray(np.sum(a*b, axis=0)))
+    else:
+        raise ValueError("Inputs must be `StateVector` or `StateVectors` and of the same type")
 
 
 def sde_euler_maruyama_integration(fun, t_values, state_x0):

@@ -4,12 +4,12 @@
     {% set pagename = pagename.replace("auto_", "../") %}
     {% if pagename.endswith("/index") %}
       {% set pagename = pagename.replace("/index", "/README") %}
-      {% set suffix = ".rst" %}
+      {% set page_source_suffix = ".rst" %}
     {% else %}
-      {% set suffix = ".py" %}
+      {% set page_source_suffix = ".py" %}
     {% endif %}
   {% endif %}
   <li class="wy-breadcrumbs-aside">
-    <a href="https://{{ github_host|default("github.com") }}/{{ github_user|default("dstl") }}/{{ github_repo|default("Stone-Soup") }}/{{ theme_vcs_pageview_mode or "blob" }}/{{ github_version|default("main") }}{{ conf_py_path|default("/docs/source/") }}{{ pagename }}{{ suffix }}" class="fa fa-github"> {{ _('Edit on GitHub') }}</a>
+    <a href="https://{{ github_host|default("github.com") }}/{{ github_user|default("dstl") }}/{{ github_repo|default("Stone-Soup") }}/{{ theme_vcs_pageview_mode or "blob" }}/{{ github_version|default("main") }}{{ conf_py_path|default("/docs/source/") }}{{ pagename }}{{ page_source_suffix }}" class="fa fa-github"> {{ _('Edit on GitHub') }}</a>
   </li>
 {% endblock %}

@@ -3,7 +3,7 @@ import numpy as np
 from datetime import timedelta
 
 from ..orbital import stumpff_c, stumpff_s, universal_anomaly_newton, \
-    lagrange_coefficients_from_universal_anomaly
+    lagrange_coefficients_from_universal_anomaly, keplerian_to_rv
 from ...types.array import StateVector
 
 
@@ -52,3 +52,9 @@ def test_universal_anomaly_and_lagrange():
     assert np.isclose(g, g_is, rtol=2e-3)  # Seems a bit loose - is the textbook wrong?
     assert np.isclose(fdot, fdot_is, rtol=1e-4)
     assert np.isclose(gdot, gdot_is, rtol=1e-4)
+
+
+def test_keplerian_to_rv_nosv():
+    """Make sure the error is chucked correctly with no Statevector input"""
+    with pytest.raises(TypeError):
+        _ = keplerian_to_rv(np.zeros(3))

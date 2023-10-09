@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """Simulators for data input into Stone Soup.
 
 Stone Soup can make use of simulators to generate ground truth tracks, sensor
