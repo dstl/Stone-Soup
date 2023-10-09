@@ -1375,7 +1375,7 @@ def test_jacobians():
     model = CartesianRateToElevationRateBearingRateRangeRate(
             ndim_state=6,
             mapping=(0, 1, 2, 3, 4, 5),
-            noise_covar=None
+            noise_covar=np.diag([0, 0])
         )
     ebr_state = GaussianState(
         state_vector=StateVector(
@@ -1423,7 +1423,7 @@ def test_translations():
     model = CartesianRateToElevationRateBearingRateRangeRate(
         ndim_state=6,
         mapping=(0, 1, 2, 3, 4, 5),
-        noise_covar=None,
+        noise_covar=np.diag([0, 0]),
         translation_offset=np.array([[10], [10], [0]]),
         rotation_offset=np.array([[0], [0], [0]])
     )
@@ -1431,7 +1431,7 @@ def test_translations():
     model = CartesianRateToElevationRateBearingRateRangeRate(
         ndim_state=6,
         mapping=(0, 1, 2, 3, 4, 5),
-        noise_covar=None,
+        noise_covar=np.diag([0, 0]),
         translation_offset=np.array([[10], [10]]),
         rotation_offset=np.array([[0], [0], [0]])
     )
@@ -1440,7 +1440,7 @@ def test_translations():
     model = CartesianRateToElevationRateBearingRateRangeRate(
         ndim_state=6,
         mapping=(0, 1, 2, 3, 4, 5),
-        noise_covar=None,
+        noise_covar=np.diag([0, 0]),
         rotation_offset=np.array([[0], [0], [0]])
     )
     assert np.array_equal(model.translation_offset, np.array([[0], [0], [0], [0], [0], [0]]))
@@ -1450,7 +1450,7 @@ def test_ndim():
     model = CartesianRateToElevationRateBearingRateRangeRate(
         ndim_state=6,
         mapping=(0, 1, 2, 3, 4, 5),
-        noise_covar=None,
+        noise_covar=np.diag([0, 0]),
         translation_offset=np.array([[10], [10], [0]]),
         rotation_offset=np.array([[0], [0], [0]])
     )
@@ -1461,7 +1461,7 @@ def test_rotation_matrix():
     model = CartesianRateToElevationRateBearingRateRangeRate(
         ndim_state=6,
         mapping=(0, 1, 2, 3, 4, 5),
-        noise_covar=None,
+        noise_covar=np.diag([0, 0]),
         translation_offset=np.array([[10], [10], [0]]),
         rotation_offset=np.array([[0], [0], [0]])
     )
@@ -1471,7 +1471,7 @@ def test_rotation_matrix():
     model = CartesianRateToElevationRateBearingRateRangeRate(
         ndim_state=6,
         mapping=(0, 1, 2, 3, 4, 5),
-        noise_covar=None,
+        noise_covar=np.diag([0, 0]),
         translation_offset=np.array([[10], [10], [0]]),
         rotation_offset=np.array([[np.radians(10)], [np.radians(10)], [np.radians(10)]])
     )
