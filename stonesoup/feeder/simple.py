@@ -1,12 +1,10 @@
-import copy
 import datetime
 from abc import abstractmethod
-from typing import Iterable, List, Tuple
+from typing import Iterable, Tuple
 
+from .base import DetectionFeeder, GroundTruthFeeder, DetectionOutput, Feeder
 from ..base import Property
 from ..buffered_generator import BufferedGenerator
-from ..feeder import Feeder
-from .base import DetectionFeeder, GroundTruthFeeder, DetectionOutput, Feeder
 
 
 class SimpleFeeder(Feeder):

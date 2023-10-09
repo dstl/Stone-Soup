@@ -84,9 +84,9 @@ class OriginalStateDetectionSpaceFeeder(AlteredDetectionFeeder):
 
     measurement_model_key = "original measurement model"
 
-    ndim_state: int = Property(default=None,
-                               doc="Number of state dimensions position and velocity for detection"
-                                   "state space. Using None, takes this from the measurement model")
+    ndim_state: int = Property(
+        default=None, doc="Number of state dimensions position and velocity for detection state "
+                          "space. Using None, takes this from the measurement model")
     mapping: List[int] = Property(default=None, doc="Index of position components in the state")
 
     def alter_detection(self, a_detection: Detection) -> Detection:
@@ -109,9 +109,9 @@ class OriginalStateDetectionSpaceFeeder(AlteredDetectionFeeder):
 
 class OriginalStateDetectionSpaceFeeder2D(OriginalStateDetectionSpaceFeeder):
 
-    ndim_state: int = Property(default=4,
-                               doc="Number of state dimensions position and velocity for detection"
-                                   "state space. Using None, takes this from the measurement model")
+    ndim_state: int = Property(
+        default=4, doc="Number of state dimensions position and velocity for detection state "
+                       "space. Using None, takes this from the measurement model")
     mapping: List[int] = Property(default=(0, 2), doc="Index of position components in the state")
 
 

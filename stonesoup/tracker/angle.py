@@ -27,27 +27,31 @@ class AngleSingleTargetTracker(SingleTargetTracker):
                 \dot{r}
             \end{bmatrix}
 
-    where :math:`\theta` is the elevation, :math:`\varphi` is the bearing, :math:`r` is the range
-    to the object and the dot notation is used to define the rate of change of the parameters.
-    The Angle-Only tracker works the same way as its Cartesian counterpart by first calling the
-    :attr:`data_associator` with the active track, and then either updating the track state with
-    the prediction if no detection is associated to the track. The difference is then the relevant
-    state vector components are cast to :attr:`Elevation` and :attr:`Bearing` types. The track is
-    checked for deletion by the :attr:`deleter`, and if deleted the :attr:`initiator` is called to
-    generate a new track. Similarly, if no track is present (i.e. tracker is initialised or
-    deleted in previous iteration), only the :attr:`initiator` is called.
+    where :math:`\theta` is the elevation, :math:`\varphi` is the bearing, r is the range to the
+    object and the dot notation is used to define the rate of change of the parameters.
+    The angle only tracker works the same way as
+    its Cartesian counterpart by first calling the :attr:`data_associator`
+    with the active track, and then either updating the track state with
+    the result of the :attr:`updater` if a detection is associated, or with
+    the prediction if no detection is associated to the track. The difference is then the
+    relevant state vector components are cast to :attr:`Elevation` and :attr:`Bearing` types.
+    The track is checked for deletion by the :attr:`deleter`, and if deleted the
+    :attr:`initiator` is called to generate a new track.
+    Similarly, if no track is present (i.e. tracker is initialised
+    or deleted in previous iteration), only the :attr:`initiator` is called.
 
-    Parameters
-    ----------
+        Parameters
+        ----------
 
-    Attributes
-    ----------
-    track : :class:`~.Track`
-        Current track being maintained. Also accessible as the sole item in
-        :attr:`tracks`
+        Attributes
+        ----------
+        track : :class:`~.Track`
+            Current track being maintained. Also accessible as the sole item in
+            :attr:`tracks`
     """
 
-    detector: OriginalStateDetectionSpaceFeeder = Property(doc="Detector used to generate detection objects.")
+    detector: OriginalStateDetectionSpaceFeeder = Property(
+        doc="Detector used to generate detection objects.")
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -78,40 +82,35 @@ class AngleSingleTargetTracker(SingleTargetTracker):
 
 
 class AngleMultipleTargetTracker(MultiTargetTracker):
-    """A simple angle-only multiple target tracker.
+    r"""A simple angle-only multiple target tracker.
 
     Track multiple object using Stone Soup components in platform-centric
     polar angles, elevation and azimuth, and optionally range. It is important to note that the
     state vector is assumed to take the form of
-        .. math::
-            \mathbf{x}_{k} = \begin{bmatrix}\theta\\\dot{\theta}\\\varphi\\\dot{\varphi}\end{bmatrix}
-    or
+
     .. math::
-            \mathbf{x}_{k} = \begin{bmatrix}\theta\\\dot{\theta}\\\varphi\\\dot{\varphi}\\r\\\dot{r}\end{bmatrix}
+        \mathbf{x}_{k} = \begin{bmatrix}\theta\\\dot{\theta}\\\varphi\\\dot{\varphi}\end{bmatrix}
+
+    or
+
+    .. math::
+        \mathbf{x}_{k} =
+            \begin{bmatrix}
+                \theta\\
+                \dot{\theta}\\
+                \varphi\\
+                \dot{\varphi}\\
+                r\\
+                \dot{r}
+            \end{bmatrix}
 
     where :math:`\theta` is the elevation, :math:`\varphi` is the bearing, r is the range to the
     object and the dot notation is used to define the rate of change of the parameters.
-    The angle only tracker works the same way as
-    its Cartesian counterpart by first calling the :attr:`data_associator`
-    with the active track, and then either updating the track state with
-    the result of the :attr:`updater` if a detection is associated, or with
-    the prediction if no detection is associated to the track. The difference is then the
-    relevant state vector components are cast to :attr:`Elevation` and :attr:`Bearing` types.
-    The track is checked for deletion by the :attr:`deleter`, and if deleted the
-    :attr:`initiator` is called to generate a new track.
-    Similarly, if no track is present (i.e. tracker is initialised
-    or deleted in previous iteration), only the :attr:`initiator` is called.
+    The angle only tracker works the same way as its Cartesian counterpart.
+    """
 
-        Parameters
-        ----------
-
-        Attributes
-        ----------
-        track : :class:`~.Track`
-            Current track being maintained. Also accessible as the sole item in
-            :attr:`tracks`
-        """
-    detector: OriginalStateDetectionSpaceFeeder = Property(doc="Detector used to generate detection objects.")
+    detector: OriginalStateDetectionSpaceFeeder = Property(
+        doc="Detector used to generate detection objects.")
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
