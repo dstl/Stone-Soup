@@ -55,6 +55,8 @@ def interpolate_state_mutable_sequence(sms: StateMutableSequence,
 
     Unique states for each time are required for interpolation. If there are multiple states with
     the same time in ``sms`` the later state in the sequence is used.
+
+    For :class:`~.Track` inputs the *metadatas* is removed as it can't be interpolated.
     """
 
     # If single time is used, insert time into list and run again.
@@ -104,9 +106,9 @@ def interpolate_state_mutable_sequence(sms: StateMutableSequence,
 
         interp_output = np.empty((sms.state.ndim, len(times_to_interpolate)))
         for element_index in range(sms.state.ndim):
-            interp_output[element_index][:] = np.interp(x=interp_timestamps,
+            interp_output[element_index, :] = np.interp(x=interp_timestamps,
                                                         xp=state_timestamps,
-                                                        fp=state_vectors[element_index][:])
+                                                        fp=state_vectors[element_index, :])
 
         for state_index, time in enumerate(times_to_interpolate):
             time_state_dict[time] = State(interp_output[:, state_index], timestamp=time)
