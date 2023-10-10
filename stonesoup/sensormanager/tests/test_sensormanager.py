@@ -177,3 +177,105 @@ def test_uncertainty_based_managers():
     assert all_dwell_centres[0][1] == all_dwell_centres[1][1] == all_dwell_centres[2][1]
 
     assert isinstance(sensor_managerD.get_full_output(), tuple)
+
+
+def test_greedy_manager():
+    start_time = datetime.now().replace(microsecond=0)
+
+    transition_model = CombinedLinearGaussianTransitionModel([ConstantVelocity(0.5),
+                                                              ConstantVelocity(0.5)])
+
+    time_max = 41
+    timesteps = [start_time + timedelta(seconds=k) for k in range(time_max)]
+    truths = OrderedSet()
+    truth = GroundTruthPath([GroundTruthState([-10, 1, 0, 1], timestamp=timesteps[0])])
+    for k in range(1, time_max):
+        if k == 11 or k == 31:
+            turn = truth[-1]
+            turn.state_vector[3] *= -1
+            truth.append(GroundTruthState(
+                transition_model.function(turn, noise=False, time_interval=timedelta(seconds=1)),
+                timestamp=timesteps[k]))
+        elif k == 21:
+            turn = truth[-1]
+            turn.state_vector[1] *= -1
+            truth.append(GroundTruthState(
+                transition_model.function(turn, noise=False, time_interval=timedelta(seconds=1)),
+                timestamp=timesteps[k]))
+        else:
+            truth.append(GroundTruthState(transition_model.function(truth[-1], noise=False,
+                                                                    time_interval=timedelta(
+                                                                        seconds=1)),
+                                          timestamp=timesteps[k]))
+    truths.add(truth)
+
+    sensor_set = set()
+    sensor = RadarRotatingBearingRange(
+        position_mapping=(0, 2),
+        noise_covar=np.array([[0.0001 ** 2, 0],
+                              [0, 0.0001 ** 2]]),
+        ndim_state=4,
+        position=np.array([[0], [0]]),
+        rpm=60,
+        fov_angle=np.radians(90),
+        dwell_centre=StateVector([np.radians(315)]),
+        max_range=np.inf,
+        resolutions={'dwell_centre': Angle(np.radians(90))}
+    )
+    sensor.timestamp = start_time
+    sensor_set.add(sensor)
+
+    predictor = KalmanPredictor(transition_model)
+    updater = ExtendedKalmanUpdater(measurement_model=None)
+
+    prior = GaussianState([[-10], [1], [0], [1]],
+                          np.diag([0.5, 0.5, 0.5, 0.5] + np.random.normal(0, 5e-4, 4)),
+                          timestamp=start_time)
+    tracks = {Track([prior])}
+
+    reward_function = UncertaintyRewardFunction(predictor, updater)
+    greedysensormanager = GreedySensorManager(sensor_set, reward_function=reward_function)
+
+    hypothesiser = DistanceHypothesiser(predictor, updater, measure=Mahalanobis(),
+                                        missed_distance=5)
+    data_associator = GNNWith2DAssignment(hypothesiser)
+
+    sensor_history = defaultdict(dict)
+    dwell_centres = dict()
+
+    for timestep in timesteps[1:]:
+        chosen_actions = greedysensormanager.choose_actions(tracks, timestep)
+        measurements = set()
+        for chosen_action in chosen_actions:
+            for sensor, actions in chosen_action.items():
+                sensor.add_actions(actions)
+        for sensor in sensor_set:
+            sensor.act(timestep)
+            sensor_history[timestep][sensor] = copy.copy(sensor)
+            dwell_centres[timestep] = sensor.dwell_centre[0][0]
+            measurements |= sensor.measure(OrderedSet(truth[timestep] for truth in truths),
+                                           noise=False)
+        hypotheses = data_associator.associate(tracks,
+                                               measurements,
+                                               timestep)
+        for track in tracks:
+            hypothesis = hypotheses[track]
+            if hypothesis.measurement:
+                post = updater.update(hypothesis)
+                track.append(post)
+            else:
+                track.append(hypothesis.prediction)
+
+    # Double check choose_actions method types are as expected
+    assert type(chosen_actions) == list
+
+    for chosen_actions in chosen_actions:
+        for sensor, actions in chosen_action.items():
+            assert isinstance(sensor, RadarRotatingBearingRange)
+            assert isinstance(actions[0], ChangeDwellAction)
+
+    # Check sensor following track as expected
+    assert dwell_centres[timesteps[5]] - np.radians(135) < 1e-3
+    assert dwell_centres[timesteps[15]] - np.radians(45) < 1e-3
+    assert dwell_centres[timesteps[25]] - np.radians(-45) < 1e-3
+    assert dwell_centres[timesteps[35]] - np.radians(-135) < 1e-3

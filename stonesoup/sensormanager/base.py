@@ -150,3 +150,62 @@ class BruteForceSensorManager(SensorManager):
             return selected_configs, best_rewards
         else:
             return selected_configs
+
+
+class GreedySensorManager(SensorManager):
+    """A sensor manager that returns a choice of actions from those available. Calculates
+    a reward function for each sensor in isolation. Selects the action that maximises reward
+    for each sensor.
+
+    """
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+
+    def choose_actions(self, tracks, timestamp, nchoose=1, **kwargs):
+        """Returns a chosen [list of] action(s) from the action set for each sensor.
+        Chosen action(s) is selected by finding the configuration of sensors: actions which returns
+        the maximum reward, as calculated by a reward function.
+
+        Parameters
+        ----------
+        tracks: set of :class:`~.Track`
+            Set of tracks at given time. Used in reward function.
+        timestamp: :class:`datetime.datetime`
+            Time at which the actions are carried out until
+        nchoose : int
+            Number of actions from the set to choose (default is 1)
+
+        Returns
+        -------
+        : dict
+            The pairs of :class:`~.Sensor`: [:class:`~.Action`] selected
+        """
+
+        all_sensor_actions = dict()
+
+        for sensor in self.sensors:
+            # get action 'generator(s)'
+            action_generators = sensor.actions(timestamp)
+            # list possible action combinations for the sensor
+            action_choices = list(it.product(*action_generators))
+
+            best_rewards = np.zeros(nchoose) - np.inf
+            selected_actions = [None] * nchoose
+            for action in action_choices:
+                # calculate reward for each action
+                reward = self.reward_function({sensor: action}, tracks, timestamp)
+                if reward > min(best_rewards):
+                    selected_actions[np.argmin(best_rewards)] = action
+                    best_rewards[np.argmin(best_rewards)] = reward
+
+            # save nchoose best actions for the sensor
+            all_sensor_actions[sensor] = selected_actions
+
+        # convert from single dict of sensor: list(actions) to list of dicts of sensors: actions
+        all_selected_configs = [{sensor: all_sensor_actions[sensor][i]
+                                 for sensor in all_sensor_actions}
+                                for i in range(nchoose)]
+
+        # Return mapping of sensors and chosen actions for sensors
+        return all_selected_configs
