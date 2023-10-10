@@ -2,10 +2,7 @@
 Tracking in Angular State Space Example
 ========================================
 
-Todo
-This example shows how to fuse data from infrared and radar sensors. Two options are explored,
-detection fusion and track fusion. The geometry of the scenario is chosen to be challenging for
-the association of angle only detections and tracks.
+Todo - Add Description
 """
 
 # %%
@@ -44,9 +41,22 @@ from stonesoup.types.state import State
 from stonesoup.types.track import Track
 from stonesoup.updater.kalman import ExtendedKalmanUpdater
 from stonesoup.types.detection import Detection, TrueDetection
-from stonesoup.models.measurement.nonlinear import CartesianToElevationBearing, CartesianToElevationBearingRange
+from stonesoup.models.measurement.nonlinear import CartesianToElevationBearing, \
+    CartesianToElevationBearingRange
 
 
+_X = 0
+_Y = 2
+_Z = 4
+start_time = datetime.datetime(2023, 1, 1, 0, 0, 0)
+np.random.seed(42)
+
+
+# %%
+# Useful Function
+# ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+# This function converts elevation-bearing detections to elevation-bearing-range detections.
+# Todo - Not sure if this function should be belong in the main library.
 def convert_eb_detections_to_ebr(detection: Detection, new_range: Union[None, float]) -> Detection:
     # noinspection PyTypeChecker
     original_measurement_model: CartesianToElevationBearing = detection.measurement_model
@@ -73,20 +83,12 @@ def convert_eb_detections_to_ebr(detection: Detection, new_range: Union[None, fl
                                 measurement_model=new_measurement_model)
 
 
-_X = 0
-_Y = 2
-_Z = 4
-start_time = datetime.datetime(2023, 1, 1, 0, 0, 0)
-np.random.seed(42)
-
-
 # %%
 # Create the Target Trajectories
 # ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 # In this section the movement of the target aircraft is created. This specific geometry was
 # chosen to challenge the association algorithms. Target 1 does a weave moving left to right.
 # Target two moves down with a single turn at 40 seconds.
-
 
 # Create waypoints of both targets
 target_1_waypoints = [State([[t], [1], [40 + 10 * np.sin(t / 10)], [np.cos(t / 10)], [10], [0]],
@@ -104,6 +106,8 @@ target_2_waypoints = [
 # `interpolate_states` function performs a linear interpolation between states to create new
 # intermediate states.
 def interpolate_states(existing_states: Sequence[State], interpolate_time: datetime.datetime):
+    # An interpolate states function is due to enter stone-soup in PR #872.
+    # Todo - If PR #872 is merged, replace this function with an import
     float_times = [state.timestamp.timestamp() for state in existing_states]
     output = np.zeros(len(existing_states[0].state_vector))
     for i in range(len(output)):
@@ -132,10 +136,7 @@ all_ground_truth = {target_1_truth, target_2_truth, target_3_truth}
 # %%
 # Create Sensors
 # ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-# Two sensors are created. They are co-located at 50 east, 10 north, and 0 altitude. One is a radar
-# sensor that will report elevation, bearing (azimuth), and range. One is an infrared angle-only
-# sensor that will report just elevation and bearing (azimuth) angles. In this example the infrared
-# sensor is configured to be 3 times more accurate at measuring direction than the radar sensor.
+# Todo - Add Description
 
 sensor_position = np.array([[50], [10], [0]])
 sensor_orientation = StateVector([[0], [0], [np.pi/2]])
@@ -173,9 +174,7 @@ sensor2 = PassiveElevationBearing(
 # %%
 # Measure the target
 # -------------------------------------------------
-# We’re going to simulate detecting both targets. The radar sensor will be turned off from 25
-# seconds to 55 seconds in the simulation. This is to demonstrate the tracking performance without
-# regular range (radar) updates.
+# Todo - Add Description
 
 all_radar_measurements = []
 s2_measurements = []
@@ -218,9 +217,9 @@ for target_1_state, target_2_state, target_3_state in \
 
 
 # %%
-# Todo
+# Create Elevation-Bearing Truth for Each Target
 # -------------------------------------------------
-# Todo
+# Todo - Add Description
 
 sensor_1_truth_dict = defaultdict(list)
 for det in sensor_1_eb_truth:
@@ -237,16 +236,15 @@ pre_rotate_dets = sensor_1_truth_dict[target_3_truth]
 plotter_az_time2 = Plotter(xaxis=dict(title=dict(text="Time (seconds)")),
                            yaxis=dict(title=dict(text="Azimuth/Bearing Angle (radians)")))
 
-# Todo - Uncomment after polar plotting PR is merged
-# plotter_az_time2.plot_measurements(pre_rotate_dets, mapping=[1],
-#                                    measurements_label="Angle-Only Measurements",
-#                                    convert_measurements=False)
+plotter_az_time2.plot_measurements(pre_rotate_dets, mapping=[1],
+                                   measurements_label="Angle-Only Measurements",
+                                   convert_measurements=False)
 
 plotter_az_time2.fig
 
 
 # %%
-# Todo
+# Todo - Add More Description
 # Lots of noise in measurements. Not caused by sensor (no noise in measurement). Caused by
 # noise in the platform's direction/orientation
 
@@ -260,14 +258,14 @@ post_rotate_dets = [converter.alter_detection(det) for det in pre_rotate_dets]
 plotter_az_time3 = Plotter(xaxis=dict(title=dict(text="Time (seconds)")),
                            yaxis=dict(title=dict(text="Azimuth/Bearing Angle (radians)")))
 
-# Needs polar plotting PR
-# plotter_az_time3.plot_measurements(post_rotate_dets, mapping=[1],
-#                                    measurements_label="Angle-Only Measurements",
-#                                    convert_measurements=False)
+plotter_az_time3.plot_measurements(post_rotate_dets, mapping=[1],
+                                   measurements_label="Angle-Only Measurements",
+                                   convert_measurements=False)
 plotter_az_time3.fig
 
 # %%
-# Todo - This looks much better. Not needed for sensor 2 as it is a static sensor
+# Todo - Add More Description
+# This looks much better. Not needed for sensor 2 as it is a static sensor
 
 
 sensor_1_eb_ground_truths = defaultdict(GroundTruthPath)
@@ -312,7 +310,9 @@ s2_measurements = [detection for _, set_of_detections in s2_inputs
 
 plotter = Plotter(xaxis=dict(title=dict(text="<i>x</i> (East)")),
                   yaxis=dict(title=dict(text="<i>y</i> (North)"), scaleanchor="x", scaleratio=1))
-plotter.plot_ground_truths(all_ground_truth, [_X, _Y], truths_label="Target Flight Path")
+for gt in all_ground_truth:
+    plotter.plot_ground_truths({gt}, [_X, _Y], truths_label=gt.id)
+# plotter.plot_ground_truths(all_ground_truth, [_X, _Y], truths_label="Target Flight Path")
 plotter.plot_sensors([sensor2], sensor_label="Static Sensor Location")
 plotter.plot_ground_truths({sensor_platform}, [_X, _Y], truths_label="Sensor Platform Flight Path")
 plotter.fig
@@ -406,13 +406,12 @@ plotterAzEl_1.fig
 plotter_az_time_1 = Plotter(xaxis=dict(title=dict(text="Time (seconds)")),
                             yaxis=dict(title=dict(text="Azimuth/Bearing Angle (radians)")))
 
-# Todo - Uncomment after polar plotting PR is merged
-# plotter_az_time_1.plot_measurements(s1_measurements, mapping=[1],
-#                                     measurements_label="Measurements",
-#                                     convert_measurements=False)
-#
-# for gt in sensor_1_eb_ground_truths.values():
-#     plotter_az_time_1.plot_ground_truths({gt}, mapping=[1], truths_label=gt.id)
+plotter_az_time_1.plot_measurements(s1_measurements, mapping=[1],
+                                    measurements_label="Measurements",
+                                    convert_measurements=False)
+
+for gt in sensor_1_eb_ground_truths.values():
+    plotter_az_time_1.plot_ground_truths({gt}, mapping=[1], truths_label=gt.id)
 
 plotter_az_time_1.fig
 
@@ -454,13 +453,12 @@ plotterAzEl_2.fig
 plotter_az_time_2 = Plotter(xaxis=dict(title=dict(text="Time (seconds)")),
                             yaxis=dict(title=dict(text="Azimuth/Bearing Angle (radians)")))
 
-# Todo - Uncomment after polar plotting PR is merged
-# plotter_az_time_2.plot_measurements(s2_measurements, mapping=[1],
-#                                     measurements_label="Measurements",
-#                                     convert_measurements=False)
-#
-# for gt in sensor_2_eb_ground_truths.values():
-#     plotter_az_time_2.plot_ground_truths({gt}, mapping=[1], truths_label=gt.id)
+plotter_az_time_2.plot_measurements(s2_measurements, mapping=[1],
+                                    measurements_label="Measurements",
+                                    convert_measurements=False)
+
+for gt in sensor_2_eb_ground_truths.values():
+    plotter_az_time_2.plot_ground_truths({gt}, mapping=[1], truths_label=gt.id)
 
 plotter_az_time_2.fig
 
@@ -569,9 +567,8 @@ plotterAzEl_1.fig
 # Azimuth vs Time Graph
 # ^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-# Todo - Uncomment after polar plotting PR is merged
-# for idx, track in enumerate(s1_tracks):
-#     plotter_az_time_1.plot_tracks({track}, mapping=[2], track_label=f"Track {idx}")
+for idx, track in enumerate(s1_tracks):
+    plotter_az_time_1.plot_tracks({track}, mapping=[2], track_label=f"Track {idx}")
 
 plotter_az_time_1.fig
 
@@ -595,9 +592,8 @@ plotterAzEl_2.fig
 # Azimuth vs Time Graph
 # ^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-# Todo - Uncomment after polar plotting PR is merged
-# for idx, track in enumerate(s2_tracks):
-#     plotter_az_time_2.plot_tracks({track}, mapping=[2], track_label=f"Track {idx}")
+for idx, track in enumerate(s2_tracks):
+    plotter_az_time_2.plot_tracks({track}, mapping=[2], track_label=f"Track {idx}")
 
 plotter_az_time_2.fig
 
