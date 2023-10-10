@@ -36,7 +36,7 @@ start_time = datetime(2023, 1, 1)
 # -----------------------------------
 # Two targets are created:
 #  #. Target 1 moves in a ‘C’ shape. First it moves west (negative x), then it starts a slow,
-#     long 180-degree turn moving south, until it is moving west (positive x).
+#     long 180-degree turn moving south, until it is moving east (positive x).
 #  #. Target 2 moves in a straight line from north to south.
 
 # Create manoeuvre behaviours and durations for our moving platform
