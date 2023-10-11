@@ -67,7 +67,7 @@ plotter.plot_tracks(tracks=[Track(state) for state in states_from_b],
 plotter.fig
 
 # %%
-# This scenario has been created, so it’s not immediately clear which states should be associated
+# This scenario has been designed such the optimal association between ``states_from_a`` and ``states_from_b`` is unclear to the human eye.
 # to each other.
 
 # %%
@@ -84,7 +84,7 @@ state_associator = OneToOneAssociator(measure=Euclidean(mapping=[0, 1]),
 
 # %%
 # **Associate States**. The :class:`~.OneToOneAssociator` will minimise the total measure
-# (:class:`~.Euclidean` distance) between the two states. The ``OneToOneAssociator`` uses scipy's
+# (:class:`~.Euclidean` distance) between the two states. The ``OneToOneAssociator`` uses SciPy's
 # :func:`~.scipy.optimize.linear_sum_assignment` function (a modified Jonker-Volgenant algorithm)
 # to minimise the distance. For pairs of objects with a distance equal to or above the threshold,
 # these pairs won’t be associated together.
@@ -335,7 +335,7 @@ for received_colour in received_colours_scheme:
 # %%
 # Measure 2 - Example 1
 # ^^^^^^^^^^^^^^^^^^^^^^^
-# ``BetterWordMeasure`` looks for words that are identical or is a word/phrase is contained within
+# ``MatchingWordMeasure`` looks for words that are identical or is a word/phrase is contained within
 # another word/phrase.
 class MatchingWordMeasure(BaseMeasure):
     PERFECT_MATCH = 1.0
@@ -355,7 +355,7 @@ class MatchingWordMeasure(BaseMeasure):
 
 
 # %%
-# The association process
+# The association process:
 associator = OneToOneAssociator(measure=MatchingWordMeasure(),
                                 maximise_measure=True,
                                 association_threshold=0.3  # Just below PARTIAL_MATCH
@@ -364,7 +364,7 @@ associator = OneToOneAssociator(measure=MatchingWordMeasure(),
 association_dict = associator.association_dict(standard_colours, received_colours_scheme)
 
 # %%
-# Print association results
+# Print association results:
 
 print("Received Colour:\tAssociated Standard Colour")
 for received_colour in received_colours_scheme:
@@ -381,7 +381,7 @@ received_colours_scheme = ["LightSeaGreen", "OrangeRed", "MediumVioletRed"]
 association_dict = associator.association_dict(standard_colours, received_colours_scheme)
 
 # %%
-# Print association results
+# Print association results:
 
 print("Received Colour:\tAssociated Standard Colour")
 for received_colour in received_colours_scheme:
@@ -394,4 +394,4 @@ for received_colour in received_colours_scheme:
 # The :class:`~.OneToOneAssociator` can be used for multiple varied purposes. It was created
 # originally for track association but can be used to associate anything. The examples above show
 # its use in associating :class:`~.StateMutualSequence`, :class:`~.State` and :class:`str`.
-# It’s a flexible association class that can be tailored for the scenario.
+# It’s a flexible association class that can be tailored for many use cases.
