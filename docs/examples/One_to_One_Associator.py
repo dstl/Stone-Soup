@@ -67,8 +67,8 @@ plotter.plot_tracks(tracks=[Track(state) for state in states_from_b],
 plotter.fig
 
 # %%
-# This scenario has been designed such the optimal association between ``states_from_a`` and ``states_from_b`` is unclear to the human eye.
-# to each other.
+# This scenario has been designed such the optimal association between ``states_from_a`` 
+# and ``states_from_b`` is unclear to the human eye.
 
 # %%
 # Create Associator & Associate States
