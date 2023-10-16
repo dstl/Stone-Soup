@@ -41,6 +41,7 @@ class Node(Base):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.data_held = {"fused": {}, "created": {}, "unfused": {}}
+        self.messages_to_pass_on = {'unsent': [], 'sent': []}
 
     def update(self, time_pertaining, time_arrived, data_piece, category, track=None):
         if not isinstance(time_pertaining, datetime) and isinstance(time_arrived, datetime):
