@@ -170,16 +170,21 @@ class Edges(Base, Collection):
     def add(self, edge):
         self.edges.append(edge)
 
+    def remove(self, edge):
+        self.edges.remove(edge)
+
     def get(self, node_pair):
         if not isinstance(node_pair, Tuple) and all(isinstance(node, Node) for node in node_pair):
             raise TypeError("Must supply a tuple of nodes")
         if not len(node_pair) == 2:
             raise ValueError("Incorrect tuple length. Must be of length 2")
+        edges = list()
         for edge in self.edges:
             if edge.nodes == node_pair:
                 # Assume this is the only match?
-                return edge
-        return None
+                edges.append(edge)
+        return edges
+
 
     @property
     def edge_list(self):
