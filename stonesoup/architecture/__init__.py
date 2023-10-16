@@ -1,10 +1,11 @@
+import copy
 from abc import abstractmethod
 
 import pydot
 
 from ..base import Base, Property
 from .node import Node, SensorNode, RepeaterNode, FusionNode
-from .edge import Edges, DataPiece
+from .edge import Edges, DataPiece, Edge
 from ..types.groundtruth import GroundTruthPath
 from ..types.detection import TrueDetection, Clutter
 from ._functions import _default_label
@@ -195,6 +196,17 @@ class Architecture(Base):
             if isinstance(node, FusionNode):
                 fusion.add(node)
         return fusion
+
+    @property
+    def repeater_nodes(self):
+        """
+        Returns a set of all RepeaterNodes in the :class:`Architecture`.
+        """
+        repeater_nodes = set()
+        for node in self.all_nodes:
+            if isinstance(node, RepeaterNode):
+                repeater_nodes.add(node)
+        return repeater_nodes
 
     def plot(self, dir_path, filename=None, use_positions=False, plot_title=False,
              bgcolour="white", node_style="filled", font_name='helvetica', save_plot=True,
@@ -396,6 +408,15 @@ class Architecture(Base):
         return True
 
 
+class NonPropagatingArchitecture(Architecture):
+    """
+    A simple Architecture class that does not simulate propagation of any data. Can be used for
+    performing network operations on an :class:`~.Edges` object.
+    """
+    def propagate(self, time_increment: float):
+        pass
+
+
 class InformationArchitecture(Architecture):
     """The architecture for how information is shared through the network. Node A is "
     "connected to Node B if and only if the information A creates by processing and/or "
@@ -403,9 +424,11 @@ class InformationArchitecture(Architecture):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        for node in self.all_nodes:
-            if isinstance(node, RepeaterNode):
-                raise TypeError("Information architecture should not contain any repeater nodes")
+
+        if isinstance(self, InformationArchitecture):
+            for node in self.all_nodes:
+                if isinstance(node, RepeaterNode):
+                    raise TypeError("Information architecture should not contain any repeater nodes")
         for fusion_node in self.fusion_nodes:
             pass  # fusion_node.tracker.set_time(self.current_time)
 
@@ -474,14 +497,112 @@ class InformationArchitecture(Architecture):
 class NetworkArchitecture(Architecture):
     """The architecture for how data is propagated through the network. Node A is connected "
             "to Node B if and only if A sends its data through B. """
+    information_arch: InformationArchitecture = Property(default=None)
+    information_architecture_edges: Edges = Property(default=None)
 
-    def propagate(self, time_increment: float):
-        # Still have to deal with latency/bandwidth
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+
+        # Check whether an InformationArchitecture is provided, if not, see if one can be created
+        if self.information_arch is None:
+
+            # If info edges are provided, we can deduce an information architecture, otherwise:
+            if self.information_architecture_edges is None:
+
+                # If repeater nodes are present in the Network architecture, we can deduce an
+                # information architecture
+                if len(self.repeater_nodes) > 0:
+                    self.information_architecture_edges = Edges(inherit_edges(Edges(self.edges)))
+                    self.information_arch = InformationArchitecture(
+                        edges=self.information_architecture_edges)
+            else:
+                self.information_arch = InformationArchitecture(
+                    edges=self.information_architecture_edges)
+
+        # Need to reset digraph for info-arch
+        self.di_graph = nx.to_networkx_graph(self.edges.edge_list, create_using=nx.DiGraph)
+        # Set attributes such as label, colour, shape, etc. for each node
+        last_letters = {'Node': '', 'SensorNode': '', 'FusionNode': '', 'SensorFusionNode': '',
+                        'RepeaterNode': ''}
+        for node in self.di_graph.nodes:
+            if node.label:
+                label = node.label
+            else:
+                label, last_letters = _default_label(node, last_letters)
+                node.label = label
+            attr = {"label": f"{label}", "color": f"{node.colour}", "shape": f"{node.shape}",
+                    "fontsize": f"{node.font_size}", "width": f"{node.node_dim[0]}",
+                    "height": f"{node.node_dim[1]}", "fixedsize": True}
+            self.di_graph.nodes[node].update(attr)
+
+    # def propagate(self, time_increment: float):
+    #     # Still have to deal with latency/bandwidth
+    #     self.current_time += timedelta(seconds=time_increment)
+    #     for node in self.all_nodes:
+    #         for recipient in self.recipients(node):
+    #             for data in node.data_held:
+    #                 recipient.update(self.current_time, data)
+
+    def measure(self, ground_truths: List[GroundTruthPath], noise: Union[bool, np.ndarray] = True,
+                **kwargs) -> Dict[SensorNode, Set[Union[TrueDetection, Clutter]]]:
+        """ Similar to the method for :class:`~.SensorSuite`. Updates each node. """
+        all_detections = dict()
+
+        # Get rid of ground truths that have not yet happened
+        # (ie GroundTruthState's with timestamp after self.current_time)
+        new_ground_truths = set()
+        for ground_truth_path in ground_truths:
+            # need an if len(states) == 0 continue condition here?
+            new_ground_truths.add(ground_truth_path.available_at_time(self.current_time))
+
+        for sensor_node in self.sensor_nodes:
+            all_detections[sensor_node] = set()
+            for detection in sensor_node.sensor.measure(new_ground_truths, noise, **kwargs):
+                all_detections[sensor_node].add(detection)
+
+            # Borrowed below from SensorSuite. I don't think it's necessary, but might be something
+            # we need. If so, will need to define self.attributes_inform
+
+            # attributes_dict = \
+            # {attribute_name: sensor_node.sensor.__getattribute__(attribute_name)
+            #                    for attribute_name in self.attributes_inform}
+            #
+            # for detection in all_detections[sensor_node]:
+            #     detection.metadata.update(attributes_dict)
+
+            for data in all_detections[sensor_node]:
+                # The sensor acquires its own data instantly
+                sensor_node.update(data.timestamp, data.timestamp,
+                                   DataPiece(sensor_node, sensor_node, data, data.timestamp),
+                                   'created')
+
+        return all_detections
+
+    def propagate(self, time_increment: float, failed_edges: Collection = None):
+        """Performs the propagation of the measurements through the network"""
+        for edge in self.edges.edges:
+            if failed_edges and edge in failed_edges:
+                edge._failed(self.current_time, time_increment)
+                continue  # No data passed along these edges
+            edge.update_messages(self.current_time)
+            # fuse goes here?
+            for data_piece, time_pertaining in edge.unsent_data:
+                edge.send_message(data_piece, time_pertaining, data_piece.time_arrived)
+
+        # for node in self.processing_nodes:
+        #     node.process() # This should happen when a new message is received
+        count = 0
+        if not self.fully_propagated:
+            count += 1
+            self.propagate(time_increment, failed_edges)
+            return
+
+        for fuse_node in self.fusion_nodes:
+            fuse_node.fuse()
+
         self.current_time += timedelta(seconds=time_increment)
-        for node in self.all_nodes:
-            for recipient in self.recipients(node):
-                for data in node.data_held:
-                    recipient.update(self.current_time, data)
+        for fusion_node in self.fusion_nodes:
+            pass  # fusion_node.tracker.set_time(self.current_time)
 
 
 class CombinedArchitecture(Base):
@@ -500,3 +621,57 @@ class CombinedArchitecture(Base):
         # Some magic here
         failed_edges = []  # return this from n_arch.propagate?
         self.information_architecture.propagate(time_increment, failed_edges)
+
+
+def inherit_edges(network_architecture):
+
+    edges = list()
+    for edge in network_architecture.edges:
+        edges.append(edge)
+
+    temp_arch = NonPropagatingArchitecture(edges=Edges(edges))
+    # Iterate through repeater nodes in the Network Architecture to find edges to remove
+    for repeaternode in temp_arch.repeater_nodes:
+        to_replace = list()
+        to_add = list()
+
+        senders = temp_arch.senders(repeaternode)
+        recipients = temp_arch.recipients(repeaternode)
+
+        # Find all edges that pass data to the repeater node
+        for sender in senders:
+            edges = temp_arch.edges.get((sender, repeaternode))
+            to_replace += edges
+
+        # Find all edges that pass data from the repeater node
+        for recipient in recipients:
+            edges = temp_arch.edges.get((repeaternode, recipient))
+            to_replace += edges
+
+        # Create a new edge from every sender to every recipient
+        for sender in senders:
+            for recipient in recipients:
+
+                # Could be possible edges from sender to node, choose path of minimum latency
+                poss_edges_to = temp_arch.edges.get((sender, repeaternode))
+                latency_to = np.inf
+                for edge in poss_edges_to:
+                    latency_to = edge.edge_latency if edge.edge_latency <= latency_to else \
+                        latency_to
+
+                # Could be possible edges from node to recipient, choose path of minimum latency
+                poss_edges_from = temp_arch.edges.get((sender, repeaternode))
+                latency_from = np.inf
+                for edge in poss_edges_from:
+                    latency_from = edge.edge_latency if edge.edge_latency <= latency_from else \
+                        latency_from
+
+                latency = latency_to + latency_from + repeaternode.latency
+                edge = Edge(nodes=(sender, recipient), edge_latency=latency)
+                to_add.append(edge)
+
+        for edge in to_replace:
+            temp_arch.edges.remove(edge)
+        for edge in to_add:
+            temp_arch.edges.add(edge)
+    return temp_arch.edges
