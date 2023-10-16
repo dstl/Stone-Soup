@@ -364,7 +364,7 @@ updater = CompositeUpdater(sub_updaters=[kinematic_updater, category_updater])
 # that tracking and classification are combined: for each measurement, a hypothesis is created for
 # both a track's kinematic and categorical components. A :class:`~.CompositeHypothesis` type is
 # created which contains these sub-hypotheses, whereby its weight is equal to the product of the
-# sub-hypotheses weights. These sub-hypotheses should be probabilistic.
+# sub-hypotheses' weights. These sub-hypotheses should be probabilistic.
 #
 # The :class:`CompositeHypothesiser` uses a list of sub-hypothesisers to create these
 # sub-hypotheses, hence the sub-hypothesisers should also be probabilistic.

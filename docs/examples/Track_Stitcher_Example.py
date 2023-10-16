@@ -281,7 +281,7 @@ from stonesoup.stitcher import TrackStitcher
 # Now that we have a set of tracklets, we can apply the Track Stitching method to stitch tracklets
 # together into tracks. The code in the following cell applies this process using the
 # :class:`~.TrackStitcher` and plots the stitched tracks. :class:`~.TrackStitcher` has a property
-# 'search_window' that reduces computation time by filtering out track segments that outside a
+# 'search_window' that reduces computation time by filtering out track segments that are outside a
 # defined time window. When forward stitching, the associator will consider any track that has a
 # start point that falls within the time window :math:`(t, t + search\_window)`. When backward
 # stitching, the associator will consider tracks that have an endpoint within the time window

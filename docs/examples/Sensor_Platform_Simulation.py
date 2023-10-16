@@ -139,7 +139,7 @@ noise_covar = CovarianceMatrix(np.array(np.diag([np.deg2rad(3)**2,
                                                  np.deg2rad(0.15)**2,
                                                  25**2])))
 
-# this radar measures range with an accuracy of +/- 25m,elevation accuracy +/- 3
+# this radar measures range with an accuracy of +/- 25m, elevation accuracy +/- 3
 # degrees, and bearing accuracy of +/- 0.15 degrees
 
 # The radar needs to be informed of where x, y, and z are in the target state space
@@ -213,7 +213,7 @@ radar.rotation_offset
 #    :math:`\mathrm{1}ms^{-1}`.
 #
 # We will also configure our simulator to randomly create and delete targets based on a specified
-# birth rate and death rate. We set the birth rate to be 0.10. I.e. on any given time step there is
+# birth rate and death rate. We set the birth rate to be 0.10 - on any given time step there is
 # a 10% chance of a new target being initiated. The death rate has been set to 0.01 - on any given
 # time step, there is a 1% chance that a target will be removed from the simulation.
 #
