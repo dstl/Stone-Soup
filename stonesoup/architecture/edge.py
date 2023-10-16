@@ -83,6 +83,16 @@ class Edge(Base):
         self.time_range_failed = CompoundTimeRange()  # Times during which this edge was failed
 
     def send_message(self, data_piece, time_pertaining, time_sent):
+        """
+        Takes a piece of data retrieved from the edge's sender node, and propagates it
+        along the edge
+        :param data_piece: DataPiece object pulled from the edge's sender.
+        :param time_pertaining: The latest time for which the data pertains. For a Detection, this
+        would be the time of the Detection, or for a Track this is the time of the last State in
+        the Track
+        :param time_sent: Time at which the message was sent
+        :return: None
+        """
         if not isinstance(data_piece, DataPiece):
             raise TypeError("Message info must be one of the following types: "
                             "Detection, Hypothesis or Track")
@@ -92,7 +102,27 @@ class Edge(Base):
         # ensure message not re-sent
         data_piece.sent_to.add(self.nodes[1])
 
-    def update_messages(self, current_time):
+    def pass_message(self, message):
+        """
+        Takes a message from a Node's 'messages_to_pass_on' store and propagates them to the
+        relevant edges.
+        :param message: Message to propagate
+        :return: None
+        """
+        _, self.messages_held = _dict_set(self.messages_held, message, 'pending', message.time_sent)
+        # Message not opened by repeater node, remove node from 'sent_to'
+        # message.data_piece.sent_to.remove(self.nodes[0])
+        message.data_piece.sent_to.add(self.nodes[1])
+
+    def update_messages(self, current_time, to_network_node=False):
+        """
+        Updates the category of messages stored in edge.messages_held if latency time has passed.
+        Adds messages that have 'arrived' at recipient to the relevant holding area of the node.
+        :param current_time: Current time in simulation
+        :param to_network_node: Bool that is true if recipient node is not in the information
+        architecture
+        :return: None
+        """
         # Check info type is what we expect
         to_remove = set()  # Needed as we can't change size of a set during iteration
         for time in self.messages_held['pending']:
@@ -104,9 +134,15 @@ class Edge(Base):
                     to_remove.add((time, message))
                     _, self.messages_held = _dict_set(self.messages_held, message,
                                                       'received', message.arrival_time)
-                    # Update
-                    message.recipient_node.update(message.time_pertaining, message.arrival_time,
-                                                  message.data_piece, "unfused")
+
+                    # Update node according to inclusion in Information Architecture
+                    if to_network_node:
+                        message.recipient_node.messages_to_pass_on['unsent'].append(message)
+                    else:
+                        # Update
+                        message.recipient_node.update(message.time_pertaining,
+                                                      message.arrival_time,
+                                                      message.data_piece, "unfused")
 
         for time, message in to_remove:
             self.messages_held['pending'][time].remove(message)
@@ -185,7 +221,6 @@ class Edges(Base, Collection):
                 edges.append(edge)
         return edges
 
-
     @property
     def edge_list(self):
         """Returns a list of tuples in the form (sender, recipient)"""
@@ -211,6 +246,8 @@ class Message(Base):
         doc="Time at which the message was sent")
     data_piece: DataPiece = Property(
         doc="Info that the sent message contains")
+    # destination: Node = Property(doc="Node in the information architecture that the message is "
+    #                                  "being sent to")
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
