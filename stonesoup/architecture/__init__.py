@@ -514,10 +514,10 @@ class NetworkArchitecture(Architecture):
                 if len(self.repeater_nodes) > 0:
                     self.information_architecture_edges = Edges(inherit_edges(Edges(self.edges)))
                     self.information_arch = InformationArchitecture(
-                        edges=self.information_architecture_edges)
+                        edges=self.information_architecture_edges, current_time=self.current_time)
             else:
                 self.information_arch = InformationArchitecture(
-                    edges=self.information_architecture_edges)
+                    edges=self.information_architecture_edges, current_time=self.current_time)
 
         # Need to reset digraph for info-arch
         self.di_graph = nx.to_networkx_graph(self.edges.edge_list, create_using=nx.DiGraph)
@@ -580,14 +580,26 @@ class NetworkArchitecture(Architecture):
 
     def propagate(self, time_increment: float, failed_edges: Collection = None):
         """Performs the propagation of the measurements through the network"""
+
+        # Update each edge with messages received/sent
         for edge in self.edges.edges:
             if failed_edges and edge in failed_edges:
                 edge._failed(self.current_time, time_increment)
                 continue  # No data passed along these edges
-            edge.update_messages(self.current_time)
-            # fuse goes here?
+
+            if edge.recipient not in self.information_arch.all_nodes:
+                edge.update_messages(self.current_time, to_network_node=True)
+            else:
+                edge.update_messages(self.current_time)
+
+            # Send available messages from nodes to the edges
             for data_piece, time_pertaining in edge.unsent_data:
                 edge.send_message(data_piece, time_pertaining, data_piece.time_arrived)
+
+            for message in edge.sender.messages_to_pass_on['unsent']:
+                edge.pass_message(message)
+                edge.sender.messages_to_pass_on['sent'].append(message)
+                edge.sender.messages_to_pass_on['unsent'].remove(message)
 
         # for node in self.processing_nodes:
         #     node.process() # This should happen when a new message is received
@@ -605,31 +617,22 @@ class NetworkArchitecture(Architecture):
             pass  # fusion_node.tracker.set_time(self.current_time)
 
 
-class CombinedArchitecture(Base):
-    """Contains an information and a network architecture that pertain to the same scenario. """
-    information_architecture: InformationArchitecture = Property(
-        doc="The information architecture for how information is shared. ")
-    network_architecture: NetworkArchitecture = Property(
-        doc="The architecture for how data is propagated through the network. Node A is connected "
-            "to Node B if and only if A sends its data through B. ")
-
-    def propagate(self, time_increment: float):
-        # First we simulate the network
-        self.network_architecture.propagate(time_increment)
-        # Now we want to only pass information along in the information architecture if it
-        # Was in the information architecture by at least one path.
-        # Some magic here
-        failed_edges = []  # return this from n_arch.propagate?
-        self.information_architecture.propagate(time_increment, failed_edges)
-
-
 def inherit_edges(network_architecture):
+    """
+    Utility function that takes a NetworkArchitecture object and infers what the overlaying
+    InformationArchitecture graph would be.
 
-    edges = list()
-    for edge in network_architecture.edges:
-        edges.append(edge)
+    :param network_architecture: A NetworkArchitecture object
+    :return: A list of edges.
+    """
 
-    temp_arch = NonPropagatingArchitecture(edges=Edges(edges))
+    # edges = list()
+    # for edge in network_architecture.edges:
+    #     edges.append(edge)
+    # temp_arch = NonPropagatingArchitecture(edges=Edges(edges))
+    edges = copy.copy(network_architecture.edges)
+    temp_arch = NonPropagatingArchitecture(edges)
+
     # Iterate through repeater nodes in the Network Architecture to find edges to remove
     for repeaternode in temp_arch.repeater_nodes:
         to_replace = list()
