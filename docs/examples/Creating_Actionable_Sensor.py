@@ -1,11 +1,11 @@
 #!/usr/bin/env python
 
 """
-Creating an Actionable Sensor Example
-=====================================
+Creating an Actionable Sensor
+=============================
 This example demonstrates the process of creating an actionable sensor, i.e., a sensor that has an
 actionable property. This includes creation of :class:`~.Action` and :class:`~.ActionGenerator`
-that will handle how this property evolves over time, and how to interface with the sensor via
+classes that handle how this property evolves over time, and how to interface with the sensor via
 given actions.
 """
 
@@ -13,8 +13,8 @@ given actions.
 # The Task
 # ^^^^^^^^
 # We will create a simple sensor with a field of view and infinite range. It lies on the 2D
-# Cartesian plane and can look in 1 of 4 directions: East, North, West, South.
-# Let's call the attribute of the sensor that takes these values the `direction`, and model it
+# Cartesian plane and can look North, East, South, or West.
+# Let's call the attribute of the sensor that takes these values the ``direction``, and model it
 # such that it can instantaneously switch to a new value.
 # We'll define its field of view (FoV) as 90 degrees so that its observation of a particular
 # direction leads to it being completely blind of the areas observable in the other 3 directions.
@@ -22,7 +22,7 @@ given actions.
 # %%
 # Action
 # ------
-# The logic of this `direction` switching will be handled by our custom :class:`~.Action`.
+# The logic of this ``direction`` switching will be handled by our custom :class:`~.Action`.
 # The class' :meth:`~.Action.act` method contains the calculations needed to take in the
 # property's current value and return its new value after a particular amount of time has elapsed.
 #
@@ -70,7 +70,7 @@ class ChangeDirectionAction(Action):
             return init_value  # same direction
 
 # %%
-# It is within the :class:`~.Action` where you can detail more complicated modifications to the
+# :class:`~.Action` is where you can detail more complicated modifications to the
 # attribute. For example, the :class:`~.ChangeDwellAction` is an action for use with the
 # :attr:`~.RadarRotatingBearingRange.dwell_centre` property of the
 # :class:`~.RadarRotatingBearingRange` sensor (or any other model with similar dwell dynamics). It
@@ -81,7 +81,7 @@ class ChangeDirectionAction(Action):
 # %%
 # Action Generator
 # ----------------
-# Now that we have the logic of how the `direction` can change over time, we need to detail what
+# Now that we have the logic of how the ``direction`` can change over time, we need to detail what
 # the potential changes can be for a given time frame. An :class:`~.ActionGenerator` type handles
 # the details of these potential property values.
 # In the more complicated dwell centre example above, this might be in determining what potential
@@ -103,7 +103,7 @@ class ChangeDirectionAction(Action):
 #
 # By inheriting this class, we are required to define several things:
 #
-# * the :attr:`~.ActionGenerator.default_action` property determines what the behaviour of the
+# * The :attr:`~.ActionGenerator.default_action` property determines what the behaviour of the
 #   property should be, given no actions have been passed to it (or that it has no actions to
 #   perform at the given time). For our `direction` example, we'll simply say that the direction
 #   won't change. So the default action should be one of our :class:`ChangeDirectionAction`
@@ -111,12 +111,12 @@ class ChangeDirectionAction(Action):
 #   example discussed above, this might be reverting to a default, anti-clockwise rotation at the
 #   given rpm. The default action's end-time should last until the end of the query (i.e. until
 #   :attr:`~.ActionGenerator.end_time`).
-# * the :meth:`__iter__` method defines how we calculate the potential actions for the sensor in
+# * The :meth:`__iter__` method defines how we calculate the potential actions for the sensor in
 #   the given time frame. We should be able to loop through this generator object and get out a
 #   :class:`ChangeDirectionAction` for every potential new direction.
-# * we should also define the :meth:`__contains__` method for this generator.
+# * We should also define the :meth:`__contains__` method for this generator.
 #   This way, for a given :class:`ChangeDirectionAction` or particular direction, we can say
-#   whether this is possible by simply asking "is this IN my generator?"
+#   whether this is possible by simply asking "is this IN my generator?".
 
 from stonesoup.sensor.action import ActionGenerator
 from stonesoup.base import Property
