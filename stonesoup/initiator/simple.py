@@ -1,6 +1,5 @@
 import numpy as np
 from scipy.stats import multivariate_normal
-import datetime
 
 from .base import GaussianInitiator, ParticleInitiator, Initiator
 from ..base import Property
@@ -8,7 +7,6 @@ from ..dataassociator import DataAssociator
 from ..deleter import Deleter
 from ..models.base import LinearModel, ReversibleModel
 from ..models.measurement import MeasurementModel
-from ..types.array import StateVector, StateVectors
 from ..types.hypothesis import SingleHypothesis
 from ..types.mixture import GaussianMixture
 from ..types.numeric import Probability
