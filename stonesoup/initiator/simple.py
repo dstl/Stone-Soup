@@ -373,8 +373,9 @@ class ASDGaussianInitiator(GaussianInitiator):
 
     initiator: GaussianInitiator = Property(
         doc="Gaussian Initiator which will be used to generate tracks.")
-    timestamp: datetime.datetime = Property(
-        doc="Starting timestep attributed to the prior state.")
+    max_nstep: int = Property(
+        default=0,
+        doc="Decides when the state is pruned in a prediction step. If 0 then there is no pruning")
 
     def __init__(self, *args, **kwargs):
 
@@ -389,8 +390,8 @@ class ASDGaussianInitiator(GaussianInitiator):
             raise AttributeError("No prior state")
 
         self.prior_state = ASDGaussianState(multi_state_vector=state,
-                                            timestamps=self.timestamp,
-                                            max_nstep=0,
+                                            timestamps=None,
+                                            max_nstep=self.max_nstep,
                                             multi_covar=covar)
 
     def initiate(self, detections, timestamp, **kwargs):
@@ -418,7 +419,7 @@ class ASDGaussianInitiator(GaussianInitiator):
             track[-1] = ASDGaussianStateUpdate(
                 multi_state_vector=state,
                 timestamps=timestamp,
-                max_nstep=0,
+                max_nstep=self.max_nstep,
                 multi_covar=covar,
                 hypothesis=track.hypothesis)
 
@@ -445,42 +446,12 @@ class EnsembleInitiator(GaussianInitiator):
 
         # Create prior particle state
         try:
-            state = self.initiator.prior_state.state_vector
-            covar = self.initiator.prior_state.covar
+            state = self.initiator.prior_state
 
         except AttributeError:
             raise AttributeError("No prior state")
 
-        ensemble = self.create_ensemble(state, covar)
-        self.prior_state = EnsembleState(ensemble)
-
-    def create_ensemble(self, state, covar):
-        """Generates an ensemble based on a provided single Gaussian State
-
-        Parameters
-        ----------
-        state : array of :class:`~.StateVector`
-            The state from which the ensemble will be sampled.
-        covar: array of :class: '~.CovarianceMatrix'
-            The covariance used to generate the ensemble.
-
-        Returns
-        -------
-        : array of :class:`~.StateVectors`
-            The generated ensemble of new state vectors
-        """
-
-        ensemble = []
-        std = np.sqrt(covar)
-        for _ in range(self.ensemble_size):
-            new_state = []
-            for i in range(len(state)):
-                if len(state) == 1:
-                    new_state.append([np.random.normal(state[i], std[i])])
-                else:
-                    new_state.append([np.random.normal(state[i], std[i][i])])
-            ensemble.append(StateVector(new_state))
-        return StateVectors(ensemble)
+        self.prior_state = EnsembleState.from_gaussian_state(state, self.ensemble_size)
 
     def initiate(self, detections, timestamp, **kwargs):
         """Initiates tracks given unassociated measurements
@@ -500,13 +471,15 @@ class EnsembleInitiator(GaussianInitiator):
         tracks = self.initiator.initiate(detections, timestamp, **kwargs)
 
         for track in tracks:
-            state = track.state_vector
-            covar = track.covar
-            ensemble = self.create_ensemble(state, covar)
+            gaussian_state = GaussianState(track.state_vector,
+                                           track.covar,
+                                           track.timestamp)
+
+            ensemble = EnsembleState.from_gaussian_state(gaussian_state, self.ensemble_size)
 
             track[-1] = EnsembleStateUpdate(
-                state_vector=ensemble,
+                state_vector=ensemble.state_vector,
                 hypothesis=track.hypothesis,
-                timestamp=track.timestamp)
+                timestamp=ensemble.timestamp)
 
         return tracks

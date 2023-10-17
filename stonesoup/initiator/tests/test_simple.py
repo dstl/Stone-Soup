@@ -416,8 +416,7 @@ def test_gaussian_mixture(gaussian_initiator):
 ], ids=['SinglePoint', 'LinearMeasurement'])
 def test_asd_gaussian(gaussian_initiator):
     timestamp = datetime.datetime.now()
-    asd_initiator = ASDGaussianInitiator(initiator=gaussian_initiator,
-                                         timestamp=timestamp)
+    asd_initiator = ASDGaussianInitiator(initiator=gaussian_initiator)
 
     detections = [Detection(np.array([[5]]), timestamp),
                   Detection(np.array([[-5]]), timestamp)]
