@@ -593,13 +593,13 @@ class NetworkArchitecture(Architecture):
                 edge.update_messages(self.current_time)
 
             # Send available messages from nodes to the edges
-            for data_piece, time_pertaining in edge.unsent_data:
-                edge.send_message(data_piece, time_pertaining, data_piece.time_arrived)
-
-            for message in edge.sender.messages_to_pass_on['unsent']:
-                edge.pass_message(message)
-                edge.sender.messages_to_pass_on['sent'].append(message)
-                edge.sender.messages_to_pass_on['unsent'].remove(message)
+            if edge.sender in self.information_arch.all_nodes:
+                for data_piece, time_pertaining in edge.unsent_data:
+                    edge.send_message(data_piece, time_pertaining, data_piece.time_arrived)
+            else:
+                for message in edge.sender.messages_to_pass_on:
+                    if edge.recipient not in message.data_piece.sent_to:
+                        edge.pass_message(message)
 
         # for node in self.processing_nodes:
         #     node.process() # This should happen when a new message is received
@@ -616,6 +616,22 @@ class NetworkArchitecture(Architecture):
         for fusion_node in self.fusion_nodes:
             pass  # fusion_node.tracker.set_time(self.current_time)
 
+    @property
+    def fully_propagated(self):
+        """Checks if all data for each node have been transferred
+        to its recipients. With zero latency, this should be the case after running propagate"""
+        for edge in self.edges.edges:
+            if edge.sender in self.information_arch.all_nodes:
+                if len(edge.unsent_data) != 0:
+                    return False
+                if len(edge.unpassed_data) != 0:
+                    return False
+            else:
+                if len(edge.unpassed_data) != 0:
+                    return False
+
+        return True
+
 
 def inherit_edges(network_architecture):
     """
@@ -626,12 +642,10 @@ def inherit_edges(network_architecture):
     :return: A list of edges.
     """
 
-    # edges = list()
-    # for edge in network_architecture.edges:
-    #     edges.append(edge)
-    # temp_arch = NonPropagatingArchitecture(edges=Edges(edges))
-    edges = copy.copy(network_architecture.edges)
-    temp_arch = NonPropagatingArchitecture(edges)
+    edges = list()
+    for edge in network_architecture.edges:
+        edges.append(edge)
+    temp_arch = NonPropagatingArchitecture(edges=Edges(edges))
 
     # Iterate through repeater nodes in the Network Architecture to find edges to remove
     for repeaternode in temp_arch.repeater_nodes:

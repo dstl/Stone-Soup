@@ -41,7 +41,7 @@ class Node(Base):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.data_held = {"fused": {}, "created": {}, "unfused": {}}
-        self.messages_to_pass_on = {'unsent': [], 'sent': []}
+        self.messages_to_pass_on = []
 
     def update(self, time_pertaining, time_arrived, data_piece, category, track=None):
         if not isinstance(time_pertaining, datetime) and isinstance(time_arrived, datetime):
@@ -169,3 +169,8 @@ class RepeaterNode(Node):
     node_dim: tuple = Property(
         default=(0.7, 0.4),
         doc='Width and height of nodes for graph icons. Default is (0.7, 0.4)')
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.data_held = None
+
