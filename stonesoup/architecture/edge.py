@@ -12,7 +12,7 @@ from ..types.hypothesis import Hypothesis
 from ._functions import _dict_set
 
 if TYPE_CHECKING:
-    from .node import Node
+    from .node import Node, RepeaterNode
 
 
 class FusionQueue(Queue):
@@ -109,6 +109,7 @@ class Edge(Base):
         :param message: Message to propagate
         :return: None
         """
+        message.edge = self
         _, self.messages_held = _dict_set(self.messages_held, message, 'pending', message.time_sent)
         # Message not opened by repeater node, remove node from 'sent_to'
         # message.data_piece.sent_to.remove(self.nodes[0])
@@ -136,13 +137,20 @@ class Edge(Base):
                                                       'received', message.arrival_time)
 
                     # Update node according to inclusion in Information Architecture
-                    if to_network_node:
-                        message.recipient_node.messages_to_pass_on['unsent'].append(message)
+                    # Add message to recipient.messages_to_pass_on if the recipient is not in the
+                    #information 
+                    if to_network_node or ((message.destinations) and
+                                           (self.recipient not in message.destinations)):
+                        # message.recipient_node.messages_to_pass_on['unsent'].append(message)
+                        self.recipient.messages_to_pass_on.append(message)
                     else:
                         # Update
-                        message.recipient_node.update(message.time_pertaining,
-                                                      message.arrival_time,
-                                                      message.data_piece, "unfused")
+                        # message.recipient_node.update(message.time_pertaining,
+                        #                               message.arrival_time,
+                        #                               message.data_piece, "unfused")
+                        self.recipient.update(message.time_pertaining,
+                                              message.arrival_time,
+                                              message.data_piece, "unfused")
 
         for time, message in to_remove:
             self.messages_held['pending'][time].remove(message)
@@ -169,15 +177,27 @@ class Edge(Base):
         return self.sender.latency + self.edge_latency
 
     @property
+    def unpassed_data(self):
+        unpassed = []
+        for message in self.sender.messages_to_pass_on:
+            if self.recipient not in message.data_piece.sent_to:
+                unpassed.append(message)
+        return unpassed
+
+    @property
     def unsent_data(self):
         """Data held by the sender that has not been sent to the recipient."""
         unsent = []
-        for status in ["fused", "created"]:
-            for time_pertaining in self.sender.data_held[status]:
-                for data_piece in self.sender.data_held[status][time_pertaining]:
-                    if self.recipient not in data_piece.sent_to:
-                        unsent.append((data_piece, time_pertaining))
-        return unsent
+        if isinstance(type(self.sender.data_held), type(None)) or self.sender.data_held is None:
+            return unsent
+        else:
+            for status in ["fused", "created"]:
+                for time_pertaining in self.sender.data_held[status]:
+                    for data_piece in self.sender.data_held[status][time_pertaining]:
+                        # Data will be sent to any nodes it hasn't been sent to before
+                        if self.recipient not in data_piece.sent_to:
+                            unsent.append((data_piece, time_pertaining))
+            return unsent
 
     def __eq__(self, other):
         if not isinstance(other, type(self)):
@@ -217,7 +237,6 @@ class Edges(Base, Collection):
         edges = list()
         for edge in self.edges:
             if edge.nodes == node_pair:
-                # Assume this is the only match?
                 edges.append(edge)
         return edges
 
@@ -246,8 +265,9 @@ class Message(Base):
         doc="Time at which the message was sent")
     data_piece: DataPiece = Property(
         doc="Info that the sent message contains")
-    # destination: Node = Property(doc="Node in the information architecture that the message is "
-    #                                  "being sent to")
+    destinations: set["Node"] = Property(doc="Nodes in the information architecture that the message is "
+                                             "being sent to",
+                                         default=None)
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
