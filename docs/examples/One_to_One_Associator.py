@@ -40,7 +40,7 @@ colours = ["darkgreen", "firebrick", "gold", "mediumvioletred", "dodgerblue", "b
 # ^^^^^^^^^^^^^^^^
 
 # %%
-# We have states from source A and source B marked as ``states_from_a`` and ``states_from_b``
+# We have states from source A and source B marked as `states_from_a` and `states_from_b`
 # respectively.
 states_from_a = [State([1, 5]), State([0, 5]), State([1, 0]), State([2, 2]), State([4, 3]),
                  State([8, 6])]
@@ -67,8 +67,8 @@ plotter.plot_tracks(tracks=[Track(state) for state in states_from_b],
 plotter.fig
 
 # %%
-# This scenario has been designed such the optimal association between ``states_from_a`` 
-# and ``states_from_b`` is unclear to the human eye.
+# This scenario has been designed such the optimal association between `states_from_a` 
+# and `states_from_b` is unclear to the human eye.
 
 # %%
 # Create Associator & Associate States
@@ -84,7 +84,7 @@ state_associator = OneToOneAssociator(measure=Euclidean(mapping=[0, 1]),
 
 # %%
 # **Associate States**. The :class:`~.OneToOneAssociator` will minimise the total measure
-# (:class:`~.Euclidean` distance) between the two states. The ``OneToOneAssociator`` uses SciPy's
+# (:class:`~.Euclidean` distance) between the two states. The `~.OneToOneAssociator` uses SciPy's
 # :func:`~.scipy.optimize.linear_sum_assignment` function (a modified Jonker-Volgenant algorithm)
 # to minimise the distance. For pairs of objects with a distance equal to or above the threshold,
 # these pairs won’t be associated together.
@@ -205,8 +205,8 @@ tracks_a = {track_a1, track_a2, track_a3}
 tracks_b = {track_b1, track_b2, track_b3}
 
 # %%
-# The tracks are plotted. As before, we use different colours to separate ``tracks_a`` from
-# ``tracks_b``.
+# The tracks are plotted. As before, we use different colours to separate `tracks_a` from
+# `tracks_b`.
 colours_iter = iter(colours)
 
 plotter = Plotterly()
@@ -239,14 +239,14 @@ plotter.fig
 # ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 # %%
-# The ``full_state_sequence_measure`` (:class:`~.StateSequenceMeasure`) measure will apply the
+# The `full_state_sequence_measure` (:class:`~.StateSequenceMeasure`) measure will apply the
 # Euclidean state measure to each state in the tracks, with the same time. This produces a multiple
 # measures for each state.
 full_state_sequence_measure = StateSequenceMeasure(state_measure=Euclidean(mapping=[0, 1]))
 
 # %%
-# ``track_measure`` (:class:`~.MeanMeasure`) will take the multiple measures from
-# ``full_state_sequence_measure`` and condense it down into one single measure by taking the mean.
+# `track_measure` (:class:`~.MeanMeasure`) will take the multiple measures from
+# `full_state_sequence_measure` and condense it down into one single measure by taking the mean.
 track_measure = MeanMeasure(measure=full_state_sequence_measure)
 
 # %%
@@ -300,7 +300,7 @@ standard_colours = ["White", "Black", "Yellow", "Red", "Blue", "Green", "Orange"
 # %%
 # Measure 1 - Example 1
 # ^^^^^^^^^^^^^^^^^^^^^^^
-# ``WordMeasure`` is a crude measure to compare how similar words are. It calculates the
+# :class:`WordMeasure` is a crude measure to compare how similar words are. It calculates the
 # number of letters that both words have in common and divides by the total number of
 # unique letters.
 class WordMeasure(BaseMeasure):
@@ -335,7 +335,7 @@ for received_colour in received_colours_scheme:
 # %%
 # Measure 2 - Example 1
 # ^^^^^^^^^^^^^^^^^^^^^^^
-# ``MatchingWordMeasure`` looks for words that are identical or is a word/phrase is contained within
+# :class:`MatchingWordMeasure` looks for words that are identical or is a word/phrase is contained within
 # another word/phrase.
 class MatchingWordMeasure(BaseMeasure):
     PERFECT_MATCH = 1.0

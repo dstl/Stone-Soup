@@ -13,7 +13,7 @@ from .types.track import Track
 class MultipleMeasure(BaseMeasure):
     """ MultipleMeasure base class.
 
-    This measure produces a list of ``float`` values instead of a singular ``float`` value. This
+    This measure produces a list of `float` values instead of a singular `float` value. This
     can be used when comparing objects that contain multiple other objects.
     """
     @abstractmethod
@@ -24,8 +24,8 @@ class MultipleMeasure(BaseMeasure):
 class TrackMeasure(BaseMeasure):
     """TrackMeasure base class.
 
-    A measure provides a means to assess the separation between two track objects ``track_1``
-    and ``track_2``. It should return a float value of the distance measure between the two tracks.
+    A measure provides a means to assess the separation between two track objects `track_1`
+    and `track_2`. It should return a float value of the distance measure between the two tracks.
     """
 
     @abstractmethod
@@ -45,19 +45,19 @@ class StateSequenceMeasure(MultipleMeasure):
                  state_sequence_2: StateMutableSequence,
                  times_to_measure: Sequence[datetime] = None) -> List[float]:
         """
-        Compare the states from each state sequence for every time in ``times_to_measure``.
+        Compare the states from each state sequence for every time in `times_to_measure`.
 
-        If ``times_to_measure`` is None. Find all times that both state sequences have in common.
+        If `times_to_measure` is None. Find all times that both state sequences have in common.
 
         Parameters
         ----------
         state_sequence_1 : :class:`.~StateMutableSequence`
-            a state sequence to compare against ``state_sequence_2``.
+            a state sequence to compare against `state_sequence_2`.
         state_sequence_2 : :class:`.~StateMutableSequence`
-            a state sequence to compare against ``state_sequence_1``.
+            a state sequence to compare against `state_sequence_1`.
         times_to_measure : Sequence of :class:`.~datetime`
             Calculate the state measure for states in the state sequences at these times. Default
-            value is ``None``. If ``None``, ``times_to_measure`` is calculated as all the times
+            value is `None`. If `None`, `times_to_measure` is calculated as all the times
             that both state sequences have in common.
 
         Returns
@@ -85,7 +85,7 @@ class StateSequenceMeasure(MultipleMeasure):
 class RecentStateSequenceMeasure(MultipleMeasure):
     """
     Applies a state measure to each state in the state sequence with for the most recent *n*
-    matching times. It will return less than ``n_states_to_compare`` values if there are less
+    matching times. It will return less than `n_states_to_compare` values if there are less
     matching times.
     """
 
@@ -95,15 +95,15 @@ class RecentStateSequenceMeasure(MultipleMeasure):
     def __call__(self, state_sequence_1: StateMutableSequence,
                  state_sequence_2: StateMutableSequence) -> List[float]:
         """
-        Compare the states from each state sequence for the most recent ``n_states_to_compare``
+        Compare the states from each state sequence for the most recent `n_states_to_compare`
         times.
 
         Parameters
         ----------
         state_sequence_1 : :class:`.~StateMutableSequence`
-            a state sequence to compare against ``state_sequence_2``.
+            a state sequence to compare against `state_sequence_2`.
         state_sequence_2 : :class:`.~StateMutableSequence`
-            a state sequence to compare against ``state_sequence_1``.
+            a state sequence to compare against `state_sequence_1`.
 
         Returns
         -------
