@@ -82,14 +82,14 @@ class ESSResampler(Resampler):
         """
         Parameters
         ----------
-        particles : list of :class:`~.Particle`
+        particles : :class:`~.ParticleState` or list of :class:`~.Particle`
             The particles to be resampled according to their weight
         nparts : int
             The number of particles to be returned from resampling
 
         Returns
         -------
-        particles : list of :class:`~.Particle`
+        particles : :class:`~.ParticleState`
             The particles, either unchanged or resampled, depending on weight degeneracy
         """
         if not isinstance(particles, ParticleState):

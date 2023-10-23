@@ -3,9 +3,9 @@
 """
 Density Plot Example
 ===============================================
-This example looks at how to plot 2d density plots. The `Plotter().plot_density` function can be
+This example looks at how to plot 2d density plots. The ``Plotter().plot_density`` function can be
 used to plot any number of :class:`~.StateMutableSequence` objects. StateMutableSequences are just a
-container for a number of states, examples include tracks and ground truth paths. The examples
+container for a number of states - examples include tracks and ground truth paths. The examples
 below show how to plot ground truth paths (as they're easy to generate). The function can be used to
 analyse large data sets.
 """
@@ -24,8 +24,8 @@ start_time = datetime.now()
 # %%
 # Generate the State Sequences to Plot
 # ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-# In these examples we're going plot ground-truth as that is the easiest to generate. An simple
-# function has been created to ground truth
+# In this example we will plot ground truth paths due to their ease of creation. The ground truths
+# are created in the following function:
 
 
 def generate_ground_truth_path(initial_state, num_steps=20, motion_model_noise=0.01):
@@ -45,7 +45,7 @@ def generate_ground_truth_path(initial_state, num_steps=20, motion_model_noise=0
 
 
 # %%
-# Create one ground truth path starting at the origin (0,0) and plot it
+# Create one ground truth path starting at the origin (0, 0) and plot it:
 n_time_steps = 20
 truth = generate_ground_truth_path(initial_state=[0, 0, 0, 1], num_steps=n_time_steps)
 
@@ -53,7 +53,7 @@ plotter = Plotter()
 plotter.plot_ground_truths(truth, [0, 2])
 
 # %%
-# Generate 100 ground truth paths and plot them all at once. This looks quite messy
+# Generate 100 ground truth paths and plot them all at once. This looks quite messy:
 truths = [generate_ground_truth_path(initial_state=[0, 0, 0, 1],
                                      num_steps=n_time_steps,
                                      motion_model_noise=0.1)
@@ -65,8 +65,8 @@ plotter.plot_ground_truths(set(truths), [0, 2])
 # %%
 # Density Plot of All States
 # -------------------------------------------------
-# Plot a 2d density plot for all the states in the ground-truth. This is clearer, we can see a clear
-# concentration around the origin where all the tracks start
+# Plot a 2D density plot for all the states in the ground truths. This is a better visualisation
+# because we can see a clear concentration of states around the origin where all the tracks start.
 plotter = Plotter()
 plotter.plot_density(truths, index=None)
 
@@ -75,8 +75,7 @@ plotter.plot_density(truths, index=None)
 # -------------------------------------------------
 # The function allows you to pick an index of the state sequence (ground truth in this example) to
 # plot. In this example we're only interested in the final state of the sequences. An index of '-1'
-# is the last state in the sequence.
-# The resultant plot is much more spread out
+# is the last state in the sequence. The resultant plot is much more spread out.
 plotter = Plotter()
 plotter.plot_density(truths, index=-1)
 
@@ -94,6 +93,6 @@ def update(i):
 
 
 # %%
-# Plot the densities over time.
+# Finally, plot the densities over time.
 plotter = Plotter()
 animation.FuncAnimation(plotter.fig, update, frames=range(1, n_time_steps))

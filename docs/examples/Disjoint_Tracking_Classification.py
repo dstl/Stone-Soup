@@ -3,8 +3,8 @@
 """
 Disjoint Tracking and Classification
 ====================================
-This is a demonstration of a utilisation of the implemented Hidden Markov model and composite
-tracking modules in order to categorise a target as well as track its kinematics.
+This example uses the implemented Hidden Markov model and composite tracking modules to categorise
+a target and track its kinematics.
 """
 
 # %%
@@ -20,8 +20,8 @@ from stonesoup.models.transition.linear import ConstantVelocity, \
 from stonesoup.types.groundtruth import GroundTruthState
 
 # %%
-# Ground Truth, Categorical and Composite States
-# ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+# Ground Truth, Categorical, and Composite States
+# ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 # We will attempt to track and classify 3 targets.
 
 # %%
@@ -42,7 +42,7 @@ kinematic_transition = CombinedLinearGaussianTransitionModel([ConstantVelocity(0
 # True Classifications
 # --------------------
 # A target may take one of three discrete hidden classes: 'bike', 'car' and 'bus'.
-# It will be assumed that the targets cannot transition from one class to another, hence an
+# It will be assumed that the targets cannot transition from one class to another, so an
 # identity transition matrix is given to the :class:`~.MarkovianTransitionModel` for all targets.
 #
 # A :class:`~.CategoricalState` class is used to store information on the classification/'category'
@@ -118,7 +118,7 @@ for state in GT1:
 # %%
 # Plotting Ground Truths
 # ----------------------
-# Colour will be used in plotting as an indicator to category: red == 'bike', green == 'car',
+# Colour will be used in plotting as an indicator to category: red == 'bike', green == 'car', and
 # blue == 'bus'.
 fig, axes = plt.subplots(1, 3, figsize=(10, 5))
 fig.set_figheight(15)
@@ -159,22 +159,21 @@ set_axes_limits()
 # %%
 # Measurement
 # ^^^^^^^^^^^
-# A new sensor will be created, that can provide the information needed to both track and classify
+# A new sensor will be created that can provide the information needed to both track and classify
 # the targets.
 
 # %%
 # Composite Detection
 # -------------------
-# Detections relating to both the kinematics and classification will be needed. Therefore we will
-# create a sensor that outputs :class:`~.CompositeDetection` types. The input `sensors` list will
-# provide the contents of these compositions. For this example we will provide a
-# :class:`~.RadarBearingRange` and a :class:`~.HMMSensor` for kinematics and classification
-# respectively.
-# :class:`~.CompositeDetection` types have a `mapping` attribute, which defines what sub-state
-# index each sub-detection was created from. For example, with a composite state of form:
-# (kinematic state, categorical state), and composite detection with mapping (1, 0), this would
-# indicate that the 0th index sub-detection was attained from the categorical state, and the 1st
-# index sub-detection from the kinematic state.
+# Detections relating to both the kinematics and classification of the targets will be needed.
+# Therefore, we will create a sensor that outputs :class:`~.CompositeDetection` types. The input
+# ``sensors`` list will provide the contents of these compositions. For this example, we will
+# provide a :class:`~.RadarBearingRange` and a :class:`~.HMMSensor` for kinematics and
+# classification respectively. :class:`~.CompositeDetection` types have a `mapping` attribute
+# which defines which sub-state index each sub-detection was created from. For example, a
+# composite state of form (kinematic state, categorical state), and composite detection with
+# mapping (1, 0), would indicate that the 0th index sub-detection was attained from the
+# categorical state, and the 1st index sub-detection from the kinematic state.
 
 from typing import Set, Union, Sequence
 
@@ -242,20 +241,21 @@ radar = RadarBearingRange(ndim_state=4,
 # %%
 # Categorical Measurement
 # -----------------------
-# Using the hidden Markov model, it is assumed the hidden class of the target cannot be directly
-# observed, and instead indirect observations are taken. In this instance, observations of the
-# target's size are taken ('small' or 'large'), which have direct implications as to the target's
-# hidden class, and this relationship is modelled by the `emission matrix` of the
+# Using the hidden Markov model, it is assumed that the hidden class of the target cannot be
+# directly observed, and instead indirect observations are taken. In this instance, observations of
+# the target's size are taken ('small' or 'large'), which have direct implications as to the
+# target's hidden class. This relationship is modelled by the `emission matrix` of the
 # :class:`~.MarkovianMeasurementModel`, which is used by the :class:`~.HMMSensor` to
 # provide :class:`~.CategoricalDetection` types.
+#
 # We will model this such that a 'bike' has a very small chance of being observed as a 'big'
-# target. Similarly, a 'bus' will tend to appear as 'large'. Whereas, a 'car' has equal chance of
-# being observed as either.
+# target. Similarly, a 'bus' will tend to appear as 'large'. A 'car' has equal chance of being
+# observed as either.
 
 from stonesoup.models.measurement.categorical import MarkovianMeasurementModel
 from stonesoup.sensor.categorical import HMMSensor
 
-E = np.array([[0.99, 0.5, 0.01],  # P(small | bike), P(small | car), P(small | bus
+E = np.array([[0.99, 0.5, 0.01],  # P(small | bike), P(small | car), P(small | bus)
               [0.01, 0.5, 0.99]])
 model = MarkovianMeasurementModel(emission_matrix=E,
                                   measurement_categories=['small', 'large'])
@@ -265,7 +265,7 @@ eo = HMMSensor(measurement_model=model)
 # %%
 # Composite Sensor
 # ----------------
-# Creating the composite sensor class.
+# Here, we create the composite sensor class.
 
 sensor = CompositeSensor(sensors=[eo, radar], mapping=[1, 0])
 
@@ -292,7 +292,7 @@ for i, (time, measurements_at_time) in enumerate(all_measurements):
 # %%
 # Plotting Measurements
 # ---------------------
-# Colour will be used to indicate measurement category: orange == 'small', light-blue == 'large'.
+# Colour will be used to indicate measurement category: orange == 'small' and light-blue == 'large'.
 # It is expected that the bus will have mostly light-blue (large) measurements coinciding with its
 # route, the bike will have mostly orange (small), and the car a roughly even split of both.
 
@@ -329,8 +329,7 @@ fig
 # Though not used by the tracking components here, a :class:`~.CompositePredictor` will predict
 # the component states of a composite state forward, according to a list of sub-predictors.
 #
-# A :class:`~.HMMPredictor` specifically uses :class:`~.MarkovianTransitionModel` types to
-# predict.
+# A :class:`~.HMMPredictor` specifically uses :class:`~.MarkovianTransitionModel` types to predict.
 
 from stonesoup.predictor.kalman import KalmanPredictor
 from stonesoup.predictor.categorical import HMMPredictor
@@ -344,8 +343,8 @@ predictor = CompositePredictor([kinematic_predictor, category_predictor])
 # %%
 # Updater
 # -------
-# The :class:`~.CompositeUpdater` composite updater will update each component sub-state according
-# to a list of corresponding sub-updaters. It has no method to create measurement predictions.
+# The :class:`~.CompositeUpdater` will update each component sub-state according to a list of
+# corresponding sub-updaters. It has no method to create measurement predictions.
 # This is instead handled on instantiation of :class:`~.CompositeHypothesis` types: the expected
 # arguments to the updater's `update` method.
 
@@ -364,13 +363,13 @@ updater = CompositeUpdater(sub_updaters=[kinematic_updater, category_updater])
 # The hypothesiser is a :class:`~.CompositeHypothesiser` type. It is in the data association step
 # that tracking and classification are combined: for each measurement, a hypothesis is created for
 # both a track's kinematic and categorical components. A :class:`~.CompositeHypothesis` type is
-# created, which contains these sub-hypotheses, whereby its weight is equal to the product of the
+# created which contains these sub-hypotheses, whereby its weight is equal to the product of the
 # sub-hypotheses' weights. These sub-hypotheses should be probabilistic.
 #
 # The :class:`CompositeHypothesiser` uses a list of sub-hypothesisers to create these
 # sub-hypotheses, hence the sub-hypothesisers should also be probabilistic.
-# In this example we will define a hypothesiser that simply changes kinematic distance weights in
-# to probabilities for hypothesising the kinematic sub-state of the track.
+# In this example, we will define a hypothesiser that simply changes kinematic distance weights into
+# probabilities for hypothesising the kinematic sub-state of the track.
 
 from stonesoup.measures import Mahalanobis
 from stonesoup.hypothesiser.distance import DistanceHypothesiser
@@ -397,10 +396,9 @@ kinematic_hypothesiser = ProbabilityHypothesiser(predictor=kinematic_predictor,
                                                  measure=Mahalanobis())
 
 # %%
-# A :class:`~.HMMHypothesiser` is used for calculating categorical hypotheses.
-# It utilises the :class:`~.ObservationAccuracy` measure: a multi-dimensional extension of an
-# 'accuracy' score, essentially providing a measure of the similarity between two categorical
-# distributions.
+# A :class:`~.HMMHypothesiser` is used for calculating categorical hypotheses. It utilises the
+# :class:`~.ObservationAccuracy` measure: a multidimensional extension of an 'accuracy' score,
+# essentially providing a measure of the similarity between two categorical distributions.
 
 from stonesoup.hypothesiser.categorical import HMMHypothesiser
 from stonesoup.hypothesiser.composite import CompositeHypothesiser
@@ -424,7 +422,7 @@ data_associator = GNNWith2DAssignment(hypothesiser)
 # Prior
 # -----
 # As we are tracking in a composite state space, we should initiate tracks with a
-# :class:`~.CompositeState` type. The kinematic sub-state of the prior is a usual Gaussian state.
+# :class:`~.CompositeState` type. The kinematic sub-state of the prior is a Gaussian state.
 # For the categorical sub-state of the prior, equal probability is given to all 3 of the possible
 # hidden classes that a target might take (the category names are also provided here).
 
@@ -438,7 +436,7 @@ prior = CompositeState([kinematic_prior, category_prior])
 # Initiator
 # ---------
 # The initiator is composite. For each unassociated detection, a new track will be initiated. In
-# this instance we use a :class:`~.CompositeUpdateInitiator` type. A detection has both kinematic
+# this instance, we use a :class:`~.CompositeUpdateInitiator` type. A detection has both kinematic
 # and categorical information to initiate the 2 state space sub-states from. However, in an
 # instance where a detection only provides one of these, the missing sub-state for the track will
 # be initiated as the given prior's sub-state (eg. if a detection provides only kinematic
@@ -493,7 +491,7 @@ for track in tracks:
 # ---------------
 # Colour will be used to indicate a track's hidden category distribution. The `rgb` value is
 # defined by the 'bike', 'car', and 'bus' probabilities. For example, a track with high probability
-# of being a 'bike' will have a high 'r' value, and hence appear more red.
+# of being a 'bike' will have a high 'r' value and will appear more red.
 
 for track in tracks:
     for i, state in enumerate(track[1:], 1):

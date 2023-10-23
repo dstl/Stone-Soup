@@ -1,6 +1,8 @@
 from operator import attrgetter
 from typing import Set
 
+from ordered_set import OrderedSet
+
 from .base import TwoTrackToTrackAssociator
 from .general import OneToOneAssociator
 from ..base import Property
@@ -108,7 +110,7 @@ class TrackToTrackCounting(TwoTrackToTrackAssociator):
             raise ValueError("Must provide mapping of position components to pos_map")
 
         if not self.measure:
-            state1 = list(tracks_set_1)[0][0]
+            state1 = next(iter(tracks_set_1))[0]
             total = len(state1.state_vector)
             if not self.pos_map:
                 self.pos_map = [i for i in range(total)]
@@ -177,7 +179,7 @@ class TrackToTrackCounting(TwoTrackToTrackAssociator):
                         if n_unsuccessful >= self.consec_misses_end and \
                                 start_timestamp:
                             associations.add(TimeRangeAssociation(
-                                (track1, track2),
+                                OrderedSet((track1, track2)),
                                 TimeRange(start_timestamp, end_timestamp)))
                             start_timestamp = None
 
@@ -185,7 +187,7 @@ class TrackToTrackCounting(TwoTrackToTrackAssociator):
                 if start_timestamp:
                     end_timestamp = track1_states[-1].timestamp
                     associations.add(TimeRangeAssociation(
-                        (track1, track2),
+                        OrderedSet((track1, track2)),
                         TimeRange(start_timestamp, end_timestamp)))
 
         if self.one_to_one:
@@ -349,7 +351,7 @@ class TrackToTruth(TwoTrackToTrackAssociator):
                     # in a row end the association and record
                     if n_failures >= self.consec_misses_end:
                         associations.add(TimeRangeAssociation(
-                            (track, current_truth),
+                            OrderedSet((track, current_truth)),
                             TimeRange(start_timestamp, end_timestamp)))
 
                         # If the current potential association
@@ -371,7 +373,7 @@ class TrackToTruth(TwoTrackToTrackAssociator):
             if current_truth:
 
                 associations.add(TimeRangeAssociation(
-                    (track, current_truth),
+                    OrderedSet((track, current_truth)),
                     TimeRange(start_timestamp, end_timestamp)))
 
         return AssociationSet(associations)
@@ -412,14 +414,14 @@ class TrackIDbased(TwoTrackToTrackAssociator):
                 if track.id == truth.id:
                     try:
                         associations.add(
-                            TimeRangeAssociation((track, truth),
+                            TimeRangeAssociation(OrderedSet((track, truth)),
                                                  TimeRange(max(track[0].timestamp,
                                                                truth[0].timestamp),
                                                            min(track[-1].timestamp,
                                                                truth[-1].timestamp))))
                     except (TypeError, ValueError):
                         # A timestamp is None, or non-overlapping timestamps (start > end)
-                        associations.add(Association((track, truth)))
+                        associations.add(Association(OrderedSet((track, truth))))
 
         return AssociationSet(associations)
 

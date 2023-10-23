@@ -84,10 +84,10 @@ state_associator = OneToOneAssociator(measure=Euclidean(mapping=[0, 1]),
 
 # %%
 # **Associate States**. The :class:`~.OneToOneAssociator` will minimise the total measure
-# (:class:`~.Euclidean` distance) between the two states. The `~.OneToOneAssociator` uses SciPy's
-# :func:`~.scipy.optimize.linear_sum_assignment` function (a modified Jonker-Volgenant algorithm)
-# to minimise the distance. For pairs of objects with a distance equal to or above the threshold,
-# these pairs won’t be associated together.
+# (:class:`~.Euclidean` distance) between the two states. The :class:`~.OneToOneAssociator` uses
+# SciPy's :func:`~.scipy.optimize.linear_sum_assignment` function (a modified Jonker-Volgenant
+# algorithm) to minimise the distance. For pairs of objects with a distance equal to or above the
+# threshold, these pairs won’t be associated together.
 #
 associations, unassociated_states_a, unassociated_states_b = \
     state_associator.associate(states_from_a, states_from_b)
@@ -335,8 +335,8 @@ for received_colour in received_colours_scheme:
 # %%
 # Measure 2 - Example 1
 # ^^^^^^^^^^^^^^^^^^^^^^^
-# :class:`MatchingWordMeasure` looks for words that are identical or is a word/phrase is contained within
-# another word/phrase.
+# :class:`MatchingWordMeasure` looks for words that are identical or is a word/phrase is
+# contained within another word/phrase.
 class MatchingWordMeasure(BaseMeasure):
     PERFECT_MATCH = 1.0
     PARTIAL_MATCH = 0.5

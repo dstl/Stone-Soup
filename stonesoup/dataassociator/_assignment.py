@@ -1,4 +1,5 @@
 import copy
+from itertools import islice
 
 import numpy as np
 from scipy.optimize import linear_sum_assignment
@@ -92,8 +93,8 @@ def multidimensional_deconfliction(association_set):
 
 def conflicts(assoc1, assoc2):
     if hasattr(assoc1, 'time_range') and hasattr(assoc2, 'time_range') and \
-            len(assoc1.objects.intersection(assoc2.objects)) > 0 and \
-            (assoc1.time_range & assoc2.time_range).duration.total_seconds() > 0 and \
+            assoc1.objects.intersection(assoc2.objects) and \
+            assoc1.time_range & assoc2.time_range and \
             assoc1 != assoc2:
         return True
     else:
@@ -101,8 +102,8 @@ def conflicts(assoc1, assoc2):
 
 
 def check_if_no_conflicts(association_set):
-    for assoc1 in range(0, len(association_set)):
-        for assoc2 in range(assoc1, len(association_set)):
-            if conflicts(list(association_set)[assoc1], list(association_set)[assoc2]):
+    for n, assoc1 in enumerate(association_set):
+        for assoc2 in islice(association_set, n, None):
+            if conflicts(assoc1, assoc2):
                 return False
     return True

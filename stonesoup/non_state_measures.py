@@ -24,13 +24,14 @@ class MultipleMeasure(BaseMeasure):
 class TrackMeasure(BaseMeasure):
     """TrackMeasure base class.
 
-    A measure provides a means to assess the separation between two track objects `track_1`
-    and `track_2`. It should return a float value of the distance measure between the two tracks.
+    A measure provides a means to assess the separation between two :class:`~.Track` objects
+    `track_1` and `track_2`. It should return a float value of the distance measure between the
+    two tracks.
     """
 
     @abstractmethod
     def __call__(self, track_1: Track, track_2: Track) -> float:
-        """Compute the distance between a pair of tracks."""
+        """Compute the distance between a pair of :class:`~.Track` objects."""
         raise NotImplementedError
 
 
@@ -51,11 +52,11 @@ class StateSequenceMeasure(MultipleMeasure):
 
         Parameters
         ----------
-        state_sequence_1 : :class:`.~StateMutableSequence`
+        state_sequence_1 : :class:`~.StateSequenceMeasure`
             a state sequence to compare against `state_sequence_2`.
-        state_sequence_2 : :class:`.~StateMutableSequence`
+        state_sequence_2 : :class:`~.StateSequenceMeasure`
             a state sequence to compare against `state_sequence_1`.
-        times_to_measure : Sequence of :class:`.~datetime`
+        times_to_measure : Sequence of :class:`~.datetime.datetime`
             Calculate the state measure for states in the state sequences at these times. Default
             value is `None`. If `None`, `times_to_measure` is calculated as all the times
             that both state sequences have in common.
@@ -85,7 +86,7 @@ class StateSequenceMeasure(MultipleMeasure):
 class RecentStateSequenceMeasure(MultipleMeasure):
     """
     Applies a state measure to each state in the state sequence with for the most recent *n*
-    matching times. It will return less than `n_states_to_compare` values if there are less
+    matching times. It will return less than :attr:`n_states_to_compare` values if there are less
     matching times.
     """
 
@@ -100,9 +101,9 @@ class RecentStateSequenceMeasure(MultipleMeasure):
 
         Parameters
         ----------
-        state_sequence_1 : :class:`.~StateMutableSequence`
+        state_sequence_1 : :class:`~.StateSequenceMeasure`
             a state sequence to compare against `state_sequence_2`.
-        state_sequence_2 : :class:`.~StateMutableSequence`
+        state_sequence_2 : :class:`~.StateSequenceMeasure`
             a state sequence to compare against `state_sequence_1`.
 
         Returns
