@@ -6,7 +6,7 @@ This example demonstrates use of the  :class:`~.PolarPlotterly` plotting class.
 detections, and tracks in a polar plotter.
 
 In this example, two airborne platforms are generated in a Cartesian state space. A
-:class:`~.RadarElevationBearingRange` sensor is used to convert the Cartesian state space to an
+:class:`~.RadarBearingRange` sensor is used to convert the Cartesian state space to an
 angular one. Angular ground truth is created using measurements without noise. Detections 
 (with noise) are also generated.  Both detections and ground truth are plotted in a polar plot.
 """
@@ -93,7 +93,7 @@ plotter_xy.fig
 # Generate Angular State Space Data
 # ----------------------------------
 # Measure the previously generated cartesian state space using a
-# :class:`~.RadarElevationBearingRange` sensor:
+# :class:`~.RadarBearingRange` sensor:
 
 # %%
 # Create sensor:
