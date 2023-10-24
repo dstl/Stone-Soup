@@ -1,3 +1,4 @@
+import copy
 from collections.abc import Collection
 from typing import Union, Tuple, List, TYPE_CHECKING
 from numbers import Number
@@ -12,7 +13,7 @@ from ..types.hypothesis import Hypothesis
 from ._functions import _dict_set
 
 if TYPE_CHECKING:
-    from .node import Node, RepeaterNode
+    from .node import Node
 
 
 class FusionQueue(Queue):
@@ -97,7 +98,8 @@ class Edge(Base):
             raise TypeError("Message info must be one of the following types: "
                             "Detection, Hypothesis or Track")
         # Add message to 'pending' dict of edge
-        message = Message(self, time_pertaining, time_sent, data_piece)
+        message = Message(edge=self, time_pertaining=time_pertaining, time_sent=time_sent,
+                          data_piece=data_piece, destinations={self.recipient})
         _, self.messages_held = _dict_set(self.messages_held, message, 'pending', time_sent)
         # ensure message not re-sent
         data_piece.sent_to.add(self.nodes[1])
@@ -109,11 +111,15 @@ class Edge(Base):
         :param message: Message to propagate
         :return: None
         """
-        message.edge = self
-        _, self.messages_held = _dict_set(self.messages_held, message, 'pending', message.time_sent)
+        message_copy = copy.copy(message)
+        message_copy.edge = self
+        if message_copy.destinations == {self.sender} or message.destinations is None:
+            message_copy.destinations = {self.recipient}
+        _, self.messages_held = _dict_set(self.messages_held, message_copy, 'pending',
+                                          message_copy.time_sent)
         # Message not opened by repeater node, remove node from 'sent_to'
         # message.data_piece.sent_to.remove(self.nodes[0])
-        message.data_piece.sent_to.add(self.nodes[1])
+        message_copy.data_piece.sent_to.add(self.nodes[1])
 
     def update_messages(self, current_time, to_network_node=False):
         """
@@ -136,21 +142,29 @@ class Edge(Base):
                     _, self.messages_held = _dict_set(self.messages_held, message,
                                                       'received', message.arrival_time)
 
+                    # Assign destination as recipient of edge if no destination provided
+                    if message.destinations is None:
+                        message.destinations = {self.recipient}
+
                     # Update node according to inclusion in Information Architecture
-                    # Add message to recipient.messages_to_pass_on if the recipient is not in the
-                    #information 
-                    if to_network_node or ((message.destinations) and
-                                           (self.recipient not in message.destinations)):
-                        # message.recipient_node.messages_to_pass_on['unsent'].append(message)
-                        self.recipient.messages_to_pass_on.append(message)
-                    else:
-                        # Update
-                        # message.recipient_node.update(message.time_pertaining,
-                        #                               message.arrival_time,
-                        #                               message.data_piece, "unfused")
+                    if not to_network_node and message.destinations == {self.recipient}:
+                        # Add data to recipient's data_held
                         self.recipient.update(message.time_pertaining,
                                               message.arrival_time,
                                               message.data_piece, "unfused")
+
+                    elif not to_network_node and self.recipient in message.destinations:
+                        # Add data to recipient's data held, and message to messages_to_pass_on
+                        self.recipient.update(message.time_pertaining,
+                                              message.arrival_time,
+                                              message.data_piece, "unfused")
+                        message.destinations = None
+                        self.recipient.messages_to_pass_on.append(message)
+
+                    elif to_network_node or self.recipient not in message.destinations:
+                        # Add message to recipient's messages_to_pass_on
+                        message.destinations = None
+                        self.recipient.messages_to_pass_on.append(message)
 
         for time, message in to_remove:
             self.messages_held['pending'][time].remove(message)
@@ -265,8 +279,8 @@ class Message(Base):
         doc="Time at which the message was sent")
     data_piece: DataPiece = Property(
         doc="Info that the sent message contains")
-    destinations: set["Node"] = Property(doc="Nodes in the information architecture that the message is "
-                                             "being sent to",
+    destinations: set["Node"] = Property(doc="Nodes in the information architecture that the "
+                                             "message is being sent to",
                                          default=None)
 
     def __init__(self, *args, **kwargs):
@@ -301,7 +315,12 @@ class Message(Base):
     def __eq__(self, other):
         if not isinstance(other, type(self)):
             return False
-        return all(getattr(self, name) == getattr(other, name) for name in type(self).properties)
+
+        return all(getattr(self, name) == getattr(other, name)
+                   for name in type(self).properties
+                   if name not in ['destinations', 'edge'])
 
     def __hash__(self):
-        return hash(tuple(getattr(self, name) for name in type(self).properties))
+        return hash(tuple(getattr(self, name)
+                          for name in type(self).properties
+                          if name not in ['destinations', 'edge']))
