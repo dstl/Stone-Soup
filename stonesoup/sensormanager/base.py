@@ -182,7 +182,7 @@ class GreedySensorManager(SensorManager):
             The pairs of :class:`~.Sensor`: [:class:`~.Action`] selected
         """
 
-        all_sensor_actions = dict()
+        chosen_sensor_actions = dict()
 
         for sensor in self.sensors:
             # get action 'generator(s)'
@@ -200,12 +200,12 @@ class GreedySensorManager(SensorManager):
                     best_rewards[np.argmin(best_rewards)] = reward
 
             # save nchoose best actions for the sensor
-            all_sensor_actions[sensor] = selected_actions
+            chosen_sensor_actions[sensor] = selected_actions
 
         # convert from single dict of sensor: list(actions) to list of dicts of sensors: actions
-        all_selected_configs = [{sensor: all_sensor_actions[sensor][i]
-                                 for sensor in all_sensor_actions}
-                                for i in range(nchoose)]
+        selected_configs = [{sensor: chosen_sensor_actions[sensor][i]
+                             for sensor in chosen_sensor_actions}
+                            for i in range(nchoose)]
 
         # Return mapping of sensors and chosen actions for sensors
-        return all_selected_configs
+        return selected_configs
