@@ -1,5 +1,8 @@
+import datetime
+
 import pytest
 
+from .. import RepeaterNode
 from ..edge import Edges, Edge, DataPiece, Message, FusionQueue
 from ...types.track import Track
 from ...types.time import CompoundTimeRange, TimeRange
@@ -40,6 +43,8 @@ def test_edge_init(nodes, times, data_pieces):
     nodes['b'].latency = 2.0
     assert edge.ovr_latency == 1.0
 
+    assert (edge == 10) is False
+
 
 def test_send_update_message(edges, times, data_pieces):
     edge = edges['a']
@@ -47,6 +52,9 @@ def test_send_update_message(edges, times, data_pieces):
 
     message = Message(edge, times['a'], times['a'], data_pieces['a'])
     edge.send_message(data_pieces['a'], times['a'], times['a'])
+
+    with pytest.raises(TypeError):
+        edge.send_message('not_a_data_piece', times['a'], times['a'])
 
     assert len(edge.messages_held['pending']) == 1
     assert times['a'] in edge.messages_held['pending']
@@ -132,3 +140,173 @@ def test_fusion_queue():
     b = next(iter_q)
     assert b == "another item"
     assert q._to_consume == 1
+
+
+def test_message_destinations(times, radar_nodes):
+    start_time = times['start']
+    node1 = RepeaterNode(label='n1')
+    node2 = radar_nodes['a']
+    node2.label = 'n2'
+    node3 = RepeaterNode(label='n3')
+    edge1 = Edge((node1, node2))
+    edge2 = Edge((node1, node3))
+
+    # Create a message without defining a destination
+    message1 = Message(edge1, datetime.datetime(2016, 1, 2, 3, 4, 5), start_time,
+                       DataPiece(node1, node1, Track([]),
+                                 datetime.datetime(2016, 1, 2, 3, 4, 5)))
+
+    # Create a message with node 2 as a destination
+    message2 = Message(edge1, datetime.datetime(2016, 1, 2, 3, 4, 5), start_time,
+                       DataPiece(node1, node1, Track([]),
+                                 datetime.datetime(2016, 1, 2, 3, 4, 5)),
+                       destinations={node2})
+
+    # Create a message with as a defined destination that isn't node 2
+    message3 = Message(edge1, datetime.datetime(2016, 1, 2, 3, 4, 5), start_time,
+                       DataPiece(node1, node1, Track([]),
+                                 datetime.datetime(2016, 1, 2, 3, 4, 5)),
+                       destinations={node3})
+
+    # Create message that has node2 and node3 as a destination
+    message4 = Message(edge1, datetime.datetime(2016, 1, 2, 3, 4, 5), start_time,
+                       DataPiece(node1, node1, Track([]),
+                                 datetime.datetime(2016, 1, 2, 3, 4, 5)),
+                       destinations={node2, node3})
+
+    # Add messages to node1.messages_to_pass_on and check that unpassed_data() catches it
+    node1.messages_to_pass_on = [message1, message2, message3, message4]
+    assert edge1.unpassed_data == [message1, message2, message3, message4]
+    assert edge2.unpassed_data == [message1, message2, message3, message4]
+
+    # Pass data to edges
+    for edge in [edge1, edge2]:
+        for message in edge.unpassed_data:
+            edge.pass_message(message)
+
+    # Check that no 'unsent' data remains
+    assert edge1.unsent_data == []
+    assert edge2.unsent_data == []
+
+    # Check that all messages are sent to both edges
+    assert len(edge1.messages_held['pending'][start_time]) == 4
+    assert len(edge2.messages_held['pending'][start_time]) == 4
+
+    # Check node2 and node3 have no messages to pass on
+    assert node2.messages_to_pass_on == []
+    assert node3.messages_to_pass_on == []
+
+    # Update both edges
+    edge1.update_messages(start_time+datetime.timedelta(minutes=1), to_network_node=False)
+    edge2.update_messages(start_time + datetime.timedelta(minutes=1), to_network_node=True)
+
+    # Check node2.messages_to_pass_on contains message3 that does not have node 2 as a destination
+    assert len(node2.messages_to_pass_on) == 2
+    # Check node3.messages_to_pass_on contains all messages as it is not in information arch
+    assert len(node3.messages_to_pass_on) == 4
+
+    # Check that node2 has opened message1 and message3 that were intended to be processed by node3
+    data_held = []
+    for time in node2.data_held['unfused'].keys():
+        data_held += node2.data_held['unfused'][time]
+    assert len(data_held) == 3
+
+
+def test_unpassed_data(times):
+    start_time = times['start']
+    node1 = RepeaterNode()
+    node2 = RepeaterNode()
+    edge = Edge((node1, node2))
+
+    # Create a message without defining a destination (send to all)
+    message = Message(edge, datetime.datetime(2016, 1, 2, 3, 4, 5), start_time,
+                      DataPiece(node1, node1, 'test_data',
+                                datetime.datetime(2016, 1, 2, 3, 4, 5)))
+
+    # Add message to node.messages_to_pass_on and check that unpassed_data catches it
+    node1.messages_to_pass_on.append(message)
+    assert edge.unpassed_data == [message]
+
+    # Pass message on and check that unpassed_data no longer flags it as unsent
+    edge.pass_message(message)
+    assert edge.unpassed_data == []
+
+
+def test_add():
+    node1 = RepeaterNode()
+    node2 = RepeaterNode()
+    node3 = RepeaterNode()
+
+    edge1 = Edge((node1, node2))
+    edge2 = Edge((node1, node2))
+    edge3 = Edge((node2, node3))
+    edge4 = Edge((node1, node3))
+
+    edges = Edges([edge1, edge2, edge3])
+
+    # Check edges.edges returns all edges
+    assert edges.edges == [edge1, edge2, edge3]
+
+    # Add an edge and check the change is reflected in edges.edges
+    edges.add(edge4)
+    assert edges.edges == [edge1, edge2, edge3, edge4]
+
+
+def test_remove():
+    node1 = RepeaterNode()
+    node2 = RepeaterNode()
+    node3 = RepeaterNode()
+
+    edge1 = Edge((node1, node2))
+    edge2 = Edge((node1, node2))
+    edge3 = Edge((node2, node3))
+
+    edges = Edges([edge1, edge2, edge3])
+
+    # Check edges.edges returns all edges
+    assert edges.edges == [edge1, edge2, edge3]
+
+    # Remove an edge and check the change is reflected in edges.edges
+    edges.remove(edge1)
+    assert edges.edges == [edge2, edge3]
+
+
+def test_get():
+    node1 = RepeaterNode()
+    node2 = RepeaterNode()
+    node3 = RepeaterNode()
+
+    edge1 = Edge((node1, node2))
+    edge2 = Edge((node1, node2))
+    edge3 = Edge((node2, node3))
+
+    edges = Edges([edge1, edge2, edge3])
+
+    assert edges.get((node1, node2)) == [edge1, edge2]
+    assert edges.get((node2, node3)) == [edge3]
+    assert edges.get((node3, node2)) == []
+    assert edges.get((node1, node3)) == []
+
+    with pytest.raises(ValueError):
+        edges.get(node_pair=(node1, node2, node3))
+
+
+def test_pass_message(times):
+    start_time = times['start']
+    node1 = RepeaterNode()
+    node2 = RepeaterNode()
+    edge = Edge((node1, node2))
+    message = Message(edge, datetime.datetime(2016, 1, 2, 3, 4, 5), start_time,
+                      DataPiece(node1, node1, 'test_data', datetime.datetime(2016, 1, 2, 3, 4, 5)))
+
+    node1.messages_to_pass_on.append(message)
+
+    assert node1.messages_to_pass_on == [message]
+
+    edge.pass_message(message)
+    assert node1.messages_to_pass_on == [message]
+    assert node2.messages_to_pass_on == []
+    assert message in edge.messages_held['pending'][start_time]
+    assert edge.unpassed_data == []
+
+    assert (message == 10) is False

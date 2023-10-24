@@ -1,4 +1,3 @@
-import copy
 from abc import abstractmethod
 
 import pydot
@@ -428,7 +427,8 @@ class InformationArchitecture(Architecture):
         if isinstance(self, InformationArchitecture):
             for node in self.all_nodes:
                 if isinstance(node, RepeaterNode):
-                    raise TypeError("Information architecture should not contain any repeater nodes")
+                    raise TypeError("Information architecture should not contain any repeater "
+                                    "nodes")
         for fusion_node in self.fusion_nodes:
             pass  # fusion_node.tracker.set_time(self.current_time)
 
@@ -515,6 +515,8 @@ class NetworkArchitecture(Architecture):
                     self.information_architecture_edges = Edges(inherit_edges(Edges(self.edges)))
                     self.information_arch = InformationArchitecture(
                         edges=self.information_architecture_edges, current_time=self.current_time)
+                else:
+                    self.information_arch = InformationArchitecture(self.edges, self.current_time)
             else:
                 self.information_arch = InformationArchitecture(
                     edges=self.information_architecture_edges, current_time=self.current_time)

@@ -1,9 +1,12 @@
+import copy
+
 import pytest
 import datetime
 
-from stonesoup.architecture import InformationArchitecture
-from ..edge import Edge, Edges
-from ..node import RepeaterNode
+from stonesoup.architecture import InformationArchitecture, NetworkArchitecture, \
+    NonPropagatingArchitecture
+from ..edge import Edge, Edges, FusionQueue, Message, DataPiece
+from ..node import RepeaterNode, SensorNode, FusionNode
 from stonesoup.types.detection import TrueDetection
 
 
@@ -603,18 +606,13 @@ def test_fully_propagated(edge_lists, times, ground_truths):
         for key in node.data_held['created'].keys():
             assert len(node.data_held['created'][key]) == 3
 
-    for edge in network.edges.edges:
-        if len(edge.unsent_data) != 0:
-            print(f"Node {edge.sender.label} has unsent data:")
-            print(edge.unsent_data)
-
     # Network should not be fully propagated
-    # assert network.fully_propagated is False
+    assert network.fully_propagated is False
 
     network.propagate(time_increment=1)
 
     # Network should now be fully propagated
-    # assert network.fully_propagated
+    assert network.fully_propagated
 
 
 def test_information_arch_propagate(edge_lists, ground_truths, times):
@@ -643,3 +641,158 @@ def test_information_arch_init(edge_lists):
     # Network contains a repeater node, InformationArchitecture should raise a type error.
     with pytest.raises(TypeError):
         _ = InformationArchitecture(edges=edges)
+
+
+def test_network_arch(radar_sensors, ground_truths, tracker, track_tracker, times):
+    start_time = times['start']
+    sensor_set = radar_sensors
+    fq = FusionQueue()
+
+    node_A = SensorNode(sensor=sensor_set[0], label='SensorNode A')
+    node_B = SensorNode(sensor=sensor_set[2], label='SensorNode B')
+
+    node_C_tracker = copy.deepcopy(tracker)
+    node_C_tracker.detector = FusionQueue()
+    node_C = FusionNode(tracker=node_C_tracker, fusion_queue=node_C_tracker.detector, latency=0,
+                        label='FusionNode C')
+
+    ##
+    node_D = SensorNode(sensor=sensor_set[1], label='SensorNode D')
+    node_E = SensorNode(sensor=sensor_set[3], label='SensorNode E')
+
+    node_F_tracker = copy.deepcopy(tracker)
+    node_F_tracker.detector = FusionQueue()
+    node_F = FusionNode(tracker=node_F_tracker, fusion_queue=node_F_tracker.detector, latency=0)
+
+    node_H = SensorNode(sensor=sensor_set[4])
+
+    node_G = FusionNode(tracker=track_tracker, fusion_queue=fq, latency=0)
+
+    repeaternode1 = RepeaterNode(label='RepeaterNode 1')
+    repeaternode2 = RepeaterNode(label='RepeaterNode 2')
+
+    network_arch = NetworkArchitecture(
+        edges=Edges([Edge((node_A, repeaternode1), edge_latency=0.5),
+                     Edge((repeaternode1, node_C), edge_latency=0.5),
+                     Edge((node_B, node_C)),
+                     Edge((node_A, repeaternode2), edge_latency=0.5),
+                     Edge((repeaternode2, node_C)),
+                     Edge((repeaternode1, repeaternode2)),
+                     Edge((node_D, node_F)), Edge((node_E, node_F)),
+                     Edge((node_C, node_G), edge_latency=0),
+                     Edge((node_F, node_G), edge_latency=0),
+                     Edge((node_H, node_G))
+                     ]),
+        current_time=start_time)
+
+    # Check all Nodes are present in the Network Architecture
+    assert node_A in network_arch.all_nodes
+    assert node_B in network_arch.all_nodes
+    assert node_C in network_arch.all_nodes
+    assert node_D in network_arch.all_nodes
+    assert node_E in network_arch.all_nodes
+    assert node_F in network_arch.all_nodes
+    assert node_G in network_arch.all_nodes
+    assert node_H in network_arch.all_nodes
+    assert repeaternode1 in network_arch.all_nodes
+    assert repeaternode2 in network_arch.all_nodes
+    assert len(network_arch.all_nodes) == 10
+
+    # Check Repeater Nodes are not present in the inherited Information Architecture
+    assert repeaternode1 not in network_arch.information_arch.all_nodes
+    assert repeaternode2 not in network_arch.information_arch.all_nodes
+    assert len(network_arch.information_arch.all_nodes) == 8
+
+    # Check correct number of edges
+    assert len(network_arch.edges) == 11
+    assert len(network_arch.information_arch.edges) == 8
+
+    # Check time is correct
+    assert network_arch.current_time == network_arch.information_arch.current_time == start_time
+
+    # Test node 'get' methods work
+    assert network_arch.repeater_nodes == {repeaternode1, repeaternode2}
+    assert network_arch.sensor_nodes == {node_A, node_B, node_D, node_E, node_H}
+    assert network_arch.fusion_nodes == {node_C, node_F, node_G}
+
+    assert network_arch.information_arch.repeater_nodes == set()
+    assert network_arch.information_arch.sensor_nodes == {node_A, node_B, node_D, node_E, node_H}
+    assert network_arch.information_arch.fusion_nodes == {node_C, node_F, node_G}
+
+
+def test_net_arch_fully_propagated(edge_lists, times, ground_truths, radar_nodes, radar_sensors,
+                                   tracker, track_tracker):
+    start_time = times['start']
+    sensor_set = radar_sensors
+    fq = FusionQueue()
+
+    node_A = SensorNode(sensor=sensor_set[0], label='SensorNode A')
+    node_B = SensorNode(sensor=sensor_set[2], label='SensorNode B')
+
+    node_C_tracker = copy.deepcopy(tracker)
+    node_C_tracker.detector = FusionQueue()
+    node_C = FusionNode(tracker=node_C_tracker, fusion_queue=node_C_tracker.detector, latency=0,
+                        label='FusionNode C')
+
+    ##
+    node_D = SensorNode(sensor=sensor_set[1], label='SensorNode D')
+    node_E = SensorNode(sensor=sensor_set[3], label='SensorNode E')
+
+    node_F_tracker = copy.deepcopy(tracker)
+    node_F_tracker.detector = FusionQueue()
+    node_F = FusionNode(tracker=node_F_tracker, fusion_queue=node_F_tracker.detector, latency=0)
+
+    node_H = SensorNode(sensor=sensor_set[4])
+
+    node_G = FusionNode(tracker=track_tracker, fusion_queue=fq, latency=0)
+
+    repeaternode1 = RepeaterNode(label='RepeaterNode 1')
+    repeaternode2 = RepeaterNode(label='RepeaterNode 2')
+
+    edges = Edges([Edge((node_A, repeaternode1), edge_latency=0.5),
+                   Edge((repeaternode1, node_C), edge_latency=0.5),
+                   Edge((node_B, node_C)),
+                   Edge((node_A, repeaternode2), edge_latency=0.5),
+                   Edge((repeaternode2, node_C)),
+                   Edge((repeaternode1, repeaternode2)),
+                   Edge((node_D, node_F)), Edge((node_E, node_F)),
+                   Edge((node_C, node_G), edge_latency=0),
+                   Edge((node_F, node_G), edge_latency=0),
+                   Edge((node_H, node_G))
+                   ])
+
+    network_arch = NetworkArchitecture(
+        edges=edges,
+        current_time=start_time)
+
+    network_arch.measure(ground_truths=ground_truths, noise=True)
+
+    for node in network_arch.sensor_nodes:
+        # Check that each sensor node has data held for the detection of all 3 targets
+        for key in node.data_held['created'].keys():
+            assert len(node.data_held['created'][key]) == 3
+
+    # Put some data in a Node's 'messages_to_pass_on'
+    edge = edges.get((radar_nodes['a'], radar_nodes['c']))
+    node = radar_nodes['a']
+    message = Message(edge, datetime.datetime(2016, 1, 2, 3, 4, 5), start_time,
+                      DataPiece(node, node, 'test_data', datetime.datetime(2016, 1, 2, 3, 4, 5)))
+    node.messages_to_pass_on.append(message)
+
+    # Network should not be fully propagated
+    assert network_arch.fully_propagated is False
+
+    network_arch.propagate(time_increment=1)
+
+    # Network should now be fully propagated
+    assert network_arch.fully_propagated
+
+
+def test_non_propagating_arch(edge_lists, times):
+    edges = edge_lists['hierarchical_edges']
+    start_time = times['start']
+
+    np_arch = NonPropagatingArchitecture(edges, start_time)
+
+    assert np_arch.current_time == start_time
+    assert np_arch.edges == edges
