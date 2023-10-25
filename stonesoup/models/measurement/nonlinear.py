@@ -1384,7 +1384,7 @@ class IsotropicPlume(GaussianModel, MeasurementModel):
             The model function evaluated with the provided source term
         """
 
-        x, y, z, Q, u, phi, ci, cii = state.state_vector[self.mapping].view(np.ndarray)
+        x, y, z, Q, u, phi, ci, cii = state.state_vector[self.mapping, :].view(np.ndarray)
 
         px, py, pz = self.translation_offset
         lambda_ = np.sqrt((ci * cii)/(1 + (u**2 * cii)/(4 * ci)))
