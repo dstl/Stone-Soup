@@ -159,9 +159,6 @@ class GreedySensorManager(SensorManager):
 
     """
 
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-
     def choose_actions(self, tracks, timestamp, nchoose=1, **kwargs):
         """Returns a chosen [list of] action(s) from the action set for each sensor.
         Chosen action(s) is selected by finding the configuration of sensors: actions which returns
