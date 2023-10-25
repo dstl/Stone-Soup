@@ -7,8 +7,7 @@ import numpy as np
 
 from ..base import Model, GaussianModel
 from ...base import Property
-from ...types.array import StateVectors
-from ...types.state import StateVector
+from ...types.array import StateVector, StateVectors
 
 
 class TransitionModel(Model):
