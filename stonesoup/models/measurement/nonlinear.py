@@ -1316,7 +1316,7 @@ class IsotropicPlume(GaussianModel, MeasurementModel):
     )
 
     mapping: Sequence[int] = Property(
-        default=range(0, 8),
+        default=tuple(range(0, 8)),
         doc="Mapping between measurement and state dims"
     )
 
