@@ -1,12 +1,15 @@
 import numpy as np
 from datetime import datetime, timedelta
+from ordered_set import OrderedSet
+from collections import defaultdict
+import copy
 
 from ...types.array import StateVector
 from ...types.state import GaussianState
 from ...types.track import Track
 from ...sensor.radar import RadarRotatingBearingRange
 from ...sensor.action.dwell_action import ChangeDwellAction
-from ...sensormanager import RandomSensorManager, BruteForceSensorManager
+from ...sensormanager import RandomSensorManager, BruteForceSensorManager, GreedySensorManager
 from ...sensormanager.reward import UncertaintyRewardFunction
 from ...sensormanager.optimise import OptimizeBruteSensorManager, \
     OptimizeBasinHoppingSensorManager
@@ -14,6 +17,9 @@ from ...predictor.kalman import KalmanPredictor
 from ...updater.kalman import ExtendedKalmanUpdater
 from ...models.transition.linear import CombinedLinearGaussianTransitionModel, \
                                     ConstantVelocity
+from ...hypothesiser.distance import DistanceHypothesiser
+from ...measures import Mahalanobis
+from ...dataassociator.neighbour import GNNWith2DAssignment
 
 
 def test_random_choose_actions():
@@ -177,3 +183,59 @@ def test_uncertainty_based_managers():
     assert all_dwell_centres[0][1] == all_dwell_centres[1][1] == all_dwell_centres[2][1]
 
     assert isinstance(sensor_managerD.get_full_output(), tuple)
+
+
+def test_greedy_manager(params):
+    predictor = params['predictor']
+    updater = params['updater']
+    sensor_set = params['sensor_set']
+    timesteps = params['timesteps']
+    tracks = params['tracks']
+    truths = params['truths']
+
+    reward_function = UncertaintyRewardFunction(predictor, updater)
+    greedysensormanager = GreedySensorManager(sensor_set, reward_function=reward_function)
+
+    hypothesiser = DistanceHypothesiser(predictor, updater, measure=Mahalanobis(),
+                                        missed_distance=5)
+    data_associator = GNNWith2DAssignment(hypothesiser)
+
+    sensor_history = defaultdict(dict)
+    dwell_centres = dict()
+
+    for timestep in timesteps[1:]:
+        chosen_actions = greedysensormanager.choose_actions(tracks, timestep)
+        measurements = set()
+        for chosen_action in chosen_actions:
+            for sensor, actions in chosen_action.items():
+                sensor.add_actions(actions)
+        for sensor in sensor_set:
+            sensor.act(timestep)
+            sensor_history[timestep][sensor] = copy.copy(sensor)
+            dwell_centres[timestep] = sensor.dwell_centre[0][0]
+            measurements |= sensor.measure(OrderedSet(truth[timestep] for truth in truths),
+                                           noise=False)
+        hypotheses = data_associator.associate(tracks,
+                                               measurements,
+                                               timestep)
+        for track in tracks:
+            hypothesis = hypotheses[track]
+            if hypothesis.measurement:
+                post = updater.update(hypothesis)
+                track.append(post)
+            else:
+                track.append(hypothesis.prediction)
+
+    # Double check choose_actions method types are as expected
+    assert type(chosen_actions) == list
+
+    for chosen_actions in chosen_actions:
+        for sensor, actions in chosen_action.items():
+            assert isinstance(sensor, RadarRotatingBearingRange)
+            assert isinstance(actions[0], ChangeDwellAction)
+
+    # Check sensor following track as expected
+    assert dwell_centres[timesteps[5]] - np.radians(135) < 1e-3
+    assert dwell_centres[timesteps[15]] - np.radians(45) < 1e-3
+    assert dwell_centres[timesteps[25]] - np.radians(-45) < 1e-3
+    assert dwell_centres[timesteps[35]] - np.radians(-135) < 1e-3
