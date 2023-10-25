@@ -1501,7 +1501,7 @@ class IsotropicPlume(GaussianModel, MeasurementModel):
         : :class:`~.Probability`
             The likelihood of ``state1``, given ``state2``
         """
-        return Probability.from_log_ufunc(self.logpdf(state1, state2, **kwargs))
+        return super().pdf(state1, state2, **kwargs)
 
     def rvs(self, state: Union[StateVector, StateVectors], num_samples: int = 1,
             random_state=None, **kwargs) -> Union[StateVector, StateVectors]:
