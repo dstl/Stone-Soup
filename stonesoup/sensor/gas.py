@@ -6,7 +6,7 @@ from .sensor import Sensor
 from ..base import Property
 from ..types.detection import TrueDetection
 from ..types.groundtruth import GroundTruthState
-from ..models.measurement.nonlinear import IsotropicPlume
+from ..models.measurement.gas import IsotropicPlume
 from ..types.numeric import Probability
 
 
