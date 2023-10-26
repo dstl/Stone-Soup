@@ -7,6 +7,7 @@ Comparing Efficient Hypothesis Management (EHM) with probability associators
 ============================================================================
 """
 
+# %%
 # In this example, we compare the performances between efficient hypothesis management
 # (EHM) and standard joint probabilistic data association.
 # The problem we face when dealing with multi-target tracking is the potential
@@ -19,9 +20,8 @@ Comparing Efficient Hypothesis Management (EHM) with probability associators
 # which is a brute force approach, with improved capability of hypothesis matching
 # and rejection with, significantly, cost reduction.
 #
-# As it stands, there is not a Stone Soup implementation yet, however we
-# base these comparisons on the publicly available, under patent license agreement,
-# Python package PyEHM developed by ` Dr. Lyudmil Vladimirov `_.
+# A plugin Stone Soup implementation of EHM is available, under patent license agreement,
+# using the Python package PyEHM developed by `Dr. Lyudmil Vladimirov`_.
 # .. _Lyudmil Vladimirov: https://github.com/sglvladi/pyehm
 #
 #
@@ -49,9 +49,10 @@ Comparing Efficient Hypothesis Management (EHM) with probability associators
 import numpy as np
 from datetime import datetime, timedelta
 from copy import deepcopy
+from time import perf_counter
 
 # Load the pyehm plugins
-from pyehm.plugins.stonesoup import JPDAWithEHM, JPDAWithEHM2
+from stonesoup.plugins.pyehm import JPDAWithEHM, JPDAWithEHM2
 
 # %%
 # Stone Soup Imports
@@ -75,7 +76,7 @@ initial_state_covariance = CovarianceMatrix(np.diag([5, 0.5, 5, 0.5]))
 timestep_size = timedelta(seconds=1)
 number_of_steps = 50  # number of time-steps
 birth_rate = 0.25   # probability of new target to appear
-death_probability = 0.01  # 5% probability of target to disappear
+death_probability = 0.01  # 1% probability of target to disappear
 
 # setup the initial state of the simulation
 initial_state = GaussianState(state_vector=initial_state_mean,
@@ -130,7 +131,7 @@ detection_sim = SimpleDetectionSimulator(
 
 # To make a 1 to 1 comparison between different trackers we have
 # to feed the same detections to each trackers, so we have to
-# copy the detection simulations.
+# duplicate the detection simulations.
 from itertools import tee
 detection, *detection_sims = tee(detection_sim, 4)
 
@@ -152,8 +153,7 @@ detection, *detection_sims = tee(detection_sim, 4)
 # Stone Soup tracker components
 # ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-# Load the various Kalman components as the predictor and
-# updater
+# Load the Kalman predictor and updater
 from stonesoup.predictor.kalman import UnscentedKalmanPredictor
 from stonesoup.updater.kalman import UnscentedKalmanUpdater
 
@@ -167,7 +167,7 @@ deleter = UpdateTimeStepsDeleter(3)
 
 from stonesoup.initiator.simple import MultiMeasurementInitiator
 
-# Load the probabilistic data Associator and the tracker
+# Load the probabilistic data associator and the tracker
 from stonesoup.dataassociator.neighbour import GlobalNearestNeighbour
 from stonesoup.hypothesiser.probability import PDAHypothesiser
 from stonesoup.dataassociator.probability import JPDA
@@ -177,7 +177,7 @@ from stonesoup.tracker.simple import MultiTargetMixtureTracker
 # Design the trackers
 # ^^^^^^^^^^^^^^^^^^^
 
-# Lets start with the standard JPDA
+# Start with the standard JPDA
 initiator = MultiMeasurementInitiator(
     prior_state=GaussianState(np.array([0, 0, 0, 0]),
                               np.diag([5, 0.5, 5, 0.5]) ** 2,
@@ -202,7 +202,7 @@ JPDA_tracker = MultiTargetMixtureTracker(
                                          prob_detect=probability_detection)),
     updater=updater)
 
-# Now lets load the EHMJPDA, if you note the initiator is the same
+# Now we load the EHMJPDA, please note that the initiator is the same as the JPDA
 EHM_initiator = MultiMeasurementInitiator(
     prior_state=GaussianState(np.array([0, 0, 0, 0]),
                               np.diag([5, 0.5, 5, 0.5]) ** 2,
@@ -250,7 +250,7 @@ EHM2_tracker = MultiTargetMixtureTracker(
 # trackers, one with the brute force JPDA hypothesis
 # management, one with the EHM implementation [1]_ and
 # one with the EHM2 implementation  [2]_.
-# Now we can run the trackers and gather the
+# Now, we can run the trackers and gather the
 # final tracks as well as the detections,
 # clutter and define a metric plotter to evaluate
 # the track accuracy using the metric manager.
@@ -277,7 +277,7 @@ EHM2 = BasicMetrics(generator_name='EHM2', tracks_key='EHM2_tracks',
                     truths_key='truths')
 
 # Compare the generated tracks to verify they obtain the same
-# accuracy
+# accuracy, we consider as truths tracks the EHM tracks
 from stonesoup.metricgenerator.ospametric import OSPAMetric
 
 ospa_JPDA_EHM1 = OSPAMetric(c=40, p=1, generator_name='OSPA_JPDA-EHM1',
@@ -322,31 +322,31 @@ metric_manager = MultiManager([basic_JPDA,
 # Run simulation
 # ^^^^^^^^^^^^^^
 
-# Now lets plot the various tracker results
+# We  plot the various tracker results
 JPDA_tracks = set()
 EHM1_tracks = set()
 EHM2_tracks = set()
 groundtruths = set()
 detections_set = set()
 
-# measure the time
-start_time = datetime.now()
+# We measure the computation time
+start_time = perf_counter()
 for time, ctracks in JPDA_tracker:
     JPDA_tracks.update(ctracks)
     detections_set.update(detection_sim.detections)
-jpda_time = datetime.now() - start_time
+jpda_time = perf_counter() - start_time
 
 groundtruths = groundtruth_sim.groundtruth_paths
 
-start_time = datetime.now()
+start_time = perf_counter()
 for time, etracks in EHM1_tracker:
     EHM1_tracks.update(etracks)
-ehm1_time = datetime.now() - start_time
+ehm1_time = perf_counter() - start_time
 
-start_time = datetime.now()
+start_time = perf_counter()
 for time, etracks in EHM2_tracker:
     EHM2_tracks.update(etracks)
-ehm2_time = datetime.now() - start_time
+ehm2_time = perf_counter() - start_time
 
 # Add the various tracks to the metric manager
 metric_manager.add_data({'JPDA_tracks': JPDA_tracks}, overwrite=False)
@@ -359,19 +359,21 @@ metric_manager.add_data({'EHM2_tracks': EHM2_tracks}, overwrite=False)
 # %%
 # 4) Compare the trackers performances;
 # -------------------------------------
-# We have setup the trackers as well as
-# the metric manager now, to conclude this
+# We have set up the trackers as well as
+# the metric manager, to conclude this
 # tutorial we show the results of the
 # computing time needed for each tracker,
 # the overall tracks generated and
 # the differences between the tracks,
-# if any. We start showing the time
-# performances of the different trackers.
+# if any. We start presenting the time
+# performances of the different trackers along
+# with the performance improvement obtained by the
+# EHM data associators.
 
 print('Comparisons between the trackers performances')
-print(f'JPDA computing time: {jpda_time} seconds')
-print(f'EHM1 computing time: {ehm1_time} seconds, {np.round((jpda_time/ehm1_time-1)*100, 2)} % quicker than JPDA')
-print(f'EHM2 computing time: {ehm2_time} seconds, {np.round((jpda_time/ehm2_time-1)*100, 2)} % quicker than JPDA')
+print(f'JPDA computing time: {jpda_time:.2f} seconds')
+print(f'EHM1 computing time: {ehm1_time:.2f} seconds, {(jpda_time/ehm1_time-1)*100:.2f} % quicker than JPDA')
+print(f'EHM2 computing time: {ehm2_time:.2f} seconds, {(jpda_time/ehm2_time-1)*100:.2f} % quicker than JPDA')
 
 # Load the plotter package to plot the
 # detections, tracks and detections.
@@ -407,6 +409,8 @@ graph.plot_metrics(metrics, generator_names=['OSPA_JPDA-EHM1',
 # update y-axis label and title, other subplots are displaying auto-generated title and labels
 graph.axes[0].set(ylabel='OSPA metrics', title='OSPA distances over time between JPDA and EHMs tracks')
 graph.fig
+# Please note the scale of the plot
+
 
 # %%
 # Conclusion
@@ -417,19 +421,18 @@ graph.fig
 # system. We measure a significant improvement (depending on
 # the number of simulation steps, number of tracks and
 # clutter rate) in the computation time in using EHM approaches
-# compared to the brute force JPDA. In the overall tracks
-# we don't measure significant differences between the
-# various trackers.
+# compared to the brute force JPDA. The tracks
+# obtained by the three trackers are perfectly aligned. 
 
 # %%
 # References
 # ----------
-# [1] Maskell, S., Briers, M. and Wright, R., 2004, August. Fast mutual exclusion.
-# In Signal and Data Processing of Small Targets 2004 (Vol. 5428, pp. 526-536).
-# International Society for Optics and Photonics
-# [2] Horridge, P. and Maskell, S., 2006, July. Real-time tracking of hundreds of
-# targets with efficient exact JPDAF implementation. In 2006 9th International
-# Conference on Information Fusion (pp. 1-8). IEEE
-# [3] Maskell, S., 2003, July. Signal Processing with Reduced Combinatorial
-# Complexity. Patent Reference:0315349.1
+# ..[1] Maskell, S., Briers, M. and Wright, R., 2004, August. Fast mutual exclusion.
+#       In Signal and Data Processing of Small Targets 2004 (Vol. 5428, pp. 526-536).
+#       International Society for Optics and Photonics
+# ..[2] Horridge, P. and Maskell, S., 2006, July. Real-time tracking of hundreds of
+#       targets with efficient exact JPDAF implementation. In 2006 9th International
+#       Conference on Information Fusion (pp. 1-8). IEEE
+# ..[3] Maskell, S., 2003, July. Signal Processing with Reduced Combinatorial
+#       Complexity. Patent Reference:0315349.1
 #
