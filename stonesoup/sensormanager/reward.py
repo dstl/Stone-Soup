@@ -93,7 +93,7 @@ class UncertaintyRewardFunction(RewardFunction):
         # Reward value
         config_metric = 0
 
-        predicted_sensors = list()
+        predicted_sensors = set()
         memo = {}
         # For each sensor in the configuration
         for sensor, actions in config.items():
@@ -101,7 +101,9 @@ class UncertaintyRewardFunction(RewardFunction):
             predicted_sensor.add_actions(actions)
             predicted_sensor.act(metric_time)
             if isinstance(sensor, Sensor):
-                predicted_sensors.append(predicted_sensor)  # checks if its a sensor
+                predicted_sensors.add(predicted_sensor)  # checks if its a sensor
+            elif isinstance(sensor, Platform):
+                predicted_sensors.update(predicted_sensor.sensors)
 
         # Create dictionary of predictions for the tracks in the configuration
         predicted_tracks = set()
@@ -174,9 +176,11 @@ class ExpectedKLDivergence(RewardFunction):
         super().__init__(*args, **kwargs)
         self.KLD = KLDivergence()
         if self.predictor is not None and not isinstance(self.predictor, ParticlePredictor):
-            raise TypeError('Only ParticlePredictor types can be used with this reward function')
+            raise NotImplementedError('Only ParticlePredictor types are currently compatible '
+                                      'with this reward function')
         if self.updater is not None and not isinstance(self.updater, ParticleUpdater):
-            raise TypeError('Only ParticleUpdater types can be used with this reward function')
+            raise NotImplementedError('Only ParticleUpdater types are currently compatible '
+                                      'with this reward function')
 
     def __call__(self, config: Mapping[Sensor, Sequence[Action]], tracks: Set[Track],
                  metric_time: datetime.datetime, *args, **kwargs):
@@ -204,7 +208,7 @@ class ExpectedKLDivergence(RewardFunction):
         kld = 0.
 
         memo = {}
-        predicted_actionables = []
+        predicted_sensors = set()
         # For each actionable in the configuration
         for actionable, actions in config.items():
             # Don't currently have an Actionable base for platforms hence either Platform or Sensor
@@ -212,7 +216,10 @@ class ExpectedKLDivergence(RewardFunction):
                 predicted_actionable = copy.deepcopy(actionable, memo)
                 predicted_actionable.add_actions(actions)
                 predicted_actionable.act(metric_time)
-                predicted_actionables.append(predicted_actionable)
+                if isinstance(actionable, Sensor):
+                    predicted_sensors.add(predicted_actionable)  # checks if its a sensor
+                elif isinstance(actionable, Platform):
+                    predicted_sensors.update(predicted_actionable.sensors)
 
         # Create dictionary of predictions for the tracks in the configuration
         predicted_tracks = set()
@@ -228,36 +235,30 @@ class ExpectedKLDivergence(RewardFunction):
 
             predicted_tracks.add(predicted_track)
 
-        for predicted_actionable_ in predicted_actionables:
-            if isinstance(predicted_actionable_, Sensor):
-                sensors = [predicted_actionable_]
-            elif isinstance(predicted_actionable_, Platform):
-                sensors = predicted_actionable_.sensors
-            # sensors = predicted_actionable_.sensors
-            for sensor in sensors:
-                # Assumes one detection per track
+        for sensor in predicted_sensors:
+            # Assumes one detection per track
 
-                detections = self._generate_detections(predicted_tracks, sensor)
+            detections = self._generate_detections(predicted_tracks, sensor)
 
-                for predicted_track, detection_set in detections.items():
+            for predicted_track, detection_set in detections.items():
 
-                    for n, detection in enumerate(detection_set):
+                for n, detection in enumerate(detection_set):
 
-                        # if detection:
-                        # Generate hypothesis based on prediction/previous update and detection
-                        hypothesis = SingleHypothesis(predicted_track, detection)
+                    # if detection:
+                    # Generate hypothesis based on prediction/previous update and detection
+                    hypothesis = SingleHypothesis(predicted_track, detection)
 
-                        # Do the update based on this hypothesis and store covariance matrix
-                        update = self.updater.update(hypothesis)
+                    # Do the update based on this hypothesis and store covariance matrix
+                    update = self.updater.update(hypothesis)
 
-                        # else:
-                        #     update = copy.copy(predicted_track[-1])
+                    # else:
+                    #     update = copy.copy(predicted_track[-1])
 
-                        kld += self.KLD(predicted_track[-1], update)
+                    kld += self.KLD(predicted_track[-1], update)
 
-                if self.method_sum is False and len(detections) != 0:
+            if self.method_sum is False and len(detections) != 0:
 
-                    kld /= len(detections)
+                kld /= len(detections)
 
         # Return value of configuration metric
         return kld
@@ -295,9 +296,11 @@ class MultiUpdateExpectedKLDivergence(ExpectedKLDivergence):
         super().__init__(*args, **kwargs)
         self.KLD = KLDivergence()
         if self.predictor is not None and not isinstance(self.predictor, ParticlePredictor):
-            raise TypeError('Only ParticlePredictor types can be used with this reward function')
+            raise NotImplementedError('Only ParticlePredictor types are currently compatible '
+                                      'with this reward function')
         if self.updater is not None and not isinstance(self.updater, ParticleUpdater):
-            raise TypeError('Only ParticleUpdater types can be used with this reward function')
+            raise NotImplementedError('Only ParticleUpdater types are currently compatible '
+                                      'with this reward function')
         if self.updates_per_track < 2:
             raise ValueError(f'updates_per_track = {self.updates_per_track}. This reward '
                              f'function only accepts >= 2')

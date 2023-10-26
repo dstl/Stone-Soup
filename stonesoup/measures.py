@@ -418,7 +418,7 @@ class KLDivergence(Measure):
     is the second distribution or, ``state2``. It is worth noting that Kullback-Leibler
     divergence is not symmetric under interchange of :math:`P(x)` and :math:`Q(x)`. The
     implementation here uses natural log meaning the returned divergence has units in nats.
-    This implementation assumes a discrete probability space and therefore only accepts
+    This implementation assumes a discrete probability space and currently only accepts
     :class:`~.ParticleState`.
 
     References
@@ -458,6 +458,7 @@ class KLDivergence(Measure):
                 raise ValueError(f'The input sizes are not compatible '
                                  f'({len(state1.particles)} != {len(state2.particles)})')
         else:
-            raise TypeError('state1 or state2 is not a ParticleState')
+            raise NotImplementedError('This measure is currently only compatible with '
+                                      'ParticleState types')
 
         return kld

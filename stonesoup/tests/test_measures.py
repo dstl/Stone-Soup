@@ -317,6 +317,6 @@ def test_kld():
     assert f'The input sizes are not compatible ' \
            f'({len(part_state_a)} != {len(part_state_c)})' in str(e.value)
 
-    with pytest.raises(TypeError) as e:
+    with pytest.raises(NotImplementedError) as e:
         measure(state_u, state_v)
-    assert 'state1 or state2 is not a ParticleState' in str(e.value)
+    assert 'This measure is currently only compatible with ParticleState types' in str(e.value)

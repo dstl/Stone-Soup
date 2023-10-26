@@ -56,6 +56,7 @@ def test_random_choose_actions():
                 assert isinstance(actions[0], ChangeDwellAction)
 
 
+@pytest.mark.slow
 @pytest.mark.parametrize(
     "predictor_obj, updater_obj, reward_function_obj, track1_state1, track1_state2, "
     "track2_state1, track2_state2, error_flag",
@@ -179,12 +180,14 @@ def test_sensor_managers(predictor_obj, updater_obj, reward_function_obj, track1
 
     if error_flag:
         # Check that raises function as expected
-        with pytest.raises(TypeError) as e:
+        with pytest.raises(NotImplementedError) as e:
             reward_function = reward_function_obj(predictor, updater, method_sum=False)
-        assert 'Only ParticlePredictor types can be used with this reward function' in str(e.value)
-        with pytest.raises(TypeError) as e:
+        assert 'Only ParticlePredictor types are currently compatible with this reward function'\
+               in str(e.value)
+        with pytest.raises(NotImplementedError) as e:
             reward_function = reward_function_obj(None, updater, method_sum=False)
-        assert 'Only ParticleUpdater types can be used with this reward function' in str(e.value)
+        assert 'Only ParticleUpdater types are currently compatible with this reward function'\
+               in str(e.value)
         if reward_function_obj == MultiUpdateExpectedKLDivergence:
             with pytest.raises(ValueError) as e:
                 reward_function = reward_function_obj(method_sum=False, updates_per_track=1)
