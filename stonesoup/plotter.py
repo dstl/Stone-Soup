@@ -1587,9 +1587,9 @@ class PolarPlotterly(_Plotter):
                                                                 measurement_model,
                                                                 convert_measurements)
 
-        angle_mapping = 0
+        angle_mapping = mapping[0]
         if len(mapping) > 1:
-            range_mapping = 1
+            range_mapping = mapping[1]
         else:
             range_mapping = None
 
