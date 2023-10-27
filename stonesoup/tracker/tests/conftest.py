@@ -54,6 +54,29 @@ def detector():
 
 
 @pytest.fixture()
+def angle_detector():
+    class TestAngleDetector(DetectionReader):
+        @BufferedGenerator.generator_method
+        def detections_gen(self):
+            time = datetime.datetime(2018, 1, 1, 14)
+            for step in range(20):
+                yield time, {GaussianDetection(
+                    StateVector(np.radians([[step + (10*i)],
+                                            [step + (10*i)],
+                                            [step + (10*i)]])),
+                    covar=np.diag([2, 2, 2]),
+                    timestamp=time)
+                              for i in range(3)
+                              if (step - i) % 5}
+                             #for i in range(3)
+                             #if (step - i) % 5}
+                time += datetime.timedelta(minutes=1)
+            for step in range(3):
+                yield time, set()
+                time += datetime.timedelta(minutes=1)
+    return TestAngleDetector()
+
+@pytest.fixture()
 def data_associator():
     class TestDataAssociator:
         def associate(self, tracks, detections, timestamp):
@@ -75,6 +98,31 @@ def data_associator():
                         prediction, None, None, 1)
             return associations
     return TestDataAssociator()
+
+
+@pytest.fixture()
+def angle_data_associator():
+    class TestAngleDataAssociator:
+        def associate(self, tracks, detections, timestamp):
+            associations = {}
+            for track in tracks:
+                prediction = GaussianStatePrediction(
+                    track.state_vector + np.radians([[1], [1], [1]]),
+                    np.diag([5, 5, 5]), timestamp)
+                measurement_prediction = StateMeasurementPrediction(
+                    prediction.state_vector)
+                for detection in detections:
+                    if np.allclose(measurement_prediction.state_vector,
+                                      detection.state_vector, atol=1e-20):
+                        associations[track] = \
+                            SingleDistanceHypothesis(
+                            prediction, detection, 0, measurement_prediction)
+                        break
+                else:
+                    associations[track] = SingleDistanceHypothesis(
+                        prediction, None, None, 1)
+            return associations
+    return TestAngleDataAssociator()
 
 
 @pytest.fixture()
