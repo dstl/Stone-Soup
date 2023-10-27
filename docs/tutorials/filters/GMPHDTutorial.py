@@ -107,7 +107,6 @@ Gaussian mixture PHD tutorial
 # Imports for plotting
 from matplotlib import pyplot as plt
 plt.rcParams['figure.figsize'] = (14, 12)
-plt.style.use('seaborn-colorblind')
 # Other general imports
 import numpy as np
 from ordered_set import OrderedSet

@@ -31,18 +31,18 @@ from .base import Base, Property
 
 from .models.base import LinearModel, Model
 
-from enum import Enum
+from enum import IntEnum
 
 
-class Dimension(Enum):
+class Dimension(IntEnum):
     """Dimension Enum class for specifying plotting parameters in the Plotter class.
     Used to sanitize inputs for the dimension attribute of Plotter().
 
     Attributes
     ----------
-    TWO: str
+    TWO: int
         Specifies 2D plotting for Plotter object
-    THREE: str
+    THREE: int
         Specifies 3D plotting for Plotter object
     """
     TWO = 2  # 2D plotting mode (original plotter.py functionality)
@@ -66,7 +66,7 @@ class _Plotter(ABC):
         raise NotImplementedError
 
     @abstractmethod
-    def plot_sensors(self, sensors, sensor_label="Sensors", **kwargs):
+    def plot_sensors(self, sensors, mapping, sensor_label="Sensors", **kwargs):
         raise NotImplementedError
 
     def _conv_measurements(self, measurements, mapping, measurement_model=None,
@@ -121,6 +121,8 @@ class Plotter(_Plotter):
     ----------
     dimension: enum \'Dimension\'
         Optional parameter to specify 2D or 3D plotting. Default is 2D plotting.
+    plot_timeseries: bool
+        Specify whether data to be plotted is time series data. Default False
     \\*\\*kwargs: dict
         Additional arguments to be passed to plot function. For example, figsize (Default is
         (10, 6)).
@@ -470,20 +472,23 @@ class Plotter(_Plotter):
 
         return artists
 
-    def plot_sensors(self, sensors, sensor_label="Sensors", **kwargs):
+    def plot_sensors(self, sensors, mapping=None, sensor_label="Sensors", **kwargs):
         """Plots sensor(s)
 
-        Plots sensors.  Users can change the color and marker of detections using keyword
+        Plots sensors.  Users can change the color and marker of sensors using keyword
         arguments. Default is a black 'x' marker.
 
         Parameters
         ----------
         sensors : Collection of :class:`~.Sensor`
             Sensors to plot
+        mapping: list
+            List of items specifying the mapping of the position components of the
+            sensor's position. Default is either [0, 1] or [0, 1, 2] depending on `self.dimension`
         sensor_label: str
-            Label to apply to all tracks for legend.
+            Label to apply to all sensors for legend.
         \\*\\*kwargs: dict
-            Additional arguments to be passed to plot function for detections. Defaults are
+            Additional arguments to be passed to plot function for sensors. Defaults are
             ``marker='x'`` and ``color='black'``.
 
         Returns
@@ -498,16 +503,19 @@ class Plotter(_Plotter):
         if not isinstance(sensors, Collection):
             sensors = {sensors}  # Make a set of length 1
 
+        if mapping is None:
+            mapping = list(range(self.dimension))
+
         artists = []
         for sensor in sensors:
             if self.dimension is Dimension.TWO:  # plots the sensors in xy
-                artists.append(self.ax.scatter(sensor.position[0],
-                                               sensor.position[1],
+                artists.append(self.ax.scatter(sensor.position[mapping[0]],
+                                               sensor.position[mapping[1]],
                                                **sensor_kwargs))
             elif self.dimension is Dimension.THREE:  # plots the sensors in xyz
-                artists.extend(self.ax.plot3D(sensor.position[0],
-                                              sensor.position[1],
-                                              sensor.position[2],
+                artists.extend(self.ax.plot3D(sensor.position[mapping[0]],
+                                              sensor.position[mapping[1]],
+                                              sensor.position[mapping[2]],
                                               **sensor_kwargs))
             else:
                 raise NotImplementedError('Unsupported dimension type for sensor plotting')
@@ -641,6 +649,312 @@ class _HandlerEllipse(HandlerPatch):
         self.update_prop(p, orig_handle, legend)
         p.set_transform(trans)
         return [p]
+
+
+class MetricPlotter(ABC):
+    """Class for plotting Stone Soup metrics using matplotlib
+
+    A plotting class which is used to simplify the process of plotting metrics.
+    Legends are automatically generated with each plot.
+
+    """
+    def __init__(self):
+        self.fig = None
+        self.axes = None
+        self.plottable_metrics = ["OSPA distances",
+                                  "GOSPA Metrics",
+                                  "SIAP Completeness at times",
+                                  "SIAP Ambiguity at times",
+                                  "SIAP Spuriousness at times",
+                                  "SIAP Position Accuracy at times",
+                                  "SIAP Velocity Accuracy at times",
+                                  "SIAP ID Completeness at times",
+                                  "SIAP ID Correctness at times",
+                                  "SIAP ID Ambiguity at times",
+                                  "PCRB Metrics",
+                                  "Sum of Covariance Norms Metric",
+                                  "Mean of Covariance Norms Metric"
+                                  ]
+
+    def plot_metrics(self, metrics, generator_names=None, metric_names=None,
+                     combine_plots=True, **kwargs):
+        """Plots metrics
+
+        Plots each plottable metric passed in to :attr:`metrics` across a series of subplots
+        and generates legend(s) automatically. Metrics are plotted as lines with default colors.
+
+        Users can change linestyle, color and marker or other features using keyword arguments.
+        Any changes will apply to all metrics.
+
+        Parameters
+        ----------
+        metrics : dict of :class:`~.Metric`
+            Dictionary of generated metrics to be plotted.
+        generator_names: list of str
+            Generator(s) to extract specific metrics from :attr:`metrics` for plotting.
+            Default None to take all metrics.
+        metric_names: list of str
+            Specific metric(s) to extract from :class:`~.MetricGenerator` for plotting.
+            Default None to take all metrics in generators.
+        combine_plots: bool
+            Plot metrics of same type on the same subplot. Default True.
+        \\*\\*kwargs: dict
+            Additional arguments to be passed to plot function. Default is ``linestyle="-"``.
+
+        Returns
+        -------
+        : :class:`matplotlib.pyplot.figure`
+            Figure containing subplots displaying all plottable metrics.
+        """
+        metrics_kwargs = dict(linestyle="-")
+        metrics_kwargs.update(kwargs)
+
+        generator_names = list(metrics.keys()) if generator_names is None else generator_names
+
+        # warning for user input metrics that will not be plotted
+        if metric_names is not None:
+            for metric_name in metric_names:
+                if metric_name not in self.plottable_metrics:
+                    warnings.warn(f"{metric_name} "
+                                  f"is not a plottable metric and will not be plotted")
+        else:
+            metric_names = self.extract_metric_types(metrics)
+
+        metrics_to_plot = self._extract_plottable_metrics(metrics, generator_names, metric_names)
+
+        if combine_plots:
+            self.combine_plots(metrics_to_plot, metrics_kwargs)
+        else:
+            self.plot_separately(metrics_to_plot, metrics_kwargs)
+
+    def _extract_plottable_metrics(self, metrics, generator_names, metric_names):
+        """
+        Extract all plottable metrics from dict of generated metrics.
+
+        Parameters
+        ----------
+        metrics: dict of :class:`~.Metric`
+            Dictionary of generated metrics.
+        generator_names: list of str
+            Generator(s) to extract specific metrics from :attr:`metrics` for plotting.
+        metric_names: list of str
+            Specific metric(s) to extract from :class:`~.MetricGenerator` for plotting.
+
+        Returns
+        -------
+        : dict
+            Dict of all plottable metrics.
+        """
+        metrics_dict = dict()
+
+        for generator_name in generator_names:
+            for metric_name in metric_names:
+                if metric_name in metrics[generator_name].keys() and \
+                        metric_name in self.plottable_metrics:
+                    if generator_name not in metrics_dict.keys():
+                        metrics_dict[generator_name] = \
+                            {metric_name: metrics[generator_name][metric_name]}
+                    else:
+                        metrics_dict[generator_name][metric_name] = \
+                            metrics[generator_name][metric_name]
+
+        return metrics_dict
+
+    def _count_subplots(self, metrics_to_plot, combine_plots):
+        """
+        Calculate number of subplots needed to plot all metrics.
+
+        Parameters
+        ----------
+        metrics_to_plot: dict of :class:`~.Metric`
+            Dictionary of metrics to be plotted.
+        combine_plots: bool
+            Specifies whether same metric types should be plotted on same subplot.
+
+        Returns
+        -------
+        : int
+            Number of subplots to generate.
+        """
+        if combine_plots:
+            metric_types = self.extract_metric_types(metrics_to_plot)
+            number_of_subplots = len(metric_types)
+
+        else:
+            number_of_subplots = 0
+            for generator in metrics_to_plot.keys():
+                number_of_subplots += len(metrics_to_plot[generator])
+
+        return number_of_subplots
+
+    @staticmethod
+    def extract_metric_types(metrics):
+        """
+        Identify the different types of metric held in dict of metrics.
+
+        Parameters
+        ----------
+        metrics: dict of :class:`~.Metric`
+            Dictionary of metrics.
+
+        Returns
+        -------
+        : list
+            Sorted list of types of metric
+        """
+        metric_types = set()
+        for generator in metrics.keys():
+            for metric_key in metrics[generator].keys():
+                metric_types.add(metric_key)
+
+        metric_types = list(metric_types)
+        metric_types.sort()
+
+        return metric_types
+
+    def combine_plots(self, metrics_to_plot, metrics_kwargs):
+        """
+        Generates one subplot for each different metric type and plots metrics of the same
+        type on same subplot. Metrics are plotted over time.
+
+        Parameters
+        ----------
+        metrics_to_plot: dict of :class:`~.Metric`
+            Dictionary of metrics to plot.
+        metrics_kwargs: dict
+            Keyword arguments to be passed to plot function.
+
+        Returns
+        -------
+        : :class:`matplotlib.pyplot.figure`
+            Figure containing subplots displaying metrics.
+        """
+        # determine how many plots required - equal to number of metric types
+        number_of_subplots = self._count_subplots(metrics_to_plot, True)
+
+        # initialise each subplot
+        self.fig, axes = plt.subplots(number_of_subplots, figsize=(10, 6*number_of_subplots))
+        self.fig.subplots_adjust(hspace=0.3)
+
+        # extract data for each subplot and plot it
+        metric_types = self.extract_metric_types(metrics_to_plot)
+
+        self.axes = axes if isinstance(axes, Iterable) else [axes]
+
+        # generate colour map for lines to be plotted
+        if 'color' not in metrics_kwargs.keys():
+            colour_map = plt.cm.rainbow(np.linspace(0, 1, len(metrics_to_plot.keys())))
+        else:
+            colour_map = metrics_kwargs['color']
+            metrics_kwargs.pop('color')
+
+        for metric_type, axis in zip(list(metric_types), self.axes):
+            artists = []
+            legend_dict = {}
+
+            colour_map_copy = iter(colour_map.copy())
+
+            for generator in metrics_to_plot.keys():
+                for metric in metrics_to_plot[generator].keys():
+                    if metric == metric_type:
+                        colour = next(colour_map_copy)
+                        metric_values = metrics_to_plot[generator][metric].value
+                        artists.extend(axis.plot([_.timestamp for _ in metric_values],
+                                                 [_.value for _ in metric_values],
+                                                 color=colour,
+                                                 **metrics_kwargs))
+
+                        metric_handle = Line2D([], [], linestyle=metrics_kwargs['linestyle'],
+                                               color=colour)
+                        legend_dict[generator] = metric_handle
+
+            # Generate legend
+            artists.append(axis.legend(handles=legend_dict.values(),
+                                       labels=legend_dict.keys()))
+
+            y_label = metric_type.split(' at times')[0]
+            artists.extend(axis.set(title=metric_type.split(' at times')[0],
+                                    xlabel="Time", ylabel=y_label))
+
+    def plot_separately(self, metrics_to_plot, metrics_kwargs):
+        """
+        Generates one subplot for each different individual metric and plots metric
+        values over time.
+
+        Parameters
+        ----------
+        metrics_to_plot: dict of :class:`~.Metric`
+            Dictionary of metrics to plot.
+        metrics_kwargs: dict
+            Keyword arguments to be passed to plot function.
+
+        Returns
+        -------
+        : :class:`matplotlib.pyplot.figure`
+            Figure containing subplots displaying metrics.
+        """
+        metrics_kwargs['color'] = metrics_kwargs['color'] if \
+            'color' in metrics_kwargs.keys() else 'blue'
+
+        # determine how many plots required - equal to number of metrics within the generators
+        number_of_subplots = self._count_subplots(metrics_to_plot, False)
+
+        # initialise each plot
+        self.fig, axes = plt.subplots(number_of_subplots, figsize=(10, 6*number_of_subplots))
+        self.fig.subplots_adjust(hspace=0.3)
+
+        # extract data for each plot and plot it
+        all_metrics = {}
+        for generator in metrics_to_plot.keys():
+            for metric in list(metrics_to_plot[generator].keys()):
+                all_metrics[f'{generator}: {metric}'] = metrics_to_plot[generator][metric]
+
+        self.axes = axes if isinstance(axes, Iterable) else [axes]
+
+        for metric, axis in zip(all_metrics.keys(), self.axes):
+            y_label = str(all_metrics[metric].title).split(' at times')[0]
+            axis.set(title=str(all_metrics[metric].title), xlabel='Time', ylabel=y_label)
+            metric_values = all_metrics[metric].value
+            axis.plot([_.timestamp for _ in metric_values],
+                      [_.value for _ in metric_values],
+                      **metrics_kwargs)
+
+            # Generate legend
+            metric_handle = Line2D([], [], linestyle=metrics_kwargs['linestyle'],
+                                   color=metrics_kwargs['color'])
+            axis.legend(handles=[metric_handle],
+                        labels=[metric.split(' at times')[0]])
+
+    def set_fig_title(self, title):
+        """
+        Set title for the figure.
+
+        Parameters
+        ----------
+        title: str
+            Figure title text.
+
+        Returns
+        -------
+        Text instance of figure title.
+        """
+        self.fig.suptitle(t=title)
+
+    def set_ax_title(self, titles):
+        """
+        Set axis titles for each axis in figure.
+
+        Parameters
+        ----------
+        titles: list of str
+            List of strings for title text for each axis.
+
+        Returns
+        -------
+        Text instance of axis titles.
+        """
+        for axis, title in zip(self.axes, titles):
+            axis.set(title=title)
 
 
 class Plotterly(_Plotter):
@@ -986,25 +1300,28 @@ class Plotterly(_Plotter):
 
         c, s = np.cos(orient), np.sin(orient)
         rotational_matrix = np.array(((c, -s), (s, c)))
-
+        points.append(points[0])
         points = np.array([[a * np.sin(i), b * np.cos(i)] for i in points])
         points = rotational_matrix @ points.T
         return points + state.mean[mapping[:2], :]
 
-    def plot_sensors(self, sensors, sensor_label="Sensors", **kwargs):
+    def plot_sensors(self, sensors, mapping=[0, 1], sensor_label="Sensors", **kwargs):
         """Plots sensor(s)
 
-        Plots sensors.  Users can change the color and marker of detections using keyword
+        Plots sensors. Users can change the color and marker of sensors using keyword
         arguments. Default is a black 'x' marker.
 
         Parameters
         ----------
         sensors : Collection of :class:`~.Sensor`
             Sensors to plot
+        mapping: list
+            List of items specifying the mapping of the position
+            components of the sensor's position.
         sensor_label: str
-            Label to apply to all tracks for legend.
+            Label to apply to all sensors for legend.
         \\*\\*kwargs: dict
-            Additional arguments to be passed to scatter function for detections. Defaults are
+            Additional arguments to be passed to scatter function for sensors. Defaults are
             ``marker=dict(symbol='x', color='black')``.
         """
 
@@ -1022,8 +1339,26 @@ class Plotterly(_Plotter):
         else:
             sensor_kwargs['showlegend'] = True
 
-        sensor_xy = np.array([sensor.position[[0, 1], 0] for sensor in sensors])
+        sensor_xy = np.array([sensor.position[mapping, 0] for sensor in sensors])
         self.fig.add_scatter(x=sensor_xy[:, 0], y=sensor_xy[:, 1], **sensor_kwargs)
+
+    def hide_plot_traces(self, items_to_hide: set):
+        """Hide Plot Traces
+
+        This function allows plotting items to be invisible as default. Users can toggle the plot
+        trace to visible.
+
+        Parameters
+        ----------
+        items_to_hide : set[str]
+            The legend label (`legendgroups`) for the plot traces that should be invisible as
+            default
+        """
+        for fig_data in self.fig.data:
+            if fig_data.legendgroup in items_to_hide:
+                fig_data.visible = "legendonly"
+            else:
+                fig_data.visible = None
 
 
 class _AnimationPlotterDataClass(Base):
@@ -1099,7 +1434,7 @@ class AnimationPlotter(_Plotter):
             Additional arguments to be passed to the animation.save function
         """
         if self.animation_output is None:
-            raise ValueError("Animation hasn't been ran yet. Therefore there is no animation to "
+            raise ValueError("Animation hasn't been run yet. Therefore there is no animation to "
                              "save")
 
         self.animation_output.save(filename, **kwargs)
@@ -1291,11 +1626,12 @@ class AnimationPlotter(_Plotter):
         Parameters
         ----------
         times_to_plot : Iterable[datetime]
-            All the times, that the plotter should plot
+            All the times that the plotter should plot
         data : Iterable[datetime]
             All the data that should be plotted
         plot_item_expiry: timedelta
-            How long a state should be displayed for. None means the
+            How long a state should be displayed for. Default value of None
+            means data is shown indefinitely
         axis_padding: float
             How much extra space should be given around the edge of the plot
         figure_kwargs: dict
@@ -1792,7 +2128,8 @@ class AnimatedPlotterly(_Plotter):
         self.plotting_function_called = True
 
     def plot_measurements(self, measurements, mapping, measurement_model=None,
-                          resize=True, measurements_label="Measurements", **kwargs):
+                          resize=True, measurements_label="Measurements",
+                          convert_measurements=True, **kwargs):
         """Plots measurements
 
         Plots detections and clutter, generating a legend automatically. Detections are plotted as
@@ -1815,6 +2152,9 @@ class AnimatedPlotterly(_Plotter):
             If True, will resize figure to ensure measurements are in view
         measurements_label : str
             Label for the measurements.  Default is "Measurements".
+        convert_measurements : bool
+            Should the measurements be converted from measurement space to state space before
+            being plotted. Default is True
         \\*\\*kwargs: dict
             Additional arguments to be passed to scatter function for detections. Defaults are
             ``marker=dict(color="#636EFA")``.
@@ -1829,7 +2169,8 @@ class AnimatedPlotterly(_Plotter):
             measurements_set = measurements
         plot_detections, plot_clutter = self._conv_measurements(measurements_set,
                                                                 mapping,
-                                                                measurement_model)
+                                                                measurement_model,
+                                                                convert_measurements)
         plot_combined = {'Detection': plot_detections,
                          'Clutter': plot_clutter}  # for later reference
 

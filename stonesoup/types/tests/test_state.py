@@ -14,7 +14,7 @@ from ..state import CreatableFromState
 from ..state import State, GaussianState, ParticleState, EnsembleState, \
     StateMutableSequence, WeightedGaussianState, SqrtGaussianState, CategoricalState, \
     CompositeState, InformationState, ASDState, ASDGaussianState, ASDWeightedGaussianState, \
-    MultiModelParticleState, RaoBlackwellisedParticleState
+    MultiModelParticleState, RaoBlackwellisedParticleState, BernoulliParticleState
 from ...base import Property
 
 
@@ -243,7 +243,8 @@ def test_particlestate():
 
 
 @pytest.mark.parametrize(
-    'particle_class', [ParticleState, MultiModelParticleState, RaoBlackwellisedParticleState])
+    'particle_class', [ParticleState, MultiModelParticleState, RaoBlackwellisedParticleState,
+                       BernoulliParticleState])
 def test_particle_get_item(particle_class):
     with pytest.raises(TypeError):
         particle_class()

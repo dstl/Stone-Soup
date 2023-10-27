@@ -6,10 +6,16 @@ from .base import MetricGenerator
 from ..types.state import State, StateMutableSequence
 from ..types.metric import SingleTimeMetric, TimeRangeMetric
 from ..types.time import TimeRange
+from ..base import Property
 
 
 class _CovarianceNormsMetric(MetricGenerator):
     _type = None
+    tracks_key: str = Property(doc='Key to access set of tracks added to MetricManager',
+                               default='tracks')
+    generator_name: str = Property(doc="Unique identifier to use when accessing generated "
+                                       "metrics from MultiManager",
+                                   default='covNorms_generator')
 
     def compute_metric(self, manager, **kwargs):
         """Computes the metric using the data in the metric manager
@@ -27,7 +33,7 @@ class _CovarianceNormsMetric(MetricGenerator):
 
         """
 
-        return self.compute_over_time(self.extract_states(manager.tracks))
+        return self.compute_over_time(self.extract_states(manager.states_sets[self.tracks_key]))
 
     @staticmethod
     def extract_states(object_with_states):
@@ -67,7 +73,7 @@ class _CovarianceNormsMetric(MetricGenerator):
             List of states created by a filter
 
         Returns
-        ----------
+        -------
         metric : TimeRangeMetric
             Covering the duration that states exist for in the parameters.
             Metric.value contains a list of the summarised covariance matrix norms
@@ -111,6 +117,9 @@ class SumofCovarianceNormsMetric(_CovarianceNormsMetric):
     """
 
     _type = "Sum"
+    generator_name: str = Property(doc="Unique identifier to use when accessing generated "
+                                       "metrics from MultiManager",
+                                   default='sumCovNorms_generator')
 
     def compute_covariancenorms(self, track_states):
         """

@@ -1,6 +1,8 @@
 from operator import attrgetter
 from typing import Set
 
+from ordered_set import OrderedSet
+
 from .base import TrackToTrackAssociator
 from ..base import Property
 from ..measures import Measure, Euclidean, EuclideanWeighted
@@ -8,6 +10,7 @@ from ..types.association import AssociationSet, TimeRangeAssociation, Associatio
 from ..types.groundtruth import GroundTruthPath
 from ..types.track import Track
 from ..types.time import TimeRange
+from ._assignment import multidimensional_deconfliction
 
 
 class TrackToTrackCounting(TrackToTrackAssociator):
@@ -77,6 +80,11 @@ class TrackToTrackCounting(TrackToTrackAssociator):
             "position components compared to others (such as velocity).  "
             "Default is 0.6"
     )
+    one_to_one: bool = Property(
+        default=False,
+        doc="If True, it is ensured no two associations ever contain the same track "
+            "at the same time"
+    )
 
     def associate_tracks(self, tracks_set_1: Set[Track], tracks_set_2: Set[Track]):
         """Associate two sets of tracks together.
@@ -100,7 +108,7 @@ class TrackToTrackCounting(TrackToTrackAssociator):
             raise ValueError("Must provide mapping of position components to pos_map")
 
         if not self.measure:
-            state1 = list(tracks_set_1)[0][0]
+            state1 = next(iter(tracks_set_1))[0]
             total = len(state1.state_vector)
             if not self.pos_map:
                 self.pos_map = [i for i in range(total)]
@@ -169,7 +177,7 @@ class TrackToTrackCounting(TrackToTrackAssociator):
                         if n_unsuccessful >= self.consec_misses_end and \
                                 start_timestamp:
                             associations.add(TimeRangeAssociation(
-                                (track1, track2),
+                                OrderedSet((track1, track2)),
                                 TimeRange(start_timestamp, end_timestamp)))
                             start_timestamp = None
 
@@ -177,10 +185,13 @@ class TrackToTrackCounting(TrackToTrackAssociator):
                 if start_timestamp:
                     end_timestamp = track1_states[-1].timestamp
                     associations.add(TimeRangeAssociation(
-                        (track1, track2),
+                        OrderedSet((track1, track2)),
                         TimeRange(start_timestamp, end_timestamp)))
 
-        return AssociationSet(associations)
+        if self.one_to_one:
+            return multidimensional_deconfliction(AssociationSet(associations))
+        else:
+            return AssociationSet(associations)
 
 
 class TrackToTruth(TrackToTrackAssociator):
@@ -338,7 +349,7 @@ class TrackToTruth(TrackToTrackAssociator):
                     # in a row end the association and record
                     if n_failures >= self.consec_misses_end:
                         associations.add(TimeRangeAssociation(
-                            (track, current_truth),
+                            OrderedSet((track, current_truth)),
                             TimeRange(start_timestamp, end_timestamp)))
 
                         # If the current potential association
@@ -360,7 +371,7 @@ class TrackToTruth(TrackToTrackAssociator):
             if current_truth:
 
                 associations.add(TimeRangeAssociation(
-                    (track, current_truth),
+                    OrderedSet((track, current_truth)),
                     TimeRange(start_timestamp, end_timestamp)))
 
         return AssociationSet(associations)
@@ -401,13 +412,13 @@ class TrackIDbased(TrackToTrackAssociator):
                 if track.id == truth.id:
                     try:
                         associations.add(
-                            TimeRangeAssociation((track, truth),
+                            TimeRangeAssociation(OrderedSet((track, truth)),
                                                  TimeRange(max(track[0].timestamp,
                                                                truth[0].timestamp),
                                                            min(track[-1].timestamp,
                                                                truth[-1].timestamp))))
                     except (TypeError, ValueError):
                         # A timestamp is None, or non-overlapping timestamps (start > end)
-                        associations.add(Association((track, truth)))
+                        associations.add(Association(OrderedSet((track, truth))))
 
         return AssociationSet(associations)

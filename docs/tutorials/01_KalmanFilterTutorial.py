@@ -65,12 +65,13 @@
 # .. math::
 #           p(\mathbf{x}_k | \mathbf{z}_{1:k}) =
 #           \frac{ p(\mathbf{z}_{k} | \mathbf{x}_k) p(\mathbf{x}_k | \mathbf{z}_{1:k-1})}
-#           {p(\mathbf{z}_k)}
+#           {p(\mathbf{z}_k | \mathbf{z}_{1:k-1})}
 #
 # where :math:`p(\mathbf{x}_k | \mathbf{z}_{1:k-1})` is the output of the prediction stage,
-# :math:`p(\mathbf{z}_{k} | \mathbf{x}_k)` is known as the likelihood, and :math:`p(\mathbf{z}_k)`
-# the evidence. In Stone Soup, this calculation is undertaken by the :class:`~.Updater` class.
-# Updaters use a :class:`~.MeasurementModel` class which models the effect of :math:`h(\cdot)`.
+# :math:`p(\mathbf{z}_{k} | \mathbf{x}_k)` is known as the likelihood, and
+# :math:`p(\mathbf{z}_k | \mathbf{z}_{1:k-1})` the evidence. In Stone Soup, this calculation is
+# undertaken by the :class:`~.Updater` class. Updaters use a :class:`~.MeasurementModel` class
+# which models the effect of :math:`h(\cdot)`.
 #
 # .. image:: ../_static/predict_update.png
 #   :width: 500
@@ -273,8 +274,8 @@ plotter.fig
 # ^^^^^^^^^^^^^^^^^^^^^^^^^
 #
 # We're now ready to build a tracker. We'll use a Kalman filter as it's conceptually the simplest
-# to start with. The Kalman filter is described extensively elsewhere [#]_, [#]_, so for the
-# moment we just assert that the prediction step proceeds as:
+# to start with. The Kalman filter is described extensively elsewhere [#]_:math:`^,` [#]_,
+# so for the moment we just assert that the prediction step proceeds as:
 #
 # .. math::
 #           \mathbf{x}_{k|k-1} &= F_{k}\mathbf{x}_{k-1} + B_{k}\mathbf{u}_{k}\\
@@ -303,7 +304,7 @@ plotter.fig
 # responsibility, a :class:`~.Predictor` takes a :class:`~.TransitionModel` as input and
 # an :class:`~.Updater` takes a :class:`~.MeasurementModel` as input. Note that for now we're using
 # the same models used to generate the ground truth and the simulated measurements. This won't
-# usually be possible and it's an interesting exercise to explore what happens when these
+# usually be possible, and it's an interesting exercise to explore what happens when these
 # parameters are mismatched.
 from stonesoup.predictor.kalman import KalmanPredictor
 predictor = KalmanPredictor(transition_model)

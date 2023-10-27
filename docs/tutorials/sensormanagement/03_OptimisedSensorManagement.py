@@ -97,7 +97,7 @@ for j in range(0, ntruths):
         ydirection *= -1
 
 # %%
-# Plot the ground truths. This is done using the :class:`~.Plotterly` class from Stone Soup.
+# Plot the ground truths. This is done using the :class:`~.AnimatedPlotterly` class from Stone Soup.
 
 from stonesoup.plotter import AnimatedPlotterly
 
@@ -308,11 +308,14 @@ data_associator = GNNWith2DAssignment(hypothesiser)
 # Each sensor manager is run in the same way as in the previous tutorials.
 
 from ordered_set import OrderedSet
+from collections import defaultdict
 import time
+import copy
 
 # Start timer for cell execution time
 cell_start_time1 = time.time()
 
+sensor_history_A = defaultdict(dict)
 for timestep in timesteps[1:]:
 
     # Generate chosen configuration
@@ -327,6 +330,7 @@ for timestep in timesteps[1:]:
 
     for sensor in sensor_setA:
         sensor.act(timestep)
+        sensor_history_A[timestep][sensor] = copy.copy(sensor)
 
         # Observe this ground truth
         measurementsA |= sensor.measure(OrderedSet(truth[timestep] for truth in truths), noise=True)
@@ -346,12 +350,61 @@ cell_run_time1 = round(time.time() - cell_start_time1, 2)
 
 # %%
 # Plot ground truths, tracks and uncertainty ellipses for each target. The positions of the sensors are indicated
-# by black x markers.
+# by black x markers.This uses the Stone Soup
+# :class:`~.AnimatedPlotterly`, with added code to plot the field of view of the sensor.
 
-plotterA = AnimatedPlotterly(timesteps, tail_length=1)
+import plotly.graph_objects as go
+from stonesoup.functions import pol2cart
+
+plotterA = AnimatedPlotterly(timesteps, tail_length=1, sim_duration=10)
 plotterA.plot_sensors(sensor_setA)
 plotterA.plot_ground_truths(truths, [0, 2])
 plotterA.plot_tracks(set(tracksA), [0, 2], uncertainty=True, plot_history=False)
+
+
+def plot_sensor_fov(fig, sensor_set, sensor_history):
+    # Plot sensor field of view
+    trace_base = len(fig.data)
+    for _ in sensor_set:
+        fig.add_trace(go.Scatter(mode='lines',
+                                 line=go.scatter.Line(color='black',
+                                                      dash='dash')))
+
+    for frame in fig.frames:
+        traces_ = list(frame.traces)
+        data_ = list(frame.data)
+
+        timestring = frame.name
+        timestamp = datetime.strptime(timestring, "%Y-%m-%d %H:%M:%S")
+
+        for n, sensor_ in enumerate(sensor_set):
+            x = [0, 0]
+            y = [0, 0]
+
+            if timestamp in sensor_history:
+                sensor = sensor_history[timestamp][sensor_]
+                for i, fov_side in enumerate((-1, 1)):
+                    range_ = min(getattr(sensor, 'max_range', np.inf), 100)
+                    x[i], y[i] = pol2cart(range_,
+                                          sensor.dwell_centre[0, 0]
+                                          + sensor.fov_angle / 2 * fov_side) \
+                                 + sensor.position[[0, 1], 0]
+            else:
+                continue
+
+            data_.append(go.Scatter(x=[x[0], sensor.position[0], x[1]],
+                                    y=[y[0], sensor.position[1], y[1]],
+                                    mode="lines",
+                                    line=go.scatter.Line(color='black',
+                                                         dash='dash'),
+                                    showlegend=False))
+            traces_.append(trace_base + n)
+
+        frame.traces = traces_
+        frame.data = data_
+
+
+plot_sensor_fov(plotterA.fig, sensor_setA, sensor_history_A)
 plotterA.fig
 
 # %%
@@ -364,6 +417,7 @@ plotterA.fig
 # Start timer for cell execution time
 cell_start_time2 = time.time()
 
+sensor_history_B = defaultdict(dict)
 for timestep in timesteps[1:]:
 
     # Generate chosen configuration
@@ -378,6 +432,7 @@ for timestep in timesteps[1:]:
 
     for sensor in sensor_setB:
         sensor.act(timestep)
+        sensor_history_B[timestep][sensor] = copy.copy(sensor)
 
         # Observe this ground truth
         measurementsB |= sensor.measure(OrderedSet(truth[timestep] for truth in truths), noise=True)
@@ -398,10 +453,11 @@ cell_run_time2 = round(time.time() - cell_start_time2, 2)
 # %%
 # Plot ground truths, tracks and uncertainty ellipses for each target.
 
-plotterB = AnimatedPlotterly(timesteps, tail_length=1)
+plotterB = AnimatedPlotterly(timesteps, tail_length=1, sim_duration=10)
 plotterB.plot_sensors(sensor_setB)
 plotterB.plot_ground_truths(truths, [0, 2])
 plotterB.plot_tracks(tracksB, [0, 2], uncertainty=True, plot_history=False)
+plot_sensor_fov(plotterB.fig, sensor_setB, sensor_history_B)
 plotterB.fig
 
 # %%
@@ -411,6 +467,7 @@ plotterB.fig
 # Start timer for cell execution time
 cell_start_time3 = time.time()
 
+sensor_history_C = defaultdict(dict)
 for timestep in timesteps[1:]:
 
     # Generate chosen configuration
@@ -425,6 +482,7 @@ for timestep in timesteps[1:]:
 
     for sensor in sensor_setC:
         sensor.act(timestep)
+        sensor_history_C[timestep][sensor] = copy.copy(sensor)
 
         # Observe this ground truth
         measurementsC |= sensor.measure(OrderedSet(truth[timestep] for truth in truths), noise=True)
@@ -445,10 +503,11 @@ cell_run_time3 = round(time.time() - cell_start_time3, 2)
 # %%
 # Plot ground truths, tracks and uncertainty ellipses for each target.
 
-plotterC = AnimatedPlotterly(timesteps, tail_length=1)
+plotterC = AnimatedPlotterly(timesteps, tail_length=1, sim_duration=10)
 plotterC.plot_sensors(sensor_setC)
 plotterC.plot_ground_truths(truths, [0, 2])
 plotterC.plot_tracks(tracksC, [0, 2], uncertainty=True, plot_history=False)
+plot_sensor_fov(plotterC.fig, sensor_setC, sensor_history_C)
 plotterC.fig
 
 # %%
@@ -464,41 +523,60 @@ plotterC.fig
 
 from stonesoup.metricgenerator.tracktotruthmetrics import SIAPMetrics
 from stonesoup.measures import Euclidean
-siap_generator = SIAPMetrics(position_measure=Euclidean((0, 2)),
-                             velocity_measure=Euclidean((1, 3)))
+siap_generatorA = SIAPMetrics(position_measure=Euclidean((0, 2)),
+                              velocity_measure=Euclidean((1, 3)),
+                              generator_name='BruteForceSensorManager',
+                              tracks_key='tracksA',
+                              truths_key='truths')
+
+siap_generatorB = SIAPMetrics(position_measure=Euclidean((0, 2)),
+                              velocity_measure=Euclidean((1, 3)),
+                              generator_name='OptimizeBruteSensorManager',
+                              tracks_key='tracksB',
+                              truths_key='truths')
+
+siap_generatorC = SIAPMetrics(position_measure=Euclidean((0, 2)),
+                              velocity_measure=Euclidean((1, 3)),
+                              generator_name='OptimizeBasinHoppingSensorManager',
+                              tracks_key='tracksC',
+                              truths_key='truths')
 
 from stonesoup.dataassociator.tracktotrack import TrackToTruth
 associator = TrackToTruth(association_threshold=30)
 
 from stonesoup.metricgenerator.uncertaintymetric import SumofCovarianceNormsMetric
-uncertainty_generator = SumofCovarianceNormsMetric()
+uncertainty_generatorA = SumofCovarianceNormsMetric(generator_name="BruteForceSensorManager",
+                                                   tracks_key="tracksA")
+
+uncertainty_generatorB = SumofCovarianceNormsMetric(generator_name="OptimizeBruteSensorManager",
+                                                   tracks_key="tracksB")
+
+uncertainty_generatorC = SumofCovarianceNormsMetric(generator_name="OptimizeBasinHoppingSensorManager",
+                                                   tracks_key="tracksC")
 
 # %%
-# Generate a metric manager for each sensor management method.
+# Generate a metric manager.
 
-from stonesoup.metricgenerator.manager import SimpleManager
+from stonesoup.metricgenerator.manager import MultiManager
 
-metric_managerA = SimpleManager([siap_generator, uncertainty_generator],
-                                associator=associator)
-
-metric_managerB = SimpleManager([siap_generator, uncertainty_generator],
-                                associator=associator)
-
-metric_managerC = SimpleManager([siap_generator, uncertainty_generator],
-                                associator=associator)
+metric_manager = MultiManager([siap_generatorA,
+                               siap_generatorB,
+                               siap_generatorC,
+                               uncertainty_generatorA,
+                               uncertainty_generatorB,
+                               uncertainty_generatorC],
+                              associator=associator)
 
 # %%
 # For each time step, data is added to the metric manager on truths and tracks.
 # The metrics themselves can then be generated from the metric manager.
 
-metric_managerA.add_data(truths, tracksA)
-metric_managerB.add_data(truths, tracksB)
-metric_managerC.add_data(truths, tracksC)
+metric_manager.add_data({'truths': truths,
+                         'tracksA': tracksA,
+                         'tracksB': tracksB,
+                         'tracksC': tracksC})
 
-metricsA = metric_managerA.generate_metrics()
-metricsB = metric_managerB.generate_metrics()
-metricsC = metric_managerC.generate_metrics()
-
+metrics = metric_manager.generate_metrics()
 
 # %%
 # SIAP metrics
@@ -507,38 +585,12 @@ metricsC = metric_managerC.generate_metrics()
 # First we look at SIAP metrics. We are only interested in the positional accuracy (PA) and
 # velocity accuracy (VA). These metrics can be plotted to show how they change over time.
 
-import matplotlib.pyplot as plt
+from stonesoup.plotter import MetricPlotter
 
-fig, axes = plt.subplots(2)
-
-times = metric_managerA.list_timestamps()
-
-pa_metricA = metricsA['SIAP Position Accuracy at times']
-va_metricA = metricsA['SIAP Velocity Accuracy at times']
-
-pa_metricB = metricsB['SIAP Position Accuracy at times']
-va_metricB = metricsB['SIAP Velocity Accuracy at times']
-
-pa_metricC = metricsC['SIAP Position Accuracy at times']
-va_metricC = metricsC['SIAP Velocity Accuracy at times']
-
-axes[0].set(title='Positional Accuracy', xlabel='Time', ylabel='PA')
-axes[0].plot(times, [metric.value for metric in pa_metricA.value],
-             label='BruteForceSensorManager')
-axes[0].plot(times, [metric.value for metric in pa_metricB.value],
-             label='OptimizeBruteSensorManager')
-axes[0].plot(times, [metric.value for metric in pa_metricC.value],
-             label='OptimizeBasinHoppingSensorManager')
-axes[0].legend()
-
-axes[1].set(title='Velocity Accuracy', xlabel='Time', ylabel='VA')
-axes[1].plot(times, [metric.value for metric in va_metricA.value],
-             label='BruteForceSensorManager')
-axes[1].plot(times, [metric.value for metric in va_metricB.value],
-             label='OptimizeBruteSensorManager')
-axes[1].plot(times, [metric.value for metric in va_metricC.value],
-             label='OptimizeBasinHoppingSensorManager')
-axes[1].legend()
+fig = MetricPlotter()
+fig.plot_metrics(metrics, metric_names=['SIAP Position Accuracy at times',
+                                        'SIAP Velocity Accuracy at times'],
+                 color=['blue', 'orange', 'green'])
 
 # %%
 # Both graphs show that there is little performance difference between the different sensor managers.
@@ -551,24 +603,9 @@ axes[1].legend()
 # Next we look at the uncertainty metric which computes the sum of covariance matrix norms of each state at each
 # time step. This is plotted over time for each sensor manager method.
 
-uncertainty_metricA = metricsA['Sum of Covariance Norms Metric']
-uncertainty_metricB = metricsB['Sum of Covariance Norms Metric']
-uncertainty_metricC = metricsC['Sum of Covariance Norms Metric']
-
-fig = plt.figure()
-ax = fig.add_subplot(1, 1, 1)
-ax.plot([i.timestamp for i in uncertainty_metricA.value],
-        [i.value for i in uncertainty_metricA.value],
-        label='BruteForceSensorManager')
-ax.plot([i.timestamp for i in uncertainty_metricB.value],
-        [i.value for i in uncertainty_metricB.value],
-        label='OptimizeBruteSensorManager')
-ax.plot([i.timestamp for i in uncertainty_metricC.value],
-        [i.value for i in uncertainty_metricC.value],
-        label='OptimizeBasinHoppingSensorManager')
-ax.set_ylabel("Sum of covariance matrix norms")
-ax.set_xlabel("Time")
-ax.legend()
+fig2 = MetricPlotter()
+fig2.plot_metrics(metrics, metric_names=['Sum of Covariance Norms Metric'],
+                  color=['blue', 'orange', 'green'])
 
 # %%
 # The uncertainty metric shows some variation between the sensor management methods,
@@ -580,6 +617,8 @@ ax.legend()
 # ^^^^^^^^^^^^
 #
 # Now let us compare the calculated runtime of the tracking loop for each of the sensor managers.
+
+import matplotlib.pyplot as plt
 
 fig = plt.figure()
 ax = fig.add_subplot(1, 1, 1)

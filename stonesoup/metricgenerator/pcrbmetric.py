@@ -6,7 +6,7 @@ from typing import Sequence
 from .base import MetricGenerator
 from ..base import Property
 from ..types.state import GaussianState
-from ..types.groundtruth import GroundTruthPath
+from ..types.groundtruth import GroundTruthState, GroundTruthPath
 from ..types.array import StateVectors
 from ..models.transition import TransitionModel
 from ..models.measurement import MeasurementModel
@@ -44,6 +44,11 @@ class PCRBMetric(MetricGenerator):
         doc="Mapping for velocity coordinates. Default `None`, in which case velocity RMSE is not "
             "computed")
     irf: float = Property(doc="Information reduction factor. Default is 1", default=1.)
+    truths_key: str = Property(doc="Key to access set of ground truths added to MetricManager",
+                               default='groundtruth_paths')
+    generator_name: str = Property(doc="Unique identifier to use when accessing generated "
+                                       "metrics from MultiManager",
+                                   default='pcrb_generator')
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -51,8 +56,15 @@ class PCRBMetric(MetricGenerator):
             self.position_mapping = self.measurement_model.mapping
 
     def compute_metric(self, manager, **kwargs):
+        groundtruth_paths = self._get_data(manager, self.truths_key)
         pcrb_metrics = []
-        for gnd_path in manager.groundtruth_paths:
+
+        # if groundtruth is a set of states not paths, make states into a path
+        if isinstance(next(iter(groundtruth_paths)), GroundTruthState):
+            groundtruth_paths = sorted(list(groundtruth_paths), key=lambda x: x.timestamp)
+            groundtruth_paths = [GroundTruthPath(groundtruth_paths)]
+
+        for gnd_path in groundtruth_paths:
             pcrb_metric = self._compute_pcrb_single(self.prior, self.transition_model,
                                                     self.measurement_model, gnd_path,
                                                     self.sensor_locations, self.irf,

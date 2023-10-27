@@ -184,6 +184,10 @@ class MultiMeasurementInitiator(GaussianInitiator):
         doc="Initiator used to create tracks. If None, a :class:`SimpleMeasurementInitiator` will "
             "be created using :attr:`prior_state` and :attr:`measurement_model`. Otherwise, these "
             "attributes are ignored.")
+    skip_non_reversible: bool = Property(
+        default=False, doc="Skip measurements that do not have a reversible measurement model. "
+                           "Only allow measurements with a measurement model that is an instance "
+                           "of a :class:`~.LinearModel` or a :class:`~.ReversibleModel`.")
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -195,6 +199,10 @@ class MultiMeasurementInitiator(GaussianInitiator):
         sure_tracks = set()
 
         associated_detections = set()
+
+        if self.skip_non_reversible:
+            detections = {det for det in detections
+                          if isinstance(det.measurement_model, (ReversibleModel, LinearModel))}
 
         if self.holding_tracks:
             associations = self.data_associator.associate(
@@ -219,6 +227,19 @@ class MultiMeasurementInitiator(GaussianInitiator):
             detections - associated_detections, timestamp)
 
         return sure_tracks
+
+
+class NoHistoryMultiMeasurementInitiator(MultiMeasurementInitiator):
+    """
+    This initiator is very similar to :class:`MultiMeasurementInitiator`. The only difference
+    being that the holding track’s history is moved to the metadata so that initialised tracks
+    only have one state.
+    """
+    def initiate(self, *args, **kwargs):
+        tracks = super().initiate(*args, **kwargs)
+        return {Track(id=track.id, states=[track.state],
+                      init_metadata=dict(holding_track=track, **track.metadata))
+                for track in tracks}
 
 
 class GaussianParticleInitiator(ParticleInitiator):
