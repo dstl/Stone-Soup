@@ -12,9 +12,9 @@ from ...types.numeric import Probability
 
 from ...functions import cart2pol, pol2cart, \
     cart2sphere, sphere2cart, cart2angles, \
-    build_rotation_matrix
+    build_rotation_matrix, cart2az_el_rg, az_el_rg2cart
 from ...types.array import StateVector, CovarianceMatrix, StateVectors
-from ...types.angle import Bearing, Elevation
+from ...types.angle import Bearing, Elevation, Azimuth
 from ..base import LinearModel, GaussianModel, ReversibleModel
 from .base import MeasurementModel
 
@@ -1252,7 +1252,7 @@ class RangeRangeRateBinning(CartesianToElevationBearingRangeRate):
 
 class CartesianToAzimuthElevationRange(NonLinearGaussianMeasurement, ReversibleModel):
     r"""This is a class implementation of a time-invariant measurement model, \
-    where measurements are assumed to be received in the form of azimuth \ 
+    where measurements are assumed to be received in the form of azimuth \
     (:math:`\phi`), elevation (:math:`\theta`), and range (:math:`r`), with \
     Gaussian noise in each dimension.
     For this model, the Azimuth is defined as the angle of the measurement from \
@@ -1369,9 +1369,7 @@ class CartesianToAzimuthElevationRange(NonLinearGaussianMeasurement, ReversibleM
         xyz_rot = self.rotation_matrix @ xyz
 
         # Convert to measurement space
-        rho = np.linalg.norm(xyz_rot)
-        phi = np.arcsin(xyz_rot[0, :] / rho)
-        theta = np.arcsin(xyz_rot[1, :] / rho)
+        phi, theta, rho = cart2az_el_rg(xyz_rot[0, :], xyz_rot[1, :], xyz_rot[2, :])
         elevations = [Elevation(i) for i in theta]
         azimuths = [Azimuth(i) for i in phi]
 
@@ -1379,12 +1377,10 @@ class CartesianToAzimuthElevationRange(NonLinearGaussianMeasurement, ReversibleM
 
     def inverse_function(self, detection, **kwargs) -> StateVector:
 
-        theta, phi, rho = detection.state_vector
+        phi, theta, rho = detection.state_vector
 
         # convert to cartesian
-        x = rho * np.sin(phi)
-        y = rho * np.sin(theta)
-        z = rho * np.sqrt(1.0 - np.sin(theta)**2 - np.sin(phi)**2)
+        x, y, z = az_el_rg2cart(phi, theta, rho)
         xyz = StateVector([x, y, z])
 
         inv_rotation_matrix = inv(self.rotation_matrix)
@@ -1397,5 +1393,5 @@ class CartesianToAzimuthElevationRange(NonLinearGaussianMeasurement, ReversibleM
 
     def rvs(self, num_samples=1, **kwargs) -> Union[StateVector, StateVectors]:
         out = super().rvs(num_samples, **kwargs)
-        out = StateVector([[Azimuth(0.)], [Elevation(0.)], [0.]]) + out
+        out = np.array([[Azimuth(0.)], [Elevation(0.)], [0.]]) + out
         return out
