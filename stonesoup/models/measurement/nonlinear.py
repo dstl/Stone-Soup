@@ -1256,7 +1256,10 @@ class CartesianToAzimuthElevationRange(NonLinearGaussianMeasurement, ReversibleM
     (:math:`\phi`), elevation (:math:`\theta`), and range (:math:`r`), with \
     Gaussian noise in each dimension.
     For this model, the Azimuth is defined as the angle of the measurement from \
-    TODO: Finish outining this
+    the YZ plan to the YX plane and the Elevation is the angle from the XY plan \
+    to the XZ plane. The z axis is the direction the radar is pointing (broadside) \
+    and is only defined in the positive z. The x axis is generally the direction of travel \
+    for an airborne radar and the y axis is orthogonal to both the x and z.
 
     The model is described by the following equations:
 
