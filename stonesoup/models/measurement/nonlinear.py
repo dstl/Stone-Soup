@@ -1260,6 +1260,8 @@ class CartesianToAzimuthElevationRange(NonLinearGaussianMeasurement, ReversibleM
     to the XZ plane. The z axis is the direction the radar is pointing (broadside) \
     and is only defined in the positive z. The x axis is generally the direction of travel \
     for an airborne radar and the y axis is orthogonal to both the x and z.
+    Measurements are only correctly defined for +z (measurements must be in front \
+    of the sensor.
 
     The model is described by the following equations:
 
