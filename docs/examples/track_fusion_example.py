@@ -10,11 +10,11 @@ Comparing different filters in the context of track fusion
 # %%
 # This example shows a comparison between a Kalman filter and
 # a particle filter in the context of track fusion. This example is
-# relevant to show how to get an unique track
+# relevant to show how to get a unique track
 # from partial tracks generated from a set of
 # different measurements obtained from independent sensors.
 # This example simulates the case of a single target moving in
-# a 2D cartesian space with measurements obtained from two
+# a 2D Cartesian space with measurements obtained from two
 # identical, for simplicity, radars and trackers. We
 # compare the resulting composite track obtained by the
 # two different tracks generated. Furthermore, we
@@ -32,11 +32,11 @@ Comparing different filters in the context of track fusion
 # %%
 # 1) Initialise the sensors and the target trajectory
 # ---------------------------------------------------
-# We start creating two identical, in terms of performances,
-# radars using :class:`~.RadarBearingRange` placed on two
+# We start creating two identical, in terms of performance,
+# radars using the :class:`~.RadarBearingRange` sensor placed on two
 # separate :class:`~.FixedPlatform`. For the target we
 # simulate a single object moving on a straight trajectory.
-# The example setup is simple to it is easier to understand
+# The example setup is simple so it is easier to understand
 # how the Stone soup components are working.
 
 # %%
@@ -44,8 +44,7 @@ Comparing different filters in the context of track fusion
 # ^^^^^^^^^^^^^^^
 
 import numpy as np
-from datetime import datetime
-from datetime import timedelta
+from datetime import datetime, timedelta
 from copy import deepcopy
 
 # %%
@@ -62,10 +61,10 @@ from stonesoup.simulator.simple import SingleTargetGroundTruthSimulator
 # Simulation parameters setup
 # ^^^^^^^^^^^^^^^^^^^^^^^^^^^
 #
-start_time = datetime.now().replace(microsecond=0) # For simplicity fix a date
+start_time = datetime.now().replace(microsecond=0)  # For simplicity fix a date
 number_of_steps = 75  # Number of timestep for the simulation
 np.random.seed(1908)  # Random seed for reproducibility
-n_particles= 2**8
+n_particles = 2**8
 
 # Instantiate the target transition model
 gnd_transition_model = CombinedLinearGaussianTransitionModel([
@@ -97,7 +96,7 @@ from stonesoup.models.clutter.clutter import ClutterModel
 clutter_model = ClutterModel(
     clutter_rate=0.6,
     distribution=np.random.default_rng().uniform,
-    dist_params=((0,120), (-5,105)))
+    dist_params=((0, 120), (-5, 105)))
 # dist_params describe the area where the clutter is detected
 
 # Define the clutter area and spatial density for the tracker
@@ -108,7 +107,7 @@ clutter_spatial_density = clutter_model.clutter_rate/clutter_area
 # Instantiate the sensors, platforms and simulators
 # ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 #
-# Instantiate the radars to collect measurements - Use a BearingRange radar
+# Instantiate the radars to collect measurements - Use a :class:`~.RangeBearingRange` radar.
 from stonesoup.sensor.radar.radar import RadarBearingRange
 # Import the platform to place the sensors on
 from stonesoup.platform.base import FixedPlatform
@@ -122,11 +121,11 @@ radar_noise = CovarianceMatrix(np.diag([np.deg2rad(0.005), 2.0**2]))
 
 # Define the specifications of the two radars
 radar1 = RadarBearingRange(
-    ndim_state= 4,
-    position_mapping= (0, 2),
-    noise_covar= radar_noise,
-    clutter_model= clutter_model,
-    max_range= 3000)  # max_range can be removed and use the default value
+    ndim_state=4,
+    position_mapping=(0, 2),
+    noise_covar=radar_noise,
+    clutter_model=clutter_model,
+    max_range=3000)  # max_range can be removed and use the default value
 
 # deep copy the first radar specs. Changes in the first one does not influence the second
 radar2 = deepcopy(radar1)
@@ -135,24 +134,24 @@ radar2 = deepcopy(radar1)
 sensor1_platform = FixedPlatform(
     states=GaussianState([10, 0, 80, 0],
                          np.diag([1, 0, 1, 0])),
-    position_mapping= (0, 2),
-    sensors= [radar1])
+    position_mapping=(0, 2),
+    sensors=[radar1])
 
 # Instantiate the second one
 sensor2_platform = FixedPlatform(
     states=GaussianState([75, 0, 10, 0],
                          np.diag([1, 0, 1, 0])),
-    position_mapping= (0, 2),
-    sensors= [radar2])
+    position_mapping=(0, 2),
+    sensors=[radar2])
 
 # create the radar simulators
 radar_simulator1 = PlatformDetectionSimulator(
-    groundtruth= groundtruth_simulation,
-    platforms= [sensor1_platform])
+    groundtruth=groundtruth_simulation,
+    platforms=[sensor1_platform])
 
 radar_simulator2 = PlatformDetectionSimulator(
-    groundtruth= groundtruth_simulation,
-    platforms= [sensor2_platform])
+    groundtruth=groundtruth_simulation,
+    platforms=[sensor2_platform])
 
 # create copy of the simulators
 from itertools import tee
@@ -160,11 +159,10 @@ _, *r1simulators = tee(radar_simulator1, 3)
 _, *r2simulators = tee(radar_simulator2, 3)
 
 
-
 # %%
 # Visualise the detections from the sensors
 # ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-# Before creating the different trackers components
+# Before creating the different trackers components,
 # let's visualise the target and its detections from the
 # two sensors. In this way we can appreciate
 # how the measurements are different and can lead to two separate
@@ -194,12 +192,12 @@ for _ in range(number_of_steps):
 
 # Plot the detections from the two radars
 plotter = Plotterly()
-plotter.plot_measurements(s1_detections, [0, 2], marker= dict(color='orange', symbol='305'),
+plotter.plot_measurements(s1_detections, [0, 2], marker=dict(color='orange', symbol='305'),
                           measurements_label='Sensor 1 measurements')
-plotter.plot_measurements(s2_detections, [0, 2], marker= dict(color='blue', symbol='0'),
+plotter.plot_measurements(s2_detections, [0, 2], marker=dict(color='blue', symbol='0'),
                           measurements_label='Sensor 2 measurements')
-plotter.plot_sensors({sensor1_platform,sensor2_platform}, [0,1], marker= dict(color='black', symbol= '1',
-                                                                              size=10))
+plotter.plot_sensors({sensor1_platform, sensor2_platform}, [0, 1],
+                     marker=dict(color='black', symbol='1', size=10))
 plotter.fig
 
 
@@ -211,8 +209,8 @@ plotter.fig
 # detections from the two sensors
 # are slightly different one from the
 # other, that will lead to two separate
-# tracks. Now, we initialise the two trackers
-# components, one using a extended Kalman filter
+# tracks. Now, we initialise the components of the two trackers,
+# one using a extended Kalman filter
 # and a particle filter.
 #
 
@@ -250,10 +248,10 @@ def general_tracker(tracker_class, detector,
     """
 
     tracker = tracker_class(
-        initiator= initiator,
-        detector= detector,
-        updater= filter_updater,
-        data_associator= data_associator,
+        initiator=initiator,
+        detector=detector,
+        updater=filter_updater,
+        data_associator=data_associator,
         deleter=deleter)
     return tracker
 
@@ -301,9 +299,9 @@ data_associator_PF = GNNWith2DAssignment(hypothesiser_PF)
 
 # To instantiate the track initiator we define a prior state
 # as gaussian state with the target track origin
-prior_state=  SimpleMeasurementInitiator(
+prior_state = SimpleMeasurementInitiator(
     prior_state=GaussianState([25, 0.5, 70, -0.25],
-                np.diag([10, 2, 10, 2]) ** 2))
+                              np.diag([10, 2, 10, 2]) ** 2))
 
 # Particle filter initiator
 PF_initiator = GaussianParticleInitiator(
@@ -312,13 +310,13 @@ PF_initiator = GaussianParticleInitiator(
 
 # %%
 # At this stage we have all the components needed to
-# perform the tracking using both Kalman and Particle
+# perform the tracking using both Kalman and particle
 # filters. We need to create a way to perform the track fusion.
 # To perform such fusion, we employ the covariance
 # intersection algorithm
 # adopting the :class:`~.ChernoffUpdater` class, and
 # treating the tracks as measurements and we consider
-# the measurements as GaussianMixture objects.
+# the measurements as :class:`~.GaussianMixture` objects.
 
 # Instantiate a dummy detector to read the detections
 from stonesoup.buffered_generator import BufferedGenerator
@@ -326,6 +324,7 @@ from stonesoup.reader.base import DetectionReader
 
 class DummyDetector(DetectionReader):
     def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
         self.current = kwargs['current']
 
     @BufferedGenerator.generator_method
@@ -366,8 +365,8 @@ base_hypothesiser = DistanceHypothesiser(
     missed_distance=100)
 
 # Instantiate the Gaussian Mixture hypothesiser
-hypothesiser= GaussianMixtureHypothesiser(base_hypothesiser,
-                                          order_by_detection=True)
+hypothesiser = GaussianMixtureHypothesiser(base_hypothesiser,
+                                           order_by_detection=True)
 
 # Gaussian mixture reducer to prune and merge the various tracks
 ch_reducer = GaussianMixtureReducer(
@@ -385,7 +384,7 @@ ch_birth_component = TaggedWeightedGaussianState(
     state_vector=[25, 0.5, 70, -0.25],  # Initial target state
     covar=birth_covar**2,
     weight=0.5,
-    tag =TaggedWeightedGaussianState.BIRTH,
+    tag=TaggedWeightedGaussianState.BIRTH,
     timestamp=start_time)
 
 # Instantiate the Track fusion tracker using Point Process Tracker
@@ -404,7 +403,7 @@ track_fusion_tracker2 = deepcopy(track_fusion_tracker)
 # So far, we have shown how to instantiate the various tracker components
 # as well as the track fusion tracker. Now, we run the trackers to generate
 # the tracks and we perform the track fusion. Furthermore, we want to measure
-# how good are the track fusions in comparisons to the groundtruths, so we
+# how good are the track fusion methods are in comparison to the groundtruths, so we
 # instantiate a metric manager to measure the various distances.
 #
 
@@ -415,17 +414,17 @@ basic_KF = BasicMetrics(generator_name='KF_fused', tracks_key='KF_fused_tracks',
                         truths_key='truths')
 
 basic_KF1 = BasicMetrics(generator_name='KF1', tracks_key='KF_1_tracks',
-                        truths_key='truths')
+                         truths_key='truths')
 
 basic_KF2 = BasicMetrics(generator_name='KF2', tracks_key='KF_2_tracks',
-                        truths_key='truths')
+                         truths_key='truths')
 
 basic_PF = BasicMetrics(generator_name='PF_fused', tracks_key='PF_fused_tracks',
                         truths_key='truths')
 basic_PF1 = BasicMetrics(generator_name='PF1', tracks_key='PF_1_tracks',
-                        truths_key='truths')
+                         truths_key='truths')
 basic_PF2 = BasicMetrics(generator_name='PF2', tracks_key='PF_2_tracks',
-                        truths_key='truths')
+                         truths_key='truths')
 
 # Load the SIAP metric
 from stonesoup.metricgenerator.tracktotruthmetrics import SIAPMetrics
@@ -438,17 +437,17 @@ siap_kf_truth = SIAPMetrics(position_measure=Euclidean((0, 2)),
                             truths_key='truths'
                             )
 siap_kf1_truth = SIAPMetrics(position_measure=Euclidean((0, 2)),
-                            velocity_measure=Euclidean((1, 3)),
-                            generator_name='SIAP_KF1-truth',
-                            tracks_key='KF_1_tracks',
-                            truths_key='truths'
-                            )
+                             velocity_measure=Euclidean((1, 3)),
+                             generator_name='SIAP_KF1-truth',
+                             tracks_key='KF_1_tracks',
+                             truths_key='truths'
+                             )
 siap_kf2_truth = SIAPMetrics(position_measure=Euclidean((0, 2)),
-                            velocity_measure=Euclidean((1, 3)),
-                            generator_name='SIAP_KF2-truth',
-                            tracks_key='KF_2_tracks',
-                            truths_key='truths'
-                            )
+                             velocity_measure=Euclidean((1, 3)),
+                             generator_name='SIAP_KF2-truth',
+                             tracks_key='KF_2_tracks',
+                             truths_key='truths'
+                             )
 
 siap_pf_truth = SIAPMetrics(position_measure=Euclidean((0, 2)),
                             velocity_measure=Euclidean((1, 3)),
@@ -457,18 +456,18 @@ siap_pf_truth = SIAPMetrics(position_measure=Euclidean((0, 2)),
                             truths_key='truths'
                             )
 siap_pf1_truth = SIAPMetrics(position_measure=Euclidean((0, 2)),
-                            velocity_measure=Euclidean((1, 3)),
-                            generator_name='SIAP_PF1-truth',
-                            tracks_key='PF_1_tracks',
-                            truths_key='truths'
-                            )
+                             velocity_measure=Euclidean((1, 3)),
+                             generator_name='SIAP_PF1-truth',
+                             tracks_key='PF_1_tracks',
+                             truths_key='truths'
+                             )
 
 siap_pf2_truth = SIAPMetrics(position_measure=Euclidean((0, 2)),
-                            velocity_measure=Euclidean((1, 3)),
-                            generator_name='SIAP_PF2-truth',
-                            tracks_key='PF_2_tracks',
-                            truths_key='truths'
-                            )
+                             velocity_measure=Euclidean((1, 3)),
+                             generator_name='SIAP_PF2-truth',
+                             tracks_key='PF_2_tracks',
+                             truths_key='truths'
+                             )
 
 # Define a data associator between the tracks and the truths
 from stonesoup.dataassociator.tracktotrack import TrackToTruth
@@ -496,13 +495,13 @@ PF_fused_track, KF_fused_track = set(), set()
 # Instantiate the various trackers using the general_tracker function,
 # we assign a unique tracker the detections from a specific radar simulator
 KF_tracker_1 = general_tracker(SingleTargetTracker, r1simulators[0], KF_updater,
-                                 initiator, deleter, data_associator_KF)
+                               initiator, deleter, data_associator_KF)
 
 KF_tracker_2 = general_tracker(SingleTargetTracker, r2simulators[0], KF_updater,
                                initiator, deleter, data_associator_KF)
 
 PF_tracker_1 = general_tracker(SingleTargetTracker, r1simulators[1], PF_updater,
-                             PF_initiator, deleter, data_associator_PF)
+                               PF_initiator, deleter, data_associator_PF)
 
 PF_tracker_2 = general_tracker(SingleTargetTracker, r2simulators[1], PF_updater,
                                PF_initiator, deleter, data_associator_PF)
@@ -575,21 +574,20 @@ metric_manager.add_data({'KF_fused_tracks': KF_fused_track,
                          'PF_fused_tracks': PF_fused_track,
                          }, overwrite=False)
 
-truths = set()
 truths = set(groundtruth_simulation.groundtruth_paths)
 metric_manager.add_data({'truths': truths}, overwrite=False)
 # %%
 # Let's visualise the various tracks and detections in the cases
-# using the Kalman and Particle filters.
-plotter.plot_tracks(PF_track1, [0,2], line=dict(color="orange"), track_label='PF partial track')
-plotter.plot_tracks(PF_track2, [0,2], line=dict(color="gold"), track_label='PF partial track')
+# using the Kalman and particle filters.
+plotter.plot_tracks(PF_track1, [0, 2], line=dict(color="orange"), track_label='PF partial track')
+plotter.plot_tracks(PF_track2, [0, 2], line=dict(color="gold"), track_label='PF partial track')
 plotter.plot_tracks(PF_fused_track, [0, 2], line=dict(color="red"), track_label='PF fused track')
 plotter.plot_tracks(KF_fused_track, [0, 2], line=dict(color="blue"), track_label='KF fused track')
 plotter.plot_tracks(KF_track1, [0, 2], line=dict(color="cyan"), track_label='KF partial track')
 plotter.plot_tracks(KF_track2, [0, 2], line=dict(color="azure"), track_label='KF partial track')
 plotter.plot_ground_truths(truths, [0, 2])
 
-plotter.fig.show()
+plotter.fig
 
 
 # %%
@@ -615,7 +613,7 @@ graph.plot_metrics(metrics, generator_names=['SIAP_KF_fused-truth',
                                              'SIAP_PF1-truth',
                                              'SIAP_PF2-truth'],
                    color=['blue', 'red', 'cyan', 'azure', 'orange', 'gold'])
-graph.fig.show()
+graph.fig
 
 # %%
 # Conclusions
