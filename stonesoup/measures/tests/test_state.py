@@ -5,9 +5,9 @@ import numpy as np
 import pytest
 from scipy.spatial import distance
 
-from .. import measures
-from ..types.array import StateVector, CovarianceMatrix
-from ..types.state import GaussianState, State
+import stonesoup.measures.state as measures
+from stonesoup.types.array import StateVector, CovarianceMatrix
+from stonesoup.types.state import GaussianState, State
 
 # Create a time stamp to use for both states
 t = datetime.datetime.now()

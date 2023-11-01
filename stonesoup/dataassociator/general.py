@@ -5,7 +5,7 @@ from scipy.optimize import linear_sum_assignment
 
 from ..base import Property
 from ..dataassociator.base import Associator
-from ..measures import BaseMeasure
+from ..measures.base import BaseMeasure
 from ..types.association import Association, AssociationSet
 
 

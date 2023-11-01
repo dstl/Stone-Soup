@@ -16,9 +16,10 @@ uses. The three examples include associating :class:`~.State`, :class:`~.Track` 
 import datetime
 
 from stonesoup.dataassociator.general import OneToOneAssociator
-from stonesoup.non_state_measures import StateSequenceMeasure, MeanMeasure, SetComparisonMeasure
+from stonesoup.measures.multi import StateSequenceMeasure, MeanMeasure
+from stonesoup.measures.base import BaseMeasure, SetComparisonMeasure
 from stonesoup.dataassociator.tracktotrack import OneToOneTrackAssociator
-from stonesoup.measures import Euclidean, BaseMeasure
+from stonesoup.measures import Euclidean
 from stonesoup.plotter import Plotterly
 from stonesoup.types.state import State
 from stonesoup.types.track import Track

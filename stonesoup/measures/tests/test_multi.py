@@ -2,23 +2,19 @@ import datetime
 
 import pytest
 
-from .. import non_state_measures, measures
-from ..types.state import State, StateMutableSequence
+from stonesoup.measures import multi
+from stonesoup.measures import state as state_measures
+from stonesoup.types.state import State, StateMutableSequence
 
 
 def test_multiple_measure_raise_error():
     with pytest.raises(TypeError):
-        non_state_measures.MultipleMeasure()
-
-
-def test_track_measure_raise_error():
-    with pytest.raises(TypeError):
-        non_state_measures.TrackMeasure()
+        multi.MultipleMeasure()
 
 
 @pytest.fixture
 def state_sequence_measure():
-    return non_state_measures.StateSequenceMeasure(state_measure=measures.Euclidean())
+    return multi.StateSequenceMeasure(state_measure=state_measures.Euclidean())
 
 
 @pytest.fixture
@@ -68,20 +64,20 @@ def test_state_sequence_measure_bad_time(state_sequence_measure, sms_2, sms_3):
 
 
 def test_recent_state_sequence_measure_1(sms_1, sms_3):
-    measure = non_state_measures.RecentStateSequenceMeasure(state_measure=measures.Euclidean(),
-                                                            n_states_to_compare=2)
+    measure = multi.RecentStateSequenceMeasure(state_measure=state_measures.Euclidean(),
+                                               n_states_to_compare=2)
 
     assert measure(sms_1, sms_3) == [7, 8]
 
 
 def test_recent_state_sequence_measure_2(sms_1, sms_3):
-    measure = non_state_measures.RecentStateSequenceMeasure(state_measure=measures.Euclidean(),
-                                                            n_states_to_compare=5)
+    measure = multi.RecentStateSequenceMeasure(state_measure=state_measures.Euclidean(),
+                                               n_states_to_compare=5)
 
     assert measure(sms_1, sms_3) == [5, 6, 7, 8]
 
 
-class DummyMultiMeasure(non_state_measures.MultipleMeasure):
+class DummyMultiMeasure(multi.MultipleMeasure):
 
     def __call__(self, list_1: list, list_2: list) -> list:
         # Combine the two lists and return them
@@ -98,25 +94,8 @@ class DummyMultiMeasure(non_state_measures.MultipleMeasure):
                          ])
 def test_mean_measure(mean_measure_input, expected_mean_measure_output):
     multi_measure = DummyMultiMeasure()
-    mean_measure = non_state_measures.MeanMeasure(measure=multi_measure)
+    mean_measure = multi.MeanMeasure(measure=multi_measure)
 
     observed_output = mean_measure(mean_measure_input, [])
 
     assert observed_output == pytest.approx(expected_mean_measure_output)
-
-
-@pytest.mark.parametrize("set_comparison_input_1, set_comparison_input_2, "
-                         "expected_set_comparison_output",
-                         [({1, 2, 3}, {3, 2, 1}, 1.0),  # Check Matching
-                          ([1, 2, 3, 2], [1, 2, 3], 1.0),  # Check works with a list
-                          ({1, 2, 3}, {4, 5, 6}, 0.0),  # Check no matches
-                          ({*"act"}, {*"pact"}, 0.75),  # Check letters
-                          ({6, 4, 7, 3, 12}, {14, 11, 2, 12, 4}, 0.25),
-                          ])
-def test_set_comparison_measure(set_comparison_input_1, set_comparison_input_2,
-                                expected_set_comparison_output):
-    measure = non_state_measures.SetComparisonMeasure()
-
-    observed_output = measure(set_comparison_input_1, set_comparison_input_2)
-
-    assert observed_output == pytest.approx(expected_set_comparison_output)
