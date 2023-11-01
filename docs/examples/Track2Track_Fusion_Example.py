@@ -653,7 +653,7 @@ for plotter in [plotter1, plotter2]:
 
 plotter1.fig.show()
 
-track = track_fusion_tracks.pop()
+track = sorted(track_fusion_tracks, key=len)[-1]  # Longest track
 x_min = min([state.state_vector[0] for state in track])
 x_max = max([state.state_vector[0] for state in track])
 y_min = min([state.state_vector[2] for state in track])
