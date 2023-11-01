@@ -25,6 +25,12 @@ Ensemble
 .. automodule:: stonesoup.updater.ensemble
     :show-inheritance:
 
+Recursive
+---------
+
+.. automodule:: stonesoup.updater.recursive
+    :show-inheritance:
+
 Information
 -----------
 
