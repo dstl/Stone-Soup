@@ -1,14 +1,20 @@
 Measures
 ========
 
-State Measures
---------------
-
 .. automodule:: stonesoup.measures
     :special-members:
 
-Non-State Measures
+.. automodule:: stonesoup.measures.base
+    :special-members:
+
+State Measures
+--------------
+
+.. automodule:: stonesoup.measures.state
+    :special-members:
+
+Multi Measures
 ------------------
 
-.. automodule:: stonesoup.non_state_measures
+.. automodule:: stonesoup.measures.multi
     :special-members:
