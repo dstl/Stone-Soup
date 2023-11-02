@@ -194,6 +194,9 @@ class Angle(Real):
 
         return cls(result)
 
+    def to_plotly_json(self):
+        return float(self)
+
 
 class Bearing(Angle):
     """Bearing angle class.
