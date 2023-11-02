@@ -81,6 +81,7 @@ def hbearing(state_vector, pos_map, translation_offset, rotation_offset):
 
     return StateVector([Elevation(theta), Bearing(phi)])
 
+
 def az_el_rng(state_vector, pos_map, translation_offset, rotation_offset):
     xyz = state_vector[pos_map, :]
 
