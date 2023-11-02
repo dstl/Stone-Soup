@@ -95,6 +95,7 @@ def az_el_rng(state_vector, pos_map, translation_offset, rotation_offset):
 
     return StateVector([Azimuth(phi), Elevation(theta), rho])
 
+
 @pytest.mark.parametrize(
     "model_class",
     [LinearGaussian,
