@@ -10,11 +10,10 @@ from ...types.array import StateVector, StateVectors
 from ...types.state import GaussianState, ParticleState
 from ...types.track import Track
 
-from ...sensor.radar import RadarRotatingBearingRange
 from ...sensor.action.dwell_action import ChangeDwellAction
 from ...sensor.radar import RadarRotatingBearingRange
 from ...sensormanager import RandomSensorManager, BruteForceSensorManager, GreedySensorManager
-from ...sensormanager.reward import UncertaintyRewardFunction, ExpectedKLDivergence, \
+from ...sensormanager.reward import ExpectedKLDivergence, \
     MultiUpdateExpectedKLDivergence
 
 from ...sensormanager.reward import UncertaintyRewardFunction
