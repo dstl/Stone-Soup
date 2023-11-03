@@ -1,3 +1,4 @@
+import dataclasses
 import warnings
 from abc import ABC, abstractmethod
 from datetime import datetime, timedelta
@@ -12,6 +13,7 @@ from matplotlib.patches import Ellipse
 from scipy.integrate import quad
 from scipy.optimize import brentq
 from scipy.stats import kde
+from scipy.linalg import inv
 try:
     from plotly import colors
 except ImportError:
@@ -2098,7 +2100,7 @@ class AnimatedPlotterly(_Plotter):
     """
 
     def __init__(self, timesteps, tail_length=0.3, equal_size=False,
-                 sim_duration=6, allow_unequal_timesteps=False, **kwargs):
+                 sim_duration=6, allow_unequal_timesteps=False, autoscale=False, **kwargs):
         """
         Initialise the figure and checks that inputs are correctly formatted.
         Creates an empty frame for each timestep, and configures
@@ -2150,7 +2152,6 @@ class AnimatedPlotterly(_Plotter):
             xaxis=dict(title=dict(text="<i>x</i>")),
             yaxis=dict(title=dict(text="<i>y</i>")),
             colorway=self.colorway,  # Needed to match colours later.
-            height=550,
             autosize=True
         )
         # layout_kwargs.update(kwargs)
@@ -2164,7 +2165,12 @@ class AnimatedPlotterly(_Plotter):
         ) for time in timesteps]
 
         self.fig.update_xaxes(range=[0, 10])
-        self.fig.update_yaxes(range=[0, 10])
+        if autoscale:
+            self.fig.update_yaxes(range=[0, 10],
+                              scaleanchor="x",
+                              scaleratio=1)
+        else:
+            self.fig.update_yaxes(range=[0, 10])
 
         frame_duration = sim_duration * 1000 / len(self.fig.frames)
 
@@ -2435,7 +2441,7 @@ class AnimatedPlotterly(_Plotter):
 
     def plot_measurements(self, measurements, mapping, measurement_model=None,
                           resize=True, measurements_label="Measurements",
-                          convert_measurements=True, **kwargs):
+                          convert_measurements=True, uncertainty=False, **kwargs):
         """Plots measurements
 
         Plots detections and clutter, generating a legend automatically. Detections are plotted as
@@ -2464,6 +2470,8 @@ class AnimatedPlotterly(_Plotter):
         \\*\\*kwargs: dict
             Additional arguments to be passed to scatter function for detections. Defaults are
             ``marker=dict(color="#636EFA")``.
+        uncertainty: bool
+            Plot the measurement uncertainty
         """
 
         if not isinstance(measurements, Collection):
@@ -2491,6 +2499,9 @@ class AnimatedPlotterly(_Plotter):
         if plot_clutter:
             combined_data.update(dict(Clutter=dict()))
 
+        # Create ellipses
+        num_ellipse_points = 30
+
         # initialise combined_data
         for key in combined_data.keys():
             length = len(plot_combined[key])
@@ -2499,9 +2510,9 @@ class AnimatedPlotterly(_Plotter):
                 "y": np.zeros(length),
                 "time": np.array([0 for _ in range(length)], dtype=object),
                 "time_str": np.array([0 for _ in range(length)], dtype=object),
-                "type": np.array([0 for _ in range(length)], dtype=object)})
-
-        # and now fill in the data
+                "type": np.array([0 for _ in range(length)], dtype=object),
+                "ellipse": np.zeros((length, 2, num_ellipse_points+1))
+            })
 
         for key in combined_data.keys():
             for n, det in enumerate(plot_combined[key]):
@@ -2511,6 +2522,21 @@ class AnimatedPlotterly(_Plotter):
                 combined_data[key]["time"][n] = det.timestamp
                 combined_data[key]["time_str"][n] = str(det.timestamp)
                 combined_data[key]["type"][n] = type(det).__name__
+
+                @dataclasses.dataclass
+                class MeasState:
+                    ndim: int
+                    covar: np.ndarray
+                    mean: np.ndarray
+                if convert_measurements:
+                    inv_h = inv(det.measurement_model.jacobian(State(det.state_vector)))
+                    mean = det.measurement_model.inverse_function(State(det.state_vector))
+                    covar = inv_h @ det.measurement_model.noise_covar @ inv_h.T
+                    meas_state = MeasState(det.ndim, covar, mean=mean)
+                else:
+                    meas_state = MeasState(det.ndim, det.measurement_model.noise_covar, mean=det.state_vector)
+                combined_data[key]["ellipse"][n] = Plotterly._generate_ellipse_points(meas_state, mapping,
+                                                                                      num_ellipse_points)
 
         # get number of traces currently in fig
         trace_base = len(self.fig.data)
@@ -2529,16 +2555,34 @@ class AnimatedPlotterly(_Plotter):
         measurement_kwargs.update({"showlegend": False})
         self.fig.add_trace(go.Scatter(measurement_kwargs))  # trace for plotting
 
+        if uncertainty:
+            uncertainty_kwargs = dict(x=[], y=[], legendgroup='MeasurementUncertainty', fill='toself',
+                                      fillcolor="#636EFA",
+                                      line={'color': 'blue', "dash": 'dash'},
+                                      opacity=0.2, legendrank=500, name='Measurement<br>Uncertainty',
+                                      hoverinfo='skip',
+                                      mode='lines', showlegend=True)
+            uncertainty_kwargs.update(kwargs)
+            self.fig.add_trace(go.Scatter(uncertainty_kwargs))  # trace for plotting uncertainties
+
         # change necessary kwargs to initialise clutter trace
         name = measurements_label + "<br>(Clutter)"
         measurement_kwargs.update({"legendgroup": 'Clutter', "legendrank": 300,
                                    "marker": dict(symbol="star-triangle-up", color='#FECB52'),
                                    "name": name, 'showlegend': True})
-
         self.fig.add_trace(go.Scatter(measurement_kwargs))  # trace for plotting clutter
+
+        if uncertainty:
+            uncertainty_kwargs.update(dict(fillcolor="#FECB52",
+                                      line={'color': 'yellow', "dash": 'dash'}, name="Clutter<br>Uncertainty"))
+            self.fig.add_trace(go.Scatter(uncertainty_kwargs))  # trace for plotting uncertainties
+
+        if uncertainty:
+            self.fig.add_trace(go.Scatter(uncertainty_kwargs))  # trace for plotting clutter uncertainties
 
         # add data to frames
         for frame in self.fig.frames:
+            track_index = trace_base
 
             data_ = list(frame.data)
             traces_ = list(frame.traces)
@@ -2546,6 +2590,7 @@ class AnimatedPlotterly(_Plotter):
             # add blank data to ensure detection legend stays in place
             data_.append(go.Scatter(x=[-np.inf, np.inf], y=[-np.inf, np.inf]))
             traces_.append(trace_base)  # ensure data is added to correct trace
+            track_index += 1
 
             frame_time = datetime.fromisoformat(frame.name)  # convert string to datetime object
 
@@ -2575,7 +2620,24 @@ class AnimatedPlotterly(_Plotter):
                                         hovertemplate=f'{key}' +
                                                       '<br>(%{x}, %{y})' +
                                                       '<br>Time: %{meta}'))
-                traces_.append(trace_base + j + 1)
+                traces_.append(track_index)
+                track_index += 1
+
+                # add ellipses
+                if uncertainty:
+
+                    ellipse_x = []
+                    ellipse_y = []
+                    for n, ellipses in enumerate(combined_data[key]["ellipse"][tuple(mask)]):
+                        # now plot the data
+                        ellipse_x.extend(list(ellipses[0, :]))
+                        ellipse_y.extend(list(ellipses[1, :]))
+                        ellipse_x.append(None)
+                        ellipse_y.append(None)
+
+                    data_.append(go.Scatter(x=ellipse_x, y=ellipse_y))
+                    traces_.append(track_index)
+                    track_index += 1
 
             frame.data = data_  # update the figure
             frame.traces = traces_
@@ -2639,7 +2701,7 @@ class AnimatedPlotterly(_Plotter):
             xydata = np.concatenate(
                 [(getattr(state, 'mean', state.state_vector)[mapping, :])
                  for state in track],
-                axis=1)
+                axis=1).astype(float)
 
             # initialise arrays that go inside the dictionary
             data[n].update(x=xydata[0],
