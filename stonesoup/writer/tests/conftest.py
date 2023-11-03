@@ -51,17 +51,22 @@ def groundtruth_reader():
 @pytest.fixture()
 def tracker():
     class TestTracker(Tracker):
+
+        detector = zip([None]*2, range(2))
+
+        def __init__(self, *args, **kwargs):
+            super().__init__(*args, **kwargs)
+            self._tracks = set()
+
         @property
         def tracks(self):
             return self._tracks
 
         def __iter__(self):
-            self.iter = iter(range(2))
             self.time = datetime.datetime(2018, 1, 1, 13, 59)
             return super().__iter__()
 
-        def __next__(self):
-            i = next(self.iter)
+        def update_tracker(self, _, i):
             state_vector = StateVector([[0]])
             self.time += datetime.timedelta(minutes=1)
             self._tracks = {
