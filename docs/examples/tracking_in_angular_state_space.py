@@ -15,7 +15,7 @@ Todo - Add Description
 
 import datetime
 from collections import defaultdict
-from typing import Sequence, Union
+from typing import Sequence, Union, Set
 
 import numpy as np
 
@@ -127,11 +127,6 @@ for t in all_times:
     target_3_states.append(State([[120 + np.random.rand()], [0],
                                   [120 + np.random.rand()], [0], [12], [0]], timestamp=t))
 
-target_1_truth = GroundTruthPath(target_1_states)
-target_2_truth = GroundTruthPath(target_2_states)
-target_3_truth = GroundTruthPath(target_3_states)
-all_ground_truth = {target_1_truth, target_2_truth, target_3_truth}
-
 
 # %%
 # Create Sensors
@@ -139,7 +134,7 @@ all_ground_truth = {target_1_truth, target_2_truth, target_3_truth}
 # Todo - Add Description
 
 sensor_position = np.array([[50], [10], [0]])
-sensor_orientation = StateVector([[0], [0], [np.pi/2]])
+static_sensor_orientation = StateVector([[0], [0], [np.pi / 2]])
 
 sensor_platform_transition_model = CombinedLinearGaussianTransitionModel(
     [ConstantVelocity(1e-2), ConstantVelocity(1e-2), ConstantVelocity(1e-5)])
@@ -167,7 +162,7 @@ sensor2 = PassiveElevationBearing(
     noise_covar=np.diag([np.deg2rad(1.5)**2,  # Elevation standard deviation
                          np.radians(1.5)**2   # Azimuth/bearing standard deviation
                          ]),
-    orientation=sensor_orientation
+    orientation=static_sensor_orientation
 )
 
 
@@ -175,13 +170,6 @@ sensor2 = PassiveElevationBearing(
 # Measure the target
 # -------------------------------------------------
 # Todo - Add Description
-
-all_radar_measurements = []
-s2_measurements = []
-
-# Filter detections
-time_filter_start = start_time + datetime.timedelta(seconds=25)
-time_filter_end = start_time + datetime.timedelta(seconds=55)
 
 target_1_truth = GroundTruthPath(id="Target 1")
 target_2_truth = GroundTruthPath(id="Target 2")
@@ -191,8 +179,8 @@ all_ground_truth = {target_1_truth, target_2_truth, target_3_truth}
 sensor_1_eb_truth = []
 sensor_2_eb_truth = []
 
-s1_inputs = []
-s2_inputs = []
+moving_sensor_inputs = []
+static_sensor_inputs = []
 for target_1_state, target_2_state, target_3_state in \
         zip(target_1_states, target_2_states, target_3_states):
 
@@ -206,14 +194,15 @@ for target_1_state, target_2_state, target_3_state in \
 
     sensor_platform.move(time)
 
-    s1_detections_this_time_step = sensor1.measure(all_ground_truth, noise=True)
-    s2_detections_this_time_step = sensor2.measure(all_ground_truth, noise=True)
+    moving_sensor_detections_this_time_step = sensor1.measure(all_ground_truth, noise=True)
+    static_sensor_detections_this_time_step = sensor2.measure(all_ground_truth, noise=True)
 
+    # This is used for angular truth data.
     sensor_1_eb_truth.extend(sensor1.measure(all_ground_truth, noise=False))
     sensor_2_eb_truth.extend(sensor2.measure(all_ground_truth, noise=False))
 
-    s1_inputs.append((time, s1_detections_this_time_step))
-    s2_inputs.append((time, s2_detections_this_time_step))
+    moving_sensor_inputs.append((time, moving_sensor_detections_this_time_step))
+    static_sensor_inputs.append((time, static_sensor_detections_this_time_step))
 
 
 # %%
@@ -239,21 +228,34 @@ plotter_az_time2 = Plotter(xaxis=dict(title=dict(text="Time (seconds)")),
 plotter_az_time2.plot_measurements(pre_rotate_dets, mapping=[1],
                                    measurements_label="Angle-Only Measurements",
                                    convert_measurements=False)
+# %%
+# This graphs plots the **noiseless** detections from sensor on the moving platform (these
+# detections were generated with ``noise=False``).
 
 plotter_az_time2.fig
 
 
 # %%
-# Todo - Add More Description
-# Lots of noise in measurements. Not caused by sensor (no noise in measurement). Caused by
-# noise in the platform's direction/orientation
+# Despite there being no noise generated in the measurement process there appears to be a lot of
+# noise in the measurements. This is caused by the orientation of the moving platform changing on
+# each time-step. The measurement values are relative to the platform's orientation. This
+# introduces additional noise when tracking.
+
+# %%
+# To remove the additional noise caused by the platform's orientation. The detections measurements
+# are rotated by :class:`.StaticRotationalFrameAngleDetectionFeeder`. The class also changes the
+# rotation offset in the measurement model.
+#
+# In this example all the detections are rotated to same orientation as the same orientation as the
+# static sensor (North/flat).
 
 
-converter = StaticRotationalFrameAngleDetectionFeeder(reader=None,
-                                                      static_rotation_offset=sensor_orientation)
+detection_rotater = StaticRotationalFrameAngleDetectionFeeder(
+    reader=None, static_rotation_offset=static_sensor_orientation)
 
 
-post_rotate_dets = [converter.alter_detection(det) for det in pre_rotate_dets]
+post_rotate_dets = [detection_rotater.alter_detection(det)
+                    for det in pre_rotate_dets]
 
 plotter_az_time3 = Plotter(xaxis=dict(title=dict(text="Time (seconds)")),
                            yaxis=dict(title=dict(text="Azimuth/Bearing Angle (radians)")))
@@ -264,21 +266,22 @@ plotter_az_time3.plot_measurements(post_rotate_dets, mapping=[1],
 plotter_az_time3.fig
 
 # %%
+# This looks much better. The rotation isn't needed for the static sensor as its orientation
+# doesn't change.
 # Todo - Add More Description
-# This looks much better. Not needed for sensor 2 as it is a static sensor
 
 
 sensor_1_eb_ground_truths = defaultdict(GroundTruthPath)
 for det in sensor_1_eb_truth:
     sensor_1_eb_ground_truths[det.groundtruth_path].append(
-        det.from_state(state=converter.alter_detection(det),
+        det.from_state(state=detection_rotater.alter_detection(det),
                        target_type=GroundTruthState)
     )
 
 sensor_2_eb_ground_truths = defaultdict(GroundTruthPath)
 for det in sensor_2_eb_truth:
     sensor_2_eb_ground_truths[det.groundtruth_path].append(
-        det.from_state(state=converter.alter_detection(det),
+        det.from_state(state=detection_rotater.alter_detection(det),
                        target_type=GroundTruthState)
     )
 
@@ -291,16 +294,16 @@ for cart_ground_truth, eb_ground_truth in sensor_2_eb_ground_truths.items():
 # Convert all to detections to north
 
 
-s1_inputs = [converter.alter_output(radar_input)
-             for radar_input in s1_inputs]
+moving_sensor_inputs = [detection_rotater.alter_output(moving_sensor_input)
+                        for moving_sensor_input in moving_sensor_inputs]
 
 
-s1_measurements = [detection for _, set_of_detections in s1_inputs
-                   for detection in set_of_detections]
+moving_sensor_measurements = [detection for _, set_of_detections in moving_sensor_inputs
+                              for detection in set_of_detections]
 
 
-s2_measurements = [detection for _, set_of_detections in s2_inputs
-                   for detection in set_of_detections]
+static_sensor_measurements = [detection for _, set_of_detections in static_sensor_inputs
+                              for detection in set_of_detections]
 
 
 # %%
@@ -324,19 +327,18 @@ plotter.fig
 # see later in this example.
 
 # %%
-# Both sensors have 100% probability of detection. So the infrared sensor has detected both targets
-# at every time step. While the radar sensor detected both targets apart from between 25 seconds to
-# 55 seconds.
+# Both sensors have 100% probability of detection. Both sensors have detected both targets
+# at every time step.
 
-plottable_s2_detections = [convert_eb_detections_to_ebr(ao_det, None)
-                           for ao_det in s2_measurements]
+plottable_static_sensor_detections = [convert_eb_detections_to_ebr(ao_det, None)
+                                      for ao_det in static_sensor_measurements]
 
-plottable_s1_detections = [convert_eb_detections_to_ebr(ao_det, None)
-                           for ao_det in s1_measurements]
+plottable_moving_sensor_detections = [convert_eb_detections_to_ebr(ao_det, None)
+                                      for ao_det in moving_sensor_measurements]
 
-plotter.plot_measurements(plottable_s1_detections, [_X, _Y],
+plotter.plot_measurements(plottable_moving_sensor_detections, [_X, _Y],
                           measurements_label="Sensor 1 (Moving) Measurements")
-plotter.plot_measurements(plottable_s2_detections, [_X, _Y], marker=dict(color='orange'),
+plotter.plot_measurements(plottable_static_sensor_detections, [_X, _Y], marker=dict(color='orange'),
                           measurements_label="Sensor 2 (Static) Measurements")
 
 # %%
@@ -346,27 +348,29 @@ plotter.plot_measurements(plottable_s2_detections, [_X, _Y], marker=dict(color='
 plotter.fig
 
 # %%
-# todo
+# todo - talk about detections
 
 plotterXZ = Plotter(xaxis=dict(title=dict(text="<i>x</i> (East)")),
                     yaxis=dict(title=dict(text="<i>z</i> (Altitude)")))
-plotterXZ.plot_ground_truths(all_ground_truth, [_X, _Z], truths_label="Target Flight Path")
+# plotterXZ.plot_ground_truths(all_ground_truth, [_X, _Z], truths_label="Target Flight Path")
+for gt in all_ground_truth:
+    plotterXZ.plot_ground_truths({gt}, [_X, _Z], truths_label=gt.id)
 plotterXZ.fig
 
 
 # %%
-# You can see the radar measurements are less precise than the angle only measurements. You can
-# also see when the radar was turned off as well.
+# The three targets are all at different altitudes.
 
 
-plotterXZ.plot_measurements(plottable_s1_detections, [_X, _Z],
+plotterXZ.plot_measurements(plottable_moving_sensor_detections, [_X, _Z],
                             measurements_label="Sensor 1 (Moving) Measurements")
-plotterXZ.plot_measurements(plottable_s2_detections, [_X, _Z], marker=dict(color='orange'),
+plotterXZ.plot_measurements(plottable_static_sensor_detections, [_X, _Z], marker=dict(color='orange'),
                             measurements_label="Sensor 2 (Static) Measurements")
 plotterXZ.fig
 
 # %%
 # The graph above shows the altitude of the detections versus their east position.
+# Todo - Talk about large variation in detection elevation
 
 
 # %%
@@ -377,9 +381,11 @@ plotterXZ.fig
 # %%
 # Elevation vs Bearing Graph
 # ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-# The detections will be plotted on an azimuth/bearing and elevation graph. Ground truth is
-# generated in angle space by measuring the targets with a perfect sensor, a standard sensor with
-# the inaccuracy (noise) set to zero.
+# The detections will be plotted on an azimuth/bearing and elevation graph.
+#
+# Ground truth is
+# generated in angle space by measuring the targets with a perfect sensor (a standard sensor with
+# the inaccuracy (noise) set to zero).
 
 
 plotterAzEl_1 = Plotter(xaxis=dict(title=dict(text="Azimuth/Bearing angle (radians)")),
@@ -390,7 +396,7 @@ for gt in sensor_1_eb_ground_truths.values():
     plotterAzEl_1.plot_ground_truths({gt}, mapping=[1, 0], truths_label=gt.id)
 
 
-plotterAzEl_1.plot_measurements(s1_measurements, mapping=[1, 0], measurements_label="Measurements",
+plotterAzEl_1.plot_measurements(moving_sensor_measurements, mapping=[1, 0], measurements_label="Measurements",
                                 convert_measurements=False)
 plotterAzEl_1.fig
 
@@ -406,7 +412,7 @@ plotterAzEl_1.fig
 plotter_az_time_1 = Plotter(xaxis=dict(title=dict(text="Time (seconds)")),
                             yaxis=dict(title=dict(text="Azimuth/Bearing Angle (radians)")))
 
-plotter_az_time_1.plot_measurements(s1_measurements, mapping=[1],
+plotter_az_time_1.plot_measurements(moving_sensor_measurements, mapping=[1],
                                     measurements_label="Measurements",
                                     convert_measurements=False)
 
@@ -424,7 +430,9 @@ plotter_az_time_1.fig
 # %%
 # Elevation vs Bearing Graph
 # ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-# The detections will be plotted on an azimuth/bearing and elevation graph. Ground truth is
+# The detections will be plotted on an azimuth/bearing and elevation graph.
+#
+# Ground truth is
 # generated in angle space by measuring the targets with a perfect sensor, a standard sensor with
 # the inaccuracy (noise) set to zero.
 
@@ -437,7 +445,7 @@ for gt in sensor_2_eb_ground_truths.values():
     plotterAzEl_2.plot_ground_truths({gt}, mapping=[1, 0], truths_label=gt.id)
 
 
-plotterAzEl_2.plot_measurements(s2_measurements, mapping=[1, 0], measurements_label="Measurements",
+plotterAzEl_2.plot_measurements(static_sensor_measurements, mapping=[1, 0], measurements_label="Measurements",
                                 convert_measurements=False)
 plotterAzEl_2.fig
 
@@ -453,7 +461,7 @@ plotterAzEl_2.fig
 plotter_az_time_2 = Plotter(xaxis=dict(title=dict(text="Time (seconds)")),
                             yaxis=dict(title=dict(text="Azimuth/Bearing Angle (radians)")))
 
-plotter_az_time_2.plot_measurements(s2_measurements, mapping=[1],
+plotter_az_time_2.plot_measurements(static_sensor_measurements, mapping=[1],
                                     measurements_label="Measurements",
                                     convert_measurements=False)
 
@@ -466,10 +474,12 @@ plotter_az_time_2.fig
 # %%
 # Tracking
 # -------------------------------------------------
-# In this section four trackers will be created: radar tracker, infrared tracker, track fusion
-# tracker and detection fusion tracker. All the trackers will be based on a standard tracker. The
-# trackers will be ran and will process the sensor data. The output of the trackers will be
-# explored in subsequent sections
+# In this section two trackers will be created:
+#  * Moving Sensor Tracker
+#  * Static Sensor Tracker,
+# Both trackers will be the same. The
+# trackers will be run and the sensor data will be processed. The output of the trackers will be
+# explored in subsequent sections.
 
 
 # %%
@@ -502,7 +512,7 @@ def create_tracker_kwargs(transition_model, detector=None, ndim_state=None):
 # %%
 # Create Tracker
 # ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-# The infrared tracker uses the standard tracker inputs with a two dimensional constant velocity
+# Both trackers uses the standard tracker inputs with a two-dimensional constant velocity
 # model. The noise in the motion model is particularly small as the units are :math:`rad^2 s^{-3}`.
 angular_motion_model_noise = 1e-6
 
@@ -510,32 +520,35 @@ transition_model_ao = CombinedLinearGaussianTransitionModel((
     ConstantVelocity(angular_motion_model_noise),
     ConstantVelocity(angular_motion_model_noise)))
 
-
-# The radar tracker uses the standard tracker inputs with a three dimensional constant velocity
-# model.
-transition_noise = 0.02
-transition_model_xyz = CombinedLinearGaussianTransitionModel((
-    ConstantVelocity(transition_noise),
-    ConstantVelocity(transition_noise),
-    ConstantVelocity(transition_noise)))
-
-tracker_s1 = AngleMultipleTargetTracker(
+tracker_moving_sensor = AngleMultipleTargetTracker(
     **create_tracker_kwargs(transition_model=transition_model_ao,
                             detector=None))
 
-tracker_s1.detector = AngleTrackingDetectionFeeder(s1_inputs)
+tracker_moving_sensor.detector = AngleTrackingDetectionFeeder(moving_sensor_inputs)
 
 
-tracker_s2 = AngleMultipleTargetTracker(
+tracker_static_sensor = AngleMultipleTargetTracker(
     **create_tracker_kwargs(transition_model=transition_model_ao,
                             detector=None))
 
-tracker_s2.detector = AngleTrackingDetectionFeeder(s2_inputs)
+tracker_static_sensor.detector = AngleTrackingDetectionFeeder(static_sensor_inputs)
+
+# %%
+# Todo - Talk about the :class:`AngleMultipleTargetTracker`
+#
+#  * Almost identical to `MultipleTargetTracker`
+#  * Only difference is the track
+
+# %%
+# Note - The :class:`AngleTrackingDetectionFeeder` uses the
+# :class:`.StaticRotationalFrameAngleDetectionFeeder` to rotate the detections before they enter
+# the tracker.
 
 
 # %%
 # Run Tracker
 # ^^^^^^^^^^^^^
+# Use the standard for-loop to run the trackers
 def run_tracker(tracker):
     all_tracks = set()
     for _, tracks in tracker:
@@ -543,8 +556,8 @@ def run_tracker(tracker):
     return all_tracks
 
 
-s1_tracks = list(run_tracker(tracker_s1))
-s2_tracks = list(run_tracker(tracker_s2))
+moving_sensor_tracks = list(run_tracker(tracker_moving_sensor))
+static_sensor_tracks = list(run_tracker(tracker_static_sensor))
 
 
 # %%
@@ -555,7 +568,7 @@ s2_tracks = list(run_tracker(tracker_s2))
 # %%
 # Elevation vs Bearing Graph
 # ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-for idx, track in enumerate(s1_tracks):
+for idx, track in enumerate(moving_sensor_tracks):
     plotterAzEl_1.plot_tracks({track}, mapping=[2, 0], track_label=f"Track {idx}")
 plotterAzEl_1.fig
 
@@ -567,7 +580,7 @@ plotterAzEl_1.fig
 # Azimuth vs Time Graph
 # ^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-for idx, track in enumerate(s1_tracks):
+for idx, track in enumerate(moving_sensor_tracks):
     plotter_az_time_1.plot_tracks({track}, mapping=[2], track_label=f"Track {idx}")
 
 plotter_az_time_1.fig
@@ -580,7 +593,7 @@ plotter_az_time_1.fig
 # %%
 # Elevation vs Bearing Graph
 # ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-for idx, track in enumerate(s2_tracks):
+for idx, track in enumerate(static_sensor_tracks):
     plotterAzEl_2.plot_tracks({track}, mapping=[2, 0], track_label=f"Track {idx}")
 plotterAzEl_2.fig
 
@@ -592,7 +605,7 @@ plotterAzEl_2.fig
 # Azimuth vs Time Graph
 # ^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-for idx, track in enumerate(s2_tracks):
+for idx, track in enumerate(static_sensor_tracks):
     plotter_az_time_2.plot_tracks({track}, mapping=[2], track_label=f"Track {idx}")
 
 plotter_az_time_2.fig
@@ -637,67 +650,72 @@ transition_model_xyz = CombinedLinearGaussianTransitionModel((
 
 
 # %%
+# There isn't currently a method in stone-soup to create Cartesian tracks from angle-only
+# measurements. Therefore this functions **cheats** and uses the ground truth to create the
+# initial state in the track. A large covariance is given to the initial :class:`~GaussianState`
+# so that the initial cheat state has less influence on the subsequent states in the track.
+def create_initial_tracks() -> Set[Track]:
+    return {Track([State.from_state(state=ground_truth.states[0],
+                                    target_type=GaussianState,
+                                    covar=np.diag([100000] * 6))
+                   ])
+            for ground_truth in all_ground_truth}
+
+
+# %%
 # Sensor 1 (Moving)
 # ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-tracker_s1_cart = MultiTargetTracker(**create_tracker_kwargs(
+tracker_moving_sensor_cart = MultiTargetTracker(**create_tracker_kwargs(
     transition_model=transition_model_xyz,
-    detector=s1_inputs))
+    detector=moving_sensor_inputs))
 
 # %%
 # Cheat - Create Initial Tracks
-initial_tracks = {Track([State.from_state(state=gt.states[0],
-                                          target_type=GaussianState,
-                                          covar=np.diag([1000] * 6)
-                                          )])
-                  for gt in all_ground_truth}
-tracker_s1_cart._tracks = initial_tracks
+initial_tracks = create_initial_tracks()
+tracker_moving_sensor_cart._tracks = initial_tracks
 
 
-s1_tracks_cart = list(run_tracker(tracker_s1_cart))
+moving_sensor_tracks_cart = list(run_tracker(tracker_moving_sensor_cart))
 
-plotter.plot_tracks(s1_tracks_cart, [_X, _Y], uncertainty=False, track_label="Sensor 1 Tracker")
+plotter.plot_tracks(moving_sensor_tracks_cart, [_X, _Y], uncertainty=False, track_label="Sensor 1 Tracker")
 plotter.fig
 
 # %%
-# Rubbish
+# The tracks are rubbish
 hide_plot_traces(plotter.fig, {"Sensor 1 Tracker"})
 
 # %%
 # Sensor 2 (Static)
 # ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-tracker_s2_cart = MultiTargetTracker(**create_tracker_kwargs(
+tracker_static_sensor_cart = MultiTargetTracker(**create_tracker_kwargs(
     transition_model=transition_model_xyz,
-    detector=s2_inputs))
+    detector=static_sensor_inputs))
 
 # %%
 # Cheat - Create Initial Tracks
-initial_tracks = {Track([State.from_state(state=gt.states[0],
-                                          target_type=GaussianState,
-                                          covar=np.diag([1000] * 6)
-                                          )])
-                  for gt in all_ground_truth}
-tracker_s2_cart._tracks = initial_tracks
+initial_tracks = create_initial_tracks()
+tracker_static_sensor_cart._tracks = initial_tracks
 
 
-s2_tracks_cart = list(run_tracker(tracker_s2_cart))
+static_sensor_tracks_cart = list(run_tracker(tracker_static_sensor_cart))
 
-plotter.plot_tracks(s2_tracks_cart, [_X, _Y], uncertainty=False, track_label="Sensor 2 Tracker")
+plotter.plot_tracks(static_sensor_tracks_cart, [_X, _Y], uncertainty=False, track_label="Sensor 2 Tracker")
 plotter.fig
 
 # %%
-# Even worst
+# The tracks are even worst!
 hide_plot_traces(plotter.fig, {"Sensor 1 Tracker", "Sensor 2 Tracker"})
 
 
 # %%
 # Create Detection Fusion Tracker
 # ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-# The Detection Fusion Tracker uses an identical tracker to the radar tracker. The only difference
-# is that the detection fusion tracker receives radar **and** infrared detections.
+# The Detection Fusion Tracker uses an identical tracker to other cartesian trackers. The only
+# difference is that the detection fusion tracker receives detections from both sensors.
 
 
 # Combine all measurement input
-all_inputs = sorted([*s1_inputs, *s2_inputs])
+all_inputs = sorted([*moving_sensor_inputs, *static_sensor_inputs])
 
 # Create the tracker
 det_fuse_tracker = MultiTargetTracker(**create_tracker_kwargs(
@@ -707,11 +725,7 @@ det_fuse_tracker = MultiTargetTracker(**create_tracker_kwargs(
 
 # %%
 # Cheat - Create Initial Tracks
-initial_tracks = {Track([State.from_state(state=gt.states[0],
-                                          target_type=GaussianState,
-                                          covar=np.diag([1000] * 6)
-                                          )])
-                  for gt in all_ground_truth}
+initial_tracks = create_initial_tracks()
 det_fuse_tracker._tracks = initial_tracks
 
 det_tracks = list(run_tracker(det_fuse_tracker))
@@ -721,4 +735,6 @@ plotter.plot_tracks(det_tracks, [_X, _Y], uncertainty=False,
 plotter.fig
 
 # %%
-# Better
+# These tracks are better.
+# Todo - Talk about having multiple angle-only perspectives on a track make the track much more
+# stable.
