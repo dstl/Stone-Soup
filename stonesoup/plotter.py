@@ -430,15 +430,15 @@ class Plotter(_Plotter):
                     check = err_freq
                     for state in track:
                         if not check % err_freq:
-                            w, v = np.linalg.eig(HH @ state.covar @ HH.T)
+                            cov = HH @ state.covar @ HH.T
 
                             xl = state.state_vector[mapping[0]]
                             yl = state.state_vector[mapping[1]]
                             zl = state.state_vector[mapping[2]]
 
-                            x_err = w[0]
-                            y_err = w[1]
-                            z_err = w[2]
+                            x_err = np.sqrt(cov[0, 0])
+                            y_err = np.sqrt(cov[1, 1])
+                            z_err = np.sqrt(cov[2, 2])
 
                             artists.extend(
                                 self.ax.plot3D([xl+x_err, xl-x_err], [yl, yl], [zl, zl],
