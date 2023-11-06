@@ -2523,20 +2523,26 @@ class AnimatedPlotterly(_Plotter):
                 combined_data[key]["time_str"][n] = str(det.timestamp)
                 combined_data[key]["type"][n] = type(det).__name__
 
-                @dataclasses.dataclass
-                class MeasState:
-                    ndim: int
-                    covar: np.ndarray
-                    mean: np.ndarray
-                if convert_measurements:
-                    inv_h = inv(det.measurement_model.jacobian(State(det.state_vector)))
-                    mean = det.measurement_model.inverse_function(State(det.state_vector))
-                    covar = inv_h @ det.measurement_model.noise_covar @ inv_h.T
-                    meas_state = MeasState(det.ndim, covar, mean=mean)
-                else:
-                    meas_state = MeasState(det.ndim, det.measurement_model.noise_covar, mean=det.state_vector)
-                combined_data[key]["ellipse"][n] = Plotterly._generate_ellipse_points(meas_state, mapping,
-                                                                                      num_ellipse_points)
+                if uncertainty:
+                    @dataclasses.dataclass
+                    class MeasState:
+                        ndim: int
+                        covar: np.ndarray
+                        mean: np.ndarray
+                    if convert_measurements:
+                        if det.measurement_model.ndim_meas != det.measurement_model.ndim_state:
+                            raise NotImplementedError('The visualization of uncertainty from measurement space to '
+                                                      'a higher dimensional state space is not implemented. Either '
+                                                      'change this, or turn off uncertainty plotting or plot in '
+                                                      'measurement space.')
+                        inv_h = inv(det.measurement_model.jacobian(State(det.state_vector)))
+                        mean = det.measurement_model.inverse_function(State(det.state_vector))
+                        covar = inv_h @ det.measurement_model.noise_covar @ inv_h.T
+                        meas_state = MeasState(det.ndim, covar, mean=mean)
+                    else:
+                        meas_state = MeasState(det.ndim, det.measurement_model.noise_covar, mean=det.state_vector)
+                    combined_data[key]["ellipse"][n] = Plotterly._generate_ellipse_points(meas_state, mapping,
+                                                                                        num_ellipse_points)
 
         # get number of traces currently in fig
         trace_base = len(self.fig.data)
