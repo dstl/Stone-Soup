@@ -2,18 +2,20 @@ import numpy as np
 import pytest
 from pytest import approx
 from scipy.stats import multivariate_normal
+from scipy.linalg import inv
 
 from ..nonlinear import (
     CartesianToElevationBearingRange, CartesianToBearingRange,
     CartesianToElevationBearing, Cartesian2DToBearing, CartesianToBearingRangeRate,
-    CartesianToElevationBearingRangeRate, RangeRangeRateBinning)
+    CartesianToElevationBearingRangeRate, RangeRangeRateBinning,
+    CartesianToAzimuthElevationRange)
 
 from ...base import ReversibleModel
 from ...measurement.linear import LinearGaussian
 from ....functions import jacobian as compute_jac
 from ....functions import pol2cart
-from ....functions import rotz, rotx, roty, cart2sphere
-from ....types.angle import Bearing, Elevation
+from ....functions import rotz, rotx, roty, cart2sphere, cart2az_el_rg
+from ....types.angle import Bearing, Elevation, Azimuth
 from ....types.array import StateVector, StateVectors
 from ....types.state import State, CovarianceMatrix, ParticleState
 
@@ -78,6 +80,20 @@ def hbearing(state_vector, pos_map, translation_offset, rotation_offset):
     _, phi, theta = cart2sphere(*xyz_rot)
 
     return StateVector([Elevation(theta), Bearing(phi)])
+
+
+def az_el_rng(state_vector, pos_map, translation_offset, rotation_offset):
+    xyz = state_vector[pos_map, :]
+
+    # Get rotation matrix
+    theta_x, theta_y, theta_z = rotation_offset[:, 0]
+
+    rotation_matrix = inv(rotx(theta_x) @ roty(theta_y) @ rotz(theta_z))
+    xyz_rot = rotation_matrix @ xyz - translation_offset[pos_map, :]
+
+    phi, theta, rho = cart2az_el_rg(*xyz_rot)
+
+    return StateVector([Azimuth(phi), Elevation(theta), rho])
 
 
 @pytest.mark.parametrize(
@@ -193,12 +209,23 @@ def test_none_covar(model_class):
             np.array([0, 1, 2]),
             None,
             None
+        ),
+        (  # 3D meas, 3D state
+            az_el_rng,
+            CartesianToAzimuthElevationRange,
+            StateVector([[10], [2], [3]]),
+            np.array([[0.05, 0, 0],
+                      [0, 0.015, 0],
+                      [0, 0, .8]]),
+            np.array([0, 1, 2]),
+            StateVector([[1.0], [-0.2], [-10]]),
+            StateVector([[0], [0], [0]])
         )
     ],
     ids=["Bearing1", "Bearing2",
          "BearingRange1", "BearingRange2", "BearingRange3",
          "RangeBearingElevation1", "RangeBearingElevation1",
-         "BearingsOnly1", "BearingsOnly2"]
+         "BearingsOnly1", "BearingsOnly2", "AzimuthElevationRange"]
 )
 def test_models(h, ModelClass, state_vec, R,
                 mapping, translation_offset, rotation_offset):
