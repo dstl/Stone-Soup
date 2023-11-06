@@ -2,7 +2,11 @@
 Tracking in Angular State Space Example
 ========================================
 
-Todo - Add Description
+This example demonstrates the use of an :class:`~.AngleMultipleTargetTracker` class to create
+tracks from angle only detections made by :class:`~PassiveElevationBearing` sensors. Two sensors
+are used, one static and one moving, to compare the tracks produced on three targets.
+As an extension the angle only measurements are used with a :class:`~MultiTargetTracker` to produce
+tracks in cartesian space.
 """
 
 # %%
@@ -10,8 +14,8 @@ Todo - Add Description
 # -------------------------------------------------
 
 # %%
-# First all the modules needed for this script are imported. Some initial parameters are
-# created. The numpy random seed is set*, this is to ensure consistent output from the script.
+# First, all the modules needed for this script are imported, some initial parameters are
+# created, and the numpy random seed is set (this is to ensure consistent output from the script).
 
 import datetime
 from collections import defaultdict
@@ -55,8 +59,10 @@ np.random.seed(42)
 # %%
 # Useful Function
 # ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-# This function converts elevation-bearing detections to elevation-bearing-range detections.
-# Todo - Not sure if this function should be belong in the main library.
+# This function converts elevation-bearing detections to elevation-bearing-range detections for the
+# purpose of visualising the detections made by the sensors.
+#
+# TODO - Not sure if this function should be in the main library.
 def convert_eb_detections_to_ebr(detection: Detection, new_range: Union[None, float]) -> Detection:
     # noinspection PyTypeChecker
     original_measurement_model: CartesianToElevationBearing = detection.measurement_model
@@ -88,7 +94,7 @@ def convert_eb_detections_to_ebr(detection: Detection, new_range: Union[None, fl
 # ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 # In this section the movement of the target aircraft is created. This specific geometry was
 # chosen to challenge the association algorithms. Target 1 does a weave moving left to right.
-# Target two moves down with a single turn at 40 seconds.
+# Target 2 moves down with a single turn at 40 seconds.
 
 # Create waypoints of both targets
 target_1_waypoints = [State([[t], [1], [40 + 10 * np.sin(t / 10)], [np.cos(t / 10)], [10], [0]],
@@ -102,12 +108,11 @@ target_2_waypoints = [
 
 
 # %%
-# In between waypoints is interpolated to make a consistent sequence of states (locations). The
-# `interpolate_states` function performs a linear interpolation between states to create new
-# intermediate states.
+# The timesteps in between waypoints are interpolated to make a consistent sequence of states
+# (locations). The `interpolate_states` function performs a linear interpolation between states to
+# create new intermediate states. A third target is also created which remains static.
 def interpolate_states(existing_states: Sequence[State], interpolate_time: datetime.datetime):
-    # An interpolate states function is due to enter stone-soup in PR #872.
-    # Todo - If PR #872 is merged, replace this function with an import
+    # Todo - PR #872 is merged, replace this function with an import
     float_times = [state.timestamp.timestamp() for state in existing_states]
     output = np.zeros(len(existing_states[0].state_vector))
     for i in range(len(output)):
@@ -131,7 +136,9 @@ for t in all_times:
 # %%
 # Create Sensors
 # ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-# Todo - Add Description
+# Here we create two angle only sensors using the :class:`~PassiveElevationBearing` class. The
+# first sensor is attached to a moving platform while the second sensor is static at the position
+# (50, 10, 0).
 
 sensor_position = np.array([[50], [10], [0]])
 static_sensor_orientation = StateVector([[0], [0], [np.pi / 2]])
@@ -139,7 +146,7 @@ static_sensor_orientation = StateVector([[0], [0], [np.pi / 2]])
 sensor_platform_transition_model = CombinedLinearGaussianTransitionModel(
     [ConstantVelocity(1e-2), ConstantVelocity(1e-2), ConstantVelocity(1e-5)])
 
-sensor1 = PassiveElevationBearing(
+moving_sensor = PassiveElevationBearing(
     ndim_state=6,
     mapping=(0, 2, 4),
     noise_covar=np.diag([np.deg2rad(1.5)**2,  # Elevation standard deviation
@@ -151,11 +158,11 @@ sensor_platform = MovingPlatform(
     position_mapping=(0, 2, 4),
     velocity_mapping=(1, 3, 5),
     transition_model=sensor_platform_transition_model,
-    sensors=[sensor1]
+    sensors=[moving_sensor]
 )
 
 
-sensor2 = PassiveElevationBearing(
+static_sensor = PassiveElevationBearing(
     position=sensor_position,
     ndim_state=6,
     mapping=(0, 2, 4),
@@ -165,19 +172,20 @@ sensor2 = PassiveElevationBearing(
     orientation=static_sensor_orientation
 )
 
-
 # %%
 # Measure the target
 # -------------------------------------------------
-# Todo - Add Description
+# Now the truth paths can be measured to obtain the angle only detections. Each sensor measures
+# each ground truth twice, once with noise to provide the actual detections and once without noise
+# to create elevation-bearing ground truth paths.
 
 target_1_truth = GroundTruthPath(id="Target 1")
 target_2_truth = GroundTruthPath(id="Target 2")
 target_3_truth = GroundTruthPath(id="Target 3")
 all_ground_truth = {target_1_truth, target_2_truth, target_3_truth}
 
-sensor_1_eb_truth = []
-sensor_2_eb_truth = []
+moving_sensor_eb_truth = []
+static_sensor_eb_truth = []
 
 moving_sensor_inputs = []
 static_sensor_inputs = []
@@ -185,7 +193,7 @@ for target_1_state, target_2_state, target_3_state in \
         zip(target_1_states, target_2_states, target_3_states):
 
     assert target_1_state.timestamp == target_2_state.timestamp == target_3_state.timestamp, \
-        "Times should synchronised."
+        "Times should be synchronised."
     time = target_1_state.timestamp
 
     target_1_truth.append(target_1_state)
@@ -194,60 +202,75 @@ for target_1_state, target_2_state, target_3_state in \
 
     sensor_platform.move(time)
 
-    moving_sensor_detections_this_time_step = sensor1.measure(all_ground_truth, noise=True)
-    static_sensor_detections_this_time_step = sensor2.measure(all_ground_truth, noise=True)
+    moving_sensor_detections_this_time_step = moving_sensor.measure(all_ground_truth, noise=True)
+    static_sensor_detections_this_time_step = static_sensor.measure(all_ground_truth, noise=True)
 
     # This is used for angular truth data.
-    sensor_1_eb_truth.extend(sensor1.measure(all_ground_truth, noise=False))
-    sensor_2_eb_truth.extend(sensor2.measure(all_ground_truth, noise=False))
+    moving_sensor_eb_truth.extend(moving_sensor.measure(all_ground_truth, noise=False))
+    static_sensor_eb_truth.extend(static_sensor.measure(all_ground_truth, noise=False))
 
     moving_sensor_inputs.append((time, moving_sensor_detections_this_time_step))
     static_sensor_inputs.append((time, static_sensor_detections_this_time_step))
 
+xy_plotter = Plotter(xaxis=dict(title=dict(text="<i>x</i> (Easting)")),
+                     yaxis=dict(title=dict(text="<i>y</i> (Northing)"),
+                                scaleanchor="x", scaleratio=1))
+for gt in all_ground_truth:
+    xy_plotter.plot_ground_truths({gt}, [_X, _Y], truths_label=gt.id)
+xy_plotter.plot_sensors([static_sensor], sensor_label="Static Sensor Location")
+xy_plotter.plot_ground_truths({sensor_platform}, [_X, _Y],
+                              truths_label="Sensor Platform Flight Path")
+xy_plotter.fig
+
+# %%
+# This graph shows the three different flight paths for the targets. Target 1 has a sinusoidal
+# flight path moving west to east. Target 2 moves south-east and then turns 45 degrees to fly
+# south. Target 3 is static. These flight paths look benign but can cause an issue with an
+# angle-only sensor as you’ll see later in this example.
 
 # %%
 # Create Elevation-Bearing Truth for Each Target
 # -------------------------------------------------
-# Todo - Add Description
+# We now assign each angle only truth detection to its corresponding ground truth.
 
-sensor_1_truth_dict = defaultdict(list)
-for det in sensor_1_eb_truth:
-    sensor_1_truth_dict[det.groundtruth_path].append(det)
-
-
-sensor_2_truth_dict = defaultdict(list)
-for det in sensor_2_eb_truth:
-    sensor_2_truth_dict[det.groundtruth_path].append(det)
+moving_sensor_truth_dict = defaultdict(list)
+for det in moving_sensor_eb_truth:
+    moving_sensor_truth_dict[det.groundtruth_path].append(det)
 
 
-pre_rotate_dets = sensor_1_truth_dict[target_3_truth]
+static_sensor_truth_dict = defaultdict(list)
+for det in static_sensor_eb_truth:
+    static_sensor_truth_dict[det.groundtruth_path].append(det)
 
-plotter_az_time2 = Plotter(xaxis=dict(title=dict(text="Time (seconds)")),
-                           yaxis=dict(title=dict(text="Azimuth/Bearing Angle (radians)")))
 
-plotter_az_time2.plot_measurements(pre_rotate_dets, mapping=[1],
-                                   measurements_label="Angle-Only Measurements",
-                                   convert_measurements=False)
+pre_rotate_dets = moving_sensor_truth_dict[target_3_truth]
+
+bt_plotter = Plotter(xaxis=dict(title=dict(text="Time (seconds)")),
+                     yaxis=dict(title=dict(text="Bearing Angle (radians)")))
+
+bt_plotter.plot_measurements(pre_rotate_dets, mapping=[1],
+                             measurements_label="Angle-Only Measurements",
+                             convert_measurements=False)
 # %%
-# This graphs plots the **noiseless** detections from sensor on the moving platform (these
+# This graph plots the **noiseless** detections from the sensor on the moving platform (these
 # detections were generated with ``noise=False``).
 
-plotter_az_time2.fig
+bt_plotter.fig
 
 
 # %%
-# Despite there being no noise generated in the measurement process there appears to be a lot of
+# Despite there being no noise generated in the measurement process, there appears to be a lot of
 # noise in the measurements. This is caused by the orientation of the moving platform changing on
 # each time-step. The measurement values are relative to the platform's orientation. This
 # introduces additional noise when tracking.
 
 # %%
-# To remove the additional noise caused by the platform's orientation. The detections measurements
-# are rotated by :class:`.StaticRotationalFrameAngleDetectionFeeder`. The class also changes the
+# To remove the additional noise caused by the platform's orientation. The detection measurements
+# are rotated by a :class:`.StaticRotationalFrameAngleDetectionFeeder`. This class also changes the
 # rotation offset in the measurement model.
 #
-# In this example all the detections are rotated to same orientation as the same orientation as the
-# static sensor (North/flat).
+# In this example all the detections are rotated to have the same orientation as the static sensor
+# (north/flat).
 
 
 detection_rotater = StaticRotationalFrameAngleDetectionFeeder(
@@ -257,41 +280,44 @@ detection_rotater = StaticRotationalFrameAngleDetectionFeeder(
 post_rotate_dets = [detection_rotater.alter_detection(det)
                     for det in pre_rotate_dets]
 
-plotter_az_time3 = Plotter(xaxis=dict(title=dict(text="Time (seconds)")),
-                           yaxis=dict(title=dict(text="Azimuth/Bearing Angle (radians)")))
+bt_plotter_fixed = Plotter(xaxis=dict(title=dict(text="Time (seconds)")),
+                           yaxis=dict(title=dict(text="Bearing Angle (radians)")))
 
-plotter_az_time3.plot_measurements(post_rotate_dets, mapping=[1],
+bt_plotter_fixed.plot_measurements(post_rotate_dets, mapping=[1],
                                    measurements_label="Angle-Only Measurements",
                                    convert_measurements=False)
-plotter_az_time3.fig
+bt_plotter_fixed.fig
 
 # %%
 # This looks much better. The rotation isn't needed for the static sensor as its orientation
 # doesn't change.
-# Todo - Add More Description
+#
+# The detections now show much more consistency. This rotation is not required for the static
+# sensor as it has a constant orientation.
 
 
-sensor_1_eb_ground_truths = defaultdict(GroundTruthPath)
-for det in sensor_1_eb_truth:
-    sensor_1_eb_ground_truths[det.groundtruth_path].append(
+moving_sensor_eb_ground_truths = defaultdict(GroundTruthPath)
+for det in moving_sensor_eb_truth:
+    moving_sensor_eb_ground_truths[det.groundtruth_path].append(
         det.from_state(state=detection_rotater.alter_detection(det),
                        target_type=GroundTruthState)
     )
 
-sensor_2_eb_ground_truths = defaultdict(GroundTruthPath)
-for det in sensor_2_eb_truth:
-    sensor_2_eb_ground_truths[det.groundtruth_path].append(
+# TODO query? just said doesnt need to be done for static sensor
+static_sensor_eb_ground_truths = defaultdict(GroundTruthPath)
+for det in static_sensor_eb_truth:
+    static_sensor_eb_ground_truths[det.groundtruth_path].append(
         det.from_state(state=detection_rotater.alter_detection(det),
                        target_type=GroundTruthState)
     )
 
-for cart_ground_truth, eb_ground_truth in sensor_1_eb_ground_truths.items():
+for cart_ground_truth, eb_ground_truth in moving_sensor_eb_ground_truths.items():
     eb_ground_truth.id = cart_ground_truth.id
-for cart_ground_truth, eb_ground_truth in sensor_2_eb_ground_truths.items():
+for cart_ground_truth, eb_ground_truth in static_sensor_eb_ground_truths.items():
     eb_ground_truth.id = cart_ground_truth.id
 
 # %%
-# Convert all to detections to north
+# Convert all detections to be from north.
 
 
 moving_sensor_inputs = [detection_rotater.alter_output(moving_sensor_input)
@@ -310,25 +336,9 @@ static_sensor_measurements = [detection for _, set_of_detections in static_senso
 # Plot the Scenario
 # --------------------------
 
-
-plotter = Plotter(xaxis=dict(title=dict(text="<i>x</i> (East)")),
-                  yaxis=dict(title=dict(text="<i>y</i> (North)"), scaleanchor="x", scaleratio=1))
-for gt in all_ground_truth:
-    plotter.plot_ground_truths({gt}, [_X, _Y], truths_label=gt.id)
-# plotter.plot_ground_truths(all_ground_truth, [_X, _Y], truths_label="Target Flight Path")
-plotter.plot_sensors([sensor2], sensor_label="Static Sensor Location")
-plotter.plot_ground_truths({sensor_platform}, [_X, _Y], truths_label="Sensor Platform Flight Path")
-plotter.fig
-
 # %%
-# This graphs show the two different flight paths for the targets. Target one has a sinusoidal
-# flight path moving west to east. Target Two moves south-east and then turns 45 degrees to fly
-# south. These flight paths look benign but can cause an issue with an angle-only sensor as you’ll
-# see later in this example.
-
-# %%
-# Both sensors have 100% probability of detection. Both sensors have detected both targets
-# at every time step.
+# Both sensors have 100% probability of detection and so have detected all targets at every time
+# step.
 
 plottable_static_sensor_detections = [convert_eb_detections_to_ebr(ao_det, None)
                                       for ao_det in static_sensor_measurements]
@@ -336,150 +346,201 @@ plottable_static_sensor_detections = [convert_eb_detections_to_ebr(ao_det, None)
 plottable_moving_sensor_detections = [convert_eb_detections_to_ebr(ao_det, None)
                                       for ao_det in moving_sensor_measurements]
 
-plotter.plot_measurements(plottable_moving_sensor_detections, [_X, _Y],
-                          measurements_label="Sensor 1 (Moving) Measurements")
-plotter.plot_measurements(plottable_static_sensor_detections, [_X, _Y], marker=dict(color='orange'),
-                          measurements_label="Sensor 2 (Static) Measurements")
+xy_plotter.plot_measurements(plottable_moving_sensor_detections, [_X, _Y],
+                             measurements_label="Moving Sensor Measurements")
+xy_plotter.plot_measurements(plottable_static_sensor_detections, [_X, _Y],
+                             marker=dict(color='orange'),
+                             measurements_label="Static Sensor Measurements")
 
 # %%
 # To aid visualisation the angle-only detections have been plotted with an artificial true range.
 # This range isn’t used in tracking and is only used for plotting.
 
-plotter.fig
+xy_plotter.fig
 
 # %%
-# todo - talk about detections
+# This graph shows the detections from both sensors against the paths of all three tracks in x-y
+# cartesian space. While the detections match the paths of targets 1 and 2, the error in the
+# measurements can be most clearly seen by the variation on the detections made for the static
+# target 3.
 
-plotterXZ = Plotter(xaxis=dict(title=dict(text="<i>x</i> (East)")),
-                    yaxis=dict(title=dict(text="<i>z</i> (Altitude)")))
-# plotterXZ.plot_ground_truths(all_ground_truth, [_X, _Z], truths_label="Target Flight Path")
+xz_plotter = Plotter(xaxis=dict(title=dict(text="<i>x</i> (Easting)")),
+                     yaxis=dict(title=dict(text="<i>z</i> (Altitude)")))
 for gt in all_ground_truth:
-    plotterXZ.plot_ground_truths({gt}, [_X, _Z], truths_label=gt.id)
-plotterXZ.fig
+    xz_plotter.plot_ground_truths({gt}, [_X, _Z], truths_label=gt.id)
+xz_plotter.fig
 
 
 # %%
 # The three targets are all at different altitudes.
 
 
-plotterXZ.plot_measurements(plottable_moving_sensor_detections, [_X, _Z],
-                            measurements_label="Sensor 1 (Moving) Measurements")
-plotterXZ.plot_measurements(plottable_static_sensor_detections, [_X, _Z], marker=dict(color='orange'),
-                            measurements_label="Sensor 2 (Static) Measurements")
-plotterXZ.fig
+xz_plotter.plot_measurements(plottable_moving_sensor_detections, [_X, _Z],
+                             measurements_label="Sensor 1 (Moving) Measurements")
+xz_plotter.plot_measurements(plottable_static_sensor_detections, [_X, _Z],
+                             marker=dict(color='orange'),
+                             measurements_label="Sensor 2 (Static) Measurements")
+xz_plotter.fig
 
 # %%
-# The graph above shows the altitude of the detections versus their east position.
-# Todo - Talk about large variation in detection elevation
-
+# The graph above shows the altitude of the detections versus their easting. From this perspective,
+# the error in detections for all three targets becomes more apparent. There are large variations
+# in altitude measurements for each target despite all three targets holding constant elevations.
 
 # %%
-# Sensor 1 - Moving Sensor
+# Moving Sensor - Detections
 # --------------------------
 
 
 # %%
 # Elevation vs Bearing Graph
 # ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-# The detections will be plotted on an azimuth/bearing and elevation graph.
+# The detections will be plotted on an elevation-bearing graph.
 #
-# Ground truth is
-# generated in angle space by measuring the targets with a perfect sensor (a standard sensor with
-# the inaccuracy (noise) set to zero).
+# The ground truths have been generated in angle space through the use of a perfect sensor (a
+# standard sensor with the inaccuracy (noise) set to zero).
 
 
-plotterAzEl_1 = Plotter(xaxis=dict(title=dict(text="Azimuth/Bearing angle (radians)")),
-                        yaxis=dict(title=dict(text="Elevation angle (radians)")))
-plotterAzEl_1.fig.update_xaxes(autorange="reversed")
+eb_plotter_moving = Plotter(xaxis=dict(title=dict(text="Bearing angle (radians)")),
+                            yaxis=dict(title=dict(text="Elevation angle (radians)")))
+eb_plotter_moving.fig.update_xaxes(autorange="reversed")
 
-for gt in sensor_1_eb_ground_truths.values():
-    plotterAzEl_1.plot_ground_truths({gt}, mapping=[1, 0], truths_label=gt.id)
+for gt in moving_sensor_eb_ground_truths.values():
+    eb_plotter_moving.plot_ground_truths({gt}, mapping=[1, 0], truths_label=gt.id)
 
 
-plotterAzEl_1.plot_measurements(moving_sensor_measurements, mapping=[1, 0], measurements_label="Measurements",
-                                convert_measurements=False)
-plotterAzEl_1.fig
+eb_plotter_moving.plot_measurements(moving_sensor_measurements, mapping=[1, 0],
+                                    measurements_label="Measurements",
+                                    convert_measurements=False)
+eb_plotter_moving.fig
 
 # %%
-# Note: The x-axis has been reversed in all Azimuth-Bearing plots. This is because Stone-Soup
+# From this graph we can see that when the tracks are separated, the detections follow the paths of
+# the targets clearly. However, when the tracks start to overlap it becomes much less clear which
+# detection was made for which track.
+
+# %%
+# Note: The x-axis has been reversed in all bearing plots. This is because Stone-Soup
 # measures the azimuth angle anti-clockwise from the x-axis (East). The axis has been reversed to
 # match the movement of target 1 from left (west) to right (east) in the Cartesian graphs.
 
-
 # %%
-# Azimuth vs Time Graph
+# Bearing vs Time Graph
 # ^^^^^^^^^^^^^^^^^^^^^^^^^^^
-plotter_az_time_1 = Plotter(xaxis=dict(title=dict(text="Time (seconds)")),
-                            yaxis=dict(title=dict(text="Azimuth/Bearing Angle (radians)")))
+bt_plotter_moving = Plotter(xaxis=dict(title=dict(text="Time (seconds)")),
+                            yaxis=dict(title=dict(text="Bearing Angle (radians)")))
 
-plotter_az_time_1.plot_measurements(moving_sensor_measurements, mapping=[1],
+bt_plotter_moving.plot_measurements(moving_sensor_measurements, mapping=[1],
                                     measurements_label="Measurements",
                                     convert_measurements=False)
 
-for gt in sensor_1_eb_ground_truths.values():
-    plotter_az_time_1.plot_ground_truths({gt}, mapping=[1], truths_label=gt.id)
+for gt in moving_sensor_eb_ground_truths.values():
+    bt_plotter_moving.plot_ground_truths({gt}, mapping=[1], truths_label=gt.id)
 
-plotter_az_time_1.fig
+bt_plotter_moving.fig
+
+# %%
+# The bearing-time graph shows a similar trend. The general shape of each path is shown in
+# the detections, but when the tracks become close to each other an association of detections to
+# targets becomes very hard to do. There are multiple times in this simulation where the bearings
+# overlap causing the detections to become unclear.
+
+# %%
+# Elevation vs Time Graph
+# ^^^^^^^^^^^^^^^^^^^^^^^
+et_plotter_moving = Plotter(xaxis=dict(title=dict(text="Time (seconds)")),
+                            yaxis=dict(title=dict(text="Elevation Angle (radians)")))
+et_plotter_moving.plot_measurements(moving_sensor_measurements, mapping=[0],
+                                    measurements_label="Measurements",
+                                    convert_measurements=False)
+
+for gt in moving_sensor_eb_ground_truths.values():
+    et_plotter_moving.plot_ground_truths({gt}, mapping=[0], truths_label=gt.id)
+
+et_plotter_moving.fig
+
+# %%
+# This elevation-time graph shows that, for the majority of the simulation, the elevation
+# measurements of targets 2 and 3 overlap causing the detections to be cluttered. The elevation
+# measurements of target 1 begin to become tangled with the other targets during the second half.
 
 
 # %%
-# Sensor 2 - Static Sensor
+# Static Sensor - Detections
 # --------------------------
 
 
 # %%
 # Elevation vs Bearing Graph
 # ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-# The detections will be plotted on an azimuth/bearing and elevation graph.
-#
-# Ground truth is
-# generated in angle space by measuring the targets with a perfect sensor, a standard sensor with
-# the inaccuracy (noise) set to zero.
+# The detections will be plotted on an elevation-bearing graph.
 
 
-plotterAzEl_2 = Plotter(xaxis=dict(title=dict(text="Azimuth/Bearing angle (radians)")),
-                        yaxis=dict(title=dict(text="Elevation angle (radians)")))
-plotterAzEl_2.fig.update_xaxes(autorange="reversed")
+eb_plotter_static = Plotter(xaxis=dict(title=dict(text="Bearing angle (radians)")),
+                            yaxis=dict(title=dict(text="Elevation angle (radians)")))
+eb_plotter_static.fig.update_xaxes(autorange="reversed")
 
-for gt in sensor_2_eb_ground_truths.values():
-    plotterAzEl_2.plot_ground_truths({gt}, mapping=[1, 0], truths_label=gt.id)
+for gt in static_sensor_eb_ground_truths.values():
+    eb_plotter_static.plot_ground_truths({gt}, mapping=[1, 0], truths_label=gt.id)
 
 
-plotterAzEl_2.plot_measurements(static_sensor_measurements, mapping=[1, 0], measurements_label="Measurements",
-                                convert_measurements=False)
-plotterAzEl_2.fig
+eb_plotter_static.plot_measurements(static_sensor_measurements, mapping=[1, 0],
+                                    measurements_label="Measurements",
+                                    convert_measurements=False)
+eb_plotter_static.fig
 
 # %%
-# Note: The x-axis has been reversed in all Azimuth-Bearing plots. This is because Stone-Soup
-# measures the azimuth angle anti-clockwise from the x-axis (East). The axis has been reversed to
-# match the movement of target 1 from left (west) to right (east) in the Cartesian graphs.
+# When compared to the moving sensor, the static sensor has a much clearer association between
+# detections and paths. This is due to the fact that the paths of targets 1 and 2 cross each other
+# further away from target 3. However, at these intersections there are still large groupings of
+# ambiguous detections.
 
 
 # %%
-# Azimuth vs Time Graph
+# Bearing vs Time Graph
 # ^^^^^^^^^^^^^^^^^^^^^^^^^^^
-plotter_az_time_2 = Plotter(xaxis=dict(title=dict(text="Time (seconds)")),
-                            yaxis=dict(title=dict(text="Azimuth/Bearing Angle (radians)")))
+bt_plotter_static = Plotter(xaxis=dict(title=dict(text="Time (seconds)")),
+                            yaxis=dict(title=dict(text="Bearing Angle (radians)")))
 
-plotter_az_time_2.plot_measurements(static_sensor_measurements, mapping=[1],
+bt_plotter_static.plot_measurements(static_sensor_measurements, mapping=[1],
                                     measurements_label="Measurements",
                                     convert_measurements=False)
 
-for gt in sensor_2_eb_ground_truths.values():
-    plotter_az_time_2.plot_ground_truths({gt}, mapping=[1], truths_label=gt.id)
+for gt in static_sensor_eb_ground_truths.values():
+    bt_plotter_static.plot_ground_truths({gt}, mapping=[1], truths_label=gt.id)
 
-plotter_az_time_2.fig
+bt_plotter_static.fig
+
+# %%
+# This graph shows that the bearing coordinates of all three targets intersect at around the same
+# time. This causes a large amount of the detections to be hard to trace back to the original
+# target.
+
+# %%
+# Elevation vs Time Graph
+# ^^^^^^^^^^^^^^^^^^^^^^^
+et_plotter_static = Plotter(xaxis=dict(title=dict(text="Time (seconds)")),
+                            yaxis=dict(title=dict(text="Elevation Angle (radians)")))
+et_plotter_static.plot_measurements(static_sensor_measurements, mapping=[0],
+                                    measurements_label="Measurements",
+                                    convert_measurements=False)
+
+for gt in static_sensor_eb_ground_truths.values():
+    et_plotter_static.plot_ground_truths({gt}, mapping=[0], truths_label=gt.id)
+
+et_plotter_static.fig
+# %%
+# Similar to the elevation-time graph for the moving sensor, the detections of targets 2 and 3
+# have significant overlap. Target 1 also experiences a large amount of overlap in detections
+# towards the end of the simulation.
 
 
 # %%
 # Tracking
 # -------------------------------------------------
-# In this section two trackers will be created:
-#  * Moving Sensor Tracker
-#  * Static Sensor Tracker,
-# Both trackers will be the same. The
-# trackers will be run and the sensor data will be processed. The output of the trackers will be
-# explored in subsequent sections.
+# In this section two identical trackers will be created, one for each of the sensors. The trackers
+# will be run and the sensor data will be processed. The output of the trackers will be explored in
+# subsequent sections.
 
 
 # %%
@@ -488,8 +549,8 @@ plotter_az_time_2.fig
 # The standard tracker uses an Extended Kalman Filter (EKF). Global Nearest Neighbour (GNN) is
 # used to associate detections to tracks. Tracks are initiated from any detections that aren’t
 # associated to a track. Tracks will be deleted after 10 seconds without a detection being
-# associated to them. The create_tracker_kwargs function generates the key word arguments for each
-# tracker
+# associated to them. The `create_tracker_kwargs` function generates the key word arguments for
+# each tracker.
 def create_tracker_kwargs(transition_model, detector=None, ndim_state=None):
     ndim_state = ndim_state or (len(transition_model.model_list) * 2)  # Constant Velocity
     initial_state = GaussianState(state_vector=[0] * ndim_state,
@@ -512,8 +573,8 @@ def create_tracker_kwargs(transition_model, detector=None, ndim_state=None):
 # %%
 # Create Tracker
 # ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-# Both trackers uses the standard tracker inputs with a two-dimensional constant velocity
-# model. The noise in the motion model is particularly small as the units are :math:`rad^2 s^{-3}`.
+# Both trackers use the standard tracker inputs with a two-dimensional constant velocity model. The
+# noise in the motion model is particularly small as the units are :math:`rad^2 s^{-3}`.
 angular_motion_model_noise = 1e-6
 
 transition_model_ao = CombinedLinearGaussianTransitionModel((
@@ -534,13 +595,11 @@ tracker_static_sensor = AngleMultipleTargetTracker(
 tracker_static_sensor.detector = AngleTrackingDetectionFeeder(static_sensor_inputs)
 
 # %%
-# Todo - Talk about the :class:`AngleMultipleTargetTracker`
-#
-#  * Almost identical to `MultipleTargetTracker`
-#  * Only difference is the track
+# The :class:`~.AngleMultipleTargetTracker` sits on top of the :class:`~.MultipleTargetTracker`
+# class and produces track outputs in an elevation-bearing state space from angle only detections.
 
 # %%
-# Note - The :class:`AngleTrackingDetectionFeeder` uses the
+# Note: The :class:`AngleTrackingDetectionFeeder` uses the
 # :class:`.StaticRotationalFrameAngleDetectionFeeder` to rotate the detections before they enter
 # the tracker.
 
@@ -561,7 +620,7 @@ static_sensor_tracks = list(run_tracker(tracker_static_sensor))
 
 
 # %%
-# Sensor 1 - Moving Sensor
+# Moving Sensor - Tracks
 # --------------------------
 
 
@@ -569,24 +628,50 @@ static_sensor_tracks = list(run_tracker(tracker_static_sensor))
 # Elevation vs Bearing Graph
 # ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 for idx, track in enumerate(moving_sensor_tracks):
-    plotterAzEl_1.plot_tracks({track}, mapping=[2, 0], track_label=f"Track {idx}")
-plotterAzEl_1.fig
+    eb_plotter_moving.plot_tracks({track}, mapping=[2, 0], track_label=f"Track {idx}")
+eb_plotter_moving.fig
 
 # %%
-# Todo
-
+# From the elevation-bearing graph we can see that the general shape of the tracks follows that of
+# the targets truth paths. Although, around target 1 there are large disparities between the
+# position of the target and the track.
+#
+# TODO add description
+#
+# TODO can't talk about overlap / lack of overlap in tracks as different builds have variance
 
 # %%
-# Azimuth vs Time Graph
+# Bearing vs Time Graph
 # ^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 for idx, track in enumerate(moving_sensor_tracks):
-    plotter_az_time_1.plot_tracks({track}, mapping=[2], track_label=f"Track {idx}")
+    bt_plotter_moving.plot_tracks({track}, mapping=[2], track_label=f"Track {idx}")
 
-plotter_az_time_1.fig
+bt_plotter_moving.fig
 
 # %%
-# Sensor 2 - Static Sensor
+# The bearing-time graph shows that very little variance between the bearing of the tracks and
+# those of the truth paths.
+#
+# TODO Add description
+
+# %%
+# Elevation vs Time Graph
+# ^^^^^^^^^^^^^^^^^^^^^^^
+
+for idx, track in enumerate(moving_sensor_tracks):
+    et_plotter_moving.plot_tracks({track}, mapping=[0], track_label=f"Track {idx}")
+
+et_plotter_moving.fig
+
+# %%
+# The elevation-time graph shows much larger variances from the truth path than was apparent in the
+# bearing-time graph.
+#
+# TODO add description
+
+# %%
+# Static Sensor - Tracks
 # --------------------------
 
 
@@ -594,31 +679,55 @@ plotter_az_time_1.fig
 # Elevation vs Bearing Graph
 # ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 for idx, track in enumerate(static_sensor_tracks):
-    plotterAzEl_2.plot_tracks({track}, mapping=[2, 0], track_label=f"Track {idx}")
-plotterAzEl_2.fig
+    eb_plotter_static.plot_tracks({track}, mapping=[2, 0], track_label=f"Track {idx}")
+eb_plotter_static.fig
 
 # %%
-# Todo
+# We can see that, like the moving tracker, the general paths of each target have been tracked
+# accurately. Like before, there are visible disparities between the tracks and truth for target 1.
+#
+# TODO add description
 
 
 # %%
-# Azimuth vs Time Graph
+# Bearing vs Time Graph
 # ^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 for idx, track in enumerate(static_sensor_tracks):
-    plotter_az_time_2.plot_tracks({track}, mapping=[2], track_label=f"Track {idx}")
+    bt_plotter_static.plot_tracks({track}, mapping=[2], track_label=f"Track {idx}")
 
-plotter_az_time_2.fig
+bt_plotter_static.fig
+
+# %%
+# The bearing-time graph shows a minuscule disparity between the truth paths of the targets and the
+# tracks produced.
+#
+# TODO Add description
+
+# %%
+# Elevation vs Time Graph
+# ^^^^^^^^^^^^^^^^^^^^^^^
+
+for idx, track in enumerate(static_sensor_tracks):
+    et_plotter_static.plot_tracks({track}, mapping=[0], track_label=f"Track {idx}")
+
+et_plotter_static.fig
+
+# %%
+# However, as was the case for the moving sensor, there exists a much larger disparity in the
+# elevation of the tracks when compared to the target truths.
+#
+# TODO add description
 
 # %%
 # Tracking in Cartesian using Bearing Only
-# ===========================================
-# Why not track in cartesian?
-# A small additional. Not much additional work
+# ----------------------------------------
+# As an extension we can take the angle only detections and try to produce tracks in a cartesian
+# space.
 
 
 # %%
-# Quick function to show only certain parts of the graph
+# This function makes it so that only certain parts of the graph are shown.
 def hide_plot_traces(fig, items_to_hide: set):
     for fig_data in fig.data:
         if fig_data.legendgroup in items_to_hide:
@@ -628,18 +737,14 @@ def hide_plot_traces(fig, items_to_hide: set):
 
 
 # %%
-# IR Tracks in 3D
-# -----------------------
-# Todo - Add AO with false range
-
-# %%
 # Single Sensor Tracking
-# -----------------------
-# Todo- info
+# ^^^^^^^^^^^^^^^^^^^^^^
+# The first thing to do is to produce cartesian tracks using detections from only one sensor. These
+# tracks will be created using the :class:`~.MultiTargetTracker` class.
 
 # %%
 # Create 3D Tracker
-# ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+# """""""""""""""""
 # The 3D tracker uses the standard tracker inputs with a three-dimensional constant velocity
 # model.
 transition_noise = 0.02
@@ -663,54 +768,58 @@ def create_initial_tracks() -> Set[Track]:
 
 
 # %%
-# Sensor 1 (Moving)
-# ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+# Moving Sensor
+# """""""""""""
 tracker_moving_sensor_cart = MultiTargetTracker(**create_tracker_kwargs(
     transition_model=transition_model_xyz,
     detector=moving_sensor_inputs))
 
-# %%
-# Cheat - Create Initial Tracks
 initial_tracks = create_initial_tracks()
 tracker_moving_sensor_cart._tracks = initial_tracks
 
 
 moving_sensor_tracks_cart = list(run_tracker(tracker_moving_sensor_cart))
 
-plotter.plot_tracks(moving_sensor_tracks_cart, [_X, _Y], uncertainty=False, track_label="Sensor 1 Tracker")
-plotter.fig
+xy_plotter.plot_tracks(moving_sensor_tracks_cart, [_X, _Y], uncertainty=False,
+                       track_label="Moving Sensor Tracker")
+xy_plotter.fig
 
 # %%
-# The tracks are rubbish
-hide_plot_traces(plotter.fig, {"Sensor 1 Tracker"})
+# As we can see, these tracks do not bear any resemblance to the actual shape of the paths.
+
+hide_plot_traces(xy_plotter.fig, {"Moving Sensor Tracker"})
 
 # %%
-# Sensor 2 (Static)
-# ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+# Static Sensor
+# """""""""""""
 tracker_static_sensor_cart = MultiTargetTracker(**create_tracker_kwargs(
     transition_model=transition_model_xyz,
     detector=static_sensor_inputs))
 
-# %%
-# Cheat - Create Initial Tracks
 initial_tracks = create_initial_tracks()
 tracker_static_sensor_cart._tracks = initial_tracks
 
 
 static_sensor_tracks_cart = list(run_tracker(tracker_static_sensor_cart))
 
-plotter.plot_tracks(static_sensor_tracks_cart, [_X, _Y], uncertainty=False, track_label="Sensor 2 Tracker")
-plotter.fig
+xy_plotter.plot_tracks(static_sensor_tracks_cart, [_X, _Y],
+                       uncertainty=False, track_label="Sensor 2 Tracker")
+xy_plotter.fig
 
 # %%
-# The tracks are even worst!
-hide_plot_traces(plotter.fig, {"Sensor 1 Tracker", "Sensor 2 Tracker"})
+# The tracks produced by the static sensor vary from the truth even more.
 
+hide_plot_traces(xy_plotter.fig, {"Sensor 1 Tracker", "Sensor 2 Tracker"})
+
+# %%
+# Multi Sensor Tracking
+# ^^^^^^^^^^^^^^^^^^^^^
+# We will now fuse the detections from both sensors to produce cartesian tracks.
 
 # %%
 # Create Detection Fusion Tracker
-# ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-# The Detection Fusion Tracker uses an identical tracker to other cartesian trackers. The only
+# """""""""""""""""""""""""""""""
+# The Detection Fusion Tracker uses an identical tracker to the other cartesian trackers. The only
 # difference is that the detection fusion tracker receives detections from both sensors.
 
 
@@ -723,18 +832,17 @@ det_fuse_tracker = MultiTargetTracker(**create_tracker_kwargs(
     detector=all_inputs)
 )
 
-# %%
-# Cheat - Create Initial Tracks
 initial_tracks = create_initial_tracks()
 det_fuse_tracker._tracks = initial_tracks
 
-det_tracks = list(run_tracker(det_fuse_tracker))
+det_fuse_tracks = list(run_tracker(det_fuse_tracker))
 
-plotter.plot_tracks(det_tracks, [_X, _Y], uncertainty=False,
-                    track_label="Detection Fusion Tracker")
-plotter.fig
+xy_plotter.plot_tracks(det_fuse_tracks, [_X, _Y],
+                       uncertainty=False, track_label="Detection Fusion Tracker")
+xy_plotter.fig
 
 # %%
-# These tracks are better.
-# Todo - Talk about having multiple angle-only perspectives on a track make the track much more
-# stable.
+# These tracks are better. This is due to having angle-only detections from multiple positions.
+# This makes it so that the positions of each target are possible to calculate and so the tracks
+# become much more stable. Despite this, there is still a large disparity between the shapes of the
+# tracks and the shapes of the target truths.
