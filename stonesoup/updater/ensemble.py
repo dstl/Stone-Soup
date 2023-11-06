@@ -1,9 +1,12 @@
+from functools import lru_cache
+
 import numpy as np
 import scipy
 
 from .kalman import KalmanUpdater
 from ..base import Property
 from ..types.state import State, EnsembleState
+from ..types.array import StateVectors
 from ..types.prediction import MeasurementPrediction
 from ..types.update import Update
 from ..models.measurement import MeasurementModel
@@ -12,7 +15,7 @@ from ..models.measurement import MeasurementModel
 class EnsembleUpdater(KalmanUpdater):
     r"""Ensemble Kalman Filter Updater class
     The EnKF is a hybrid of the Kalman updating scheme and the
-    Monte Carlo aproach of the the particle filter.
+    Monte Carlo approach of the particle filter.
 
     Deliberately structured to resemble the Vanilla Kalman Filter,
     :meth:`update` first calls :meth:`predict_measurement` function which
@@ -22,7 +25,7 @@ class EnsembleUpdater(KalmanUpdater):
     itself.
 
     Note that the EnKF equations are simpler when written in the following
-    formalism. Note that h is not neccisarily a matrix, but could be a
+    formalism. Note that h is not necessarily a matrix, but could be a
     nonlinear measurement function.
 
     .. math::
@@ -104,13 +107,14 @@ class EnsembleUpdater(KalmanUpdater):
                 predicted_state, measurement_model=measurement_model, **kwargs)
         return hypothesis
 
+    @lru_cache()
     def predict_measurement(self, predicted_state, measurement_model=None,
                             **kwargs):
         r"""Predict the measurement implied by the predicted state mean
 
         Parameters
         ----------
-        pred_state : :class:`~.State`
+        predicted_state : :class:`~.State`
             The predicted state :math:`\mathbf{x}_{k|k-1}`
         measurement_model : :class:`~.MeasurementModel`
             The measurement model. If omitted, the model in the updater object
@@ -289,4 +293,95 @@ class EnsembleSqrtUpdater(EnsembleUpdater):
 
         return Update.from_state(hypothesis.prediction,
                                  posterior_ensemble, timestamp=hypothesis.measurement.timestamp,
+                                 hypothesis=hypothesis)
+
+
+class LinearisedEnsembleUpdater(EnsembleUpdater):
+    """
+    Implementation of 'The Linearized EnKF Update' algorithm from "Ensemble Kalman Filter with
+    Bayesian Recursive Update" by Kristen Michaelson, Andrey A. Popov and Renato Zanetti.
+    Similar to the EnsembleUpdater, but uses a different form of Kalman gain. This alternative form
+    of the EnKF calculates a separate kalman gain for each ensemble member. This alternative
+    Kalman gain calculation involves linearization of the measurement. An additional step is
+    introduced to perform inflation.
+
+    References
+    ----------
+
+    1. K. Michaelson, A. A. Popov and R. Zanetti,
+    "Ensemble Kalman Filter with Bayesian Recursive Update"
+    """
+    inflation_factor: float = Property(
+        default=1.,
+        doc="Parameter to control inflation")
+
+    def update(self, hypothesis, **kwargs):
+        r"""The LinearisedEnsembleUpdater update method. This method includes an additional step
+        over the EnsembleUpdater update step to perform inflation.
+
+        Parameters
+        ----------
+        hypothesis : :class:`~.SingleHypothesis`
+            the prediction-measurement association hypothesis. This hypothesis
+            may carry a predicted measurement, or a predicted state. In the
+            latter case a predicted measurement will be calculated.
+
+
+        Returns
+        -------
+        : :class:`~.EnsembleStateUpdate`
+            The posterior state which contains an ensemble of state vectors
+            and a timestamp.
+        """
+        # Extract the number of vectors from the prediction
+        num_vectors = hypothesis.prediction.num_vectors
+
+        # Assign measurement prediction if prediction is missing
+        hypothesis = self._check_measurement_prediction(hypothesis)
+
+        # Prior state vector
+        X0 = hypothesis.prediction.state_vector
+
+        # Measurement covariance
+        R = self.measurement_model.covar()
+
+        # Line 1: Compute mean
+        m = hypothesis.prediction.mean
+
+        # Line 2: Compute inflation
+        X = StateVectors(m + self.inflation_factor * (X0 - m))
+
+        # Line 3: Recompute prior covariance
+        P = 1/(num_vectors-1) * (X0 - m) @ (X0 - m).T
+
+        states = list()
+
+        # Line 5: Y_hat
+        Y_hat = hypothesis.measurement_prediction.state_vector
+
+        # Line 4
+        for x, y_hat in zip(X, Y_hat):
+
+            # Line 6: Compute Jacobian
+            H = self.measurement_model.jacobian(State(state_vector=x,
+                                                      timestamp=hypothesis.prediction.timestamp))
+
+            # Line 7: Calculate Innovation
+            S = H @ P @ H.T + R
+
+            # Line 8: Calculate Kalman gain
+            K = P @ H.T @ scipy.linalg.inv(S)
+
+            # Line 9: Recalculate X
+            x = x + K @ (hypothesis.measurement.state_vector - y_hat)
+
+            # Collect state vectors
+            states.append(x)
+
+        # Convert list of state vectors into a StateVectors class
+        X = StateVectors(np.hstack(states))
+
+        return Update.from_state(hypothesis.prediction,
+                                 X,
+                                 timestamp=hypothesis.measurement.timestamp,
                                  hypothesis=hypothesis)

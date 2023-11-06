@@ -8,11 +8,14 @@ from ..deleter import Deleter
 from ..models.base import LinearModel, ReversibleModel
 from ..models.measurement import MeasurementModel
 from ..types.hypothesis import SingleHypothesis
+from ..types.mixture import GaussianMixture
 from ..types.numeric import Probability
 from ..types.particle import Particle
-from ..types.state import State, GaussianState, ParticleState
+from ..types.state import State, GaussianState, ParticleState, TaggedWeightedGaussianState, \
+    ASDGaussianState, EnsembleState
 from ..types.track import Track
-from ..types.update import GaussianStateUpdate, ParticleStateUpdate, Update
+from ..types.update import GaussianStateUpdate, ParticleStateUpdate, Update, \
+    GaussianMixtureUpdate, ASDGaussianStateUpdate, EnsembleStateUpdate
 from ..updater import Updater
 from ..updater.kalman import ExtendedKalmanUpdater
 
@@ -184,6 +187,10 @@ class MultiMeasurementInitiator(GaussianInitiator):
         doc="Initiator used to create tracks. If None, a :class:`SimpleMeasurementInitiator` will "
             "be created using :attr:`prior_state` and :attr:`measurement_model`. Otherwise, these "
             "attributes are ignored.")
+    skip_non_reversible: bool = Property(
+        default=False, doc="Skip measurements that do not have a reversible measurement model. "
+                           "Only allow measurements with a measurement model that is an instance "
+                           "of a :class:`~.LinearModel` or a :class:`~.ReversibleModel`.")
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -195,6 +202,10 @@ class MultiMeasurementInitiator(GaussianInitiator):
         sure_tracks = set()
 
         associated_detections = set()
+
+        if self.skip_non_reversible:
+            detections = {det for det in detections
+                          if isinstance(det.measurement_model, (ReversibleModel, LinearModel))}
 
         if self.holding_tracks:
             associations = self.data_associator.associate(
@@ -219,6 +230,19 @@ class MultiMeasurementInitiator(GaussianInitiator):
             detections - associated_detections, timestamp)
 
         return sure_tracks
+
+
+class NoHistoryMultiMeasurementInitiator(MultiMeasurementInitiator):
+    """
+    This initiator is very similar to :class:`MultiMeasurementInitiator`. The only difference
+    being that the holding track’s history is moved to the metadata so that initialised tracks
+    only have one state.
+    """
+    def initiate(self, *args, **kwargs):
+        tracks = super().initiate(*args, **kwargs)
+        return {Track(id=track.id, states=[track.state],
+                      init_metadata=dict(holding_track=track, **track.metadata))
+                for track in tracks}
 
 
 class GaussianParticleInitiator(ParticleInitiator):
@@ -292,5 +316,189 @@ class GaussianParticleInitiator(ParticleInitiator):
                 particle_list=particles,
                 fixed_covar=track.covar if self.use_fixed_covar else None,
                 timestamp=track.timestamp)
+
+        return tracks
+
+
+class GaussianMixtureInitiator(GaussianInitiator):
+    """Gaussian Mixture Initiator class
+
+    Utilising Gaussian Initiator, applying the resultant track's state
+    to generate a Tagged Weighted Gaussian State, overwriting with a
+    :class:`~.GaussianMixture`.
+    """
+
+    initiator: GaussianInitiator = Property(
+        doc="Gaussian Initiator which will be used to generate tracks.")
+
+    def __init__(self, *args, **kwargs):
+
+        super().__init__(*args, **kwargs)
+
+        # Create prior particle state
+        try:
+            state = self.initiator.prior_state.state_vector
+            covar = self.initiator.prior_state.covar
+
+        except AttributeError:
+            raise AttributeError("No prior state")
+
+        self.prior_state = GaussianMixture([
+            TaggedWeightedGaussianState(
+                state_vector=state,
+                covar=covar,
+                weight=Probability(1),
+                tag=[])])
+
+    def initiate(self, detections, timestamp, **kwargs):
+        """Initiates tracks given unassociated measurements
+
+        Parameters
+        ----------
+        detections : set of :class:`~.Detection`
+            A list of unassociated detections
+        timestamp: datetime.datetime
+            Current timestamp
+
+        Returns
+        -------
+        : set of :class:`~.Track`
+            A list of new tracks with an initial :class:`~.GaussianMixture`
+        """
+        tracks = self.initiator.initiate(detections, timestamp, **kwargs)
+
+        for track in tracks:
+            mixture = [
+                TaggedWeightedGaussianState(
+                    state_vector=track.state_vector,
+                    covar=track.covar,
+                    weight=Probability(1),
+                    timestamp=track.timestamp,
+                    tag=[])]
+            track[-1] = GaussianMixtureUpdate(
+                hypothesis=track.hypothesis,
+                components=mixture)
+
+        return tracks
+
+
+class ASDGaussianInitiator(GaussianInitiator):
+    """ASD Gaussian State Initiator class
+
+    Utilising Gaussian Initiator, sample from the resultant track's state
+    to generate an ASD Gaussian State, overwriting with a
+    :class:`~.ASDGaussianState`.
+    """
+
+    initiator: GaussianInitiator = Property(
+        doc="Gaussian Initiator which will be used to generate tracks.")
+    max_nstep: int = Property(
+        default=0,
+        doc="Decides when the state is pruned in a prediction step. If 0 then there is no pruning")
+
+    def __init__(self, *args, **kwargs):
+
+        super().__init__(*args, **kwargs)
+
+        # Create prior particle state
+        try:
+            state = self.initiator.prior_state.state_vector
+            covar = self.initiator.prior_state.covar
+
+        except AttributeError:
+            raise AttributeError("No prior state")
+
+        self.prior_state = ASDGaussianState(multi_state_vector=state,
+                                            timestamps=None,
+                                            max_nstep=self.max_nstep,
+                                            multi_covar=covar)
+
+    def initiate(self, detections, timestamp, **kwargs):
+        """Initiates tracks given unassociated measurements
+
+        Parameters
+        ----------
+        detections : set of :class:`~.Detection`
+            A list of unassociated detections
+        timestamp: datetime.datetime
+            Current timestamp
+
+        Returns
+        -------
+        : set of :class:`~.Track`
+            A list of new tracks with an initial :class:`~.ASDGaussianState`
+        """
+        tracks = self.initiator.initiate(detections, timestamp, **kwargs)
+
+        for track in tracks:
+            state = track.state_vector
+            covar = track.covar
+            timestamp = track.timestamp
+
+            track[-1] = ASDGaussianStateUpdate(
+                multi_state_vector=state,
+                timestamps=timestamp,
+                max_nstep=self.max_nstep,
+                multi_covar=covar,
+                hypothesis=track.hypothesis)
+
+        return tracks
+
+
+class EnsembleInitiator(GaussianInitiator):
+    """Ensemble State Initiator class
+
+    Utilising Gaussian Initiator, sample from the resultant track's state
+    to generate an Ensemble, overwriting with a
+    :class:`~.EnsembleState`.
+    """
+
+    initiator: GaussianInitiator = Property(
+        doc="Gaussian Initiator which will be used to generate tracks.")
+    ensemble_size: int = Property(
+        default=100,
+        doc="Integer to determine the size of the Gaussian Ensemble State.")
+
+    def __init__(self, *args, **kwargs):
+
+        super().__init__(*args, **kwargs)
+
+        # Create prior particle state
+        try:
+            state = self.initiator.prior_state
+
+        except AttributeError:
+            raise AttributeError("No prior state")
+
+        self.prior_state = EnsembleState.from_gaussian_state(state, self.ensemble_size)
+
+    def initiate(self, detections, timestamp, **kwargs):
+        """Initiates tracks given unassociated measurements
+
+        Parameters
+        ----------
+        detections : set of :class:`~.Detection`
+            A list of unassociated detections
+        timestamp: datetime.datetime
+            Current timestamp
+
+        Returns
+        -------
+        : set of :class:`~.Track`
+            A list of new tracks with an initial :class:`~.EnsembleState`
+        """
+        tracks = self.initiator.initiate(detections, timestamp, **kwargs)
+
+        for track in tracks:
+            gaussian_state = GaussianState(track.state_vector,
+                                           track.covar,
+                                           track.timestamp)
+
+            ensemble = EnsembleState.from_gaussian_state(gaussian_state, self.ensemble_size)
+
+            track[-1] = EnsembleStateUpdate(
+                state_vector=ensemble.state_vector,
+                hypothesis=track.hypothesis,
+                timestamp=ensemble.timestamp)
 
         return tracks

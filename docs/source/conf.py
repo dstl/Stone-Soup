@@ -54,7 +54,7 @@ autodoc_default_options = {
     'member-order': 'bysource',
 }
 autodoc_mock_imports = [
-    'ffmpeg', 'moviepy', 'tensorflow', 'object_detection', 'tensornets', 'cv2']
+    'ffmpeg', 'moviepy', 'tensorflow', 'object_detection', 'tensornets', 'cv2', 'ortools']
 
 autosectionlabel_prefix_document = True
 
@@ -110,7 +110,7 @@ toc_object_entries = False
 
 # General information about the project.
 project = 'Stone Soup'
-copyright = '2017-2022 Stone Soup contributors'
+copyright = '2017-2023 Stone Soup contributors'
 author = 'Dstl'
 
 # The version info for the project you're documenting, acts as replacement for

@@ -332,16 +332,6 @@ def test_type_hint_checking():
         i = Property(List[int], doc='Test')
     _ = TestClass(i=1)
 
-    with pytest.raises(ValueError):
-        class TestClass(Base):
-            i: 'string' = Property(doc='Test')  # noqa: F821
-        _ = TestClass(i=1)
-
-    with pytest.raises(ValueError):
-        class TestClass(Base):
-            i = Property('string', doc='Test')
-        _ = TestClass(i=1)
-
     # errors for any
     with pytest.raises(ValueError):
         class TestClass(Base):

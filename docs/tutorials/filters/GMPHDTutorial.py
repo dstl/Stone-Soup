@@ -42,7 +42,7 @@ Gaussian mixture PHD tutorial
 # The Posterior Density: The probability density of state :math:`\mathbf{x}_{k}` given all the previous
 # observations is denoted by :math:`p_{k}(\mathbf{x}_{k}\vert \mathbf{z}_{1:k})`. Using an initial density
 # :math:`p_{0}(\cdot)`, we can apply Bayes' recursion to show that the posterior density is actually
-# 
+#
 # .. math::
 #           p_{k}(\mathbf{x}_{k}\vert \mathbf{z}_{1:k}) = {{g_{k}(\mathbf{z}_{k}\vert \mathbf{x}_{k})p_{k\vert k-1}(\mathbf{x}_{k}\vert \mathbf{z}_{1:k-1})} \over {\int g_{k}(\mathbf{z}_{k}\vert \mathbf{x})p_{k\vert k-1}(\mathbf{x}\vert \mathbf{z}_{1:k-1})d\mathbf{x}}}
 #
@@ -58,7 +58,7 @@ Gaussian mixture PHD tutorial
 # target states at time :math:`k` and :math:`\mathbf{X}_k` has probability distribution :math:`P`. Integrating over
 # every region :math:`S \in \chi`, we get a formula for the first order moment (also called the
 # intensity) at time :math:`k`, :math:`v_{k}`
-# 
+#
 # .. math::
 #           \int \left \vert \mathbf{X}_{k}\cap S\right \vert P(d\mathbf{X}_k)=\int _{S}v_{k}(x)dx.
 #
@@ -107,7 +107,6 @@ Gaussian mixture PHD tutorial
 # Imports for plotting
 from matplotlib import pyplot as plt
 plt.rcParams['figure.figsize'] = (14, 12)
-plt.style.use('seaborn-colorblind')
 # Other general imports
 import numpy as np
 from ordered_set import OrderedSet
@@ -117,7 +116,7 @@ start_time = datetime.now()
 # %%
 # Generate ground truth
 # ^^^^^^^^^^^^^^^^^^^^^
-# 
+#
 # At the end of the tutorial we will plot the Gaussian mixtures. The ground truth Gaussian
 # mixtures are stored in this list where each index refers to an instance in time and holds
 # all ground truths at that time step.
@@ -262,9 +261,9 @@ plotter.fig
 from stonesoup.updater.kalman import KalmanUpdater
 kalman_updater = KalmanUpdater(measurement_model)
 
-# Area in which we look for target. Note that if a target appears outside of this area the 
+# Area in which we look for target. Note that if a target appears outside of this area the
 # filter will not pick up on it.
-meas_range = np.array([[-1, 1], [-1, 1]])*200   
+meas_range = np.array([[-1, 1], [-1, 1]])*200
 clutter_spatial_density = clutter_rate/np.prod(np.diff(meas_range))
 
 from stonesoup.updater.pointprocess import PHDUpdater
@@ -303,15 +302,15 @@ hypothesiser = GaussianMixtureHypothesiser(base_hypothesiser, order_by_detection
 # is used to merge and prune many of the states based on provided thresholds. States whose
 # distance is less than the merging threshold will be combined, and states whose weight
 # is less than the pruning threshold will be removed. Additionally, the
-# :class:`~.GaussianMixtureReducer` has an optional parameter for the maximum number of 
+# :class:`~.GaussianMixtureReducer` has an optional parameter for the maximum number of
 # components that will be kept in the mixture, `max_number_components`. The reducer will keep
 # only the `max_number_components` components with the highest weights. This threshold can be
 # used when the approximate number of targets is known, or when there is high uncertainty and it
 # is hard to decide on a pruning threshold. It will not be used in this example.
 from stonesoup.mixturereducer.gaussianmixture import GaussianMixtureReducer
 # Initialise a Gaussian Mixture reducer
-merge_threshold = 5
-prune_threshold = 1E-8
+merge_threshold = 5     # Threshold Squared Mahalanobis distance
+prune_threshold = 1E-8  # Threshold component weight
 
 reducer = GaussianMixtureReducer(
     prune_threshold=prune_threshold,
@@ -322,7 +321,7 @@ reducer = GaussianMixtureReducer(
 # %%
 # Now we initialize the Gaussian mixture at time k=0. In this implementation, the GM-PHD
 # tracker knows the start state of the first 3 tracks that were created. After that it
-# must pick up on new tracks and discard old ones. It is not necessary to provide the 
+# must pick up on new tracks and discard old ones. It is not necessary to provide the
 # tracker with these start states, you can simply define the `tracks` as an empty set.
 #
 # Feel free to change the `state_vector` from the actual truth state vector to something
@@ -344,16 +343,16 @@ for truth in start_truths:
 
 # %%
 # The hypothesiser takes the current Gaussian mixture as a parameter. Here we will
-# initialize it to use later. 
+# initialize it to use later.
 reduced_states = set([track[-1] for track in tracks])
 
 # %%
-# To ensure that new targets get represented in the filter, we must add a birth 
-# component to the Gaussian mixture at every time step. The birth component's mean and 
-# covariance must create a distribution that covers the entire state space, and its weight 
-# must be equal to the expected number of births per timestep. For more information about 
-# the birth component, see the algorithm provided in [#]_. If the state space is very 
-# large, it becomes inefficient to hold a component that covers it. Alternative 
+# To ensure that new targets get represented in the filter, we must add a birth
+# component to the Gaussian mixture at every time step. The birth component's mean and
+# covariance must create a distribution that covers the entire state space, and its weight
+# must be equal to the expected number of births per timestep. For more information about
+# the birth component, see the algorithm provided in [#]_. If the state space is very
+# large, it becomes inefficient to hold a component that covers it. Alternative
 # implementations (as well as more discussion about the birth component) are discussed in
 # [#]_.
 birth_covar = CovarianceMatrix(np.diag([1000, 2, 1000, 2]))
@@ -369,14 +368,14 @@ birth_component = TaggedWeightedGaussianState(
 # Run the Tracker
 # ^^^^^^^^^^^^^^^
 # Now that we have all of our components, we can create a tracker. At each time instance,
-# the tracker will go through four steps: hypothesise, update, reduce, and match. Let us 
-# briefly recap these four steps. The 'hypothesise' step is similar to the 'prediction' 
-# step in other filters. It uses the existing state space and the measurements to generate 
-# a list of all hypotheses for this time step (remember, each hypothesis is a Gaussian 
-# component). In the 'update' step, the filter combines the hypotheses into an updated 
-# Gaussian mixture. The 'reduce' step helps limit the computational complexity by merging 
-# and pruning the updated Gaussian mixture. The filter returns this final set of states 
-# and then we perform a 'match' step where we use the states' tags to match them with an 
+# the tracker will go through four steps: hypothesise, update, reduce, and match. Let us
+# briefly recap these four steps. The 'hypothesise' step is similar to the 'prediction'
+# step in other filters. It uses the existing state space and the measurements to generate
+# a list of all hypotheses for this time step (remember, each hypothesis is a Gaussian
+# component). In the 'update' step, the filter combines the hypotheses into an updated
+# Gaussian mixture. The 'reduce' step helps limit the computational complexity by merging
+# and pruning the updated Gaussian mixture. The filter returns this final set of states
+# and then we perform a 'match' step where we use the states' tags to match them with an
 # existing track (or create a new track).
 
 
@@ -398,15 +397,15 @@ for n, measurements in enumerate(all_measurements):
     tracks_by_time.append([])
     all_gaussians.append([])
 
-    # The hypothesiser takes in the current state of the Gaussian mixture. This is equal to the list of 
-    # reduced states from the previous iteration. If this is the first iteration, then we use the priors 
-    # defined above. 
+    # The hypothesiser takes in the current state of the Gaussian mixture. This is equal to the list of
+    # reduced states from the previous iteration. If this is the first iteration, then we use the priors
+    # defined above.
     current_state = reduced_states
-    
-    # At every time step we must add the birth component to the current state 
-    if measurements: 
+
+    # At every time step we must add the birth component to the current state
+    if measurements:
         time = list(measurements)[0].timestamp
-    else: 
+    else:
         time = start_time + timedelta(seconds=n)
     birth_component.timestamp = time
     current_state.add(birth_component)
@@ -507,7 +506,7 @@ plotter.fig
 #
 # First we define a function that will help generate the z values for the Gaussian
 # mixture. This lets us plot it later. This function has been updated from the one
-# found `here <https://notebook.community/empet/Plotly-plots/Gaussian-Mixture>`_ from 
+# found `here <https://notebook.community/empet/Plotly-plots/Gaussian-Mixture>`_ from
 # `this <https://github.com/empet/Plotly-plotse>`_ GPL-3.0 licensed repository.
 #
 from scipy.stats import multivariate_normal
@@ -609,8 +608,8 @@ zarray = np.zeros((100, 100, number_steps))
 
 # Create the matplotlib figure and axes. Here we will have two axes being animated in sync.
 # `axL` will be the a 3D axis showing the Gaussian mixture
-# `axR` will be be a 2D axis showing the ground truth, detections, and updated tracks at 
-# each time step. 
+# `axR` will be be a 2D axis showing the ground truth, detections, and updated tracks at
+# each time step.
 fig = plt.figure(figsize=(16, 8))
 axL = fig.add_subplot(121, projection='3d')
 axR = fig.add_subplot(122)
@@ -637,15 +636,13 @@ anim
 # %%
 # References
 # ----------
-# .. [#] B. Vo and W. Ma, "The Gaussian Mixture Probability Hypothesis Density Filter," in IEEE 
-#        Transactions on Signal Processing, vol. 54, no. 11, pp. 4091-4104, Nov. 2006, doi: 
+# .. [#] B. Vo and W. Ma, "The Gaussian Mixture Probability Hypothesis Density Filter," in IEEE
+#        Transactions on Signal Processing, vol. 54, no. 11, pp. 4091-4104, Nov. 2006, doi:
 #        10.1109/TSP.2006.881190
-# 
-# .. [#] D. E. Clark, K. Panta and B. Vo, "The GM-PHD Filter Multiple Target Tracker," 2006 9th 
+#
+# .. [#] D. E. Clark, K. Panta and B. Vo, "The GM-PHD Filter Multiple Target Tracker," 2006 9th
 #        International Conference on Information Fusion, 2006, pp. 1-8, doi: 10.1109/ICIF.2006.301809
-# 
-# .. [#] B. Ristic, D. Clark, B. Vo and B. Vo, "Adaptive Target Birth Intensity for PHD and CPHD 
-#        Filters," in IEEE Transactions on Aerospace and Electronic Systems, vol. 48, no. 2, pp. 
+#
+# .. [#] B. Ristic, D. Clark, B. Vo and B. Vo, "Adaptive Target Birth Intensity for PHD and CPHD
+#        Filters," in IEEE Transactions on Aerospace and Electronic Systems, vol. 48, no. 2, pp.
 #        1656-1668, Apr 2012, doi: 10.1109/TAES.2012.6178085
-
-

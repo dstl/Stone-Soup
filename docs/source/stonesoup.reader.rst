@@ -30,6 +30,11 @@ AISHub
 .. automodule:: stonesoup.reader.aishub
     :show-inheritance:
 
+Kafka
+-----
+.. automodule:: stonesoup.reader.kafka
+    :show-inheritance:
+
 Image
 -----
 .. automodule:: stonesoup.reader.image
@@ -44,3 +49,9 @@ OpenSky Network
 ---------------
 .. automodule:: stonesoup.reader.opensky
     :show-inheritance:
+
+Astronomical
+------------
+.. automodule:: stonesoup.reader.astronomical
+    :show-inheritance:
+

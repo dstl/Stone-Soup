@@ -11,7 +11,7 @@ import numpy as np
 from ..base import Property, clearable_cached_property
 from .array import StateVector, CovarianceMatrix, PrecisionMatrix, StateVectors
 from .base import Type
-from .particle import Particle
+from .particle import Particle, MultiModelParticle, RaoBlackwellisedParticle
 from .numeric import Probability
 
 
@@ -73,7 +73,7 @@ class State(Type):
         new_kwargs = {
             name: getattr(state, name)
             for name in type(state).properties.keys() & target_type.properties.keys()
-            if name not in args_property_names}
+            if name not in args_property_names and name not in kwargs}
 
         new_kwargs.update(kwargs)
 
@@ -163,7 +163,7 @@ class CreatableFromState:
         if target_type is None:
             target_type = CreatableFromState.class_mapping[cls][state_type]
 
-        return State.from_state(state, *args, **kwargs, target_type=target_type)
+        return target_type.from_state(state, *args, **kwargs, target_type=target_type)
 
 
 class ASDState(Type):
@@ -617,6 +617,7 @@ class ParticleState(State):
 
     state_vector: StateVectors = Property(doc='State vectors.')
     weight: MutableSequence[Probability] = Property(default=None, doc='Weights of particles')
+    log_weight: np.ndarray = Property(default=None, doc='Log weights of particles')
     parent: 'ParticleState' = Property(default=None, doc='Parent particles')
     particle_list: MutableSequence[Particle] = Property(default=None,
                                                         doc='List of Particle objects')
@@ -625,6 +626,22 @@ class ParticleState(State):
                                                  'weighted sample covariance is then used.')
 
     def __init__(self, *args, **kwargs):
+        weight = next(
+            (val for name, val in zip(type(self).properties, args) if name == 'weight'),
+            kwargs.get('weight', None))
+        log_weight, idx = next(
+            ((val, idx) for idx, (name, val) in enumerate(zip(type(self).properties, args))
+             if name == 'log_weight'),
+            (kwargs.get('log_weight', None), None))
+
+        if weight is not None and log_weight is not None:
+            raise ValueError("Cannot provide both weight and log weight")
+        elif log_weight is None and weight is not None:
+            log_weight = np.log(np.asfarray(weight))
+            if idx is not None:
+                args[idx] = log_weight
+            else:
+                kwargs['log_weight'] = log_weight
         super().__init__(*args, **kwargs)
 
         if (self.particle_list is not None) and \
@@ -650,23 +667,57 @@ class ParticleState(State):
 
         if self.state_vector is not None and not isinstance(self.state_vector, StateVectors):
             self.state_vector = StateVectors(self.state_vector)
-        if self.weight is not None and not isinstance(self.weight, np.ndarray):
-            self.weight = np.array(self.weight)
 
     def __getitem__(self, item):
-        if self.parent:
-            p = self.parent[item]
+        if self.parent is not None:
+            parent = self.parent[item]
         else:
-            p = None
+            parent = None
 
-        particle = Particle(state_vector=self.state_vector[:, item],
-                            weight=self.weight[item],
-                            parent=p)
-        return particle
+        if self.log_weight is not None:
+            log_weight = self.log_weight[item]
+        else:
+            log_weight = None
 
-    @clearable_cached_property('state_vector', 'weight')
+        if isinstance(item, int):
+            result = Particle(state_vector=self.state_vector[:, item],
+                              weight=self.weight[item] if self.weight is not None else None,
+                              parent=parent)
+        else:
+            # Allow for Prediction/Update sub-types
+            result = type(self).from_state(self,
+                                           state_vector=self.state_vector[:, item],
+                                           log_weight=log_weight,
+                                           parent=parent)
+        return result
+
+    @classmethod
+    def from_state(cls, state: 'State', *args: Any, target_type: Optional[typing.Type] = None,
+                   **kwargs: Any) -> 'State':
+
+        # Handle default presence of both particle_list and weight once class has been created by
+        # ignoring particle_list and weight (setting to None) if not provided.
+        particle_list, particle_list_idx = next(
+            ((val, idx) for idx, (name, val) in enumerate(zip(cls.properties, args))
+             if name == 'particle_list'),
+            (kwargs.get('particle_list', None), None))
+        if particle_list_idx is None:
+            kwargs['particle_list'] = particle_list
+
+        weight, weight_idx = next(
+            ((val, idx) for idx, (name, val) in enumerate(zip(cls.properties, args))
+             if name == 'weight'),
+            (kwargs.get('weight', None), None))
+        if weight_idx is None:
+            kwargs['weight'] = weight
+
+        return super().from_state(state, *args, target_type=target_type, **kwargs)
+
+    @clearable_cached_property('state_vector', 'log_weight')
     def particles(self):
         """Sequence of individual :class:`~.Particle` objects."""
+        if self.particle_list is not None:
+            return self.particle_list
         return tuple(particle for particle in self)
 
     def __len__(self):
@@ -677,25 +728,195 @@ class ParticleState(State):
         """The number of dimensions represented by the state."""
         return self.state_vector.shape[0]
 
-    @clearable_cached_property('state_vector', 'weight')
+    @clearable_cached_property('state_vector', 'log_weight')
     def mean(self):
         """Sample mean for particles"""
         if len(self) == 1:  # No need to calculate mean
             return self.state_vector
-        return np.average(self.state_vector, axis=1, weights=np.asfarray(self.weight))
+        return np.average(self.state_vector, axis=1, weights=np.exp(self.log_weight))
 
-    @clearable_cached_property('state_vector', 'weight', 'fixed_covar')
+    @clearable_cached_property('state_vector', 'log_weight', 'fixed_covar')
     def covar(self):
         """Sample covariance matrix for particles"""
         if self.fixed_covar is not None:
             return self.fixed_covar
-        return np.cov(self.state_vector, ddof=0, aweights=np.asfarray(self.weight))
+        return np.cov(self.state_vector, ddof=0, aweights=np.exp(self.log_weight))
 
+    @weight.setter
+    def weight(self, value):
+        if value is None:
+            self.log_weight = None
+        else:
+            self.log_weight = np.log(np.asfarray(value))
+            self.__dict__['weight'] = np.asanyarray(value)
+
+    @weight.getter
+    def weight(self):
+        try:
+            return self.__dict__['weight']
+        except KeyError:
+            log_weight = self.log_weight
+            if log_weight is None:
+                return None
+            weight = Probability.from_log_ufunc(log_weight)
+            self.__dict__['weight'] = weight
+            return weight
 
 State.register(ParticleState)  # noqa: E305
+ParticleState.log_weight._clear_cached.add('weight')
 
 
-class EnsembleState(Type):
+class MultiModelParticleState(ParticleState):
+    """Multi-Model Particle State type
+
+    This is a particle state object which describes the state as a
+    distribution of particles, where each particle has an associated
+    dynamics model
+    """
+
+    dynamic_model: np.ndarray = Property(
+        default=None,
+        doc="Array of indices that identify which model is associated with each particle.")
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        if self.particle_list and isinstance(self.particle_list, list):
+            self.dynamic_model = \
+                np.array([particle.dynamic_model for particle in self.particle_list])
+
+    def __getitem__(self, item):
+        if self.parent is not None:
+            parent = self.parent[item]
+        else:
+            parent = None
+
+        if self.log_weight is not None:
+            log_weight = self.log_weight[item]
+        else:
+            log_weight = None
+
+        if self.dynamic_model is not None:
+            dynamic_model = self.dynamic_model[item]
+        else:
+            dynamic_model = None
+
+        if isinstance(item, int):
+            result = MultiModelParticle(
+                state_vector=self.state_vector[:, item],
+                weight=self.weight[item] if self.weight is not None else None,
+                parent=parent,
+                dynamic_model=dynamic_model)
+        else:
+            # Allow for Prediction/Update sub-types
+            result = type(self).from_state(self,
+                                           state_vector=self.state_vector[:, item],
+                                           log_weight=log_weight,
+                                           parent=parent,
+                                           dynamic_model=dynamic_model)
+        return result
+
+
+class RaoBlackwellisedParticleState(ParticleState):
+
+    model_probabilities: np.ndarray = Property(
+        default=None,
+        doc="2d NumPy array containing probability of particle belong to particular model. "
+            "Shape (n-models, m-particles)."
+    )
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        if self.particle_list and isinstance(self.particle_list, list):
+            self.model_probabilities = \
+                np.column_stack([particle.model_probabilities for particle in self.particle_list])
+
+    def __getitem__(self, item):
+        if self.parent is not None:
+            parent = self.parent[item]
+        else:
+            parent = None
+
+        if self.log_weight is not None:
+            log_weight = self.log_weight[item]
+        else:
+            log_weight = None
+
+        if self.model_probabilities is not None:
+            model_probabilities = self.model_probabilities[:, item]
+        else:
+            model_probabilities = None
+
+        if isinstance(item, int):
+            result = RaoBlackwellisedParticle(
+                state_vector=self.state_vector[:, item],
+                weight=self.weight[item] if self.weight is not None else None,
+                parent=parent,
+                model_probabilities=model_probabilities)
+        else:
+            # Allow for Prediction/Update sub-types
+            result = type(self).from_state(self,
+                                           state_vector=self.state_vector[:, item],
+                                           log_weight=log_weight,
+                                           parent=parent,
+                                           model_probabilities=model_probabilities)
+        return result
+
+
+class BernoulliParticleState(ParticleState):
+    """Bernoulli Particle State type
+
+    This is a particle state object that describes the target
+    as a distribution of particles and an estimated existence
+    probability according to the Bernoulli particle filter [1]_.
+
+    References
+    ----------
+    .. [1] Ristic, Branko & Vo, Ba-Toung & Vo, Ba-Ngu & Farina, Alfonso, A
+       Tutorial on Bernoulli Filters: Theory, Implementation and Applications,
+       2013, IEEE Transactions on Signal Processing, 61(13), 3406-3430.
+
+    """
+
+    existence_probability: Probability = Property(
+        default=None,
+        doc="Target existence probability estimate"
+    )
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+
+    def __getitem__(self, item):
+        if self.parent is not None:
+            parent = self.parent[item]
+        else:
+            parent = None
+
+        if self.weight is not None:
+            weight = self.weight[item]
+        else:
+            weight = None
+
+        if self.existence_probability is not None:
+            existence_probability = self.existence_probability
+        else:
+            existence_probability = None
+
+        if isinstance(item, int):
+            result = Particle(state_vector=self.state_vector[:, item],
+                              weight=weight,
+                              parent=parent)
+        else:
+            # Allow for Prediction/Update sub-types
+            result = type(self).from_state(
+                self,
+                state_vector=self.state_vector[:, item],
+                parent=parent,
+                particle_list=None,
+                existence_probability=existence_probability)
+        return result
+
+
+class EnsembleState(State):
     r"""Ensemble State type
 
     This is an Ensemble state object which describes the system state as a
@@ -779,11 +1000,6 @@ class EnsembleState(Type):
         return ensemble
 
     @property
-    def ndim(self):
-        """Number of dimensions in state vectors"""
-        return np.shape(self.state_vector)[0]
-
-    @property
     def num_vectors(self):
         """Number of columns in state ensemble"""
         return np.shape(self.state_vector)[1]
@@ -804,9 +1020,6 @@ class EnsembleState(Type):
         some EnKF algorithms"""
         return ((self.state_vector-np.tile(self.mean, self.num_vectors))
                 / np.sqrt(self.num_vectors - 1))
-
-
-State.register(EnsembleState)  # noqa: E305
 
 
 class CategoricalState(State):

@@ -59,7 +59,8 @@ timestep_size = datetime.timedelta(seconds=5)
 number_of_steps = 20
 birth_rate = 0.3
 death_probability = 0.05
-initial_state = GaussianState(initial_state_mean, initial_state_covariance)
+start_time = datetime.datetime.now().replace(microsecond=0)
+initial_state = GaussianState(initial_state_mean, initial_state_covariance, start_time)
 
 # %%
 # Create the transition model - default set to 2d nearly-constant velocity with small (0.05)
@@ -213,9 +214,13 @@ for time, ctracks in tracker:
     tracks.update(ctracks)
 
 # %%
-from stonesoup.plotter import Plotterly
+# sphinx_gallery_thumbnail_path = '_static/sphinx_gallery/Tutorial_10.PNG'
 
-plotter = Plotterly()
+from stonesoup.plotter import AnimatedPlotterly
+
+timesteps = [start_time + timestep_size*k for k in range(number_of_steps)]
+
+plotter = AnimatedPlotterly(timesteps, tail_length=1)
 plotter.plot_ground_truths(groundtruth, mapping=[0, 2])
 plotter.plot_measurements(detections, mapping=[0, 2])
 plotter.plot_tracks(tracks, mapping=[0, 2])

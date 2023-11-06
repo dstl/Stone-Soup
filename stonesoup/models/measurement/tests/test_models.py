@@ -26,7 +26,7 @@ def h1d(state_vector, pos_map, translation_offset, rotation_offset):
     # Get rotation matrix
     theta_x, theta_y, theta_z = - rotation_offset[:, 0]
 
-    rotation_matrix = rotz(theta_z) @ roty(theta_y) @ rotx(theta_x)
+    rotation_matrix = rotx(theta_x) @ roty(theta_y) @ rotz(theta_z)
     xyz_rot = rotation_matrix @ xyz
 
     _, phi, _ = cart2sphere(*xyz_rot)
@@ -43,7 +43,7 @@ def h2d(state_vector, pos_map, translation_offset, rotation_offset):
     # Get rotation matrix
     theta_x, theta_y, theta_z = - rotation_offset[:, 0]
 
-    rotation_matrix = rotz(theta_z) @ roty(theta_y) @ rotx(theta_x)
+    rotation_matrix = rotx(theta_x) @ roty(theta_y) @ rotz(theta_z)
     xyz_rot = rotation_matrix @ xyz
 
     rho, phi, _ = cart2sphere(*xyz_rot)
@@ -58,7 +58,7 @@ def h3d(state_vector, pos_map,  translation_offset, rotation_offset):
     theta_x, theta_y, theta_z = - rotation_offset[:, 0]
     theta_y = - theta_y
 
-    rotation_matrix = rotz(theta_z) @ roty(theta_y) @ rotx(theta_x)
+    rotation_matrix = rotx(theta_x) @ roty(theta_y) @ rotz(theta_z)
     xyz_rot = rotation_matrix @ xyz
 
     rho, phi, theta = cart2sphere(*xyz_rot)
@@ -72,7 +72,7 @@ def hbearing(state_vector, pos_map, translation_offset, rotation_offset):
     # Get rotation matrix
     theta_x, theta_y, theta_z = - rotation_offset[:, 0]
 
-    rotation_matrix = rotz(theta_z) @ roty(theta_y) @ rotx(theta_x)
+    rotation_matrix = rotx(theta_x) @ roty(theta_y) @ rotz(theta_z)
     xyz_rot = rotation_matrix @ xyz
 
     _, phi, theta = cart2sphere(*xyz_rot)
@@ -91,9 +91,8 @@ def hbearing(state_vector, pos_map, translation_offset, rotation_offset):
      CartesianToElevationBearingRangeRate]
 )
 def test_none_covar(model_class):
-    model = model_class(ndim_state=0, mapping=[0, 1, 2], noise_covar=None)
-    with pytest.raises(ValueError, match="Cannot generate pdf from None-type covariance"):
-        model.pdf(State([0]), State([0]))
+    with pytest.raises(ValueError, match="Covariance should have ndim of 2: got 0"):
+        model_class(ndim_state=0, mapping=[0, 1, 2], noise_covar=None)
 
 
 @pytest.mark.parametrize(
@@ -224,6 +223,14 @@ def test_models(h, ModelClass, state_vec, R,
                        translation_offset=translation_offset,
                        rotation_offset=rotation_offset)
 
+    R_flat = R.flat  # Create flat 1-D array of R
+    with pytest.raises(ValueError, match="Covariance should have ndim of 2: got 1"):
+        ModelClass(ndim_state=ndim_state,
+                   mapping=mapping,
+                   noise_covar=R_flat,
+                   translation_offset=translation_offset,
+                   rotation_offset=rotation_offset)
+
     # Project a state through the model
     # (without noise)
     meas_pred_wo_noise = model.function(state)
@@ -338,7 +345,81 @@ position_measurement_sets = [((0, 1, 0, 0, 0, 0), (1, 0, 0, 0, 0, 0),
                              ((0, 1, 0, 0, 0, 0), (10, 0, 0, 0, -10, 0),
                               (-np.pi / 4, 0, np.sqrt(200), -1 / np.sqrt(2))),
                              ((0, 0, 0, 0, 0, 1), (0, 0, 0, 0, 10, 0),
-                              (0, 0, 10, -1)),
+                              (0, 0, 10, -1)),    # original tests up to here
+                             ((0, 2, 0, 0, 0, 1), (1, 2, 0, 0, 1, 1),
+                              (np.pi/4-np.arctan(0.5), 0, np.sqrt(2), 0)),
+                             ((0, 2, 0, 0, 0, -1), (1, 2, 0, 0, 1, -1),
+                              (np.pi/4+np.arctan(0.5), 0, np.sqrt(2), 0)),
+                             ((0, -2, 0, 0, 0, 1), (1, -2, 0, 0, 1, 1),
+                              (np.pi/4+np.arctan(0.5), np.pi, np.sqrt(2), 0)),
+                             ((0, -2, 0, 0, 0, -1), (1, -2, 0, 0, 1, -1),
+                              (np.pi/4-np.arctan(0.5), np.pi, np.sqrt(2), 0)),
+                             ((0, 2, 0, 0, 0, 1), (1, 2, 0, 0, -1, 1),
+                              (-np.pi/4-np.arctan(0.5), 0, np.sqrt(2), 0)),
+                             ((0, 2, 0, 0, 0, -1), (1, 2, 0, 0, -1, -1),
+                              (-np.pi/4+np.arctan(0.5), 0, np.sqrt(2), 0)),
+                             ((0, -2, 0, 0, 0, 1), (1, -2, 0, 0, -1, 1),
+                              (-np.pi/4+np.arctan(0.5), np.pi, np.sqrt(2), 0)),
+                             ((0, -2, 0, 0, 0, -1), (1, -2, 0, 0, -1, -1),
+                              (-np.pi/4-np.arctan(0.5), np.pi, np.sqrt(2), 0)),
+                             ((0, 2, 0, 0, 0, 1), (-1, 2, 0, 0, 1, 1),
+                              (np.pi/4+np.arctan(0.5), np.pi, np.sqrt(2), 0)),
+                             ((0, 2, 0, 0, 0, -1), (-1, 2, 0, 0, 1, -1),
+                              (np.pi/4-np.arctan(0.5), np.pi, np.sqrt(2), 0)),
+                             ((0, -2, 0, 0, 0, 1), (-1, -2, 0, 0, 1, 1),
+                              (np.pi/4-np.arctan(0.5), 0, np.sqrt(2), 0)),
+                             ((0, -2, 0, 0, 0, -1), (-1, -2, 0, 0, 1, -1),
+                              (np.pi/4+np.arctan(0.5), 0, np.sqrt(2), 0)),
+                             ((0, 2, 0, 0, 0, 1), (-1, 2, 0, 0, -1, 1),
+                              (-np.pi/4+np.arctan(0.5), np.pi, np.sqrt(2), 0)),
+                             ((0, 2, 0, 0, 0, -1), (-1, 2, 0, 0, -1, -1),
+                              (-np.pi/4-np.arctan(0.5), np.pi, np.sqrt(2), 0)),
+                             ((0, -2, 0, 0, 0, 1), (-1, -2, 0, 0, -1, 1),
+                              (-np.pi/4-np.arctan(0.5), 0, np.sqrt(2), 0)),
+                             ((0, -2, 0, 0, 0, -1), (-1, -2, 0, 0, -1, -1),
+                              (-np.pi/4+np.arctan(0.5), 0, np.sqrt(2), 0)),
+                             ((0, 2, 0, 1, 0, 0), (1, 2, 1, 1, 0, 0),
+                              (0, np.pi / 4 - np.arctan(0.5), np.sqrt(2), 0)),
+                             ((0, 2, 0, -1, 0, 0), (1, 2, 1, -1, 0, 0),
+                              (0, np.pi / 4 + np.arctan(0.5), np.sqrt(2), 0)),
+                             ((0, -2, 0, 1, 0, 0), (1, -2, 1, 1, 0, 0),
+                              (0, -np.pi*3/4 + np.arctan(0.5), np.sqrt(2), 0)),
+                             ((0, -2, 0, -1, 0, 0), (1, -2, 1, -1, 0, 0),
+                              (0, -np.pi*3/4-np.arctan(0.5), np.sqrt(2), 0)),
+                             ((0, 2, 0, 1, 0, 0), (1, 2, -1, 1, 0, 0),
+                              (0, -np.pi/4-np.arctan(0.5), np.sqrt(2), 0)),
+                             ((0, 2, 0, -1, 0, 0), (1, 2, -1, -1, 0, 0),
+                              (0, -np.pi/4+np.arctan(0.5), np.sqrt(2), 0)),
+                             ((0, -2, 0, 1, 0, 0), (1, -2, -1, 1, 0, 0),
+                              (0, np.pi*3/4+np.arctan(0.5), np.sqrt(2), 0)),
+                             ((0, -2, 0, -1, 0, 0), (1, -2, -1, -1, 0, 0),
+                              (0, np.pi*3/4-np.arctan(0.5), np.sqrt(2), 0)),
+                             ((0, 2, 0, 1, 0, 0), (-1, 2, 1, 1, 0, 0),
+                              (0, np.pi*3/4-np.arctan(0.5), np.sqrt(2), 0)),
+                             ((0, 2, 0, -1, 0, 0), (-1, 2, 1, -1, 0, 0),
+                              (0, np.pi*3/4+np.arctan(0.5), np.sqrt(2), 0)),
+                             ((0, -2, 0, 1, 0, 0), (-1, -2, 1, 1, 0, 0),
+                              (0, -np.pi/4+np.arctan(0.5), np.sqrt(2), 0)),
+                             ((0, -2, 0, -1, 0, 0), (-1, -2, 1, -1, 0, 0),
+                              (0, -np.pi/4-np.arctan(0.5), np.sqrt(2), 0)),
+                             ((0, 2, 0, 1, 0, 0), (-1, 2, -1, 1, 0, 0),
+                              (0, -np.pi*3/4-np.arctan(0.5), np.sqrt(2), 0)),
+                             ((0, 2, 0, -1, 0, 0), (-1, 2, -1, -1, 0, 0),
+                              (0, -np.pi*3/4+np.arctan(0.5), np.sqrt(2), 0)),
+                             ((0, -2, 0, 1, 0, 0), (-1, -2, -1, 1, 0, 0),
+                              (0, np.pi/4+np.arctan(0.5), np.sqrt(2), 0)),
+                             ((0, -2, 0, -1, 0, 0), (-1, -2, -1, -1, 0, 0),
+                              (0, np.pi/4-np.arctan(0.5), np.sqrt(2), 0)),
+                             ((1, -1, 0, 1, 0, 1), (0, -1, 0, 1, 0, 1),
+                              (-np.arccos((np.sqrt((np.cos(np.arctan(1/np.sqrt(2)))**2)+1)) /
+                                          np.sqrt(2)),
+                               np.pi/2-np.arctan(np.cos(np.arctan(1/np.sqrt(2)))), 1, 0)),
+                             ((0, 1, 0, 1, 0, 1), (1, 1, 0, 1, 0, 1),
+                              (-np.arccos((np.sqrt((np.cos(np.arctan(1/np.sqrt(2)))**2)+1)) /
+                                          np.sqrt(2)),
+                               -(np.pi/2-np.arctan(np.cos(np.arctan(1/np.sqrt(2))))), 1, 0)),
+                             ((0, 1, 0, 0, 0, 0), (1, 1, 1, 0, 1, 0),
+                              (np.arctan(1/np.sqrt(2)), np.pi/4, np.sqrt(3), 0))
                              ]
 
 
@@ -548,7 +629,7 @@ def test_rangeratemodels(h, modelclass, state_vec, ndim_state, pos_mapping, vel_
         return model.function(x)
 
     H = compute_jac(fun, state)
-    assert np.array_equal(H, model.jacobian(state))
+    assert np.allclose(H, model.jacobian(state), atol=5e-4, rtol=1e-5)
 
     # Check Jacobian has proper dimensions
     assert H.shape == (model.ndim_meas, ndim_state)
@@ -853,6 +934,46 @@ def test_rangeratemodels_with_particles(h, modelclass, state_vec, ndim_state, po
             cov=noise_covar)
 
 
+def test_rangeratemodel_analytic_jacobian():
+    """Test the analytic Jacobian of CartesianToElevationBearingRangeRate.
+
+    """
+    noise_covar = np.zeros((4, 4))
+    mapping = np.array([0, 2, 4])
+    velocity_mapping = np.array([1, 3, 5])
+    measure_model1 = CartesianToElevationBearingRangeRate(
+        ndim_state=6, mapping=mapping, velocity_mapping=velocity_mapping,
+        noise_covar=noise_covar)
+
+    measure_model2 = CartesianToElevationBearingRangeRate(
+        ndim_state=6, mapping=mapping, velocity_mapping=velocity_mapping,
+        noise_covar=noise_covar,
+        translation_offset=[[-30], [50], [14]],
+        rotation_offset=np.array([[-0.4], [-0.5], [-0.2]]))
+
+    measure_model3 = CartesianToElevationBearingRangeRate(
+        ndim_state=6, mapping=mapping, velocity_mapping=velocity_mapping,
+        noise_covar=noise_covar,
+        translation_offset=[[-330], [-350], [-104]],
+        rotation_offset=np.array([[0.1], [0.25], [0.75]]))
+
+    for state in [State(StateVectors([[1], [2], [3], [4], [5], [6]])),
+                  State(StateVectors([[-20], [2], [3.46], [4], [-28], [22]])),
+                  State(StateVectors([[100], [46], [-3.5], [-184], [45], [11]])),
+                  State(StateVectors([[31.02], [2.156], [-13], [4], [-5], [6]])),
+                  State(StateVectors([[142], [-23], [43], [-1.4], [33.5], [2.6]]))]:
+
+        for measure_model in [measure_model1, measure_model2, measure_model3]:
+            # Calculate numerically
+            jac0 = compute_jac(measure_model.function, state)
+
+            # Calculate using the analytic expression
+            jac = measure_model.jacobian(state)
+
+            # Not going to be exact since jac0 is an approximation
+            assert np.allclose(jac, jac0, atol=5e-4, rtol=1e-5)
+
+
 def test_inverse_function():
     measure_model = CartesianToElevationBearingRangeRate(
         ndim_state=6,
@@ -883,10 +1004,10 @@ def test_binning():
                                               ndim_state=6,
                                               mapping=[0, 2, 4],
                                               velocity_mapping=[1, 3, 5],
-                                              noise_covar=np.array([np.pi/18,
-                                                                    np.pi/18,
-                                                                    100,
-                                                                    10]))
+                                              noise_covar=np.diag([np.pi/18,
+                                                                   np.pi/18,
+                                                                   100,
+                                                                   10]))
 
     measured = measurement_model.function(real_state, noise=True)
     assert ((measured[2, 0]-measurement_model.range_res/2) /
@@ -903,10 +1024,10 @@ def test_binning_pdf():
                                               ndim_state=6,
                                               mapping=[0, 2, 4],
                                               velocity_mapping=[1, 3, 5],
-                                              noise_covar=np.array([np.pi/18,
-                                                                    np.pi/18,
-                                                                    100,
-                                                                    10]))
+                                              noise_covar=np.diag([np.pi/18,
+                                                                   np.pi/18,
+                                                                   100,
+                                                                   10]))
 
     measured = measurement_model.function(real_state, noise=True)
     pdf = measurement_model.pdf(State(measured), real_state)
@@ -924,24 +1045,19 @@ def test_binning_pdf():
 
 
 def test_binning_integral():
-    measurement_model = RangeRangeRateBinning(range_res=None,
-                                              range_rate_res=None,
-                                              ndim_state=None,
-                                              mapping=[],
-                                              velocity_mapping=[],
-                                              noise_covar=None)
 
     mean = 33.33333
     a = 40
     b = 30
     cov = 10
     expected_integral = 0.8365720412132509
-    assert approx(measurement_model._gaussian_integral(a, b, mean, cov), 0.02) == expected_integral
+    assert approx(RangeRangeRateBinning._gaussian_integral(a, b, mean, cov), 0.02) == \
+           expected_integral
 
     bin_sizes = 10
     state_vector1 = 35
     expected_pdf = 0.08365720412132509
-    assert (approx(measurement_model._binned_pdf(state_vector1, mean, bin_sizes, cov)) ==
+    assert (approx(RangeRangeRateBinning._binned_pdf(state_vector1, mean, bin_sizes, cov)) ==
             expected_pdf)
 
 
@@ -965,7 +1081,7 @@ def test_noiseless_binning_predictions(sensor_state, target_state, expected_meas
         ndim_state=6,
         mapping=pos_mapping,
         velocity_mapping=vel_mapping,
-        noise_covar=np.array([0., 0., 0., 0.]),
+        noise_covar=np.diag([0., 0., 0., 0.]),
         translation_offset=sensor_state[pos_mapping],
         rotation_offset=orientation,
         velocity=sensor_velocity)
@@ -981,7 +1097,7 @@ def test_compare_rrrb_to_ctebrr():
         ndim_state=6,
         mapping=[0, 2, 4],
         velocity_mapping=[1, 3, 5],
-        noise_covar=np.array([1., 1., 1., 1.]))
+        noise_covar=np.diag([1., 1., 1., 1.]))
 
     state = State([50.000005, 50.000005,
                    0., 0.,
@@ -1009,10 +1125,7 @@ def test_calc_pdf():
                                               ndim_state=6,
                                               mapping=[0, 2, 4],
                                               velocity_mapping=[1, 3, 5],
-                                              noise_covar=np.array([1,
-                                                                    1,
-                                                                    10,
-                                                                    10]))
+                                              noise_covar=np.diag([1., 1., 10., 10.]))
 
     act_pdf = measurement_model.pdf(State([0., 0., 10035.0, 135.0]), real_state)
 

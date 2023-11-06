@@ -12,12 +12,13 @@ from ...functions import cart2sphere, rotx, roty, rotz, mod_bearing
 from ...models.measurement.base import MeasurementModel
 from ...models.measurement.nonlinear import \
     (CartesianToBearingRange, CartesianToElevationBearingRange,
-     CartesianToBearingRangeRate, CartesianToElevationBearingRangeRate)
+     CartesianToBearingRangeRate, CartesianToElevationBearingRangeRate,
+     Cartesian2DToBearing)
 from ...sensor.action.dwell_action import DwellActionsGenerator
 from ...sensor.actionable import ActionableProperty
 from ...sensor.sensor import Sensor, SimpleSensor
 from ...types.array import CovarianceMatrix
-from ...types.detection import TrueDetection
+from ...types.detection import TrueDetection, Detection
 from ...types.groundtruth import GroundTruthState
 from ...types.numeric import Probability
 from ...types.state import StateVector
@@ -61,6 +62,59 @@ class RadarBearingRange(SimpleSensor):
         measurement_vector = self.measurement_model.function(state, noise=False)
         true_range = measurement_vector[1, 0]  # Bearing(0), Range(1)
         return true_range <= self.max_range
+
+    def is_clutter_detectable(self, state: Detection) -> bool:
+        return state.state_vector[1, 0] <= self.max_range
+
+
+class RadarBearing(SimpleSensor):
+    """A simple radar sensor that generates measurements of targets, using a
+    :class:`~.Cartesian2DToBearing` model, relative to its position.
+
+    Note
+    ----
+    The current implementation of this class assumes a 2D Cartesian plane.
+
+    """
+
+    ndim_state: int = Property(
+        default=2,
+        doc="Number of state dimensions. This is utilised by (and follows in format) "
+            "the underlying :class:`~.Cartesian2DToBearing` model")
+    position_mapping: Tuple[int, int] = Property(
+        doc="Mapping between the target's state space and the sensor's "
+            "measurement capability")
+    noise_covar: CovarianceMatrix = Property(
+        doc="The sensor noise covariance matrix. This is utilised by "
+            "(and follows in format) the underlying "
+            ":class:`~.Cartesian2DToBearing` model")
+    max_range: float = Property(
+        default=np.inf,
+        doc="The maximum detection range of the radar (in meters)")
+
+    @property
+    def measurement_model(self):
+        return Cartesian2DToBearing(
+            ndim_state=self.ndim_state,
+            mapping=self.position_mapping,
+            noise_covar=self.noise_covar,
+            translation_offset=self.position,
+            rotation_offset=self.orientation)
+
+    def is_detectable(self, state: GroundTruthState) -> bool:
+        tmp_meas_model = CartesianToBearingRange(
+            ndim_state=self.ndim_state,
+            mapping=self.position_mapping,
+            noise_covar=self.noise_covar,
+            translation_offset=self.position,
+            rotation_offset=self.orientation
+        )
+        measurement_vector = tmp_meas_model.function(state, noise=False)
+        true_range = measurement_vector[1, 0]  # Bearing(0), Range(1)
+        return true_range <= self.max_range
+
+    def is_clutter_detectable(self, state: Detection) -> bool:
+        return True
 
 
 class RadarRotatingBearingRange(RadarBearingRange):
@@ -122,6 +176,100 @@ class RadarRotatingBearingRange(RadarBearingRange):
 
     def is_detectable(self, state: GroundTruthState) -> bool:
         measurement_vector = self.measurement_model.function(state, noise=False)
+
+        # Check if state falls within sensor's FOV
+        fov_min = -self.fov_angle / 2
+        fov_max = +self.fov_angle / 2
+        bearing_t = measurement_vector[0, 0]
+        true_range = measurement_vector[1, 0]
+
+        return fov_min <= bearing_t <= fov_max and true_range <= self.max_range
+
+    def is_clutter_detectable(self, state: Detection) -> bool:
+        measurement_vector = state.state_vector
+
+        # Check if state falls within sensor's FOV
+        fov_min = -self.fov_angle / 2
+        fov_max = +self.fov_angle / 2
+        bearing_t = measurement_vector[0, 0]
+        true_range = measurement_vector[1, 0]
+
+        return fov_min <= bearing_t <= fov_max and true_range <= self.max_range
+
+
+class RadarRotatingBearing(RadarBearing):
+    """A simple rotating radar, with set field-of-view (FOV) angle, range and\
+     rotations per minute (RPM), that generates measurements of targets, using\
+     a :class:`~.Cartesian2DToBearing` model, relative to its\
+     position.
+
+    Note
+    ----
+    * The current implementation of this class assumes a 2D Cartesian plane.
+
+    """
+
+    dwell_centre: StateVector = ActionableProperty(
+        doc="A `state_vector` property that describes the rotation angle of the centre of the "
+            "sensor's current FOV (i.e. the dwell centre) relative to the positive x-axis of the "
+            "sensor frame/orientation. The angle is positive if the rotation is in the "
+            "counter-clockwise direction when viewed by an observer looking down the z-axis of "
+            "the sensor frame, towards the origin. Angle units are in radians",
+        generator_cls=DwellActionsGenerator)
+    rpm: float = Property(
+        doc="The number of antenna rotations per minute (RPM)")
+    max_range: float = Property(
+        default=np.inf,
+        doc="The maximum detection range of the radar (in meters)")
+    fov_angle: float = Property(
+        doc="The radar field of view (FOV) angle (in radians).")
+
+    @property
+    def measurement_model(self):
+        antenna_heading = self.orientation[2, 0] + self.dwell_centre[0, 0]
+        # Set rotation offset of underlying measurement model
+        rot_offset = \
+            StateVector(
+                [[self.orientation[0, 0]],
+                 [self.orientation[1, 0]],
+                 [antenna_heading]])
+
+        return Cartesian2DToBearing(
+            ndim_state=self.ndim_state,
+            mapping=self.position_mapping,
+            noise_covar=self.noise_covar,
+            translation_offset=self.position,
+            rotation_offset=rot_offset)
+
+    def measure(self, ground_truths: Set[GroundTruthState], noise: Union[np.ndarray, bool] = True,
+                **kwargs) -> Set[TrueDetection]:
+
+        if self.timestamp is None:
+            # Read timestamp from ground truth
+            try:
+                self.timestamp = next(iter(ground_truths)).timestamp
+            except StopIteration:
+                # No ground truths to get timestamp from
+                return set()
+
+        return super().measure(ground_truths, noise, **kwargs)
+
+    def is_detectable(self, state: GroundTruthState) -> bool:
+        antenna_heading = self.orientation[2, 0] + self.dwell_centre[0, 0]
+        # Set rotation offset of underlying measurement model
+        rot_offset = \
+            StateVector(
+                [[self.orientation[0, 0]],
+                 [self.orientation[1, 0]],
+                 [antenna_heading]])
+        tmp_meas_model = CartesianToBearingRange(
+            ndim_state=self.position_mapping,
+            mapping=self.position_mapping,
+            noise_covar=self.noise_covar,
+            translation_offset=self.position,
+            rotation_offset=rot_offset
+        )
+        measurement_vector = tmp_meas_model.function(state, noise=False)
 
         # Check if state falls within sensor's FOV
         fov_min = -self.fov_angle / 2

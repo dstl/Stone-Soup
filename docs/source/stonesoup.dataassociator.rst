@@ -7,6 +7,12 @@ Data Association
 .. automodule:: stonesoup.dataassociator.base
     :show-inheritance:
 
+General Association
+-------------------
+
+.. automodule:: stonesoup.dataassociator.general
+    :show-inheritance:
+
 Neighbour
 ---------
 
@@ -29,4 +35,10 @@ Trees
 --------------------------
 
 .. automodule:: stonesoup.dataassociator.tree
+    :show-inheritance:
+
+Multi-Frame Assignment
+----------------------
+
+.. automodule:: stonesoup.dataassociator.mfa
     :show-inheritance:

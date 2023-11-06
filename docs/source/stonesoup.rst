@@ -46,7 +46,9 @@ Algorithm Components
     stonesoup.mixturereducer
     stonesoup.models
     stonesoup.predictor
+    stonesoup.regulariser
     stonesoup.resampler
+    stonesoup.sampler
     stonesoup.smoother
     stonesoup.updater
 

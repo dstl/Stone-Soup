@@ -33,8 +33,10 @@ class GaussianMixtureReducer(MixtureReducer):
     pp. 4091–4104, 2006..
     """
 
-    prune_threshold: float = Property(default=1e-9, doc='Threshold for pruning')
-    merge_threshold: float = Property(default=16, doc='Threshold for merging')
+    prune_threshold: float = Property(default=1e-9, doc='Mixture component weight '
+                                      'threshold for pruning')
+    merge_threshold: float = Property(default=16, doc='Squared Mahalanobis distance '
+                                      'threshold for merging')
     max_number_components: int = Property(default=np.iinfo(np.int64).max,
                                           doc='Maximum number of components to keep '
                                               'in the Gaussian mixture')
@@ -124,7 +126,7 @@ class GaussianMixtureReducer(MixtureReducer):
             Merged Gaussian component
 
         """
-        weight_sum = component_1.weight+component_2.weight
+        weight_sum = component_1.weight + component_2.weight
         w1 = component_1.weight / weight_sum
         w2 = component_2.weight / weight_sum
         merged_mean = component_1.mean*w1 + component_2.mean*w2
@@ -132,14 +134,13 @@ class GaussianMixtureReducer(MixtureReducer):
         mu1_minus_m2 = component_1.mean - component_2.mean
         merged_covar = merged_covar + \
             mu1_minus_m2*mu1_minus_m2.T*w1*w2
-        merged_weight = component_1.weight + component_2.weight
-        if merged_weight > 1:
-            merged_weight = 1
+        if weight_sum > 1:
+            weight_sum = 1
         if isinstance(component_1, TaggedWeightedGaussianState):
             merged_component = TaggedWeightedGaussianState(
                 state_vector=merged_mean,
                 covar=merged_covar,
-                weight=merged_weight,
+                weight=weight_sum,
                 tag=component_1.tag,
                 timestamp=component_1.timestamp
             )
@@ -147,7 +148,7 @@ class GaussianMixtureReducer(MixtureReducer):
             merged_component = WeightedGaussianState(
                 state_vector=merged_mean,
                 covar=merged_covar,
-                weight=merged_weight,
+                weight=weight_sum,
                 timestamp=component_1.timestamp
             )
 

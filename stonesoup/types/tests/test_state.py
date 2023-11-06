@@ -13,7 +13,8 @@ from ..particle import Particle
 from ..state import CreatableFromState
 from ..state import State, GaussianState, ParticleState, EnsembleState, \
     StateMutableSequence, WeightedGaussianState, SqrtGaussianState, CategoricalState, \
-    CompositeState, InformationState, ASDState, ASDGaussianState, ASDWeightedGaussianState
+    CompositeState, InformationState, ASDState, ASDGaussianState, ASDWeightedGaussianState, \
+    MultiModelParticleState, RaoBlackwellisedParticleState, BernoulliParticleState
 from ...base import Property
 
 
@@ -239,6 +240,42 @@ def test_particlestate():
 
     with pytest.raises(ValueError):
         ParticleState(None, particle_list=particle_list3, timestamp=timestamp)
+
+
+@pytest.mark.parametrize(
+    'particle_class', [ParticleState, MultiModelParticleState, RaoBlackwellisedParticleState,
+                       BernoulliParticleState])
+def test_particle_get_item(particle_class):
+    with pytest.raises(TypeError):
+        particle_class()
+
+    # Create 10 1d particles: [[0,0,0,0,0,100,100,100,100,100]]
+    # with equal weight
+    num_particles = 10
+    weight = Probability(1/num_particles)
+    particles = StateVectors(np.concatenate(
+        (np.tile([[0]], num_particles//2), np.tile([[100]], num_particles//2)), axis=1))
+    weights = np.tile(weight, num_particles)
+    timestamp = datetime.datetime.now()
+
+    # Test state without timestamp with weight and parent
+    parent_state = particle_class(particles, weight=weights)
+    state = particle_class(particles, parent=parent_state, weight=weights)
+    assert np.allclose(state[0].state_vector, StateVector([[0]]))
+    assert np.allclose(state[-1].state_vector, StateVector([[100]]))
+
+    assert pytest.approx(1/num_particles) == state[0].weight
+    assert pytest.approx(1/num_particles) == state[-1].weight
+
+    assert np.allclose(state[0].parent.state_vector, state[0].state_vector)
+    assert np.allclose(state[-1].parent.state_vector, state[-1].state_vector)
+
+    # Single particle, timestamp only
+    state = particle_class([[0], [1]], timestamp=timestamp)
+    assert state.ndim == 2
+    assert np.array_equal(state.mean, state[0].state_vector)
+    assert np.allclose(state[0].state_vector, StateVector([[0], [1]]))
+    assert np.allclose(state[-1].state_vector, StateVector([[0], [1]]))
 
 
 def test_particlestate_weighted():

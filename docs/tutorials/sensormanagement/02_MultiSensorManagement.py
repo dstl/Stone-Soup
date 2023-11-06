@@ -54,7 +54,7 @@ import random
 from ordered_set import OrderedSet
 from datetime import datetime, timedelta
 
-start_time = datetime.now()
+start_time = datetime.now().replace(microsecond=0)
 
 from stonesoup.models.transition.linear import CombinedLinearGaussianTransitionModel, ConstantVelocity
 from stonesoup.types.groundtruth import GroundTruthPath, GroundTruthState
@@ -83,19 +83,20 @@ yps = range(0, 100, 10)  # y value for prior state
 truths = OrderedSet()
 ntruths = 3  # number of ground truths in simulation
 time_max = 50  # timestamps the simulation is observed over
+timesteps = [start_time + timedelta(seconds=k) for k in range(time_max)]
 
 xdirection = 1
 ydirection = 1
 
 # Generate ground truths
 for j in range(0, ntruths):
-    truth = GroundTruthPath([GroundTruthState([0, xdirection, yps[j], ydirection], timestamp=start_time)],
-                            id=f"id{j}")
+    truth = GroundTruthPath([GroundTruthState([0, xdirection, yps[j], ydirection],
+                                              timestamp=timesteps[0])], id=f"id{j}")
 
     for k in range(1, time_max):
         truth.append(
             GroundTruthState(transition_model.function(truth[k - 1], noise=True, time_interval=timedelta(seconds=1)),
-                             timestamp=start_time + timedelta(seconds=k)))
+                             timestamp=timesteps[k]))
     truths.add(truth)
 
     xdirection *= -1
@@ -103,13 +104,13 @@ for j in range(0, ntruths):
         ydirection *= -1
 
 # %%
-# Plot the ground truths. This is done using the :class:`~.Plotterly` class from Stone Soup.
+# Plot the ground truths. This is done using the :class:`~.AnimatedPlotterly` class from Stone Soup.
 
-from stonesoup.plotter import Plotterly
+from stonesoup.plotter import AnimatedPlotterly
 
 # Stonesoup plotter requires sets not lists
 
-plotter = Plotterly()
+plotter = AnimatedPlotterly(timesteps, tail_length=1)
 plotter.plot_ground_truths(truths, [0, 2])
 plotter.fig
 
@@ -306,12 +307,10 @@ data_associator = GNNWith2DAssignment(hypothesiser)
 # :class:`~.ChangeDwellAction`, selected at random.
 
 from ordered_set import OrderedSet
+from collections import defaultdict
+import copy
 
-# Generate list of timesteps from ground truth timestamps
-timesteps = []
-for state in truths[0]:
-    timesteps.append(state.timestamp)
-
+sensor_history_A = defaultdict(dict)
 for timestep in timesteps[1:]:
 
     # Generate chosen configuration
@@ -326,6 +325,7 @@ for timestep in timesteps[1:]:
 
     for sensor in sensor_setA:
         sensor.act(timestep)
+        sensor_history_A[timestep][sensor] = copy.copy(sensor)
 
         # Observe this ground truth
         measurementsA |= sensor.measure(OrderedSet(truth[timestep] for truth in truths), noise=True)
@@ -343,12 +343,61 @@ for timestep in timesteps[1:]:
 
 # %%
 # Plot ground truths, tracks and uncertainty ellipses for each target. The positions of the sensors are indicated
-# by black x markers.
+# by black x markers. This uses the Stone Soup
+# :class:`~.AnimatedPlotterly`, with added code to plot the field of view of the sensor.
 
-plotterA = Plotterly()
+import plotly.graph_objects as go
+from stonesoup.functions import pol2cart
+
+plotterA = AnimatedPlotterly(timesteps, tail_length=1, sim_duration=10)
 plotterA.plot_sensors(sensor_setA)
 plotterA.plot_ground_truths(truths, [0, 2])
-plotterA.plot_tracks(tracksA, [0, 2], uncertainty=True)
+plotterA.plot_tracks(tracksA, [0, 2], uncertainty=True, plot_history=False)
+
+
+def plot_sensor_fov(fig, sensor_set, sensor_history):
+    # Plot sensor field of view
+    trace_base = len(fig.data)
+    for _ in sensor_set:
+        fig.add_trace(go.Scatter(mode='lines',
+                                 line=go.scatter.Line(color='black',
+                                                      dash='dash')))
+
+    for frame in fig.frames:
+        traces_ = list(frame.traces)
+        data_ = list(frame.data)
+
+        timestring = frame.name
+        timestamp = datetime.strptime(timestring, "%Y-%m-%d %H:%M:%S")
+
+        for n, sensor_ in enumerate(sensor_set):
+            x = [0, 0]
+            y = [0, 0]
+
+            if timestamp in sensor_history:
+                sensor = sensor_history[timestamp][sensor_]
+                for i, fov_side in enumerate((-1, 1)):
+                    range_ = min(getattr(sensor, 'max_range', np.inf), 100)
+                    x[i], y[i] = pol2cart(range_,
+                                          sensor.dwell_centre[0, 0]
+                                          + sensor.fov_angle / 2 * fov_side) \
+                                 + sensor.position[[0, 1], 0]
+            else:
+                continue
+
+            data_.append(go.Scatter(x=[x[0], sensor.position[0], x[1]],
+                                    y=[y[0], sensor.position[1], y[1]],
+                                    mode="lines",
+                                    line=go.scatter.Line(color='black',
+                                                         dash='dash'),
+                                    showlegend=False))
+            traces_.append(trace_base + n)
+
+        frame.traces = traces_
+        frame.data = data_
+
+
+plot_sensor_fov(plotterA.fig, sensor_setA, sensor_history_A)
 plotterA.fig
 
 # %%
@@ -382,6 +431,7 @@ plotterA.fig
 # the tracks updated based on these measurements. Predictions are made for tracks
 # which have not been observed by the sensors.
 
+sensor_history_B = defaultdict(dict)
 for timestep in timesteps[1:]:
 
     # Generate chosen configuration
@@ -396,6 +446,7 @@ for timestep in timesteps[1:]:
 
     for sensor in sensor_setB:
         sensor.act(timestep)
+        sensor_history_B[timestep][sensor] = copy.copy(sensor)
 
         # Observe this ground truth
         measurementsB |= sensor.measure(OrderedSet(truth[timestep] for truth in truths), noise=True)
@@ -414,10 +465,11 @@ for timestep in timesteps[1:]:
 # %%
 # Plot ground truths, tracks and uncertainty ellipses for each target.
 
-plotterB = Plotterly()
+plotterB = AnimatedPlotterly(timesteps, tail_length=1, sim_duration=10)
 plotterB.plot_sensors(sensor_setB)
 plotterB.plot_ground_truths(truths, [0, 2])
-plotterB.plot_tracks(tracksB, [0, 2], uncertainty=True)
+plotterB.plot_tracks(tracksB, [0, 2], uncertainty=True, plot_history=False)
+plot_sensor_fov(plotterB.fig, sensor_setB, sensor_history_B)
 plotterB.fig
 
 # %%
@@ -468,39 +520,60 @@ ax.set_zlabel("log of no. combinations")
 # As in Tutorial 1 the metrics used here are the OSPA, SIAP and uncertainty metrics.
 
 from stonesoup.metricgenerator.ospametric import OSPAMetric
-ospa_generator = OSPAMetric(c=40, p=1)
+ospa_generatorA = OSPAMetric(c=40, p=1,
+                             generator_name='RandomSensorManager',
+                             tracks_key='tracksA',
+                             truths_key='truths')
+
+ospa_generatorB = OSPAMetric(c=40, p=1,
+                             generator_name='BruteForceSensorManager',
+                             tracks_key='tracksB',
+                             truths_key='truths')
 
 from stonesoup.metricgenerator.tracktotruthmetrics import SIAPMetrics
 from stonesoup.measures import Euclidean
-siap_generator = SIAPMetrics(position_measure=Euclidean((0, 2)),
-                             velocity_measure=Euclidean((1, 3)))
+siap_generatorA = SIAPMetrics(position_measure=Euclidean((0, 2)),
+                              velocity_measure=Euclidean((1, 3)),
+                              generator_name='RandomSensorManager',
+                              tracks_key='tracksA',
+                              truths_key='truths')
+
+siap_generatorB = SIAPMetrics(position_measure=Euclidean((0, 2)),
+                              velocity_measure=Euclidean((1, 3)),
+                              generator_name='BruteForceSensorManager',
+                              tracks_key='tracksB',
+                              truths_key='truths')
 
 from stonesoup.dataassociator.tracktotrack import TrackToTruth
 associator = TrackToTruth(association_threshold=30)
 
 from stonesoup.metricgenerator.uncertaintymetric import SumofCovarianceNormsMetric
-uncertainty_generator = SumofCovarianceNormsMetric()
+uncertainty_generatorA = SumofCovarianceNormsMetric(generator_name='RandomSensorManager',
+                                                    tracks_key='tracksA')
+
+uncertainty_generatorB = SumofCovarianceNormsMetric(generator_name='BruteForceSensorManager',
+                                                    tracks_key='tracksB')
 
 # %%
-# Generate a metrics manager for each sensor management method.
+# Generate a metrics manager.
 
-from stonesoup.metricgenerator.manager import SimpleManager
+from stonesoup.metricgenerator.manager import MultiManager
 
-metric_managerA = SimpleManager([ospa_generator, siap_generator, uncertainty_generator],
-                                associator=associator)
-
-metric_managerB = SimpleManager([ospa_generator, siap_generator, uncertainty_generator],
-                                associator=associator)
+metric_manager = MultiManager([ospa_generatorA,
+                               ospa_generatorB,
+                               siap_generatorA,
+                               siap_generatorB,
+                               uncertainty_generatorA,
+                               uncertainty_generatorB],
+                               associator=associator)
 
 # %%
 # For each time step, data is added to the metric manager on truths and tracks.
 # The metrics themselves can then be generated from the metric manager.
 
-metric_managerA.add_data(truths, tracksA)
-metric_managerB.add_data(truths, tracksB)
+metric_manager.add_data({'truths': truths, 'tracksA': tracksA, 'tracksB': tracksB})
 
-metricsA = metric_managerA.generate_metrics()
-metricsB = metric_managerB.generate_metrics()
+metrics = metric_manager.generate_metrics()
 
 # %%
 # OSPA metric
@@ -508,20 +581,10 @@ metricsB = metric_managerB.generate_metrics()
 #
 # First we look at the OSPA metric. This is plotted over time for each sensor manager method.
 
-ospa_metricA = metricsA['OSPA distances']
-ospa_metricB = metricsB['OSPA distances']
+from stonesoup.plotter import MetricPlotter
 
-fig = plt.figure()
-ax = fig.add_subplot(1, 1, 1)
-ax.plot([i.timestamp for i in ospa_metricA.value],
-        [i.value for i in ospa_metricA.value],
-        label='RandomSensorManager')
-ax.plot([i.timestamp for i in ospa_metricB.value],
-        [i.value for i in ospa_metricB.value],
-        label='BruteForceSensorManager')
-ax.set_ylabel("OSPA distance")
-ax.set_xlabel("Time")
-ax.legend()
+fig = MetricPlotter()
+fig.plot_metrics(metrics, metric_names=['OSPA distances'])
 
 # %%
 # The OSPA distance for the :class:`~.BruteForceSensorManager` is generally smaller than for the random
@@ -533,29 +596,9 @@ ax.legend()
 # Next we look at SIAP metrics. We are only interested in the positional accuracy (PA) and
 # velocity accuracy (VA). These metrics can be plotted to show how they change over time.
 
-fig, axes = plt.subplots(2)
-
-times = metric_managerA.list_timestamps()
-
-pa_metricA = metricsA['SIAP Position Accuracy at times']
-va_metricA = metricsA['SIAP Velocity Accuracy at times']
-
-pa_metricB = metricsB['SIAP Position Accuracy at times']
-va_metricB = metricsB['SIAP Velocity Accuracy at times']
-
-axes[0].set(title='Positional Accuracy', xlabel='Time', ylabel='PA')
-axes[0].plot(times, [metric.value for metric in pa_metricA.value],
-             label='RandomSensorManager')
-axes[0].plot(times, [metric.value for metric in pa_metricB.value],
-             label='BruteForceSensorManager')
-axes[0].legend()
-
-axes[1].set(title='Velocity Accuracy', xlabel='Time', ylabel='VA')
-axes[1].plot(times, [metric.value for metric in va_metricA.value],
-             label='RandomSensorManager')
-axes[1].plot(times, [metric.value for metric in va_metricB.value],
-             label='BruteForceSensorManager')
-axes[1].legend()
+fig2 = MetricPlotter()
+fig2.plot_metrics(metrics, metric_names=['SIAP Position Accuracy at times',
+                                         'SIAP Velocity Accuracy at times'])
 
 # %%
 # Similar to the OSPA distance the :class:`~.BruteForceSensorManager` generally results in both a better
@@ -567,20 +610,8 @@ axes[1].legend()
 # Finally we look at the uncertainty metric which computes the sum of covariance matrix norms of each state at each
 # time step. This is plotted over time for each sensor manager method.
 
-uncertainty_metricA = metricsA['Sum of Covariance Norms Metric']
-uncertainty_metricB = metricsB['Sum of Covariance Norms Metric']
-
-fig = plt.figure()
-ax = fig.add_subplot(1, 1, 1)
-ax.plot([i.timestamp for i in uncertainty_metricA.value],
-        [i.value for i in uncertainty_metricA.value],
-        label='RandomSensorManager')
-ax.plot([i.timestamp for i in uncertainty_metricB.value],
-        [i.value for i in uncertainty_metricB.value],
-        label='BruteForceSensorManager')
-ax.set_ylabel("Sum of covariance matrix norms")
-ax.set_xlabel("Time")
-ax.legend()
+fig3 = MetricPlotter()
+fig3.plot_metrics(metrics, metric_names=['Sum of Covariance Norms Metric'])
 
 # sphinx_gallery_thumbnail_number = 7
 
