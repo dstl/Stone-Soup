@@ -129,7 +129,7 @@ class SUMOGroundTruthReader(GroundTruthReader):
             sys.path.append(tools)
             import traci
         else:
-            sys.exit("Declare environment variable 'SUMO_HOME'")
+            raise RuntimeError("Environment variable 'SUMO_HOME' is not set")
 
         traci.start(self.sumoCmd)
         if self.geographic_coordinates:
