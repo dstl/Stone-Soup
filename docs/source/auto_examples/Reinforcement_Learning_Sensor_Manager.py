@@ -18,9 +18,9 @@ This example looks at how to interface a reinforcement learning framework with a
 # This example is similar to the tutorials, simulating 3 targets and a :class:~.RadarRotatingBearingRange sensor,
 # which can be actioned to point in different directions.
 # 
-# Tensorflow-agents is used as the reinforcement learning framework. This currently only works on Linux based OSes,
-# or via Windows Subsystem for Linux (WSL). See Tensorflow instructions for creating environments (with GPU support
-# if applicable) [#]_.
+# Tensorflow-agents is used as the reinforcement learning framework. This is a separate python package that can be found
+# at https://github.com/tensorflow/agents. This currently only works on Linux based OSes, or via Windows Subsystem for
+# Linux (WSL). See Tensorflow instructions for creating environments (with GPU support if applicable) [#]_.
 
 # Some general imports and set up
 import numpy as np
