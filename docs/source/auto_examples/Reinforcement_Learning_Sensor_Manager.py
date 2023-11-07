@@ -15,7 +15,7 @@ This example looks at how to interface a reinforcement learning framework with a
 # This is compared to the performance of a brute force algorithm using the same metrics shown in the sensor
 # management tutorials.
 # 
-# This example is similar to the tutorials, simulating 3 targets and a :class:~.RadarRotatingBearingRange sensor,
+# This example is similar to the tutorials, simulating 3 targets and a :class:`~.RadarRotatingBearingRange` sensor,
 # which can be actioned to point in different directions.
 # 
 # Tensorflow-agents is used as the reinforcement learning framework. This is a separate python package that can be found
@@ -27,7 +27,7 @@ import numpy as np
 import random
 from datetime import datetime, timedelta
 
-start_time = datetime.now()
+start_time = datetime.now().replace(microsecond=0)
 
 from stonesoup.models.transition.linear import CombinedLinearGaussianTransitionModel, ConstantVelocity
 from stonesoup.types.groundtruth import GroundTruthPath, GroundTruthState
@@ -56,6 +56,7 @@ yps = range(0, 100, 10)  # y value for prior state
 truths = []
 ntruths = 3  # number of ground truths in simulation
 time_max = 50  # timestamps the simulation is observed over
+timesteps = [start_time + timedelta(seconds=k) for k in range(time_max)]
 
 xdirection = 1
 ydirection = 1
@@ -80,13 +81,10 @@ for j in range(0, ntruths):
 # %%
 # Plot the ground truths. This is done using the :class:`~.Plotterly` class from Stone Soup.
 
-from stonesoup.plotter import Plotterly
+from stonesoup.plotter import AnimatedPlotterly
 
-# Stonesoup plotter requires sets not lists
-truths_set = set(truths)
-
-plotter = Plotterly()
-plotter.plot_ground_truths(truths_set, [0, 2])
+plotter = AnimatedPlotterly(timesteps, tail_length=1)
+plotter.plot_ground_truths(truths, [0, 2])
 plotter.fig
 
 # %%
@@ -195,8 +193,8 @@ for j, prior in enumerate(priors):
 # value that the sensor manager can maximise.
 # 
 # The :class:`~.UncertaintyRewardFunction` calculates the uncertainty reduction by computing the difference between the
-# covariance matrix norms of the
-# prediction, and the posterior assuming a predicted measurement corresponding to that prediction.
+# covariance matrix norms of the prediction, and the posterior assuming a predicted measurement corresponding to that
+# prediction.
 
 from stonesoup.hypothesiser.distance import DistanceHypothesiser
 from stonesoup.measures import Mahalanobis
@@ -378,19 +376,19 @@ utils.validate_py_environment(train_env, episodes=5)
 # RL Sensor Manager
 # -------------------------------------
 # To be able to use the RL environment we have designed, we need to make a ReinforcementSensorManager class, which
-# inherits from :class:~.SensorManager.
+# inherits from :class:`~.SensorManager`.
 # 
 # We introduce some additional methods that are used by tensorflow-agents: :func:`compute_avg_return`,
-# :func:`dense_layer`, and :func:`train`. <br>
+# :func:`dense_layer`, and :func:`train`.
 # :func:`compute_avg_return` is used to find the average reward by using a given policy. This is used to evaluate the
-# training. <br>
+# training.
 # :func:`dense_layer` is used when generating the Q-Network, a neural network model that learns to predict Q-Values.
-# <br>
+# 
 # :func:`train` is used to generate the policy by running a large number of episodes through the Q-Network to work out
 # which actions are best.
 # 
-# We also need to re-define the :func:`choose_actions` method from :class:~.SensorManager to be able to interface Stone
-# Soup actions with tensorflow-agent actions.
+# We also need to re-define the :func:`choose_actions` method from :class:`~.SensorManager` to be able to interface
+# Stone Soup actions with tensorflow-agent actions.
 
 from stonesoup.sensormanager.base import SensorManager
 from stonesoup.base import Property
@@ -719,6 +717,8 @@ reinforcementsensormanager.train(hyper_parameters)
 
 from itertools import chain
 
+sensor_history_A = dict()
+
 timesteps = []
 for state in truths[0]:
     timesteps.append(state.timestamp)
@@ -756,6 +756,9 @@ for timestep in timesteps[1:]:
 
     sensorA.act(timestep)
 
+    # Store sensor history for plotting
+    sensor_history_A[timestep] = copy.copy(sensorA)
+
     # Observe this ground truth
     # i.e. {z}k
     measurements = sensorA.measure(OrderedSet(truth[timestep] for truth in truths), noise=True)
@@ -779,16 +782,60 @@ for timestep in timesteps[1:]:
 # %%
 # Plot ground truths, tracks and uncertainty ellipses for each target.
 
-plotterA = Plotterly()
+import plotly.graph_objects as go
+from stonesoup.functions import pol2cart
+
+plotterA = AnimatedPlotterly(timesteps, tail_length=1, sim_duration=10)
 plotterA.plot_sensors(sensorA)
-plotterA.plot_ground_truths(truths_set, [0, 2])
-plotterA.plot_tracks(set(tracksA), [0, 2], uncertainty=True)
+plotterA.plot_ground_truths(truths, [0, 2])
+plotterA.plot_tracks(tracksA, [0, 2], uncertainty=True, plot_history=False)
+
+
+def plot_sensor_fov(fig, sensor_history):
+    # Plot sensor field of view
+    trace_base = len(fig.data)
+    fig.add_trace(go.Scatter(mode='lines',
+                             line=go.scatter.Line(color='black',
+                                                  dash='dash')))
+
+    for frame in fig.frames:
+        traces_ = list(frame.traces)
+        data_ = list(frame.data)
+        x = [0, 0]
+        y = [0, 0]
+        timestring = frame.name
+        timestamp = datetime.strptime(timestring, "%Y-%m-%d %H:%M:%S")
+
+        if timestamp in sensor_history:
+            sensor = sensor_history[timestamp]
+            for i, fov_side in enumerate((-1, 1)):
+                range_ = min(getattr(sensor, 'max_range', np.inf), 100)
+                x[i], y[i] = pol2cart(range_,
+                                      sensor.dwell_centre[0, 0]
+                                      + sensor.fov_angle / 2 * fov_side) \
+                             + sensor.position[[0, 1], 0]
+        else:
+            continue
+
+        data_.append(go.Scatter(x=[x[0], sensor.position[0], x[1]],
+                                y=[y[0], sensor.position[1], y[1]],
+                                mode="lines",
+                                line=go.scatter.Line(color='black',
+                                                     dash='dash'),
+                                showlegend=False))
+        traces_.append(trace_base)
+        frame.traces = traces_
+        frame.data = data_
+
+
+plot_sensor_fov(plotterA.fig, sensor_history_A)
 plotterA.fig
 
 # %%
 # Run brute force sensor manager
 # ------------------------------
 
+sensor_history_B = dict()
 for timestep in timesteps[1:]:
 
     # Generate chosen configuration
@@ -803,6 +850,9 @@ for timestep in timesteps[1:]:
             sensor.add_actions(actions)
 
     sensorB.act(timestep)
+
+    # Store sensor history for plotting
+    sensor_history_B[timestep] = copy.copy(sensorB)
 
     # Observe this ground truth
     # i.e. {z}k
@@ -822,10 +872,11 @@ for timestep in timesteps[1:]:
 # %%
 # Plot ground truths, tracks and uncertainty ellipses for each target.
 
-plotterB = Plotterly()
-plotterB.plot_sensors(sensorA)
-plotterB.plot_ground_truths(truths_set, [0, 2])
-plotterB.plot_tracks(set(tracksB), [0, 2], uncertainty=True)
+plotterB = AnimatedPlotterly(timesteps, tail_length=1, sim_duration=10)
+plotterB.plot_sensors(sensorB)
+plotterB.plot_ground_truths(truths, [0, 2])
+plotterB.plot_tracks(tracksB, [0, 2], uncertainty=True, plot_history=False)
+plot_sensor_fov(plotterB.fig, sensor_history_B)
 plotterB.fig
 
 # %%
@@ -948,4 +999,4 @@ fig3.plot_metrics(metrics, metric_names=['Sum of Covariance Norms Metric'])
 # .. [#] *https://www.tensorflow.org/install/pip#windows-wsl2*
 # .. [#] *https://github.com/tensorflow/agents/blob/master/docs/tutorials/2_environments_tutorial.ipynb*
 
-# sphinx_gallery_thumbnail_number = 2
+# sphinx_gallery_thumbnail_number = 3

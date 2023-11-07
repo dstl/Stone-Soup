@@ -27,7 +27,7 @@ import numpy as np
 import random
 from datetime import datetime, timedelta
 
-start_time = datetime.now()
+start_time = datetime.now().replace(microsecond=0)
 
 from stonesoup.models.transition.linear import CombinedLinearGaussianTransitionModel, ConstantVelocity
 from stonesoup.types.groundtruth import GroundTruthPath, GroundTruthState
@@ -56,6 +56,7 @@ yps = range(0, 100, 10)  # y value for prior state
 truths = []
 ntruths = 3  # number of ground truths in simulation
 time_max = 50  # timestamps the simulation is observed over
+timesteps = [start_time + timedelta(seconds=k) for k in range(time_max)]
 
 xdirection = 1
 ydirection = 1
@@ -78,28 +79,25 @@ for j in range(0, ntruths):
         ydirection *= -1
 
 # %%
-# Plot the ground truths. This is done using the `~.Plotterly` class from Stone Soup.
+# Plot the ground truths. This is done using the :class:`~.Plotterly` class from Stone Soup.
 
-from stonesoup.plotter import Plotterly
+from stonesoup.plotter import AnimatedPlotterly
 
-# Stonesoup plotter requires sets not lists
-truths_set = set(truths)
-
-plotter = Plotterly()
-plotter.plot_ground_truths(truths_set, [0, 2])
+plotter = AnimatedPlotterly(timesteps, tail_length=1)
+plotter.plot_ground_truths(truths, [0, 2])
 plotter.fig
 
 # %%
 # Create sensors
 # --------------
 # Create a sensor for each sensor management algorithm. This tutorial uses the
-# `~.RadarRotatingBearingRange` sensor. This sensor is an `~.Actionable` so
+# :class:`~.RadarRotatingBearingRange` sensor. This sensor is an :class:`~.Actionable` so
 # is capable of returning the actions it can possibly
 # take at a given time step and can also be given an action to take before taking
 # measurements.
 # See the Creating an Actionable Sensor Example for a more detailed explanation of actionable sensors.
 # 
-# The `~.RadarRotatingBearingRange` has a dwell centre which is an `~.ActionableProperty`
+# The :class:`~.RadarRotatingBearingRange` has a dwell centre which is an :class:`~.ActionableProperty`
 # so in this case the action is changing the dwell centre to point in a specific direction.
 # 
 
@@ -135,8 +133,8 @@ sensorB.timestamp = start_time
 # %%
 # Create the Kalman predictor and updater
 # ---------------------------------------
-# Construct a predictor and updater using the `~.KalmanPredictor` and `~.ExtendedKalmanUpdater`
-# components from Stone Soup. The `~.ExtendedKalmanUpdater` is used because it can be used for both linear
+# Construct a predictor and updater using the :class:`~.KalmanPredictor` and :class:`~.ExtendedKalmanUpdater`
+# components from Stone Soup. The :class:`~.ExtendedKalmanUpdater` is used because it can be used for both linear
 # and nonlinear measurement models.
 # 
 
@@ -194,9 +192,9 @@ for j, prior in enumerate(priors):
 # this example is quite generic but could be substituted for any callable function which returns a numeric
 # value that the sensor manager can maximise.
 # 
-# The `~.UncertaintyRewardFunction` calculates the uncertainty reduction by computing the difference between the
-# covariance matrix norms of the
-# prediction, and the posterior assuming a predicted measurement corresponding to that prediction.
+# The :class:`~.UncertaintyRewardFunction` calculates the uncertainty reduction by computing the difference between the
+# covariance matrix norms of the prediction, and the posterior assuming a predicted measurement corresponding to that
+# prediction.
 
 from stonesoup.hypothesiser.distance import DistanceHypothesiser
 from stonesoup.measures import Mahalanobis
@@ -230,7 +228,7 @@ reward_function = UncertaintyRewardFunction(predictor=predictor, updater=updater
 # For this tutorial, a pre-designed environment has been created for you to go through.
 # In this example, the action space is equal to the number of targets in the simulation, so at each time step, the
 # sensor can select one target to look at.
-# The `~.UncertaintyRewardFunction` is used to calculate the reward obtained for each step in the environment.
+# The :class:`~.UncertaintyRewardFunction` is used to calculate the reward obtained for each step in the environment.
 # The trace of the covariances for each object is used as the observation for the agent to learn from - it should learn
 # to select targets with a larger covariance (higher uncertainty).
 
@@ -389,8 +387,8 @@ utils.validate_py_environment(train_env, episodes=5)
 # :func:`train` is used to generate the policy by running a large number of episodes through the Q-Network to work out
 # which actions are best.
 # 
-# We also need to re-define the :func:`choose_actions` method from :class:`~.SensorManager` to be able to interface Stone
-# Soup actions with tensorflow-agent actions.
+# We also need to re-define the :func:`choose_actions` method from :class:`~.SensorManager` to be able to interface
+# Stone Soup actions with tensorflow-agent actions.
 
 from stonesoup.sensormanager.base import SensorManager
 from stonesoup.base import Property
@@ -719,6 +717,8 @@ reinforcementsensormanager.train(hyper_parameters)
 
 from itertools import chain
 
+sensor_history_A = dict()
+
 timesteps = []
 for state in truths[0]:
     timesteps.append(state.timestamp)
@@ -756,6 +756,9 @@ for timestep in timesteps[1:]:
 
     sensorA.act(timestep)
 
+    # Store sensor history for plotting
+    sensor_history_A[timestep] = copy.copy(sensorA)
+
     # Observe this ground truth
     # i.e. {z}k
     measurements = sensorA.measure(OrderedSet(truth[timestep] for truth in truths), noise=True)
@@ -779,16 +782,60 @@ for timestep in timesteps[1:]:
 # %%
 # Plot ground truths, tracks and uncertainty ellipses for each target.
 
-plotterA = Plotterly()
+import plotly.graph_objects as go
+from stonesoup.functions import pol2cart
+
+plotterA = AnimatedPlotterly(timesteps, tail_length=1, sim_duration=10)
 plotterA.plot_sensors(sensorA)
-plotterA.plot_ground_truths(truths_set, [0, 2])
-plotterA.plot_tracks(set(tracksA), [0, 2], uncertainty=True)
+plotterA.plot_ground_truths(truths, [0, 2])
+plotterA.plot_tracks(tracksA, [0, 2], uncertainty=True, plot_history=False)
+
+
+def plot_sensor_fov(fig, sensor_history):
+    # Plot sensor field of view
+    trace_base = len(fig.data)
+    fig.add_trace(go.Scatter(mode='lines',
+                             line=go.scatter.Line(color='black',
+                                                  dash='dash')))
+
+    for frame in fig.frames:
+        traces_ = list(frame.traces)
+        data_ = list(frame.data)
+        x = [0, 0]
+        y = [0, 0]
+        timestring = frame.name
+        timestamp = datetime.strptime(timestring, "%Y-%m-%d %H:%M:%S")
+
+        if timestamp in sensor_history:
+            sensor = sensor_history[timestamp]
+            for i, fov_side in enumerate((-1, 1)):
+                range_ = min(getattr(sensor, 'max_range', np.inf), 100)
+                x[i], y[i] = pol2cart(range_,
+                                      sensor.dwell_centre[0, 0]
+                                      + sensor.fov_angle / 2 * fov_side) \
+                             + sensor.position[[0, 1], 0]
+        else:
+            continue
+
+        data_.append(go.Scatter(x=[x[0], sensor.position[0], x[1]],
+                                y=[y[0], sensor.position[1], y[1]],
+                                mode="lines",
+                                line=go.scatter.Line(color='black',
+                                                     dash='dash'),
+                                showlegend=False))
+        traces_.append(trace_base)
+        frame.traces = traces_
+        frame.data = data_
+
+
+plot_sensor_fov(plotterA.fig, sensor_history_A)
 plotterA.fig
 
 # %%
 # Run brute force sensor manager
 # ------------------------------
 
+sensor_history_B = dict()
 for timestep in timesteps[1:]:
 
     # Generate chosen configuration
@@ -803,6 +850,9 @@ for timestep in timesteps[1:]:
             sensor.add_actions(actions)
 
     sensorB.act(timestep)
+
+    # Store sensor history for plotting
+    sensor_history_B[timestep] = copy.copy(sensorB)
 
     # Observe this ground truth
     # i.e. {z}k
@@ -822,10 +872,11 @@ for timestep in timesteps[1:]:
 # %%
 # Plot ground truths, tracks and uncertainty ellipses for each target.
 
-plotterB = Plotterly()
-plotterB.plot_sensors(sensorA)
-plotterB.plot_ground_truths(truths_set, [0, 2])
-plotterB.plot_tracks(set(tracksB), [0, 2], uncertainty=True)
+plotterB = AnimatedPlotterly(timesteps, tail_length=1, sim_duration=10)
+plotterB.plot_sensors(sensorB)
+plotterB.plot_ground_truths(truths, [0, 2])
+plotterB.plot_tracks(tracksB, [0, 2], uncertainty=True, plot_history=False)
+plot_sensor_fov(plotterB.fig, sensor_history_B)
 plotterB.fig
 
 # %%
