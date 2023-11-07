@@ -1,6 +1,6 @@
 import datetime
 from abc import abstractmethod
-from typing import Tuple, Set, Iterator, Iterable
+from typing import Tuple, Set, Iterator
 
 from ..base import Base
 from ..types.detection import Detection
@@ -8,20 +8,28 @@ from ..types.track import Track
 
 
 class Tracker(Base):
-    """Tracker base class"""
+    """
+    Tracker base class
+
+    Note
+    ======
+    Sub-classes of :class:`~.Tracker` require a ``detector`` property to be iterators. A subclass
+    can be created without it, however it won't be an iterator. Its functionality will be
+    restricted to only using the :meth:`~.Tracker.update_tracker` method.
+    """
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
+        try:
+            _ = self.detector
+        except AttributeError:
+            self.detector = None
         self.detector_iter = None
-
-    @property
-    def detector(self) -> Iterable[Tuple[datetime.datetime, Set[Detection]]]:
-        """ Input into the tracker"""
-        raise TypeError("Detector is not present in this tracker")
 
     def __iter__(self) -> Iterator[Tuple[datetime.datetime, Set[Track]]]:
         if self.detector is None:
-            raise ValueError("Detector has not been set")
+            raise AttributeError("Detector has not been set. A detector attribute is required to"
+                                 "iterate over a tracker.")
 
         if self.detector_iter is None:
             self.detector_iter = iter(self.detector)

@@ -88,9 +88,8 @@ Multi-Sensor Fusion: Covariance Intersection Using Tracks as Measurements
 #   * Create a GM-PHD tracker that will perform track fusion via covariance intersection using
 #     the :class:`ChernoffUpdater` class.
 #   * Create a metric manager to generate metrics for each of the four trackers
-#   * Set up the detection feeders. Each tracker will receive measurements using a custom
-#     :class:`DummyDetector` class. The track fusion tracker will also use the
-#     :class:`Tracks2GaussianDetectionFeeder` class.
+#   * The track fusion tracker will use the :class:`Tracks2GaussianDetectionFeeder` class to
+#     receive tracks as detections.
 #   * Run the simulation
 #   * Plot the resulting tracks and the metrics over time
 
@@ -545,25 +544,13 @@ metric_manager = MultiManager(metric_generators, associator=associator)
 #
 # The track fusion tracker will also use the :class:`~.Tracks2GaussianDetectionFeeder` class to
 # feed the tracks as measurements. At each time step, the resultant live tracks from the JPDA and
-# GM-LCC trackers will be put into a :class:`~.Tracks2GaussianDetectionFeeder` (using the
-# :class:`~.DummyDetector` we write below). The feeder will take the most recent state from each
+# GM-LCC trackers will be put into a :class:`~.Tracks2GaussianDetectionFeeder`.
+# The feeder will take the most recent state from each
 # track and turn it into a :class:`~.GaussianDetection` object. The set of detection objects will
 # be returned and passed into the tracker.
 
 # %%
 from stonesoup.feeder.track import Tracks2GaussianDetectionFeeder
-from stonesoup.buffered_generator import BufferedGenerator
-from stonesoup.reader.base import DetectionReader
-
-
-class DummyDetector(DetectionReader):
-    def __init__(self, *args, **kwargs):
-        self.current = kwargs['current']
-
-    @BufferedGenerator.generator_method
-    def detections_gen(self):
-        yield self.current
-
 
 # %%
 # 8: Run Simulation
