@@ -15,7 +15,7 @@ This example looks at how to interface a reinforcement learning framework with a
 # This is compared to the performance of a brute force algorithm using the same metrics shown in the sensor
 # management tutorials.
 # 
-# This example is similar to the tutorials, simulating 3 targets and a :class:~.RadarRotatingBearingRange sensor,
+# This example is similar to the tutorials, simulating 3 targets and a :class:`~.RadarRotatingBearingRange` sensor,
 # which can be actioned to point in different directions.
 # 
 # Tensorflow-agents is used as the reinforcement learning framework. This is a separate python package that can be found
@@ -381,15 +381,15 @@ utils.validate_py_environment(train_env, episodes=5)
 # inherits from :class:~.SensorManager.
 # 
 # We introduce some additional methods that are used by tensorflow-agents: :func:`compute_avg_return`,
-# :func:`dense_layer`, and :func:`train`. <br>
+# :func:`dense_layer`, and :func:`train`.
 # :func:`compute_avg_return` is used to find the average reward by using a given policy. This is used to evaluate the
-# training. <br>
+# training.
 # :func:`dense_layer` is used when generating the Q-Network, a neural network model that learns to predict Q-Values.
-# <br>
+# 
 # :func:`train` is used to generate the policy by running a large number of episodes through the Q-Network to work out
 # which actions are best.
 # 
-# We also need to re-define the :func:`choose_actions` method from :class:~.SensorManager to be able to interface Stone
+# We also need to re-define the :func:`choose_actions` method from :class:`~.SensorManager` to be able to interface Stone
 # Soup actions with tensorflow-agent actions.
 
 from stonesoup.sensormanager.base import SensorManager
@@ -948,4 +948,4 @@ fig3.plot_metrics(metrics, metric_names=['Sum of Covariance Norms Metric'])
 # .. [#] *https://www.tensorflow.org/install/pip#windows-wsl2*
 # .. [#] *https://github.com/tensorflow/agents/blob/master/docs/tutorials/2_environments_tutorial.ipynb*
 
-# sphinx_gallery_thumbnail_number = 2
+# sphinx_gallery_thumbnail_number = 3
