@@ -78,7 +78,7 @@ for j in range(0, ntruths):
         ydirection *= -1
 
 # %%
-# Plot the ground truths. This is done using the :class:`~.Plotterly` class from Stone Soup.
+# Plot the ground truths. This is done using the `~.Plotterly` class from Stone Soup.
 
 from stonesoup.plotter import Plotterly
 
@@ -93,13 +93,13 @@ plotter.fig
 # Create sensors
 # --------------
 # Create a sensor for each sensor management algorithm. This tutorial uses the
-# :class:`~.RadarRotatingBearingRange` sensor. This sensor is an :class:`~.Actionable` so
+# `~.RadarRotatingBearingRange` sensor. This sensor is an `~.Actionable` so
 # is capable of returning the actions it can possibly
 # take at a given time step and can also be given an action to take before taking
 # measurements.
 # See the Creating an Actionable Sensor Example for a more detailed explanation of actionable sensors.
 # 
-# The :class:`~.RadarRotatingBearingRange` has a dwell centre which is an :class:`~.ActionableProperty`
+# The `~.RadarRotatingBearingRange` has a dwell centre which is an `~.ActionableProperty`
 # so in this case the action is changing the dwell centre to point in a specific direction.
 # 
 
@@ -135,8 +135,8 @@ sensorB.timestamp = start_time
 # %%
 # Create the Kalman predictor and updater
 # ---------------------------------------
-# Construct a predictor and updater using the :class:`~.KalmanPredictor` and :class:`~.ExtendedKalmanUpdater`
-# components from Stone Soup. The :class:`~.ExtendedKalmanUpdater` is used because it can be used for both linear
+# Construct a predictor and updater using the `~.KalmanPredictor` and `~.ExtendedKalmanUpdater`
+# components from Stone Soup. The `~.ExtendedKalmanUpdater` is used because it can be used for both linear
 # and nonlinear measurement models.
 # 
 
@@ -194,7 +194,7 @@ for j, prior in enumerate(priors):
 # this example is quite generic but could be substituted for any callable function which returns a numeric
 # value that the sensor manager can maximise.
 # 
-# The :class:`~.UncertaintyRewardFunction` calculates the uncertainty reduction by computing the difference between the
+# The `~.UncertaintyRewardFunction` calculates the uncertainty reduction by computing the difference between the
 # covariance matrix norms of the
 # prediction, and the posterior assuming a predicted measurement corresponding to that prediction.
 
@@ -230,7 +230,7 @@ reward_function = UncertaintyRewardFunction(predictor=predictor, updater=updater
 # For this tutorial, a pre-designed environment has been created for you to go through.
 # In this example, the action space is equal to the number of targets in the simulation, so at each time step, the
 # sensor can select one target to look at.
-# The :class:`~.UncertaintyRewardFunction` is used to calculate the reward obtained for each step in the environment.
+# The `~.UncertaintyRewardFunction` is used to calculate the reward obtained for each step in the environment.
 # The trace of the covariances for each object is used as the observation for the agent to learn from - it should learn
 # to select targets with a larger covariance (higher uncertainty).
 
@@ -378,7 +378,7 @@ utils.validate_py_environment(train_env, episodes=5)
 # RL Sensor Manager
 # -------------------------------------
 # To be able to use the RL environment we have designed, we need to make a ReinforcementSensorManager class, which
-# inherits from :class:~.SensorManager.
+# inherits from :class:`~.SensorManager`.
 # 
 # We introduce some additional methods that are used by tensorflow-agents: :func:`compute_avg_return`,
 # :func:`dense_layer`, and :func:`train`.
