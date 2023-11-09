@@ -1,3 +1,4 @@
+import copy
 import datetime
 from typing import Sequence
 
@@ -19,6 +20,14 @@ class Prediction(Type, CreatableFromState):
     This is the base prediction class. """
     transition_model: TransitionModel = Property(
         default=None, doc='The transition model used to make the prediction')
+    prior: State = Property(default=None)
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        if self.prior: # and hasattr(self.prior, 'hypothesis'):
+            self.prior = copy.copy(self.prior)
+            # Stop repeated linking back which will eat memory
+            self.prior.hypothesis = None
 
 
 class MeasurementPrediction(Type, CreatableFromState):

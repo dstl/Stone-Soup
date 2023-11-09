@@ -616,9 +616,6 @@ class IteratedKalmanUpdater(ExtendedKalmanUpdater):
 
         """
 
-        # Record the starting point
-        prev_state = hypothesis.prediction
-
         # Get the measurement model
         measurement_model = self._check_measurement_model(hypothesis.measurement.measurement_model)
 
@@ -627,7 +624,8 @@ class IteratedKalmanUpdater(ExtendedKalmanUpdater):
 
         # Now update the measurement prediction mean and loop
         iterations = 0
-        while self.measure(prev_state, post_state) > self.tolerance:
+        prev_state = None
+        while iterations == 0 or self.measure(prev_state, post_state) > self.tolerance:
 
             if iterations > self.max_iterations:
                 warnings.warn("Iterated Kalman update did not converge")
