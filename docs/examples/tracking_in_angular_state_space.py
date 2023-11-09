@@ -27,6 +27,7 @@ from stonesoup.dataassociator.neighbour import GlobalNearestNeighbour
 from stonesoup.deleter.time import UpdateTimeDeleter
 from stonesoup.feeder.modify import AngleTrackingDetectionFeeder, \
     StaticRotationalFrameAngleDetectionFeeder
+from stonesoup.functions.interpolate import interpolate_state_mutable_sequence
 from stonesoup.hypothesiser.distance import DistanceHypothesiser
 from stonesoup.initiator.simple import SimpleMeasurementInitiator
 from stonesoup.measures import Mahalanobis
@@ -109,26 +110,16 @@ target_2_waypoints = [
 
 # %%
 # The timesteps in between waypoints are interpolated to make a consistent sequence of states
-# (locations). The `interpolate_states` function performs a linear interpolation between states to
-# create new intermediate states. A third target is also created which remains static.
-def interpolate_states(existing_states: Sequence[State], interpolate_time: datetime.datetime):
-    # Todo - PR #872 is merged, replace this function with an import
-    float_times = [state.timestamp.timestamp() for state in existing_states]
-    output = np.zeros(len(existing_states[0].state_vector))
-    for i in range(len(output)):
-        a_states = [np.double(state.state_vector[i]) for state in existing_states]
-        output[i] = np.interp(interpolate_time.timestamp(), float_times, a_states)
-
-    return State(StateVector(output), timestamp=interpolate_time)
+# (locations). The `interpolate_states_mutable_sequence` function performs a linear interpolation
+# between states to create new intermediate states. A third target is also created which remains
+# static.
 
 
 all_times = [start_time + datetime.timedelta(seconds=x) for x in range(140)]
-target_1_states = []
-target_2_states = []
+target_1_states = interpolate_state_mutable_sequence(target_1_waypoints, all_times)
+target_2_states = interpolate_state_mutable_sequence(target_1_waypoints, all_times)
 target_3_states = []
 for t in all_times:
-    target_1_states.append(interpolate_states(target_1_waypoints, t))
-    target_2_states.append(interpolate_states(target_2_waypoints, t))
     target_3_states.append(State([[120 + np.random.rand()], [0],
                                   [120 + np.random.rand()], [0], [12], [0]], timestamp=t))
 

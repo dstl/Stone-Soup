@@ -10,31 +10,31 @@ from .time import TimeRange, CompoundTimeRange
 class Association(Type):
     """Association type
 
-    An association between objects
+    An association between objects.
     """
 
     # TODO: Should probably add a link to the associator that produced it
-    objects: Set = Property(doc="Set of objects being associated")
+    objects: Set = Property(doc="Set of objects being associated.")
 
 
 class AssociationPair(Association):
     """AssociationPair type
 
-    An :class:`~.Association` representing the association of two objects
+    An :class:`~.Association` representing the association of two objects.
     """
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         if len(self.objects) != 2:
             raise ValueError("Only two objects can be associated in one "
-                             "AssociationPair object")
+                             "AssociationPair object.")
 
 
 class SingleTimeAssociation(Association):
     """SingleTimeAssociation type
 
     An :class:`~.Association` representing the linking of objects at a single
-    time
+    time.
     """
 
     timestamp: datetime.datetime = Property(
@@ -46,11 +46,11 @@ class TimeRangeAssociation(Association):
     """TimeRangeAssociation type
 
     An :class:`~.AssociationPair` representing the linking of objects over a
-    range of times
+    range of times.
     """
 
     time_range: Union[CompoundTimeRange, TimeRange] = Property(
-        default=None, doc="Range of times that association exists over. Default is None")
+        default=None, doc="Range of times that association exists over. Default is None.")
 
     @property
     def duration(self):
@@ -62,17 +62,17 @@ class AssociationSet(Type):
 
     A set of :class:`~.Association` type objects representing multiple
     independent associations. Contains functions for indexing into the
-    associations
+    associations.
     """
 
-    associations: Set[Association] = Property(default=None, doc="Set of independent associations")
+    associations: Set[Association] = Property(default=None, doc="Set of independent associations.")
 
     def __init__(self, associations=None, *args, **kwargs):
         super().__init__(associations, *args, **kwargs)
         if self.associations is None:
             self.associations = set()
         if not all(isinstance(member, Association) for member in self.associations):
-            raise TypeError("Association set must contain only Association instances")
+            raise TypeError("Association set must contain only Association instances.")
         self._simplify()
 
     def __eq__(self, other):
@@ -87,12 +87,12 @@ class AssociationSet(Type):
             for component in association:
                 self.add(component)
         else:
-            raise TypeError("Supplied parameter must be an Association or AssociationSet")
+            raise TypeError("Supplied parameter must be an Association or AssociationSet.")
         self._simplify()
 
     def _simplify(self):
         """Where multiple associations describe the same pair of objects, combine them into one.
-        This is only implemented for pairs with a time_range attribute - others will be skipped
+        This is only implemented for pairs with a time_range attribute - others will be skipped.
         """
         to_remove = set()
         for (assoc1, assoc2) in combinations(self.associations, 2):
@@ -117,13 +117,13 @@ class AssociationSet(Type):
             return
         elif isinstance(association, Association):
             if association not in self.associations:
-                raise ValueError("Supplied parameter must be contained by this instance")
+                raise ValueError("Supplied parameter must be contained by this instance.")
             self.associations.remove(association)
         elif isinstance(association, AssociationSet):
             for component in association:
                 self.remove(component)
         else:
-            raise TypeError("Supplied parameter must be an Association or AssociationSet")
+            raise TypeError("Supplied parameter must be an Association or AssociationSet.")
 
     @property
     def key_times(self):
@@ -140,7 +140,7 @@ class AssociationSet(Type):
         """Returns a :class:`~.CompoundTimeRange` covering all times at which at least
         one association is active.
 
-        Note: :class:`~.SingleTimeAssociation` are not counted
+        Note: :class:`~.SingleTimeAssociation` are not counted.
         """
         overall_range = CompoundTimeRange()
         for association in self.associations:
@@ -159,7 +159,7 @@ class AssociationSet(Type):
         return object_set
 
     def associations_at_timestamp(self, timestamp):
-        """Return the associations that exist at a given timestamp
+        """Return the associations that exist at a given timestamp.
 
         Method will return a set of all the  :class:`~.Association` type
         objects which occur at the specified time stamp.
@@ -167,15 +167,15 @@ class AssociationSet(Type):
         Parameters
         ----------
         timestamp: datetime.datetime
-            Timestamp at which associations should be identified
+            Timestamp at which associations should be identified.
 
         Returns
         -------
         : :class:`~.AssociationSet`
-            Associations which occur at specified timestamp
+            Associations which occur at specified timestamp.
         """
         if not isinstance(timestamp, datetime.datetime):
-            raise TypeError("Supplied parameter must be a datetime.datetime object")
+            raise TypeError("Supplied parameter must be a datetime.datetime object.")
         ret_associations = set()
         for association in self.associations:
             # If the association is at a single time
@@ -188,19 +188,19 @@ class AssociationSet(Type):
         return AssociationSet(ret_associations)
 
     def associations_including_objects(self, objects):
-        """Return associations that include all the given objects
+        """Return associations that include all the given objects.
 
         Method will return the set of all the :class:`~.Association` type
-        objects which contain an association with the provided object
+        objects which contain an association with the provided object.
 
         Parameters
         ----------
         objects: set of objects
-            Set of objects to look for in associations
+            A set of objects to look for in associations.
         Returns
         -------
-        : class:`~.AssociationSet`
-            A set of associations containing every member of objects
+        : :class:`~.AssociationSet`
+            A set of associations containing every member of objects.
         """
         # Ensure objects is iterable
         if not isinstance(objects, list) and not isinstance(objects, set):

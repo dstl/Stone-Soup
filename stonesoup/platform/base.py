@@ -18,14 +18,14 @@ class Platform(Base):
 
     Movement is controlled by the Platform's :attr:`Platform.movement_controller`, and access to
     attributes of the Platform is proxied to the movement controller, to allow the Platform to
-    report it's own position, orientation etc.
+    report its own position, orientation etc.
 
     If a ``movement_controller`` argument is not supplied to the constructor, the Platform will
     try to construct one using unused arguments passed to the Platform's constructor.
 
     .. note:: This class is abstract and not intended to be instantiated. To get the behaviour
         of this class use a subclass which gives movement
-        behaviours. Currently these are :class:`~.FixedPlatform` and
+        behaviours. Currently, these are :class:`~.FixedPlatform` and
         :class:`~.MovingPlatform`
     """
 
@@ -36,7 +36,7 @@ class Platform(Base):
             "the Platform constructor.")
     sensors: MutableSequence[Sensor] = Property(
         default=None, readonly=True,
-        doc="A list of N mounted sensors. Defaults to an empty list")
+        doc="A list of N mounted sensors. Defaults to an empty list.")
 
     _default_movable_class = None  # Will be overridden by subclasses
 
@@ -89,30 +89,30 @@ class Platform(Base):
         return self._tuple_or_none(self._property_sensors)
 
     def add_sensor(self, sensor: Sensor) -> None:
-        """ Add a sensor to the platform
+        """ Add a sensor to the platform.
 
         Parameters
         ----------
         sensor : :class:`~.BaseSensor`
-            The sensor object to add
+            The sensor object to add.
         """
         self._property_sensors.append(sensor)
         sensor.movement_controller = self.movement_controller
 
     def remove_sensor(self, sensor: Sensor) -> None:
-        """ Remove a sensor from the platform
+        """ Remove a sensor from the platform.
 
         Parameters
         ----------
         sensor : :class:`~.BaseSensor`
-            The sensor object to remove
+            The sensor object to remove.
         """
         self.pop_sensor(self._property_sensors.index(sensor))
 
     def pop_sensor(self, index: int = -1):
         """
         Remove and return a sensor from the platform by index. If no index is specified, remove
-        and return the last sensor in :attr:`self.sensors`
+        and return the last sensor in :attr:`self.sensors`.
 
         Parameters
         ----------

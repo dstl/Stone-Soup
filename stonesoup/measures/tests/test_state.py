@@ -4,11 +4,11 @@ import pickle
 import numpy as np
 import pytest
 from scipy.spatial import distance
+from scipy.stats import multivariate_normal
 
-from .. import measures
-from ..measures import ObservationAccuracy
-from ..types.array import StateVector, CovarianceMatrix
-from ..types.state import GaussianState, State
+from .. import state as measures
+from ...types.array import StateVector, CovarianceMatrix, StateVectors
+from ...types.state import GaussianState, State, ParticleState
 
 # Create a time stamp to use for both states
 t = datetime.datetime.now()
@@ -61,7 +61,7 @@ def test_hellinger():
 
 
 def test_observation_accuracy():
-    measure = ObservationAccuracy()
+    measure = measures.ObservationAccuracy()
     for _ in range(5):
         TP = np.random.random()
         TN = 1 - TP
@@ -274,3 +274,48 @@ def test_mahalanobis_pickle(measure, result):
     if measure.state_covar_inv_cache_size > 0:
         assert measure._inv_cov.cache_info().hits == 0  # Cache not pickled currently
         assert measure._inv_cov.cache_info().currsize == 1
+
+
+def test_kld():
+
+    measure = measures.KLDivergence()
+
+    part_state_a = ParticleState(
+        state_vector=StateVectors(np.random.uniform(np.array([[0], [0], [0], [0]]),
+                                                    np.array([[20], [2], [20], [2]]),
+                                                    size=(4, 100))))
+    part_state_b = ParticleState(
+        state_vector=StateVectors(np.random.multivariate_normal(np.ravel(u),
+                                                                ui,
+                                                                100).T))
+
+    part_state_a.log_weight = multivariate_normal.logpdf((part_state_a.state_vector - u).T, cov=ui)
+    part_state_b.log_weight = multivariate_normal.logpdf((part_state_b.state_vector - u).T, cov=ui)
+
+    kld = measure(part_state_a, part_state_b)
+
+    # Verify that KLD is not reversible
+    assert kld != measure(part_state_b, part_state_a)
+
+    eval_kld = np.sum(np.exp(part_state_a.log_weight)
+                      * (part_state_a.log_weight - part_state_b.log_weight))
+
+    assert np.isclose(kld, eval_kld)
+
+    # Verify that if both distributions are the same then KLD is 0
+    assert measure(part_state_a, part_state_a) == 0.
+    assert measure(part_state_b, part_state_b) == 0.
+
+    # Check errors
+    part_state_c = ParticleState(
+        state_vector=StateVectors(np.random.uniform(np.array([[0], [0], [0], [0]]),
+                                                    np.array([[20], [2], [20], [2]]),
+                                                    size=(4, 101))))
+    with pytest.raises(ValueError) as e:
+        measure(part_state_a, part_state_c)
+    assert f'The input sizes are not compatible ' \
+           f'({len(part_state_a)} != {len(part_state_c)})' in str(e.value)
+
+    with pytest.raises(NotImplementedError) as e:
+        measure(state_u, state_v)
+    assert 'This measure is currently only compatible with ParticleState types' in str(e.value)

@@ -7,6 +7,12 @@ Data Association
 .. automodule:: stonesoup.dataassociator.base
     :show-inheritance:
 
+General Association
+-------------------
+
+.. automodule:: stonesoup.dataassociator.general
+    :show-inheritance:
+
 Neighbour
 ---------
 

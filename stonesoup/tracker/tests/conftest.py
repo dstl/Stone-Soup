@@ -68,13 +68,12 @@ def angle_detector():
                     timestamp=time)
                               for i in range(3)
                               if (step - i) % 5}
-                             #for i in range(3)
-                             #if (step - i) % 5}
                 time += datetime.timedelta(minutes=1)
             for step in range(3):
                 yield time, set()
                 time += datetime.timedelta(minutes=1)
     return TestAngleDetector()
+
 
 @pytest.fixture()
 def data_associator():
@@ -113,10 +112,9 @@ def angle_data_associator():
                     prediction.state_vector)
                 for detection in detections:
                     if np.allclose(measurement_prediction.state_vector,
-                                      detection.state_vector, atol=1e-20):
-                        associations[track] = \
-                            SingleDistanceHypothesis(
-                            prediction, detection, 0, measurement_prediction)
+                                   detection.state_vector, atol=1e-20):
+                        associations[track] = SingleDistanceHypothesis(prediction, detection, 0,
+                                                                       measurement_prediction)
                         break
                 else:
                     associations[track] = SingleDistanceHypothesis(

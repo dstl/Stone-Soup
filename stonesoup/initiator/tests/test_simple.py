@@ -20,10 +20,13 @@ from ...types.detection import Detection, TrueDetection
 from ...types.hypothesis import SingleHypothesis
 from ...types.prediction import Prediction
 from ...types.state import GaussianState
-from ...types.update import ParticleStateUpdate, Update
+from ...types.update import ParticleStateUpdate, Update, GaussianMixtureUpdate, \
+    ASDGaussianStateUpdate, EnsembleStateUpdate
 from ..simple import (
     SinglePointInitiator, SimpleMeasurementInitiator,
-    MultiMeasurementInitiator, GaussianParticleInitiator
+    MultiMeasurementInitiator, GaussianParticleInitiator, GaussianMixtureInitiator,
+    ASDGaussianInitiator, EnsembleInitiator,
+    NoHistoryMultiMeasurementInitiator
 )
 
 
@@ -278,8 +281,7 @@ def test_linear_measurement_extra_state_dim():
             measurement_model.matrix().T == approx(measurement_model.covar())
 
 
-@pytest.mark.parametrize('updates_only', [False, True])
-def test_multi_measurement(updates_only):
+def create_multi_measurement_initiator(obj_class, **kwargs):
     transition_model = CombinedLinearGaussianTransitionModel(
         (ConstantVelocity(0.05), ConstantVelocity(0.05)))
     measurement_model = LinearGaussian(
@@ -292,10 +294,22 @@ def test_multi_measurement(updates_only):
     data_associator = NearestNeighbour(hypothesiser)
     deleter = UpdateTimeDeleter(datetime.timedelta(seconds=59))
 
-    measurement_initiator = MultiMeasurementInitiator(
-        GaussianState([[0], [0], [0], [0]], np.diag([0, 15, 0, 15])),
-        deleter, data_associator, updater,
-        measurement_model=measurement_model, updates_only=updates_only)
+    obj_kwargs = dict(prior_state=GaussianState([[0], [0], [0], [0]], np.diag([0, 15, 0, 15])),
+                      deleter=deleter,
+                      data_associator=data_associator,
+                      updater=updater,
+                      measurement_model=measurement_model)
+
+    obj_kwargs.update(kwargs)
+    measurement_initiator = obj_class(**obj_kwargs)
+
+    return measurement_initiator
+
+
+@pytest.mark.parametrize('updates_only', [False, True])
+def test_multi_measurement(updates_only):
+    measurement_initiator = create_multi_measurement_initiator(MultiMeasurementInitiator,
+                                                               updates_only=updates_only)
 
     timestamp = datetime.datetime.now()
     first_detections = {Detection(np.array([[5], [2]]), timestamp),
@@ -317,6 +331,65 @@ def test_multi_measurement(updates_only):
         assert any(isinstance(track.state, Prediction) for track in second_tracks)
     assert any(isinstance(track.state, Update) for track in second_tracks)
     assert len(measurement_initiator.holding_tracks) == 0
+
+
+def test_no_history_multi_measurement():
+    measurement_initiator = create_multi_measurement_initiator(NoHistoryMultiMeasurementInitiator,
+                                                               updates_only=False)
+
+    timestamp = datetime.datetime.now()
+    first_detections = {Detection(np.array([[5], [2]]), timestamp),
+                        Detection(np.array([[-5], [-2]]), timestamp)}
+
+    first_tracks = measurement_initiator.initiate(first_detections, timestamp)
+    assert len(first_tracks) == 0
+    assert len(measurement_initiator.holding_tracks) == 2
+
+    timestamp = datetime.datetime.now() + datetime.timedelta(seconds=60)
+    second_detections = {Detection(np.array([[5], [3]]), timestamp)}
+
+    second_tracks = measurement_initiator.initiate(second_detections, timestamp)
+    for track in second_tracks:
+        assert len(track) == 1
+
+
+@pytest.mark.parametrize("measurement_model_class",
+                         (CartesianToBearingRange, Cartesian2DToBearing, LinearGaussian))
+@pytest.mark.parametrize("skip_non_reversible", (True, False))
+def test_skip_in_multi_measurement(measurement_model_class, skip_non_reversible):
+    timestamp = datetime.datetime.now()
+
+    if measurement_model_class == Cartesian2DToBearing:
+        state_len = 1
+    else:
+        state_len = 2
+
+    measurement_model = measurement_model_class(ndim_state=2, mapping=(0, 1),
+                                                noise_covar=np.diag([1]*state_len))
+
+    det = Detection(state_vector=np.array([[2]*state_len]),
+                    timestamp=timestamp,
+                    measurement_model=measurement_model
+                    )
+
+    interal_initiator = SinglePointInitiator(
+        prior_state=GaussianState([[0], [0]], np.diag([15, 15])))
+
+    measurement_initiator = create_multi_measurement_initiator(
+        MultiMeasurementInitiator,
+        initiator=interal_initiator,
+        measurement_model=None,
+        skip_non_reversible=skip_non_reversible)
+
+    measurement_initiator.initiate({det}, timestamp)
+    holding_tracks = measurement_initiator.holding_tracks
+
+    if isinstance(measurement_model, Cartesian2DToBearing) and skip_non_reversible:
+        assert len(holding_tracks) == 0
+    else:
+        assert len(holding_tracks) == 1
+        for track in holding_tracks:
+            assert track.timestamp == timestamp
 
 
 @pytest.mark.parametrize("initiator", [
@@ -369,3 +442,127 @@ def test_gaussian_particle(gaussian_initiator):
         assert track.timestamp == timestamp
 
         assert np.allclose(track.covar, np.array([[1]]), atol=0.4)
+
+
+@pytest.mark.parametrize("gaussian_initiator", [
+    SinglePointInitiator(
+        GaussianState(np.array([[0]]), np.array([[100]])),
+        LinearGaussian(1, [0], np.array([[1]]))
+    ),
+    SimpleMeasurementInitiator(
+        GaussianState(np.array([[0]]), np.array([[100]])),
+        LinearGaussian(1, [0], np.array([[1]]))
+    ),
+], ids=['SinglePoint', 'LinearMeasurement'])
+def test_gaussian_mixture(gaussian_initiator):
+    mixture_initiator = GaussianMixtureInitiator(gaussian_initiator)
+
+    timestamp = datetime.datetime.now()
+    detections = [Detection(np.array([[5]]), timestamp),
+                  Detection(np.array([[-5]]), timestamp)]
+    tracks = mixture_initiator.initiate(detections, timestamp)
+
+    for track in tracks:
+        assert isinstance(track.state, GaussianMixtureUpdate)
+
+        if track.state.mean > 0:
+            assert np.allclose(track.state.mean, np.array([[5]]), atol=0.4)
+            assert track.state.hypothesis.measurement is detections[0]
+        else:
+            assert np.allclose(track.state.mean, np.array([[-5]]), atol=0.4)
+            assert track.state.hypothesis.measurement is detections[1]
+        assert track.timestamp == timestamp
+        assert np.allclose(track.covar, np.array([[1]]), atol=0.4)
+
+
+@pytest.mark.parametrize("gaussian_initiator", [
+    SinglePointInitiator(
+        GaussianState(np.array([[0]]), np.array([[100]])),
+        LinearGaussian(1, [0], np.array([[1]]))
+    ),
+    SimpleMeasurementInitiator(
+        GaussianState(np.array([[0]]), np.array([[100]])),
+        LinearGaussian(1, [0], np.array([[1]]))
+    ),
+], ids=['SinglePoint', 'LinearMeasurement'])
+def test_asd_gaussian(gaussian_initiator):
+    timestamp = datetime.datetime.now()
+    asd_initiator = ASDGaussianInitiator(initiator=gaussian_initiator)
+
+    detections = [Detection(np.array([[5]]), timestamp),
+                  Detection(np.array([[-5]]), timestamp)]
+    tracks = asd_initiator.initiate(detections, timestamp)
+
+    for track in tracks:
+        assert isinstance(track.state, ASDGaussianStateUpdate)
+
+        if track.state.mean > 0:
+            assert np.allclose(track.state.mean, np.array([[5]]), atol=0.4)
+            assert track.state.hypothesis.measurement is detections[0]
+        else:
+            assert np.allclose(track.state.mean, np.array([[-5]]), atol=0.4)
+            assert track.state.hypothesis.measurement is detections[1]
+        assert track.timestamp == timestamp
+        assert np.allclose(track.covar, np.array([[1]]), atol=0.4)
+
+
+@pytest.mark.parametrize("gaussian_initiator", [
+    SinglePointInitiator(
+        GaussianState(np.array([[0]]), np.array([[100]])),
+        LinearGaussian(1, [0], np.array([[1]]))
+    ),
+    SimpleMeasurementInitiator(
+        GaussianState(np.array([[0]]), np.array([[100]])),
+        LinearGaussian(1, [0], np.array([[1]]))
+    ),
+], ids=['SinglePoint', 'LinearMeasurement'])
+def test_ensemble_1d(gaussian_initiator):
+    ensemble_initiator = EnsembleInitiator(gaussian_initiator)
+
+    timestamp = datetime.datetime.now()
+    detections = [Detection(np.array([[5]]), timestamp),
+                  Detection(np.array([[-5]]), timestamp)]
+    tracks = ensemble_initiator.initiate(detections, timestamp)
+
+    for track in tracks:
+        assert isinstance(track.state, EnsembleStateUpdate)
+
+        if track.state.mean > 0:
+            assert np.allclose(np.mean(track.state.mean), np.array([[5]]), atol=0.4)
+            assert track.state.hypothesis.measurement is detections[0]
+        else:
+            assert np.allclose(np.mean(track.state.mean), np.array([[-5]]), atol=0.4)
+            assert track.state.hypothesis.measurement is detections[1]
+        assert track.timestamp == timestamp
+        assert np.allclose(track.covar, np.array([[1]]), atol=0.4)
+
+
+@pytest.mark.parametrize("gaussian_initiator", [
+    SinglePointInitiator(
+        GaussianState(np.array([[0], [0]]), np.diag([100, 0])),
+        LinearGaussian(2, [0], np.diag([1]))
+    ),
+    SimpleMeasurementInitiator(
+        GaussianState(np.array([[0], [0]]), np.diag([100, 0])),
+        LinearGaussian(2, [0], np.diag([1]))
+    )
+], ids=['SinglePoint', 'LinearMeasurement'])
+def test_ensemble_2d(gaussian_initiator):
+    ensemble_initiator = EnsembleInitiator(gaussian_initiator,
+                                           ensemble_size=100)
+
+    timestamp = datetime.datetime.now()
+    detections = [Detection(np.array([[5]]), timestamp),
+                  Detection(np.array([[-5]]), timestamp)]
+    tracks = ensemble_initiator.initiate(detections, timestamp)
+
+    for track in tracks:
+        assert isinstance(track.state, EnsembleStateUpdate)
+        if track.state.mean[0] > 0:
+            assert np.allclose(track.state.mean, np.array([[5], [0]]), atol=0.4)
+            assert track.state.hypothesis.measurement is detections[0]
+        else:
+            assert np.allclose(track.state.mean, np.array([[-5], [0]]), atol=0.4)
+            assert track.state.hypothesis.measurement is detections[1]
+        assert track.timestamp == timestamp
+        assert np.allclose(track.covar, np.diag([1, 0]), atol=0.4)
