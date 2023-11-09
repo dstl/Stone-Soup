@@ -14,7 +14,7 @@ from ...functions import cart2pol, pol2cart, \
     cart2sphere, sphere2cart, cart2angles, \
     build_rotation_matrix, cart2az_el_rg, az_el_rg2cart, \
     sphererate2cartrate, cartrate2sphererate, jacobian as compute_jacobian
-from ...types.angle import Bearing, Elevation
+from ...types.angle import Bearing, Elevation, Azimuth
 from ...types.array import StateVector, CovarianceMatrix, StateVectors
 from ...types.numeric import Probability
 from ...types.state import GaussianState, State

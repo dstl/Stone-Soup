@@ -19,7 +19,7 @@ tracks in cartesian space.
 
 import datetime
 from collections import defaultdict
-from typing import Sequence, Union, Set
+from typing import Union, Set
 
 import numpy as np
 
@@ -41,7 +41,7 @@ from stonesoup.tracker.angle import AngleMultipleTargetTracker
 from stonesoup.tracker.simple import MultiTargetTracker
 from stonesoup.types.array import StateVector
 from stonesoup.types.groundtruth import GroundTruthPath, GroundTruthState
-from stonesoup.types.state import GaussianState
+from stonesoup.types.state import GaussianState, StateMutableSequence
 from stonesoup.types.state import State
 from stonesoup.types.track import Track
 from stonesoup.updater.kalman import ExtendedKalmanUpdater
@@ -98,14 +98,15 @@ def convert_eb_detections_to_ebr(detection: Detection, new_range: Union[None, fl
 # Target 2 moves down with a single turn at 40 seconds.
 
 # Create waypoints of both targets
-target_1_waypoints = [State([[t], [1], [40 + 10 * np.sin(t / 10)], [np.cos(t / 10)], [10], [0]],
-                            start_time + datetime.timedelta(seconds=t)) for t in range(140)]
+target_1_waypoints = StateMutableSequence([
+    State([[t], [1], [40 + 10 * np.sin(t / 10)], [np.cos(t / 10)], [10], [0]],
+          start_time + datetime.timedelta(seconds=t)) for t in range(140)])
 
-target_2_waypoints = [
+target_2_waypoints = StateMutableSequence([
     State([[40], [1], [130], [-1], [8], [0]], start_time + datetime.timedelta(seconds=0)),
     State([[80], [0], [90], [-1], [8], [0]], start_time + datetime.timedelta(seconds=40)),
     State([[80], [0], [-10], [-1], [8], [0]], start_time + datetime.timedelta(seconds=140))
-]
+])
 
 
 # %%
@@ -117,7 +118,7 @@ target_2_waypoints = [
 
 all_times = [start_time + datetime.timedelta(seconds=x) for x in range(140)]
 target_1_states = interpolate_state_mutable_sequence(target_1_waypoints, all_times)
-target_2_states = interpolate_state_mutable_sequence(target_1_waypoints, all_times)
+target_2_states = interpolate_state_mutable_sequence(target_2_waypoints, all_times)
 target_3_states = []
 for t in all_times:
     target_3_states.append(State([[120 + np.random.rand()], [0],
