@@ -5,7 +5,7 @@ import scipy
 from .ensemble import EnsembleUpdater
 from .kalman import ExtendedKalmanUpdater
 from ..base import Property
-from ..types.prediction import Prediction, EnsembleStatePrediction, MeasurementPrediction
+from ..types.prediction import Prediction, EnsembleStatePrediction
 from ..types.state import State
 from ..types.update import Update
 from ..types.array import CovarianceMatrix, StateVectors
@@ -359,7 +359,15 @@ class RecursiveLinearisedEnsembleUpdater(ExtendedKalmanUpdater, EnsembleUpdater)
 
 class VariableStepBayesianRecursiveUpdater(ExtendedKalmanUpdater):
     """
-    Recursive extension of the ExtendedKalmanUpdater.
+    Extension of the BayesianRecursiveUpdater. The BayesianRecursiveUpdater uses equal
+    measurement noise for each recursive step. The VariableStepBayesianUpdater over-inflates
+    measurement noise in the earlier steps, requiring the use of a smaller number of steps.
+
+    References
+    ----------
+
+    1. K. Michaelson, A. A. Popov and R. Zanetti,
+    "Bayesian Recursive Update for Ensemble Kalman Filters"
     """
     number_steps: int = Property(doc="Number of recursive steps",
                                  default=1)
@@ -368,7 +376,12 @@ class VariableStepBayesianRecursiveUpdater(ExtendedKalmanUpdater):
                                         "covariance equation is used.",
                                     default=False)
 
-    def _innovation_covariance(self, m_cross_cov, meas_mat, meas_mod, step_no):
+    def __init__(self, *args, **kwargs):
+
+        super().__init__(*args, **kwargs)
+        self.step_no = 1
+
+    def _innovation_covariance(self, m_cross_cov, meas_mat, meas_mod):
         """Compute the innovation covariance
 
         Parameters
@@ -386,7 +399,7 @@ class VariableStepBayesianRecursiveUpdater(ExtendedKalmanUpdater):
             The innovation covariance
 
         """
-        c = step_no / ((self.number_steps * (self.number_steps + 1)) / 2)
+        c = self.step_no / ((self.number_steps * (self.number_steps + 1)) / 2)
 
         return meas_mat @ m_cross_cov + (1 / c) * meas_mod.covar()
 
@@ -443,44 +456,6 @@ class VariableStepBayesianRecursiveUpdater(ExtendedKalmanUpdater):
 
             return post_cov.view(CovarianceMatrix), kalman_gain
 
-    def predict_measurement(self, predicted_state, measurement_model=None,
-                            **kwargs):
-        r"""Predict the measurement implied by the predicted state mean
-
-        Parameters
-        ----------
-        predicted_state : :class:`~.GaussianState`
-            The predicted state :math:`\mathbf{x}_{k|k-1}`, :math:`P_{k|k-1}`
-        measurement_model : :class:`~.MeasurementModel`
-            The measurement model. If omitted, the model in the updater object
-            is used
-        **kwargs : various
-            These are passed to :meth:`~.MeasurementModel.function` and
-            :meth:`~.MeasurementModel.matrix`
-
-        Returns
-        -------
-        : :class:`GaussianMeasurementPrediction`
-            The measurement prediction, :math:`\mathbf{z}_{k|k-1}`
-
-        """
-        # If a measurement model is not specified then use the one that's
-        # native to the updater
-        measurement_model = self._check_measurement_model(measurement_model)
-
-        pred_meas = measurement_model.function(predicted_state, **kwargs)
-
-        hh = self._measurement_matrix(predicted_state=predicted_state,
-                                      measurement_model=measurement_model,
-                                      **kwargs)
-
-        # The measurement cross covariance and innovation covariance
-        meas_cross_cov = self._measurement_cross_covariance(predicted_state, hh)
-        innov_cov = self._innovation_covariance(meas_cross_cov, hh, measurement_model, **kwargs)
-
-        return MeasurementPrediction.from_state(
-            predicted_state, pred_meas, innov_cov, cross_covar=meas_cross_cov)
-
     def update(self, hypothesis, **kwargs):
         r"""The Kalman update method. Given a hypothesised association between
         a predicted state or predicted measurement and an actual measurement,
@@ -502,6 +477,9 @@ class VariableStepBayesianRecursiveUpdater(ExtendedKalmanUpdater):
             covariance :math:`P_{x|x}`
 
         """
+        if not self.number_steps > 0:
+            raise ValueError("Updater cannot run 0 times (or less). This would not provide an "
+                             "updated state")
         # Get the predicted state out of the hypothesis
         predicted_state = hypothesis.prediction
 
@@ -516,17 +494,14 @@ class VariableStepBayesianRecursiveUpdater(ExtendedKalmanUpdater):
         if hypothesis.measurement_prediction is None:
             # Attach the measurement prediction to the hypothesis
             hypothesis.measurement_prediction = self.predict_measurement(
-                predicted_state, measurement_model=measurement_model, step_no=1, **kwargs)
-
-        if not self.number_steps > 0:
-            raise ValueError("Updater cannot run 0 times (or less). This would not provide an "
-                             "updated state")
+                predicted_state, measurement_model=measurement_model, **kwargs)
 
         nhypothesis = copy.copy(hypothesis)
         for i in range(self.number_steps):
+            self.step_no = i+1
 
             nhypothesis.measurement_prediction = self.predict_measurement(
-                nhypothesis.prediction, measurement_model=measurement_model, step_no=i+1)
+                nhypothesis.prediction, measurement_model=measurement_model)
             # Kalman gain and posterior covariance
             posterior_covariance, kalman_gain = \
                 self._posterior_covariance(nhypothesis)
