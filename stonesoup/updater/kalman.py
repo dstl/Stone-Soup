@@ -115,7 +115,7 @@ class KalmanUpdater(Updater):
         """
         return predicted_state.covar @ measurement_matrix.T
 
-    def _innovation_covariance(self, m_cross_cov, meas_mat, meas_mod):
+    def _innovation_covariance(self, m_cross_cov, meas_mat, meas_mod, **kwargs):
         """Compute the innovation covariance
 
         Parameters
@@ -222,7 +222,7 @@ class KalmanUpdater(Updater):
 
         # The measurement cross covariance and innovation covariance
         meas_cross_cov = self._measurement_cross_covariance(predicted_state, hh)
-        innov_cov = self._innovation_covariance(meas_cross_cov, hh, measurement_model)
+        innov_cov = self._innovation_covariance(meas_cross_cov, hh, measurement_model, **kwargs)
 
         return MeasurementPrediction.from_state(
             predicted_state, pred_meas, innov_cov, cross_covar=meas_cross_cov)

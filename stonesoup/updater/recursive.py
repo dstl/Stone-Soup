@@ -22,7 +22,11 @@ class BayesianRecursiveUpdater(ExtendedKalmanUpdater):
                                         "covariance equation is used.",
                                     default=False)
 
-    def _innovation_covariance(self, m_cross_cov, meas_mat, meas_mod):
+    @classmethod
+    def _get_meas_cov_scale_factor(cls, n=1, step_no=None):
+        return n
+
+    def _innovation_covariance(self, m_cross_cov, meas_mat, meas_mod, scale_factor=1):
         """Compute the innovation covariance
 
         Parameters
@@ -40,9 +44,9 @@ class BayesianRecursiveUpdater(ExtendedKalmanUpdater):
             The innovation covariance
 
         """
-        return meas_mat@m_cross_cov + self.number_steps*meas_mod.covar()
+        return meas_mat@m_cross_cov + scale_factor*meas_mod.covar()
 
-    def _posterior_covariance(self, hypothesis):
+    def _posterior_covariance(self, hypothesis, scale_factor=1):
         """
         Return the posterior covariance for a given hypothesis
 
@@ -82,7 +86,7 @@ class BayesianRecursiveUpdater(ExtendedKalmanUpdater):
             # Compute posterior covariance matrix
             I_KH = id_matrix - kalman_gain @ meas_matrix
             post_cov = I_KH @ prior_covar @ I_KH.T \
-                + kalman_gain @ (self.number_steps * meas_covar) @ kalman_gain.T
+                + kalman_gain @ (scale_factor * meas_covar) @ kalman_gain.T
 
             return post_cov.view(CovarianceMatrix), kalman_gain
 
@@ -137,13 +141,15 @@ class BayesianRecursiveUpdater(ExtendedKalmanUpdater):
                              "updated state")
 
         nhypothesis = copy.copy(hypothesis)
-        for _ in range(self.number_steps):
+        for i in range(1, self.number_steps + 1):
+
+            sf = self._get_meas_cov_scale_factor(self.number_steps, i)
 
             nhypothesis.measurement_prediction = self.predict_measurement(
-                nhypothesis.prediction, measurement_model=measurement_model)
+                nhypothesis.prediction, measurement_model=measurement_model, scale_factor=sf)
             # Kalman gain and posterior covariance
-            posterior_covariance, kalman_gain = \
-                self._posterior_covariance(nhypothesis)
+            posterior_covariance, kalman_gain = self._posterior_covariance(nhypothesis,
+                                                                           scale_factor=sf)
 
             # Posterior mean
             posterior_mean = self._posterior_mean(nhypothesis.prediction, kalman_gain,
@@ -357,7 +363,7 @@ class RecursiveLinearisedEnsembleUpdater(ExtendedKalmanUpdater, EnsembleUpdater)
                                  hypothesis=hypothesis)
 
 
-class VariableStepBayesianRecursiveUpdater(ExtendedKalmanUpdater):
+class VariableStepBayesianRecursiveUpdater(BayesianRecursiveUpdater):
     """
     Extension of the BayesianRecursiveUpdater. The BayesianRecursiveUpdater uses equal
     measurement noise for each recursive step. The VariableStepBayesianUpdater over-inflates
@@ -376,148 +382,6 @@ class VariableStepBayesianRecursiveUpdater(ExtendedKalmanUpdater):
                                         "covariance equation is used.",
                                     default=False)
 
-    def __init__(self, *args, **kwargs):
-
-        super().__init__(*args, **kwargs)
-        self.step_no = 1
-
-    def _innovation_covariance(self, m_cross_cov, meas_mat, meas_mod):
-        """Compute the innovation covariance
-
-        Parameters
-        ----------
-        m_cross_cov : numpy.ndarray
-            The measurement cross covariance matrix
-        meas_mat : numpy.ndarray
-            Measurement matrix
-        meas_mod : :class:~.MeasurementModel`
-            Measurement model
-
-        Returns
-        -------
-        : numpy.ndarray
-            The innovation covariance
-
-        """
-        c = self.step_no / ((self.number_steps * (self.number_steps + 1)) / 2)
-
-        return meas_mat @ m_cross_cov + (1 / c) * meas_mod.covar()
-
-    def _posterior_covariance(self, hypothesis):
-        """
-        Return the posterior covariance for a given hypothesis
-
-        Parameters
-        ----------
-        hypothesis: :class:`~.Hypothesis`
-            A hypothesised association between state prediction and measurement. It returns the
-            measurement prediction which in turn contains the measurement cross covariance,
-            :math:`P_{k|k-1} H_k^T and the innovation covariance,
-            :math:`S = H_k P_{k|k-1} H_k^T + R`
-
-        Returns
-        -------
-        : :class:`~.CovarianceMatrix`
-            The posterior covariance matrix rendered via the Kalman update process.
-        : numpy.ndarray
-            The Kalman gain, :math:`K = P_{k|k-1} H_k^T S^{-1}`
-
-        """
-        if self.use_joseph_cov:
-            # Identity matrix
-            id_matrix = np.identity(hypothesis.prediction.ndim)
-
-            # Calculate Kalman gain
-            kalman_gain = hypothesis.measurement_prediction.cross_covar @ \
-                np.linalg.inv(hypothesis.measurement_prediction.covar)
-
-            # Calculate measurement matrix/jacobian matrix
-            meas_matrix = self._measurement_matrix(hypothesis.prediction)
-
-            # Calculate Prior covariance
-            prior_covar = hypothesis.prediction.covar
-
-            # Calculate measurement covariance
-            meas_covar = hypothesis.measurement.measurement_model.covar()
-
-            # Compute posterior covariance matrix
-            I_KH = id_matrix - kalman_gain @ meas_matrix
-            post_cov = I_KH @ prior_covar @ I_KH.T \
-                + kalman_gain @ (self.number_steps * meas_covar) @ kalman_gain.T
-
-            return post_cov.view(CovarianceMatrix), kalman_gain
-
-        else:
-            kalman_gain = hypothesis.measurement_prediction.cross_covar @ \
-                np.linalg.inv(hypothesis.measurement_prediction.covar)
-
-            post_cov = hypothesis.prediction.covar - kalman_gain @ \
-                hypothesis.measurement_prediction.covar @ kalman_gain.T
-
-            return post_cov.view(CovarianceMatrix), kalman_gain
-
-    def update(self, hypothesis, **kwargs):
-        r"""The Kalman update method. Given a hypothesised association between
-        a predicted state or predicted measurement and an actual measurement,
-        calculate the posterior state.
-
-        Parameters
-        ----------
-        hypothesis : :class:`~.SingleHypothesis`
-            the prediction-measurement association hypothesis. This hypothesis
-            may carry a predicted measurement, or a predicted state. In the
-            latter case a predicted measurement will be calculated.
-        **kwargs : various
-            These are passed to :meth:`predict_measurement`
-
-        Returns
-        -------
-        : :class:`~.GaussianStateUpdate`
-            The posterior state Gaussian with mean :math:`\mathbf{x}_{k|k}` and
-            covariance :math:`P_{x|x}`
-
-        """
-        if not self.number_steps > 0:
-            raise ValueError("Updater cannot run 0 times (or less). This would not provide an "
-                             "updated state")
-        # Get the predicted state out of the hypothesis
-        predicted_state = hypothesis.prediction
-
-        # Get the measurement model out of the measurement if it's there.
-        # If not, use the one native to the updater (which might still be
-        # none)
-        measurement_model = hypothesis.measurement.measurement_model
-        measurement_model = self._check_measurement_model(measurement_model)
-
-        # If there is no measurement prediction in the hypothesis then do the
-        # measurement prediction (and attach it back to the hypothesis).
-        if hypothesis.measurement_prediction is None:
-            # Attach the measurement prediction to the hypothesis
-            hypothesis.measurement_prediction = self.predict_measurement(
-                predicted_state, measurement_model=measurement_model, **kwargs)
-
-        nhypothesis = copy.copy(hypothesis)
-        for i in range(self.number_steps):
-            self.step_no = i+1
-
-            nhypothesis.measurement_prediction = self.predict_measurement(
-                nhypothesis.prediction, measurement_model=measurement_model)
-            # Kalman gain and posterior covariance
-            posterior_covariance, kalman_gain = \
-                self._posterior_covariance(nhypothesis)
-
-            # Posterior mean
-            posterior_mean = self._posterior_mean(nhypothesis.prediction, kalman_gain,
-                                                  nhypothesis.measurement,
-                                                  nhypothesis.measurement_prediction)
-            nhypothesis.prediction = Prediction.from_state(
-                nhypothesis.prediction, state_vector=posterior_mean, covar=posterior_covariance)
-
-        if self.force_symmetric_covariance:
-            posterior_covariance = \
-                (posterior_covariance + posterior_covariance.T)/2
-
-        return Update.from_state(
-            hypothesis.prediction,
-            posterior_mean, posterior_covariance,
-            timestamp=hypothesis.measurement.timestamp, hypothesis=hypothesis)
+    @classmethod
+    def _get_meas_cov_scale_factor(cls, n=1, step_no=None):
+        return 1 / (step_no / ((n * (n + 1)) / 2))

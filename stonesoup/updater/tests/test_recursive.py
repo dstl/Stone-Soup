@@ -137,7 +137,7 @@ def test_bruf_multi_step(measurement_model, prediction, measurement, timestamp):
         measurement_model.matrix() @ prediction.mean,
         measurement_model.matrix() @ prediction.covar
         @ measurement_model.matrix().T
-        + n_steps * measurement_model.covar(),
+        + measurement_model.covar(),
         cross_covar=prediction.covar @ measurement_model.matrix().T)
 
     # Get and assert measurement prediction
@@ -380,7 +380,7 @@ def test_jcru_multi_step(measurement_model, prediction, measurement, timestamp):
         measurement_model.matrix() @ prediction.mean,
         measurement_model.matrix() @ prediction.covar
         @ measurement_model.matrix().T
-        + n_steps * measurement_model.covar(),
+        + measurement_model.covar(),
         cross_covar=prediction.covar @ measurement_model.matrix().T)
 
     # Get and assert measurement prediction
