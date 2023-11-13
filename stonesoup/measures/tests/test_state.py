@@ -319,3 +319,138 @@ def test_kld():
     with pytest.raises(NotImplementedError) as e:
         measure(state_u, state_v)
     assert 'This measure is currently only compatible with ParticleState types' in str(e.value)
+
+
+def test_gaussian_kld_no_mapping():
+
+    x1 = StateVector([[10.], [1.], [10.], [1.]])
+    cov1 = CovarianceMatrix(np.diag([100., 10., 100., 10.]))
+
+    x2 = StateVector([[11.], [10.], [100.], [2.]])
+    cov2 = CovarianceMatrix(np.diag([20., 3., 7., 10.]))
+
+    state1 = GaussianState(x1, cov1, timestamp=t)
+    state2 = GaussianState(x2, cov2, timestamp=t)
+
+    # measure function with no mapping
+    measure = measures.KLDivergence()
+
+    eval_meas1 = (0.5 * ((np.log(np.linalg.det(state2.covar) / np.linalg.det(state1.covar))) -
+                         state1.ndim + (np.trace(np.linalg.inv(state2.covar) @ state1.covar)) +
+                         (np.transpose(state2.state_vector - state1.state_vector) @
+                          np.linalg.inv(state2.covar) @ (state2.state_vector -
+                                                         state1.state_vector)))
+                  )
+
+    eval_meas2 = (0.5 * ((np.log(np.linalg.det(state1.covar) / np.linalg.det(state2.covar))) -
+                         state2.ndim + (np.trace(np.linalg.inv(state1.covar) @ state2.covar)) +
+                         (np.transpose(state1.state_vector - state2.state_vector) @
+                          np.linalg.inv(state1.covar) @ (state1.state_vector -
+                                                         state2.state_vector)))
+                  )
+
+    # Check that measure from u to v is calculated as expected
+    assert measure(state1, state2) == eval_meas1
+
+    # Check that measure from v to u is calculated as expected
+    assert measure(state2, state1) == eval_meas2
+
+    # Check distance from u to v is not equal to v to u
+    assert measure(state1, state2) != measure(state2, state1)
+
+
+def test_gaussian_kld_partial_mapping():
+
+    x1 = StateVector([[10.], [1.], [10.], [1.]])
+    cov1 = CovarianceMatrix(np.diag([100., 10., 100., 10.]))
+
+    x2 = StateVector([[11.], [10.], [100.], [2.]])
+    cov2 = CovarianceMatrix(np.diag([20., 3., 7., 10.]))
+
+    state1 = GaussianState(x1, cov1, timestamp=t)
+    state2 = GaussianState(x2, cov2, timestamp=t)
+
+    eval_state1 = GaussianState(StateVector([[10.], [10.]]),
+                                CovarianceMatrix(np.diag([100., 100.])), timestamp=t)
+
+    eval_state2 = GaussianState(StateVector([[11.], [100.]]),
+                                CovarianceMatrix(np.diag([20., 7.])), timestamp=t)
+
+    eval_meas1 = (0.5 * ((np.log(np.linalg.det(eval_state2.covar) /
+                                 np.linalg.det(eval_state1.covar))) -
+                         eval_state1.ndim +
+                         (np.trace(np.linalg.inv(eval_state2.covar) @ eval_state1.covar)) +
+                         (np.transpose(eval_state2.state_vector - eval_state1.state_vector) @
+                          np.linalg.inv(eval_state2.covar) @ (eval_state2.state_vector -
+                                                              eval_state1.state_vector)))
+                  )
+
+    eval_meas2 = (0.5 * ((np.log(np.linalg.det(eval_state1.covar) /
+                                 np.linalg.det(eval_state2.covar))) -
+                         eval_state2.ndim +
+                         (np.trace(np.linalg.inv(eval_state1.covar) @ eval_state2.covar)) +
+                         (np.transpose(eval_state1.state_vector - eval_state2.state_vector) @
+                          np.linalg.inv(eval_state1.covar) @ (eval_state1.state_vector -
+                                                              eval_state2.state_vector)))
+                  )
+
+    measure = measures.KLDivergence(mapping=[0, 2])
+
+    # Check that measure from u to v is calculated as expected
+    assert measure(state1, state2) == eval_meas1
+
+    # Check that measure from v to u is calculated as expected
+    assert measure(state2, state1) == eval_meas2
+
+    # Check distance from u to v is not equal to v to u
+    assert measure(state1, state2) != measure(state2, state1)
+
+
+def test_gaussian_kld_different_mappings():
+
+    x1 = StateVector([[10.], [1.], [10.], [1.]])
+    cov1 = CovarianceMatrix(np.diag([100., 10., 100., 10.]))
+
+    x2 = StateVector([[11.], [10.], [100.], [2.]])
+    cov2 = CovarianceMatrix(np.diag([20., 3., 7., 10.]))
+
+    state1 = GaussianState(x1, cov1, timestamp=t)
+    state2 = GaussianState(x2, cov2, timestamp=t)
+
+    eval_state1 = GaussianState(StateVector([[10.], [10.]]),
+                                CovarianceMatrix(np.diag([100., 100.])), timestamp=t)
+
+    eval_state2 = GaussianState(StateVector([[10.], [2.]]),
+                                CovarianceMatrix(np.diag([3., 10.])), timestamp=t)
+
+    eval_meas1 = (0.5 * ((np.log(np.linalg.det(eval_state2.covar) /
+                                 np.linalg.det(eval_state1.covar))) -
+                         eval_state1.ndim +
+                         (np.trace(np.linalg.inv(eval_state2.covar) @ eval_state1.covar)) +
+                         (np.transpose(eval_state2.state_vector - eval_state1.state_vector) @
+                          np.linalg.inv(eval_state2.covar) @ (eval_state2.state_vector -
+                                                              eval_state1.state_vector)))
+                  )
+
+    eval_meas2 = (0.5 * ((np.log(np.linalg.det(eval_state1.covar) /
+                                 np.linalg.det(eval_state2.covar))) -
+                         eval_state2.ndim +
+                         (np.trace(np.linalg.inv(eval_state1.covar) @ eval_state2.covar)) +
+                         (np.transpose(eval_state1.state_vector - eval_state2.state_vector) @
+                          np.linalg.inv(eval_state1.covar) @ (eval_state1.state_vector -
+                                                              eval_state2.state_vector)))
+                  )
+
+    measure1 = measures.KLDivergence(mapping=[0, 2], mapping2=[1, 3])
+    measure2 = measures.KLDivergence(mapping=[1, 3], mapping2=[0, 2])
+
+    # Check that measure from u to v is calculated as expected
+    measurement1 = measure1(state1, state2)
+    assert measurement1 == eval_meas1
+
+    # Check that measure from v to u is calculated as expected
+    measurement2 = measure2(state2, state1)
+    assert measurement2 == eval_meas2
+
+    # Check distance from u to v is not equal to v to u
+    assert measure1(state1, state2) != measure2(state2, state1)
