@@ -162,9 +162,15 @@ class KalmanSmoother(Smoother):
             Smoothed track
 
         """
+        if getattr(track[0], 'hypothesis', None) is None \
+                or getattr(track[0].hypothesis, 'prediction', None) is None:
+            start = 1
+        else:
+            start = 0
+
         subsq_state = track[-1]
         smoothed_states = [subsq_state]
-        for state in reversed(track[:-1]):
+        for state in reversed(track[start:-1]):
 
             # Delta t
             time_interval = subsq_state.timestamp - state.timestamp
@@ -179,15 +185,13 @@ class KalmanSmoother(Smoother):
                 ksmooth_gain @ (subsq_state.covar - prediction.covar) @ ksmooth_gain.T
 
             # Create a new type called SmoothedState?
-            if isinstance(state, Update):
-                subsq_state = Update.from_state(state, smooth_mean, smooth_covar,
-                                                timestamp=state.timestamp,
-                                                hypothesis=state.hypothesis)
-            elif isinstance(state, Prediction):
-                subsq_state = Prediction.from_state(state, smooth_mean, smooth_covar,
-                                                    timestamp=state.timestamp)
+
+            subsq_state = type(state).from_state(state, smooth_mean, smooth_covar)
 
             smoothed_states.insert(0, subsq_state)
+
+        if start == 1:
+            smoothed_states.insert(0, track[0])
 
         # Deep copy existing track, but avoid copying original states, as this would be super
         # expensive. This works by informing deepcopy that the smoothed states are the

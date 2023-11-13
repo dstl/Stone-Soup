@@ -192,7 +192,7 @@ class KalmanPredictor(Predictor):
 
         # And return the state in the correct form
         return Prediction.from_state(prior, x_pred, p_pred, timestamp=timestamp,
-                                     transition_model=self.transition_model)
+                                     transition_model=self.transition_model, prior=prior)
 
 
 class ExtendedKalmanPredictor(KalmanPredictor):

@@ -24,10 +24,12 @@ class Prediction(Type, CreatableFromState):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        if self.prior: # and hasattr(self.prior, 'hypothesis'):
+        if self.prior and hasattr(self.prior, 'hypothesis'):
             self.prior = copy.copy(self.prior)
             # Stop repeated linking back which will eat memory
-            self.prior.hypothesis = None
+            if self.prior.hypothesis:
+                self.prior.hypothesis.prediction = copy.copy(self.prior.hypothesis.prediction)
+                self.prior.hypothesis.prediction.prior = None
 
 
 class MeasurementPrediction(Type, CreatableFromState):
