@@ -162,11 +162,11 @@ class KalmanSmoother(Smoother):
             Smoothed track
 
         """
-        if getattr(track[0], 'hypothesis', None) is None \
-                or getattr(track[0].hypothesis, 'prediction', None) is None:
-            start = 1
-        else:
+        try:
+            self._prediction(track[0])
             start = 0
+        except (ValueError, TypeError):
+            start = 1
 
         subsq_state = track[-1]
         smoothed_states = [subsq_state]

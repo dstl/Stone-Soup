@@ -135,4 +135,4 @@ def test_multi_prediction_exception(smoother_class):
     smoother = smoother_class(transition_model=ConstantVelocity(1))
     with pytest.raises(
             ValueError, match="Track has MultipleHypothesis updates with multiple predictions"):
-        smoother.smooth(track)
+        smoother._prediction(track[0])

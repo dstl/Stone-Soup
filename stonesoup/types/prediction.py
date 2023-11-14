@@ -27,7 +27,7 @@ class Prediction(Type, CreatableFromState):
         if self.prior and hasattr(self.prior, 'hypothesis'):
             self.prior = copy.copy(self.prior)
             # Stop repeated linking back which will eat memory
-            if self.prior.hypothesis:
+            if self.prior.hypothesis and hasattr(self.prior.hypothesis, 'prediction'):
                 self.prior.hypothesis.prediction = copy.copy(self.prior.hypothesis.prediction)
                 self.prior.hypothesis.prediction.prior = None
 
