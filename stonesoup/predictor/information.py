@@ -162,4 +162,4 @@ class InformationKalmanPredictor(KalmanPredictor):
             pred_info_matrix @ control_matrix @ self.control_model.control_input()
 
         return Prediction.from_state(prior, pred_info_state, pred_info_matrix, timestamp=timestamp,
-                                     transition_model=self.transition_model)
+                                     transition_model=self.transition_model, prior=prior)

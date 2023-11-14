@@ -8,7 +8,7 @@ from scipy.stats import multivariate_normal
 
 from .. import state as measures
 from ...types.array import StateVector, CovarianceMatrix, StateVectors
-from ...types.state import GaussianState, State, ParticleState
+from ...types.state import GaussianState, State, ParticleState, ASDState
 
 # Create a time stamp to use for both states
 t = datetime.datetime.now()
@@ -317,8 +317,12 @@ def test_kld():
            f'({len(part_state_a)} != {len(part_state_c)})' in str(e.value)
 
     with pytest.raises(NotImplementedError) as e:
-        measure(state_u, state_v)
-    assert 'This measure is currently only compatible with ParticleState types' in str(e.value)
+        asd_state = ASDState(multi_state_vector=state_u.state_vector,
+                             timestamps=[state_u.timestamp],
+                             max_nstep=0)
+        measure(state_u, asd_state)
+    assert 'This measure is currently only compatible with ParticleState or GaussianState types' \
+           in str(e.value)
 
 
 def test_gaussian_kld_no_mapping():

@@ -29,7 +29,8 @@ class Prediction(Type, CreatableFromState):
             # Stop repeated linking back which will eat memory
             if self.prior.hypothesis and hasattr(self.prior.hypothesis, 'prediction'):
                 self.prior.hypothesis.prediction = copy.copy(self.prior.hypothesis.prediction)
-                self.prior.hypothesis.prediction.prior = None
+                if hasattr(self.prior.hypothesis.prediction, 'prior'):
+                    self.prior.hypothesis.prediction.prior = None
 
 
 class MeasurementPrediction(Type, CreatableFromState):

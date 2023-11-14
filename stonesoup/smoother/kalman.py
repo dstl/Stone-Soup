@@ -6,8 +6,8 @@ import numpy as np
 from .base import Smoother
 from ..base import Property
 from ..types.multihypothesis import MultipleHypothesis
-from ..types.prediction import Prediction, GaussianStatePrediction
-from ..types.update import Update, GaussianStateUpdate
+from ..types.prediction import GaussianStatePrediction
+from ..types.update import GaussianStateUpdate
 from ..models.base import LinearModel
 from ..models.transition.base import TransitionModel
 from ..models.transition.linear import LinearGaussianTransitionModel

@@ -3,13 +3,12 @@ import warnings
 
 from . import Updater
 from ..base import Property
-from ..measures import Measure, Euclidean, KLDivergence
+from ..measures import Measure, KLDivergence
 from ..predictor import Predictor
 
 from .kalman import ExtendedKalmanUpdater
 from ..smoother import Smoother
 from ..types.track import Track
-from ..types.update import Update
 
 
 class DynamicallyIteratedUpdater(ExtendedKalmanUpdater):
@@ -88,4 +87,3 @@ class DynamicallyIteratedUpdater(ExtendedKalmanUpdater):
             iterations += 1
 
         return new_posterior
-
