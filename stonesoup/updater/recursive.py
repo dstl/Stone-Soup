@@ -385,3 +385,77 @@ class VariableStepBayesianRecursiveUpdater(BayesianRecursiveUpdater):
     @classmethod
     def _get_meas_cov_scale_factor(cls, n=1, step_no=None):
         return 1 / (step_no / ((n * (n + 1)) / 2))
+
+
+class ErrorControllerBayesianRecursiveUpdater(BayesianRecursiveUpdater):
+    atol: float = Property(doc="TODO")
+    rtol: float = Property(doc="TODO")
+
+    def update(self, hypothesis, **kwargs):
+
+        # 1) X0 = prior state
+
+        # 2) P0 = prior covariance
+
+        # 3) tc = 0
+
+        # 4) ds = 1/number steps
+
+        # 5) i = 1
+
+        # 7 while loop
+        while tc < 1:
+
+            # 8 *** BEGIN IF STATEMENT ***
+            if tc + ds > 1:
+
+                # 9) ds = 1 - tc
+
+            # 10) *** END OF IF STATEMENT ***
+
+            # 12-14) Jacobian, innov_cov, Kalman gain calculations using prior state. Note different innov cov method
+
+            # 15) deltaX calculation
+
+            # 16) posterior state calculation
+
+            # 17) posterior cov calculaion
+
+            # 19-21) Jacobian, innov_cov, Kalman gain calculations using posterior state. Note different innov cov method
+
+            # 22) deltaX_prime calculation
+
+            # 23) posterior_state_prime calculation
+
+            # 24) sc calculation
+
+            # 25) error calculation
+
+            # 27) if statement
+            if error > 1:
+
+                # 28) update ds
+
+                # 29) reject update and begin next iteration
+
+            # 30) *** END OF IF STATEMENT ***
+
+            # 32) update tc (tc = tc + ds)
+
+            # 33) posterior_state_vector <- posterior_state_vector_tilda
+
+            # 34) posterior_cov <- posterior_cov_tilda
+
+            # 35) update iteration count
+            i += 1
+
+            # 36) update ds
+
+        # 37) *** END OF WHILE LOOP ***
+
+        # 39) final_posterior_state_vector <- posterior_state_vector at i-1
+
+        # 40) final_posterior_cov <- posterior_cov
+
+
+
