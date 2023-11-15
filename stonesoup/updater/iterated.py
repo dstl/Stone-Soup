@@ -12,6 +12,22 @@ from ..types.track import Track
 
 
 class DynamicallyIteratedUpdater(ExtendedKalmanUpdater):
+    """
+    Wrapper around a :class:`~.Predictor`, :class:`~.Updater` and :class:`~.Smoother`. This
+    updater takes a :class:`~.Prediction`, and updates as usual by calling its updater property.
+    The updated state is then used to smooth the prior state, completing the first iteration.
+    The second iteration begins from predicting using the smoothed prior. Iterates until
+    convergence, or a maximum number of iterations is reached.
+
+    Implementation of algorithm 2: Dynamically iterated filter, from "Iterated Filters for
+    Nonlinear Transition Models"
+
+    References
+    ----------
+
+    1. Anton Kullberg, Isaac Skog, Gustaf Hendeby,
+    "Iterated Filters for Nonlinear Transition Models"
+    """
 
     predictor: Predictor = Property(doc="Predictor to use for iterating over the predict step. "
                                         "Probably should be the same predictor used for the "
@@ -85,5 +101,8 @@ class DynamicallyIteratedUpdater(ExtendedKalmanUpdater):
 
             # (4) Update iteration count
             iterations += 1
+
+        # Reassign original hypothesis
+        new_posterior.hypothesis = hypothesis
 
         return new_posterior
