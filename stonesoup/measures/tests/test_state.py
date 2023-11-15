@@ -458,3 +458,20 @@ def test_gaussian_kld_different_mappings():
 
     # Check distance from u to v is not equal to v to u
     assert measure1(state1, state2) != measure2(state2, state1)
+
+
+def test_gaussian_kld_raise_errors():
+
+    x1 = StateVector([[10.], [1.], [10.], [1.], [10.], [1.]])
+    cov1 = CovarianceMatrix(np.diag([100., 10., 100., 10., 20., 40.]))
+
+    x2 = StateVector([[11.], [10.], [100.], [2.]])
+    cov2 = CovarianceMatrix(np.diag([20., 3., 7., 10.]))
+
+    state1 = GaussianState(x1, cov1, timestamp=t)
+    state2 = GaussianState(x2, cov2, timestamp=t)
+
+    measure = measures.KLDivergence()
+
+    with pytest.raises(ValueError):
+        measure(state1, state2)

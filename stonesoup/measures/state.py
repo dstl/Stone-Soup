@@ -487,7 +487,7 @@ class KLDivergence(Measure):
                 mahalanobis_term = np.transpose(state2.state_vector - state1.state_vector) @ \
                     np.linalg.inv(state2.covar)@(state2.state_vector - state1.state_vector)
 
-                kld = (0.5*(log_term - n_dims + trace_term + mahalanobis_term))
+                kld = float(0.5*(log_term - n_dims + trace_term + mahalanobis_term))
 
             else:
                 raise ValueError(f'The state dimensions are not compatible '
@@ -497,4 +497,4 @@ class KLDivergence(Measure):
             raise NotImplementedError('This measure is currently only compatible with '
                                       'ParticleState or GaussianState types')
 
-        return float(kld)
+        return kld
