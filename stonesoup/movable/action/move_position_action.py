@@ -8,6 +8,8 @@ from ...types.state import StateVector
 
 
 class MovePositionAction(Action):
+    """This is the base class for an action that changes the
+    position of a platform or sensor."""
 
     def act(self, current_time, timestamp, init_value):
         return self.target_value

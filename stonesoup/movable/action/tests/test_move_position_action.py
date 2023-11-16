@@ -6,8 +6,8 @@ import copy
 
 from ....types.state import StateVector, State, StateVectors
 from ....platform import FixedPlatform
-from ..move_position_action import GridActionGenerator, NStepDirectionalGridActionGenerator
-from ...actionable_movable import GridActionableMovable
+# from ..move_position_action import GridActionGenerator, NStepDirectionalGridActionGenerator
+from ...actionable_movable import NStepDirectionalGridMovable  # GridActionableMovable
 
 
 @pytest.mark.parametrize(
@@ -92,16 +92,12 @@ def test_n_step_directional_grid_action_gen(generator_params, state, position_ma
         resolution = 1  # if none, it should use default
 
     platform = FixedPlatform(
-        movement_controller=GridActionableMovable(
+        movement_controller=NStepDirectionalGridMovable(
             states=[State(state, timestamp=start_timestamp)],
             position_mapping=position_mapping,
-            generator=GridActionGenerator))  # Dummy platform for populating the owner category
+            **generator_params))  # Dummy platform for initiating the generator
 
-    generator = NStepDirectionalGridActionGenerator(owner=platform,
-                                                    attribute='position',
-                                                    start_time=start_timestamp,
-                                                    end_time=end_timestamp,
-                                                    **generator_params)
+    generator = platform.actions(start_timestamp).pop()
 
     # Check that parameters have been set correctly
     assert generator.n_steps == n_steps
@@ -136,3 +132,8 @@ def test_n_step_directional_grid_action_gen(generator_params, state, position_ma
                 eval_actions.append(eval_action)
 
     assert np.all(np.isclose(actions, eval_actions))
+
+    platform.add_actions(move_position_actions[1])
+    platform.act(end_timestamp)
+
+    assert np.all(np.isclose(platform.position, actions[1]))
