@@ -64,7 +64,9 @@ class _GridActionableMovable(FixedMovable):
 
     def move(self, timestamp, *args, **kwargs):
         current_time = self.states[-1].timestamp
-        super().move(timestamp, *args, **kwargs)
+        new_state = State.from_state(self.state, timestamp=timestamp)
+        new_state.state_vector = new_state.state_vector.copy()
+        self.states.append(new_state)
         action = self._next_action
         if action is not None:
             self.position = action.act(current_time, timestamp, self.position)
