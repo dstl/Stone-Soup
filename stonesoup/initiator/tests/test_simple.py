@@ -294,7 +294,8 @@ def create_multi_measurement_initiator(obj_class, **kwargs):
     data_associator = NearestNeighbour(hypothesiser)
     deleter = UpdateTimeDeleter(datetime.timedelta(seconds=59))
 
-    obj_kwargs = dict(prior_state=GaussianState([[0], [0], [0], [0]], np.diag([0, 15, 0, 15])),
+    obj_kwargs = dict(prior_state=GaussianState([[0], [0], [0], [0]],
+                                                np.diag([0, 15, 0, 15])),
                       deleter=deleter,
                       data_associator=data_associator,
                       updater=updater,
