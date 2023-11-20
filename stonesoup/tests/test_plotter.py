@@ -215,7 +215,8 @@ def test_animated_plotterly():
     plotter = AnimatedPlotterly(timesteps)
     plotter.plot_ground_truths(truth, [0, 2])
     plotter.plot_measurements(all_measurements, [0, 2])
-    plotter.plot_measurements(measurements, [0, 1], uncertainty=True, convert_measurements=False)
+    plotter.plot_measurements(measurements, [0, 1], uncertainty=True,
+                              convert_measurements=False)
     with pytest.raises(NotImplementedError):    # state dim != meas dim
         plotter.plot_measurements(all_measurements, [0, 2], uncertainty=True)
     plotter.plot_tracks(track, [0, 2], uncertainty=True, plot_history=True)
@@ -232,7 +233,7 @@ def test_animated_plotterly_meas_uncertainty():
     truth = GroundTruthPath([GroundTruthState([1, 1], timestamp=start_time)])
     for state in truth:
         measurement_set = set()
-        # Generate actual detection from the state with a 1-p_d chance that no detection is received.
+        # Generate actual detection from the state with a 1-p_d chance that received no detection.
         if np.random.rand() <= prob_det:
             measurement = measurement_model.function(state, noise=True)
             measurement_set.add(TrueDetection(state_vector=measurement,
@@ -242,7 +243,8 @@ def test_animated_plotterly_meas_uncertainty():
 
         measurements.append(measurement_set)
     plotter = AnimatedPlotterly(timesteps)
-    plotter.plot_measurements(measurements, [0, 1], uncertainty=True, convert_measurements=True)
+    plotter.plot_measurements(measurements, [0, 1], uncertainty=True,
+                              convert_measurements=True)
 
 
 def test_animated_plotterly_empty():
