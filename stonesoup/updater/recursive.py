@@ -202,11 +202,17 @@ class RecursiveEnsembleUpdater(ExtendedKalmanUpdater, EnsembleUpdater):
 
         for _ in range(self.number_steps):
 
+            # Clear measurement prediction so that it is automatically recalculated
+            nhypothesis.measurement_prediction = None
+
             # Generate an ensemble of measurements based on measurement
             measurement_ensemble = nhypothesis.prediction.generate_ensemble(
                 mean=hypothesis.measurement.state_vector,
                 covar=self.measurement_model.covar(),
                 num_vectors=num_vectors)
+
+            # Recalculate measurement prediction
+            nhypothesis = self._check_measurement_prediction(nhypothesis)
 
             # Calculate Kalman Gain according to Dr. Jan Mandel's EnKF formalism.
             innovation_ensemble = nhypothesis.prediction.state_vector - nhypothesis.prediction.mean
