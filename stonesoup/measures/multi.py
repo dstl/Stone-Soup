@@ -2,7 +2,7 @@ import heapq
 import warnings
 from abc import abstractmethod
 from datetime import datetime
-from typing import List, Sequence, Optional
+from typing import List, Sequence
 
 from .base import BaseMeasure
 from .state import Measure

@@ -743,7 +743,7 @@ print_results(associations, unassociated_a, unassociated_b, measure=SquareNumeri
 # in the :class:`OneToOneAssociator`:
 #
 #  * If you want to simply cut off associations that don’t reach the threshold use
-#    `non_association_cost=` ``None`.
+#    `non_association_cost=` ``None``.
 #  * If the goal is to maximise the number of associations use `non_association_cost=` ``nan``.
 #  * To maximise the total measure use `non_association_cost=0`.
 #  * To minimise the total measure use `non_association_cost=`
