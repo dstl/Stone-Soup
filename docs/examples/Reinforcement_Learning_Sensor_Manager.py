@@ -10,17 +10,16 @@ This example looks at how to interface a reinforcement learning framework with a
 # Making a Reinforcement Learning Sensor Manager
 # ----------------------------------------------
 # This example introduces using a Deep Q Network (DQN) reinforcement learning (RL) sensor management algorithm
-# in Stone Soup.
-#
-# This is compared to the performance of a brute force algorithm using the same metrics shown in the sensor
-# management tutorials.
-# 
-# This example is similar to the tutorials, simulating 3 targets and a :class:`~.RadarRotatingBearingRange` sensor,
-# which can be actioned to point in different directions.
+# in Stone Soup. This is compared to the performance of a brute force algorithm using the same metrics shown in the
+# sensor management tutorials. This example is similar to the sensor management tutorials, simulating 3 targets and a
+# :class:`~.RadarRotatingBearingRange` sensor which can be actioned to point in different directions.
 # 
 # Tensorflow-agents is used as the reinforcement learning framework. This is a separate python package that can be found
 # at https://github.com/tensorflow/agents. This currently only works on Linux based OSes, or via Windows Subsystem for
 # Linux (WSL). See Tensorflow instructions for creating environments (with GPU support if applicable) [#]_.
+#
+# To run this example, in a clean environment, do  ``pip install stonesoup``, followed by ``pip install
+# tf-agents[reverb]``.
 
 # Some general imports and set up
 import numpy as np
@@ -35,8 +34,8 @@ from stonesoup.types.groundtruth import GroundTruthPath, GroundTruthState
 # %%
 # Generate ground truths
 # ----------------------
-# Following the methods from previous Stone Soup tutorials, generate a series of combined linear Gaussian transition
-# models and generate ground truths. Each ground truth is offset in the y-direction by 10.
+# Following the methods from previous Stone Soup sensor management tutorials, generate a series of combined linear
+# Gaussian transition models and generate ground truths. Each ground truth is offset in the y-direction by 10.
 # 
 # The number of targets in this simulation is defined by `ntruths` - here there are 3 targets travelling in different
 # directions. The time the simulation is observed for is defined by `time_max`.
@@ -92,11 +91,11 @@ plotter.fig
 # --------------
 # Create a sensor for each sensor management algorithm. This tutorial uses the
 # :class:`~.RadarRotatingBearingRange` sensor. This sensor is an :class:`~.Actionable` so
-# is capable of returning the actions it can possibly
-# take at a given time step and can also be given an action to take before taking
-# measurements.
-# See the Creating an Actionable Sensor Example for a more detailed explanation of actionable sensors.
-# 
+# is capable of returning the actions it can take at a given time step and can also be given an action to take before
+# measuring.
+# See the :doc:`Creating an Actionable Sensor Example <Creating_Actionable_Sensor>` for a more
+# detailed explanation of actionable sensors.
+#
 # The :class:`~.RadarRotatingBearingRange` has a dwell centre which is an :class:`~.ActionableProperty`
 # so in this case the action is changing the dwell centre to point in a specific direction.
 # 
@@ -135,7 +134,7 @@ sensorB.timestamp = start_time
 # ---------------------------------------
 # Construct a predictor and updater using the :class:`~.KalmanPredictor` and :class:`~.ExtendedKalmanUpdater`
 # components from Stone Soup. The :class:`~.ExtendedKalmanUpdater` is used because it can be used for both linear
-# and nonlinear measurement models.
+# and nonlinear measurement models. A hypothesiser and data associator are required for use in both trackers.
 # 
 
 from stonesoup.predictor.kalman import KalmanPredictor
@@ -145,12 +144,19 @@ from stonesoup.updater.kalman import ExtendedKalmanUpdater
 updater = ExtendedKalmanUpdater(measurement_model=None)
 # measurement model is added to detections by the sensor
 
+from stonesoup.hypothesiser.distance import DistanceHypothesiser
+from stonesoup.measures import Mahalanobis
+hypothesiser = DistanceHypothesiser(predictor, updater, measure=Mahalanobis(), missed_distance=5)
+
+from stonesoup.dataassociator.neighbour import GNNWith2DAssignment
+data_associator = GNNWith2DAssignment(hypothesiser)
+
 # %%
-# Run the Kalman filters
+# Generate Priors
 # ----------------------
 # First create `ntruths` priors which estimate the targets’ initial states, one for each target. In this example
-# each prior is offset by 0.5 in the y direction meaning the position of the track is initially not very accurate. The
-# velocity is also systematically offset by +0.5 in both the x and y directions.
+# each prior is offset by 0.1 in the y direction meaning the position of the track is initially not very accurate. The
+# velocity is also systematically offset by +0.2 in both the x and y directions.
 # 
 # 
 
@@ -161,7 +167,7 @@ xdirection = 1.2
 ydirection = 1.2
 for j in range(0, ntruths):
     priors.append(GaussianState([[0], [xdirection], [yps[j]+0.1], [ydirection]],
-                                np.diag([0.5, 0.5, 0.5, 0.5]+np.random.normal(0,5e-4,4)),
+                                np.diag([0.5, 0.5, 0.5, 0.5]+np.random.normal(0, 5e-4, 4)),
                                 timestamp=start_time))
     xdirection *= -1
     if j % 2 == 0:
@@ -196,26 +202,22 @@ for j, prior in enumerate(priors):
 # covariance matrix norms of the prediction, and the posterior assuming a predicted measurement corresponding to that
 # prediction.
 
-from stonesoup.hypothesiser.distance import DistanceHypothesiser
-from stonesoup.measures import Mahalanobis
-hypothesiser = DistanceHypothesiser(predictor, updater, measure=Mahalanobis(), missed_distance=5)
-
-from stonesoup.dataassociator.neighbour import GNNWith2DAssignment
-data_associator = GNNWith2DAssignment(hypothesiser)
-
 from stonesoup.sensormanager.reward import UncertaintyRewardFunction
 reward_function = UncertaintyRewardFunction(predictor=predictor, updater=updater)
 
 # %%
 # Reinforcement Learning
 # ----------------------
-# Reinforcement learning is when an intelligent agents make decisions to maximise a cumulative reward. First, the agent
-# must train in an environment to create a policy, which determines which actions to take. During training, the agent
-# makes decisions and receives rewards, which is uses to optimise the policy.
+# Reinforcement learning involves intelligent agents making decisions to maximise a cumulative reward. The agent
+# must train in an environment in order to create a policy, which later determines the actions it will take. During
+# training, the agent makes decisions and receives rewards, which it uses to optimise the policy.
 # 
-# .. image:: ../_static/rl_training.png
+# .. figure:: ../_static/rl_training.png
 #   :width: 800
 #   :alt: Illustration of sequential actions and measurements
+#
+#   Illustration of an RL algorithm taking actions during training. The state and reward it receives are used to
+#   determine the best actions.
 # 
 # Once training has completed, the policy can be exploited to gain rewards.
 # 
@@ -224,10 +226,10 @@ reward_function = UncertaintyRewardFunction(predictor=predictor, updater=updater
 # Design Environment
 # ------------------
 # An environment is needed for the RL agent to learn in. There are resources online for how to design these [#]_.
-# 
-# For this tutorial, a pre-designed environment has been created for you to go through.
+#
 # In this example, the action space is equal to the number of targets in the simulation, so at each time step, the
-# sensor can select one target to look at.
+# sensor can select one target to look at. For the environment, we make a copy of the sensor that we will pass to the
+# sensor manager later on. This is so the agent can train in the environment without altering the sensor itself.
 # The :class:`~.UncertaintyRewardFunction` is used to calculate the reward obtained for each step in the environment.
 # The trace of the covariances for each object is used as the observation for the agent to learn from - it should learn
 # to select targets with a larger covariance (higher uncertainty).
@@ -264,7 +266,7 @@ class StoneSoupEnv(py_environment.PyEnvironment, ABC):
         self.max_episode_length = time_max
         self.current_step = 0
         self.start_time = start_time
-        # Use deepcopy to prevent the original sensor/tracks being changed
+        # Use deepcopy to prevent the original sensor/tracks being changed each time an episode is run
         self.sensor = copy.deepcopy(sensorA)
         self.sensor.timestamp = start_time
         self.tracks = copy.deepcopy(tracksA)
@@ -374,7 +376,7 @@ utils.validate_py_environment(train_env, episodes=5)
 
 # %%
 # RL Sensor Manager
-# -------------------------------------
+# -----------------
 # To be able to use the RL environment we have designed, we need to make a ReinforcementSensorManager class, which
 # inherits from :class:`~.SensorManager`.
 # 
@@ -383,9 +385,9 @@ utils.validate_py_environment(train_env, episodes=5)
 # :func:`compute_avg_return` is used to find the average reward by using a given policy. This is used to evaluate the
 # training.
 # :func:`dense_layer` is used when generating the Q-Network, a neural network model that learns to predict Q-Values.
-# 
 # :func:`train` is used to generate the policy by running a large number of episodes through the Q-Network to work out
-# which actions are best.
+# which actions are best. An episode in RL refers to a single run or instance of the learning process, where the agent
+# interacts with the environment.
 # 
 # We also need to re-define the :func:`choose_actions` method from :class:`~.SensorManager` to be able to interface
 # Stone Soup actions with tensorflow-agent actions.
@@ -711,9 +713,19 @@ reinforcementsensormanager.train(hyper_parameters)
 # %%
 # Run the sensor managers
 # -----------------------
+# The :func:`choose_actions` function requires a time step and a tracks list as inputs.
+#
+# For both sensor management methods, the chosen actions are added to the sensor and measurements made. Tracks which
+# have been observed by the sensor are updated and those that haven’t are predicted forward. These states are appended
+# to the tracks list.
+#
+
+# %%
+# Run reinforcement learning sensor manager
+# -----------------------------------------
 # To be able to exploit the policy generated by the reinforcement sensor manager, it  must be passed appropriate
 # 'timesteps'.
-# These are distinct from the timesteps in Stonesoup, and is of the form time_step_spec from tf-agents.
+# These are distinct from the timesteps in Stone Soup, and is of the form time_step_spec from tf-agents.
 
 from itertools import chain
 
@@ -890,7 +902,7 @@ plotterB.fig
 # -------
 # Metrics can be used to compare how well different sensor management techniques are working.
 # Full explanations of the OSPA
-# and SIAP metrics can be found in the Metrics Example.
+# and SIAP metrics can be found in the :doc:`Metrics Example <Metrics>`.
 
 from stonesoup.metricgenerator.ospametric import OSPAMetric
 ospa_generatorA = OSPAMetric(c=40, p=1,
