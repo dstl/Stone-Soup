@@ -20,6 +20,7 @@ tracks in cartesian space.
 import datetime
 from collections import defaultdict
 from typing import Union, Set
+from ordered_set import OrderedSet
 
 import numpy as np
 
@@ -174,10 +175,10 @@ static_sensor = PassiveElevationBearing(
 target_1_truth = GroundTruthPath(id="Target 1")
 target_2_truth = GroundTruthPath(id="Target 2")
 target_3_truth = GroundTruthPath(id="Target 3")
-all_ground_truth = {target_1_truth, target_2_truth, target_3_truth}
+all_ground_truth = OrderedSet([target_1_truth, target_2_truth, target_3_truth])
 
-moving_sensor_eb_truth = []
-static_sensor_eb_truth = []
+moving_sensor_eb_truth = OrderedSet()
+static_sensor_eb_truth = OrderedSet()
 
 moving_sensor_inputs = []
 static_sensor_inputs = []
@@ -198,8 +199,8 @@ for target_1_state, target_2_state, target_3_state in \
     static_sensor_detections_this_time_step = static_sensor.measure(all_ground_truth, noise=True)
 
     # This is used for angular truth data.
-    moving_sensor_eb_truth.extend(moving_sensor.measure(all_ground_truth, noise=False))
-    static_sensor_eb_truth.extend(static_sensor.measure(all_ground_truth, noise=False))
+    moving_sensor_eb_truth |= moving_sensor.measure(all_ground_truth, noise=False)
+    static_sensor_eb_truth |= static_sensor.measure(all_ground_truth, noise=False)
 
     moving_sensor_inputs.append((time, moving_sensor_detections_this_time_step))
     static_sensor_inputs.append((time, static_sensor_detections_this_time_step))
@@ -225,14 +226,14 @@ xy_plotter.fig
 # -------------------------------------------------
 # We now assign each angle only truth detection to its corresponding ground truth.
 
-moving_sensor_truth_dict = defaultdict(list)
+moving_sensor_truth_dict = defaultdict(OrderedSet)
 for det in moving_sensor_eb_truth:
-    moving_sensor_truth_dict[det.groundtruth_path].append(det)
+    moving_sensor_truth_dict[det.groundtruth_path].add(det)
 
 
-static_sensor_truth_dict = defaultdict(list)
+static_sensor_truth_dict = defaultdict(OrderedSet)
 for det in static_sensor_eb_truth:
-    static_sensor_truth_dict[det.groundtruth_path].append(det)
+    static_sensor_truth_dict[det.groundtruth_path].add(det)
 
 
 pre_rotate_dets = moving_sensor_truth_dict[target_3_truth]
@@ -281,11 +282,7 @@ bt_plotter_fixed.plot_measurements(post_rotate_dets, mapping=[1],
 bt_plotter_fixed.fig
 
 # %%
-# This looks much better. The rotation isn't needed for the static sensor as its orientation
-# doesn't change.
-#
-# The detections now show much more consistency. This rotation is not required for the static
-# sensor as it has a constant orientation.
+# The detections now show much more consistency.
 
 
 moving_sensor_eb_ground_truths = defaultdict(GroundTruthPath)
@@ -295,7 +292,6 @@ for det in moving_sensor_eb_truth:
                        target_type=GroundTruthState)
     )
 
-# TODO query? just said doesnt need to be done for static sensor
 static_sensor_eb_ground_truths = defaultdict(GroundTruthPath)
 for det in static_sensor_eb_truth:
     static_sensor_eb_ground_truths[det.groundtruth_path].append(
@@ -315,10 +311,8 @@ for cart_ground_truth, eb_ground_truth in static_sensor_eb_ground_truths.items()
 moving_sensor_inputs = [detection_rotater.alter_output(moving_sensor_input)
                         for moving_sensor_input in moving_sensor_inputs]
 
-
 moving_sensor_measurements = [detection for _, set_of_detections in moving_sensor_inputs
                               for detection in set_of_detections]
-
 
 static_sensor_measurements = [detection for _, set_of_detections in static_sensor_inputs
                               for detection in set_of_detections]
@@ -620,47 +614,41 @@ static_sensor_tracks = list(run_tracker(tracker_static_sensor))
 # Elevation vs Bearing Graph
 # ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 for idx, track in enumerate(moving_sensor_tracks):
-    eb_plotter_moving.plot_tracks({track}, mapping=[2, 0], track_label=f"Track {idx}")
+    eb_plotter_moving.plot_tracks({track}, mapping=[2, 0], track_label=f"Track {idx + 1}")
 eb_plotter_moving.fig
 
 # %%
 # From the elevation-bearing graph we can see that the general shape of the tracks follows that of
 # the targets truth paths. Although, around target 1 there are large disparities between the
-# position of the target and the track.
-#
-# TODO add description
-#
-# TODO can't talk about overlap / lack of overlap in tracks as different builds have variance
+# position of the target and the track. Due to the overlapping angle-only paths of the targets we
+# can see that the tracks have switched which target they follow.
 
 # %%
 # Bearing vs Time Graph
 # ^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 for idx, track in enumerate(moving_sensor_tracks):
-    bt_plotter_moving.plot_tracks({track}, mapping=[2], track_label=f"Track {idx}")
+    bt_plotter_moving.plot_tracks({track}, mapping=[2], track_label=f"Track {idx + 1}")
 
 bt_plotter_moving.fig
 
 # %%
-# The bearing-time graph shows that very little variance between the bearing of the tracks and
-# those of the truth paths.
-#
-# TODO Add description
+# The bearing-time graph shows that there is very little variance between the bearing of the tracks
+# and those of the truth paths. We can see that the switch in tracks occurs at the point where the
+# bearings of the two targets intersect.
 
 # %%
 # Elevation vs Time Graph
 # ^^^^^^^^^^^^^^^^^^^^^^^
 
 for idx, track in enumerate(moving_sensor_tracks):
-    et_plotter_moving.plot_tracks({track}, mapping=[0], track_label=f"Track {idx}")
+    et_plotter_moving.plot_tracks({track}, mapping=[0], track_label=f"Track {idx + 1}")
 
 et_plotter_moving.fig
 
 # %%
 # The elevation-time graph shows much larger variances from the truth path than was apparent in the
 # bearing-time graph.
-#
-# TODO add description
 
 # %%
 # Static Sensor - Tracks
@@ -671,14 +659,15 @@ et_plotter_moving.fig
 # Elevation vs Bearing Graph
 # ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 for idx, track in enumerate(static_sensor_tracks):
-    eb_plotter_static.plot_tracks({track}, mapping=[2, 0], track_label=f"Track {idx}")
+    eb_plotter_static.plot_tracks({track}, mapping=[2, 0], track_label=f"Track {idx + 1}")
 eb_plotter_static.fig
 
 # %%
 # We can see that, like the moving tracker, the general paths of each target have been tracked
 # accurately. Like before, there are visible disparities between the tracks and truth for target 1.
-#
-# TODO add description
+# There are also now large deviations from the truth for the stationary target 3. Unlike the moving
+# sensor, while the tracks switch momentarily, each track follows the same target for the majority
+# of the simulation.
 
 
 # %%
@@ -686,30 +675,26 @@ eb_plotter_static.fig
 # ^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 for idx, track in enumerate(static_sensor_tracks):
-    bt_plotter_static.plot_tracks({track}, mapping=[2], track_label=f"Track {idx}")
+    bt_plotter_static.plot_tracks({track}, mapping=[2], track_label=f"Track {idx + 1}")
 
 bt_plotter_static.fig
 
 # %%
 # The bearing-time graph shows a minuscule disparity between the truth paths of the targets and the
 # tracks produced.
-#
-# TODO Add description
 
 # %%
 # Elevation vs Time Graph
 # ^^^^^^^^^^^^^^^^^^^^^^^
 
 for idx, track in enumerate(static_sensor_tracks):
-    et_plotter_static.plot_tracks({track}, mapping=[0], track_label=f"Track {idx}")
+    et_plotter_static.plot_tracks({track}, mapping=[0], track_label=f"Track {idx + 1}")
 
 et_plotter_static.fig
 
 # %%
 # However, as was the case for the moving sensor, there exists a much larger disparity in the
 # elevation of the tracks when compared to the target truths.
-#
-# TODO add description
 
 # %%
 # Tracking in Cartesian using Bearing Only
@@ -795,13 +780,13 @@ tracker_static_sensor_cart._tracks = initial_tracks
 static_sensor_tracks_cart = list(run_tracker(tracker_static_sensor_cart))
 
 xy_plotter.plot_tracks(static_sensor_tracks_cart, [_X, _Y],
-                       uncertainty=False, track_label="Sensor 2 Tracker")
+                       uncertainty=False, track_label="Static Sensor Tracker")
 xy_plotter.fig
 
 # %%
 # The tracks produced by the static sensor vary from the truth even more.
 
-hide_plot_traces(xy_plotter.fig, {"Sensor 1 Tracker", "Sensor 2 Tracker"})
+hide_plot_traces(xy_plotter.fig, {"Moving Sensor Tracker", "Static Sensor Tracker"})
 
 # %%
 # Multi Sensor Tracking
