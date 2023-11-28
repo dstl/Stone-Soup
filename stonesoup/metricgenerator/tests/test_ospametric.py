@@ -5,7 +5,7 @@ import numpy as np
 import pytest
 
 from ..manager import MultiManager
-from ..ospametric import GOSPAMetric, OSPAMetric
+from ..ospametric import GOSPAMetric, OSPAMetric, SwitchingLoss
 from ...types.detection import Detection
 from ...types.groundtruth import GroundTruthPath, GroundTruthState
 from ...types.state import State
@@ -310,6 +310,65 @@ def test_ospametric_computemetric(p):
     assert second_association.generator == generator
 
 
+def test_switching_gospametric_computemetric():
+    """Test GOSPA compute metric."""
+    max_penalty = 2
+    switching_penalty = 3
+    p = 2
+    generator = GOSPAMetric(
+        c=max_penalty,
+        p=p,
+        switching_penalty=switching_penalty
+    )
+
+    time = datetime.datetime.now()
+    times = [time.now() + datetime.timedelta(seconds=i) for i in range(3)]
+    tracks = {Track(states=[State(state_vector=[[i]], timestamp=time) for i, time
+                            in zip([1, 2, 2], times)]),
+              Track(states=[State(state_vector=[[i]], timestamp=time) for i, time
+                            in zip([2, 1, 1], times)]),
+              Track(states=[State(state_vector=[[i]], timestamp=time) for i, time
+                            in zip([3, 100, 3], times)])}
+
+    truths = {GroundTruthPath(states=[State(state_vector=[[i]], timestamp=time)
+                                      for i, time in zip([1, 1, 1], times)]),
+              GroundTruthPath(states=[State(state_vector=[[i]], timestamp=time)
+                                      for i, time in zip([2, 2, 2], times)]),
+              GroundTruthPath(states=[State(state_vector=[[i]], timestamp=time)
+                                      for i, time in zip([3, 3, 3], times)])}
+
+    manager = MultiManager([generator])
+    manager.add_data({'groundtruth_paths': truths, 'tracks': tracks})
+    main_metric = generator.compute_metric(manager)
+    first_association, second_association, third_association = main_metric.value
+
+    assert main_metric.time_range.start_timestamp == times[0]
+
+    assert first_association.value['distance'] == 0
+    assert first_association.value['localisation'] == 0
+    assert first_association.value['missed'] == 0
+    assert first_association.value['false'] == 0
+    assert first_association.value['switching'] == 0
+    assert first_association.timestamp == times[0]
+    assert first_association.generator == generator
+
+    assert second_association.value['distance'] == max_penalty
+    assert second_association.value['localisation'] == 0
+    assert second_association.value['missed'] == 1*max_penalty
+    assert second_association.value['false'] == 1*max_penalty
+    assert second_association.value['switching'] == 2.5**(1/p)*switching_penalty
+    assert second_association.timestamp == times[1]
+    assert second_association.generator == generator
+
+    assert third_association.value['distance'] == 0
+    assert third_association.value['localisation'] == 0
+    assert third_association.value['missed'] == 0
+    assert third_association.value['false'] == 0
+    assert third_association.value['switching'] == 0.5**(1/p)*switching_penalty
+    assert third_association.timestamp == times[2]
+    assert third_association.generator == generator
+
+
 @pytest.mark.parametrize(
     'p,first_value,second_value',
     ((1, 2.4, 2.16), (2, 4.49444, 4.47571), (np.inf, 10, 10)),
@@ -351,3 +410,52 @@ def test_ospa_computemetric_cardinality_error(p, first_value, second_value):
     assert second_association.value == pytest.approx(second_value)
     assert second_association.timestamp == time + datetime.timedelta(seconds=1)
     assert second_association.generator == generator
+
+
+@pytest.mark.parametrize("associations, expected_losses", [
+    ([
+        {0: 0, 1: 1, 2: 2},
+        {0: 0, 1: 1, 2: 2},
+        {0: 0, 1: 1, 2: -1},
+        {0: 0, 1: 1, 2: 2},
+        {0: 1, 1: 0, 2: 2},
+        {1: 0, 0: 1, 2: 2},
+        {0: -1, 1: 2, 2: 0},
+    ],  [0, 0, 0.5, 0.5, 2, 0, 2.5]),
+    ([
+        {0: 0, 1: 1, 2: 2},
+        {0: -1, 1: -1, 2: -1},
+        {0: 3, 1: -1, 2: -1},
+    ], [0, 1.5, 0.5]),
+    ([
+        {0: -1, 1: -1, 2: -1},
+        {0: 0, 1: 1, 2: 2},
+    ], [0, 0]),
+    ([  # The first time we associate with the track it should not count for loss
+        {0: -1, 1: -1, 2: -1},
+        {0: 0, 1: 1, 2: 2},
+    ], [0, 0]),
+    ([  # The first time we associate with the track it should not count for loss
+        {0: 0},
+        {0: 0, 1: 1},
+        {0: 0, 1: 1, 2: 3}
+    ], [0, 0, 0]),
+    ([  # We don't want loss if we just didn't see it
+        {0: 0, 1: 1},
+        {0: 0},
+        {0: 0, 1: 1},
+        {0: 0, 1: 2}
+    ], [0, 0, 0, 1]),
+ ])
+def test_switching_loss(associations, expected_losses):
+    loss_factor = 1
+    truth_ids = list(range(3))
+
+    switching_loss = SwitchingLoss(truth_ids, loss_factor, 1)
+
+    with pytest.raises(RuntimeError) as _:
+        switching_loss.loss()   # Should raise error if no associations have been added yet.
+
+    for association, expected_loss in zip(associations, expected_losses):
+        switching_loss.add_associations(association)
+        assert switching_loss.loss() == expected_loss
