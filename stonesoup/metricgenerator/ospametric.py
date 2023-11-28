@@ -26,13 +26,13 @@ class SwitchingLoss:
         self.p = p
         self.switching_penalty = 0.5
 
-    def add_associations(self, truth_associations: dict[int: int]):
+    def add_associations(self, truth_associations):
         """
         Add a new set of association and update the switching loss.
 
         Parameters
         ----------
-        truth_associations: truth_track_id: measurement_track_id
+        truth_associations: dict(truth_track_id: measurement_track_id)
         """
         self.has_associations = True
         self.switching_loss = 0
