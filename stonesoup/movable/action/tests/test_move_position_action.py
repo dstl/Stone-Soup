@@ -6,8 +6,7 @@ import copy
 
 from ....types.state import StateVector, State, StateVectors
 from ....platform import FixedPlatform
-# from ..move_position_action import GridActionGenerator, NStepDirectionalGridActionGenerator
-from ...actionable_movable import NStepDirectionalGridMovable  # GridActionableMovable
+from ...actionable_movable import NStepDirectionalGridMovable
 
 
 @pytest.mark.parametrize(
