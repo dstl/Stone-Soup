@@ -138,17 +138,21 @@ sensorB.timestamp = start_time
 # 
 
 from stonesoup.predictor.kalman import KalmanPredictor
+
 predictor = KalmanPredictor(transition_model)
 
 from stonesoup.updater.kalman import ExtendedKalmanUpdater
+
 updater = ExtendedKalmanUpdater(measurement_model=None)
 # measurement model is added to detections by the sensor
 
 from stonesoup.hypothesiser.distance import DistanceHypothesiser
 from stonesoup.measures import Mahalanobis
+
 hypothesiser = DistanceHypothesiser(predictor, updater, measure=Mahalanobis(), missed_distance=5)
 
 from stonesoup.dataassociator.neighbour import GNNWith2DAssignment
+
 data_associator = GNNWith2DAssignment(hypothesiser)
 
 # %%
@@ -166,13 +170,12 @@ priors = []
 xdirection = 1.2
 ydirection = 1.2
 for j in range(0, ntruths):
-    priors.append(GaussianState([[0], [xdirection], [yps[j]+0.1], [ydirection]],
-                                np.diag([0.5, 0.5, 0.5, 0.5]+np.random.normal(0, 5e-4, 4)),
+    priors.append(GaussianState([[0], [xdirection], [yps[j] + 0.1], [ydirection]],
+                                np.diag([0.5, 0.5, 0.5, 0.5] + np.random.normal(0, 5e-4, 4)),
                                 timestamp=start_time))
     xdirection *= -1
     if j % 2 == 0:
         ydirection *= -1
-
 
 # %%
 # Initialise the tracks by creating an empty list and appending the priors generated. This needs to be done separately
@@ -203,6 +206,7 @@ for j, prior in enumerate(priors):
 # prediction.
 
 from stonesoup.sensormanager.reward import UncertaintyRewardFunction
+
 reward_function = UncertaintyRewardFunction(predictor=predictor, updater=updater)
 
 # %%
@@ -257,7 +261,7 @@ class StoneSoupEnv(py_environment.PyEnvironment, ABC):
         super().__init__()
         # Action size is number of targets
         self._action_spec = array_spec.BoundedArraySpec(
-            shape=(), dtype=np.int32, minimum=0, maximum=ntruths-1, name='action')
+            shape=(), dtype=np.int32, minimum=0, maximum=ntruths - 1, name='action')
         # Observation size is also number of targets
         self.obs_size = ntruths
         self._observation_spec = array_spec.BoundedArraySpec(
@@ -270,7 +274,7 @@ class StoneSoupEnv(py_environment.PyEnvironment, ABC):
         self.sensor = copy.deepcopy(sensorA)
         self.sensor.timestamp = start_time
         self.tracks = copy.deepcopy(tracksA)
-        
+
     def action_spec(self):
         """Return action_spec."""
         return self._action_spec
@@ -304,14 +308,14 @@ class StoneSoupEnv(py_environment.PyEnvironment, ABC):
         for i, target in enumerate(self.tracks):
             # Calculate the bearing of the chosen target from the sensor
             if i == action:
-                x_target = target.state.state_vector[0]-self.sensor.position[0]
-                y_target = target.state.state_vector[2]-self.sensor.position[1]
+                x_target = target.state.state_vector[0] - self.sensor.position[0]
+                y_target = target.state.state_vector[2] - self.sensor.position[1]
                 bearing_target = mod_bearing(np.arctan2(y_target, x_target))
 
             uncertainty.append(np.trace(target.covar))
 
         current_timestep = self.start_time + timedelta(seconds=self.current_step)
-        next_timestep = self.start_time + timedelta(seconds=self.current_step+1)
+        next_timestep = self.start_time + timedelta(seconds=self.current_step + 1)
 
         # Create action generator which contains possible actions
         action_generator = DwellActionsGenerator(self.sensor,
@@ -347,7 +351,7 @@ class StoneSoupEnv(py_environment.PyEnvironment, ABC):
 
         self.current_step += 1
 
-        if self.current_step >= self.max_episode_length-1:
+        if self.current_step >= self.max_episode_length - 1:
             self._episode_ended = True
             return ts.termination(observation, reward)
         else:
@@ -358,17 +362,18 @@ class StoneSoupEnv(py_environment.PyEnvironment, ABC):
         """This method is used to convert a tf-agents action into a Stone Soup action"""
         for i, target in enumerate(tracks):
             if i == action:
-                x_target = target.state.state_vector[0]-sensor.position[0]
-                y_target = target.state.state_vector[2]-sensor.position[1]
+                x_target = target.state.state_vector[0] - sensor.position[0]
+                y_target = target.state.state_vector[2] - sensor.position[1]
                 action_bearing = mod_bearing(np.arctan2(y_target, x_target))
 
         action_generators = DwellActionsGenerator(sensor,
                                                   attribute='dwell_centre',
                                                   start_time=sensor.timestamp,
-                                                  end_time=sensor.timestamp+timedelta(seconds=1))
+                                                  end_time=sensor.timestamp + timedelta(seconds=1))
 
         current_action = [action_generators.action_from_value(action_bearing)]
         return current_action
+
 
 # Validate the environment to ensure that the environment returns the expected specs
 train_env = StoneSoupEnv()
@@ -611,7 +616,7 @@ class ReinforcementSensorManager(SensorManager):
                                                          hyper_parameters['num_eval_episodes'])
                     returns.append(avg_return)
                     print('step = {0}: Average Return = {1}'.format(step, avg_return))
-                    if ('max_train_reward' in hyper_parameters) and\
+                    if ('max_train_reward' in hyper_parameters) and \
                             (avg_return > hyper_parameters['max_train_reward']):
                         break
 
@@ -651,6 +656,7 @@ class ReinforcementSensorManager(SensorManager):
 
             return configs
 
+
 # %%
 # Create Sensor Managers
 # ----------------------
@@ -658,6 +664,7 @@ class ReinforcementSensorManager(SensorManager):
 # 
 
 from stonesoup.sensormanager import BruteForceSensorManager
+
 reinforcementsensormanager = ReinforcementSensorManager({sensorA}, env=StoneSoupEnv())
 bruteforcesensormanager = BruteForceSensorManager({sensorB}, reward_function=reward_function)
 
@@ -745,8 +752,8 @@ for timestep in timesteps[1:]:
     observation = []
     uncertainty = []
     for target in tracksA:
-        x_target = target.state.state_vector[0]-sensorA.position[0]
-        y_target = target.state.state_vector[2]-sensorA.position[1]
+        x_target = target.state.state_vector[0] - sensorA.position[0]
+        y_target = target.state.state_vector[2] - sensorA.position[1]
         bearing_target = mod_bearing(np.arctan2(y_target, x_target))
         uncertainty.append(np.trace(target.covar))
 
@@ -905,6 +912,7 @@ plotterB.fig
 # and SIAP metrics can be found in the :doc:`Metrics Example <Metrics>`.
 
 from stonesoup.metricgenerator.ospametric import OSPAMetric
+
 ospa_generatorA = OSPAMetric(c=40, p=1,
                              generator_name='ReinforcementSensorManager',
                              tracks_key='tracksA',
@@ -917,9 +925,10 @@ ospa_generatorB = OSPAMetric(c=40, p=1,
 
 from stonesoup.metricgenerator.tracktotruthmetrics import SIAPMetrics
 from stonesoup.measures import Euclidean
+
 siap_generatorA = SIAPMetrics(position_measure=Euclidean((0, 2)),
                               velocity_measure=Euclidean((1, 3)),
-                              generator_name='Reinforcement',
+                              generator_name='ReinforcementSensorManager',
                               tracks_key='tracksA',
                               truths_key='truths')
 
@@ -930,9 +939,11 @@ siap_generatorB = SIAPMetrics(position_measure=Euclidean((0, 2)),
                               truths_key='truths')
 
 from stonesoup.dataassociator.tracktotrack import TrackToTruth
+
 associator = TrackToTruth(association_threshold=30)
 
 from stonesoup.metricgenerator.uncertaintymetric import SumofCovarianceNormsMetric
+
 uncertainty_generatorA = SumofCovarianceNormsMetric(generator_name='ReinforcementSensorManager',
                                                     tracks_key='tracksA')
 
@@ -950,7 +961,7 @@ metric_manager = MultiManager([ospa_generatorA,
                                siap_generatorB,
                                uncertainty_generatorA,
                                uncertainty_generatorB],
-                               associator=associator)
+                              associator=associator)
 
 # %%
 # For each time step, data is added to the metric manager on truths and tracks. The metrics themselves can then be
@@ -973,7 +984,10 @@ fig.plot_metrics(metrics, metric_names=['OSPA distances'])
 # %%
 # The :class:`~.BruteForceSensorManager` generally results in a smaller OSPA distance
 # than the observations of the :class:`~.ReinforcementSensorManager`, reflecting the better tracking performance
-# seen in the tracking plots.
+# seen in the tracking plots. At some times, the OSPA distance for the :class:`~.ReinforcementSensorManager` is slightly
+# lower than for the :class:`~.BruteForceSensorManager`. While it is intuitive to think that the brute force algorithm
+# would always perform better, the brute force algorithm will pick the target that is most uncertain, and the
+# reinforcement algorithm may pick another target that happens to reduce OSPA distance more.
 
 # %%
 # SIAP metrics
