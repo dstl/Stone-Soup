@@ -1,4 +1,6 @@
 import copy
+import math
+
 import numpy as np
 import scipy
 
@@ -390,72 +392,147 @@ class VariableStepBayesianRecursiveUpdater(BayesianRecursiveUpdater):
 class ErrorControllerBayesianRecursiveUpdater(BayesianRecursiveUpdater):
     atol: float = Property(doc="TODO")
     rtol: float = Property(doc="TODO")
+    f: float = Property(doc="TODO")
+    fmin: float = Property(doc="TODO")
+    fmax: float = Property(doc="TODO")
 
     def update(self, hypothesis, **kwargs):
 
-        # 1) X0 = prior state
+        if not self.number_steps > 0:
+            raise ValueError("Updater cannot run 0 times (or less). This would not provide an "
+                             "updated state")
 
-        # 2) P0 = prior covariance
+        # # 1-2) X0 = prior state estimate
+        X_0 = hypothesis.prediction.state_vector
+        P_0 = hypothesis.prediction.covar
 
-        # 3) tc = 0
+        # Get the measurement model out of the measurement if it's there.
+        # If not, use the one native to the updater (which might still be
+        # none)
+        measurement_model = hypothesis.measurement.measurement_model
+        measurement_model = self._check_measurement_model(measurement_model)
 
-        # 4) ds = 1/number steps
+        # If there is no measurement prediction in the hypothesis then do the
+        # measurement prediction (and attach it back to the hypothesis).
+        if hypothesis.measurement_prediction is None:
+            # Attach the measurement prediction to the hypothesis
+            hypothesis.measurement_prediction = self.predict_measurement(
+                hypothesis.prediction, measurement_model=measurement_model, **kwargs)
 
-        # 5) i = 1
+        # 3) define initial tc value
+        tc = 0
 
-        # 7 while loop
+        # 4) define initial ds value
+        ds = 1/self.number_steps
+
+        # 5) start iteration count
+        i = 1
+
+        # Make two deepcopies of hypothesis
+        nhypothesis = copy.deepcopy(hypothesis)
+        nhypothesis_prime = copy.deepcopy(hypothesis)
+
+        X_iminus1 = X_0
+        P_iminus1 = P_0
+
+        # 7) *** BEGIN WHILE LOOP ***
         while tc < 1:
+            print(i)
+            print("tc = ", tc)
 
             # 8 *** BEGIN IF STATEMENT ***
             if tc + ds > 1:
 
-                # 9) ds = 1 - tc
+                # 9) update ds value
+                ds = 1 - tc
 
-            # 10) *** END OF IF STATEMENT ***
+                # 10) *** END OF IF STATEMENT ***
 
-            # 12-14) Jacobian, innov_cov, Kalman gain calculations using prior state. Note different innov cov method
+            # Update predicted state
+            nhypothesis.prediction = Prediction.from_state(nhypothesis_prime.prediction,
+                                                           state_vector=X_iminus1,
+                                                           covar=P_iminus1)
+
+            # 12-13) Jacobian, innov_cov calculations using prior state. Note different innov cov method
+            nhypothesis.measurement_prediction = self.predict_measurement(
+                nhypothesis.prediction, measurement_model=measurement_model, scale_factor=1/ds)
+
+            # 14, 17) Posterior cov and Kalman gain calculation
+            P_i, K = self._posterior_covariance(nhypothesis, scale_factor=1/ds)
+
+            # 16) posterior state_vector calculation
+            X_i = self._posterior_mean(nhypothesis.prediction, K,
+                                                  nhypothesis.measurement,
+                                                  nhypothesis.measurement_prediction)
 
             # 15) deltaX calculation
+            deltaX_i = X_i - nhypothesis.prediction.state_vector
 
-            # 16) posterior state calculation
+            # Set nhypothesis_prime.prediction to be the posterior state
+            nhypothesis_prime.prediction = Prediction.from_state(nhypothesis.prediction,
+                                                                 state_vector=X_i,
+                                                                 covar=P_i)
 
-            # 17) posterior cov calculaion
+            # 19-20) Jacobian, innov_cov calculations using posterior state. Note different innov cov method
+            nhypothesis_prime.measurement_prediction = self.predict_measurement(
+                nhypothesis_prime.prediction, measurement_model=measurement_model,
+                scale_factor=1/ds)
 
-            # 19-21) Jacobian, innov_cov, Kalman gain calculations using posterior state. Note different innov cov method
+            # 21) P' and K' calculation
+            P_prime, K_prime = self._posterior_covariance(nhypothesis_prime, scale_factor=1 / ds)
 
             # 22) deltaX_prime calculation
+            deltaX_i_prime = self._posterior_mean(nhypothesis_prime.prediction, K_prime,
+                                                  nhypothesis_prime.measurement,
+                                                  nhypothesis_prime.measurement_prediction)
 
             # 23) posterior_state_prime calculation
+            X_i_prime = X_iminus1 + 0.5*(deltaX_i + deltaX_i_prime)
 
             # 24) sc calculation
+            # sc = self.atol + max(np.abs(X_i), np.abs(X_i_prime))*self.rtol
+            sc = self.atol + max(np.max(np.abs(X_i)), np.max(np.abs(X_i_prime))) * self.rtol
 
             # 25) error calculation
+            # error = max(np.sqrt(np.mean(((1/sc)@(X_i - X_i_prime))**2)))
+            error = np.sqrt(np.mean(((1 / sc) * (X_i - X_i_prime)) ** 2))
 
             # 27) if statement
             if error > 1:
-
                 # 28) update ds
+                ds = ds * min(0.9, max(self.fmin, self.f * math.sqrt(1/error)))
+                print('ds(1) = ', ds)
 
                 # 29) reject update and begin next iteration
-
-            # 30) *** END OF IF STATEMENT ***
+                continue
+                # 30) *** END OF IF STATEMENT ***
 
             # 32) update tc (tc = tc + ds)
+            tc = tc + ds
 
             # 33) posterior_state_vector <- posterior_state_vector_tilda
+            X_iminus1 = X_i
 
             # 34) posterior_cov <- posterior_cov_tilda
+            P_iminus1 = P_i
 
             # 35) update iteration count
             i += 1
 
             # 36) update ds
+            ds = ds * min(self.fmax, max(self.fmin, self.f * math.sqrt(1/error)))
+            print('ds(2) = ', ds)
 
         # 37) *** END OF WHILE LOOP ***
 
         # 39) final_posterior_state_vector <- posterior_state_vector at i-1
 
         # 40) final_posterior_cov <- posterior_cov
+
+        return Update.from_state(
+            hypothesis.prediction,
+            X_iminus1, P_i,
+            timestamp=hypothesis.measurement.timestamp, hypothesis=hypothesis)
 
 
 
