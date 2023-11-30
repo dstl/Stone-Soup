@@ -303,7 +303,7 @@ class ExtendedKalmanUpdater(KalmanUpdater):
             ":meth:`~.NonLinearModel.jacobian`.")
 
     def _measurement_matrix(self, predicted_state, measurement_model=None,
-                            **kwargs):
+                            linearisation_point=None, **kwargs):
         r"""Return the (via :meth:`NonLinearModel.jacobian`) measurement matrix
 
         Parameters
@@ -329,7 +329,9 @@ class ExtendedKalmanUpdater(KalmanUpdater):
         if isinstance(measurement_model, LinearModel):
             return measurement_model.matrix(**kwargs)
         else:
-            return measurement_model.jacobian(predicted_state,
+            if linearisation_point is None:
+                linearisation_point = predicted_state
+            return measurement_model.jacobian(linearisation_point,
                                               **kwargs)
 
 

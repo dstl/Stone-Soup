@@ -48,6 +48,7 @@ class DynamicallyIteratedUpdater(ExtendedKalmanUpdater):
 
     def update(self, hypothesis, **kwargs):
 
+        prior_state = hypothesis.prediction.prior
         # 1) Compute X^0_{k|k-1}, P^0_{k|k-1} via eqtn 2 (predict step)
         # Step 1 is completed by predict step, provided in hypothesis.prediction
 
@@ -59,7 +60,7 @@ class DynamicallyIteratedUpdater(ExtendedKalmanUpdater):
         # Feed posterior and prior update into the smoother
         smoothed_track = self.smoother.smooth(track_to_smooth)
         # Extract smoothed prior state
-        prior_state = smoothed_track[0]
+        smoothed_state = smoothed_track[0]
 
         nhypothesis = copy.deepcopy(hypothesis)
         iterations = 0
@@ -87,17 +88,19 @@ class DynamicallyIteratedUpdater(ExtendedKalmanUpdater):
 
             # (1) Predict from prior_state
             pred_state = self.predictor.predict(prior_state,
-                                                timestamp=hypothesis.prediction.timestamp)
+                                                timestamp=hypothesis.prediction.timestamp,
+                                                linearisation_point=smoothed_state)
             nhypothesis.prediction = pred_state
 
             # (2) Update using hypothesis made from new prediction and old measurement
             nhypothesis.measurement_prediction = None
-            new_posterior = self.updater.update(nhypothesis)
+            new_posterior = self.updater.update(nhypothesis, linearisation_point=old_posterior)
 
-            # (3) Smooth again and update the prior state
+            # (3) Smooth again and update the smoothed state
             track_to_smooth = Track(states=[nhypothesis.prediction.prior, new_posterior])
-            smoothed_track = self.smoother.smooth(track_to_smooth)
-            prior_state = smoothed_track[0]
+            smoothed_track = self.smoother.smooth(
+                track_to_smooth, linearisation_point=smoothed_state)
+            smoothed_state = smoothed_track[0]
 
             # (4) Update iteration count
             iterations += 1

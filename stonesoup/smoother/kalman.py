@@ -8,10 +8,10 @@ from ..base import Property
 from ..types.multihypothesis import MultipleHypothesis
 from ..types.prediction import GaussianStatePrediction
 from ..types.update import GaussianStateUpdate
-from ..models.base import LinearModel
 from ..models.transition.base import TransitionModel
 from ..models.transition.linear import LinearGaussianTransitionModel
 from ..functions import gauss2sigma, unscented_transform
+from ..predictor.kalman import ExtendedKalmanPredictor
 
 
 class KalmanSmoother(Smoother):
@@ -147,7 +147,7 @@ class KalmanSmoother(Smoother):
         return state.covar @ self._transition_matrix(state, **kwargs).T @ np.linalg.inv(
             prediction.covar)
 
-    def smooth(self, track):
+    def smooth(self, track, **kwargs):
         """
         Perform the backward recursion to smooth the track.
 
@@ -178,7 +178,8 @@ class KalmanSmoother(Smoother):
             # Retrieve the prediction from the subsequent (k+1th) timestep accessed previously
             prediction = self._prediction(subsq_state)
             # The smoothing gain, mean and covariance
-            ksmooth_gain = self._smooth_gain(state, prediction, time_interval=time_interval)
+            ksmooth_gain = self._smooth_gain(
+                state, prediction, time_interval=time_interval, **kwargs)
             smooth_mean = state.state_vector + ksmooth_gain @ (subsq_state.state_vector -
                                                                prediction.state_vector)
             smooth_covar = state.covar + \
@@ -221,29 +222,7 @@ class ExtendedKalmanSmoother(KalmanSmoother):
     """
     transition_model: TransitionModel = Property(doc="The transition model to be used.")
 
-    def _transition_matrix(self, state, **kwargs):
-        r"""Returns the transition matrix, a matrix if the model is linear, or
-        approximated as Jacobian otherwise.
-
-        Parameters
-        ----------
-        state : :class:`~.State`
-            :math:`\mathbf{x}_{k-1}`
-        **kwargs : various, optional
-            These are passed to :meth:`~.TransitionModel.matrix` or
-            :meth:`~.TransitionModel.jacobian`
-
-        Returns
-        -------
-        : :class:`numpy.ndarray`
-            The transition matrix, :math:`F_k`, if linear (i.e.
-            :meth:`TransitionModel.matrix` exists, or
-            :meth:`~.TransitionModel.jacobian` if not)
-        """
-        if isinstance(self._transition_model(state), LinearModel):
-            return self._transition_model(state).matrix(**kwargs)
-        else:
-            return self._transition_model(state).jacobian(state, **kwargs)
+    _transition_matrix = ExtendedKalmanPredictor._transition_matrix
 
 
 class UnscentedKalmanSmoother(KalmanSmoother):
