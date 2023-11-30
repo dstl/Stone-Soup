@@ -1,5 +1,6 @@
 """Test for updater.recursive module"""
 import datetime
+import math
 
 import numpy as np
 import pytest
@@ -10,7 +11,8 @@ from stonesoup.types.hypothesis import SingleHypothesis
 from stonesoup.types.prediction import GaussianMeasurementPrediction, EnsembleStatePrediction
 from stonesoup.types.state import GaussianState, EnsembleState
 from stonesoup.updater.recursive import BayesianRecursiveUpdater, RecursiveEnsembleUpdater, \
-    RecursiveLinearisedEnsembleUpdater, VariableStepBayesianRecursiveUpdater
+    RecursiveLinearisedEnsembleUpdater, VariableStepBayesianRecursiveUpdater, \
+    ErrorControllerBayesianRecursiveUpdater
 
 
 def test_bruf_single_step(measurement_model, prediction, measurement, timestamp):
@@ -1043,6 +1045,421 @@ def test_joseph_cov_vsbruf_multi_step(measurement_model, prediction, measurement
     updater = VariableStepBayesianRecursiveUpdater(measurement_model=measurement_model,
                                                    number_steps=n_steps,
                                                    use_joseph_cov=True)
+
+    hypothesis = SingleHypothesis(prediction=prediction,
+                                  measurement=measurement)
+
+    # Run updater
+
+    updated_state = updater.update(hypothesis)
+
+    assert updated_state.timestamp == timestamp
+    assert updated_state.hypothesis.prediction == prediction
+    assert updated_state.hypothesis.measurement == measurement
+    assert updated_state.ndim == updated_state.hypothesis.prediction.ndim
+    # Test updater runs with measurement prediction already in hypothesis.
+    test_measurement_prediction = updater.predict_measurement(prediction)
+    hypothesis = SingleHypothesis(prediction=prediction,
+                                  measurement=measurement,
+                                  measurement_prediction=test_measurement_prediction)
+    updated_state = updater.update(hypothesis)
+
+    assert updated_state.timestamp == timestamp
+    assert updated_state.hypothesis.prediction == prediction
+    assert updated_state.hypothesis.measurement == measurement
+    assert updated_state.ndim == updated_state.hypothesis.prediction.ndim
+
+    eval_measurement_prediction = GaussianMeasurementPrediction(
+        measurement_model.matrix() @ prediction.mean,
+        measurement_model.matrix() @ prediction.covar
+        @ measurement_model.matrix().T
+        + n_steps * measurement_model.covar(),
+        cross_covar=prediction.covar @ measurement_model.matrix().T)
+
+    # Get and assert measurement prediction
+    measurement_prediction = updater.predict_measurement(prediction)
+    assert (np.allclose(measurement_prediction.mean,
+                        eval_measurement_prediction.mean,
+                        0, atol=1.e-14))
+
+    assert (np.allclose(measurement_prediction.cross_covar,
+                        eval_measurement_prediction.cross_covar,
+                        0, atol=1.e-14))
+
+
+def test_ec_bruf_single_step(measurement_model, prediction, measurement, timestamp):
+
+    n_steps = 1
+
+    updater = ErrorControllerBayesianRecursiveUpdater(measurement_model=measurement_model,
+                                                      number_steps=n_steps,
+                                                      use_joseph_cov=False,
+                                                      atol=10e-3,
+                                                      rtol=10e-3,
+                                                      f=math.sqrt(0.38),
+                                                      fmin=0.2,
+                                                      fmax=6)
+
+    hypothesis = SingleHypothesis(prediction=prediction,
+                                  measurement=measurement)
+
+    # Run updater
+
+    updated_state = updater.update(hypothesis)
+
+    assert updated_state.timestamp == timestamp
+    assert updated_state.hypothesis.prediction == prediction
+    assert updated_state.hypothesis.measurement == measurement
+    assert updated_state.ndim == updated_state.hypothesis.prediction.ndim
+    # Test updater runs with measurement prediction already in hypothesis.
+    test_measurement_prediction = updater.predict_measurement(prediction)
+    hypothesis = SingleHypothesis(prediction=prediction,
+                                  measurement=measurement,
+                                  measurement_prediction=test_measurement_prediction)
+    updated_state = updater.update(hypothesis)
+
+    assert updated_state.timestamp == timestamp
+    assert updated_state.hypothesis.prediction == prediction
+    assert updated_state.hypothesis.measurement == measurement
+    assert updated_state.ndim == updated_state.hypothesis.prediction.ndim
+
+    eval_measurement_prediction = GaussianMeasurementPrediction(
+        measurement_model.matrix() @ prediction.mean,
+        measurement_model.matrix() @ prediction.covar
+        @ measurement_model.matrix().T
+        + n_steps * measurement_model.covar(),
+        cross_covar=prediction.covar @ measurement_model.matrix().T)
+    kalman_gain = eval_measurement_prediction.cross_covar @ np.linalg.inv(
+        eval_measurement_prediction.covar)
+    eval_posterior = GaussianState(
+        prediction.mean
+        + kalman_gain @ (measurement.state_vector
+                         - eval_measurement_prediction.mean),
+        prediction.covar
+        - kalman_gain @ eval_measurement_prediction.covar @ kalman_gain.T)
+
+    # Get and assert measurement prediction
+    measurement_prediction = updater.predict_measurement(prediction)
+    assert (np.allclose(measurement_prediction.mean,
+                        eval_measurement_prediction.mean,
+                        0, atol=1.e-14))
+
+    assert (np.allclose(measurement_prediction.covar,
+                        eval_measurement_prediction.covar,
+                        0, atol=1.e-14))
+    assert (np.allclose(measurement_prediction.cross_covar,
+                        eval_measurement_prediction.cross_covar,
+                        0, atol=1.e-14))
+
+    # Perform and assert state update (without measurement prediction)
+    posterior = updater.update(SingleHypothesis(
+        prediction=prediction,
+        measurement=measurement))
+    assert (np.allclose(posterior.mean, eval_posterior.mean, 0, atol=1.e-14))
+    assert (np.allclose(posterior.covar, eval_posterior.covar, 0, atol=1.e-14))
+    assert (np.array_equal(posterior.hypothesis.prediction, prediction))
+    assert (np.allclose(
+        posterior.hypothesis.measurement_prediction.state_vector,
+        measurement_prediction.state_vector, 0, atol=1.e-14))
+    assert (np.allclose(posterior.hypothesis.measurement_prediction.covar,
+                        measurement_prediction.covar, 0, atol=1.e-14))
+    assert (np.array_equal(posterior.hypothesis.measurement, measurement))
+    assert (posterior.timestamp == prediction.timestamp)
+
+    # Perform and assert state update
+    posterior = updater.update(SingleHypothesis(
+        prediction=prediction,
+        measurement=measurement,
+        measurement_prediction=measurement_prediction))
+    assert (np.allclose(posterior.mean, eval_posterior.mean, 0, atol=1.e-14))
+    assert (np.allclose(posterior.covar, eval_posterior.covar, 0, atol=1.e-14))
+    assert (np.array_equal(posterior.hypothesis.prediction, prediction))
+    assert (np.allclose(
+        posterior.hypothesis.measurement_prediction.state_vector,
+        measurement_prediction.state_vector, 0, atol=1.e-14))
+    assert (np.allclose(posterior.hypothesis.measurement_prediction.covar,
+                        measurement_prediction.covar, 0, atol=1.e-14))
+    assert (np.array_equal(posterior.hypothesis.measurement, measurement))
+    assert (posterior.timestamp == prediction.timestamp)
+
+
+def test_ecbruf_multi_step(measurement_model, prediction, measurement, timestamp):
+
+    n_steps = 10
+
+    updater = ErrorControllerBayesianRecursiveUpdater(measurement_model=measurement_model,
+                                                      number_steps=n_steps,
+                                                      use_joseph_cov=False,
+                                                      atol=10e-3,
+                                                      rtol=10e-3,
+                                                      f=math.sqrt(0.38),
+                                                      fmin=0.2,
+                                                      fmax=6)
+
+    hypothesis = SingleHypothesis(prediction=prediction,
+                                  measurement=measurement)
+
+    # Run updater
+
+    updated_state = updater.update(hypothesis)
+
+    assert updated_state.timestamp == timestamp
+    assert updated_state.hypothesis.prediction == prediction
+    assert updated_state.hypothesis.measurement == measurement
+    assert updated_state.ndim == updated_state.hypothesis.prediction.ndim
+    # Test updater runs with measurement prediction already in hypothesis.
+    test_measurement_prediction = updater.predict_measurement(prediction)
+    hypothesis = SingleHypothesis(prediction=prediction,
+                                  measurement=measurement,
+                                  measurement_prediction=test_measurement_prediction)
+    updated_state = updater.update(hypothesis)
+
+    assert updated_state.timestamp == timestamp
+    assert updated_state.hypothesis.prediction == prediction
+    assert updated_state.hypothesis.measurement == measurement
+    assert updated_state.ndim == updated_state.hypothesis.prediction.ndim
+
+    eval_measurement_prediction = GaussianMeasurementPrediction(
+        measurement_model.matrix() @ prediction.mean,
+        measurement_model.matrix() @ prediction.covar
+        @ measurement_model.matrix().T
+        + n_steps * measurement_model.covar(),
+        cross_covar=prediction.covar @ measurement_model.matrix().T)
+
+    # Get and assert measurement prediction
+    measurement_prediction = updater.predict_measurement(prediction)
+    assert (np.allclose(measurement_prediction.mean,
+                        eval_measurement_prediction.mean,
+                        0, atol=1.e-14))
+
+    assert (np.allclose(measurement_prediction.cross_covar,
+                        eval_measurement_prediction.cross_covar,
+                        0, atol=1.e-14))
+
+
+def test_force_symmetric_ecbruf(measurement_model, prediction, measurement, timestamp):
+
+    n_steps = 1
+
+    updater = ErrorControllerBayesianRecursiveUpdater(measurement_model=measurement_model,
+                                                      number_steps=n_steps,
+                                                      use_joseph_cov=False,
+                                                      force_symmetric_covariance=True,
+                                                      atol=10e-3,
+                                                      rtol=10e-3,
+                                                      f=math.sqrt(0.38),
+                                                      fmin=0.2,
+                                                      fmax=6)
+
+    hypothesis = SingleHypothesis(prediction=prediction,
+                                  measurement=measurement)
+
+    # Run updater
+
+    updated_state = updater.update(hypothesis)
+
+    assert updated_state.timestamp == timestamp
+    assert updated_state.hypothesis.prediction == prediction
+    assert updated_state.hypothesis.measurement == measurement
+    assert updated_state.ndim == updated_state.hypothesis.prediction.ndim
+    # Test updater runs with measurement prediction already in hypothesis.
+    test_measurement_prediction = updater.predict_measurement(prediction)
+    hypothesis = SingleHypothesis(prediction=prediction,
+                                  measurement=measurement,
+                                  measurement_prediction=test_measurement_prediction)
+    updated_state = updater.update(hypothesis)
+
+    assert updated_state.timestamp == timestamp
+    assert updated_state.hypothesis.prediction == prediction
+    assert updated_state.hypothesis.measurement == measurement
+    assert updated_state.ndim == updated_state.hypothesis.prediction.ndim
+
+    eval_measurement_prediction = GaussianMeasurementPrediction(
+        measurement_model.matrix() @ prediction.mean,
+        measurement_model.matrix() @ prediction.covar
+        @ measurement_model.matrix().T
+        + n_steps * measurement_model.covar(),
+        cross_covar=prediction.covar @ measurement_model.matrix().T)
+    kalman_gain = eval_measurement_prediction.cross_covar @ np.linalg.inv(
+        eval_measurement_prediction.covar)
+    eval_posterior = GaussianState(
+        prediction.mean
+        + kalman_gain @ (measurement.state_vector
+                         - eval_measurement_prediction.mean),
+        prediction.covar
+        - kalman_gain @ eval_measurement_prediction.covar @ kalman_gain.T)
+
+    # Get and assert measurement prediction
+    measurement_prediction = updater.predict_measurement(prediction)
+    assert (np.allclose(measurement_prediction.mean,
+                        eval_measurement_prediction.mean,
+                        0, atol=1.e-14))
+
+    assert (np.allclose(measurement_prediction.covar,
+                        eval_measurement_prediction.covar,
+                        0, atol=1.e-14))
+    assert (np.allclose(measurement_prediction.cross_covar,
+                        eval_measurement_prediction.cross_covar,
+                        0, atol=1.e-14))
+
+    # Perform and assert state update (without measurement prediction)
+    posterior = updater.update(SingleHypothesis(
+        prediction=prediction,
+        measurement=measurement))
+    assert (np.allclose(posterior.mean, eval_posterior.mean, 0, atol=1.e-14))
+    assert (np.allclose(posterior.covar, eval_posterior.covar, 0, atol=1.e-14))
+    assert (np.array_equal(posterior.hypothesis.prediction, prediction))
+    assert (np.allclose(
+        posterior.hypothesis.measurement_prediction.state_vector,
+        measurement_prediction.state_vector, 0, atol=1.e-14))
+    assert (np.allclose(posterior.hypothesis.measurement_prediction.covar,
+                        measurement_prediction.covar, 0, atol=1.e-14))
+    assert (np.array_equal(posterior.hypothesis.measurement, measurement))
+    assert (posterior.timestamp == prediction.timestamp)
+
+    # Perform and assert state update
+    posterior = updater.update(SingleHypothesis(
+        prediction=prediction,
+        measurement=measurement,
+        measurement_prediction=measurement_prediction))
+    assert (np.allclose(posterior.mean, eval_posterior.mean, 0, atol=1.e-14))
+    assert (np.allclose(posterior.covar, eval_posterior.covar, 0, atol=1.e-14))
+    assert (np.array_equal(posterior.hypothesis.prediction, prediction))
+    assert (np.allclose(
+        posterior.hypothesis.measurement_prediction.state_vector,
+        measurement_prediction.state_vector, 0, atol=1.e-14))
+    assert (np.allclose(posterior.hypothesis.measurement_prediction.covar,
+                        measurement_prediction.covar, 0, atol=1.e-14))
+    assert (np.array_equal(posterior.hypothesis.measurement, measurement))
+    assert (posterior.timestamp == prediction.timestamp)
+
+
+def test_ecbruf_errors(measurement_model, prediction, measurement):
+
+    # Initialise a kalman updater
+    updater = ErrorControllerBayesianRecursiveUpdater(measurement_model=measurement_model,
+                                                      number_steps=0,
+                                                      use_joseph_cov=False,
+                                                      force_symmetric_covariance=True,
+                                                      atol=10e-3,
+                                                      rtol=10e-3,
+                                                      f=math.sqrt(0.38),
+                                                      fmin=0.2,
+                                                      fmax=6)
+
+    # Run updater
+    with pytest.raises(ValueError):
+        _ = updater.update(SingleHypothesis(prediction=prediction, measurement=measurement))
+
+
+def test_joseph_cov_ecbruf_single_step(measurement_model, prediction, measurement, timestamp):
+
+    n_steps = 1
+
+    updater = ErrorControllerBayesianRecursiveUpdater(measurement_model=measurement_model,
+                                                      number_steps=n_steps,
+                                                      use_joseph_cov=True,
+                                                      atol=10e-3,
+                                                      rtol=10e-3,
+                                                      f=math.sqrt(0.38),
+                                                      fmin=0.2,
+                                                      fmax=6)
+
+    hypothesis = SingleHypothesis(prediction=prediction,
+                                  measurement=measurement)
+
+    # Run updater
+
+    updated_state = updater.update(hypothesis)
+
+    assert updated_state.timestamp == timestamp
+    assert updated_state.hypothesis.prediction == prediction
+    assert updated_state.hypothesis.measurement == measurement
+    assert updated_state.ndim == updated_state.hypothesis.prediction.ndim
+    # Test updater runs with measurement prediction already in hypothesis.
+    test_measurement_prediction = updater.predict_measurement(prediction)
+    hypothesis = SingleHypothesis(prediction=prediction,
+                                  measurement=measurement,
+                                  measurement_prediction=test_measurement_prediction)
+    updated_state = updater.update(hypothesis)
+
+    assert updated_state.timestamp == timestamp
+    assert updated_state.hypothesis.prediction == prediction
+    assert updated_state.hypothesis.measurement == measurement
+    assert updated_state.ndim == updated_state.hypothesis.prediction.ndim
+
+    eval_measurement_prediction = GaussianMeasurementPrediction(
+        measurement_model.matrix() @ prediction.mean,
+        measurement_model.matrix() @ prediction.covar
+        @ measurement_model.matrix().T
+        + n_steps * measurement_model.covar(),
+        cross_covar=prediction.covar @ measurement_model.matrix().T)
+    kalman_gain = eval_measurement_prediction.cross_covar @ np.linalg.inv(
+        eval_measurement_prediction.covar)
+    eval_posterior = GaussianState(
+        prediction.mean
+        + kalman_gain @ (measurement.state_vector
+                         - eval_measurement_prediction.mean),
+        prediction.covar
+        - kalman_gain @ eval_measurement_prediction.covar @ kalman_gain.T)
+
+    # Get and assert measurement prediction
+    measurement_prediction = updater.predict_measurement(prediction)
+    assert (np.allclose(measurement_prediction.mean,
+                        eval_measurement_prediction.mean,
+                        0, atol=1.e-14))
+
+    assert (np.allclose(measurement_prediction.covar,
+                        eval_measurement_prediction.covar,
+                        0, atol=1.e-14))
+    assert (np.allclose(measurement_prediction.cross_covar,
+                        eval_measurement_prediction.cross_covar,
+                        0, atol=1.e-14))
+
+    # Perform and assert state update (without measurement prediction)
+    posterior = updater.update(SingleHypothesis(
+        prediction=prediction,
+        measurement=measurement))
+    assert (np.allclose(posterior.mean, eval_posterior.mean, 0, atol=1.e-14))
+    assert (np.allclose(posterior.covar, eval_posterior.covar, 0, atol=1.e-14))
+    assert (np.array_equal(posterior.hypothesis.prediction, prediction))
+    assert (np.allclose(
+        posterior.hypothesis.measurement_prediction.state_vector,
+        measurement_prediction.state_vector, 0, atol=1.e-14))
+    assert (np.allclose(posterior.hypothesis.measurement_prediction.covar,
+                        measurement_prediction.covar, 0, atol=1.e-14))
+    assert (np.array_equal(posterior.hypothesis.measurement, measurement))
+    assert (posterior.timestamp == prediction.timestamp)
+
+    # Perform and assert state update
+    posterior = updater.update(SingleHypothesis(
+        prediction=prediction,
+        measurement=measurement,
+        measurement_prediction=measurement_prediction))
+    assert (np.allclose(posterior.mean, eval_posterior.mean, 0, atol=1.e-14))
+    assert (np.allclose(posterior.covar, eval_posterior.covar, 0, atol=1.e-14))
+    assert (np.array_equal(posterior.hypothesis.prediction, prediction))
+    assert (np.allclose(
+        posterior.hypothesis.measurement_prediction.state_vector,
+        measurement_prediction.state_vector, 0, atol=1.e-14))
+    assert (np.allclose(posterior.hypothesis.measurement_prediction.covar,
+                        measurement_prediction.covar, 0, atol=1.e-14))
+    assert (np.array_equal(posterior.hypothesis.measurement, measurement))
+    assert (posterior.timestamp == prediction.timestamp)
+
+
+def test_joseph_cov_ecbruf_multi_step(measurement_model, prediction, measurement, timestamp):
+
+    n_steps = 10
+
+    updater = ErrorControllerBayesianRecursiveUpdater(measurement_model=measurement_model,
+                                                      number_steps=n_steps,
+                                                      use_joseph_cov=True,
+                                                      atol=10e-3,
+                                                      rtol=10e-3,
+                                                      f=math.sqrt(0.38),
+                                                      fmin=0.2,
+                                                      fmax=6)
 
     hypothesis = SingleHypothesis(prediction=prediction,
                                   measurement=measurement)

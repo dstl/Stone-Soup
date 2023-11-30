@@ -10,7 +10,7 @@ from ..base import Property
 from ..types.prediction import Prediction, EnsembleStatePrediction
 from ..types.state import State
 from ..types.update import Update
-from ..types.array import CovarianceMatrix, StateVectors
+from ..types.array import CovarianceMatrix, StateVectors, StateVector
 
 
 class BayesianRecursiveUpdater(ExtendedKalmanUpdater):
@@ -482,18 +482,16 @@ class ErrorControllerBayesianRecursiveUpdater(BayesianRecursiveUpdater):
             deltaX_i_prime = self._posterior_mean(nhypothesis_prime.prediction, K_prime,
                                                   nhypothesis_prime.measurement,
                                                   nhypothesis_prime.measurement_prediction) - \
-                             nhypothesis_prime.prediction.state_vector
+                nhypothesis_prime.prediction.state_vector
 
             # 23) posterior_state_prime calculation
             X_i_prime = X_iminus1 + 0.5*(deltaX_i + deltaX_i_prime)
 
             # 24) sc calculation
-            # sc = self.atol + max(np.abs(X_i), np.abs(X_i_prime))*self.rtol
-            sc = self.atol + max(np.max(np.abs(X_i)), np.max(np.abs(X_i_prime))) * self.rtol
+            sc = StateVector(np.max(np.hstack((np.abs(X_i), np.abs(X_i_prime))), axis=1))
 
             # 25) error calculation
-            # error = max(np.sqrt(np.mean(((1/sc)@(X_i - X_i_prime))**2)))
-            error = np.sqrt(np.mean(((1 / sc) * (X_i - X_i_prime)) ** 2))
+            error = np.sqrt(np.mean((np.multiply(1/sc, X_i - X_i_prime)) ** 2))
 
             if error > 1:
                 # 28) update ds
@@ -518,11 +516,13 @@ class ErrorControllerBayesianRecursiveUpdater(BayesianRecursiveUpdater):
             ds = ds * min(self.fmax, max(self.fmin, self.f * math.sqrt(1/error)))
 
         # 39) final_posterior_state_vector <- posterior_state_vector at i-1
+        X = X_iminus1
         # 40) final_posterior_cov <- posterior_cov
+        P = P_i
+
+        if self.force_symmetric_covariance:
+            P = (P + P.T)/2
         return Update.from_state(
             hypothesis.prediction,
-            X_iminus1, P_i,
+            X, P,
             timestamp=hypothesis.measurement.timestamp, hypothesis=hypothesis)
-
-
-
