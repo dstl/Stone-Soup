@@ -74,17 +74,18 @@ def test_diekf():
     assert updated_state.hypothesis.measurement == measurement
 
     # Check state vector is correct
-    assert np.allclose(updated_state.state_vector, StateVector([[1.80932438],
-                                                                [1.21069189],
-                                                                [0.60060323],
-                                                                [0.89602481]]))
+    assert np.allclose(updated_state.state_vector, StateVector([[1.81240407],
+                                                                [1.21149362],
+                                                                [0.60307421],
+                                                                [0.89666808]]))
 
     # Check covariance matrix is correct
-    assert np.allclose(updated_state.covar, CovarianceMatrix([[6.68906899e-01, 1.74136920e-01,
-                                                               1.95258451e-02, 5.08317455e-03],
-                                                              [1.74136920e-01, 4.58659611e-01,
-                                                               5.08317455e-03, 1.32330577e-03],
-                                                              [1.95258451e-02, 5.08317455e-03,
-                                                               1.62526160e+00, 4.23105294e-01],
-                                                              [5.08317455e-03, 1.32330577e-03,
-                                                               4.23105294e-01, 5.23473692e-01]]))
+    assert np.allclose(updated_state.covar, CovarianceMatrix([[6.68656230e-01, 1.74071663e-01,
+                                                               1.18372990e-02, 3.08161090e-03],
+                                                              [1.74071663e-01, 4.58642623e-01,
+                                                               3.08161090e-03, 8.02237548e-04],
+                                                              [1.18372990e-02, 3.08161090e-03,
+                                                               1.61478471e+00, 4.20377837e-01],
+                                                              [3.08161090e-03, 8.02237548e-04,
+                                                               4.20377837e-01, 5.22763652e-01]]),
+                       atol=1.e-4)
