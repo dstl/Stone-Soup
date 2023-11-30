@@ -428,32 +428,28 @@ class ErrorControllerBayesianRecursiveUpdater(BayesianRecursiveUpdater):
         # 5) start iteration count
         i = 1
 
-        # Make two deepcopies of hypothesis
+        # Make two deep copies of the hypothesis
         nhypothesis = copy.deepcopy(hypothesis)
         nhypothesis_prime = copy.deepcopy(hypothesis)
 
+        # initial values for iteration i-1
         X_iminus1 = X_0
         P_iminus1 = P_0
 
-        # 7) *** BEGIN WHILE LOOP ***
         while tc < 1:
-            print(i)
-            print("tc = ", tc)
 
-            # 8 *** BEGIN IF STATEMENT ***
             if tc + ds > 1:
-
                 # 9) update ds value
                 ds = 1 - tc
-
-                # 10) *** END OF IF STATEMENT ***
 
             # Update predicted state
             nhypothesis.prediction = Prediction.from_state(nhypothesis_prime.prediction,
                                                            state_vector=X_iminus1,
                                                            covar=P_iminus1)
+            nhypothesis.measurement_prediction = None
 
-            # 12-13) Jacobian, innov_cov calculations using prior state. Note different innov cov method
+            # 12-13) Jacobian, innov_cov calculations using prior state. Note different innov
+            # cov method
             nhypothesis.measurement_prediction = self.predict_measurement(
                 nhypothesis.prediction, measurement_model=measurement_model, scale_factor=1/ds)
 
@@ -462,18 +458,19 @@ class ErrorControllerBayesianRecursiveUpdater(BayesianRecursiveUpdater):
 
             # 16) posterior state_vector calculation
             X_i = self._posterior_mean(nhypothesis.prediction, K,
-                                                  nhypothesis.measurement,
-                                                  nhypothesis.measurement_prediction)
+                                       nhypothesis.measurement,
+                                       nhypothesis.measurement_prediction)
 
             # 15) deltaX calculation
-            deltaX_i = X_i - nhypothesis.prediction.state_vector
+            deltaX_i = X_i - X_iminus1
 
             # Set nhypothesis_prime.prediction to be the posterior state
             nhypothesis_prime.prediction = Prediction.from_state(nhypothesis.prediction,
                                                                  state_vector=X_i,
                                                                  covar=P_i)
 
-            # 19-20) Jacobian, innov_cov calculations using posterior state. Note different innov cov method
+            # 19-20) Jacobian, innov_cov calculations using posterior state. Note different innov
+            # cov method
             nhypothesis_prime.measurement_prediction = self.predict_measurement(
                 nhypothesis_prime.prediction, measurement_model=measurement_model,
                 scale_factor=1/ds)
@@ -484,7 +481,8 @@ class ErrorControllerBayesianRecursiveUpdater(BayesianRecursiveUpdater):
             # 22) deltaX_prime calculation
             deltaX_i_prime = self._posterior_mean(nhypothesis_prime.prediction, K_prime,
                                                   nhypothesis_prime.measurement,
-                                                  nhypothesis_prime.measurement_prediction)
+                                                  nhypothesis_prime.measurement_prediction) - \
+                             nhypothesis_prime.prediction.state_vector
 
             # 23) posterior_state_prime calculation
             X_i_prime = X_iminus1 + 0.5*(deltaX_i + deltaX_i_prime)
@@ -497,15 +495,12 @@ class ErrorControllerBayesianRecursiveUpdater(BayesianRecursiveUpdater):
             # error = max(np.sqrt(np.mean(((1/sc)@(X_i - X_i_prime))**2)))
             error = np.sqrt(np.mean(((1 / sc) * (X_i - X_i_prime)) ** 2))
 
-            # 27) if statement
             if error > 1:
                 # 28) update ds
                 ds = ds * min(0.9, max(self.fmin, self.f * math.sqrt(1/error)))
-                print('ds(1) = ', ds)
 
-                # 29) reject update and begin next iteration
+                # 29) reject update and go to top of loop
                 continue
-                # 30) *** END OF IF STATEMENT ***
 
             # 32) update tc (tc = tc + ds)
             tc = tc + ds
@@ -521,14 +516,9 @@ class ErrorControllerBayesianRecursiveUpdater(BayesianRecursiveUpdater):
 
             # 36) update ds
             ds = ds * min(self.fmax, max(self.fmin, self.f * math.sqrt(1/error)))
-            print('ds(2) = ', ds)
-
-        # 37) *** END OF WHILE LOOP ***
 
         # 39) final_posterior_state_vector <- posterior_state_vector at i-1
-
         # 40) final_posterior_cov <- posterior_cov
-
         return Update.from_state(
             hypothesis.prediction,
             X_iminus1, P_i,
