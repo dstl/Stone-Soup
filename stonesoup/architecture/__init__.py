@@ -34,6 +34,12 @@ class Architecture(Base):
         doc="If True, the undirected version of the graph must be connected, ie. all nodes should "
             "be connected via some path. Set this to False to allow an unconnected architecture. "
             "Default is True")
+    use_arrival_time: bool = Property(
+        default=False,
+        doc="If True, the timestamp on data passed around the network will not be assigned when it "
+            "is opened by the fusing node - simulating an architecture where time of recording is "
+            "not registered by the sensor nodes"
+    )
 
     # Below is no longer required with changes to plot - didn't delete in case we want to revert
     # to previous method
@@ -473,7 +479,7 @@ class InformationArchitecture(Architecture):
             if failed_edges and edge in failed_edges:
                 edge._failed(self.current_time, time_increment)
                 continue  # No data passed along these edges
-            edge.update_messages(self.current_time)
+            edge.update_messages(self.current_time, use_arrival_time=self.use_arrival_time)
             # fuse goes here?
             for data_piece, time_pertaining in edge.unsent_data:
                 edge.send_message(data_piece, time_pertaining, data_piece.time_arrived)
@@ -590,9 +596,10 @@ class NetworkArchitecture(Architecture):
                 continue  # No data passed along these edges
 
             if edge.recipient not in self.information_arch.all_nodes:
-                edge.update_messages(self.current_time, to_network_node=True)
+                edge.update_messages(self.current_time, to_network_node=True,
+                                     use_arrival_time=self.use_arrival_time)
             else:
-                edge.update_messages(self.current_time)
+                edge.update_messages(self.current_time, use_arrival_time=self.use_arrival_time)
 
             # Send available messages from nodes to the edges
             if edge.sender in self.information_arch.all_nodes:

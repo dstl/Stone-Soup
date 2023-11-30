@@ -121,10 +121,12 @@ class Edge(Base):
         # message.data_piece.sent_to.remove(self.nodes[0])
         message_copy.data_piece.sent_to.add(self.nodes[1])
 
-    def update_messages(self, current_time, to_network_node=False):
+    def update_messages(self, current_time, to_network_node=False, use_arrival_time=False):
         """
         Updates the category of messages stored in edge.messages_held if latency time has passed.
         Adds messages that have 'arrived' at recipient to the relevant holding area of the node.
+        :param use_arrival_time: Bool that is True if arriving data should use arrival time as
+        it's timestamp
         :param current_time: Current time in simulation
         :param to_network_node: Bool that is true if recipient node is not in the information
         architecture
@@ -145,6 +147,10 @@ class Edge(Base):
                     # Assign destination as recipient of edge if no destination provided
                     if message.destinations is None:
                         message.destinations = {self.recipient}
+
+                    # If instructed to use arrival time as timestamp, set that here
+                    if use_arrival_time and hasattr(message.data_piece.data, 'timestamp'):
+                        message.data_piece.data.timestamp = message.arrival_time
 
                     # Update node according to inclusion in Information Architecture
                     if not to_network_node and message.destinations == {self.recipient}:
