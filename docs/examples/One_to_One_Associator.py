@@ -495,6 +495,27 @@ for received_colour in received_colours_scheme:
 # :class:`~.OneToOneAssociator`.
 
 # %%
+# Options for :attr:`~.OneToOneAssociator.non_association_cost`:
+#
+#  a. ``nan`` - If the goal is to maximise the number of associations
+#  b. ``None`` - If you want to simply cut off associations that don’t reach the threshold use
+#  c. ``0`` - To maximise the total measure
+#  d. ``:attr:`~.GeneralAssociator.association_threshold` ± <small_number> - To minimise the total
+#     measure
+
+# %%
+# To avoid :func:`~scipy.optimize.linear_sum_assignment` choosing associations that won't pass the
+# threshold, a high :attr:`~.OneToOneAssociator.non_association_cost` will be used instead of the
+# value of the measure function.
+
+# %%
+# **Note**: although infinity is used as the `non_association_cost`, `linear_sum_assignment` cannot
+# cope with very large numbers (because very large number + 1 == very large number). Very large
+# `non_association_cost` are reduced internally by the `OneToOneAssociator` class before being
+# passed to the `linear_sum_assignment` function. See
+# :meth:`OneToOneAssociator.individual_weighting` function for detail.
+
+# %%
 # This function print the results of the association output.
 def print_results(assocs, unassocs_a, unassocs_b, measure):
     assoc_dict = {association.objects[0]: association.objects[1]
@@ -511,12 +532,6 @@ def print_results(assocs, unassocs_a, unassocs_b, measure):
 # ^^^^^^^^^^
 # The goal is to minimise the absolute difference between numbers
 
-# %%
-# There are two groups of numbers that we want to associate together, ``numbers_a`` and
-# ``numbers_b``.
-numbers_a = (0, 4, 9)
-numbers_b = (3, 8, 50)
-
 
 # %%
 # The measure is the ``NumericDifference`` (the absolute difference between the numbers).
@@ -530,53 +545,254 @@ class NumericDifference(BaseMeasure):
 
 
 # %%
-# Minimise the Measure - No Association Threshold
-# """"""""""""""""""""""""""""""""""""""""""""""""
-associator = OneToOneAssociator(measure=NumericDifference(),
-                                maximise_measure=False,
+# There are two groups of numbers that we want to associate together, ``numbers_a`` and
+# ``numbers_b``.
+numbers_a = (0, 4, 9)
+numbers_b = (3, 8, 50)
+association_threshold = 10
+measure = NumericDifference()
+maximise_measure=False
+
+
+# %%
+# No Association Threshold
+# """""""""""""""""""""""""""""""""""""
+associator = OneToOneAssociator(measure=measure,
+                                maximise_measure=maximise_measure,
                                 association_threshold=None)
 
 associations, unassociated_a, unassociated_b = associator.associate(numbers_a, numbers_b)
-print_results(associations, unassociated_a, unassociated_b, measure=NumericDifference())
+print_results(associations, unassociated_a, unassociated_b, measure=measure)
 
 # %%
-# Every number is associated to another number.
+# Every number is associated to another number. The distance `9` and `50` is too large. So an
+# association threshold of `10` is applied.
 
 # %%
-# Minimise the Measure - Strict Association Threshold
-# """"""""""""""""""""""""""""""""""""""""""""""""""""
-# The distance `9` and `50` is too large. So an association threshold of `10` is applied.
-associator = OneToOneAssociator(measure=NumericDifference(),
-                                maximise_measure=False,
-                                association_threshold=10)
+# Scenario 1 - Option B
+# """""""""""""""""""""
+associator = OneToOneAssociator(measure=measure,
+                                maximise_measure=maximise_measure,
+                                association_threshold=association_threshold,
+                                non_association_cost=None)
 
 associations, unassociated_a, unassociated_b = associator.associate(numbers_a, numbers_b)
-print_results(associations, unassociated_a, unassociated_b, measure=NumericDifference())
+print_results(associations, unassociated_a, unassociated_b, measure=measure)
 
 # %%
 # These results are not optimal. The total cost would be lower if `3` was associated with `4` and
 # `8` was associated with `9`.
 
 # %%
-# Minimise the Measure - Strict Association Threshold - High Non-Association Cost
-# """"""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
-# To avoid :func:`~scipy.optimize.linear_sum_assignment` choosing associations that won't pass the
-# threshold, a high :attr:`~.OneToOneAssociator.non_association_cost` will be used instead of the
-# value of the measure function.
-associator = OneToOneAssociator(measure=NumericDifference(),
-                                maximise_measure=False,
-                                association_threshold=10,
-                                non_association_cost=float('inf'))
-
-# %%
-# **Note**: although infinity is used as the `non_association_cost`, `linear_sum_assignment` cannot
-# cope with very large numbers (because very large number + 1 == very large number). Very large
-# `non_association_cost` are reduced internally by the `OneToOneAssociator` class before being
-# passed to the `linear_sum_assignment` function. See
-# :meth:`OneToOneAssociator.individual_weighting` function for detail.
+# Scenario 1 - Option A
+# """""""""""""""""""""
+associator = OneToOneAssociator(measure=measure,
+                                maximise_measure=maximise_measure,
+                                association_threshold=association_threshold,
+                                non_association_cost=float('nan'))
 
 associations, unassociated_a, unassociated_b = associator.associate(numbers_a, numbers_b)
-print_results(associations, unassociated_a, unassociated_b, measure=NumericDifference())
+print_results(associations, unassociated_a, unassociated_b, measure=measure)
+
+# %%
+# Scenario 1 - Option C
+# """""""""""""""""""""
+associator = OneToOneAssociator(measure=measure,
+                                maximise_measure=maximise_measure,
+                                association_threshold=association_threshold,
+                                non_association_cost=0)
+
+associations, unassociated_a, unassociated_b = associator.associate(numbers_a, numbers_b)
+print_results(associations, unassociated_a, unassociated_b, measure=measure)
+
+# %%
+# Scenario 1 - Option D
+# """""""""""""""""""""
+if maximise_measure:
+    non_association_cost = association_threshold + 0.01
+else:
+    non_association_cost = association_threshold - 0.01
+associator = OneToOneAssociator(measure=measure,
+                                maximise_measure=maximise_measure,
+                                association_threshold=association_threshold,
+                                non_association_cost=non_association_cost)
+
+associations, unassociated_a, unassociated_b = associator.associate(numbers_a, numbers_b)
+print_results(associations, unassociated_a, unassociated_b, measure=measure)
+
+
+# %%
+# Scenario 2
+# ^^^^^^^^^^
+#
+class SquareNumeric(BaseMeasure):
+    def __call__(self, item1: float, item2: float) -> float:
+        if item1 == item2:
+            return float('nan')
+        return item1*item2
+
+
+# %%
+# There are two groups of numbers that we want to associate together, ``numbers_a`` and
+# ``numbers_b``.
+numbers_a = (1, 2, 3, 5)
+numbers_b = (1, 2, 4, 7)
+association_threshold = 5
+measure = SquareNumeric()
+maximise_measure = True
+
+
+# %%
+# No Association Threshold
+# """""""""""""""""""""""""""""""""""""
+associator = OneToOneAssociator(measure=measure,
+                                maximise_measure=maximise_measure,
+                                association_threshold=None)
+
+associations, unassociated_a, unassociated_b = associator.associate(numbers_a, numbers_b)
+print_results(associations, unassociated_a, unassociated_b, measure=measure)
+
+# %%
+# Every number is associated to another number. The distance `9` and `50` is too large. So an
+# association threshold of `10` is applied.
+
+# %%
+# Option B
+# """""""""""""""""""""
+associator = OneToOneAssociator(measure=measure,
+                                maximise_measure=maximise_measure,
+                                association_threshold=association_threshold,
+                                non_association_cost=None)
+
+associations, unassociated_a, unassociated_b = associator.associate(numbers_a, numbers_b)
+print_results(associations, unassociated_a, unassociated_b, measure=measure)
+
+# %%
+# These results are not optimal. The total cost would be lower if `3` was associated with `4` and
+# `8` was associated with `9`.
+
+# %%
+# Option A
+# """""""""""""""""""""
+associator = OneToOneAssociator(measure=measure,
+                                maximise_measure=maximise_measure,
+                                association_threshold=association_threshold,
+                                non_association_cost=float('nan'))
+
+associations, unassociated_a, unassociated_b = associator.associate(numbers_a, numbers_b)
+print_results(associations, unassociated_a, unassociated_b, measure=measure)
+
+# %%
+# Option C
+# """""""""""""""""""""
+associator = OneToOneAssociator(measure=measure,
+                                maximise_measure=maximise_measure,
+                                association_threshold=association_threshold,
+                                non_association_cost=0)
+
+associations, unassociated_a, unassociated_b = associator.associate(numbers_a, numbers_b)
+print_results(associations, unassociated_a, unassociated_b, measure=measure)
+
+# %%
+# Option D
+# """""""""""""""""""""
+if maximise_measure:
+    non_association_cost = association_threshold + 0.01
+else:
+    non_association_cost = association_threshold - 0.01
+associator = OneToOneAssociator(measure=measure,
+                                maximise_measure=maximise_measure,
+                                association_threshold=association_threshold,
+                                non_association_cost=non_association_cost)
+
+associations, unassociated_a, unassociated_b = associator.associate(numbers_a, numbers_b)
+print_results(associations, unassociated_a, unassociated_b, measure=measure)
+
+# %%
+# Scenario 3
+# ^^^^^^^^^^
+#
+class SquareNumeric(BaseMeasure):
+    def __call__(self, item1: float, item2: float) -> float:
+        if item1 == item2:
+            return float('nan')
+        return item1*item2
+
+
+numbers_a = (1, 2, 3, 6, 10)
+numbers_b = (1.1, 1.2, 1.3, 2.2, 7)
+association_threshold = 6.95
+measure = SquareNumeric()
+maximise_measure = False
+
+
+# %%
+# No Association Threshold
+# """""""""""""""""""""""""""""""""""""
+associator = OneToOneAssociator(measure=measure,
+                                maximise_measure=maximise_measure,
+                                association_threshold=None)
+
+associations, unassociated_a, unassociated_b = associator.associate(numbers_a, numbers_b)
+print_results(associations, unassociated_a, unassociated_b, measure=measure)
+
+# %%
+# Every number is associated to another number. The distance `9` and `50` is too large. So an
+# association threshold of `10` is applied.
+
+# %%
+# Option B
+# """""""""""""""""""""
+associator = OneToOneAssociator(measure=measure,
+                                maximise_measure=maximise_measure,
+                                association_threshold=association_threshold,
+                                non_association_cost=None)
+
+associations, unassociated_a, unassociated_b = associator.associate(numbers_a, numbers_b)
+print_results(associations, unassociated_a, unassociated_b, measure=measure)
+
+# %%
+# These results are not optimal. The total cost would be lower if `3` was associated with `4` and
+# `8` was associated with `9`.
+
+# %%
+# Option A
+# """""""""""""""""""""
+associator = OneToOneAssociator(measure=measure,
+                                maximise_measure=maximise_measure,
+                                association_threshold=association_threshold,
+                                non_association_cost=float('nan'))
+
+associations, unassociated_a, unassociated_b = associator.associate(numbers_a, numbers_b)
+print_results(associations, unassociated_a, unassociated_b, measure=measure)
+
+# %%
+# Option C
+# """""""""""""""""""""
+associator = OneToOneAssociator(measure=measure,
+                                maximise_measure=maximise_measure,
+                                association_threshold=association_threshold,
+                                non_association_cost=0)
+
+associations, unassociated_a, unassociated_b = associator.associate(numbers_a, numbers_b)
+print_results(associations, unassociated_a, unassociated_b, measure=measure)
+
+# %%
+# Option D
+# """""""""""""""""""""
+if maximise_measure:
+    non_association_cost = association_threshold - 0.01
+else:
+    non_association_cost = association_threshold + 0.01
+associator = OneToOneAssociator(measure=measure,
+                                maximise_measure=maximise_measure,
+                                association_threshold=association_threshold,
+                                non_association_cost=non_association_cost)
+
+associations, unassociated_a, unassociated_b = associator.associate(numbers_a, numbers_b)
+print_results(associations, unassociated_a, unassociated_b, measure=measure)
+
+#exit()
 
 # %%
 # todo - talk about results
