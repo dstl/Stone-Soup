@@ -74,6 +74,7 @@ Contents
     auto_tutorials/index
     auto_examples/index
     auto_demos/index
+    auto_papers/index
     contributing
     copyright
 

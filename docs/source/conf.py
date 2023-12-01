@@ -63,8 +63,8 @@ if binder_branch == "latest":
     binder_branch = "main"
 
 sphinx_gallery_conf = {
-    'examples_dirs': ['../tutorials', '../examples', '../demos'],
-    'gallery_dirs': ['auto_tutorials', 'auto_examples', 'auto_demos'],
+    'examples_dirs': ['../tutorials', '../examples', '../demos', '../papers'],
+    'gallery_dirs': ['auto_tutorials', 'auto_examples', 'auto_demos', 'auto_papers'],
     'filename_pattern': re.escape(os.sep),
     'image_scrapers': (gallery_scraper(),),
     'reset_modules': ('matplotlib', 'seaborn', reset_numpy_random_seed()),

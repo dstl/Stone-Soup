@@ -13,5 +13,6 @@ graft docs/source/_templates
 recursive-include docs/demos *.py *.rst *.csv
 recursive-include docs/examples *.py *.rst
 recursive-include docs/tutorials *.py *.rst
+recursive-include docs/papers *.py *.rst
 prune docs/source/auto_*
 recursive-include docs/source/auto_demos *Video_Processing*
