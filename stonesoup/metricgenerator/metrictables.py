@@ -138,6 +138,10 @@ class SIAPTableGenerator(RedGreenTableGenerator):
 
 
 class SiapDiffTableGenerator(SIAPTableGenerator):
+    """
+    Given two sets of metric generators, the SiapDiffTableGenerator returns a table displaying the
+    difference between two sets of metrics. Allows quick comparison of two sets of metrics.
+    """
     metrics2: Collection[MetricGenerator] = Property(doc="Set of metrics to put in the table")
 
     def __init__(self, *args, **kwargs):
@@ -146,12 +150,15 @@ class SiapDiffTableGenerator(SIAPTableGenerator):
     def compute_metric(self, **kwargs):
         """Generate table method
 
-        Returns a matplotlib Table of metrics with their descriptions, target
-        values and a coloured value cell to represent how well the tracker has
-        performed in relation to each specific metric (red=bad, green=good)"""
+        Returns a matplotlib Table of metrics for two sets of values. Table contains metric
+        descriptions, target values and a coloured value cell for each set of metrics.
+        The colour of each value cell represents how the pair of values of the metric compare to
+        eachother, with the better value showing in green. Table also contains a 'Diff' value
+        displaying the difference between the pair of metric values."""
 
         white = (1, 1, 1)
-        cellText = [["Metric", "Description", "Target", "Track 1 Value", "Track 2 Value", "Diff"]]
+        cellText = [["Metric", "Description", "Target", "Metrics 1 Value", "Metrics 2 Value",
+                     "Diff"]]
         cellColors = [[white, white, white, white, white, white]]
 
         t1_metrics = sorted(self.metrics, key=attrgetter('title'))

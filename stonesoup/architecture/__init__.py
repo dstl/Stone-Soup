@@ -36,9 +36,9 @@ class Architecture(Base):
             "Default is True")
     use_arrival_time: bool = Property(
         default=False,
-        doc="If True, the timestamp on data passed around the network will not be assigned when it "
-            "is opened by the fusing node - simulating an architecture where time of recording is "
-            "not registered by the sensor nodes"
+        doc="If True, the timestamp on data passed around the network will not be assigned when "
+            "it is opened by the fusing node - simulating an architecture where time of recording "
+            "is not registered by the sensor nodes"
     )
 
     # Below is no longer required with changes to plot - didn't delete in case we want to revert
