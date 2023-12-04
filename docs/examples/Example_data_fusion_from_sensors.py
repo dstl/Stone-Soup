@@ -11,7 +11,7 @@ Performance comparison between Kalman and Particle Filters
 # In this example, we present the case of data fusion. In particular,
 # we are looking at measurement fusion from two sensors. The context
 # is a multi-target tracking scenario, where we are looking to compare
-# the performances of separate filters:  an unscented Kalman filter (UKF),
+# the performances of separate filters: an unscented Kalman filter (UKF),
 # an extended Kalman filter (EKF) and a particle filter (PF).
 #
 # The example layout is as follows:
@@ -475,10 +475,10 @@ plotter.plot_tracks(pf_tracks, [0, 2], particle=False, line= dict(color='red'),
                     track_label='PF tracks')
 plotter.plot_ground_truths(truths, [0, 2])
 plotter.plot_sensors(sensor1_platform, [0, 1], marker=dict(color='black', symbol='129', size=15),
-                     sensor_label='Fixed Platform') # 131 is a diamond cross
-plotter.plot_sensors(sensor2_platform, [0, 1], marker=dict(color='darkslategray', symbol='cross',
-                                                           size=15),
-                     sensor_label='Moving Platform')
+                     sensor_label='Fixed Platform')
+plotter.plot_ground_truths(sensor2_platform, [0, 2], marker=dict(color='orange', symbol='cross',
+                                                           size=25),
+                     truths_label='Moving Platform')
 plotter.fig
 
 # Loaded the plotter for the various metrics.
