@@ -98,8 +98,11 @@ class Edge(Base):
             raise TypeError("Message info must be one of the following types: "
                             "Detection, Hypothesis or Track")
         # Add message to 'pending' dict of edge
+        data_to_send = copy.deepcopy(data_piece.data)
+        new_datapiece = DataPiece(data_piece.node, data_piece.originator, data_to_send,
+                                  data_piece.time_arrived, data_piece.track)
         message = Message(edge=self, time_pertaining=time_pertaining, time_sent=time_sent,
-                          data_piece=data_piece, destinations={self.recipient})
+                          data_piece=new_datapiece, destinations={self.recipient})
         _, self.messages_held = _dict_set(self.messages_held, message, 'pending', time_sent)
         # ensure message not re-sent
         data_piece.sent_to.add(self.nodes[1])
