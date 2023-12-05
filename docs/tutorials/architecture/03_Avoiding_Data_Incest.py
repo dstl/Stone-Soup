@@ -17,12 +17,11 @@ from datetime import datetime, timedelta
 # %%
 # Introduction
 # ------------
-# This tutorial uses the Stone Soup Architecture package to provide an example of how data incest
+# This tutorial uses the Stone Soup Architecture module to provide an example of how data incest
 # can occur in a poorly designed network.
 #
 # We design two architectures: a centralised (non-hierarchical) architecture, and a hierarchical
-# alternative, and look to compare the fused results at the central, or 'top-of-the-hierarchy'
-# node.
+# alternative, and look to compare the fused results at the central node.
 #
 # Scenario generation
 # -------------------
@@ -172,11 +171,6 @@ track_tracker = MultiTargetTracker(
 # Non-Hierarchical Architecture
 # -----------------------------
 #
-# This example will consider two different architectures:
-# - A non-hierarchical, centralised architecture
-# - A hierarchical architecture
-# Both architectures will use identical nodes to allow comparison between the two.
-#
 # We start by constructing the non-hierarchical, centralised architecture.
 #
 # Nodes
@@ -205,7 +199,7 @@ node_C1 = FusionNode(tracker=track_tracker,
 # Edges
 # ^^^^^
 #
-# Here we define the set of edges for the non hierarchical (NH) architecture.
+# Here we define the set of edges for the non-hierarchical (NH) architecture.
 
 from stonesoup.architecture import InformationArchitecture
 from stonesoup.architecture.edge import Edge, Edges
@@ -446,7 +440,7 @@ graph.plot_metrics(combined_metrics, generator_names=['H_SIAP_EKF-truth',
 #
 # At node C, the fused results from node B are once again fused with the measurements from node A.
 # This is fusing data into data that already contains elements of itself. Hence we end up with a
-# fused result that is bias towards the readings from sensor A.
+# fused result that is biased towards the readings from sensor A.
 #
 # By altering the architecture through removing the edge from node A to node B, we are removing
 # the incestual loop, and the resulting fusion at node C is just fusion of two disjoint sets of
