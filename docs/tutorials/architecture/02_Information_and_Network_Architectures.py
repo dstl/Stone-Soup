@@ -215,7 +215,7 @@ edges=Edges([Edge((node_A, node_C), edge_latency=0.5),
 
 
 # %%
-# Build and plot Inforamtion Architecture
+# Build and plot Information Architecture
 # ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 information_architecture = InformationArchitecture(edges, current_time=start_time)
