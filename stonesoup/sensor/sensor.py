@@ -9,6 +9,7 @@ from ..base import Property
 from ..models.clutter.clutter import ClutterModel
 from ..types.detection import TrueDetection, Detection
 from ..types.groundtruth import GroundTruthState
+from ..types.numeric import Probability
 
 
 class Sensor(PlatformMountable, Actionable):
@@ -81,9 +82,15 @@ class SimpleSensor(Sensor, ABC):
         doc="An optional clutter generator that adds a set of simulated "
             ":class:`Clutter` objects to the measurements at each time step. "
             "The clutter is simulated according to the provided distribution.")
+    prob_detection: float = Property(
+        default=1.0,
+        doc="An optional parameter that gives the probability of a detection. Default value of "
+            "1.0 results in no detections missed. A prob_detection value of 0.9 would cause the "
+            "Sensor to 'miss' 10% of detections"
+    )
 
     def measure(self, ground_truths: Set[GroundTruthState], noise: Union[np.ndarray, bool] = True,
-                **kwargs) -> Set[TrueDetection]:
+                **kwargs) -> Set[TrueDetection]
 
         measurement_model = self.measurement_model
 
@@ -101,19 +108,25 @@ class SimpleSensor(Sensor, ABC):
         for truth in detectable_ground_truths:
             measurement_vector = measurement_model.function(truth, noise=False, **kwargs)
 
-            if noise is True:
-                measurement_noise = next(noise_vectors_iter)
+            rand = np.random.rand()
+            if rand > self.prob_detection:
+                continue
+
             else:
-                measurement_noise = noise
 
-            # Add in measurement noise to the measurement vector
-            measurement_vector += measurement_noise
+                if noise is True:
+                    measurement_noise = next(noise_vectors_iter)
+                else:
+                    measurement_noise = noise
 
-            detection = TrueDetection(measurement_vector,
-                                      measurement_model=measurement_model,
-                                      timestamp=truth.timestamp,
-                                      groundtruth_path=truth)
-            detections.add(detection)
+                # Add in measurement noise to the measurement vector
+                measurement_vector += measurement_noise
+
+                detection = TrueDetection(measurement_vector,
+                                          measurement_model=measurement_model,
+                                          timestamp=truth.timestamp,
+                                          groundtruth_path=truth)
+                detections.add(detection)
 
         # Generate clutter at this time step
         if self.clutter_model is not None:
