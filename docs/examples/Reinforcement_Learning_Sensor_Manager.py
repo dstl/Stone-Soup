@@ -19,7 +19,9 @@ This example looks at how to interface a reinforcement learning framework with a
 #
 # .. warning::
 #    This currently only works on Linux based OSes, or via Windows Subsystem for
-#    Linux (WSL). See Tensorflow instructions for creating environments (with GPU support if applicable) [#]_.
+#    Linux (WSL). MacOS users may be able to make use of a Linux VM to run this example. See Tensorflow instructions for
+#    creating Python virtual environments (with GPU support if applicable) [#]_.
+#
 #
 # To run this example, in a clean environment, do  ``pip install stonesoup``, followed by ``pip install
 # tf-agents[reverb]``.
@@ -28,6 +30,12 @@ This example looks at how to interface a reinforcement learning framework with a
 import numpy as np
 import random
 from datetime import datetime, timedelta
+
+try:
+    import reverb
+except ImportError:
+    raise ImportError('To run this example, reverb must be installed. Please read the warning'
+                      'and instructions at the top of this notebook.')
 
 start_time = datetime.now().replace(microsecond=0)
 
