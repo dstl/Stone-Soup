@@ -213,7 +213,12 @@ NH_edges = Edges([Edge((node_A1, node_B1), edge_latency=1),
 # ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 NH_architecture = InformationArchitecture(NH_edges, current_time=start_time, use_arrival_time=True)
-NH_architecture.plot(tempfile.gettempdir(), use_positions=True)
+NH_architecture.plot(tempfile.gettempdir(), use_positions=True, save_plot=False)
+
+# %%
+# .. image:: ../../_static/tutorial3img1.png
+#   :width: 500
+#   :alt: Image showing information architecture
 
 # %%
 # Run the Simulation
@@ -241,10 +246,12 @@ for timestep in node_C1.data_held['unfused']:
 
 from stonesoup.plotter import Plotterly
 
+
 def reduce_tracks(tracks):
     return {
         type(track)([s for s in track.last_timestamp_generator()])
         for track in tracks}
+
 
 plotter = Plotterly()
 plotter.plot_ground_truths(truths, [0, 2])
@@ -301,7 +308,12 @@ H_edges = Edges([Edge((node_A2, node_C2), edge_latency=0),
 # ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 H_architecture = InformationArchitecture(H_edges, current_time=start_time, use_arrival_time=True)
-H_architecture.plot(tempfile.gettempdir(), use_positions=True)
+H_architecture.plot(tempfile.gettempdir(), use_positions=True, save_plot=False)
+
+# %%
+# .. image:: ../../_static/tutorial3img2.png
+#   :width: 500
+#   :alt: Image showing information architecture
 
 # %%
 # Run the Simulation
