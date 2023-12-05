@@ -268,7 +268,7 @@ class Architecture(Base):
             layer = -1
             while len(plotted_nodes) < len(self.all_nodes):
 
-                # Initialse an empty set to store nodes to be considered in the next iteration
+                # Initialise an empty set to store nodes to be considered in the next iteration
                 next_layer_nodes = set()
 
                 # Iterate through nodes on the current layer (nodes that have been plotted but have
@@ -352,7 +352,7 @@ class Architecture(Base):
 
     @property
     def density(self):
-        """Returns the density of the graph, ie. the proportion of possible edges between nodes
+        """Returns the density of the graph, i.e. the proportion of possible edges between nodes
         that exist in the graph"""
         num_nodes = len(self.all_nodes)
         num_edges = len(self.edges)
