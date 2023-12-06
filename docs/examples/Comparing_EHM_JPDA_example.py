@@ -15,14 +15,13 @@ Comparing Efficient Hypothesis Management (EHM) with probability associators
 # that could lead to a combinatorial explosion. To reduce the computational
 # cost of the operations, a number of algorithms have been developed to
 # match measurements and predictions to tracks. One of this methods is the
-# efficient hypothesis management, explained in detail in [1]_, [2]_ and under
-# patent in [3]_; this algorithm improves the joint probability data association,
+# efficient hypothesis management, explained in detail in [#]_, [#]_ and under
+# patent in [#]_; this algorithm improves the joint probability data association,
 # which is a brute force approach, with improved capability of hypothesis matching
 # and rejection with, significantly, cost reduction.
 #
 # A plugin Stone Soup implementation of EHM is available, under patent license agreement,
-# using the Python package PyEHM developed by `Dr. Lyudmil Vladimirov`_.
-# .. _Lyudmil Vladimirov: https://github.com/sglvladi/pyehm
+# using the Python package PyEHM developed by Dr. Lyudmil Vladimirov 'PyEHM <https://github.com/sglvladi/pyehm>`_.
 #
 #
 # This example follows the usual setup:
@@ -422,17 +421,17 @@ graph.fig
 # the number of simulation steps, number of tracks and
 # clutter rate) in the computation time in using EHM approaches
 # compared to the brute force JPDA. The tracks
-# obtained by the three trackers are perfectly aligned. 
+# obtained by the three trackers are perfectly aligned.
 
 # %%
 # References
 # ----------
-# ..[1] Maskell, S., Briers, M. and Wright, R., 2004, August. Fast mutual exclusion.
-#       In Signal and Data Processing of Small Targets 2004 (Vol. 5428, pp. 526-536).
-#       International Society for Optics and Photonics
-# ..[2] Horridge, P. and Maskell, S., 2006, July. Real-time tracking of hundreds of
-#       targets with efficient exact JPDAF implementation. In 2006 9th International
-#       Conference on Information Fusion (pp. 1-8). IEEE
-# ..[3] Maskell, S., 2003, July. Signal Processing with Reduced Combinatorial
-#       Complexity. Patent Reference:0315349.1
+# .. [#] Maskell, S., Briers, M. and Wright, R., 2004, August. Fast mutual exclusion.
+#        In Signal and Data Processing of Small Targets 2004 (Vol. 5428, pp. 526-536).
+#        International Society for Optics and Photonics
+# .. [#] Horridge, P. and Maskell, S., 2006, July. Real-time tracking of hundreds of
+#        targets with efficient exact JPDAF implementation. In 2006 9th International
+#        Conference on Information Fusion (pp. 1-8). IEEE
+# .. [#] Maskell, S., 2003, July. Signal Processing with Reduced Combinatorial
+#        Complexity. Patent Reference:0315349.1
 #
