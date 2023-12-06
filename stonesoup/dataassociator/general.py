@@ -111,30 +111,18 @@ class OneToOneAssociator(GeneralAssociator):
     """
 
     non_association_cost: Optional[float] = Property(
-        default=None,
+        default=float('nan'),
         doc="For an association to be valid is must be over (or under if maximise_measure is True)"
-            " (non-inclusive). This is the value given to associations above the threshold.")
-
-    measure_fail_magnitude: float = Property(
-        default=1e10,
-        doc="This value should be larger than any output from the measure function. It should also"
-            " be small enough that ``min_measure + measure_fail_value > measure_fail_value``. For "
-            "example `` 1e12 + 1e-12 == 1e12``. The default value (1e10) is suitable for measure "
-            "outputs between 1e-6 and 1e10."
-    )
+            " (non-inclusive). This is the value given to associations beyond the threshold."
+            "Infinite values are assigned this value")
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.check_non_association_cost()
-
-    @property
-    def measure_fail_value(self) -> float:
-        """:func:`~scipy.optimize.linear_sum_assignment` cannot function with `nan` values. This
-        is the value to replace `nan` for the input into *linear_sum_assignment*."""
-        if self.maximise_measure:
-            return -self.measure_fail_magnitude
-        else:
-            return self.measure_fail_magnitude
+        if self.non_association_cost is None:
+            warnings.warn("Setting `non_association_cost` to None means that no preprocessing "
+                          "takes place on the distance matrix. This can lead to unexpected "
+                          "behaviour and is not recommended.")
 
     def check_non_association_cost(self):
         """
@@ -157,50 +145,6 @@ class OneToOneAssociator(GeneralAssociator):
                         f"({self.non_association_cost}) should be smaller than the "
                         f"association_threshold ({self.association_threshold}).")
 
-    def apply_non_association_cost(self, value: float) -> float:
-        """Replace the `value` with the `non_association_cost` if necessary."""
-
-        # Can't apply non-association cost to a non-match
-        if np.isnan(value):
-            return value
-
-        # There isn't a non association cost
-        if self.non_association_cost is None:
-            return value
-
-        # non association cost doesn't need to be applied
-        if self.is_measure_within_association_threshold(value):
-            return value
-        else:
-            return self.non_association_cost
-
-    def individual_weighting(self, a, b) -> float:
-        """ This wrapper around the measure function allows for filtering/error checking of the
-        measure function. It can give an easy access point for subclasses that want to apply
-        additional filtering or gating."""
-
-        measure_output = self.measure(a, b)
-
-        if abs(measure_output) > self.measure_fail_magnitude:
-            warnings.warn(f"measure_output ({measure_output}) is larger than the "
-                          f"measure_fail_magnitude {self.measure_fail_magnitude}. Increase "
-                          f"measure_fail_magnitude to avoid unexpected behaviour.")
-
-        # Check if non_association_cost should be applied
-        measure_output = self.apply_non_association_cost(measure_output)
-
-        # Check for non-valid inputs into `linear_sum_assignment` function
-        if np.isnan(measure_output):
-            filtered_measure_output = self.measure_fail_value
-        elif measure_output == float('inf'):
-            filtered_measure_output = self.measure_fail_magnitude * 0.999
-        elif measure_output == float('-inf'):
-            filtered_measure_output = -self.measure_fail_magnitude * 0.999
-        else:
-            filtered_measure_output = measure_output
-
-        return filtered_measure_output
-
     def associate(self, objects_a: Collection, objects_b: Collection) \
             -> Tuple[AssociationSet, Collection, Collection]:
         """Associate two collections of objects together. Calculate the measure between each
@@ -222,7 +166,7 @@ class OneToOneAssociator(GeneralAssociator):
         if len(objects_a) == 0 or len(objects_b) == 0:
             return AssociationSet(), objects_a, objects_b
 
-        distance_matrix = np.empty((len(objects_a), len(objects_b)))
+        original_distance_matrix = np.empty((len(objects_a), len(objects_b)))
 
         list_of_as = list(objects_a)
         list_of_bs = list(objects_b)
@@ -230,7 +174,11 @@ class OneToOneAssociator(GeneralAssociator):
         # Calculate the measure for each combination of objects
         for i, a in enumerate(list_of_as):
             for j, b in enumerate(list_of_bs):
-                distance_matrix[i, j] = self.individual_weighting(a, b)
+                original_distance_matrix[i, j] = self.measure(a, b)
+
+        distance_matrix = self.scale_distance_matrix(original_distance_matrix)
+
+        print(distance_matrix)
 
         # Use "shortest path" assignment algorithm on distance matrix
         # to assign object_a to the nearest object_b
@@ -250,15 +198,68 @@ class OneToOneAssociator(GeneralAssociator):
             object_a = list_of_as[i]
             object_b = list_of_bs[j]
 
-            value = distance_matrix[i, j]
+            value = original_distance_matrix[i, j]
 
             # Check association meets threshold
-            if self.is_measure_valid(value) and value != self.measure_fail_value:
+            if self.is_measure_valid(value):
                 associations.associations.add(Association(OrderedSet([object_a, object_b])))
                 unassociated_a.discard(object_a)
                 unassociated_b.discard(object_b)
 
         return associations, unassociated_a, unassociated_b
+
+    def scale_distance_matrix(self, input_matrix: np.ndarray) -> np.ndarray:
+
+
+        max_value = self.get_maximum_value(input_matrix)
+
+        x = input_matrix.copy()
+
+        # Scale infinite values to the maximum value
+        x[np.isinf(x)] = max_value * np.sign(x[np.isinf(x)])
+
+        if self.non_association_cost is not None:
+            # outside_threshold_mask = np.array([
+            #     not self.is_measure_within_association_threshold(value)
+            #     for value in input_matrix
+            # ])
+            # x[outside_threshold_mask] = self.non_association_cost
+            inside_threshold_mask = np.vectorize(self.is_measure_within_association_threshold)(input_matrix)
+            x[~inside_threshold_mask] = self.non_association_cost
+
+        if self.maximise_measure:
+            x[np.isnan(x) | np.isnan(input_matrix)] = -max_value
+        else:
+            x[np.isnan(x) | np.isnan(input_matrix)] = max_value
+
+        return x
+
+    @staticmethod
+    def get_maximum_value(a: np.ndarray) -> float:
+        "This value should be larger than any output from the measure function. It should also"
+        " be small enough that ``min_measure + measure_fail_value > measure_fail_value``. For "
+        "example `` 1e12 + 1e-12 == 1e12``. The default value (1e10) is suitable for measure "
+        "outputs between 1e-6 and 1e10."
+
+        finite_a = a[np.isfinite(a) & (a != 0)]
+        if len(finite_a) == 0:
+            max_value = 1e10
+            return max_value
+
+        max_a = np.max(np.abs(finite_a))
+        min_a = np.min(np.abs(finite_a))
+
+        for multi_factor in [1e6, 1e5, 1e4, 1e3, 1e2]:
+            max_value = multi_factor * max_a
+
+            if max_value + min_a > max_value:
+                break
+
+        if max_value + min_a == max_value:
+            warnings.warn("Maximum value is too high. Precision will lost in addition. "
+                          f"max_value({max_value}) + min_value({min_a}) == max_value")
+
+        return max_value
 
 
 class GreedyAssociator(GeneralAssociator):

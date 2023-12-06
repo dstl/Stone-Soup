@@ -1,6 +1,8 @@
 import math
+import warnings
 from typing import Collection, Optional
 
+import numpy as np
 import pytest
 
 from stonesoup.dataassociator.general import GreedyAssociator, OneToOneAssociator, \
@@ -224,3 +226,75 @@ def test_accept_special_values(associator_class: type, association_threshold: Op
                 assert is_associated is False
         else:
             raise ValueError(f"No logic available for '{special_value}'.")
+
+
+@pytest.mark.parametrize(
+    "input_matrix",
+    [
+        np.array([1, 2, 3]),  # Test ints
+        np.array([1e8, 2e9, 3e10]),  # Test large numbers
+        np.array([1e18, 2e19, 3e20]),  # Test very large numbers
+        np.array([1e-8, 2e-9, 3e-10]),  # Test small numbers
+        np.array([1e-18, 2e-19, 3e-20]),  # Test very small numbers
+        np.array([1e-3, 2e0, 3e3]),  # Test small range of numbers
+        np.array([1e-6, 2e-2, 3e4]),  # Test medium range of numbers
+        np.array([1e-10, 2e2, 3e10]),  # Test large range of numbers
+        np.array([1e-20, 2e2, 3e20]),  # Test very large range of numbers (likely to be a warning)
+    ]
+)
+def test_max_allowed_value(input_matrix: np.ndarray):
+    max_input = max(input_matrix)
+    min_input = min(input_matrix)
+
+    with pytest.warns() as warning_record:
+        warnings.warn("Placeholder")
+        max_value = OneToOneAssociator.get_maximum_value(input_matrix)
+
+    # `max_value` must be significantly higher than the maximum value
+    assert max_value >= max_input * 100
+
+    # `max_value` should small enough that max_value + min(input_matrix) > max_value.
+    if max_value + min_input > max_value:
+        pass
+    else:
+        assert len(warning_record) == 2
+
+
+# Variables for `test_matrix_adjust` (tma) test function
+tma_input_matrix = np.array([0, 10, 1e6, -1e6, float('inf'), - float('inf'), float('nan')])
+tma_max_value = OneToOneAssociator.get_maximum_value(tma_input_matrix)
+
+@pytest.mark.parametrize(
+    "associator, expected_output",
+    [
+        (  # One
+                OneToOneAssociator(measure=None, maximise_measure=False,
+                                   association_threshold=None, non_association_cost=None),
+                [0, 10, 1e6, -1e6, tma_max_value, - tma_max_value, tma_max_value]),
+        (  # Two
+                OneToOneAssociator(measure=None, maximise_measure=False,
+                                   association_threshold=None, non_association_cost=np.nan),
+                [0, 10, 1e6, -1e6, tma_max_value, - tma_max_value, tma_max_value]),
+        (  # Three
+                OneToOneAssociator(measure=None, maximise_measure=False,
+                                   association_threshold=5, non_association_cost=np.nan),
+                [0, tma_max_value, tma_max_value, -1e6, tma_max_value, - tma_max_value,
+                 tma_max_value]),
+        (  # Four
+                OneToOneAssociator(measure=None, maximise_measure=True,
+                                   association_threshold=5, non_association_cost=-1),
+                [-1, 10, 1e6, -1, tma_max_value, -1, - tma_max_value]),
+        (  # Five
+                OneToOneAssociator(measure=None, maximise_measure=False,
+                                   association_threshold=10, non_association_cost=20),
+                [0, 10, 20, -1e6, 20, -tma_max_value, tma_max_value]),
+        (  # Six
+                OneToOneAssociator(measure=None, maximise_measure=False,
+                                   association_threshold=None, non_association_cost=20),
+                [0, 10, 1e6, -1e6, tma_max_value, -tma_max_value, tma_max_value]),
+
+    ]
+)
+def test_matrix_adjust(associator, expected_output):
+    adjusted_matrix = associator.scale_distance_matrix(tma_input_matrix)
+    np.testing.assert_equal(adjusted_matrix, expected_output)

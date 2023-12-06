@@ -16,9 +16,201 @@ from stonesoup.plotter import Plotterly
 from stonesoup.types.state import State
 from stonesoup.types.track import Track
 
+
+# %%
+# Helper Functions
+def print_results(assocs, unassocs_a, unassocs_b, measure):
+    assoc_dict = {association.objects[0]: association.objects[1]
+                  for association in assocs}
+
+    print("Associations:\t\t\t", assoc_dict)
+    print("Unassocaited objects from a:\t", unassocs_a)
+    print("Unassocaited objects from b:\t", unassocs_b)
+
+    total = sum(measure(*an_assoc.objects) for an_assoc in assocs.associations)
+    print(f"Total Measure:\t\t\t {total}")
+
+
+def break_down_association_measure(associations, measure):
+    for association in associations:
+        print(f"{list(association.objects)} : {measure(*association.objects)}")
+
+
+class NumericDifference(BaseMeasure):
+    def __call__(self, item1: float, item2: float) -> float:
+        """ Returns absolute difference between two floats"""
+        if item1 == item2:
+            return float('nan')
+        else:
+            return abs(item1-item2)
+
+
 # %%
 # Using OneToOneAssociator with an Association Threshold
 # -------------------------------------------------------
+# The :class:`~.OneToOneAssociator uses :func:`~scipy.optimize.linear_sum_assignment` which
+# provides the optimal score when pairing all objects. When an association threshold is applied not
+# every pairing is possible, :func:`~scipy.optimize.linear_sum_assignment` alone is no longer
+# suitable for the problem. This is demonstrated in the following example:
+
+# %%
+# Scenario 1
+# ^^^^^^^^^^
+# The goal is to pair numbers together, minimising the difference in the pairs. The numbers are
+# (0, 4, 9) and (3, 8, 50).
+numbers_a = (0, 4, 9)
+numbers_b = (3, 8, 50)
+measure = NumericDifference()
+
+associator = OneToOneAssociator(measure=NumericDifference(),
+                                maximise_measure=False)
+
+# %%
+# No Threshold
+# """"""""""""
+associations, unassociated_a, unassociated_b = associator.associate(numbers_a, numbers_b)
+print_results(associations, unassociated_a, unassociated_b, measure=measure)
+
+# %%
+# Every number is associated to another number. A break-down of the total measure shows that `9`
+# and `50` pair contribute the majority of the total measure.
+
+break_down_association_measure(associations, measure=NumericDifference())
+
+# %%
+# Only Post-Processing
+# """"""""""""""""""""
+# It is decided that the distance `9` and `50` is
+# too large. So an association threshold of `10` should be applied.
+# With only post-processing, the pair 9 and 50 would be removed. However this isn’t optimal.
+# The total cost would be lower if 3 was associated with 4 and 8 was associated with 9.
+
+association_threshold = 10
+
+# %%
+# This non-optimal behaviour can be seen if you set the ``non_association_cost=None``. This
+# is not recommended and is only kept for legacy reasons.
+
+associator = OneToOneAssociator(measure=measure,
+                                maximise_measure=False,
+                                association_threshold=association_threshold,
+                                non_association_cost=None)
+
+associations, unassociated_a, unassociated_b = associator.associate(numbers_a, numbers_b)
+print_results(associations, unassociated_a, unassociated_b, measure=measure)
+
+# %%
+# The :func:`~scipy.optimize.linear_sum_assignment` function needs pre-processing to be suitable
+# for a scenario with an association threshold. The :class:`~.OneToOneAssociator` will alter the
+# distance matrix input into the :func:`~scipy.optimize.linear_sum_assignment` function. Any value
+# that is equal or beyond the :attr:`~.GeneralAssociator.association_threshold` is set equal to the
+# :attr:`~.OneToOneAssociator.non_association_cost`.
+
+# %%
+#
+
+associator = OneToOneAssociator(measure=measure,
+                                maximise_measure=False,
+                                association_threshold=association_threshold,
+                                non_association_cost=float('inf'))
+
+associations, unassociated_a, unassociated_b = associator.associate(numbers_a, numbers_b)
+print_results(associations, unassociated_a, unassociated_b, measure=measure)
+
+# %%
+# **Note**: although infinity is used as the `non_association_cost`, `linear_sum_assignment` cannot
+# cope with very large numbers because very large number + 1 == very large number.
+very_large_number = 1e20
+print(f"Does very large number + 1 == very large number: "
+      f"{very_large_number + 1 == very_large_number}.")
+# Instead `non_association_cost` is reduced internally by the `OneToOneAssociator` before being
+# passed to the `linear_sum_assignment` function. This reduced value is ±
+# :attr:`~.OneToOneAssociator.measure_fail_magnitude`
+# to See
+# :meth:`OneToOneAssociator.individual_weighting` function for detail.
+
+# %%
+# The default behaviour of the OneToOneAssociator is to set non_association_cost=``nan``.
+
+associator = OneToOneAssociator(measure=measure,
+                                maximise_measure=False,
+                                association_threshold=association_threshold)
+
+print(f"Default value of the OneToOneAssociator is: {associator.non_association_cost}")
+
+# %%
+#
+
+associations, unassociated_a, unassociated_b = associator.associate(numbers_a, numbers_b)
+print_results(associations, unassociated_a, unassociated_b, measure=measure)
+
+# %%
+# From the
+
+
+# %%
+# Fail with sys.float_info.max
+# ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+import numpy as np
+import sys
+from scipy.optimize import linear_sum_assignment
+
+no = sys.float_info.max
+distance_matrix = (np.array([[-no, -no, -no, -no],
+                             [no, no, no, no],
+                             [-no, -no, -no, -no],
+                             [16, 16, 16, 16]]))
+
+try:
+    row_ind, col_ind = linear_sum_assignment(distance_matrix, True)
+    print([distance_matrix[i, j] for i, j in zip(row_ind, col_ind)])
+except ValueError as e:
+    print(e)
+
+
+no = 1e10
+distance_matrix = (np.array([[-no, -no, -no, -no],
+                             [no, no, no, no],
+                             [-no, -no, -no, -no],
+                             [16, 16, 16, 16]]))
+
+try:
+    row_ind, col_ind = linear_sum_assignment(distance_matrix, True)
+    print([distance_matrix[i, j] for i, j in zip(row_ind, col_ind)])
+except ValueError as e:
+    print(e)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+# %%
+# Old
+# -------------------------------------------------------
+
+
+# %%
 # The :class:`~.OneToOneAssociator` uses :func:`~scipy.optimize.linear_sum_assignment` which is
 # optimal when there is no association requirement. It is no longer optimal when some associations
 # may be restricted. This section demonstrates how the
@@ -211,7 +403,7 @@ do_all(measure=SquareNumeric(),
        numbers_b=(1, 4, 7, 10),
        name="7")
 
-exit()
+raise NotImplementedError
 
 
 # %%
