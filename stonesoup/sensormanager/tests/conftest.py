@@ -58,7 +58,7 @@ def params():
         fov_angle=np.radians(90),
         dwell_centre=StateVector([np.radians(315)]),
         max_range=np.inf,
-        resolutions={'dwell_centre': Angle(np.radians(90))}
+        resolution=Angle(np.radians(90))
     )
     sensor.timestamp = start_time
     sensor_set.add(sensor)

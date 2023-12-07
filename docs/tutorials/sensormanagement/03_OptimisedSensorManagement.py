@@ -133,7 +133,7 @@ for n in range(0, total_no_sensors):
         fov_angle=np.radians(30),
         dwell_centre=StateVector([0.0]),
         max_range=np.inf,
-        resolutions={'dwell_centre': Angle(np.radians(30))}
+        resolution=Angle(np.radians(30))
     )
     sensor_setA.add(sensor)
 for sensor in sensor_setA:
@@ -151,7 +151,7 @@ for n in range(0, total_no_sensors):
         fov_angle=np.radians(30),
         dwell_centre=StateVector([0.0]),
         max_range=np.inf,
-        resolutions={'dwell_centre': Angle(np.radians(30))}
+        resolution=Angle(np.radians(30))
     )
     sensor_setB.add(sensor)
 
@@ -170,7 +170,7 @@ for n in range(0, total_no_sensors):
         fov_angle=np.radians(30),
         dwell_centre=StateVector([0.0]),
         max_range=np.inf,
-        resolutions={'dwell_centre': Angle(np.radians(30))}
+        resolution=Angle(np.radians(30))
     )
     sensor_setC.add(sensor)
 
