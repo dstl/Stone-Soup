@@ -11,8 +11,10 @@ from ...types.array import StateVector
 
 
 class DummyActionable(Actionable):
-    dwell_centre: StateVector = ActionableProperty(doc="Actionable dwell centre.",
-                                                   generator_cls=DwellActionsGenerator)
+    dwell_centre: StateVector = ActionableProperty(
+        doc="Actionable dwell centre.",
+        generator_cls=DwellActionsGenerator,
+        generator_kwargs_mapping={'rpm': 'rpm'})
     timestamp: datetime = Property(doc="Current time that actionable exists at.")
     rpm: float = Property(doc="Dwell centre revolutions per minute")
 
