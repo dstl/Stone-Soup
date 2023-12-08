@@ -7,7 +7,7 @@ import numpy as np
 
 from ..base import Model, GaussianModel
 from ...base import Property
-from ...types.state import StateVector
+from ...types.array import StateVector, StateVectors
 
 
 class TransitionModel(Model):
@@ -53,7 +53,10 @@ class CombinedGaussianTransitionModel(TransitionModel, GaussianModel):
         """
         temp_state = copy.copy(state)
         ndim_count = 0
-        state_vector = np.zeros(state.state_vector.shape).view(StateVector)
+        if state.state_vector.shape[1] > 1:
+            state_vector = np.zeros(state.state_vector.shape).view(StateVectors)
+        else:
+            state_vector = np.zeros(state.state_vector.shape).view(StateVector)
         # To handle explicit noise vector(s) passed in we set the noise for the individual models
         # to False and add the noise later. When noise is Boolean, we just pass in that value.
         if noise is None:
