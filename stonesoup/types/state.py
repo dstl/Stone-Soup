@@ -7,6 +7,7 @@ from typing import MutableSequence, Any, Optional, Sequence, MutableMapping
 import typing
 
 import numpy as np
+from scipy.stats import multivariate_normal
 
 from ..base import Property, clearable_cached_property
 from .array import StateVector, CovarianceMatrix, PrecisionMatrix, StateVectors
@@ -954,12 +955,12 @@ class EnsembleState(State):
         :class:`~.EnsembleState`
             Instance of EnsembleState.
         """
-        mean = gaussian_state.state_vector.reshape((gaussian_state.ndim,))
+        mean = gaussian_state.mean
         covar = gaussian_state.covar
         timestamp = gaussian_state.timestamp
 
-        return EnsembleState(state_vector=cls.generate_ensemble(mean, covar, num_vectors),
-                             timestamp=timestamp)
+        return cls(state_vector=cls.generate_ensemble(mean, covar, num_vectors),
+                   timestamp=timestamp)
 
     @staticmethod
     def generate_ensemble(mean, covar, num_vectors):
@@ -983,21 +984,15 @@ class EnsembleState(State):
         :class:`~.EnsembleState`
             Instance of EnsembleState.
         """
-        # This check is necessary, because the StateVector wrapper does
-        # funny things with dimension.
-        rng = np.random.default_rng()
-        if mean.ndim != 1:
-            mean = mean.reshape(len(mean))
-        try:
-            ensemble = StateVectors(
-                                    [StateVector((rng.multivariate_normal(mean, covar)))
-                                     for n in range(num_vectors)])
-        # If covar is univariate, then use the univariate noise generation function.
-        except ValueError:
-            ensemble = StateVectors(
-                [StateVector((rng.normal(mean, covar))) for n in range(num_vectors)])
+        if not isinstance(mean, StateVector):
+            mean = StateVector(mean)
+        ndim = mean.shape[0]
+        vectors = np.atleast_2d(
+            multivariate_normal.rvs(np.zeros(ndim), covar, num_vectors))
+        if ndim > 1:
+            vectors = vectors.T
 
-        return ensemble
+        return StateVectors(vectors) + mean
 
     @property
     def num_vectors(self):
