@@ -120,7 +120,7 @@ for j in range(0, ntruths):
 # Build Tracker
 # ^^^^^^^^^^^^^
 #
-# We use the same configuration of Trackers and Track-Trackers as we did in the previous tutorial.
+# We use the same configuration of trackers and track-trackers as we did in the previous tutorial.
 
 from stonesoup.predictor.kalman import KalmanPredictor
 from stonesoup.updater.kalman import ExtendedKalmanUpdater
@@ -447,14 +447,14 @@ graph.plot_metrics(combined_metrics, generator_names=['H_SIAP_EKF-truth',
 # ----------------------
 #
 # In the centralised architecture, measurements from the 'bad' sensor are passed to both the
-# central fusion node (C), and the sensor-fusion node (B). At node B, these measurements are
+# central fusion node (C), and the sensor fusion node (B). At node B, these measurements are
 # fused with measurements from the 'good' sensor, and the output is sent to node C.
 #
-# At node C, the fused results from node B are once again fused with the measurements from node A.
-# This is fusing data into data that already contains elements of itself. Hence we end up with a
+# At node C, the fused results from node B are once again fused with the measurements from node A, despite implicitly
+# containing the information from sensor A already. Hence, we end up with a
 # fused result that is biased towards the readings from sensor A.
 #
 # By altering the architecture through removing the edge from node A to node B, we are removing
 # the incestual loop, and the resulting fusion at node C is just fusion of two disjoint sets of
-# measurements. Although node C is still recieving the less accurate measurements, its is not
+# measurements. Although node C is still recieving the less accurate measurements, it is not
 # biased towards the measurements from node A.

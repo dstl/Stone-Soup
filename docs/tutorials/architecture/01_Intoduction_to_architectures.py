@@ -3,7 +3,7 @@
 
 """
 ==============================================
-1 - Introduction to Architecture in Stone Soup
+1 - Introduction to Architectures in Stone Soup
 ==============================================
 """
 
@@ -59,7 +59,7 @@ node_C = Node(label='Node C')
 # %%
 # The Node base class contains several properties. The `latency` property gives functionality to
 # simulate processing latency at the node. The rest of the properties (label, position, colour,
-# shape, font_size, node_dim), are optional and primarily used for graph plotting.
+# shape, font_size, node_dim), are used for graph plotting.
 
 node_A.colour = '#006494'
 
@@ -99,8 +99,8 @@ edges = Edges(edges=[edge1, edge2])
 # %%
 # Architecture
 # ------------
-# Architecture classes manage the simualtion of data propagation across a network. Two
-# architecture classes are available in stonesoup: :class:`~.InformationArchitecture` and
+# Architecture classes manage the simulation of data propagation across a network. Two
+# architecture classes are available in Stone Soup: :class:`~.InformationArchitecture` and
 # :class:`~.NetworkArchitecture`. Information architecture simulates the architecture of how
 # information is shared across the network, only considering nodes that create or modify
 # information. Network architecture simulates the architecture of how data is physically
@@ -108,7 +108,7 @@ edges = Edges(edges=[edge1, edge2])
 # any data.
 #
 # Architecture classes contain an `edges` property - this must be an :class:`~.Edges` object.
-# The `current_time` property of an Architecture class maintains the current time within the
+# The `current_time` property of an Architecture instance maintains the current time within the
 # simulation. By default, this begins at the current time of the operating system.
 
 from stonesoup.architecture import InformationArchitecture
@@ -119,4 +119,4 @@ arch.plot(tempfile.gettempdir(), save_plot=False)
 # %%
 # .. image:: ../../_static/architecture_simpleexample.png
 #   :width: 500
-#   :alt: Image showing basic example an architecture plot
+#   :alt: Image showing basic example of an architecture plot
