@@ -11,11 +11,14 @@ class ActionableProperty(Property):
     """Property that is modified via an :class:`~.Action` with defined, non-equal start and end
     times."""
 
-    def __init__(self, generator_cls,
+    def __init__(self, generator_cls, generator_kwargs_mapping=None,
                  cls=None, *, default=inspect.Parameter.empty,
                  doc=None, readonly=False):
         super().__init__(cls=cls, default=default, doc=doc, readonly=readonly)
         self.generator_cls = generator_cls
+        self.generator_kwargs_mapping = generator_kwargs_mapping
+        if generator_kwargs_mapping is None:
+            self.generator_kwargs_mapping = dict()
 
 
 class Actionable(Base, ABC):
@@ -30,14 +33,10 @@ class Actionable(Base, ABC):
     left to the inheriting type.
     """
 
-    resolutions: dict = Property(
-        default=None,
-        doc="Mapping of each :class:`~.ActionableProperty` of the sensor and "
-            "corresponding resolutions at which the sensor is able to be tasked.")
-
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
+        self._generator_kwargs = dict()
         self.scheduled_actions = dict()  # dictionary of property - action pairs
 
     @property
@@ -51,17 +50,14 @@ class Actionable(Base, ABC):
         """Returns the default action of the action generator associated with the property
         (assumes the property is an :class:`~.ActionableProperty`."""
 
-        if self.resolutions and name in self.resolutions.keys():
-            generator = property_.generator_cls(owner=self,
-                                                attribute=name,
-                                                start_time=self.timestamp,
-                                                end_time=timestamp,
-                                                resolution=self.resolutions[name])
-        else:
-            generator = property_.generator_cls(owner=self,
-                                                attribute=name,
-                                                start_time=self.timestamp,
-                                                end_time=timestamp)
+        generator = property_.generator_cls(
+            owner=self,
+            attribute=name,
+            start_time=self.timestamp,
+            end_time=timestamp,
+            **{key: getattr(self, value)
+               for key, value in property_.generator_kwargs_mapping.items()})
+
         return generator.default_action
 
     def actions(self, timestamp: datetime.datetime, start_timestamp: datetime.datetime = None
@@ -91,17 +87,13 @@ class Actionable(Base, ABC):
 
         generators = set()
         for name, property_ in self._actionable_properties.items():
-            if self.resolutions and name in self.resolutions.keys():
-                generators.add(property_.generator_cls(owner=self,
-                                                       attribute=name,
-                                                       start_time=start_timestamp,
-                                                       end_time=timestamp,
-                                                       resolution=self.resolutions[name]))
-            else:
-                generators.add(property_.generator_cls(owner=self,
-                                                       attribute=name,
-                                                       start_time=start_timestamp,
-                                                       end_time=timestamp))
+            generators.add(property_.generator_cls(
+                owner=self,
+                attribute=name,
+                start_time=start_timestamp,
+                end_time=timestamp,
+                **{key: getattr(self, value)
+                   for key, value in property_.generator_kwargs_mapping.items()}))
         return generators
 
     def add_actions(self, actions: Sequence[Action]) -> bool:

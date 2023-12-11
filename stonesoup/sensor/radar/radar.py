@@ -18,6 +18,7 @@ from ...sensor.action.dwell_action import DwellActionsGenerator
 from ...sensor.actionable import ActionableProperty
 from ...sensor.sensor import Sensor, SimpleSensor
 from ...types.array import CovarianceMatrix
+from ...types.angle import Angle
 from ...types.detection import TrueDetection, Detection
 from ...types.groundtruth import GroundTruthState
 from ...types.numeric import Probability
@@ -135,9 +136,14 @@ class RadarRotatingBearingRange(RadarBearingRange):
             "sensor frame/orientation. The angle is positive if the rotation is in the "
             "counter-clockwise direction when viewed by an observer looking down the z-axis of "
             "the sensor frame, towards the origin. Angle units are in radians",
-        generator_cls=DwellActionsGenerator)
+        generator_cls=DwellActionsGenerator,
+        generator_kwargs_mapping={'rpm': 'rpm', 'resolution': 'resolution'})
     rpm: float = Property(
         doc="The number of antenna rotations per minute (RPM)")
+    resolution: Angle = Property(
+        default=Angle(np.radians(1)),
+        doc="Resolution of the dwell_centre. Used by the :class:`~.DwellActionsGenerator` "
+            "during sensor management.")
     max_range: float = Property(
         default=np.inf,
         doc="The maximum detection range of the radar (in meters)")
@@ -215,9 +221,14 @@ class RadarRotatingBearing(RadarBearing):
             "sensor frame/orientation. The angle is positive if the rotation is in the "
             "counter-clockwise direction when viewed by an observer looking down the z-axis of "
             "the sensor frame, towards the origin. Angle units are in radians",
-        generator_cls=DwellActionsGenerator)
+        generator_cls=DwellActionsGenerator,
+        generator_kwargs_mapping={'rpm': 'rpm', 'resolution': 'resolution'})
     rpm: float = Property(
         doc="The number of antenna rotations per minute (RPM)")
+    resolution: Angle = Property(
+        default=Angle(np.radians(1)),
+        doc="Resolution of the dwell_centre. Used by the :class:`~.DwellActionsGenerator` "
+            "during sensor management.")
     max_range: float = Property(
         default=np.inf,
         doc="The maximum detection range of the radar (in meters)")

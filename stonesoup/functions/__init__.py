@@ -402,6 +402,52 @@ def sphere2cart(rho, phi, theta):
     return (x, y, z)
 
 
+def cart2az_el_rg(x, y, z):
+    """Convert Cartesian to azimuth (phi), elevation(theta), and range(rho)
+
+    Parameters
+    ----------
+    x: float
+        The x coordinate
+    y: float
+        the y coordinate
+    z: float
+        the z coordinate
+
+    Returns
+    -------
+    (float, float, float)
+        A tuple of the form `(phi, theta, rho)`
+    """
+    rho = np.sqrt(x**2 + y**2 + z**2)
+    phi = np.arcsin(x / rho)
+    theta = np.arcsin(y / rho)
+    return phi, theta, rho
+
+
+def az_el_rg2cart(phi, theta, rho):
+    """Convert azimuth (phi), elevation(theta), and range(rho) to Cartesian
+
+    Parameters
+    ----------
+    phi: float
+        azimuth, expressed in radians
+    theta: float
+        Elevation expressed in radians, measured from x, y plane
+    rho: float
+        Range(a.k.a. radial distance)
+
+    Returns
+    -------
+    (float, float, float)
+        A tuple of the form `(phi, theta, rho)`
+    """
+    x = rho * np.sin(phi)
+    y = rho * np.sin(theta)
+    z = rho * np.sqrt(1.0 - np.sin(theta) ** 2 - np.sin(phi) ** 2)
+    return x, y, z
+
+
 def rotx(theta):
     r"""Rotation matrix for rotations around x-axis
 

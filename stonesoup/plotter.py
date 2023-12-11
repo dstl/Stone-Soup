@@ -391,7 +391,11 @@ class Plotter(_Plotter):
                 # Plot uncertainty ellipses
                 for track in tracks:
                     HH = np.eye(track.ndim)[mapping, :]  # Get position mapping matrix
+                    check = err_freq - 1    # plot the first one
                     for state in track:
+                        check += 1
+                        if check % err_freq:
+                            continue
                         w, v = np.linalg.eig(HH @ state.covar @ HH.T)
                         if np.iscomplexobj(w) or np.iscomplexobj(v):
                             warnings.warn("Can not plot uncertainty for all states due to complex "
@@ -2094,7 +2098,7 @@ class AnimatedPlotterly(_Plotter):
     """
 
     def __init__(self, timesteps, tail_length=0.3, equal_size=False,
-                 sim_duration=6, **kwargs):
+                 sim_duration=6, allow_unequal_timesteps=False, **kwargs):
         """
         Initialise the figure and checks that inputs are correctly formatted.
         Creates an empty frame for each timestep, and configures
@@ -2116,7 +2120,7 @@ class AnimatedPlotterly(_Plotter):
 
         # gives the unique values of time gaps between timesteps. If this contains more than
         # one value, then timesteps are not all evenly spaced which is an issue.
-        if len(time_spaces) != 1:
+        if not allow_unequal_timesteps and len(time_spaces) != 1:
             raise ValueError("Ensure timesteps are equally spaced.")
         self.timesteps = timesteps
 

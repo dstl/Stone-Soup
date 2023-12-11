@@ -12,9 +12,9 @@ from ...types.numeric import Probability
 
 from ...functions import cart2pol, pol2cart, \
     cart2sphere, sphere2cart, cart2angles, \
-    build_rotation_matrix
+    build_rotation_matrix, cart2az_el_rg, az_el_rg2cart
 from ...types.array import StateVector, CovarianceMatrix, StateVectors
-from ...types.angle import Bearing, Elevation
+from ...types.angle import Bearing, Elevation, Azimuth
 from ..base import LinearModel, GaussianModel, ReversibleModel
 from .base import MeasurementModel
 
@@ -1248,3 +1248,155 @@ class RangeRangeRateBinning(CartesianToElevationBearingRangeRate):
     def logpdf(self, *args, **kwargs):
         # As pdf replaced, need to go to first non GaussianModel parent
         return super(ReversibleModel, self).logpdf(*args, **kwargs)
+
+
+class CartesianToAzimuthElevationRange(NonLinearGaussianMeasurement, ReversibleModel):
+    r"""This is a class implementation of a time-invariant measurement model, \
+    where measurements are assumed to be received in the form of azimuth \
+    (:math:`\phi`), elevation (:math:`\theta`), and range (:math:`r`), with \
+    Gaussian noise in each dimension.
+    For this model, the Azimuth is defined as the angle of the measurement from \
+    the YZ plan to the YX plane and the Elevation is the angle from the XY plan \
+    to the XZ plane. The z axis is the direction the radar is pointing (broadside) \
+    and is only defined in the positive z. The x axis is generally the direction of travel \
+    for an airborne radar and the y axis is orthogonal to both the x and z.
+    Measurements are only correctly defined for +z (measurements must be in front \
+    of the sensor.
+
+    The model is described by the following equations:
+
+    .. math::
+
+      \vec{y}_t = h(\vec{x}_t, \vec{v}_t)
+
+    where:
+
+    * :math:`\vec{y}_t` is a measurement vector of the form:
+
+    .. math::
+
+      \vec{y}_t = \begin{bmatrix}
+                \phi \\
+                \theta \\
+                r
+            \end{bmatrix}
+
+    * :math:`h` is a non-linear model function of the form:
+
+    .. math::
+
+      h(\vec{x}_t,\vec{v}_t) = \begin{bmatrix}
+                asin(\mathcal{x}/\sqrt{\mathcal{x}^2 + \mathcal{y}^2 +\mathcal{z}^2}) \\
+                asin(\mathcal{y}/\sqrt{\mathcal{x}^2 + \mathcal{y}^2 +\mathcal{z}^2}) \\
+                \sqrt{\mathcal{x}^2 + \mathcal{y}^2 + \mathcal{z}^2}
+                \end{bmatrix} + \vec{v}_t
+
+    * :math:`\vec{v}_t` is Gaussian distributed with covariance :math:`R`, i.e.:
+
+    .. math::
+
+      \vec{v}_t \sim \mathcal{N}(0,R)
+
+    .. math::
+
+      R = \begin{bmatrix}
+            \sigma_{\phi}^2 & 0 & 0 \\
+            0 & \sigma_{\theta}^2 & 0 \\
+            0 & 0 & \sigma_{r}^2
+            \end{bmatrix}
+
+    The :py:attr:`mapping` property of the model is a 3 element vector, \
+    whose first (i.e. :py:attr:`mapping[0]`), second (i.e. \
+    :py:attr:`mapping[1]`) and third (i.e. :py:attr:`mapping[2]`) elements \
+    contain the state index of the :math:`x`, :math:`y` and :math:`z`  \
+    coordinates, respectively.
+
+    Note
+    ----
+    The current implementation of this class assumes a 3D Cartesian plane.
+
+    """  # noqa:E501
+
+    translation_offset: StateVector = Property(
+        default=None,
+        doc="A 3x1 array specifying the Cartesian origin offset in terms of :math:`x,y,z` "
+            "coordinates.")
+
+    def __init__(self, *args, **kwargs):
+        """
+        Ensure that the translation offset is initiated
+        """
+        super().__init__(*args, **kwargs)
+        # Set values to defaults if not provided
+        if self.translation_offset is None:
+            self.translation_offset = StateVector([0] * 3)
+
+    @property
+    def ndim_meas(self) -> int:
+        """ndim_meas getter method
+
+        Returns
+        -------
+        :class:`int`
+            The number of measurement dimensions
+        """
+
+        return 3
+
+    def function(self, state, noise=False, **kwargs) -> StateVector:
+        r"""Model function :math:`h(\vec{x}_t,\vec{v}_t)`
+
+        Parameters
+        ----------
+        state: :class:`~.State`
+            An input state
+        noise: :class:`numpy.ndarray` or bool
+            An externally generated random process noise sample (the default is
+            `False`, in which case no noise will be added
+            if 'True', the output of :meth:`~.Model.rvs` is added)
+
+        Returns
+        -------
+        :class:`numpy.ndarray` of shape (:py:attr:`~ndim_state`, 1)
+            The model function evaluated given the provided time interval.
+        """
+
+        if isinstance(noise, bool) or noise is None:
+            if noise:
+                noise = self.rvs(num_samples=state.state_vector.shape[1], **kwargs)
+            else:
+                noise = 0
+
+        # Account for origin offset
+        xyz = state.state_vector[self.mapping, :] - self.translation_offset
+
+        # Rotate coordinates
+        xyz_rot = self.rotation_matrix @ xyz
+
+        # Convert to measurement space
+        phi, theta, rho = cart2az_el_rg(xyz_rot[0, :], xyz_rot[1, :], xyz_rot[2, :])
+        elevations = [Elevation(i) for i in theta]
+        azimuths = [Azimuth(i) for i in phi]
+
+        return StateVectors([azimuths, elevations, rho]) + noise
+
+    def inverse_function(self, detection, **kwargs) -> StateVector:
+
+        phi, theta, rho = detection.state_vector
+
+        # convert to cartesian
+        x, y, z = az_el_rg2cart(phi, theta, rho)
+        xyz = StateVector([x, y, z])
+
+        inv_rotation_matrix = inv(self.rotation_matrix)
+        xyz = inv_rotation_matrix @ xyz
+
+        res = np.zeros((self.ndim_state, 1)).view(StateVector)
+        res[self.mapping, :] = xyz + self.translation_offset
+
+        return res
+
+    def rvs(self, num_samples=1, **kwargs) -> Union[StateVector, StateVectors]:
+        out = super().rvs(num_samples, **kwargs)
+        out = np.array([[Azimuth(0.)], [Elevation(0.)], [0.]]) + out
+        return out
