@@ -449,7 +449,6 @@ def test_ospa_computemetric_cardinality_error(p, first_value, second_value):
  ])
 def test_switching_loss(associations, expected_losses):
     loss_factor = 1
-    truth_ids = list(range(3))
 
     switching_loss = _SwitchingLoss(loss_factor, 1)
 
