@@ -939,7 +939,7 @@ class EnsembleState(State):
         default=None, doc="Timestamp of the state. Default None.")
 
     @classmethod
-    def from_gaussian_state(cls, gaussian_state, num_vectors):
+    def from_gaussian_state(cls, gaussian_state, num_vectors, **kwargs):
         """
         Returns an EnsembleState instance, from a given
         GaussianState object.
@@ -960,7 +960,8 @@ class EnsembleState(State):
         timestamp = gaussian_state.timestamp
 
         return cls(state_vector=cls.generate_ensemble(mean, covar, num_vectors),
-                   timestamp=timestamp)
+                   timestamp=timestamp,
+                   **kwargs)
 
     @staticmethod
     def generate_ensemble(mean, covar, num_vectors):
