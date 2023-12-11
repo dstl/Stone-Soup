@@ -5,7 +5,7 @@ import numpy as np
 import pytest
 
 from ..manager import MultiManager
-from ..ospametric import GOSPAMetric, OSPAMetric, SwitchingLoss
+from ..ospametric import GOSPAMetric, OSPAMetric, _SwitchingLoss
 from ...types.detection import Detection
 from ...types.groundtruth import GroundTruthPath, GroundTruthState
 from ...types.state import State
@@ -416,23 +416,23 @@ def test_ospa_computemetric_cardinality_error(p, first_value, second_value):
     ([
         {0: 0, 1: 1, 2: 2},
         {0: 0, 1: 1, 2: 2},
-        {0: 0, 1: 1, 2: -1},
+        {0: 0, 1: 1, 2: None},
         {0: 0, 1: 1, 2: 2},
         {0: 1, 1: 0, 2: 2},
         {1: 0, 0: 1, 2: 2},
-        {0: -1, 1: 2, 2: 0},
+        {0: None, 1: 2, 2: 0},
     ],  [0, 0, 0.5, 0.5, 2, 0, 2.5]),
     ([
         {0: 0, 1: 1, 2: 2},
-        {0: -1, 1: -1, 2: -1},
-        {0: 3, 1: -1, 2: -1},
+        {0: None, 1: None, 2: None},
+        {0: 3, 1: None, 2: None},
     ], [0, 1.5, 0.5]),
     ([
-        {0: -1, 1: -1, 2: -1},
+        {0: None, 1: None, 2: None},
         {0: 0, 1: 1, 2: 2},
     ], [0, 0]),
     ([  # The first time we associate with the track it should not count for loss
-        {0: -1, 1: -1, 2: -1},
+        {0: None, 1: None, 2: None},
         {0: 0, 1: 1, 2: 2},
     ], [0, 0]),
     ([  # The first time we associate with the track it should not count for loss
@@ -451,7 +451,7 @@ def test_switching_loss(associations, expected_losses):
     loss_factor = 1
     truth_ids = list(range(3))
 
-    switching_loss = SwitchingLoss(truth_ids, loss_factor, 1)
+    switching_loss = _SwitchingLoss(loss_factor, 1)
 
     with pytest.raises(RuntimeError) as _:
         switching_loss.loss()   # Should raise error if no associations have been added yet.

@@ -11,17 +11,14 @@ from ..types.time import TimeRange
 from ..types.metric import SingleTimeMetric, TimeRangeMetric
 
 
-class SwitchingLoss:
+class _SwitchingLoss:
     """
     Holds state assignment history and computes GOSPA switching term
     See https://www.mathworks.com/help/fusion/ref/trackgospametric-system-object.html#d126e213697
     """
-    def __init__(self, truth_ids, loss_factor, p):
-        self.not_associated = -1
-        self.unseen = -2
-        self.truth_associations = {i: self.unseen for i in truth_ids}
-        self.switching_loss = 0
-        self.has_associations = False
+    def __init__(self, loss_factor, p):
+        self.truth_associations = {}
+        self.switching_loss = None
         self.loss_factor = loss_factor
         self.p = p
         self.switching_penalty = 0.5
@@ -34,25 +31,23 @@ class SwitchingLoss:
         ----------
         truth_associations: dict(truth_track_id: measurement_track_id)
         """
-        self.has_associations = True
         self.switching_loss = 0
 
         for truth_id, meas_id in truth_associations.items():
-            if self.truth_associations[truth_id] == self.unseen and meas_id == self.not_associated:
+            if truth_id not in self.truth_associations and meas_id is None:
                 continue
-            if self.truth_associations[truth_id] == self.unseen:
+            if truth_id not in self.truth_associations:
                 self.truth_associations[truth_id] = meas_id
             elif self.truth_associations[truth_id] != meas_id:
                 self.switching_loss += self.switching_penalty
-                if (meas_id != self.not_associated
-                        and self.truth_associations[truth_id] != self.not_associated):
+                if meas_id is not None and self.truth_associations[truth_id] is not None:
                     self.switching_loss += self.switching_penalty
 
                 self.truth_associations[truth_id] = meas_id
 
     def loss(self):
         """Compute loss based on last association."""
-        if not self.has_associations:
+        if self.switching_loss is None:
             raise RuntimeError("Can't compute switching loss before any association are added.")
         return self.loss_factor * self.switching_loss**(1/self.p)
 
@@ -172,7 +167,7 @@ class GOSPAMetric(MetricGenerator):
             state.timestamp
             for state in chain(measured_states, truth_states)})
 
-        switching_metric = SwitchingLoss(truth_state_ids, self.switching_penalty, self.p)
+        switching_metric = _SwitchingLoss(self.switching_penalty, self.p)
         gospa_metrics = []
         for timestamp in timestamps:
             meas_mask = [state.timestamp == timestamp for state in measured_states]
@@ -185,9 +180,9 @@ class GOSPAMetric(MetricGenerator):
 
             metric, truth_to_measured_assignment = self.compute_gospa_metric(
                     meas_points, truth_points)
-            truth_mapping = {}
-            for i, meas_id in enumerate(truth_to_measured_assignment):
-                truth_mapping[truth_ids[i]] = -1 if meas_id == -1 else meas_ids[meas_id]
+            truth_mapping = {
+                truth_id: meas_ids[meas_id] if meas_id != -1 else None
+                for truth_id, meas_id in zip(truth_ids, truth_to_measured_assignment)}
 
             switching_metric.add_associations(truth_mapping)
             metric.value['switching'] = switching_metric.loss()
