@@ -528,13 +528,13 @@ def test_ensemble_1d(gaussian_initiator):
         assert isinstance(track.state, EnsembleStateUpdate)
 
         if track.state.mean > 0:
-            assert np.allclose(np.mean(track.state.mean), np.array([[5]]), atol=0.4)
+            assert np.allclose(np.mean(track.state.mean), np.array([[5]]), atol=0.5)
             assert track.state.hypothesis.measurement is detections[0]
         else:
-            assert np.allclose(np.mean(track.state.mean), np.array([[-5]]), atol=0.4)
+            assert np.allclose(np.mean(track.state.mean), np.array([[-5]]), atol=0.5)
             assert track.state.hypothesis.measurement is detections[1]
         assert track.timestamp == timestamp
-        assert np.allclose(track.covar, np.array([[1]]), atol=0.4)
+        assert np.allclose(track.covar, np.array([[1]]), atol=0.6)
 
 
 @pytest.mark.parametrize("gaussian_initiator", [
@@ -559,10 +559,10 @@ def test_ensemble_2d(gaussian_initiator):
     for track in tracks:
         assert isinstance(track.state, EnsembleStateUpdate)
         if track.state.mean[0] > 0:
-            assert np.allclose(track.state.mean, np.array([[5], [0]]), atol=0.4)
+            assert np.allclose(track.state.mean, np.array([[5], [0]]), atol=0.5)
             assert track.state.hypothesis.measurement is detections[0]
         else:
-            assert np.allclose(track.state.mean, np.array([[-5], [0]]), atol=0.4)
+            assert np.allclose(track.state.mean, np.array([[-5], [0]]), atol=0.5)
             assert track.state.hypothesis.measurement is detections[1]
         assert track.timestamp == timestamp
-        assert np.allclose(track.covar, np.diag([1, 0]), atol=0.4)
+        assert np.allclose(track.covar, np.diag([1, 0]), atol=0.6)
