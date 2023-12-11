@@ -18,7 +18,7 @@ import numpy as np
 # Introduction
 # ------------
 #
-# Following on from tutorial 01: Introduction to Architecture in Stone Soup, this tutorial
+# Following on from Tutorial 01: Introduction to Architectures in Stone Soup, this tutorial
 # provides a more in-depth walk through of generating and simulating information and network
 # architectures.
 #
@@ -28,7 +28,7 @@ import numpy as np
 
 
 # %%
-# Set-up variables
+# Set up variables
 # ^^^^^^^^^^^^^^^^
 
 start_time = datetime.now().replace(microsecond=0)
@@ -67,7 +67,7 @@ for sensor in sensor_set:
 
 
 # %%
-# Create ground-truth
+# Create ground truth
 # ^^^^^^^^^^^^^^^^^^^
 
 from stonesoup.models.transition.linear import CombinedLinearGaussianTransitionModel, \
@@ -155,8 +155,11 @@ tracker = MultiTargetTracker(initiator, deleter, None, data_associator, updater)
 
 
 # %%
-# Build Track-Tracker
+# Build Track Tracker
 # ^^^^^^^^^^^^^^^^^^^
+#
+# The track tracker works by treating tracks as detections, in order to enable fusion between tracks and detections
+# together.
 
 from stonesoup.updater.wrapper import DetectionAndTrackSwitchingUpdater
 from stonesoup.updater.chernoff import ChernoffUpdater
@@ -267,17 +270,20 @@ plotter.fig
 # %%
 # Network Architecture Example
 # ----------------------------
-# A network architecture represents the full physical network behind an information architecture.
-# Any nodes whose sole purpose is to receive and transmit data onto other nodes in the network.
-# These nodes are modelled in the NetworkArchitecture class.
+# A network architecture represents the full physical network behind an information architecture. For an analogy, we
+# might compare an edge in the information architecture to the connection between a sender and recipient of an email.
+# Much of the time, we only care about the information architecture and not the actual mechanisms behind delivery of the
+# email, which is similar in nature to the network architecture.
+# Some nodes have the sole purpose of receiving and re-transmitting data on to other nodes in the network. We call
+# these :class:`~.RepeaterNode`s. Additionally, any :class:`~.Node` present in the :class:`~.InformationArchitecture`
+# must also be modelled in the :class:`~.NetworkArchitecture`.
 
 # %%
 # Network Architecture Nodes
 # ^^^^^^^^^^^^^^^^^^^^^^^^^^
 #
-# In this example, we will make use of the same set of nodes used in the information
-# architecture, with a few additions.
-
+# In this example, we will add six new :class:`~.RepeaterNode`s to the existing structure to create our corresponding
+# :class:`~.NetworkArchitecture`.
 
 from stonesoup.architecture.node import RepeaterNode
 
@@ -318,25 +324,25 @@ node_G = FusionNode(tracker=track_tracker, fusion_queue=fq, latency=0)
 # ^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 edges = Edges([Edge((node_A, repeaternode1), edge_latency=0.5),
-                 Edge((repeaternode1, node_C), edge_latency=0.5),
-                 Edge((node_B, repeaternode3)),
-                 Edge((repeaternode3, node_C)),
-                 Edge((node_A, repeaternode2), edge_latency=0.5),
-                 Edge((repeaternode2, node_C)),
-                 Edge((repeaternode1, repeaternode2)),
-                 Edge((node_D, repeaternode4)),
-                 Edge((repeaternode4, node_F)),
-                 Edge((node_E, repeaternode5)),
-                 Edge((repeaternode5, node_F)),
-                 Edge((node_C, node_G), edge_latency=0),
-                 Edge((node_F, node_G), edge_latency=0),
-                 Edge((node_H, repeaternode6)),
-                 Edge((repeaternode6, node_G))
-                ])
+               Edge((repeaternode1, node_C), edge_latency=0.5),
+               Edge((node_B, repeaternode3)),
+               Edge((repeaternode3, node_C)),
+               Edge((node_A, repeaternode2), edge_latency=0.5),
+               Edge((repeaternode2, node_C)),
+               Edge((repeaternode1, repeaternode2)),
+               Edge((node_D, repeaternode4)),
+               Edge((repeaternode4, node_F)),
+               Edge((node_E, repeaternode5)),
+               Edge((repeaternode5, node_F)),
+               Edge((node_C, node_G), edge_latency=0),
+               Edge((node_F, node_G), edge_latency=0),
+               Edge((node_H, repeaternode6)),
+               Edge((repeaternode6, node_G))
+               ])
 
 
 # %%
-# NetworkArchitecture functionality
+# Network Architecture Functionality
 # ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 #
 # A network architecture provides a representation of all nodes in a network - the corresponding
@@ -347,14 +353,13 @@ edges = Edges([Edge((node_A, repeaternode1), edge_latency=0.5),
 # architecture that is underpinned by the network architecture. This means that a
 # NetworkArchitecture object requires two Edge lists: one set of edges representing the
 # network architecture, and another representing links in the information architecture. To
-# ease the set-up of these edge-lists, there are multiple options of how to instanciate a
-# NetworkArchitecture class:
+# ease the setup of these edge lists, there are multiple options for how to instantiate a :class:`~.NetworkArchitecture`
 #
-# - Firstly, providing the NetworkArchitecture with a network architecture edge-list
-# (an Edges object), and a pre-fabricated InformationArchitecture object this must be
+# - Firstly, providing the :class:`~.NetworkArchitecture` with an `edge_list` for the network architecture
+# (an Edges object), and a pre-fabricated InformationArchitecture object, which must be
 # provided as property `information_arch`.
 #
-# - Secondly, by providing the NetworkArchitecture with two edge-lists: one for the network
+# - Secondly, by providing the NetworkArchitecture with two `edge_list`s: one for the network
 # architecture and one for the information architecture.
 #
 # - Thirdly, by providing just a set of edges for the network architecture. In this case,
@@ -366,7 +371,7 @@ edges = Edges([Edge((node_A, repeaternode1), edge_latency=0.5),
 
 
 # %%
-# Instanciate Network Architecture
+# Instantiate Network Architecture
 # ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 from stonesoup.architecture import NetworkArchitecture
@@ -400,10 +405,9 @@ network_architecture.plot(tempfile.gettempdir(), save_plot=False)
 # Plot the Network Architecture's Information Architecture
 # ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 #
-# Next we plot the Information Architecture that is underpinned by the Network Architecture. The
-# Nodes of the Information Architecture are a subset of the nodes from the Network Architecture.
-# The set of edges are theoretical representations of which Nodes in the Information
-# Architecture are linked together. An edge in the Information Architecture could be equivalent
+# Next we plot the information architecture that is underpinned by the network architecture. The
+# nodes of the information architecture are a subset of the nodes from the network architecture.
+# An edge in the Information Architecture could be equivalent
 # to a physical edge between two nodes in the Network Architecture, but it could also be a
 # representation of multiple edges and nodes that a data piece would be transferred through in
 # order to pass from a sender to a recipient node.
