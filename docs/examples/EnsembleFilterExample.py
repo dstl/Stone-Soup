@@ -153,7 +153,7 @@ from stonesoup.types.state import EnsembleState
 
 ensemble = EnsembleState.generate_ensemble(
     mean=np.array([[0], [1], [0], [1]]),
-    covar=np.diag([[1.5, 0.5, 1.5, 0.5]]), num_vectors=100)
+    covar=np.diag([1.5, 0.5, 1.5, 0.5]), num_vectors=100)
 prior = EnsembleState(state_vector=ensemble, timestamp=start_time)
 
 # %%
