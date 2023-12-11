@@ -456,5 +456,5 @@ graph.plot_metrics(combined_metrics, generator_names=['H_SIAP_EKF-truth',
 #
 # By altering the architecture through removing the edge from node A to node B, we are removing
 # the incestual loop, and the resulting fusion at node C is just fusion of two disjoint sets of
-# measurements. Although node C is still recieving the less accurate measurements, it is not
+# measurements. Although node C is still receiving the less accurate measurements, it is not
 # biased towards the measurements from node A.
