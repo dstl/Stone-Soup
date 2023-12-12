@@ -17,7 +17,7 @@ class Action(Base):
                                                "attribute ends.")
     target_value: Any = Property(doc="Target value.")
 
-    def act(self, current_time, timestamp, init_value):
+    def act(self, current_time, timestamp, init_value, **kwargs):
         """Return the attribute modified.
 
         Parameters

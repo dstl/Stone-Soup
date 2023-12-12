@@ -136,7 +136,7 @@ class Actionable(Base, ABC):
                     break
         return True
 
-    def act(self, timestamp: datetime.datetime):
+    def act(self, timestamp: datetime.datetime, **kwargs):
         """Carry out actions up to a timestamp.
 
         Parameters
@@ -155,26 +155,26 @@ class Actionable(Base, ABC):
                 action = self.scheduled_actions[name]
             except KeyError:
                 action = self._default_action(name, property_, timestamp)
-                setattr(self, name, action.act(self.timestamp, timestamp, value))
+                setattr(self, name, action.act(self.timestamp, timestamp, value, **kwargs))
             else:
                 end_time = action.end_time
                 if end_time < timestamp:
                     # complete action, remove from schedule
                     # switch to default, and carry-out default until timestamp
-                    interim_value = action.act(self.timestamp, end_time, value)
+                    interim_value = action.act(self.timestamp, end_time, value, **kwargs)
 
                     # remove scheduled action
                     self.scheduled_actions.pop(name)
 
                     action = self._default_action(name, property_, timestamp)
-                    setattr(self, name, action.act(end_time, timestamp, interim_value))
+                    setattr(self, name, action.act(end_time, timestamp, interim_value, **kwargs))
                 elif end_time == timestamp:
                     # complete action and remove from schedule
-                    setattr(self, name, action.act(self.timestamp, timestamp, value))
+                    setattr(self, name, action.act(self.timestamp, timestamp, value, **kwargs))
                     self.scheduled_actions.pop(name)
                 else:
                     # carry-out action to timestamp
-                    setattr(self, name, action.act(self.timestamp, timestamp, value))
+                    setattr(self, name, action.act(self.timestamp, timestamp, value, **kwargs))
 
         self.timestamp = timestamp
 

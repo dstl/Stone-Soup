@@ -20,7 +20,7 @@ class ChangeDwellAction(Action):
                                       doc="Indicated the direction of change in the "
                                           "dwell centre angle.")
 
-    def act(self, current_time, timestamp, init_value):
+    def act(self, current_time, timestamp, init_value, **kwargs):
         """Assumes that duration keeps within the action end time
 
         Parameters

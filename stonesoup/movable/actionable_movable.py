@@ -78,9 +78,6 @@ class _GridActionableMovable(FixedMovable):
         self._next_action = actions[0]
         return True
 
-    def act(self, timestamp, *args, **kwargs):
-        self.move(timestamp, *args, **kwargs)
-
 
 Actionable.register(_GridActionableMovable)
 

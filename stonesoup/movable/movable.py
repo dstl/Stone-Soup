@@ -94,14 +94,13 @@ class Movable(StateMutableSequence, ABC):
         raise NotImplementedError
 
     @abstractmethod
-    def move(self, timestamp: datetime.datetime, **kwargs) -> None:
+    def move(self, timestamp: datetime.datetime, noise: bool = True, **kwargs) -> None:
         """Update the platform position using the :attr:`transition_model`.
 
         Parameters
         ----------
-        timestamp: :class:`datetime.datetime`, optional
-            A timestamp signifying when the end of the maneuver \
-            (the default is ``None``)
+        timestamp: :class:`datetime.datetime`
+            A timestamp signifying when the end of the maneuver
 
         Notes
         -----
@@ -114,6 +113,9 @@ class Movable(StateMutableSequence, ABC):
 
         """
         raise NotImplementedError
+
+    def act(self, timestamp, *args, **kwargs):
+        self.move(timestamp, *args, **kwargs)
 
     @abstractmethod
     def _set_position(self, value: StateVector) -> None:
@@ -301,7 +303,7 @@ class MovingMovable(Movable):
             raise AttributeError('Cannot set the position of a moving platform with a '
                                  'transition model')
 
-    def move(self, timestamp=None, **kwargs) -> None:
+    def move(self, timestamp=None, noise=True, **kwargs) -> None:
         """Propagate the platform position using the :attr:`transition_model`.
 
         Parameters
@@ -335,7 +337,7 @@ class MovingMovable(Movable):
             raise AttributeError('Platform without a transition model cannot be moved')
 
         state_vector = self.transition_model.function(state=self.state,
-                                                      noise=True,
+                                                      noise=noise,
                                                       timestamp=timestamp,
                                                       time_interval=time_interval,
                                                       **kwargs)
@@ -366,7 +368,7 @@ class MultiTransitionMovable(MovingMovable):
     def transition_model(self):
         return self.transition_models[self.transition_index]
 
-    def move(self, timestamp=None, **kwargs) -> None:
+    def move(self, timestamp=None, noise=True, **kwargs) -> None:
         """Propagate the platform position using the :attr:`transition_model`.
 
         Parameters
@@ -407,7 +409,7 @@ class MultiTransitionMovable(MovingMovable):
 
                 temp_state_vector = self.transition_model.function(
                     state=temp_state,
-                    noise=True,
+                    noise=noise,
                     time_interval=self.current_interval,
                     **kwargs
                 )
@@ -422,7 +424,7 @@ class MultiTransitionMovable(MovingMovable):
             else:
                 temp_state_vector = self.transition_model.function(
                     state=temp_state,
-                    noise=True,
+                    noise=noise,
                     time_interval=time_interval,
                     **kwargs
                 )
