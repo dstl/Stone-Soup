@@ -235,3 +235,11 @@ def test_animated_plotterly_sensor_plot():
         ndim_state=4,
         position=np.array([[10], [50]]))
     plotter.plot_sensors(sensor)
+
+
+def test_animated_plotterly_uneven_times():
+    with pytest.warns(UserWarning, match="Timesteps are not equally spaced, so the passage of "
+                                         "time is not linear"):
+        AnimatedPlotterly([start_time,
+                           start_time + timedelta(seconds=1),
+                           start_time + timedelta(seconds=3)])
