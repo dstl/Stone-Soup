@@ -3,18 +3,21 @@ import pytest
 from pytest import approx
 from scipy.stats import multivariate_normal
 from scipy.linalg import inv
+from math import atan2, asin
 
 from ..nonlinear import (
     CartesianToElevationBearingRange, CartesianToBearingRange,
     CartesianToElevationBearing, Cartesian2DToBearing, CartesianToBearingRangeRate,
     CartesianToElevationBearingRangeRate, RangeRangeRateBinning,
-    CartesianToAzimuthElevationRange)
+    CartesianToAzimuthElevationRange, CartesianAzimuthElevationRangeMeasurementModel,
+    CartesianAzimuthElevationMeasurementModel, GyroscopeMeasurementModel, AccelerometerMeasurementModel)
 
 from ...base import ReversibleModel
 from ...measurement.linear import LinearGaussian
 from ....functions import jacobian as compute_jac
 from ....functions import pol2cart
 from ....functions import rotz, rotx, roty, cart2sphere, cart2az_el_rg
+from ....functions.navigation import getAngularRotationVector, getForceVector, angle_wrap
 from ....types.angle import Bearing, Elevation, Azimuth
 from ....types.array import StateVector, StateVectors
 from ....types.state import State, CovarianceMatrix, ParticleState
@@ -1390,3 +1393,305 @@ def test_models_with_particles(h, ModelClass, state_vec, R,
              - h(single_state_vec, model.mapping, model.translation_offset, model.rotation_offset)
              ).T,
             cov=R)
+
+
+# Tests for inertia navigation and landmarks localisation
+def h_az_el(state_vector, pos_map, target_state,
+                   translation_offset):
+    'test the azimuth elevation measurement model'
+    # The target state behaves as a fixed landmark
+    sensor_location = state_vector[pos_map] - translation_offset
+
+    diff_position = np.array([target_state -
+                              sensor_location]).reshape(-1)
+
+    # evaluate the range
+    rg = np.sqrt(diff_position[0] * diff_position[0] +
+                 diff_position[1] * diff_position[1] +
+                 diff_position[2] * diff_position[2])
+
+    # evaluate the absolute azimuth and elevation of the target respect to the sensor
+    absolute_azimuth = np.array(atan2(diff_position[1], diff_position[0])).reshape(-1, 1)
+    absolute_elevation = np.array(asin(diff_position[2] / rg)).reshape(-1, 1)
+
+    # evaluate the sensor heading and elevation
+    heading = np.array(np.radians(state_vector[9])).reshape(-1, 1)
+    pitch = np.array(np.radians(state_vector[11])).reshape(-1, 1)
+
+    # Transform the azimuths and elevation and fix for 180 degrees in case
+    azimuth = Azimuth(angle_wrap(absolute_azimuth - heading))
+    elevation = Elevation(absolute_elevation - pitch)
+
+    return StateVector([azimuth, elevation])
+
+
+def h_az_el_range(state_vector, pos_map, target_state, translation_offset):
+    ' test the 3D azimuth-elevation-range measurement model'
+
+    sensor_location = state_vector[pos_map] - translation_offset
+
+    diff_position = np.array([target_state -
+                              sensor_location]).reshape(-1)
+
+    # evaluate the range
+    rg = np.sqrt(diff_position[0] * diff_position[0] +
+                 diff_position[1] * diff_position[1] +
+                 diff_position[2] * diff_position[2])
+
+    # evaluate the absolute azimuth and elevation of the target respect to the sensor
+    absolute_azimuth = np.array(atan2(diff_position[1], diff_position[0])).reshape(-1, 1)
+    absolute_elevation = np.array(asin(diff_position[2] / rg)).reshape(-1, 1)
+
+    # evaluate the sensor heading and elevation
+    heading = np.array(np.radians(state_vector[9])).reshape(-1, 1)
+    pitch = np.array(np.radians(state_vector[11])).reshape(-1, 1)
+
+    # Transform the azimuths and elevation and fix for 180 degrees in case
+    azimuth = Azimuth(angle_wrap(absolute_azimuth - heading))
+    elevation = Elevation(absolute_elevation - pitch)
+
+    return StateVector([azimuth, elevation, rg])
+
+
+def h_accelerometer(state_vector, reference_frame):
+    ' test the accelerometer'
+    acceleration_components = getForceVector(state_vector,
+                                             latLonAlt0=reference_frame)
+    return StateVectors(acceleration_components)
+
+
+def h_gyroscope(state_vector, reference_frame):
+    ' test the gyroscope'
+    angles_components = getAngularRotationVector(state_vector,
+                                                 latLonAlt0=reference_frame)
+    return StateVectors(angles_components)
+
+
+@pytest.mark.parametrize( # Accelerometer and Gyroscope
+    "h, ModelClass, state_vec, mapping, R, \
+     reference_frame",
+        [(   # 3D meas, 15D state
+                h_accelerometer,
+                AccelerometerMeasurementModel,
+                StateVector([[5000, 0., -8.0,
+                              0., 200., 0.,
+                              1000., 0., 0.,
+                              90, 2.29,
+                              0.0, 0.0,
+                              0.0, 0.0]]),
+                np.array([0, 3, 6]),
+                np.array([1, 1, 1]),
+                np.array([55, 0, 0])  # reference frame
+        ),
+        (  # 3D meas, 15D state
+                h_gyroscope,
+                GyroscopeMeasurementModel,
+                StateVector([[5000, 0., -8.0,
+                              0., 200., 0.,
+                              1000., 0., 0.,
+                              90, 2.29,
+                              0.0, 0.0,
+                              0.0, 0.0]]),
+                np.array([0, 3, 6]),
+                np.array([1, 1, 1]),
+                np.array([55, 0, 0])  # reference frame
+        )
+    ]
+)
+def test_models_sensor(h, ModelClass, state_vec, mapping, R,
+                       reference_frame):
+    """ Test for the Accelerometer and Gyroscope Measurement Models """
+
+    ndim_state = state_vec.size
+    state = State(state_vec)
+
+    model = ModelClass(ndim_state=ndim_state,
+                       mapping=mapping,
+                       noise_covar=np.diag(R),
+                       reference_frame=reference_frame)
+
+
+    R_flat = R.flat  # Create flat 1-D array of R
+    with pytest.raises(ValueError, match="Covariance should have ndim of 2: got 1"):
+        ModelClass(ndim_state=ndim_state,
+                   mapping=mapping,
+                   noise_covar=R_flat,
+                   reference_frame=reference_frame)
+
+    # Project a state through the model
+    # (without noise)
+    meas_pred_wo_noise = model.function(state)
+    eval_m = h(state_vec, reference_frame)
+    assert np.array_equal(meas_pred_wo_noise, eval_m)
+
+    # Ensure model creates noise
+    rvs = model.rvs()
+    assert rvs.shape == (model.ndim_meas, 1)
+    assert isinstance(rvs, StateVector)
+    rvs = model.rvs(10)
+    assert rvs.shape == (model.ndim_meas, 10)
+    assert isinstance(rvs, StateVectors)
+    assert not isinstance(rvs, StateVector)
+
+    # Evaluate the likelihood of the predicted measurement, given the state
+    # (without noise)
+    measurement = StateVector(meas_pred_wo_noise[:, 0].T)
+    prob = model.pdf(State(meas_pred_wo_noise), state)
+    assert approx(prob) == multivariate_normal.pdf(
+        (meas_pred_wo_noise
+         - np.array(h(state_vec, model.reference_frame))
+         ).ravel(),
+    cov=np.diag(R))
+
+    # Propagate a state vector through the model
+    # (with internal noise)
+    meas_pred_w_inoise = model.function(state, noise=True)
+    assert not np.array_equal(
+        meas_pred_w_inoise, h(state_vec,
+                               model.reference_frame))
+
+    # Evaluate the likelihood of the predicted state, given the prior
+    # (with noise)
+    prob = model.pdf(State(meas_pred_w_inoise), state)
+    assert approx(prob) == multivariate_normal.pdf(
+        (meas_pred_w_inoise
+         - np.array(h(state_vec, model.reference_frame))
+         ).ravel(),
+        cov=np.diag(R))
+
+    # Propagate a state vector through the model
+    # (with external noise)
+    noise = model.rvs()
+    meas_pred_w_enoise = model.function(state,
+                                        noise=noise)
+    assert np.array_equal(meas_pred_w_enoise,  h(
+        state_vec, model.reference_frame)+noise)
+
+    # Evaluate the likelihood of the predicted state, given the prior
+    # (with noise)
+    prob = model.pdf(State(meas_pred_w_enoise), state)
+    assert approx(prob) == multivariate_normal.pdf(
+        (meas_pred_w_enoise
+         - h(state_vec, model.reference_frame)
+         ).ravel(),
+        cov=np.diag(R))
+
+
+@pytest.mark.parametrize( # Landmarks
+    "h, ModelClass, state_vec, mapping, R, target_state,"
+    "translation_offset",
+    [
+        (   # 2D meas, 15D state
+                h_az_el,
+                CartesianAzimuthElevationMeasurementModel,
+                StateVector([[5000, 0., -8.0,
+                              0., 200., 0.,
+                              1000., 0., 0.,
+                              90, 2.29,
+                              0.0, 0.0,
+                              0.0, 0.0]]),
+                np.array([0, 3, 6]),         # mapping
+                np.array([1, 1]),
+                StateVector([[1], [1], [1]]), # target state
+                StateVector([[0], [0], [0]]) # translation offset
+        ),
+        (   # 3D meas, 15D state
+                h_az_el_range,
+                CartesianAzimuthElevationRangeMeasurementModel,
+                StateVector([[5000, 0., -8.0,
+                              0., 200., 0.,
+                              1000., 0., 0.,
+                              90, 2.29,
+                              0.0, 0.0,
+                              0.0, 0.0]]),
+                np.array([0, 3, 6]),          # mapping
+                np.array([1, 1, 1]),
+                StateVector([[1], [1], [1]]), # target state
+                StateVector([[0], [0], [0]]) # translation offset
+        )]
+)
+def test_models_landmarks(h, ModelClass, state_vec, mapping, R,
+                       target_state, translation_offset):
+    """ Test for the Azimuth Elevation with Landmarks Measurement Models """
+
+    ndim_state = state_vec.size
+    state = State(state_vec)
+
+    model = ModelClass(ndim_state=ndim_state,
+                       mapping=mapping,
+                       noise_covar=np.diag(R),
+                       target_location=target_state,
+                       translation_offset=translation_offset)
+
+
+    R_flat = R.flat  # Create flat 1-D array of R
+    with pytest.raises(ValueError, match="Covariance should have ndim of 2: got 1"):
+        ModelClass(ndim_state=ndim_state,
+                   mapping=mapping,
+                   noise_covar=R_flat,
+                   target_location=target_state,
+                   translation_offset=translation_offset)
+
+    # Project a state through the model
+    # (without noise)
+    meas_pred_wo_noise = model.function(state)
+    eval_m = h(state_vec, mapping, target_state, translation_offset)
+    assert np.array_equal(meas_pred_wo_noise, eval_m)
+
+    # Ensure model creates noise
+    rvs = model.rvs()
+    assert rvs.shape == (model.ndim_meas, 1)
+    assert isinstance(rvs, StateVector)
+    rvs = model.rvs(10)
+    assert rvs.shape == (model.ndim_meas, 10)
+    assert isinstance(rvs, StateVectors)
+    assert not isinstance(rvs, StateVector)
+
+    # Evaluate the likelihood of the predicted measurement, given the state
+    # (without noise)
+    measurement = StateVector(meas_pred_wo_noise[:, 0].T)
+    prob = model.pdf(State(meas_pred_wo_noise), state)
+    assert approx(prob) == multivariate_normal.pdf(
+        (meas_pred_wo_noise
+         - np.array(h(state_vec, model.mapping,
+                      model.target_location, model.translation_offset))
+         ).ravel(),
+    cov=np.diag(R))
+
+    # Propagate a state vector through the model
+    # (with internal noise)
+    meas_pred_w_inoise = model.function(state, noise=True)
+    assert not np.array_equal(
+        meas_pred_w_inoise, h(state_vec,
+                              model.mapping,
+                              model.target_location,
+                              model.translation_offset))
+
+    # Evaluate the likelihood of the predicted state, given the prior
+    # (with noise)
+    prob = model.pdf(State(meas_pred_w_inoise), state)
+    assert approx(prob) == multivariate_normal.pdf(
+        (meas_pred_w_inoise
+         - np.array(h(state_vec, model.mapping,
+                      model.target_location, model.translation_offset))
+         ).ravel(),
+        cov=np.diag(R))
+
+    # Propagate a state vector through the model
+    # (with external noise)
+    noise = model.rvs()
+    meas_pred_w_enoise = model.function(state,
+                                        noise=noise)
+    assert np.array_equal(meas_pred_w_enoise,
+                          h(state_vec, model.mapping,
+                            model.target_location, model.translation_offset)+noise)
+
+    # Evaluate the likelihood of the predicted state, given the prior
+    # (with noise)
+    prob = model.pdf(State(meas_pred_w_enoise), state)
+    assert approx(prob) == multivariate_normal.pdf(
+        (meas_pred_w_enoise
+         - h(state_vec, model.mapping,
+             model.target_location, model.translation_offset)
+         ).ravel(),
+        cov=np.diag(R))

@@ -2,6 +2,7 @@
 import copy
 
 import numpy as np
+import pymap3d
 
 from ..types.numeric import Probability
 from ..types.array import StateVector, StateVectors, CovarianceMatrix
@@ -400,6 +401,100 @@ def sphere2cart(rho, phi, theta):
     y = rho * np.sin(phi) * np.cos(theta)
     z = rho * np.sin(theta)
     return (x, y, z)
+
+def sphere2GCS(x, y, z):
+    """Convert Cartesian coordinates to Latitude, Longitude and altitude
+        (Geographic Coordinate System)
+
+    Parameters
+    ----------
+     x: float
+        The x coordinate in meters
+    y: float
+        the y coordinate in meters
+    z: float
+        the z coordinate in meters
+
+    Returns
+    -------
+    (degrees, degrees, float)
+        A tuple of the form `(latitude, longitude, altitude)`
+    """
+
+    # Define the Earth major semi axis (m)
+    a = 6378137.0
+
+    # Define the Earth minor axis (m)
+    b = 6356752.314245
+
+    # Calculate the sphere flattening
+    flattening = (a - b)/a
+
+    # Calculate the major eccentricity squared
+    ecc_sqd = flattening * (2. - flattening)
+
+    #
+    eps = ecc_sqd / (1. - ecc_sqd)
+
+    # calcaute the 2D radius
+    p = np.sqrt(x*x + y*y)
+
+    # calculate the q factor, please note this is in radians
+    q = np.arctan2((z * a),
+                   (p * b))
+
+    # calculate the sin and cosine of q
+    sin_q = np.sin(q)
+    cos_q = np.cos(q)
+
+    # calulcate the two angles phi and lambda
+    phi = np.arctan2((z + eps * b * np.power(sin_q, 3)),
+                     (p - ecc_sqd * a * np.power(cos_q, 3)))
+    lambd = np.arctan2(y, x)
+
+    v = a/ np.sqrt(1.0 - ecc_sqd * np.power(np.sin(phi), 2))
+
+    # Calculate the altitude, latitude and longitude
+    altitude = (p/np.cos(phi)) - v
+    latitude = np.degrees(phi)
+    longitude = np.degrees(lambd)
+
+    return (latitude, longitude, altitude)
+
+
+def localSphere2GCS(xEast, yNorth, zUp, origin):
+    """Function similar to MATLAB local2latlong.
+        We pass the local x Easting, y Northing and
+        z altitude and a local reference point origin
+        and we compute the latitude, longitude and
+        altitude in the local reference frame.
+        This function uses the package pymap3D.
+
+    Parameters
+    ----------
+    xEast: float
+        The x coordinate in meters
+    yNorth: float
+        the y coordinate in meters
+    zUp: float
+        the z coordinate in meters
+    origin : Tuple
+        Local reference point
+    Returns
+    -------
+    (float, float, float)
+        A tuple of the form `(latitude, longitude, altitude)`
+    """
+
+    # pass the reference frame point
+    lat0, lon0, alt0 = origin
+
+    # The reference ellipsoid is WGS-84
+    # we use the pymap3d enu2geodetic to obtain the results
+    latitude, longitude, altitude = pymap3d.enu2geodetic(xEast, yNorth, zUp,
+                                                         lat0, lon0, alt0)
+
+    return (latitude, longitude, altitude)
 
 
 def cart2az_el_rg(x, y, z):

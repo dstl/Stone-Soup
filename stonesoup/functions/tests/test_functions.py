@@ -3,10 +3,12 @@ import numpy as np
 from numpy import deg2rad
 from scipy.linalg import cholesky, LinAlgError
 from pytest import approx, raises
+from pymap3d import geodetic2enu
 
 from .. import (
     cholesky_eps, jacobian, gm_reduce_single, mod_bearing, mod_elevation, gauss2sigma,
-    rotx, roty, rotz, cart2sphere, cart2angles, pol2cart, sphere2cart, dotproduct, gm_sample)
+    rotx, roty, rotz, cart2sphere, cart2angles, pol2cart, sphere2cart, dotproduct, gm_sample,
+    sphere2GCS, localSphere2GCS)
 from ...types.array import StateVector, StateVectors, Matrix
 from ...types.state import State, GaussianState
 
@@ -332,3 +334,74 @@ def test_gm_sample(means, covars, weights, size):
         assert samples.shape[0] == means[0].shape[0]
     else:
         assert samples.shape[0] == means.shape[0]
+
+
+def test_sphere2GCS():
+    """sphre2GCS test"""
+
+    # Convert the various
+    def gps2ecef_custom(latitude, longitude, altitude):
+        # (lat, lon) in WSG-84 degrees
+        # altitude in meters
+        lat_rad = np.radians(latitude)
+        lon_rad = np.radians(longitude)
+
+        # flattening
+        f = 1.0 / 298.257224
+        # Earth Radius (meters)
+        R = 6378137.
+        cosLat = np.cos(lat_rad)
+        sinLat = np.sin(lat_rad)
+
+        cosLong = np.cos(lon_rad)
+        sinLong = np.sin(lon_rad)
+
+        c = 1 / np.sqrt(cosLat * cosLat + (1 - f) * (1 - f) * sinLat * sinLat)
+        s = (1 - f) * (1 - f) * c
+
+        x = (R * c + altitude) * cosLat * cosLong
+        y = (R * c + altitude) * cosLat * sinLong
+        z = (R * s + altitude) * sinLat
+
+        return x, y, z
+
+    # list of cities
+    list_locations = [[51.507359, -0.136439],
+                      [53.400002, -2.983333],
+                      [-23.533773, -46.625290],
+                      [35.652832, 139.839478],
+                      [-35.282001, 149.128998]]
+
+    for item in list_locations:
+        xyz2 = gps2ecef_custom(item[0], item[1], 0)
+        print(np.allclose(sphere2GCS(xyz2[0], xyz2[1], xyz2[2]),
+                     np.array(item+[1e-5]),
+                     rtol=1e-3, atol=1e-3))  # check if the tolerance if enough
+
+
+def test_localSphere2GCS():
+    """localSphere2GCS test"""
+
+    # list of cities
+    list_locations = [[51.507359, -0.136439],
+                      [53.400002, -2.983333],
+                      [-23.533773, -46.625290],
+                      [35.652832, 139.839478],
+                      [-35.282001, 149.128998]]
+    # set a referenc frame
+    reference_frame = np.array([0., 0., 0.])
+
+    # collect all the relevant xEastin, yNorthin and zUp given
+    # the reference frame
+    xyz = []
+    for item in list_locations:
+        xyz.append(geodetic2enu(item[0], item[1], 1.,
+                                reference_frame[0], reference_frame[1], reference_frame[2]))
+
+    for idx, ixyz in enumerate(xyz):
+        np.allclose(localSphere2GCS(ixyz[0], ixyz[1], ixyz[2],
+                                       reference_frame),
+                       np.array([list_locations[idx][0],
+                                 list_locations[idx][1],
+                                 1.]),
+                    rtol=1e-3)
