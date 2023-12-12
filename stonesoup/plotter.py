@@ -2098,7 +2098,7 @@ class AnimatedPlotterly(_Plotter):
     """
 
     def __init__(self, timesteps, tail_length=0.3, equal_size=False,
-                 sim_duration=6, allow_unequal_timesteps=False, **kwargs):
+                 sim_duration=6, **kwargs):
         """
         Initialise the figure and checks that inputs are correctly formatted.
         Creates an empty frame for each timestep, and configures
@@ -2120,8 +2120,8 @@ class AnimatedPlotterly(_Plotter):
 
         # gives the unique values of time gaps between timesteps. If this contains more than
         # one value, then timesteps are not all evenly spaced which is an issue.
-        if not allow_unequal_timesteps and len(time_spaces) != 1:
-            raise ValueError("Ensure timesteps are equally spaced.")
+        if len(time_spaces) != 1:
+            warnings.warn("Timesteps are not equally spaced, so the passage of time is not linear")
         self.timesteps = timesteps
 
         # checking input to tail_length
