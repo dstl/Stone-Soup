@@ -299,7 +299,7 @@ class UnscentedKalmanPredictor(KalmanPredictor):
             "true distribution is Gaussian, the value of 2 is optimal. "
             "Default is 2")
     kappa: float = Property(
-        default=0,
+        default=None,
         doc="Secondary spread scaling parameter. Default is calculated as "
             "3-Ns")
 
