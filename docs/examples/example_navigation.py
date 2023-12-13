@@ -32,7 +32,7 @@ Example using navigation measurement model
 # we employ the knowledge of fixed targets
 # to adjust the navigation tracking from drifting, a common
 # problem in navigation scenario.
-# The statespace we are considering is a 15 dimensions object, which
+# The state space we are considering is a 15 dimensions object, which
 # combines 3D nearly-constant Acceleration model and the 3D Euler angles,
 # whose are the heading (:math:`\psi`), the pitch (:math:`\theta`)
 # and the roll (:math:`\phi`) and their time derivative.
@@ -53,7 +53,7 @@ Example using navigation measurement model
 # transition model. Since the sensor is moving onto
 # a fixed plane placed 1km above ground, we employ an
 # exponential declining acceleration model, using :class:`~.Singer` model,
-# to adress the z- movements. A more complex, and realistic, approache
+# to address the z- movements. A more complex, and realistic, approach
 # would involve Van-Loan models for the transition.
 #
 
@@ -85,7 +85,7 @@ n_timesteps = 100
 
 timesteps = np.linspace(0, n_timesteps+1, n_timesteps+1)
 simulation_start = datetime.now().replace(microsecond=0)
-np.random.seed(2000) # fix a random seed for reproducibility
+np.random.seed(2000)  # fix a random seed for reproducibility
 
 # %%
 # Describe the ground truth
@@ -98,6 +98,7 @@ np.random.seed(2000) # fix a random seed for reproducibility
 # to include such angles.
 #
 
+
 # Create a function to create the groundtruth paths
 def describe_sensor_motion(target_speed: float,
                            target_radius: float,
@@ -107,14 +108,14 @@ def describe_sensor_motion(target_speed: float,
                            ) -> (list, set):
 
     """
-        Auxuliary function to create the sensor-target dynamics in the
+        Auxiliary function to create the sensor-target dynamics in the
         specific case of circular motion.
 
     Parameters:
     -----------
     target_speed: float
         Speed of the sensor;
-    target_tadius: float
+    target_radius: float
         radius of the circular trajectory;
     starting_position: np.array
         starting point of the trajectory, latitude, longitude
@@ -122,7 +123,7 @@ def describe_sensor_motion(target_speed: float,
     start_time: datetime,
         start of the simulation;
     number_of_timesteps: np.array
-        simulation lenght
+        simulation length
 
     Return:
     -------
@@ -135,7 +136,7 @@ def describe_sensor_motion(target_speed: float,
     # the positions, dynamics and angles of the target
     sensor_dynamics = np.zeros((15))
 
-    # Generate the groundTruthpath
+    # Generate the GroundTruthPath
     truths = GroundTruthPath([])
 
     # instantiate a list for the timestamps
@@ -154,17 +155,18 @@ def describe_sensor_motion(target_speed: float,
 
         # positions
         sensor_dynamics[position_indexes] += target_radius * \
-                                      np.array([np.cos(theta), np.sin(theta),
-                                                0.001*np.random.choice(np.arange(-5, 5), 1)[0]]) + \
-                                      starting_position
+            np.array([np.cos(theta), np.sin(theta),
+                      0.001*np.random.choice(np.arange(-5, 5), 1)[0]]) + \
+            starting_position
 
         # velocities
         sensor_dynamics[velocity_indexes] += target_speed * \
                                       np.array([-np.sin(theta), np.cos(theta), 0])
 
         # acceleration
-        sensor_dynamics[acceleration_indexes] += ((-target_speed * target_speed) / target_radius) * \
-                           np.array([np.cos(theta), np.sin(theta), 0])
+        sensor_dynamics[acceleration_indexes] += \
+            ((-target_speed * target_speed) / target_radius) * np.array(
+                [np.cos(theta), np.sin(theta), 0])
 
         # Now using the velocity and accelerations terms we get the Euler angles
         angles, dangles = getEulersAngles(sensor_dynamics[velocity_indexes],
@@ -177,8 +179,7 @@ def describe_sensor_motion(target_speed: float,
 
         # append all those as ground state
         truths.append(GroundTruthState(state_vector=sensor_dynamics,
-                                       timestamp=start_time +
-                                                 timedelta(seconds=int(i))))
+                                       timestamp=start_time + timedelta(seconds=int(i))))
         # restart the array
         sensor_dynamics = np.zeros((15))
         timestamps.append(start_time + timedelta(seconds=int(i)))
@@ -189,12 +190,12 @@ def describe_sensor_motion(target_speed: float,
 # Instantiate the transition model, We consider the Singer model for
 # an exponential declining acceleration in the z- coordinate.
 transition_model = CombinedGaussianTransitionModel([ConstantAcceleration(1.5),
-                                     ConstantAcceleration(1.5),
-                                     Singer(0.1, 10),
-                                     ConstantVelocity(0.5),
-                                     ConstantVelocity(0.5),
-                                     ConstantVelocity(0.5)
-                                     ])
+                                                    ConstantAcceleration(1.5),
+                                                    Singer(0.1, 10),
+                                                    ConstantVelocity(0.5),
+                                                    ConstantVelocity(0.5),
+                                                    ConstantVelocity(0.5)
+                                                    ])
 
 
 # %%
@@ -211,7 +212,7 @@ transition_model = CombinedGaussianTransitionModel([ConstantAcceleration(1.5),
 # for an exponential declining acceleration model for the
 # z coordinate, since the sensor is moving on a fixed plane at
 # 1 km above the surface.
-# At this stage we can start collecting both the grountruths and
+# At this stage we can start collecting both the groundtruths and
 # the measurement using a composite measurement model merging the
 # measurements from the :class:`~.AccelerometerMeasurementModel`,
 # the :class:`~.GyroscopeMeasurementModel` and
@@ -223,8 +224,8 @@ transition_model = CombinedGaussianTransitionModel([ConstantAcceleration(1.5),
 #
 
 # %%
-# Get the groungtruth paths
-# ^^^^^^^^^^^^^^^^^^^^^^^^^
+# Get the ground truth paths
+# ^^^^^^^^^^^^^^^^^^^^^^^^^^
 #
 timestamps, truths = describe_sensor_motion(speed,
                                             radius,
@@ -247,8 +248,9 @@ timestamps, truths = describe_sensor_motion(speed,
 # have 14 dimensions space.
 #
 
-from stonesoup.models.measurement.nonlinear import AccelerometerMeasurementModel, GyroscopeMeasurementModel, \
-    CartesianAzimuthElevationMeasurementModel, CombinedReversibleGaussianMeasurementModel
+from stonesoup.models.measurement.nonlinear import AccelerometerMeasurementModel, \
+    GyroscopeMeasurementModel, CartesianAzimuthElevationMeasurementModel, \
+    CombinedReversibleGaussianMeasurementModel
 
 # Instantiate the measurement model
 measurement_model_list = []
@@ -283,7 +285,7 @@ gyroscope = GyroscopeMeasurementModel(
 measurement_model_list.append(accelerometer)
 measurement_model_list.append(gyroscope)
 
-# loop over the various targets to initilise the
+# loop over the various targets to initialise the
 # azimuth-elevation models.
 for target in targets:
     measurement_model_list.append(
@@ -305,8 +307,8 @@ measurement_set = []
 for truth in truths:
     measurement = measurement_model.function(truth, noise=True)
     measurement_set.append(Detection(state_vector=measurement,
-                                      timestamp=truth.timestamp,
-                                      measurement_model=measurement_model))
+                                     timestamp=truth.timestamp,
+                                     measurement_model=measurement_model))
 
 # %%
 # 3) instantiate the tracker components;
@@ -377,11 +379,11 @@ for target in targets:
                       target[2], 0])
     platforms.append(
         FixedPlatform(
-        states=GaussianState(state,
-                             np.diag([1,1,1,1,1,1])
-                             ),
-        position_mapping=(0, 2, 4)
-        ))
+            states=GaussianState(state,
+                                 np.diag([1, 1, 1, 1, 1, 1])
+                                 ),
+            position_mapping=(0, 2, 4)
+            ))
 
 from stonesoup.plotter import Plotter, Dimension
 

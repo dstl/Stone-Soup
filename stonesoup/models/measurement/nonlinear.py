@@ -1404,7 +1404,7 @@ class CartesianToAzimuthElevationRange(NonLinearGaussianMeasurement, ReversibleM
 
 
 class AccelerometerMeasurementModel(NonLinearGaussianMeasurement,
-                                             ReversibleModel):
+                                    ReversibleModel):
     r"""This is an implementation of the
     Accelerometer measurement model, which models the
     acceleration of the object, i.e. aircraft, in the
@@ -1473,7 +1473,7 @@ class AccelerometerMeasurementModel(NonLinearGaussianMeasurement,
 
 
 class GyroscopeMeasurementModel(NonLinearGaussianMeasurement,
-                                             ReversibleModel):
+                                ReversibleModel):
     r"""This is an implementation of the
     Gyroscope measurement model. This model allows to
     calculate the velocities of how the Euler angles of
@@ -1540,7 +1540,7 @@ class GyroscopeMeasurementModel(NonLinearGaussianMeasurement,
 
 
 class CartesianAzimuthElevationMeasurementModel(NonLinearGaussianMeasurement,
-                                             ReversibleModel):
+                                                ReversibleModel):
     r"""This measurement model mimics the
     Radio Frequency (RF) Sensing functionality and
     data acquisition. This model provides information of
@@ -1624,9 +1624,9 @@ class CartesianAzimuthElevationMeasurementModel(NonLinearGaussianMeasurement,
 
             # Transform the azimuths and elevation and fix for 180 degrees in case
             azimuths[:, ipoint] = [Azimuth(angle_wrap(angle - heading[index])) for index, angle in
-                               enumerate(absolute_azimuth)]
+                                   enumerate(absolute_azimuth)]
             elevations[:, ipoint] = [Elevation(angle - pitch[index]) for index, angle in
-                                enumerate(absolute_elevation)]
+                                     enumerate(absolute_elevation)]
 
         return StateVector([*azimuths, *elevations]) + noise
 
@@ -1641,7 +1641,7 @@ class CartesianAzimuthElevationMeasurementModel(NonLinearGaussianMeasurement,
 
 
 class CartesianAzimuthElevationRangeMeasurementModel(NonLinearGaussianMeasurement,
-                                             ReversibleModel):
+                                                     ReversibleModel):
     r"""This measurement model mimics the
     Radio Frequency (RF) Sensing functionality and
     data acquisition. This model provides information of
@@ -1730,9 +1730,9 @@ class CartesianAzimuthElevationRangeMeasurementModel(NonLinearGaussianMeasuremen
 
             # Transform the azimuths and elevation and fix for 180 degrees in case
             azimuths[:, ipoint] = [Azimuth(angle_wrap(angle - heading[index])) for index, angle in
-                               enumerate(absolute_azimuth)]
+                                   enumerate(absolute_azimuth)]
             elevations[:, ipoint] = [Elevation(angle - pitch[index]) for index, angle in
-                                enumerate(absolute_elevation)]
+                                     enumerate(absolute_elevation)]
 
         return StateVector([*azimuths, *elevations, *ranges]) + noise
 
@@ -1758,4 +1758,3 @@ class CartesianAzimuthElevationRangeMeasurementModel(NonLinearGaussianMeasuremen
         out_vector[self.mapping, :] = xyz + self.translation_offset
 
         return out_vector
-    

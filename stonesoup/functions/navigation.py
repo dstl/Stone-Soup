@@ -7,6 +7,7 @@ import numpy as np
 from math import pi
 from . import localSphere2GCS
 
+
 def angle_wrap(angle):
     """ Fix the angle if it gets over the threshold"""
 
@@ -110,7 +111,7 @@ def getEulersAngles(earthSpeed, earthAcceleration):
     Ess = earthSpeedSq(dx, dy, dz)
 
     psi = np.degrees(np.arctan2(dy, dx))
-    Theta = np.degrees(np.arctan2(-dz,Esf))
+    Theta = np.degrees(np.arctan2(-dz, Esf))
     Phi = np.degrees(0.)
 
     composite_euler_angles = np.array([psi, Theta, Phi])
@@ -127,7 +128,7 @@ def getEulersAngles(earthSpeed, earthAcceleration):
                                            (np.multiply(dx, ddz) +
                                             np.multiply(dy, ddy))
                                            ), Esf) -\
-                     np.multiply(ddz, Esf)
+            np.multiply(ddz, Esf)
 
         dTheta = np.degrees(np.divide(num_dtheta, Ess))
         dPhi = np.degrees(0)
@@ -226,7 +227,7 @@ def getAngularRotationVector(states, latLonAlt0):
 
     omega_ib_b = np.zeros((3, npts))
 
-    # loop over the datapoints
+    # loop over the data points
     for i in range(npts):
 
         omega_nb_b = euler2rotationVector(psiThetaPhi_deg[:, i].reshape(-1, 1),
@@ -362,7 +363,6 @@ def getForceVector(state, latLonAlt0):
     angles_mapping = (9, 11, 13)
     dangles_mapping = (10, 12, 14)
 
-
     # get the points
     npts = state.shape[1]
 
@@ -372,11 +372,10 @@ def getForceVector(state, latLonAlt0):
     localacc = state[acceleration_mapping, :]
     psiThetaPhi_deg = state[dangles_mapping, :]
 
-
     lat_deg, _, alt = localSphere2GCS(localpos[0, :],
                                       localpos[1, :],
                                       localpos[2, :],
-                                    latLonAlt0)
+                                      latLonAlt0)
 
     # create a force matrix
     fb = np.zeros((3, npts))
@@ -392,7 +391,7 @@ def getForceVector(state, latLonAlt0):
         omega_ie_n = earthTurnRateVector(lat_deg[ipoint])
 
         a_ii_n = a_nn_n + 2 * np.cross(omega_ie_n, v_n_n) + \
-                 np.cross(omega_ie_n, np.cross(omega_ie_n, p_n))
+            np.cross(omega_ie_n, np.cross(omega_ie_n, p_n))
 
         grav_n = getGravityVector(lat_deg[ipoint], alt[ipoint])
 
@@ -400,7 +399,7 @@ def getForceVector(state, latLonAlt0):
                           psiThetaPhi_deg[1, ipoint],
                           psiThetaPhi_deg[2, ipoint])
 
-        fb[:, ipoint] = np.matmul(Rbn, (a_ii_n - grav_n).reshape(-1,1))[:, 0]
+        fb[:, ipoint] = np.matmul(Rbn, (a_ii_n - grav_n).reshape(-1, 1))[:, 0]
 
     return fb
 
@@ -431,11 +430,11 @@ def getGravityVector(lat_degs, alt):
           Artech House, 2013.
     """
 
-    # Define some WGS 84 ellispod
+    # Define some WGS 84 ellipsoid
     earth_major_axis = 6378137.0  # meters
     earth_minor_axis = 6356752.314245  # meters
 
-    # compute the Earth flattening and eccentricy
+    # compute the Earth flattening and eccentricity
     flattening = (earth_major_axis - earth_minor_axis) / earth_major_axis
     eccentricity = np.sqrt(flattening * (2 - flattening))
 

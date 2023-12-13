@@ -402,6 +402,7 @@ def sphere2cart(rho, phi, theta):
     z = rho * np.sin(theta)
     return (x, y, z)
 
+
 def sphere2GCS(x, y, z):
     """Convert Cartesian coordinates to Latitude, Longitude and altitude
         (Geographic Coordinate System)
@@ -436,7 +437,7 @@ def sphere2GCS(x, y, z):
     #
     eps = ecc_sqd / (1. - ecc_sqd)
 
-    # calcaute the 2D radius
+    # calculate the 2D radius
     p = np.sqrt(x*x + y*y)
 
     # calculate the q factor, please note this is in radians
@@ -447,12 +448,12 @@ def sphere2GCS(x, y, z):
     sin_q = np.sin(q)
     cos_q = np.cos(q)
 
-    # calulcate the two angles phi and lambda
+    # calculate the two angles phi and lambda
     phi = np.arctan2((z + eps * b * np.power(sin_q, 3)),
                      (p - ecc_sqd * a * np.power(cos_q, 3)))
     lambd = np.arctan2(y, x)
 
-    v = a/ np.sqrt(1.0 - ecc_sqd * np.power(np.sin(phi), 2))
+    v = a / np.sqrt(1.0 - ecc_sqd * np.power(np.sin(phi), 2))
 
     # Calculate the altitude, latitude and longitude
     altitude = (p/np.cos(phi)) - v
@@ -468,7 +469,6 @@ def localSphere2GCS(xEast, yNorth, zUp, origin):
         z altitude and a local reference point origin
         and we compute the latitude, longitude and
         altitude in the local reference frame.
-        This function uses the package pymap3D.
 
     Parameters
     ----------

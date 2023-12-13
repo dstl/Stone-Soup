@@ -337,7 +337,7 @@ def test_gm_sample(means, covars, weights, size):
 
 
 def test_sphere2GCS():
-    """sphre2GCS test"""
+    """sphere2GCS test"""
 
     # Convert the various
     def gps2ecef_custom(latitude, longitude, altitude):
@@ -375,8 +375,8 @@ def test_sphere2GCS():
     for item in list_locations:
         xyz2 = gps2ecef_custom(item[0], item[1], 0)
         print(np.allclose(sphere2GCS(xyz2[0], xyz2[1], xyz2[2]),
-                     np.array(item+[1e-5]),
-                     rtol=1e-3, atol=1e-3))  # check if the tolerance if enough
+                          np.array(item+[1e-5]),
+                          rtol=1e-3, atol=1e-3))  # check if the tolerance if enough
 
 
 def test_localSphere2GCS():
@@ -388,10 +388,10 @@ def test_localSphere2GCS():
                       [-23.533773, -46.625290],
                       [35.652832, 139.839478],
                       [-35.282001, 149.128998]]
-    # set a referenc frame
+    # set a reference frame
     reference_frame = np.array([0., 0., 0.])
 
-    # collect all the relevant xEastin, yNorthin and zUp given
+    # collect all the relevant xEasting, yNorthing and zUp given
     # the reference frame
     xyz = []
     for item in list_locations:
@@ -400,8 +400,8 @@ def test_localSphere2GCS():
 
     for idx, ixyz in enumerate(xyz):
         np.allclose(localSphere2GCS(ixyz[0], ixyz[1], ixyz[2],
-                                       reference_frame),
-                       np.array([list_locations[idx][0],
-                                 list_locations[idx][1],
-                                 1.]),
+                                    reference_frame),
+                    np.array([list_locations[idx][0],
+                              list_locations[idx][1],
+                              1.]),
                     rtol=1e-3)

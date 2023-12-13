@@ -1,6 +1,6 @@
 import pytest
 import numpy as np
-from copy import deepcopy
+
 from stonesoup.types.state import StateVector
 from stonesoup.functions.navigation import earthSpeedFlatSq, earthSpeedSq, earthTurnRateVector, \
     getGravityVector, rotate3Ddeg, getEulersAngles, getForceVector, getAngularRotationVector, \
@@ -26,14 +26,15 @@ def test_EarthSpeed(x, y, z):
     # check that the 3D speed is the same as calculated with EarthSpeed
     assert np.allclose(speed2D, earthSpeedFlatSq(x, y))
 
+
 @pytest.mark.parametrize(
     "latitude",
     [
-        (40),
-        (55),
-        (60),
-        (10),
-        (35)
+        40,
+        55,
+        60,
+        10,
+        35
     ]
 )
 def test_earthTurnRateVector(latitude):
@@ -59,7 +60,6 @@ def test_getGravityVector(latitude, altitude, gv):
     """getGravityVector test"""
 
     assert np.allclose(getGravityVector(latitude, altitude), gv, rtol=1e-4)
-
 
 
 @pytest.mark.parametrize(
@@ -91,7 +91,7 @@ def test_rotate3Ddeg(psi, theta, phi):
         (np.sin(np.radians(theta)), 0, np.cos(np.radians(theta)))
     ])
 
-    arr2= np.array([
+    arr2 = np.array([
         (1, 0, 0),
         (0, np.cos(np.radians(phi)), np.sin(np.radians(phi))),
         (0, -np.sin(np.radians(phi)), np.cos(np.radians(phi)))
@@ -108,11 +108,11 @@ def test_functions_using_states():
 
     state_test = StateVector(
         [10, 20, 1,  # xyz
-          5, -5, 1,   # v, xyz
-          1, 1, 1,    # a, xyz
-          100, 2,     # psi dpsi
-          50, 5,      # theta, dtheta
-          0, 1])      # phi, dpi
+         5, -5, 1,   # v, xyz
+         1, 1, 1,    # a, xyz
+         100, 2,     # psi dpsi
+         50, 5,      # theta, dtheta
+         0, 1])      # phi, dpi
 
     # index state positions
     pos_idx = [0, 3, 6]
@@ -127,7 +127,7 @@ def test_functions_using_states():
     # set of results
     angular_rotation = np.array([1.23399665, 4.99995881, 0.64274365]).reshape(-1, 1)
 
-    force_vector = np.array([ 7.27296026, -1.1574382, -5.04688849]).reshape(-1, 1)
+    force_vector = np.array([7.27296026, -1.1574382, -5.04688849]).reshape(-1, 1)
 
     euler_rotation = np.array([1.23395556, 5., 0.64278761]).reshape(-1, 1)
 
@@ -137,7 +137,7 @@ def test_functions_using_states():
     assert np.allclose(getAngularRotationVector(state_test, reference),
                        angular_rotation)
     assert np.allclose(getForceVector(state_test, reference),
-                  force_vector)
+                       force_vector)
     assert np.allclose(euler2rotationVector(state_test[ang_idx], state_test[vang_idx]),
                        euler_rotation)
     assert np.allclose(getEulersAngles(state_test[speed_idx], state_test[acc_idx]),

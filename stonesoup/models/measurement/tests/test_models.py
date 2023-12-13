@@ -10,7 +10,8 @@ from ..nonlinear import (
     CartesianToElevationBearing, Cartesian2DToBearing, CartesianToBearingRangeRate,
     CartesianToElevationBearingRangeRate, RangeRangeRateBinning,
     CartesianToAzimuthElevationRange, CartesianAzimuthElevationRangeMeasurementModel,
-    CartesianAzimuthElevationMeasurementModel, GyroscopeMeasurementModel, AccelerometerMeasurementModel)
+    CartesianAzimuthElevationMeasurementModel, GyroscopeMeasurementModel,
+    AccelerometerMeasurementModel)
 
 from ...base import ReversibleModel
 from ...measurement.linear import LinearGaussian
@@ -1396,8 +1397,7 @@ def test_models_with_particles(h, ModelClass, state_vec, R,
 
 
 # Tests for inertia navigation and landmarks localisation
-def h_az_el(state_vector, pos_map, target_state,
-                   translation_offset):
+def h_az_el(state_vector, pos_map, target_state, translation_offset):
     'test the azimuth elevation measurement model'
     # The target state behaves as a fixed landmark
     sensor_location = state_vector[pos_map] - translation_offset
@@ -1467,21 +1467,21 @@ def h_gyroscope(state_vector, reference_frame):
     return StateVectors(angles_components)
 
 
-@pytest.mark.parametrize( # Accelerometer and Gyroscope
+@pytest.mark.parametrize(  # Accelerometer and Gyroscope
     "h, ModelClass, state_vec, mapping, R, \
      reference_frame",
-        [(   # 3D meas, 15D state
-                h_accelerometer,
-                AccelerometerMeasurementModel,
-                StateVector([[5000, 0., -8.0,
-                              0., 200., 0.,
-                              1000., 0., 0.,
-                              90, 2.29,
-                              0.0, 0.0,
-                              0.0, 0.0]]),
-                np.array([0, 3, 6]),
-                np.array([1, 1, 1]),
-                np.array([55, 0, 0])  # reference frame
+    [(   # 3D meas, 15D state
+            h_accelerometer,
+            AccelerometerMeasurementModel,
+            StateVector([[5000, 0., -8.0,
+                          0., 200., 0.,
+                          1000., 0., 0.,
+                          90, 2.29,
+                          0.0, 0.0,
+                          0.0, 0.0]]),
+            np.array([0, 3, 6]),
+            np.array([1, 1, 1]),
+            np.array([55, 0, 0])  # reference frame
         ),
         (  # 3D meas, 15D state
                 h_gyroscope,
@@ -1496,7 +1496,7 @@ def h_gyroscope(state_vector, reference_frame):
                 np.array([1, 1, 1]),
                 np.array([55, 0, 0])  # reference frame
         )
-    ]
+     ]
 )
 def test_models_sensor(h, ModelClass, state_vec, mapping, R,
                        reference_frame):
@@ -1509,7 +1509,6 @@ def test_models_sensor(h, ModelClass, state_vec, mapping, R,
                        mapping=mapping,
                        noise_covar=np.diag(R),
                        reference_frame=reference_frame)
-
 
     R_flat = R.flat  # Create flat 1-D array of R
     with pytest.raises(ValueError, match="Covariance should have ndim of 2: got 1"):
@@ -1541,14 +1540,13 @@ def test_models_sensor(h, ModelClass, state_vec, mapping, R,
         (meas_pred_wo_noise
          - np.array(h(state_vec, model.reference_frame))
          ).ravel(),
-    cov=np.diag(R))
+        cov=np.diag(R))
 
     # Propagate a state vector through the model
     # (with internal noise)
     meas_pred_w_inoise = model.function(state, noise=True)
     assert not np.array_equal(
-        meas_pred_w_inoise, h(state_vec,
-                               model.reference_frame))
+        meas_pred_w_inoise, h(state_vec, model.reference_frame))
 
     # Evaluate the likelihood of the predicted state, given the prior
     # (with noise)
@@ -1577,7 +1575,7 @@ def test_models_sensor(h, ModelClass, state_vec, mapping, R,
         cov=np.diag(R))
 
 
-@pytest.mark.parametrize( # Landmarks
+@pytest.mark.parametrize(  # Landmarks
     "h, ModelClass, state_vec, mapping, R, target_state,"
     "translation_offset",
     [
@@ -1592,8 +1590,8 @@ def test_models_sensor(h, ModelClass, state_vec, mapping, R,
                               0.0, 0.0]]),
                 np.array([0, 3, 6]),         # mapping
                 np.array([1, 1]),
-                StateVector([[1], [1], [1]]), # target state
-                StateVector([[0], [0], [0]]) # translation offset
+                StateVector([[1], [1], [1]]),  # target state
+                StateVector([[0], [0], [0]])  # translation offset
         ),
         (   # 3D meas, 15D state
                 h_az_el_range,
@@ -1606,12 +1604,12 @@ def test_models_sensor(h, ModelClass, state_vec, mapping, R,
                               0.0, 0.0]]),
                 np.array([0, 3, 6]),          # mapping
                 np.array([1, 1, 1]),
-                StateVector([[1], [1], [1]]), # target state
-                StateVector([[0], [0], [0]]) # translation offset
+                StateVector([[1], [1], [1]]),  # target state
+                StateVector([[0], [0], [0]])  # translation offset
         )]
 )
 def test_models_landmarks(h, ModelClass, state_vec, mapping, R,
-                       target_state, translation_offset):
+                          target_state, translation_offset):
     """ Test for the Azimuth Elevation with Landmarks Measurement Models """
 
     ndim_state = state_vec.size
@@ -1622,7 +1620,6 @@ def test_models_landmarks(h, ModelClass, state_vec, mapping, R,
                        noise_covar=np.diag(R),
                        target_location=target_state,
                        translation_offset=translation_offset)
-
 
     R_flat = R.flat  # Create flat 1-D array of R
     with pytest.raises(ValueError, match="Covariance should have ndim of 2: got 1"):
@@ -1656,7 +1653,7 @@ def test_models_landmarks(h, ModelClass, state_vec, mapping, R,
          - np.array(h(state_vec, model.mapping,
                       model.target_location, model.translation_offset))
          ).ravel(),
-    cov=np.diag(R))
+        cov=np.diag(R))
 
     # Propagate a state vector through the model
     # (with internal noise)
