@@ -2,7 +2,7 @@ from abc import ABC
 import copy
 from typing import Sequence, Tuple, Union
 
-from math import sqrt, atan2, asin, acos
+from math import sqrt, atan2, asin
 import numpy as np
 from scipy.linalg import inv, pinv, block_diag
 from scipy.stats import multivariate_normal
@@ -16,6 +16,7 @@ from ...functions import cart2pol, pol2cart, \
 from ...functions.navigation import getForceVector, getAngularRotationVector, angle_wrap
 from ...types.array import StateVector, CovarianceMatrix, StateVectors
 from ...types.angle import Bearing, Elevation, Azimuth
+from ...types.detection import Detection
 from ..base import LinearModel, GaussianModel, ReversibleModel
 from .base import MeasurementModel
 
@@ -1752,7 +1753,7 @@ class CartesianAzimuthElevationRangeMeasurementModel(NonLinearGaussianMeasuremen
         x = z * np.tan(az)
         y = z * np.tan(el)
 
-        xyz = Statevectors([x, y, z])
+        xyz = StateVectors([x, y, z])
 
         # fill the output vector with x,y,z positions
         out_vector[self.mapping, :] = xyz + self.translation_offset

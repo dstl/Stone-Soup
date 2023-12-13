@@ -206,8 +206,6 @@ def getAngularRotationVector(states, latLonAlt0):
 
     # specify the mapping - may fail if we are not doing things in 3D
     position_mapping = (0, 3, 6)
-    velocity_mapping = (1, 4, 7)
-    acceleration_mapping = (2, 5, 8)
     angles_mapping = (9, 11, 13)
     dangles_mapping = (10, 12, 14)
 
@@ -361,7 +359,6 @@ def getForceVector(state, latLonAlt0):
     velocity_mapping = (1, 4, 7)
     acceleration_mapping = (2, 5, 8)
     angles_mapping = (9, 11, 13)
-    dangles_mapping = (10, 12, 14)
 
     # get the points
     npts = state.shape[1]
@@ -370,7 +367,7 @@ def getForceVector(state, latLonAlt0):
     localpos = state[position_mapping, :]
     localvel = state[velocity_mapping, :]
     localacc = state[acceleration_mapping, :]
-    psiThetaPhi_deg = state[dangles_mapping, :]
+    psiThetaPhi_deg = state[angles_mapping, :]
 
     lat_deg, _, alt = localSphere2GCS(localpos[0, :],
                                       localpos[1, :],

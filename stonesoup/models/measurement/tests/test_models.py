@@ -1534,7 +1534,6 @@ def test_models_sensor(h, ModelClass, state_vec, mapping, R,
 
     # Evaluate the likelihood of the predicted measurement, given the state
     # (without noise)
-    measurement = StateVector(meas_pred_wo_noise[:, 0].T)
     prob = model.pdf(State(meas_pred_wo_noise), state)
     assert approx(prob) == multivariate_normal.pdf(
         (meas_pred_wo_noise
@@ -1646,7 +1645,6 @@ def test_models_landmarks(h, ModelClass, state_vec, mapping, R,
 
     # Evaluate the likelihood of the predicted measurement, given the state
     # (without noise)
-    measurement = StateVector(meas_pred_wo_noise[:, 0].T)
     prob = model.pdf(State(meas_pred_wo_noise), state)
     assert approx(prob) == multivariate_normal.pdf(
         (meas_pred_wo_noise

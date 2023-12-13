@@ -115,7 +115,6 @@ def test_functions_using_states():
          0, 1])      # phi, dpi
 
     # index state positions
-    pos_idx = [0, 3, 6]
     speed_idx = [1, 4, 7]
     acc_idx = [2, 5, 8]
     ang_idx = [9, 11, 13]
