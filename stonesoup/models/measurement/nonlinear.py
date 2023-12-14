@@ -16,7 +16,6 @@ from ...functions import cart2pol, pol2cart, \
 from ...functions.navigation import getForceVector, getAngularRotationVector, angle_wrap
 from ...types.array import StateVector, CovarianceMatrix, StateVectors
 from ...types.angle import Bearing, Elevation, Azimuth
-from ...types.detection import Detection
 from ..base import LinearModel, GaussianModel, ReversibleModel
 from .base import MeasurementModel
 
@@ -1404,8 +1403,7 @@ class CartesianToAzimuthElevationRange(NonLinearGaussianMeasurement, ReversibleM
         return out
 
 
-class AccelerometerMeasurementModel(NonLinearGaussianMeasurement,
-                                    ReversibleModel):
+class AccelerometerMeasurementModel(NonLinearGaussianMeasurement):
     r"""This is an implementation of the
     Accelerometer measurement model, which models the
     acceleration of the object, i.e. aircraft, in the
@@ -1468,13 +1466,8 @@ class AccelerometerMeasurementModel(NonLinearGaussianMeasurement,
         out = np.array([0, 0, 0]).reshape(-1, 1) + out
         return out
 
-    def inverse_function(self, detection: 'Detection', **kwargs) -> StateVectors:
-        x = np.zeros((15))
-        return StateVectors([x])
 
-
-class GyroscopeMeasurementModel(NonLinearGaussianMeasurement,
-                                ReversibleModel):
+class GyroscopeMeasurementModel(NonLinearGaussianMeasurement):
     r"""This is an implementation of the
     Gyroscope measurement model. This model allows to
     calculate the velocities of how the Euler angles of
@@ -1535,13 +1528,9 @@ class GyroscopeMeasurementModel(NonLinearGaussianMeasurement,
         out = np.array([0., 0., 0.]).reshape(-1, 1) + out
         return out
 
-    def inverse_function(self, detection: 'Detection', **kwargs) -> StateVectors:
-        x = np.zeros((15))
-        return StateVectors([x])
 
+class CartesianAzimuthElevationMeasurementModel(NonLinearGaussianMeasurement):
 
-class CartesianAzimuthElevationMeasurementModel(NonLinearGaussianMeasurement,
-                                                ReversibleModel):
     r"""This measurement model mimics the
     Radio Frequency (RF) Sensing functionality and
     data acquisition. This model provides information of
@@ -1636,10 +1625,6 @@ class CartesianAzimuthElevationMeasurementModel(NonLinearGaussianMeasurement,
         out = np.array([[Azimuth(0.)], [Elevation(0.)]]) + out
         return out
 
-    def inverse_function(self, detection: 'Detection', **kwargs) -> StateVectors:
-        x = np.zeros((15))
-        return StateVectors([x])
-
 
 class CartesianAzimuthElevationRangeMeasurementModel(NonLinearGaussianMeasurement,
                                                      ReversibleModel):
@@ -1650,9 +1635,9 @@ class CartesianAzimuthElevationRangeMeasurementModel(NonLinearGaussianMeasuremen
     of the observing sensor in terms of Azimuth, Elevation and Range.
 
     The functionality of this measurement model is similar to
-    :class:`~.CartesianToAzimuthElevationRange', but in this case
-    we incorporate the knowledge of the
-    sensor dynamics and orientation.
+    :class:`~.CartesianToAzimuthElevationRange`, but in this case
+    we incorporate the knowledge of the range between the
+    target and sensor.
 
     Parameters
     ----------
@@ -1735,14 +1720,14 @@ class CartesianAzimuthElevationRangeMeasurementModel(NonLinearGaussianMeasuremen
             elevations[:, ipoint] = [Elevation(angle - pitch[index]) for index, angle in
                                      enumerate(absolute_elevation)]
 
-        return StateVector([*azimuths, *elevations, *ranges]) + noise
+        return StateVectors([*azimuths, *elevations, *ranges]) + noise
 
     def rvs(self, num_samples=1, **kwargs) -> Union[StateVector, StateVectors]:
         out = super().rvs(num_samples, **kwargs)
         out = np.array([[Azimuth(0.)], [Elevation(0.)], [0.]]) + out
         return out
 
-    def inverse_function(self, detection: 'Detection', **kwargs) -> StateVector:
+    def inverse_function(self, detection, **kwargs) -> StateVector:
 
         az, el, range = detection.state_vector
 
