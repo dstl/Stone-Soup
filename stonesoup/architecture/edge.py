@@ -1,6 +1,6 @@
 import copy
 from collections.abc import Collection
-from typing import Union, Tuple, List, TYPE_CHECKING
+from typing import Union, Tuple, List, Set, TYPE_CHECKING
 from numbers import Number
 from datetime import datetime, timedelta
 from queue import Queue
@@ -110,7 +110,7 @@ class Edge(Base):
         """
         Takes a message from a Node's 'messages_to_pass_on' store and propagates them to the
         relevant edges.
-        :param message: Message to propagate
+        :param message: :class:`~.Message` to propagate
         """
         message_copy = copy.copy(message)
         message_copy.edge = self
@@ -285,7 +285,7 @@ class Message(Base):
         doc="Time at which the message was sent")
     data_piece: DataPiece = Property(
         doc="Info that the sent message contains")
-    destinations: set["Node"] = Property(doc="Nodes in the information architecture that the "
+    destinations: Set["Node"] = Property(doc="Nodes in the information architecture that the "
                                              "message is being sent to",
                                          default=None)
 
