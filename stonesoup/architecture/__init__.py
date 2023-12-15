@@ -17,6 +17,9 @@ from datetime import datetime, timedelta
 
 
 class Architecture(Base):
+    """Abstract Architecture Base class. Subclasses must implement the :meth:`~Architecture.propogate` method.
+    """
+
     edges: Edges = Property(
         doc="An Edges object containing all edges. For A to be connected to B we would have an "
             "Edge with edge_pair=(A, B) in this object.")
@@ -40,15 +43,6 @@ class Architecture(Base):
             "it is opened by the fusing node - simulating an architecture where time of recording "
             "is not registered by the sensor nodes"
     )
-
-    # Below is no longer required with changes to plot - didn't delete in case we want to revert
-    # to previous method
-    # font_size: int = Property(
-    #     default=8,
-    #     doc='Font size for node labels')
-    # node_dim: tuple = Property(
-    #     default=(0.5, 0.5),
-    #     doc='Height and width of nodes for graph icons, default is (0.5, 0.5)')
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -112,25 +106,12 @@ class Architecture(Base):
         dpath = {x[0]: x[1] for x in path}
         return dpath
 
-    def _recipient_position(self, node: Node):
-        """Returns a tuple of (x_coord, y_coord) giving the location of a node's recipient.
-        If the node has more than one recipient, a ValueError will be raised. """
-        recipients = self.recipients(node)
-        if len(recipients) == 0:
-            raise ValueError("Node has no recipients")
-        elif len(recipients) == 1:
-            recipient = recipients.pop()
-        else:
-            raise ValueError("Node has more than one recipient")
-        return recipient.position
-
     @property
     def top_level_nodes(self):
         """Returns a list of nodes with no recipients"""
         top_nodes = set()
         for node in self.all_nodes:
             if len(self.recipients(node)) == 0:
-                # This node must be the top level node
                 top_nodes.add(node)
 
         return top_nodes
@@ -234,7 +215,6 @@ class Architecture(Base):
         being displayed.
         :param plot_style: String providing a style to be used to plot the graph. Currently only
         one option for plot style given by plot_style = 'hierarchical'.
-        :return:
         """
         if use_positions:
             for node in self.di_graph.nodes:
@@ -363,7 +343,7 @@ class Architecture(Base):
     def is_hierarchical(self):
         """Returns `True` if the :class:`Architecture` is hierarchical, otherwise `False`. Uses
         the following logic: An architecture is hierarchical if and only if there exists only
-        one node with 0 recipients, all other nodes have exactly 1 recipient."""
+        one node with 0 recipients and all other nodes have exactly 1 recipient."""
         if not len(self.top_level_nodes) == 1:
             return False
         for node in self.all_nodes:
@@ -455,16 +435,6 @@ class InformationArchitecture(Architecture):
             for detection in sensor_node.sensor.measure(new_ground_truths, noise, **kwargs):
                 all_detections[sensor_node].add(detection)
 
-            # Borrowed below from SensorSuite. I don't think it's necessary, but might be something
-            # we need. If so, will need to define self.attributes_inform
-
-            # attributes_dict = \
-            # {attribute_name: sensor_node.sensor.__getattribute__(attribute_name)
-            #                    for attribute_name in self.attributes_inform}
-            #
-            # for detection in all_detections[sensor_node]:
-            #     detection.metadata.update(attributes_dict)
-
             for data in all_detections[sensor_node]:
                 # The sensor acquires its own data instantly
                 sensor_node.update(data.timestamp, data.timestamp,
@@ -496,8 +466,6 @@ class InformationArchitecture(Architecture):
             fuse_node.fuse()
 
         self.current_time += timedelta(seconds=time_increment)
-        for fusion_node in self.fusion_nodes:
-            pass  # fusion_node.tracker.set_time(self.current_time)
 
 
 class NetworkArchitecture(Architecture):
@@ -516,7 +484,7 @@ class NetworkArchitecture(Architecture):
             if self.information_architecture_edges is None:
 
                 # If repeater nodes are present in the Network architecture, we can deduce an
-                # information architecture
+                # Information architecture
                 if len(self.repeater_nodes) > 0:
                     self.information_architecture_edges = Edges(inherit_edges(Edges(self.edges)))
                     self.information_arch = InformationArchitecture(
@@ -543,14 +511,6 @@ class NetworkArchitecture(Architecture):
                     "height": f"{node.node_dim[1]}", "fixedsize": True}
             self.di_graph.nodes[node].update(attr)
 
-    # def propagate(self, time_increment: float):
-    #     # Still have to deal with latency/bandwidth
-    #     self.current_time += timedelta(seconds=time_increment)
-    #     for node in self.all_nodes:
-    #         for recipient in self.recipients(node):
-    #             for data in node.data_held:
-    #                 recipient.update(self.current_time, data)
-
     def measure(self, ground_truths: List[GroundTruthPath], noise: Union[bool, np.ndarray] = True,
                 **kwargs) -> Dict[SensorNode, Set[Union[TrueDetection, Clutter]]]:
         """ Similar to the method for :class:`~.SensorSuite`. Updates each node. """
@@ -567,16 +527,6 @@ class NetworkArchitecture(Architecture):
             all_detections[sensor_node] = set()
             for detection in sensor_node.sensor.measure(new_ground_truths, noise, **kwargs):
                 all_detections[sensor_node].add(detection)
-
-            # Borrowed below from SensorSuite. I don't think it's necessary, but might be something
-            # we need. If so, will need to define self.attributes_inform
-
-            # attributes_dict = \
-            # {attribute_name: sensor_node.sensor.__getattribute__(attribute_name)
-            #                    for attribute_name in self.attributes_inform}
-            #
-            # for detection in all_detections[sensor_node]:
-            #     detection.metadata.update(attributes_dict)
 
             for data in all_detections[sensor_node]:
                 # The sensor acquires its own data instantly
@@ -622,8 +572,6 @@ class NetworkArchitecture(Architecture):
             fuse_node.fuse()
 
         self.current_time += timedelta(seconds=time_increment)
-        for fusion_node in self.fusion_nodes:
-            pass  # fusion_node.tracker.set_time(self.current_time)
 
     @property
     def fully_propagated(self):

@@ -282,29 +282,6 @@ def test_shortest_path_dict(nodes, edge_lists):
         _ = disconnected_arch.shortest_path_dict[nodes['s3']][nodes['s4']]
 
 
-def test_recipient_position(nodes, tmpdir, edge_lists):
-
-    centralised_edges = edge_lists["centralised_edges"]
-
-    centralised_arch = InformationArchitecture(edges=centralised_edges)
-    centralised_arch.plot(dir_path=tmpdir.join('test.pdf'), save_plot=False,
-                          plot_style='hierarchical')
-
-    # Check types of _recipient_position output is correct
-    assert type(centralised_arch._recipient_position(nodes['s4'])) == tuple
-    assert type(centralised_arch._recipient_position(nodes['s4'])[0]) == float
-    assert type(centralised_arch._recipient_position(nodes['s4'])[1]) == int
-
-    # Check that finding the position of the recipient node of a node with no recipient raises an
-    # error
-    with pytest.raises(ValueError):
-        centralised_arch._recipient_position(nodes['s1'])
-
-    # Check that calling _recipient_position on a node with multiple recipients raises an error
-    with pytest.raises(ValueError):
-        centralised_arch._recipient_position(nodes['s7'])
-
-
 def test_top_level_nodes(nodes, edge_lists):
     simple_edges = edge_lists["simple_edges"]
     hierarchical_edges = edge_lists["hierarchical_edges"]

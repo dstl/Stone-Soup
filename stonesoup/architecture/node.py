@@ -15,28 +15,30 @@ from ._functions import _dict_set
 
 
 class Node(Base):
-    """Base node class. Should be abstract"""
+    """Base Node class. Generally a subclass should be used. Note that most user-defined properties are for
+    graphical use only, all with default values. """
     latency: float = Property(
-        doc="Contribution to edge latency stemming from this node",
+        doc="Contribution to edge latency stemming from this node. Default is 0.0",
         default=0.0)
     label: str = Property(
-        doc="Label to be displayed on graph",
+        doc="Label to be displayed on graph. Default is to label by class and then "
+            "differentiate via alphabetical labels",
         default=None)
     position: Tuple[float] = Property(
         default=None,
-        doc="Cartesian coordinates for node")
+        doc="Cartesian coordinates for node. Determined automatically by default")
     colour: str = Property(
         default='#909090',
-        doc='Colour to be displayed on graph')
+        doc='Colour to be displayed on graph. Default is grey')
     shape: str = Property(
         default='rectangle',
-        doc='Shape used to display nodes')
+        doc='Shape used to display nodes. Default is a rectangle')
     font_size: int = Property(
         default=5,
-        doc='Font size for node labels')
+        doc='Font size for node labels. Default is 5')
     node_dim: tuple = Property(
         default=(0.5, 0.5),
-        doc='Width and height of nodes for graph icons, default is (0.5, 0.5)')
+        doc='Width and height of nodes for graph icons. Default is (0.5, 0.5)')
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -44,6 +46,7 @@ class Node(Base):
         self.messages_to_pass_on = []
 
     def update(self, time_pertaining, time_arrived, data_piece, category, track=None):
+        """Updates this :class:`~.Node`'s :attr:`~.data_held` using a new data piece. """
         if not isinstance(time_pertaining, datetime) and isinstance(time_arrived, datetime):
             raise TypeError("Times must be datetime objects")
         if not track:
@@ -68,7 +71,7 @@ class Node(Base):
 
 
 class SensorNode(Node):
-    """A node corresponding to a Sensor. Fresh data is created here"""
+    """A :class:`~.Node` corresponding to a :class:`~.Sensor`. Fresh data is created here"""
     sensor: Sensor = Property(doc="Sensor corresponding to this node")
     colour: str = Property(
         default='#006eff',
@@ -82,7 +85,7 @@ class SensorNode(Node):
 
 
 class FusionNode(Node):
-    """A node that does not measure new data, but does process data it receives"""
+    """A :class:`~.Node` that does not measure new data, but does process data it receives"""
     # feeder probably as well
     tracker: Tracker = Property(
         doc="Tracker used by this Node to fuse together Tracks and Detections")
@@ -146,7 +149,7 @@ class FusionNode(Node):
 
 
 class SensorFusionNode(SensorNode, FusionNode):
-    """A node that is both a sensor and also processes data"""
+    """A :class:`~.Node` that is both a :class:`~.Sensor` and also processes data"""
     colour: str = Property(
         default='#fc9000',
         doc='Colour to be displayed on graph. Default is the hex colour code #fc9000')
@@ -159,7 +162,8 @@ class SensorFusionNode(SensorNode, FusionNode):
 
 
 class RepeaterNode(Node):
-    """A node which simply passes data along to others, without manipulating the data itself. """
+    """A :class:`~.Node` which simply passes data along to others, without manipulating the data itself. Consequently,
+    :class:`~.RepeaterNode`s are only used within a :class:`~.NetworkArchitecture`"""
     colour: str = Property(
         default='#909090',
         doc='Colour to be displayed on graph. Default is the hex colour code #909090')
