@@ -48,7 +48,7 @@ class FusionQueue(Queue):
 
 class DataPiece(Base):
     """A piece of data for use in an architecture. Sent via a :class:`~.Message`,
-    and stored in a Node's data_held"""
+    and stored in a Node's :attr:`data_held`"""
     node: "Node" = Property(
         doc="The Node this data piece belongs to")
     originator: "Node" = Property(
@@ -69,7 +69,7 @@ class DataPiece(Base):
 
 
 class Edge(Base):
-    """Comprised of two connected Nodes"""
+    """Comprised of two connected :class:`~.Node`s"""
     nodes: Tuple["Node", "Node"] = Property(doc="A pair of nodes in the form (sender, recipient)")
     edge_latency: float = Property(doc="The latency stemming from the edge itself, "
                                        "and not either of the nodes",
@@ -92,7 +92,6 @@ class Edge(Base):
         would be the time of the Detection, or for a Track this is the time of the last State in
         the Track
         :param time_sent: Time at which the message was sent
-        :return: None
         """
         if not isinstance(data_piece, DataPiece):
             raise TypeError("Message info must be one of the following types: "
@@ -112,7 +111,6 @@ class Edge(Base):
         Takes a message from a Node's 'messages_to_pass_on' store and propagates them to the
         relevant edges.
         :param message: Message to propagate
-        :return: None
         """
         message_copy = copy.copy(message)
         message_copy.edge = self
@@ -133,7 +131,6 @@ class Edge(Base):
         :param current_time: Current time in simulation
         :param to_network_node: Bool that is true if recipient node is not in the information
         architecture
-        :return: None
         """
         # Check info type is what we expect
         to_remove = set()  # Needed as we can't change size of a set during iteration
@@ -196,7 +193,7 @@ class Edge(Base):
 
     @property
     def ovr_latency(self):
-        """Overall latency including the two Nodes and the edge latency."""
+        """Overall latency of this :class:`~.Edge`"""
         return self.sender.latency + self.edge_latency
 
     @property
@@ -232,7 +229,7 @@ class Edge(Base):
 
 
 class Edges(Base, Collection):
-    """Container class for Edge"""
+    """Container class for :class:`~.Edge`"""
     edges: List[Edge] = Property(doc="List of Edge objects", default=None)
 
     def __init__(self, *args, **kwargs):
