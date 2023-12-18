@@ -68,7 +68,7 @@ class GOSPAMetric(MetricGenerator):
     """
     p: float = Property(doc="1<=p<infty, exponent.")
     c: float = Property(doc="c>0, cutoff distance.")
-    switching_penalty: bool = Property(doc="Penalty term for switching.", default=0.0)
+    switching_penalty: float = Property(doc="Penalty term for switching.", default=0.0)
     measure: Measure = Property(
         default=Euclidean(),
         doc="Distance measure to use. Default :class:`~.measures.Euclidean()`")
