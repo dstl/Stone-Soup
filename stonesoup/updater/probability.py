@@ -1,8 +1,6 @@
 # -*- coding: utf-8 -*-
-import warnings
 import numpy as np
-import scipy.linalg as la
-from functools import lru_cache
+from copy import copy
 
 from .kalman import ExtendedKalmanUpdater
 from ..types.update import Update
@@ -168,20 +166,23 @@ class PDAUpdater(ExtendedKalmanUpdater):
                     hypothesis.measurement_prediction.state_vector  # is zero in this case
                 posterior_covariance, kalman_gain = self._posterior_covariance(hypothesis)
                 # Add the weighted prediction to the weighted posterior
-                posterior_covariance = hypothesis.probability * hypothesis.prediction.covar + \
-                    (1 - hypothesis.probability) * posterior_covariance
-                posterior_mean = hypothesis.prediction.state_vector
+                posterior_covariance = float(hypothesis.probability) * \
+                    hypothesis.prediction.covar + (1 - float(hypothesis.probability)) * \
+                    posterior_covariance
+                posterior_mean = copy(hypothesis.prediction.state_vector)
             else:
                 innovation = hypothesis.measurement.state_vector - \
                              hypothesis.measurement_prediction.state_vector
 
             # probably exists a less clunky way of doing this using exists() or overwritten +=
+            # All these floats should be redundant if/when the bug in Probability.__mult__() is
+            # fixed.
             if n == 0:
-                sum_of_innovations = hypothesis.probability * innovation
-                sum_of_weighted_cov = hypothesis.probability * (innovation @ innovation.T)
+                sum_of_innovations = float(hypothesis.probability) * innovation
+                sum_of_weighted_cov = float(hypothesis.probability) * (innovation @ innovation.T)
             else:
-                sum_of_innovations += hypothesis.probability * innovation
-                sum_of_weighted_cov += hypothesis.probability * (innovation @ innovation.T)
+                sum_of_innovations += float(hypothesis.probability) * innovation
+                sum_of_weighted_cov += float(hypothesis.probability) * (innovation @ innovation.T)
 
         posterior_mean += kalman_gain @ sum_of_innovations
         posterior_covariance += \
