@@ -141,8 +141,11 @@ class Probability(Real):
 
     def __mul__(self, other):
         try:
-            return Probability(self.log_value + self._log(other),
-                               log_value=True)
+            if isinstance(other, Probability):
+                return Probability(self.log_value + self._log(other),
+                                   log_value=True)
+            else:
+                return exp(self.log_value + self._log(other))
         except ValueError:
             return float(self) * other
 
