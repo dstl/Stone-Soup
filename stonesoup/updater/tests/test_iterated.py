@@ -59,8 +59,7 @@ def test_diekf():
     sub_predictor = ExtendedKalmanPredictor(transition_model)
     smoother = ExtendedKalmanSmoother(transition_model)
 
-    updater = DynamicallyIteratedUpdater(measurement_model=measurement_model,
-                                         predictor=sub_predictor,
+    updater = DynamicallyIteratedUpdater(predictor=sub_predictor,
                                          updater=sub_updater,
                                          smoother=smoother)
 
