@@ -494,11 +494,9 @@ class EnsembleInitiator(GaussianInitiator):
                                            track.covar,
                                            track.timestamp)
 
-            ensemble = EnsembleState.from_gaussian_state(gaussian_state, self.ensemble_size)
-
-            track[-1] = EnsembleStateUpdate(
-                state_vector=ensemble.state_vector,
-                hypothesis=track.hypothesis,
-                timestamp=ensemble.timestamp)
+            track[-1] = EnsembleStateUpdate.from_gaussian_state(
+                gaussian_state,
+                self.ensemble_size,
+                hypothesis=track.hypothesis)
 
         return tracks
