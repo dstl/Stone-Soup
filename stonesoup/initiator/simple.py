@@ -14,7 +14,7 @@ from ..types.particle import Particle
 from ..types.state import State, GaussianState, ParticleState, TaggedWeightedGaussianState, \
     ASDGaussianState, EnsembleState
 from ..types.track import Track
-from ..types.update import GaussianStateUpdate, ParticleStateUpdate, Update, \
+from ..types.update import ParticleStateUpdate, Update, \
     GaussianMixtureUpdate, ASDGaussianStateUpdate, EnsembleStateUpdate
 from ..updater import Updater
 from ..updater.kalman import ExtendedKalmanUpdater
@@ -144,10 +144,11 @@ class SimpleMeasurementInitiator(GaussianInitiator):
             prior_covar[mapped_dimensions, :] = 0
             C0 = inv_model_matrix @ model_covar @ inv_model_matrix.T
             C0 = C0 + prior_covar + np.diag(np.array([self.diag_load] * C0.shape[0]))
-            tracks.add(Track([GaussianStateUpdate(
-                prior_state_vector + state_vector,
-                C0,
-                SingleHypothesis(None, detection),
+            tracks.add(Track([Update.from_state(
+                self.prior_state,
+                state_vector=prior_state_vector + state_vector,
+                covar=C0,
+                hypothesis=SingleHypothesis(None, detection),
                 timestamp=detection.timestamp)
             ]))
         return tracks
