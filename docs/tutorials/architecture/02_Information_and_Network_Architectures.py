@@ -158,8 +158,8 @@ tracker = MultiTargetTracker(initiator, deleter, None, data_associator, updater)
 # Build Track Tracker
 # ^^^^^^^^^^^^^^^^^^^
 #
-# The track tracker works by treating tracks as detections, in order to enable fusion between tracks and detections
-# together.
+# The track tracker works by treating tracks as detections, in order to enable fusion between
+# tracks and detections together.
 
 from stonesoup.updater.wrapper import DetectionAndTrackSwitchingUpdater
 from stonesoup.updater.chernoff import ChernoffUpdater
@@ -343,7 +343,7 @@ edges = Edges([Edge((node_A, repeaternode1), edge_latency=0.5),
 
 # %%
 # Network Architecture Functionality
-# ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+# ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 #
 # A network architecture provides a representation of all nodes in a network - the corresponding
 # information architecture is made up of a subset of these nodes.
@@ -353,11 +353,12 @@ edges = Edges([Edge((node_A, repeaternode1), edge_latency=0.5),
 # architecture that is underpinned by the network architecture. This means that a
 # NetworkArchitecture object requires two Edge lists: one set of edges representing the
 # network architecture, and another representing links in the information architecture. To
-# ease the setup of these edge lists, there are multiple options for how to instantiate a :class:`~.NetworkArchitecture`
+# ease the setup of these edge lists, there are multiple options for how to instantiate a
+# :class:`~.NetworkArchitecture`
 #
-# - Firstly, providing the :class:`~.NetworkArchitecture` with an `edge_list` for the network architecture
-# (an Edges object), and a pre-fabricated InformationArchitecture object, which must be
-# provided as property `information_arch`.
+# - Firstly, providing the :class:`~.NetworkArchitecture` with an `edge_list` for the network
+# architecture (an Edges object), and a pre-fabricated InformationArchitecture object, which must
+# be provided as property `information_arch`.
 #
 # - Secondly, by providing the NetworkArchitecture with two `edge_list`s: one for the network
 # architecture and one for the information architecture.
@@ -368,6 +369,7 @@ edges = Edges([Edge((node_A, repeaternode1), edge_latency=0.5),
 # (the lowest latency) between each set of nodes in the architecture. Warning: this method is for
 # ease of use, and may not represent the information architecture you are designing - it is
 # best to check by plotting the generated information architecture.
+#
 
 
 # %%
