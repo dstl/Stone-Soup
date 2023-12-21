@@ -270,7 +270,7 @@ plotter.fig
 # architecture.
 #
 # Regenerate Nodes identical to those in the non-hierarchical example
-# ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+# ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 from stonesoup.architecture.node import SensorNode, FusionNode
 fq2 = FusionQueue()
@@ -450,8 +450,8 @@ graph.plot_metrics(combined_metrics, generator_names=['H_SIAP_EKF-truth',
 # central fusion node (C), and the sensor fusion node (B). At node B, these measurements are
 # fused with measurements from the 'good' sensor, and the output is sent to node C.
 #
-# At node C, the fused results from node B are once again fused with the measurements from node A, despite implicitly
-# containing the information from sensor A already. Hence, we end up with a
+# At node C, the fused results from node B are once again fused with the measurements from node
+# A, despite implicitly containing the information from sensor A already. Hence, we end up with a
 # fused result that is biased towards the readings from sensor A.
 #
 # By altering the architecture through removing the edge from node A to node B, we are removing
