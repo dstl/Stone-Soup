@@ -8,25 +8,25 @@ Comparing different filters in the context of track fusion
 """
 
 # %%
-# This example shows a comparison between a Kalman filter and
-# a particle filter in the context of track fusion. This example is
+# This example shows a comparison between a Kalman filter algorithms
+# and particle filter in the context of track fusion. This example is
 # relevant to show how to get a unique track
-# from partial tracks generated from a set of
+# from partial tracks generated from set of
 # different measurements obtained from independent sensors.
 # This example simulates the case of a single target moving in
 # a 2D Cartesian space with measurements obtained from two
-# identical, for simplicity, radars and trackers. We
-# compare the resulting composite track obtained by the
-# two different tracks generated. Furthermore, we
-# measure the performances of the tracks obtained
-# by two different Kalman and particle filters.
+# identical, for simplicity, radars with own trackers.
+# We present a comparison of the resulting composite track
+# obtained by the two different partial tracks generated.
+# Furthermore, we measure the track-to-truth accuracy of
+# the final track obtained by different algorithms.
 #
 # This example follows this structure:
 # 1) Initialise the sensors and the target trajectory;
-# 2) Initialise the filters components and create the tracker;
-# 3) Run the trackers, generate the partial tracks and the final
+# 2) Initialise the filters components and create the trackers;
+# 3) Run the trackers, generate the partial tracks and merge the
 # composite track;
-# 4) Compare the obtained tracks with the groundtruth trajectory.
+# 4) Evaluate the obtained tracks with the groundtruth trajectory.
 #
 
 # %%
@@ -37,7 +37,7 @@ Comparing different filters in the context of track fusion
 # separate :class:`~.FixedPlatform`. For the target we
 # simulate a single object moving on a straight trajectory.
 # The example setup is simple so it is easier to understand
-# how the Stone soup components are working.
+# how the algorithm components work.
 
 # %%
 # General imports
@@ -61,8 +61,8 @@ from stonesoup.simulator.simple import SingleTargetGroundTruthSimulator
 # Simulation parameters setup
 # ^^^^^^^^^^^^^^^^^^^^^^^^^^^
 #
-start_time = datetime.now().replace(microsecond=0)  # For simplicity fix a date
-number_of_steps = 75  # Number of timestep for the simulation
+start_time = datetime.now().replace(microsecond=0)
+number_of_steps = 75  # Number of timestep of the simulation
 np.random.seed(1908)  # Random seed for reproducibility
 n_particles = 2**8
 
@@ -70,23 +70,21 @@ n_particles = 2**8
 gnd_transition_model = CombinedLinearGaussianTransitionModel([
     ConstantVelocity(0.00), ConstantVelocity(0.00)])
 
-# the transition model needs to have little more noise for the PF
+# the transition model needs to have little more process noise for the PF
 transition_model = CombinedLinearGaussianTransitionModel([
-    ConstantVelocity(0.2), ConstantVelocity(0.2)])
+    ConstantVelocity(0.5), ConstantVelocity(0.5)])
 
 # Define the initial target state
 initial_target_state = GaussianState([25, 0.5, 75, -0.25],
-                                     np.diag([5, 1, 5, 1]) ** 2,
+                                     np.diag([100, 1, 100, 1]),
                                      timestamp=start_time)
-
 
 # Set up the ground truth simulation
 groundtruth_simulation = SingleTargetGroundTruthSimulator(
     transition_model=gnd_transition_model,
     initial_state=initial_target_state,
-    timestep=timedelta(seconds=2),
+    timestep=timedelta(seconds=1),
     number_steps=number_of_steps)
-
 
 # %%
 # Load a clutter model
@@ -94,7 +92,7 @@ groundtruth_simulation = SingleTargetGroundTruthSimulator(
 from stonesoup.models.clutter.clutter import ClutterModel
 
 clutter_model = ClutterModel(
-    clutter_rate=0.6,
+    clutter_rate=1.0,
     distribution=np.random.default_rng().uniform,
     dist_params=((0, 120), (-5, 105)))
 # dist_params describe the area where the clutter is detected
@@ -106,8 +104,8 @@ clutter_spatial_density = clutter_model.clutter_rate/clutter_area
 # %%
 # Instantiate the sensors, platforms and simulators
 # ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-#
 # Instantiate the radars to collect measurements - Use a :class:`~.RangeBearingRange` radar.
+#
 from stonesoup.sensor.radar.radar import RadarBearingRange
 # Import the platform to place the sensors on
 from stonesoup.platform.base import FixedPlatform
@@ -116,8 +114,8 @@ from stonesoup.platform.base import FixedPlatform
 from stonesoup.simulator.platform import PlatformDetectionSimulator
 
 # Let's assume that both radars have the same noise covariance for simplicity
-# These radars will have the +/-0.005 degrees accuracy in bearing and +/- 2 meters in range
-radar_noise = CovarianceMatrix(np.diag([np.deg2rad(0.005), 2.0**2]))
+# These radars will have the +/-0.005 degrees accuracy in bearing and +/- 2.5 meters in range
+radar_noise = CovarianceMatrix(np.diag([np.deg2rad(0.005), 2.5**2]))
 
 # Define the specifications of the two radars
 radar1 = RadarBearingRange(
@@ -144,28 +142,29 @@ sensor2_platform = FixedPlatform(
     position_mapping=(0, 2),
     sensors=[radar2])
 
+# create copy of the simulators
+from itertools import tee
+gt_sims = tee(groundtruth_simulation, 2)
+
 # create the radar simulators
 radar_simulator1 = PlatformDetectionSimulator(
-    groundtruth=groundtruth_simulation,
+    groundtruth=gt_sims[0],
     platforms=[sensor1_platform])
 
 radar_simulator2 = PlatformDetectionSimulator(
-    groundtruth=groundtruth_simulation,
+    groundtruth=gt_sims[1],
     platforms=[sensor2_platform])
 
-# create copy of the simulators
-from itertools import tee
-_, *r1simulators = tee(radar_simulator1, 3)
-_, *r2simulators = tee(radar_simulator2, 3)
-
+radar1plot, radar1KF, radar1PF = tee(radar_simulator1, 3)
+radar2plot, radar2KF, radar2PF = tee(radar_simulator2, 3)
 
 # %%
 # Visualise the detections from the sensors
 # ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-# Before creating the different trackers components,
+# Before preparing the different trackers components,
 # let's visualise the target and its detections from the
 # two sensors. In this way we can appreciate
-# how the measurements are different and can lead to two separate
+# how the measurements are different and can lead to separate
 # tracks.
 #
 
@@ -176,19 +175,14 @@ from stonesoup.plotter import Plotterly
 s1_detections = []
 s2_detections = []
 
-detections1 = deepcopy(radar_simulator1)
-detections2 = deepcopy(radar_simulator2)
+grountruth_generator = groundtruth_simulation.groundtruth_paths_gen()
 
-# # Extract the generator function for the detections
-g1 = detections1.detections_gen()
-g2 = detections2.detections_gen()
-
-
+truths = set()
 # Iterate over the time steps, extracting the detections and truths
-for _ in range(number_of_steps):
-    s1_detections.append(next(g1)[1])
-    s2_detections.append(next(g2)[1])
-
+for (time, sd1), (_, sd2) in zip(radar1plot, radar2plot):
+    s1_detections.append(sd1)
+    s2_detections.append(sd2)
+    truths.update(next(grountruth_generator)[1])  # consider only the path
 
 # Plot the detections from the two radars
 plotter = Plotterly()
@@ -198,8 +192,8 @@ plotter.plot_measurements(s2_detections, [0, 2], marker=dict(color='blue', symbo
                           measurements_label='Sensor 2 measurements')
 plotter.plot_sensors({sensor1_platform, sensor2_platform}, [0, 1],
                      marker=dict(color='black', symbol='1', size=10))
+plotter.plot_ground_truths(truths, [0, 2])
 plotter.fig
-
 
 # %%
 # 2) Initialise the trackers components
@@ -207,9 +201,9 @@ plotter.fig
 # We have initialised the sensors and the
 # target path, we can see that the
 # detections from the two sensors
-# are slightly different one from the
-# other, that will lead to two separate
-# tracks. Now, we initialise the components of the two trackers,
+# differ one from the other, that will lead to
+# two separate tracks.
+# Now, we initialise the components of the two trackers,
 # one using a extended Kalman filter
 # and a particle filter.
 #
@@ -226,8 +220,8 @@ from stonesoup.dataassociator.neighbour import GNNWith2DAssignment
 from stonesoup.deleter.time import UpdateTimeStepsDeleter
 
 # Load the kalman filter components
-from stonesoup.updater.kalman import ExtendedKalmanUpdater
-from stonesoup.predictor.kalman import ExtendedKalmanPredictor
+from stonesoup.updater.kalman import UnscentedKalmanUpdater
+from stonesoup.predictor.kalman import UnscentedKalmanPredictor
 from stonesoup.initiator.simple import SimpleMeasurementInitiator, GaussianParticleInitiator
 
 # Load a single target tracker
@@ -257,29 +251,29 @@ def general_tracker(tracker_class, detector,
 
 
 # instantiate the Kalman filter predictor
-KF_predictor = ExtendedKalmanPredictor(transition_model)
+KF_predictor = UnscentedKalmanPredictor(transition_model)
 
 # Instantiate the Kalman filter updater
-KF_updater = ExtendedKalmanUpdater(measurement_model=None)
-
-# create an track initiator placed on the target track origin
-initiator = SimpleMeasurementInitiator(
-    prior_state=initial_target_state,
-    measurement_model=None)
+KF_updater = UnscentedKalmanUpdater(measurement_model=None)
 
 # define the hypothesiser
 hypothesiser_KF = DistanceHypothesiser(
     predictor=KF_predictor,
     updater=KF_updater,
     measure=Mahalanobis(),
-    missed_distance=5
+    missed_distance=10
 )
 
 # define the distance data associator
 data_associator_KF = GNNWith2DAssignment(hypothesiser_KF)
 
 # define a track time deleter
-deleter = UpdateTimeStepsDeleter(5)
+deleter = UpdateTimeStepsDeleter(3)
+
+# create an track initiator placed on the target track origin
+initiator = SimpleMeasurementInitiator(
+    prior_state=initial_target_state,
+    measurement_model=None)
 
 # Instantiate the predictor, particle resampler and particle
 # filter updater
@@ -292,7 +286,7 @@ hypothesiser_PF = DistanceHypothesiser(
     predictor=PF_predictor,
     updater=PF_updater,
     measure=Mahalanobis(),
-    missed_distance=10)
+    missed_distance=5)
 
 # define the data associator
 data_associator_PF = GNNWith2DAssignment(hypothesiser_PF)
@@ -313,24 +307,9 @@ PF_initiator = GaussianParticleInitiator(
 # perform the tracking using both Kalman and particle
 # filters. We need to create a way to perform the track fusion.
 # To perform such fusion, we employ the covariance
-# intersection algorithm
-# adopting the :class:`~.ChernoffUpdater` class, and
-# treating the tracks as measurements and we consider
-# the measurements as :class:`~.GaussianMixture` objects.
-
-# Instantiate a dummy detector to read the detections
-from stonesoup.buffered_generator import BufferedGenerator
-from stonesoup.reader.base import DetectionReader
-
-class DummyDetector(DetectionReader):
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        self.current = kwargs['current']
-
-    @BufferedGenerator.generator_method
-    def detections_gen(self):
-        yield self.current
-
+# intersection algorithm adopting the
+# :class:`~.ChernoffUpdater` class, treating the tracks
+# as :class:`~.GaussianMixture` detections.
 
 # %%
 # Stone soup track fusion components
@@ -345,6 +324,7 @@ from stonesoup.hypothesiser.gaussianmixture import GaussianMixtureHypothesiser
 from stonesoup.tracker.pointprocess import PointProcessMultiTargetTracker
 from stonesoup.types.state import TaggedWeightedGaussianState
 from stonesoup.feeder.track import Tracks2GaussianDetectionFeeder
+from stonesoup.feeder.multi import MultiDataFeeder
 
 # create the Chernoff Updater
 ch_updater = ChernoffUpdater(measurement_model=None)
@@ -353,8 +333,8 @@ ch_updater = ChernoffUpdater(measurement_model=None)
 # detection and probability of survival
 updater = PHDUpdater(updater=ch_updater,
                      clutter_spatial_density=clutter_spatial_density,
-                     prob_detection=0.9,
-                     prob_survival=0.9)
+                     prob_detection=0.99,
+                     prob_survival=0.95)
 
 # Create a base hypothesiser using the Chernoff updater and
 # the kalman predictor
@@ -362,7 +342,7 @@ base_hypothesiser = DistanceHypothesiser(
     predictor=KF_predictor,
     updater=ch_updater,
     measure=Mahalanobis(),
-    missed_distance=100)
+    missed_distance=15)
 
 # Instantiate the Gaussian Mixture hypothesiser
 hypothesiser = GaussianMixtureHypothesiser(base_hypothesiser,
@@ -377,13 +357,13 @@ ch_reducer = GaussianMixtureReducer(
 
 # Create the covariance for the birth of the tracks,
 # large on the x,y location and smaller on the velocities
-birth_covar = CovarianceMatrix(np.diag([100, 1, 100, 1]))
+birth_covar = CovarianceMatrix(np.diag([50, 5, 50, 5]))
 
 # Define the Chernoff updated birth components for the tracks
 ch_birth_component = TaggedWeightedGaussianState(
     state_vector=[25, 0.5, 70, -0.25],  # Initial target state
     covar=birth_covar**2,
-    weight=0.5,
+    weight=1,
     tag=TaggedWeightedGaussianState.BIRTH,
     timestamp=start_time)
 
@@ -394,17 +374,19 @@ track_fusion_tracker = PointProcessMultiTargetTracker(
     updater=updater,
     reducer=deepcopy(ch_reducer),
     birth_component=deepcopy(ch_birth_component),
-    extraction_threshold=0.9)
+    extraction_threshold=0.95)
 
+# Copy the track fusion tracker
 track_fusion_tracker2 = deepcopy(track_fusion_tracker)
+
 # %%
-# 3) Run the trackers, generate the partial tracks and the final composite track;
-# -------------------------------------------------------------------------------
+# 3) Run the trackers, generate the partial tracks and merge the final composite track;
+# -------------------------------------------------------------------------------------
 # So far, we have shown how to instantiate the various tracker components
-# as well as the track fusion tracker. Now, we run the trackers to generate
+# as well as the fusion tracker. Now, we run the trackers to generate
 # the tracks and we perform the track fusion. Furthermore, we want to measure
-# how good are the track fusion methods are in comparison to the groundtruths, so we
-# instantiate a metric manager to measure the various distances.
+# the accuracy of the tracks obtained via the fusion algorithm compared with
+# the truths. To do so we instantiate a metric manager to evalute the various distances.
 #
 
 # Instantiate the metric manager
@@ -494,77 +476,55 @@ PF_fused_track, KF_fused_track = set(), set()
 
 # Instantiate the various trackers using the general_tracker function,
 # we assign a unique tracker the detections from a specific radar simulator
-KF_tracker_1 = general_tracker(SingleTargetTracker, r1simulators[0], KF_updater,
+KF_tracker_1 = general_tracker(SingleTargetTracker, radar1KF, KF_updater,
                                initiator, deleter, data_associator_KF)
 
-KF_tracker_2 = general_tracker(SingleTargetTracker, r2simulators[0], KF_updater,
+KF_tracker_2 = general_tracker(SingleTargetTracker, radar2KF, KF_updater,
                                initiator, deleter, data_associator_KF)
 
-PF_tracker_1 = general_tracker(SingleTargetTracker, r1simulators[1], PF_updater,
+PF_tracker_1 = general_tracker(SingleTargetTracker, radar1PF, PF_updater,
                                PF_initiator, deleter, data_associator_PF)
 
-PF_tracker_2 = general_tracker(SingleTargetTracker, r2simulators[1], PF_updater,
+PF_tracker_2 = general_tracker(SingleTargetTracker, radar2PF, PF_updater,
                                PF_initiator, deleter, data_associator_PF)
 
-# Load the detection generator
-g1 = radar_simulator1.detections_gen()
-g2 = radar_simulator2.detections_gen()
+PartialTrackPF1, TrackFusionPF1 = tee(PF_tracker_1, 2)
+PartialTrackPF2, TrackFusionPF2 = tee(PF_tracker_2, 2)
+PartialTrackKF1, TrackFusionKF1 = tee(KF_tracker_1, 2)
+PartialTrackKF2, TrackFusionKF2 = tee(KF_tracker_2, 2)
 
-# Each tracker will have the same data
-gg1 = deepcopy(radar_simulator1).detections_gen()
-gg2 = deepcopy(radar_simulator2).detections_gen()
+# Create the detector feeding the tracker algorithms
+track_fusion_tracker.detector = Tracks2GaussianDetectionFeeder(
+    MultiDataFeeder([TrackFusionKF1, TrackFusionKF2]))
 
+track_fusion_tracker2.detector = Tracks2GaussianDetectionFeeder(
+    MultiDataFeeder([TrackFusionPF1, TrackFusionPF2]))
 
-# Loop on the simulation steps
-for aa in range(number_of_steps):
+iter_fusion_tracker = iter(track_fusion_tracker)
+iter_fusion_tracker2 = iter(track_fusion_tracker2)
 
-    radar1_detections = next(g1)
-
-    # Run the Particle Filter tracker on the radars measurements
-    PF_tracker_1.detector = DummyDetector(current=radar1_detections)
-    PF_tracker_1.__iter__()
-    _, PF_sensor_track1 = next(PF_tracker_1)
-    PF_track1.update(PF_sensor_track1)
-
-    rd1 = next(gg1)
-    # Run the Kalman Filter tracker on the radars measurements
-    KF_tracker_1.detector = DummyDetector(current=rd1)
-    KF_tracker_1.__iter__()
-    _, KF_sensor_track1 = next(KF_tracker_1)
-    KF_track1.update(KF_sensor_track1)
-
-    radar2_detections = next(g2)
-
-    PF_tracker_2.detector = DummyDetector(current=radar2_detections)
-    PF_tracker_2.__iter__()
-    pf_time, PF_sensor_track2 = next(PF_tracker_2)
-    PF_track2.update(PF_sensor_track2)
-
-    rd2 = next(gg2)
-
-    KF_tracker_2.detector = DummyDetector(current=rd2)
-    KF_tracker_2.__iter__()
-    kf_time, KF_sensor_track2 = next(KF_tracker_2)
-    KF_track2.update(KF_sensor_track2)
-
-    # We have now the track for each radar now let's perform the
-    # track fusion
-    for PF_track_meas in [PF_track1, PF_track2]:
-        dummy_detector_PF = DummyDetector(current=[pf_time, PF_track_meas])
-        track_fusion_tracker2.detector = Tracks2GaussianDetectionFeeder(dummy_detector_PF)
-        track_fusion_tracker2.__iter__()
-        _, tracks = next(track_fusion_tracker2)
+# Loop over the timestep doing the track fusion and partial tracks
+for _ in range(number_of_steps):
+    for _ in range(2):
+        _, tracks = next(iter_fusion_tracker)
+        KF_fused_track.update(tracks)
+        del tracks
+        _, tracks = next(iter_fusion_tracker2)
         PF_fused_track.update(tracks)
 
-    for KF_track_meas in [KF_track1, KF_track2]:
-        dummy_detector_KF = DummyDetector(current=[kf_time, KF_track_meas])
-        track_fusion_tracker.detector = Tracks2GaussianDetectionFeeder(dummy_detector_KF)
-        track_fusion_tracker.__iter__()
-        _, tracks = next(track_fusion_tracker)
-        KF_fused_track.update(tracks)
+    _, PF_sensor_track1 = next(iter(PartialTrackPF1))
+    PF_track1.update(PF_sensor_track1)
 
+    _, PF_sensor_track2 = next(iter(PartialTrackPF2))
+    PF_track2.update(PF_sensor_track2)
 
-# load the various tracks
+    _, KF_sensor_track1 = next(iter(PartialTrackKF1))
+    KF_track1.update(KF_sensor_track1)
+
+    _, KF_sensor_track2 = next(iter(PartialTrackKF2))
+    KF_track2.update(KF_sensor_track2)
+
+# Add the tracks to the metric manager
 metric_manager.add_data({'KF_1_tracks': KF_track1,
                          'KF_2_tracks': KF_track2,
                          'PF_1_tracks': PF_track1,
@@ -579,25 +539,28 @@ metric_manager.add_data({'truths': truths}, overwrite=False)
 # %%
 # Let's visualise the various tracks and detections in the cases
 # using the Kalman and particle filters.
-plotter.plot_tracks(PF_track1, [0, 2], line=dict(color="orange"), track_label='PF partial track')
-plotter.plot_tracks(PF_track2, [0, 2], line=dict(color="gold"), track_label='PF partial track')
+plotter.plot_tracks(PF_track1, [0, 2], line=dict(color="orange"), track_label='PF partial track 1')
+plotter.plot_tracks(PF_track2, [0, 2], line=dict(color="gold"), track_label='PF partial track 2')
 plotter.plot_tracks(PF_fused_track, [0, 2], line=dict(color="red"), track_label='PF fused track')
 plotter.plot_tracks(KF_fused_track, [0, 2], line=dict(color="blue"), track_label='KF fused track')
-plotter.plot_tracks(KF_track1, [0, 2], line=dict(color="cyan"), track_label='KF partial track')
-plotter.plot_tracks(KF_track2, [0, 2], line=dict(color="azure"), track_label='KF partial track')
-plotter.plot_ground_truths(truths, [0, 2])
+plotter.plot_tracks(KF_track1, [0, 2], line=dict(color="cyan"), track_label='KF partial track 1')
+plotter.plot_tracks(KF_track2, [0, 2], line=dict(color="azure"), track_label='KF partial track 2')
 
 plotter.fig
 
 
 # %%
-# 4) Compare the obtained tracks with the groundtruth trajectory.
+# 4) Evaluate the obtained tracks with the groundtruth trajectory.
 # ---------------------------------------------------------------
 # At this stage we have almost completed our example. We have created the
 # detections from the radars, performed the tracking and the
 # fusion of the tracks. Now we use the :class:`~.MetricManager`
 # to generate summary statistics on the accuracy of the tracks
-# in comparison to the groundtruth measurements.
+# by comparing them with the groundtruth measurements.
+#
+# If we consider the SIAP metrics, we can appreciate that
+# the fused tracks have a lower error compared to the
+# partial tracks obtained with the single instruments.
 #
 
 # Loaded the plotter for the various metrics.
@@ -622,5 +585,5 @@ graph.fig
 # merge the tracks generated by independent trackers
 # ran on sets of data obtained by separate sensors. We
 # have, also, compared how the Kalman and the particle
-# filters behave in these cases, making track to track
+# filters behave in these cases, making track to truth
 # comparisons.
