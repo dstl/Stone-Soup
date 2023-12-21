@@ -17,7 +17,8 @@ from datetime import datetime, timedelta
 
 
 class Architecture(Base):
-    """Abstract Architecture Base class. Subclasses must implement the :meth:`~Architecture.propogate` method.
+    """Abstract Architecture Base class. Subclasses must implement the
+    :meth:`~Architecture.propogate` method.
     """
 
     edges: Edges = Property(
