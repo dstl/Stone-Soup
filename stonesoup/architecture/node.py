@@ -70,10 +70,14 @@ class Node(Base):
                 category in ("created", "unfused"):
             data = copy.copy(data_piece.data)
             data.timestamp = time_arrived
-            self.fusion_queue.put((time_pertaining, {data}))
+            if data not in self.fusion_queue.received:
+                self.fusion_queue.received.add(data)
+                self.fusion_queue.put((time_pertaining, {data}))
 
         elif isinstance(self, FusionNode) and category in ("created", "unfused"):
-            self.fusion_queue.put((time_pertaining, {data_piece.data}))
+            if data_piece.data not in self.fusion_queue.received:
+                self.fusion_queue.received.add(data_piece.data)
+                self.fusion_queue.put((time_pertaining, {data_piece.data}))
 
         return added
 

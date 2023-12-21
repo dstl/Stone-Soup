@@ -25,6 +25,7 @@ class FusionQueue(Queue):
         super().__init__(*args, **kwargs)
         self._to_consume = 0
         self._consuming = False
+        self.received = set()
 
     def _put(self, *args, **kwargs):
         super()._put(*args, **kwargs)
