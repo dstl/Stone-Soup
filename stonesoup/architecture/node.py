@@ -15,8 +15,8 @@ from ._functions import _dict_set
 
 
 class Node(Base):
-    """Base Node class. Generally a subclass should be used. Note that most user-defined properties are for
-    graphical use only, all with default values. """
+    """Base Node class. Generally a subclass should be used. Note that most user-defined
+    properties are for graphical use only, all with default values. """
     latency: float = Property(
         doc="Contribution to edge latency stemming from this node. Default is 0.0",
         default=0.0)
@@ -45,7 +45,8 @@ class Node(Base):
         self.data_held = {"fused": {}, "created": {}, "unfused": {}}
         self.messages_to_pass_on = []
 
-    def update(self, time_pertaining, time_arrived, data_piece, category, track=None):
+    def update(self, time_pertaining, time_arrived, data_piece, category, track=None,
+               use_arrival_time=False):
         """Updates this :class:`~.Node`'s :attr:`~.data_held` using a new data piece. """
         if not isinstance(time_pertaining, datetime) and isinstance(time_arrived, datetime):
             raise TypeError("Times must be datetime objects")
@@ -64,7 +65,14 @@ class Node(Base):
 
         added, self.data_held[category] = _dict_set(self.data_held[category],
                                                     new_data_piece, time_pertaining)
-        if isinstance(self, FusionNode) and category in ("created", "unfused"):
+
+        if use_arrival_time and isinstance(self, FusionNode) and \
+                category in ("created", "unfused"):
+            data = copy.copy(data_piece.data)
+            data.timestamp = time_arrived
+            self.fusion_queue.put((time_pertaining, {data}))
+
+        elif isinstance(self, FusionNode) and category in ("created", "unfused"):
             self.fusion_queue.put((time_pertaining, {data_piece.data}))
 
         return added
@@ -162,8 +170,9 @@ class SensorFusionNode(SensorNode, FusionNode):
 
 
 class RepeaterNode(Node):
-    """A :class:`~.Node` which simply passes data along to others, without manipulating the data itself. Consequently,
-    :class:`~.RepeaterNode`s are only used within a :class:`~.NetworkArchitecture`"""
+    """A :class:`~.Node` which simply passes data along to others, without manipulating the
+    data itself. Consequently, :class:`~.RepeaterNode`s are only used within a
+    :class:`~.NetworkArchitecture`"""
     colour: str = Property(
         default='#909090',
         doc='Colour to be displayed on graph. Default is the hex colour code #909090')

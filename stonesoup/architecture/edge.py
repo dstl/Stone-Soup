@@ -97,11 +97,11 @@ class Edge(Base):
             raise TypeError("Message info must be one of the following types: "
                             "Detection, Hypothesis or Track")
         # Add message to 'pending' dict of edge
-        data_to_send = copy.deepcopy(data_piece.data)
-        new_datapiece = DataPiece(data_piece.node, data_piece.originator, data_to_send,
-                                  data_piece.time_arrived, data_piece.track)
+        # data_to_send = copy.deepcopy(data_piece.data)
+        # new_datapiece = DataPiece(data_piece.node, data_piece.originator, data_to_send,
+        #                           data_piece.time_arrived, data_piece.track)
         message = Message(edge=self, time_pertaining=time_pertaining, time_sent=time_sent,
-                          data_piece=new_datapiece, destinations={self.recipient})
+                          data_piece=data_piece, destinations={self.recipient})
         _, self.messages_held = _dict_set(self.messages_held, message, 'pending', time_sent)
         # ensure message not re-sent
         data_piece.sent_to.add(self.nodes[1])
@@ -126,8 +126,8 @@ class Edge(Base):
         """
         Updates the category of messages stored in edge.messages_held if latency time has passed.
         Adds messages that have 'arrived' at recipient to the relevant holding area of the node.
-        :param use_arrival_time: Bool that is True if arriving data should use arrival time as
-        it's timestamp
+        # :param use_arrival_time: Bool that is True if arriving data should use arrival time as
+        # it's timestamp
         :param current_time: Current time in simulation
         :param to_network_node: Bool that is true if recipient node is not in the information
         architecture
@@ -148,22 +148,20 @@ class Edge(Base):
                     if message.destinations is None:
                         message.destinations = {self.recipient}
 
-                    # If instructed to use arrival time as timestamp, set that here
-                    if use_arrival_time and hasattr(message.data_piece.data, 'timestamp'):
-                        message.data_piece.data.timestamp = message.arrival_time
-
                     # Update node according to inclusion in Information Architecture
                     if not to_network_node and message.destinations == {self.recipient}:
                         # Add data to recipient's data_held
                         self.recipient.update(message.time_pertaining,
                                               message.arrival_time,
-                                              message.data_piece, "unfused")
+                                              message.data_piece, "unfused",
+                                              use_arrival_time=use_arrival_time)
 
                     elif not to_network_node and self.recipient in message.destinations:
                         # Add data to recipient's data held, and message to messages_to_pass_on
                         self.recipient.update(message.time_pertaining,
                                               message.arrival_time,
-                                              message.data_piece, "unfused")
+                                              message.data_piece, "unfused",
+                                              use_arrival_time=use_arrival_time)
                         message.destinations = None
                         self.recipient.messages_to_pass_on.append(message)
 

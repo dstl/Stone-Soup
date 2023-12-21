@@ -41,7 +41,8 @@ def _default_label(node, last_letters):
 
 
 def _default_letters(type_letters) -> str:
-    """Utility function to work out the letters which go in the default label as part of the :meth:`~._default_label`
+    """Utility function to work out the letters which go in the default label as part of the
+    :meth:`~._default_label`
     method"""
     if type_letters == '':
         return 'A'
