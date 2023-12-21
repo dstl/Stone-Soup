@@ -457,16 +457,16 @@ class InformationArchitecture(Architecture):
 
         # for node in self.processing_nodes:
         #     node.process() # This should happen when a new message is received
-        count = 0
-        if not self.fully_propagated:
-            count += 1
-            self.propagate(time_increment, failed_edges)
+
+        if self.fully_propagated:
+            for fuse_node in self.fusion_nodes:
+                fuse_node.fuse()
+
+            self.current_time += timedelta(seconds=time_increment)
             return
 
-        for fuse_node in self.fusion_nodes:
-            fuse_node.fuse()
-
-        self.current_time += timedelta(seconds=time_increment)
+        else:
+            self.propagate(time_increment, failed_edges)
 
 
 class NetworkArchitecture(Architecture):

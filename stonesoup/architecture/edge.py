@@ -104,7 +104,7 @@ class Edge(Base):
                           data_piece=data_piece, destinations={self.recipient})
         _, self.messages_held = _dict_set(self.messages_held, message, 'pending', time_sent)
         # ensure message not re-sent
-        data_piece.sent_to.add(self.nodes[1])
+        data_piece.sent_to.add(self)
 
     def pass_message(self, message):
         """
@@ -119,15 +119,14 @@ class Edge(Base):
         _, self.messages_held = _dict_set(self.messages_held, message_copy, 'pending',
                                           message_copy.time_sent)
         # Message not opened by repeater node, remove node from 'sent_to'
-        # message.data_piece.sent_to.remove(self.nodes[0])
-        message_copy.data_piece.sent_to.add(self.nodes[1])
+        message_copy.data_piece.sent_to.add(self)
 
     def update_messages(self, current_time, to_network_node=False, use_arrival_time=False):
         """
         Updates the category of messages stored in edge.messages_held if latency time has passed.
         Adds messages that have 'arrived' at recipient to the relevant holding area of the node.
-        # :param use_arrival_time: Bool that is True if arriving data should use arrival time as
-        # it's timestamp
+        :param use_arrival_time: Bool that is True if arriving data should use arrival time as
+        it's timestamp
         :param current_time: Current time in simulation
         :param to_network_node: Bool that is true if recipient node is not in the information
         architecture
@@ -198,7 +197,7 @@ class Edge(Base):
     def unpassed_data(self):
         unpassed = []
         for message in self.sender.messages_to_pass_on:
-            if self.recipient not in message.data_piece.sent_to:
+            if self not in message.data_piece.sent_to:
                 unpassed.append(message)
         return unpassed
 
@@ -213,7 +212,7 @@ class Edge(Base):
                 for time_pertaining in self.sender.data_held[status]:
                     for data_piece in self.sender.data_held[status][time_pertaining]:
                         # Data will be sent to any nodes it hasn't been sent to before
-                        if self.recipient not in data_piece.sent_to:
+                        if self not in data_piece.sent_to:
                             unsent.append((data_piece, time_pertaining))
             return unsent
 
