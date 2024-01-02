@@ -67,7 +67,7 @@ class MultipleTrackFeeder(Feeder):
     """Multiple track feeder base class
 
     Feeds tracks from multiple sources
-    Import that the order of the Tracks is the same as the order of the readers
+    It is important that the order of the Tracks is the same as the order of the readers
     """
 
     reader: Reader = Property(default=None, doc="Overrides parent `Reader` class, is not needed")

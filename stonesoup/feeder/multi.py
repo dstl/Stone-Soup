@@ -27,6 +27,9 @@ class MultiDataFeeder(DetectionFeeder, GroundTruthFeeder):
 
 
 class SyncMultipleTrackFeedersToOneFeeder(MultipleTrackFeeder):
+    """ Feed tracks from multiple sources (readers) at one point. The track sources must be
+    synchronised."""
+
     readers: Collection[TrackFeeder] = Property(doc='Readers to yield from')
 
     def __iter__(self) -> Iterator[Tuple[datetime.datetime, Sequence[Set[Track]]]]:
@@ -43,6 +46,9 @@ class SyncMultipleTrackFeedersToOneFeeder(MultipleTrackFeeder):
 
 
 class AsyncMultipleTrackFeedersToOneFeeder(MultipleTrackFeeder):
+    """ Feed tracks from multiple sources (readers) at one point. The track sources do not need to
+    be synchronised."""
+
     readers: Collection[TrackFeeder] = Property(doc='Readers to yield from')
 
     @staticmethod

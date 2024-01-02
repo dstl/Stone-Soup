@@ -4,26 +4,12 @@ from datetime import datetime, timedelta
 from typing import Tuple
 
 from .base import Feeder
-from .simple import IterFeeder
 from ..base import Property
 from ..buffered_generator import BufferedGenerator
 
 
-class BaseModifiedFeederIter(IterFeeder):
-    def __iter__(self):
-        self.reader_iter = iter(self.reader)
-        return self
-
-    def __next__(self):
-        reader_output = next(self.reader_iter)
-        return self.alter_output(reader_output)
-
-    @abstractmethod
-    def alter_output(self, reader_output: Tuple[datetime, set]) -> Tuple[datetime, set]:
-        ...
-
-
 class BaseModifiedFeeder(Feeder):
+    """ This class takes an object from a reader and alters it before releasing it."""
 
     @BufferedGenerator.generator_method
     def data_gen(self):
@@ -48,6 +34,7 @@ class CopyFeeder(BaseModifiedFeeder):
 
 
 class DelayedFeeder(BaseModifiedFeeder):
+    """Changes the time value."""
 
     delay: timedelta = Property()
 

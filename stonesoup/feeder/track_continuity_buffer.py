@@ -10,6 +10,9 @@ from ..writer.base import TrackWriter
 
 
 class TrackContinuityBuffer(Base):
+    """ This is the base class for providing continuity to the output of trackers or tracker
+    feeders. Some trackers recreate track objects on each timestep. The subclasses of this class
+    attempt to combine track objects if they're from the same original object."""
 
     @abstractmethod
     def update_tracks(self, input_tracks: Set[Track]) -> Set[Track]:
@@ -48,6 +51,7 @@ class AlphaTrackContinuityBuffer(TrackContinuityBuffer, ABC):
 
 
 class BetaTrackContinuityBuffer(AlphaTrackContinuityBuffer):
+    """This TrackContinuityBuffer combines tracks with the same :attr:`Track.id`. """
 
     def update_tracks(self, input_tracks: Set[Track]) -> Set[Track]:
 
