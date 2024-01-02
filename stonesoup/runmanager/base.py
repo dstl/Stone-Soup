@@ -111,9 +111,9 @@ class RunManager:
             pairs = self.config_parameter_pairing()
             if not pairs and not self.config_path:
                 info_logger.info(f"{datetime.now()} "
-                                 f"No config/parameter file pairs found in current directory: {self.config_dir}. "
-                                 f"Ensure file pairs in directory have the same filename.\n"
-                                 f"Checking for config files.")
+                                 f"No config/parameter file pairs found in current directory: "
+                                 f"{self.config_dir}. Ensure file pairs in directory have the "
+                                 f"same filename.\n Checking for config files.")
 
                 # Check if config_dir and check if contains config files
                 # Run series of single config simulations
@@ -557,8 +557,8 @@ class RunManager:
 
         for file in files:
             if not file.endswith('.json') and not file.endswith('.yaml'):
-                print(f"Warning: {file} in {self.config_dir} is not a configuration or parameter file. File"
-                      f"skipped.")
+                print(f"Warning: {file} in {self.config_dir} is not a configuration or parameter "
+                      f"file. File skipped.")
 
         json_files = [file for file in files if file.endswith('.json')]
         yaml_files = [file for file in files if file.endswith('.yaml')]
@@ -566,7 +566,8 @@ class RunManager:
         for json_file in json_files:
             for yaml_file in yaml_files:
                 if os.path.splitext(json_file)[0] == os.path.splitext(yaml_file)[0] or \
-                        os.path.splitext(json_file)[0] == os.path.splitext(yaml_file)[0] + '_parameters':
+                        os.path.splitext(json_file)[0] == os.path.splitext(yaml_file)[0] + \
+                        '_parameters':
                     pairs.add((yaml_file, json_file))
 
         return sorted(list(pairs))

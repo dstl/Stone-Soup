@@ -1,5 +1,6 @@
 import numpy as np
 import itertools
+from datetime import datetime, timedelta
 
 from ..types.array import StateVector, CovarianceMatrix
 from ..types.numeric import Probability

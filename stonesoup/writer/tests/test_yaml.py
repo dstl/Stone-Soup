@@ -294,7 +294,7 @@ tracker: !stonesoup.tracker.simple.MultiTargetTracker
           - mapping:
             - 0
             - 2
-          - noise_covar: !numpy.ndarray
+          - noise_covar: !stonesoup.types.array.CovarianceMatrix
             - - 0.25
               - 0.0
             - - 0.0
@@ -469,7 +469,7 @@ tracker: !stonesoup.tracker.simple.MultiTargetTracker
           - mapping:
             - 0
             - 2
-          - noise_covar: !numpy.ndarray
+          - noise_covar: !stonesoup.types.array.CovarianceMatrix
             - - 0.25
               - 0.0
             - - 0.0
@@ -632,7 +632,7 @@ tracker: !stonesoup.tracker.simple.MultiTargetTracker
           - mapping:
             - 0
             - 2
-          - noise_covar: !numpy.ndarray
+          - noise_covar: !stonesoup.types.array.CovarianceMatrix
             - - 0.25
               - 0.0
             - - 0.0
@@ -794,7 +794,7 @@ tracker: !stonesoup.tracker.simple.MultiTargetTracker
           - mapping:
             - 0
             - 2
-          - noise_covar: !numpy.ndarray
+          - noise_covar: !stonesoup.types.array.CovarianceMatrix
             - - 0.25
               - 0.0
             - - 0.0

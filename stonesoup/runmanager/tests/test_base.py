@@ -1,7 +1,6 @@
 import multiprocessing as mp
 import os
 from datetime import datetime
-import pytest
 
 import pathos.multiprocessing
 
@@ -317,7 +316,8 @@ def test_get_config_and_param_lists(tmpdir):
     assert type(pairs0) is list
     assert len(pairs0) == 1
     assert len(pairs0[0]) == 2
-    assert os.path.samefile('stonesoup/runmanager/tests/test_configs/dummy_parameters.json', (pairs0[0][1]))
+    assert os.path.samefile('stonesoup/runmanager/tests/test_configs/dummy_parameters.json',
+                            (pairs0[0][1]))
     assert os.path.samefile('stonesoup/runmanager/tests/test_configs/dummy.yaml', (pairs0[0][0]))
 
     # Test method can only work with pairs of files
@@ -330,7 +330,9 @@ def test_get_config_list(tmpdir):
     rmc_config_dir_single_file.output_dir = tmpdir
     config_list = rmc_config_dir_single_file.get_config_list()
     assert len(config_list) == 1
-    assert os.path.samefile("stonesoup/runmanager/tests/test_configs/test_single_file/test_config_all.yaml", config_list[0])
+    assert os.path.samefile(
+        "stonesoup/runmanager/tests/test_configs/test_single_file/test_config_all.yaml",
+        config_list[0])
 
 
 def test_set_components(tmpdir):
