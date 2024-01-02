@@ -299,7 +299,7 @@ tracker: !stonesoup.tracker.simple.MultiTargetTracker
               - 0.0
             - - 0.0
               - 0.25
-      - measure: !stonesoup.measures.Mahalanobis []
+      - measure: !stonesoup.measures.state.Mahalanobis []
       - missed_distance: 3
   - updater: *id001
   - measurement_model: *id002
@@ -354,7 +354,7 @@ metric_manager: !stonesoup.metricgenerator.manager.SimpleManager
     ospa: !stonesoup.metricgenerator.ospametric.OSPAMetric
     - p: 1
     - c: 10
-    - measure: !stonesoup.measures.Euclidean
+    - measure: !stonesoup.measures.state.Euclidean
       - mapping: &id008
         - 0
         - 2
@@ -474,7 +474,7 @@ tracker: !stonesoup.tracker.simple.MultiTargetTracker
               - 0.0
             - - 0.0
               - 0.25
-      - measure: !stonesoup.measures.Mahalanobis []
+      - measure: !stonesoup.measures.state.Mahalanobis []
       - missed_distance: 3
   - updater: *id001
   - measurement_model: *id002
@@ -637,7 +637,7 @@ tracker: !stonesoup.tracker.simple.MultiTargetTracker
               - 0.0
             - - 0.0
               - 0.25
-      - measure: !stonesoup.measures.Mahalanobis []
+      - measure: !stonesoup.measures.state.Mahalanobis []
       - missed_distance: 3
   - updater: *id001
   - measurement_model: *id002
@@ -799,7 +799,7 @@ tracker: !stonesoup.tracker.simple.MultiTargetTracker
               - 0.0
             - - 0.0
               - 0.25
-      - measure: !stonesoup.measures.Mahalanobis []
+      - measure: !stonesoup.measures.state.Mahalanobis []
       - missed_distance: 3
   - updater: *id001
   - measurement_model: *id002
@@ -853,7 +853,7 @@ metric_manager: !stonesoup.metricgenerator.manager.SimpleManager
     ospa: !stonesoup.metricgenerator.ospametric.OSPAMetric
     - p: 1
     - c: 10
-    - measure: !stonesoup.measures.Euclidean
+    - measure: !stonesoup.measures.state.Euclidean
       - mapping: &id007
         - 0
         - 2
