@@ -1,7 +1,7 @@
 import uuid
 from datetime import datetime
 from typing import Collection
-from typing import Set, Tuple, Iterator, Sequence
+from typing import Set, Tuple, Sequence
 
 from stonesoup.base import Property
 from stonesoup.dataassociator.base import TrackToTrackAssociator
@@ -31,7 +31,8 @@ class TrackFusedTracker(Tracker):
         # This allows the standard tracker loop to be used
         return self.multiple_track_feeder
 
-    def update_tracker(self, time, input_tracks: Sequence[Set[Track]]) -> Tuple[datetime, Set[Track]]:
+    def update_tracker(self, time, input_tracks: Sequence[Set[Track]]) -> \
+            Tuple[datetime, Set[Track]]:
         # print("Input Tracks:", *[[track.id[0:5] for track in track_set]
         #                          for track_set in input_tracks])
         associated_track_sets, unassociated_tracks = self.associate_tracks(input_tracks)
@@ -43,7 +44,8 @@ class TrackFusedTracker(Tracker):
 
         return time, {*combined_tracks, *unassociated_tracks}
 
-    def associate_tracks(self, received_track_sets: Sequence[Set[Track]]) -> Tuple[AssociationSet, Collection[Track]]:
+    def associate_tracks(self, received_track_sets: Sequence[Set[Track]]) -> \
+            Tuple[AssociationSet, Collection[Track]]:
         """
         This method determines which tracks should be associated together and returns a collection
         of AssociationSet objects which contain tracks and a collection of unassociated tracks
@@ -80,7 +82,8 @@ class TrackFusedTracker(Tracker):
 
 class AsynchronousTrackFusedTracker(TrackFusedTracker):
 
-    def update_tracker(self, sim_time, input_tracks: Sequence[Set[Track]]) -> Tuple[datetime, Set[Track]]:
+    def update_tracker(self, sim_time, input_tracks: Sequence[Set[Track]]) -> \
+            Tuple[datetime, Set[Track]]:
         self.predict_input_tracks(sim_time, input_tracks)
         return super().update_tracker(sim_time, input_tracks)
 
