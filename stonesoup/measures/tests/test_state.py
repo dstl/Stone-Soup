@@ -6,10 +6,9 @@ import pytest
 from scipy.spatial import distance
 from scipy.stats import multivariate_normal
 
-from .. import measures
-from ..measures import ObservationAccuracy
-from ..types.array import StateVector, CovarianceMatrix, StateVectors
-from ..types.state import GaussianState, State, ParticleState
+from .. import state as measures
+from ...types.array import StateVector, CovarianceMatrix, StateVectors
+from ...types.state import GaussianState, State, ParticleState
 
 # Create a time stamp to use for both states
 t = datetime.datetime.now()
@@ -62,7 +61,7 @@ def test_hellinger():
 
 
 def test_observation_accuracy():
-    measure = ObservationAccuracy()
+    measure = measures.ObservationAccuracy()
     for _ in range(5):
         TP = np.random.random()
         TN = 1 - TP

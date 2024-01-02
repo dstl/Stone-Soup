@@ -3,17 +3,19 @@ from typing import Set
 
 from ordered_set import OrderedSet
 
-from .base import TrackToTrackAssociator
+from ._assignment import multidimensional_deconfliction
+from .base import TwoTrackToTrackAssociator
+from .general import OneToOneAssociator
 from ..base import Property
 from ..measures import Measure, Euclidean, EuclideanWeighted
+from ..measures.base import TrackMeasure
 from ..types.association import AssociationSet, TimeRangeAssociation, Association
 from ..types.groundtruth import GroundTruthPath
-from ..types.track import Track
 from ..types.time import TimeRange
-from ._assignment import multidimensional_deconfliction
+from ..types.track import Track
 
 
-class TrackToTrackCounting(TrackToTrackAssociator):
+class TrackToTrackCounting(TwoTrackToTrackAssociator):
     """Track to track associator based on the Counting Technique
 
     Compares two sets of :class:`~.tracks`, each formed of a sequence of
@@ -194,7 +196,7 @@ class TrackToTrackCounting(TrackToTrackAssociator):
             return AssociationSet(associations)
 
 
-class TrackToTruth(TrackToTrackAssociator):
+class TrackToTruth(TwoTrackToTrackAssociator):
     """Track to truth associator
 
     Compares two sets of :class:`~.Track`, each formed of a sequence of
@@ -377,7 +379,7 @@ class TrackToTruth(TrackToTrackAssociator):
         return AssociationSet(associations)
 
 
-class TrackIDbased(TrackToTrackAssociator):
+class TrackIDbased(TwoTrackToTrackAssociator):
     """Track ID based associator
 
         Compares set of :class:`~.Track` objects to set of :class:`~.GroundTruth` objects,
@@ -422,3 +424,19 @@ class TrackIDbased(TrackToTrackAssociator):
                         associations.add(Association(OrderedSet((track, truth))))
 
         return AssociationSet(associations)
+
+
+class OneToOneTrackAssociator(TwoTrackToTrackAssociator, OneToOneAssociator):
+    """ Uses the :class:`~.OneToOneAssociator` to associate tracks together """
+
+    measure: TrackMeasure = Property()
+
+    def associate_tracks(self, *tracks_sets: Set[Track]) -> AssociationSet:
+        if len(tracks_sets) != 2:  # Should have two sets of tracks
+            raise ValueError("There should be two sources of tracks to compare")
+
+        tracks_a, tracks_b = tracks_sets
+
+        associated_tracks, _, _ = self.associate(tracks_a, tracks_b)
+
+        return associated_tracks

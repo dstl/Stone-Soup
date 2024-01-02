@@ -5,11 +5,12 @@ from functools import lru_cache
 import numpy as np
 from scipy.spatial import distance
 
-from .base import Base, Property
-from .types.state import State, ParticleState
+from .base import BaseMeasure
+from ..base import Property
+from ..types.state import State, ParticleState
 
 
-class Measure(Base):
+class Measure(BaseMeasure):
     """Measure base type
 
     A measure provides a means to assess the separation between two
