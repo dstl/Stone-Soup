@@ -63,7 +63,7 @@ from ...actionable_movable import NStepDirectionalGridMovable
         ), (
                 {'n_steps': 2,
                  'step_size': 1,
-                 'action_mapping': (0, 1),
+                 'action_mapping': (0, 1, 2),
                  'action_space': StateVectors([[0, 5], [-1, 5], [-1, 1]]),
                  'resolution': 1},
                 StateVector([0., 0., 0.]),  # state
@@ -124,10 +124,10 @@ def test_n_step_directional_grid_action_gen(generator_params, state, position_ma
                 continue
             eval_action = copy.copy(state)
             eval_action[dim] += delta
-            if action_space is not None and (np.any(eval_action < action_space[:, 0]) or
-                                             np.any(eval_action > action_space[:, 1])):
-                continue
-            else:
+
+            if action_space is None or \
+                    (np.all(eval_action[action_mapping, :] >= action_space[:, [0]])
+                     and np.all(eval_action[action_mapping, :] <= action_space[:, [1]])):
                 eval_actions.append(eval_action)
 
     assert np.all(np.isclose(actions, eval_actions))

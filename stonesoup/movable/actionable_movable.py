@@ -17,7 +17,9 @@ class _GridActionableMovable(FixedMovable):
 
     action_space: np.ndarray = Property(
         default=None,
-        doc="The bounds of the action space that should not be exceeded. Of shape (ndim, 2)"
+        doc="The bounds of the action space that should not be exceeded. Of shape (ndim, 2) "
+            "where ndim is the length of the action_mapping. For example, "
+            ":code:`np.array([[xmin, xmax], [ymin, ymax]])`."
     )
 
     action_mapping: Sequence[int] = Property(
