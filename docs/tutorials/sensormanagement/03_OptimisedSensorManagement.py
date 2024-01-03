@@ -75,7 +75,7 @@ transition_model = CombinedLinearGaussianTransitionModel([ConstantVelocity(0.005
 yps = range(0, 100, 10)  # y value for prior state
 truths = OrderedSet()
 ntruths = 3  # number of ground truths in simulation
-time_max = 50  # timestamps the simulation is observed over
+time_max = 20  # timestamps the simulation is observed over
 timesteps = [start_time + timedelta(seconds=k) for k in range(time_max)]
 
 xdirection = 1
