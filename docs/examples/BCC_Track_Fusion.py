@@ -1,9 +1,9 @@
 """
 Track Fusion Example
 ===========================
-This example demonstrates how to use :class:`.TrackFusedTracker`. Two radar
+This example demonstrates how to use :class:`~.TrackFusedTracker`. Two radar
 sensors with identical specification track two crossing targets. The individual
-tracks from these sensors is used as input for the `TrackFusedTracker`. Lastly a
+tracks from these sensors are used as input for the tracker. Lastly, a
 detection fused tracker is created and simulated for comparison.
 """
 
@@ -12,14 +12,14 @@ detection fused tracker is created and simulated for comparison.
 # Build the Scenario
 # ------------------
 # Waypoints are used to define the targets’ flight path. These waypoints are
-# interpolated to give a GroundTruthPath with states at every second. Two static
-# :class:`~.RadarElevationBearingRange` sensors are created and located ~100m
+# interpolated to give a class:`~.GroundTruthPath` with states at every second. Two static
+# :class:`~.RadarElevationBearingRange` sensors are created 20m apart, ~100m
 # away from the targets’ starting location. The targets fly towards the sensors
 # during the simulation.
 
 
 # %%
-# First some general setup
+# First some general setup:
 
 # Some general imports
 import datetime
@@ -35,7 +35,7 @@ from stonesoup.initiator.simple import SimpleMeasurementInitiator
 from stonesoup.measures import Euclidean
 from stonesoup.models.transition.linear import CombinedLinearGaussianTransitionModel, \
     ConstantVelocity
-from stonesoup.plotter import Plotterly
+from stonesoup.plotter import Plotterly, AnimatedPlotterly
 from stonesoup.predictor.kalman import ExtendedKalmanPredictor
 from stonesoup.sensor.radar.radar import RadarElevationBearingRange
 from stonesoup.tracker.simple import MultiTargetTracker
@@ -65,7 +65,7 @@ _Z = 4
 # %%
 # Create the Target Trajectories
 # ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-# In this section the movement of the target aircraft is created. This specific geometry was
+# In this section, the movement of the target aircraft is created. This specific geometry was
 # chosen to give an easy challenge to the track association algorithms.
 
 # Create waypoints of both targets
@@ -84,8 +84,8 @@ target_2_waypoints = [
 
 
 # %%
-# In between waypoints is interpolated to make a consistent sequence of states (locations). The
-# `interpolate_states` function performs a linear interpolation between states to create new
+# States are interpolated inbetween waypoints to make a consistent sequence of locations. The
+# :func:`interpolate_states` function performs a linear interpolation between states to create new
 # intermediate states.
 def interpolate_states(existing_states: Collection[State], interpolate_time: datetime.datetime):
     float_times = [state.timestamp.timestamp() for state in existing_states]
@@ -110,13 +110,12 @@ target_2_truth = GroundTruthPath(target_2_states)
 
 # %%
 # Create Sensors
-# ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+# ^^^^^^^^^^^^^^
 # Two static :class:`~.RadarElevationBearingRange` sensors are created. Both
 # have the same accuracy, they have elevation accuracy of ~14 degrees, a
-# bearing angle accuracy of ~25 degrees and a range accuracy* of ~30m. The
+# bearing angle accuracy of ~25 degrees and a range standard deviation of ~30m. The
 # sensors are located 20m apart.
-#
-# The accuracy values is the standard deviation of the measures
+
 sensor_1_position = np.array([[20], [10], [0]])
 sensor_2_position = np.array([[40], [10], [0]])
 
@@ -136,13 +135,22 @@ sensor2 = RadarElevationBearingRange(
 
 # %%
 # Plot the Scenario
-# ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+# ^^^^^^^^^^^^^^^^^
 
 plotterXZ = Plotterly(xaxis=dict(title=dict(text="<i>x</i> (East)")),
                       yaxis=dict(title=dict(text="<i>z</i> (Altitude)")))
 plotterXZ.plot_ground_truths({target_1_truth, target_2_truth}, [_X, _Z],
                              truths_label="Target Flight Path")
 plotterXZ.fig
+
+# %%
+# Animated Plotterly
+animplotterXZ = AnimatedPlotterly(all_times).update_layout(
+    xaxis_title="<i>x</i> (East)",
+    yaxis_title="<i>z</i> (Altitude)")
+animplotterXZ.plot_ground_truths({target_1_truth, target_2_truth}, [_X, _Z],
+                             truths_label="Target Flight Path")
+animplotterXZ.show()
 
 # %%
 # There isn’t much to see in this graph as both targets are at the same altitude for the whole
