@@ -401,7 +401,7 @@ class UnscentedKalmanUpdater(KalmanUpdater):
             predicted_state, meas_pred_mean, meas_pred_covar, cross_covar=cross_covar)
 
 
-class SqrtKalmanUpdater(KalmanUpdater):
+class SqrtKalmanUpdater(ExtendedKalmanUpdater):
     r"""The Square root version of the Kalman Updater.
 
     The input :class:`~.State` is a :class:`~.SqrtGaussianState` which means

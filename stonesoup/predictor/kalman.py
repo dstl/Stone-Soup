@@ -384,7 +384,7 @@ class UnscentedKalmanPredictor(KalmanPredictor):
                                      transition_model=self.transition_model)
 
 
-class SqrtKalmanPredictor(KalmanPredictor):
+class SqrtKalmanPredictor(ExtendedKalmanPredictor):
     r"""The version of the Kalman predictor that operates on the square root parameterisation of
     the Gaussian state, :class:`~.SqrtGaussianState`.
 
