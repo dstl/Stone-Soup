@@ -1,5 +1,5 @@
 import numpy as np
-from stonesoup.plotter import Plotter, Dimension, AnimatedPlotterly
+from stonesoup.plotter import Plotter, Dimension, AnimatedPlotterly, AnimationPlotter
 import pytest
 import matplotlib.pyplot as plt
 
@@ -209,6 +209,12 @@ def test_plot_complex_uncertainty():
                                          "eignevalues or eigenvectors"):
 
         plotter.plot_tracks(track, mapping=[0, 1], uncertainty=True)
+
+
+def test_animationplotter():
+    animation_plotter = AnimationPlotter()
+    animation_plotter.plot_ground_truths(truth, [0, 2])
+    animation_plotter.run(plot_title="Plot title")
 
 
 def test_animated_plotterly():
