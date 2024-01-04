@@ -119,7 +119,7 @@ class InformationKalmanPredictor(KalmanPredictor):
         return self.transition_model.matrix(**kwargs) @ prior_state_mean
 
     @predict_lru_cache()
-    def predict(self, prior, timestamp=None, **kwargs):
+    def predict(self, prior, timestamp=None, control_input=None, **kwargs):
         r"""The predict function
 
         Parameters
@@ -128,6 +128,8 @@ class InformationKalmanPredictor(KalmanPredictor):
             :math:`\mathbf{y}_{k-1}, Y_{k-1}`
         timestamp : :class:`datetime.datetime`, optional
             :math:`k`
+        control_input : :class:`StateVector`, optional
+            :math:`u`
         **kwargs :
             These are passed, via :meth:`~.transition_model.transition_function` to
             :meth:`~.LinearGaussianTransitionModel.matrix`
@@ -150,7 +152,7 @@ class InformationKalmanPredictor(KalmanPredictor):
         transition_covar = self.transition_model.covar(
             time_interval=predict_over_interval, **kwargs)
 
-        control_matrix = self._control_matrix
+        control_matrix = self._control_matrix(time_interval=predict_over_interval, **kwargs)
         # control noise doesn't appear in the information matrix literature. It's incorporation
         # will require re-deriving the following equations.
         # control_noise = self.control_model.control_noise
@@ -159,7 +161,9 @@ class InformationKalmanPredictor(KalmanPredictor):
         Ck = np.linalg.inv(np.eye(prior.ndim) + Mk @ transition_covar)
         pred_info_matrix = Ck @ Mk
         pred_info_state = Ck @ inverse_transition_matrix.T @ prior.state_vector + \
-            pred_info_matrix @ control_matrix @ self.control_model.control_input()
+            pred_info_matrix @ control_matrix @ \
+            self.control_model.function(control_input, time_interval=predict_over_interval,
+                                        **kwargs)
 
         return Prediction.from_state(prior, pred_info_state, pred_info_matrix, timestamp=timestamp,
                                      transition_model=self.transition_model)

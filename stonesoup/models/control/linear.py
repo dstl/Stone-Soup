@@ -1,5 +1,4 @@
 import numpy as np
-from scipy.stats import multivariate_normal
 
 from .base import ControlModel
 from ..base import LinearModel, GaussianModel

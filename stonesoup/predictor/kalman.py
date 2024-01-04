@@ -47,7 +47,6 @@ class KalmanPredictor(Predictor):
         super().__init__(*args, **kwargs)
 
         # If no control model insert a linear zero-effect one
-        # TODO: Think about whether it's more efficient to leave this out
         if self.control_model is None:
             ndims = self.transition_model.ndim_state
             ndimc = 2  # No control exerted so this doesn't matter.
@@ -127,7 +126,7 @@ class KalmanPredictor(Predictor):
 
         return predict_over_interval
 
-    def _predicted_covariance(self, prior, control_input, predict_over_interval, **kwargs):
+    def _predicted_covariance(self, prior, predict_over_interval, control_input=None, **kwargs):
         """Private function to return the predicted covariance. Useful in that
         it can be overwritten in children.
 
@@ -136,6 +135,9 @@ class KalmanPredictor(Predictor):
         prior : :class:`~.GaussianState`
             The prior class
         predict_over_interval : :class`~.timedelta`
+            The interval over which the covariance is predicted
+        control_input : :class:`~State`
+            The input control vector (optional)
 
         Returns
         -------
@@ -186,10 +188,12 @@ class KalmanPredictor(Predictor):
         # Prediction of the mean
         x_pred = self._transition_function(
             prior, time_interval=predict_over_interval, **kwargs) \
-            + self.control_model.function(control_input, time_interval=predict_over_interval, **kwargs)
+            + self.control_model.function(control_input, time_interval=predict_over_interval,
+                                          **kwargs)
 
         # Prediction of the covariance
-        p_pred = self._predicted_covariance(prior, control_input, predict_over_interval)
+        p_pred = self._predicted_covariance(prior, predict_over_interval,
+                                            control_input=control_input)
 
         # And return the state in the correct form
         return Prediction.from_state(prior, x_pred, p_pred, timestamp=timestamp,
@@ -325,16 +329,19 @@ class UnscentedKalmanPredictor(KalmanPredictor):
             control
         """
 
-        return self.transition_model.function(prior_state, **kwargs)
+        return self.transition_model.function(prior_state, **kwargs) + \
+            self.control_model.function(**kwargs)
 
     @predict_lru_cache()
-    def predict(self, prior, timestamp=None, control_input=None, **kwargs):
+    def predict(self, prior, control_input=None, timestamp=None, **kwargs):
         r"""The unscented version of the predict step
 
         Parameters
         ----------
         prior : :class:`~.State`
             Prior state, :math:`\mathbf{x}_{k-1}`
+        control_input: :class:`~.State`
+            Control input vector, :math:`\mathbf{u}_k`
         timestamp : :class:`datetime.datetime`
             Time to transit to (:math:`k`)
         **kwargs : various, optional
@@ -356,22 +363,20 @@ class UnscentedKalmanPredictor(KalmanPredictor):
         # TODO: the sigma points and then just sticking them into the
         # TODO: unscented transform, and I haven't checked the statistics.
         ctrl_mat = self.control_model.matrix(time_interval=predict_over_interval, **kwargs)
-        ctrl_noi = self.control_model.control_noise
+        ctrl_noi = self.control_model.covar(**kwargs)
         total_noise_covar = \
             self.transition_model.covar(time_interval=predict_over_interval, **kwargs) \
             + ctrl_mat @ ctrl_noi @ ctrl_mat.T
 
         # Get the sigma points from the prior mean and covariance.
-        prior_ctrl = prior.__class__(prior.state_vector + \
-            self.control_model.function(control_input, time_interval=predict_over_interval,
-                                        **kwargs), total_noise_covar)
         sigma_point_states, mean_weights, covar_weights = gauss2sigma(
-            prior_ctrl, self.alpha, self.beta, self.kappa)
+            prior, self.alpha, self.beta, self.kappa)
 
         # This ensures that function passed to unscented transform has the
         # correct time interval
         transition_and_control_function = partial(
             self._transition_and_control_function,
+            control_input=control_input,
             time_interval=predict_over_interval)
 
         # Put these through the unscented transform, together with the total
@@ -416,7 +421,7 @@ class SqrtKalmanPredictor(ExtendedKalmanPredictor):
     # This predictor returns a square root form of the Gaussian state prediction
     _prediction_class = SqrtGaussianStatePrediction
 
-    def _predicted_covariance(self, prior, control_input, predict_over_interval, **kwargs):
+    def _predicted_covariance(self, prior, predict_over_interval, control_input=None, **kwargs):
         """Private function to return the predicted covariance.
 
         Parameters
@@ -425,6 +430,8 @@ class SqrtKalmanPredictor(ExtendedKalmanPredictor):
             The prior class (which carries the covariance in square root form)
         predict_over_interval : :class`~.timedelta`
             The interval over which the model is applied
+        control_input : :class:`~State`
+            The input control vector (optional)
 
         Returns
         -------
@@ -448,9 +455,11 @@ class SqrtKalmanPredictor(ExtendedKalmanPredictor):
         ctrl_mat = self._control_matrix(control_input=control_input,
                                         time_interval=predict_over_interval)
         try:
-            sqrt_ctrl_noi = self.control_model.sqrt_control_noise
+            sqrt_ctrl_noi = self.control_model.sqrt_covar(time_interval=predict_over_interval,
+                                                          **kwargs)
         except AttributeError:
-            sqrt_ctrl_noi = la.sqrtm(self.control_model.control_noise)
+            sqrt_ctrl_noi = la.sqrtm(self.control_model.covar(time_interval=predict_over_interval,
+                                                              **kwargs))
 
         if self.qr_method:
             # Note that the control matrix aspect of this hasn't been tested
