@@ -47,6 +47,21 @@ class Movable(StateMutableSequence, MovableActionable, ABC):
         if not self.states:
             raise ValueError('States must not be empty: it must contain least one state.')
 
+        self.timestamp = None
+        
+    def validate_timestamp(self):
+
+        if self.timestamp:
+            return True
+
+        try:
+            self.timestamp = self.movement_controller.state.timestamp
+        except AttributeError:
+            return False
+        if self.timestamp is None:
+            return False
+        return True
+
     @property
     def position(self) -> StateVector:
         """Return the position of the platform.
