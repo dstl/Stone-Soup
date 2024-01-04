@@ -7,7 +7,7 @@ import numpy as np
 
 from ..measures import KLDivergence
 from ..platform import Platform
-from ..sensor.actionable import Actionable
+from ..sensormanager.actionable import Actionable
 from ..types.detection import TrueDetection
 from ..base import Base, Property
 from ..predictor.particle import ParticlePredictor
@@ -16,7 +16,7 @@ from ..updater.kalman import ExtendedKalmanUpdater
 from ..types.track import Track
 from ..types.hypothesis import SingleHypothesis
 from ..sensor.sensor import Sensor
-from ..sensor.action import Action
+from ..sensormanager.actionable import Action
 from ..types.prediction import Prediction
 from ..updater.particle import ParticleUpdater
 from ..resampler.particle import SystematicResampler

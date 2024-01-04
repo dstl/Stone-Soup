@@ -3,9 +3,12 @@ from typing import Callable, Set
 import random
 import numpy as np
 import itertools as it
+from typing import TYPE_CHECKING
 
 from ..base import Base, Property
-from ..sensor.sensor import Sensor
+
+if TYPE_CHECKING:
+    from ..sensor.sensor import Sensor
 
 
 class SensorManager(Base, ABC):
@@ -23,8 +26,8 @@ class SensorManager(Base, ABC):
     which communicate with other sensor managers in a networked fashion.
 
     """
-    sensors: Set[Sensor] = Property(doc="The sensor(s) which the sensor manager is managing. "
-                                        "These must be capable of returning available actions.")
+    sensors: Set['Sensor'] = Property(doc="The sensor(s) which the sensor manager is managing. "
+                                          "These must be capable of returning available actions.")
 
     reward_function: Callable = Property(
         default=None, doc="A function or class designed to work out the reward associated with an "

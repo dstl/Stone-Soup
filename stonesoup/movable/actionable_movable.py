@@ -2,7 +2,7 @@ from typing import Sequence
 import numpy as np
 from ..base import Property
 
-from stonesoup.sensor.actionable import Actionable
+from stonesoup.sensormanager.actionable import Actionable
 from stonesoup.movable import FixedMovable
 from stonesoup.movable.action.move_position_action import NStepDirectionalGridActionGenerator
 from stonesoup.types.state import State

@@ -4,7 +4,7 @@ import numpy as np
 import pytest
 
 from ..dwell_action import DwellActionsGenerator, ChangeDwellAction
-from ...actionable import Actionable, ActionableProperty
+from ....sensormanager.actionable import Actionable, ActionableProperty
 from ...base import Property
 from ....types.angle import Bearing, Angle
 from ....types.array import StateVector

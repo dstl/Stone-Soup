@@ -3,7 +3,7 @@ from abc import abstractmethod
 from typing import Iterator, Sequence
 
 from ...base import Property
-from ...sensor.action import ActionGenerator, Action
+from ...sensormanager.actionable import ActionGenerator, Action
 from ...types.state import StateVector
 
 

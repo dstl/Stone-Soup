@@ -4,7 +4,7 @@ from typing import Iterator
 
 import numpy as np
 
-from . import Action, RealNumberActionGenerator
+from ...sensormanager.actionable import Action, RealNumberActionGenerator
 from ...base import Property
 from ...functions import mod_bearing
 from ...types.angle import Angle, Bearing

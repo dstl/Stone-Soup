@@ -3,7 +3,7 @@ from typing import Set, Union, Sequence
 
 import numpy as np
 
-from .actionable import Actionable
+from .actionable import SensorActionable
 from .base import PlatformMountable
 from ..base import Property
 from ..models.clutter.clutter import ClutterModel
@@ -11,7 +11,7 @@ from ..types.detection import TrueDetection, Detection
 from ..types.groundtruth import GroundTruthState
 
 
-class Sensor(PlatformMountable, Actionable):
+class Sensor(PlatformMountable, SensorActionable):
     """Sensor Base class for general use.
 
     Most properties and methods are inherited from :class:`~.PlatformMountable`.
