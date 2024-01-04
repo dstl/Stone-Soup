@@ -17,7 +17,6 @@ detection fused tracker is created and simulated for comparison.
 # away from the targets’ starting location. The targets fly towards the sensors
 # during the simulation.
 
-
 # %%
 # First some general setup:
 
@@ -35,7 +34,7 @@ from stonesoup.initiator.simple import SimpleMeasurementInitiator
 from stonesoup.measures import Euclidean
 from stonesoup.models.transition.linear import CombinedLinearGaussianTransitionModel, \
     ConstantVelocity
-from stonesoup.plotter import Plotterly, AnimatedPlotterly
+from stonesoup.plotter import AnimatedPlotterly
 from stonesoup.predictor.kalman import ExtendedKalmanPredictor
 from stonesoup.sensor.radar.radar import RadarElevationBearingRange
 from stonesoup.tracker.simple import MultiTargetTracker
@@ -136,35 +135,30 @@ sensor2 = RadarElevationBearingRange(
 # %%
 # Plot the Scenario
 # ^^^^^^^^^^^^^^^^^
+# First, plot X against Z:
 
-plotterXZ = Plotterly(xaxis=dict(title=dict(text="<i>x</i> (East)")),
-                      yaxis=dict(title=dict(text="<i>z</i> (Altitude)")))
-plotterXZ.plot_ground_truths({target_1_truth, target_2_truth}, [_X, _Z],
-                             truths_label="Target Flight Path")
-plotterXZ.fig
-
-# %%
-# Animated Plotterly
-animplotterXZ = AnimatedPlotterly(all_times).update_layout(
+plotterXZ = AnimatedPlotterly(all_times)
+plotterXZ.fig.update_layout(
     xaxis_title="<i>x</i> (East)",
     yaxis_title="<i>z</i> (Altitude)")
-animplotterXZ.plot_ground_truths({target_1_truth, target_2_truth}, [_X, _Z],
+plotterXZ.plot_ground_truths({target_1_truth, target_2_truth}, [_X, _Z],
                              truths_label="Target Flight Path")
-animplotterXZ.show()
+plotterXZ.show()
 
 # %%
 # There isn’t much to see in this graph as both targets are at the same altitude for the whole
-# simulation.
+# simulation. Now plot X against Y:
 
+plotterXY = AnimatedPlotterly(all_times)
 
-plotterXY = Plotterly(xaxis=dict(title=dict(text="<i>x</i> (East)")),
-                      yaxis=dict(title=dict(text="<i>y</i> (North)"), scaleanchor="x",
-                                 scaleratio=1))
+plotterXY.fig.update_layout(
+    xaxis_title="<i>x</i> (East)",
+    yaxis_title="<i>y</i> (North)")
+
 plotterXY.plot_ground_truths({target_1_truth, target_2_truth}, [_X, _Y],
                              truths_label="Target Flight Path")
 plotterXY.plot_sensors([sensor1, sensor2], sensor_label="Sensor Location")
-plotterXY.fig
-
+plotterXY.show()
 
 # %%
 # Generate Detections
@@ -193,7 +187,7 @@ plotterXY.plot_measurements(s1_measurements, [_X, _Y], measurements_label="Senso
                             marker=dict(color='#1F77B4'))
 plotterXY.plot_measurements(s2_measurements, [_X, _Y], measurements_label="Sensor Two",
                             marker=dict(color='#FF7F0E'))
-plotterXY.fig
+plotterXY.show()
 
 
 # %%
@@ -202,7 +196,7 @@ plotterXZ.plot_measurements(s1_measurements, [_X, _Z], measurements_label="Senso
                             marker=dict(color='#1F77B4'))
 plotterXZ.plot_measurements(s2_measurements, [_X, _Z], measurements_label="Sensor Two",
                             marker=dict(color='#FF7F0E'))
-plotterXZ.fig
+plotterXZ.show()
 
 
 # %%
@@ -275,7 +269,7 @@ s2_tracker = MultiTargetTracker(**create_tracker_kwargs(
 # A track association algorithm will associate closely spaced tracks together.
 # After being associated together the tracks are combined using
 # :class:`~.BasicConvexCombination`. The tracker will output
-# (:class:`~.datetime`, Set[:class:`.Track`]) like a normal tracker.
+# (:class:`~.datetime.datetime`, Set[:class:`.Track`]) like a normal tracker.
 
 # %%
 # A :class:`~.SyncMultiTrackFeeder` is used to send the output of tracker S1 and
@@ -406,7 +400,7 @@ plotterXZ.plot_tracks(all_s2_tracks, [_X, _Z], track_label="Sensor Two Tracker")
 plotterXZ.plot_tracks(all_raw_combo_tracks, [_X, _Z], track_label="Raw Track Fused Tracker")
 plotterXZ.plot_tracks(all_processed_combo_tracks, [_X, _Z],
                       track_label="Processed Track Fused Tracker")
-plotterXZ.fig
+plotterXZ.show()
 # %%
 # Due to the close spaced targets in altitude, there isn't much to see in the XZ plot
 # Plot Tracks in XY
@@ -421,14 +415,14 @@ plotterXZ.fig
 hide_plot_traces(plotterXY.fig, {"Sensor Two<br>(Detections)", "Sensor Two Tracker",
                                  "Raw Track Fused Tracker", "Processed Track Fused Tracker",
                                  "Detection Fusion Tracker"})
-plotterXY.fig
+plotterXY.show()
 
 # %%
 # **Sensor 2**
 hide_plot_traces(plotterXY.fig, {"Sensor One<br>(Detections)", "Sensor One Tracker",
                                  "Raw Track Fused Tracker", "Processed Track Fused Tracker",
                                  "Detection Fusion Tracker"})
-plotterXY.fig
+plotterXY.show()
 
 
 # %%
@@ -440,13 +434,13 @@ plotterXY.fig
 hide_plot_traces(plotterXY.fig, {"Sensor One<br>(Detections)", "Sensor One Tracker",
                                  "Sensor Two<br>(Detections)", "Sensor Two Tracker",
                                  "Processed Track Fused Tracker", "Detection Fusion Tracker"})
-plotterXY.fig
+plotterXY.show()
 
 
 # %%
 # Track Fused Tracking
 # ^^^^^^^^^^^^^^^^^^^^
-# For subsequent time-steps the :class:`~.BetaTrackContinuityBuffer` joins the
+# For subsequent timesteps, the :class:`~.BetaTrackContinuityBuffer` joins the
 # tracks that have the same :attr:`.Track.id`. When :class:`~.TrackFusedTracker`
 # combines two tracks, the output track id is created from the contributing
 # tracks using :func:`~.get_fused_id` (which is reproducible). Other
@@ -455,10 +449,10 @@ plotterXY.fig
 hide_plot_traces(plotterXY.fig, {"Sensor One<br>(Detections)", "Sensor Two<br>(Detections)",
                                  "Raw Track Fused Tracker", "Detection Fusion Tracker",
                                  "Sensor Location"})
-plotterXY.fig
+plotterXY.show()
 
 # %%
-# The processed track fused track should be in between the two individual sensor tracks
+# The processed track-fused track should be in-between the two individual sensor tracks
 
 # %%
 # Detection Fusion Tracking
@@ -467,13 +461,13 @@ plotterXY.fig
 plotterXY.plot_tracks(all_tracks_fuse, [_X, _Y], track_label="Detection Fusion Tracker")
 hide_plot_traces(plotterXY.fig, {"Sensor One Tracker", "Sensor Two Tracker",
                                  "Raw Track Fused Tracker", "Processed Track Fused Tracker"})
-plotterXY.fig
+plotterXY.show()
 
 # %%
 # Reproducibility
 # ^^^^^^^^^^^^^^^
-# Usually the individual sensors, track fused and detection fused trackers
-# perform well. However they can be confused during the target crossing
+# Usually the individual sensors, track-fused trackers, and detection fused trackers
+# perform well. However, they can be confused during the target crossing
 # resulting in poor tracking (e.g. track breakages).  The standard tracker
 # isn’t optimised at all and optimising the trackers could improve the tracking
 # performance and reliability.
