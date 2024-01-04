@@ -48,7 +48,7 @@ class Movable(StateMutableSequence, MovableActionable, ABC):
             raise ValueError('States must not be empty: it must contain least one state.')
 
         self.timestamp = None
-        
+
     def validate_timestamp(self):
 
         if self.timestamp:
