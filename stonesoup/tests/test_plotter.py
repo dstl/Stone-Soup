@@ -214,7 +214,13 @@ def test_plot_complex_uncertainty():
 def test_animationplotter():
     animation_plotter = AnimationPlotter()
     animation_plotter.plot_ground_truths(truth, [0, 2])
-    animation_plotter.run(plot_title="Plot title")
+    animation_plotter.plot_measurements(all_measurements, [0, 2])
+    animation_plotter.run()
+
+    animation_plotter_with_title = AnimationPlotter()
+    animation_plotter_with_title.plot_ground_truths(truth, [0, 2])
+    animation_plotter_with_title.plot_tracks(track, [0, 2])
+    animation_plotter_with_title.run(plot_title="Plot title")
 
 
 def test_animated_plotterly():
