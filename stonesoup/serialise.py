@@ -38,9 +38,9 @@ from collections import OrderedDict, deque
 from functools import lru_cache
 from pathlib import Path
 from importlib import import_module
+from importlib.metadata import entry_points
 
 import numpy as np
-import pkg_resources
 import ruamel.yaml
 from ruamel.yaml.constructor import ConstructorError
 
@@ -56,7 +56,12 @@ typ = 'stonesoup'
 
 def init_typ(yaml):
     # Load additional custom serialisation
-    for entry_point in pkg_resources.iter_entry_points('stonesoup.serialise.yaml'):
+    eps = entry_points()
+    try:
+        entrypoints = eps['stonesoup.serialise.yaml']
+    except KeyError:
+        entrypoints = []
+    for entry_point in entrypoints:
         try:
             entry_point.load()(yaml)
         except (ImportError, ModuleNotFoundError) as e:
