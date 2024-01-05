@@ -1,6 +1,6 @@
 import os
 import datetime
-from distutils import dir_util
+import shutil
 import pytest
 
 from ...buffered_generator import BufferedGenerator
@@ -172,6 +172,6 @@ def datadir(tmpdir, request):
     test_dir, _ = os.path.splitext(filename)
 
     if os.path.isdir(test_dir):
-        dir_util.copy_tree(test_dir, str(tmpdir))
+        shutil.copytree(test_dir, str(tmpdir), dirs_exist_ok=True)
 
     return tmpdir
