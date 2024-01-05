@@ -1,10 +1,10 @@
 """Stone Soup framework: development and assessment of tracking algorithms."""
 
-from pkg_resources import get_distribution, DistributionNotFound
+from importlib.metadata import version, PackageNotFoundError
 
 try:
-    __version__ = get_distribution("stonesoup").version
-except DistributionNotFound:
+    __version__ = version("stonesoup")
+except PackageNotFoundError:
     # package is not installed
     pass
 
