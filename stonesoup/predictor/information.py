@@ -23,24 +23,26 @@ class InformationKalmanPredictor(KalmanPredictor):
 
       .. math::
 
-        Y_{k|k-1} &= [F_k Y_{k-1}^{-1} F^T + Q_k]^{-1}
+        Y_{k|k-1} &= [F_k Y_{k-1}^{-1} F^T + Q_k + B_k \Gamma_k B_k^T]^{-1}
 
         \mathbf{y}_{k|k-1} &= Y_{k|k-1} F_k Y_{k-1}^{-1} \mathbf{y}_{k-1} + Y_{k|k-1}
         B_k\mathbf{u}_k
 
     where the symbols have the same meaning as in the description of the Kalman filter
     (see e.g. tutorial 1) and the prediction equations can be derived from those of the Kalman
-    filter. In order to cut down on the number of matrix inversions and to benefit from caching
-    these are usually recast as [#]_
+    filter. As it stands the :class:`~ControlModel` must be capable of returning a (perhaps
+    linearised) control matrix and a control noise covariance matrix. In order to cut down on
+    the number of matrix inversions and to benefit from caching these can be recast as [#]_
 
       .. math::
 
         M_k &= (F_k^{-1})^T Y_{k-1} F_k^{-1}
 
-        Y_{k|k-1} &= (I + M_k Q_k)^{-1} M_k
+        C_k &= (I + M_k Q_k + M_k B_k \Gamma_k B_k^T)^{-1}
 
-        \mathbf{y}_{k|k-1} &= (I + M_k Q_k)^{-1} (F_k^{-1})^T \mathbf{y}_k + Y_{k|k-1}
-        B_k\mathbf{u}_k
+        Y_{k|k-1} &= C_k M_k
+
+        \mathbf{y}_{k|k-1} &= C_k (F_k^{-1})^T \mathbf{y}_k + Y_{k|k-1} B_k\mathbf{u}_k
 
     The prior state must have a state vector :math:`\mathbf{y}_{k-1}` corresponding to
     :math:`P_{k-1}^{-1} \mathbf{x}_{k-1}` and a precision matrix, :math:`Y_{k-1} = P_{k-1}^{-1}`.
@@ -152,18 +154,19 @@ class InformationKalmanPredictor(KalmanPredictor):
         transition_covar = self.transition_model.covar(
             time_interval=predict_over_interval, **kwargs)
 
-        control_matrix = self._control_matrix(time_interval=predict_over_interval, **kwargs)
         # control noise doesn't appear in the information matrix literature. It's incorporation
-        # will require re-deriving the following equations.
-        # control_noise = self.control_model.control_noise
+        # here depends on the model being able to return a matrix and covariance.
+        control_matrix = self._control_matrix(time_interval=predict_over_interval, **kwargs)
+        control_noise = self.control_model.covar(time_interval=predict_over_interval, **kwargs)
+        control_covar = control_matrix @ control_noise @ control_matrix.T
 
         Mk = inverse_transition_matrix.T @ prior.precision @ inverse_transition_matrix
-        Ck = np.linalg.inv(np.eye(prior.ndim) + Mk @ transition_covar)
+        Ck = np.linalg.inv(np.eye(prior.ndim) + Mk @ transition_covar + Mk @ control_covar)
         pred_info_matrix = Ck @ Mk
         pred_info_state = Ck @ inverse_transition_matrix.T @ prior.state_vector + \
-            pred_info_matrix @ control_matrix @ \
-            self.control_model.function(control_input, time_interval=predict_over_interval,
-                                        **kwargs)
+            pred_info_matrix @ self.control_model.function(control_input,
+                                                           time_interval=predict_over_interval,
+                                                           **kwargs)
 
         return Prediction.from_state(prior, pred_info_state, pred_info_matrix, timestamp=timestamp,
                                      transition_model=self.transition_model)

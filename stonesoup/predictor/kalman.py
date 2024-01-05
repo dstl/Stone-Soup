@@ -18,16 +18,15 @@ from ..functions import gauss2sigma, unscented_transform
 class KalmanPredictor(Predictor):
     r"""A predictor class which forms the basis for the family of Kalman
     predictors. This class also serves as the (specific) Kalman Filter
-    :class:`~.Predictor` class. Here
+    :class:`~.Predictor` class. Here transition and control models must be linear:
 
     .. math::
 
-      f_k( \mathbf{x}_{k-1}) = F_k \mathbf{x}_{k-1},  \ b_k( \mathbf{u}_k) =
-      B_k \mathbf{u}_k \ \mathrm{and} \ \mathbf{\nu}_k \sim \mathcal{N}(0,Q_k)
+      f_k( \mathbf{x}_{k-1}, \mathbf{\nu}_k) &= F_k \mathbf{x}_{k-1} + \mathbf{\nu}_k , \
+      \mathbf{\nu}_k \sim \mathcal{N}(0,Q_k)
 
-    Notes
-    -----
-    In the Kalman filter, transition and control models must be linear.
+      \ b_k( \mathbf{u}_k, \mathbf{\eta}_k) &= B_k (\mathbf{u}_k + \mathbf{\eta}_k), \
+      \mathbf{\eta}_k \sim \mathcal{N}(0,\Gamma_k).
 
     Raises
     ------
@@ -169,7 +168,7 @@ class KalmanPredictor(Predictor):
         timestamp : :class:`datetime.datetime`, optional
             :math:`k`
         control_input : :class:`StateVector`, optional
-            :math:`u`
+            :math:`\mathbf{u}_k`
         **kwargs :
             These are passed, via :meth:`~.KalmanFilter.transition_function` to
             :meth:`~.LinearGaussianTransitionModel.matrix` and
