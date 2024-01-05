@@ -1676,7 +1676,7 @@ class _AnimationPlotterDataClass(Base):
 class AnimationPlotter(_Plotter):
 
     def __init__(self, dimension=Dimension.TWO, x_label: str = "$x$", y_label: str = "$y$",
-                 legend_kwargs: dict = {}, **kwargs):
+                 title: str = None, legend_kwargs: dict = {}, **kwargs):
 
         self.figure_kwargs = {"figsize": (10, 6)}
         self.figure_kwargs.update(kwargs)
@@ -1689,6 +1689,10 @@ class AnimationPlotter(_Plotter):
         self.x_label: str = x_label
         self.y_label: str = y_label
 
+        if title:
+            title += "\n"
+        self.title: str = title
+
         self.plotting_data: List[_AnimationPlotterDataClass] = []
 
         self.animation_output: animation.FuncAnimation = None
@@ -1696,7 +1700,6 @@ class AnimationPlotter(_Plotter):
     def run(self,
             times_to_plot: List[datetime] = None,
             plot_item_expiry: Optional[timedelta] = None,
-            plot_title=None,
             **kwargs):
         """Run the animation
 
@@ -1711,9 +1714,6 @@ class AnimationPlotter(_Plotter):
         \\*\\*kwargs: dict
             Additional arguments to be passed to the animation.FuncAnimation function
         """
-        if plot_title:
-            plot_title += "\n"
-
         if times_to_plot is None:
             times_to_plot = sorted({
                 state.timestamp
@@ -1729,7 +1729,7 @@ class AnimationPlotter(_Plotter):
             figure_kwargs=self.figure_kwargs,
             legend_kwargs=self.legend_kwargs,
             animation_input_kwargs=kwargs,
-            plot_title=plot_title
+            plot_title=self.title
         )
         return self.animation_output
 
@@ -1931,7 +1931,7 @@ class AnimationPlotter(_Plotter):
                       legend_kwargs: dict = {},
                       x_label: str = "$x$",
                       y_label: str = "$y$",
-                      plot_title: str = ""
+                      plot_title: str = None
                       ) -> animation.FuncAnimation:
         """
         Parameters
