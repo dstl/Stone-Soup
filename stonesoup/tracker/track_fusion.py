@@ -33,14 +33,10 @@ class TrackFusedTracker(Tracker):
 
     def update_tracker(self, time, input_tracks: Sequence[Set[Track]]) -> \
             Tuple[datetime, Set[Track]]:
-        # print("Input Tracks:", *[[track.id[0:5] for track in track_set]
-        #                          for track_set in input_tracks])
+
         associated_track_sets, unassociated_tracks = self.associate_tracks(input_tracks)
         combined_tracks = {self.combine_tracks(association) for association in
                            associated_track_sets}
-        # print("Output Tracks:",
-        #       "c", [track.id[0:5] for track in combined_tracks],
-        #       "i", *[track.id[0:5] for track in unassociated_tracks])
 
         return time, {*combined_tracks, *unassociated_tracks}
 

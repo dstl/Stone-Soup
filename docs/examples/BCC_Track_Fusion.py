@@ -83,7 +83,7 @@ target_2_waypoints = [
 
 
 # %%
-# States are interpolated inbetween waypoints to make a consistent sequence of locations. The
+# States are interpolated in-between waypoints to make a consistent sequence of locations. The
 # :func:`interpolate_states` function performs a linear interpolation between states to create new
 # intermediate states.
 def interpolate_states(existing_states: Collection[State], interpolate_time: datetime.datetime):
@@ -201,21 +201,21 @@ plotterXZ.show()
 
 # %%
 # Tracking
-# -------------------------------------------------
+# --------
 # In this section four trackers will be created: radar tracker, infrared tracker, track fusion
 # tracker and detection fusion tracker. All the trackers will be based on a standard tracker. The
-# trackers will be ran and will process the sensor data. The output of the trackers will be
-# explored in subsequent sections
+# trackers will be run and will process the sensor data. The output of the trackers will be
+# explored in subsequent sections.
 
 
 # %%
 # Create Standard Tracker
-# ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+# ^^^^^^^^^^^^^^^^^^^^^^^
 # The standard tracker uses an Extended Kalman Filter (EKF). Global Nearest Neighbour (GNN) is
-# used to associate detections to tracks. Tracks are initiated from any detections that aren’t
+# used to associate detections to tracks. Tracks are initiated from any detections that are not
 # associated to a track. Tracks will be deleted after 10 seconds without a detection being
-# associated to them. The `create_tracker_kwargs` function generates the key word arguments for
-# each tracker
+# associated to them. The :func:`create_tracker_kwargs` function generates the key word arguments
+# for each tracker.
 def create_tracker_kwargs(transition_model, detector=None, measurement_model=None):
     initial_state = GaussianState(state_vector=[0] * 6, covar=np.diag([1000] * 6))
     initiator = SimpleMeasurementInitiator(initial_state, measurement_model=measurement_model,
@@ -235,10 +235,9 @@ def create_tracker_kwargs(transition_model, detector=None, measurement_model=Non
 
 # %%
 # Create Sensor One Tracker
-# ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-# Sensor One Tracker (S1 Tracker) uses the standard tracker inputs with a three
-# dimensional constant velocity
-# model.
+# ^^^^^^^^^^^^^^^^^^^^^^^^^
+# Sensor One Tracker (S1 Tracker) uses the standard tracker inputs with a three-dimensional
+# constant velocity model.
 transition_noise = 0.02
 transition_model_xyz = CombinedLinearGaussianTransitionModel((
     ConstantVelocity(transition_noise),
@@ -250,13 +249,11 @@ s1_tracker = MultiTargetTracker(**create_tracker_kwargs(
     detector=s1_detection_inputs)
 )
 
-
 # %%
 # Create Sensor Two Tracker
-# ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+# ^^^^^^^^^^^^^^^^^^^^^^^^^
 # Sensor Two Tracker (S2 Tracekr) is identical to the Sensor One Tracker. It
-# uses the standard tracker inputs with a three dimensional constant velocity
-# model.
+# uses the standard tracker inputs with a three-dimensional constant velocity model.
 s2_tracker = MultiTargetTracker(**create_tracker_kwargs(
     transition_model=transition_model_xyz,
     detector=s2_detection_inputs)
@@ -264,12 +261,12 @@ s2_tracker = MultiTargetTracker(**create_tracker_kwargs(
 
 # %%
 # Create Track Fusion Tracker
-# ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+# ^^^^^^^^^^^^^^^^^^^^^^^^^^^
 # The output of the S1 Tracker and S2 tracker are fed into a :class:`~.TrackFusedTracker`.
 # A track association algorithm will associate closely spaced tracks together.
-# After being associated together the tracks are combined using
-# :class:`~.BasicConvexCombination`. The tracker will output
-# (:class:`~.datetime.datetime`, Set[:class:`.Track`]) like a normal tracker.
+# After being associated, the tracks are combined using :class:`~.BasicConvexCombination`.
+# The tracker will output (:class:`~.datetime.datetime`, Set[:class:`.Track`])
+# like a normal tracker.
 
 # %%
 # A :class:`~.SyncMultiTrackFeeder` is used to send the output of tracker S1 and
@@ -287,10 +284,10 @@ multi_track_feeder = SyncMultipleTrackFeedersToOneFeeder(readers=[
 )
 
 # %%
-# An :class:`.OneToOneTrackAssociator` is used to associate tracks together.
+# A :class:`.OneToOneTrackAssociator` is used to associate tracks together.
 # The associator will look for pairs of tracks with the minimum average
 # Euclidean distance between them over the last 5 time steps. These tracks will
-# be combined together using :class:`.BasicConvexCombination`.
+# be combined using :class:`.BasicConvexCombination`.
 track_associator = OneToOneTrackAssociator(
         measure=MeanMeasure(
             RecentStateSequenceMeasure(n_states_to_compare=5,
@@ -304,7 +301,7 @@ combined_tracker = TrackFusedTracker(
 
 # %%
 # The unfiltered output of a :class:`.TrackFusedTracker` isn’t very useful and
-# won’t normally be used. However in this example is used to demonstrate its
+# won’t normally be used. This example demonstrates its
 # impracticality in the :ref:`auto_examples/bcc_track_fusion:raw track fused tracking`
 # section. A :class:`.TrackerWithContinuityBuffer` is used with a
 # :class:`.BetaTrackContinuityBuffer` to filter the output to provide a more

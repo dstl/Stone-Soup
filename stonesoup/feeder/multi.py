@@ -95,16 +95,16 @@ class FeederToMultipleFeeders(Feeder):
     Process:
     > Object Creation:
         > A empty dictionary 'iterator_clones_dict' is set up to contain all iterators clones
-    > [Repeated 'x' times] create_feeder is called
+    > [Repeated 'x' times] create_feeder is called:
         > A generator function is created 'iterator_clone_generator'
         > An entry is added to the 'iterator_clone_generator' with the key of this function and the
-        value is 'None
+        value is 'None'
         > The generator function is returned
-    > First next call on any of the iterator clones
+    > First next call on any of the iterator clones:
         > Tries to retrieve a copy of the iterator from the 'iterator_clones_dict' using function
         as it's key. This returns None.
-        > As the returned value from the dictionary is None. '_activate_feeders' is called
-        > _activate_feeders
+        > As the returned value from the dictionary is None, '_activate_feeders' is called
+        > _activate_feeders:
             > Generates 'x' iterator copies using the 'tee' function
             > Each copy is assigned to a value in the dictionary
         > Tries to retrieve a copy of the iterator from the 'iterator_clones_dict' using function
