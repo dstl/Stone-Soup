@@ -50,7 +50,7 @@ def test_random_choose_actions():
         chosen_action_configs = sensor_manager.choose_actions({},
                                                               time_start + timedelta(seconds=1))
 
-        assert type(chosen_action_configs) == list
+        assert isinstance(chosen_action_configs, list)
 
         for chosen_config in chosen_action_configs:
             for sensor, actions in chosen_config.items():
@@ -352,7 +352,7 @@ def test_greedy_manager(params):
                 track.append(hypothesis.prediction)
 
     # Double check choose_actions method types are as expected
-    assert type(chosen_actions) == list
+    assert isinstance(chosen_actions, list)
 
     for chosen_actions in chosen_actions:
         for sensor, actions in chosen_action.items():

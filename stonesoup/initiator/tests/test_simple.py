@@ -6,7 +6,7 @@ from pytest import approx
 
 from ...models.base import LinearModel, ReversibleModel
 from ...models.measurement.linear import LinearGaussian
-from ...models.measurement.nonlinear import CartesianToBearingRange, Cartesian2DToBearing,\
+from ...models.measurement.nonlinear import CartesianToBearingRange, Cartesian2DToBearing, \
     CombinedReversibleGaussianMeasurementModel
 from ...models.transition.linear import \
     CombinedLinearGaussianTransitionModel, ConstantVelocity

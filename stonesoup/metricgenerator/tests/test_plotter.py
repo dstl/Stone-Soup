@@ -60,6 +60,6 @@ def test_twodplotter():
     for metric in metrics:
         assert metric.title == "Track plot"
         assert metric.generator == plotter
-        assert type(metric.value) == matplotlib.figure.Figure
+        assert isinstance(metric.value, matplotlib.figure.Figure)
         assert metric.time_range.start_timestamp == timestamp1
         assert metric.time_range.end_timestamp == timestamp2
