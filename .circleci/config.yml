@@ -1,6 +1,9 @@
 version: 2.1
 workflows:
   version: 2
+  lint:
+    jobs:
+      - flake8
   test:
     jobs:
       - test-38
@@ -35,7 +38,7 @@ jobs:
           command: |
             . venv/bin/activate
             mkdir test-reports
-            pytest --junitxml=test-reports/junit.xml --flake8 --cov --cov-report=xml:test-reports/coverage.xml stonesoup
+            pytest --junitxml=test-reports/junit.xml --cov --cov-report=xml:test-reports/coverage.xml stonesoup
       - store_test_results:
           path: test-reports/junit.xml
       - store_artifacts:
@@ -63,6 +66,31 @@ jobs:
     <<: *test-template
     docker:
       - image: cimg/python:3.12
+  flake8:
+    docker:
+      - image: cimg/python:3.12
+    steps:
+      - checkout
+      - restore_cache:
+          key: dependencies-flake8-{{ .Environment.CACHE_VERSION }}-{{ checksum "/home/circleci/.pyenv/version" }}-{{ checksum "setup.cfg" }}
+      - run:
+          name: Install Dependencies
+          command: |
+            python -m venv venv
+            . venv/bin/activate
+            pip install --upgrade pip
+            pip install flake8
+      - save_cache:
+          paths:
+            - ./venv
+          key: dependencies-flake8-{{ .Environment.CACHE_VERSION }}-{{ checksum "/home/circleci/.pyenv/version" }}-{{ checksum "setup.cfg" }}
+      - run:
+          name: Flake8
+          command: |
+            . venv/bin/activate
+            flake8 --tee --output-file test-reports stonesoup
+      - store_artifacts:
+          path: test-reports
   docs:
     docker:
       - image: cimg/python:3.12
