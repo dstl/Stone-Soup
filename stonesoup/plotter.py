@@ -1676,7 +1676,7 @@ class _AnimationPlotterDataClass(Base):
 class AnimationPlotter(_Plotter):
 
     def __init__(self, dimension=Dimension.TWO, x_label: str = "$x$", y_label: str = "$y$",
-                 legend_kwargs: dict = {}, **kwargs):
+                 title: str = None, legend_kwargs: dict = {}, **kwargs):
 
         self.figure_kwargs = {"figsize": (10, 6)}
         self.figure_kwargs.update(kwargs)
@@ -1688,6 +1688,10 @@ class AnimationPlotter(_Plotter):
 
         self.x_label: str = x_label
         self.y_label: str = y_label
+
+        if title:
+            title += "\n"
+        self.title: str = title
 
         self.plotting_data: List[_AnimationPlotterDataClass] = []
 
@@ -1710,7 +1714,6 @@ class AnimationPlotter(_Plotter):
         \\*\\*kwargs: dict
             Additional arguments to be passed to the animation.FuncAnimation function
         """
-
         if times_to_plot is None:
             times_to_plot = sorted({
                 state.timestamp
@@ -1725,7 +1728,8 @@ class AnimationPlotter(_Plotter):
             y_label=self.y_label,
             figure_kwargs=self.figure_kwargs,
             legend_kwargs=self.legend_kwargs,
-            animation_input_kwargs=kwargs
+            animation_input_kwargs=kwargs,
+            plot_title=self.title
         )
         return self.animation_output
 
@@ -1774,7 +1778,7 @@ class AnimationPlotter(_Plotter):
         self.plot_state_mutable_sequence(truths, mapping, truths_label, **truths_kwargs)
 
     def plot_tracks(self, tracks, mapping: List[int], uncertainty=False, particle=False,
-                    track_label="Tracks",  **kwargs):
+                    track_label="Tracks", **kwargs):
         """Plots track(s)
 
         Plots each track generated, generating a legend automatically. Tracks are plotted as solid
@@ -1926,7 +1930,8 @@ class AnimationPlotter(_Plotter):
                       animation_input_kwargs: dict = {},
                       legend_kwargs: dict = {},
                       x_label: str = "$x$",
-                      y_label: str = "$y$"
+                      y_label: str = "$y$",
+                      plot_title: str = None
                       ) -> animation.FuncAnimation:
         """
         Parameters
@@ -1953,6 +1958,8 @@ class AnimationPlotter(_Plotter):
             Label for the x axis
         y_label: str
             Label for the y axis
+        plot_title: str
+            Title for the plot
 
         Returns
         -------
@@ -2019,7 +2026,7 @@ class AnimationPlotter(_Plotter):
         line_ani = animation.FuncAnimation(fig1, cls.update_animation,
                                            frames=len(times_to_plot),
                                            fargs=(the_lines, plotting_data, min_plot_times,
-                                                  times_to_plot),
+                                                  times_to_plot, plot_title),
                                            **animation_kwargs)
 
         plt.draw()
@@ -2028,7 +2035,7 @@ class AnimationPlotter(_Plotter):
 
     @staticmethod
     def update_animation(index: int, lines: List[Line2D], data_list: List[List[State]],
-                         start_times: List[datetime], end_times: List[datetime]):
+                         start_times: List[datetime], end_times: List[datetime], title: str):
         """
         Parameters
         ----------
@@ -2042,6 +2049,8 @@ class AnimationPlotter(_Plotter):
             lowest (earliest) time for an item to be plotted
         end_times : List[datetime]
             highest (latest) time for an item to be plotted
+        title: str
+            Title for the plot
 
         Returns
         -------
@@ -2052,7 +2061,9 @@ class AnimationPlotter(_Plotter):
         min_time = start_times[index]
         max_time = end_times[index]
 
-        plt.title(max_time)
+        if title is None:
+            title = ""
+        plt.title(title + str(max_time))
         for i, data_source in enumerate(data_list):
 
             if data_source is not None:
