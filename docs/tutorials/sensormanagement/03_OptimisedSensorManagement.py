@@ -2,14 +2,14 @@
 # coding: utf-8
 
 """
-==========================================================
+===============================
 3 - Optimised Sensor Management
-==========================================================
+===============================
 """
 
 # %%
 #
-# This tutorial follows on from the Multi Sensor Management tutorial and explores the use of
+# This tutorial follows on from the Multiple Sensor Management tutorial and explores the use of
 # external optimisation libraries to overcome the limitations of the brute force optimisation
 # method introduced in the previous tutorial.
 #
@@ -20,15 +20,15 @@
 # particular direction in order
 # to make an observation.
 #
-# The optimised sensor managers are built around the SciPy optimize library. Similar to the brute
-# force method introduced previously the sensor manager considers all possible configurations of
-# sensors and actions and here uses an optimising function to optimise over a given reward function,
-# returning the optimal configuration.
+# The optimised sensor managers are built around SciPy's 'optimize' library. Similar to the
+# brute force method introduced previously, the sensor manager considers all possible
+# configurations of sensors and actions and uses an optimising function with a
+# specified reward function, returning the optimal configuration.
 #
-# The :class:`~.UncertaintyRewardFunction` is used for all sensor managers which chooses the configuration
-# for which the sum of estimated
-# uncertainties (as represented by the Frobenius norm of the covariance matrix) can be reduced the most by using
-# the chosen sensing configuration.
+# The :class:`~.UncertaintyRewardFunction` is used for all sensor managers which chooses the
+# configuration for which the sum of estimated uncertainties (as represented by the Frobenius
+# norm of the covariance matrix) can be reduced the most by using the chosen sensing
+# configuration.
 #
 # As in the previous tutorials the SIAP [#]_ and uncertainty metrics are used to assess the
 # performance of the sensor managers.
@@ -40,7 +40,8 @@
 # Setup
 # ^^^^^
 #
-# First a simulation must be set up using components from Stone Soup. For this the following imports are required.
+# First, a simulation must be set up using components from Stone Soup. For this the following
+# imports are required:
 
 import numpy as np
 import random
@@ -49,7 +50,8 @@ from datetime import datetime, timedelta
 
 start_time = datetime.now().replace(microsecond=0)
 
-from stonesoup.models.transition.linear import CombinedLinearGaussianTransitionModel, ConstantVelocity
+from stonesoup.models.transition.linear import CombinedLinearGaussianTransitionModel, \
+    ConstantVelocity
 from stonesoup.types.groundtruth import GroundTruthPath, GroundTruthState
 
 # %%
@@ -58,12 +60,12 @@ from stonesoup.types.groundtruth import GroundTruthPath, GroundTruthState
 #
 # Generate transition model and ground truths as in Tutorials 1 & 2.
 #
-# The number of targets in this simulation is defined by `ntruths` - here there are 3 targets travelling in
-# different directions. The time the
-# simulation is observed for is defined by `time_max`.
+# The number of targets in this simulation is defined by ``ntruths`` - here there are 3 targets
+# travelling in different directions. The time the simulation is observed for is defined by
+# ``time_max``.
 #
-# We can fix our random number generator in order to probe a particular example repeatedly. This can be undone by
-# commenting out the first two lines in the next cell.
+# We can fix our random number generator to probe a particular example repeatedly. This
+# can be undone by commenting out the first two lines in the next cell.
 
 np.random.seed(1990)
 random.seed(1990)
@@ -83,12 +85,14 @@ ydirection = 1
 
 # Generate ground truths
 for j in range(0, ntruths):
-    truth = GroundTruthPath([GroundTruthState([0, xdirection, yps[j], ydirection], timestamp=timesteps[0])],
+    truth = GroundTruthPath([GroundTruthState([0, xdirection, yps[j], ydirection],
+                                              timestamp=timesteps[0])],
                             id=f"id{j}")
 
     for k in range(1, time_max):
         truth.append(
-            GroundTruthState(transition_model.function(truth[k - 1], noise=True, time_interval=timedelta(seconds=1)),
+            GroundTruthState(transition_model.function(truth[k - 1], noise=True,
+                                                       time_interval=timedelta(seconds=1)),
                              timestamp=timesteps[k]))
     truths.add(truth)
 
@@ -97,7 +101,8 @@ for j in range(0, ntruths):
         ydirection *= -1
 
 # %%
-# Plot the ground truths. This is done using the :class:`~.AnimatedPlotterly` class from Stone Soup.
+# Plot the ground truths. This is done using the :class:`~.AnimatedPlotterly` class from
+# Stone Soup.
 
 from stonesoup.plotter import AnimatedPlotterly
 
@@ -105,24 +110,23 @@ from stonesoup.plotter import AnimatedPlotterly
 
 plotter = AnimatedPlotterly(timesteps, tail_length=1)
 plotter.plot_ground_truths(truths, [0, 2])
-plotter.fig
+plotter.show()
 
 # %%
 # Create sensors
 # ^^^^^^^^^^^^^^
-# Create a set of sensors for each sensor management algorithm. As in Tutorial 2 this tutorial uses the
-# :class:`~.RadarRotatingBearingRange` sensor with the
-# number of sensors initially set as 2 and each sensor positioned along the line :math:`x=10`, at distance
-# intervals of 50.
+# Create a set of sensors for each sensor management algorithm. As in Tutorial 2, this tutorial
+# uses the :class:`~.RadarRotatingBearingRange` sensor with the number of sensors initially set
+# as 2 and each sensor positioned along the line :math:`x=10`, at distance intervals of 50.
 
-total_no_sensors = 2
+n_sensors = 2
 
 from stonesoup.types.state import StateVector
 from stonesoup.sensor.radar.radar import RadarRotatingBearingRange
 from stonesoup.types.angle import Angle
 
 sensor_setA = set()
-for n in range(0, total_no_sensors):
+for n in range(0, n_sensors):
     sensor = RadarRotatingBearingRange(
         position_mapping=(0, 2),
         noise_covar=np.array([[np.radians(0.5) ** 2, 0],
@@ -140,7 +144,7 @@ for sensor in sensor_setA:
     sensor.timestamp = start_time
 
 sensor_setB = set()
-for n in range(0, total_no_sensors):
+for n in range(0, n_sensors):
     sensor = RadarRotatingBearingRange(
         position_mapping=(0, 2),
         noise_covar=np.array([[np.radians(0.5) ** 2, 0],
@@ -159,7 +163,7 @@ for sensor in sensor_setB:
     sensor.timestamp = start_time
 
 sensor_setC = set()
-for n in range(0, total_no_sensors):
+for n in range(0, n_sensors):
     sensor = RadarRotatingBearingRange(
         position_mapping=(0, 2),
         noise_covar=np.array([[np.radians(0.5) ** 2, 0],
@@ -180,21 +184,22 @@ for sensor in sensor_setC:
 # %%
 # Create the Kalman predictor and updater
 # ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-#
-# Construct a predictor and updater using the :class:`~.KalmanPredictor` and :class:`~.ExtendedKalmanUpdater`
-# components from Stone Soup. The measurement model for the updater is `None` as it is an attribute of the sensor.
+# Construct a predictor and updater using the :class:`~.KalmanPredictor` and
+# :class:`~.ExtendedKalmanUpdater` components from Stone Soup. The measurement model for the
+# updater is `None` as it is an attribute of the sensor.
 
 from stonesoup.predictor.kalman import KalmanPredictor
+
 predictor = KalmanPredictor(transition_model)
 
 from stonesoup.updater.kalman import ExtendedKalmanUpdater
+
 updater = ExtendedKalmanUpdater(measurement_model=None)
 # measurement model is added to detections by the sensor
 
 # %%
 # Run the Kalman filters
 # ^^^^^^^^^^^^^^^^^^^^^^
-#
 # Create priors which estimate the targets' initial states - these are the same as in the previous
 # sensor management tutorials.
 
@@ -204,16 +209,17 @@ priors = []
 xdirection = 1.2
 ydirection = 1.2
 for j in range(0, ntruths):
-    priors.append(GaussianState([[0], [xdirection], [yps[j]+0.1], [ydirection]],
-                                np.diag([0.5, 0.5, 0.5, 0.5]+np.random.normal(0,5e-4,4)),
+    priors.append(GaussianState([[0], [xdirection], [yps[j] + 0.1], [ydirection]],
+                                np.diag([0.5, 0.5, 0.5, 0.5] + np.random.normal(0, 5e-4, 4)),
                                 timestamp=start_time))
     xdirection *= -1
     if j % 2 == 0:
         ydirection *= -1
 
 # %%
-# Initialise the tracks by creating an empty list and appending the priors generated. This needs to be done
-# separately for each sensor manager method as they will generate different sets of tracks.
+# Initialise the tracks by creating an empty list and appending the priors generated. This needs
+# to be done separately for each sensor manager method as they will generate different sets of
+# tracks.
 
 from stonesoup.types.track import Track
 
@@ -230,8 +236,9 @@ tracksC = {Track([prior]) for prior in priors}
 # Create sensor managers
 # ^^^^^^^^^^^^^^^^^^^^^^
 #
-# The :class:`~.UncertaintyRewardFunction` will be used for each sensor manager as in Tutorials 1 & 2
-# and the :class:`~.BruteForceSensorManager` will be used as a comparison to the optimised methods.
+# The :class:`~.UncertaintyRewardFunction` will be used for each sensor manager as in Tutorials
+# 1 & 2 and the :class:`~.BruteForceSensorManager` will be used as a comparison to the optimised
+# methods.
 
 from stonesoup.sensormanager.reward import UncertaintyRewardFunction
 from stonesoup.sensormanager import BruteForceSensorManager
@@ -240,9 +247,10 @@ from stonesoup.sensormanager import BruteForceSensorManager
 # Optimised Brute Force Sensor Manager
 # """"""""""""""""""""""""""""""""""""
 #
-# The first optimised method, :class:`~.OptimizeBruteSensorManager` uses :func:`~.scipy.optimize.brute`
-# which minimizes a function over a given range using a brute force method. This can be tailored by setting
-# the number of grid points to search over or by adding the use of a polishing function.
+# The first optimised sensor manager, :class:`~.OptimizeBruteSensorManager`, uses
+# :func:`~.scipy.optimize.brute` which minimizes a function over a given range using a brute
+# force method. This can be tailored by setting the number of grid points to search over or by
+# adding the use of a polishing function.
 
 from stonesoup.sensormanager import OptimizeBruteSensorManager
 
@@ -250,49 +258,53 @@ from stonesoup.sensormanager import OptimizeBruteSensorManager
 # Optimised Basin Hopping Sensor Manager
 # """"""""""""""""""""""""""""""""""""""
 #
-# The second optimised method, :class:`~.OptimizeBasinHoppingSensorManager` uses :func:`~.scipy.optimize.basinhopping`
-# which finds the global minimum of a function using the basin-hopping algorithm. This is a combination of a
-# global stepping algorithm and local minimization at each step. Parameters such as number of basin hopping
-# iterations or stepsize can be set to tailor the algorithm to requirements.
+# The second optimised sensor manager, :class:`~.OptimizeBasinHoppingSensorManager`, uses
+# :func:`~.scipy.optimize.basinhopping` which finds the global minimum of a function using the
+# basin-hopping algorithm. This is a combination of a global stepping algorithm and local
+# minimization at each step. Parameters such as number of basin hopping iterations or step size
+# can be set to tailor the algorithm to requirements.
 
 from stonesoup.sensormanager import OptimizeBasinHoppingSensorManager
 
 # %%
 # Initiate sensor managers
 # ^^^^^^^^^^^^^^^^^^^^^^^^
-#
-# Create an instance of each sensor manager class. For the optimised sensor managers the default settings
-# will be used meaning only a sensor set and reward function is required. The :class:`~.UncertaintyRewardFunction`
-# will be used for each sensor manager. For the :class:`~.OptimizeBruteSensorManager` a polishing function
-# is used by setting `finish=True`.
+# Create an instance of each sensor manager class. For the optimised sensor managers the default
+# settings will be used meaning only a sensor set and reward function is required. The
+# :class:`~.UncertaintyRewardFunction` will be used for each sensor manager. For the
+# :class:`~.OptimizeBruteSensorManager` a polishing function is used by setting ``finish``
+# to `True`.
 
 
 # initiate reward function
 reward_function = UncertaintyRewardFunction(predictor, updater)
 
-bruteforcesensormanager = BruteForceSensorManager(sensor_setA,
-                                                  reward_function=reward_function)
+bruteforcesensormanager = BruteForceSensorManager(
+    sensor_setA,
+    reward_function=reward_function)
 
-optimizebrutesensormanager = OptimizeBruteSensorManager(sensor_setB,
-                                                        reward_function=reward_function,
-                                                        finish=True)
+optimizebrutesensormanager = OptimizeBruteSensorManager(
+    sensor_setB,
+    reward_function=reward_function,
+    finish=True)
 
-optimizebasinhoppingsensormanager = OptimizeBasinHoppingSensorManager(sensor_setC,
-                                                                      reward_function=reward_function)
+optimizebasinhoppingsensormanager = OptimizeBasinHoppingSensorManager(
+    sensor_setC,
+    reward_function=reward_function)
 
 # %%
 # Run the sensor managers
 # ^^^^^^^^^^^^^^^^^^^^^^^
 #
-# Each sensor management method requires a timestamp and a list of tracks at each time step when calling
-# the function :meth:`choose_actions`. This returns a mapping of sensors and actions to be taken by each
-# sensor, decided by the sensor managers.
+# Each sensor management method requires a timestamp and a list of tracks at each time step when
+# calling the function :meth:`choose_actions`. This returns a mapping of sensors and actions to
+# be taken by each sensor, decided by the sensor managers.
 #
-# For each sensor management method, at each time step the chosen action is given to the sensors and then
-# measurements taken. At each timestep the tracks are predicted and those with measurements associated are
-# updated.
+# For each sensor management method, at each time step, the chosen action is given to the sensors
+# and then measurements taken. The tracks are predicted and those with associated
+# measurements are updated.
 #
-# First a hypothesiser and data associator are required for use in each tracker.
+# First, a hypothesiser and data associator are required for use in each tracker:
 
 from stonesoup.hypothesiser.distance import DistanceHypothesiser
 from stonesoup.measures import Mahalanobis
@@ -333,7 +345,8 @@ for timestep in timesteps[1:]:
         sensor_history_A[timestep][sensor] = copy.copy(sensor)
 
         # Observe this ground truth
-        measurementsA |= sensor.measure(OrderedSet(truth[timestep] for truth in truths), noise=True)
+        measurementsA |= sensor.measure(OrderedSet(truth[timestep] for truth in truths),
+                                        noise=True)
 
     hypotheses = data_associator.associate(tracksA,
                                            measurementsA,
@@ -349,9 +362,9 @@ for timestep in timesteps[1:]:
 cell_run_time1 = round(time.time() - cell_start_time1, 2)
 
 # %%
-# Plot ground truths, tracks and uncertainty ellipses for each target. The positions of the sensors are indicated
-# by black x markers.This uses the Stone Soup
-# :class:`~.AnimatedPlotterly`, with added code to plot the field of view of the sensor.
+# Plot ground truths, tracks, and uncertainty ellipses for each target. The positions of the
+# sensors are indicated by black x markers. This uses the Stone Soup
+# :class:`~.AnimatedPlotterly` plotter, with added code to plot the field of view of the sensor.
 
 import plotly.graph_objects as go
 from stonesoup.functions import pol2cart
@@ -362,50 +375,45 @@ plotterA.plot_ground_truths(truths, [0, 2])
 plotterA.plot_tracks(set(tracksA), [0, 2], uncertainty=True, plot_history=False)
 
 
-def plot_sensor_fov(fig, sensor_set, sensor_history):
+def plot_sensor_fov(fig_, sensor_history):
     # Plot sensor field of view
-    trace_base = len(fig.data)
-    for _ in sensor_set:
-        fig.add_trace(go.Scatter(mode='lines',
-                                 line=go.scatter.Line(color='black',
-                                                      dash='dash')))
+    trace_base = len(fig_.data)
+    fig_.add_trace(go.Scatter(mode='lines',
+                              line=go.scatter.Line(color='black',
+                                                   dash='dash')))
 
-    for frame in fig.frames:
+    for frame in fig_.frames:
         traces_ = list(frame.traces)
         data_ = list(frame.data)
-
+        x = [0, 0]
+        y = [0, 0]
         timestring = frame.name
         timestamp = datetime.strptime(timestring, "%Y-%m-%d %H:%M:%S")
 
-        for n, sensor_ in enumerate(sensor_set):
-            x = [0, 0]
-            y = [0, 0]
+        if timestamp in sensor_history:
+            sensor_ = sensor_history[timestamp]
+            for i, fov_side in enumerate((-1, 1)):
+                range_ = min(getattr(sensor_, 'max_range', np.inf), 100)
+                x[i], y[i] = pol2cart(range_,
+                                      sensor_.dwell_centre[0, 0]
+                                      + sensor_.fov_angle / 2 * fov_side) \
+                    + sensor_.position[[0, 1], 0]
+        else:
+            continue
 
-            if timestamp in sensor_history:
-                sensor = sensor_history[timestamp][sensor_]
-                for i, fov_side in enumerate((-1, 1)):
-                    range_ = min(getattr(sensor, 'max_range', np.inf), 100)
-                    x[i], y[i] = pol2cart(range_,
-                                          sensor.dwell_centre[0, 0]
-                                          + sensor.fov_angle / 2 * fov_side) \
-                                 + sensor.position[[0, 1], 0]
-            else:
-                continue
-
-            data_.append(go.Scatter(x=[x[0], sensor.position[0], x[1]],
-                                    y=[y[0], sensor.position[1], y[1]],
-                                    mode="lines",
-                                    line=go.scatter.Line(color='black',
-                                                         dash='dash'),
-                                    showlegend=False))
-            traces_.append(trace_base + n)
-
+        data_.append(go.Scatter(x=[x[0], sensor_.position[0], x[1]],
+                                y=[y[0], sensor_.position[1], y[1]],
+                                mode="lines",
+                                line=go.scatter.Line(color='black',
+                                                     dash='dash'),
+                                showlegend=False))
+        traces_.append(trace_base)
         frame.traces = traces_
         frame.data = data_
 
 
 plot_sensor_fov(plotterA.fig, sensor_setA, sensor_history_A)
-plotterA.fig
+plotterA.show()
 
 # %%
 # The resulting plot is exactly the same as Tutorial 2.
@@ -435,7 +443,8 @@ for timestep in timesteps[1:]:
         sensor_history_B[timestep][sensor] = copy.copy(sensor)
 
         # Observe this ground truth
-        measurementsB |= sensor.measure(OrderedSet(truth[timestep] for truth in truths), noise=True)
+        measurementsB |= sensor.measure(OrderedSet(truth[timestep] for truth in truths),
+                                        noise=True)
 
     hypotheses = data_associator.associate(tracksB,
                                            measurementsB,
@@ -458,7 +467,7 @@ plotterB.plot_sensors(sensor_setB)
 plotterB.plot_ground_truths(truths, [0, 2])
 plotterB.plot_tracks(tracksB, [0, 2], uncertainty=True, plot_history=False)
 plot_sensor_fov(plotterB.fig, sensor_setB, sensor_history_B)
-plotterB.fig
+plotterB.show()
 
 # %%
 # Run optimised basin hopping sensor manager
@@ -485,7 +494,8 @@ for timestep in timesteps[1:]:
         sensor_history_C[timestep][sensor] = copy.copy(sensor)
 
         # Observe this ground truth
-        measurementsC |= sensor.measure(OrderedSet(truth[timestep] for truth in truths), noise=True)
+        measurementsC |= sensor.measure(OrderedSet(truth[timestep] for truth in truths),
+                                        noise=True)
 
     hypotheses = data_associator.associate(tracksC,
                                            measurementsC,
@@ -508,7 +518,7 @@ plotterC.plot_sensors(sensor_setC)
 plotterC.plot_ground_truths(truths, [0, 2])
 plotterC.plot_tracks(tracksC, [0, 2], uncertainty=True, plot_history=False)
 plot_sensor_fov(plotterC.fig, sensor_setC, sensor_history_C)
-plotterC.fig
+plotterC.show()
 
 # %%
 # At first glance, the plots for each of the optimised sensor managers show a very
@@ -523,6 +533,7 @@ plotterC.fig
 
 from stonesoup.metricgenerator.tracktotruthmetrics import SIAPMetrics
 from stonesoup.measures import Euclidean
+
 siap_generatorA = SIAPMetrics(position_measure=Euclidean((0, 2)),
                               velocity_measure=Euclidean((1, 3)),
                               generator_name='BruteForceSensorManager',
@@ -542,17 +553,20 @@ siap_generatorC = SIAPMetrics(position_measure=Euclidean((0, 2)),
                               truths_key='truths')
 
 from stonesoup.dataassociator.tracktotrack import TrackToTruth
+
 associator = TrackToTruth(association_threshold=30)
 
 from stonesoup.metricgenerator.uncertaintymetric import SumofCovarianceNormsMetric
+
 uncertainty_generatorA = SumofCovarianceNormsMetric(generator_name="BruteForceSensorManager",
-                                                   tracks_key="tracksA")
+                                                    tracks_key="tracksA")
 
 uncertainty_generatorB = SumofCovarianceNormsMetric(generator_name="OptimizeBruteSensorManager",
-                                                   tracks_key="tracksB")
+                                                    tracks_key="tracksB")
 
-uncertainty_generatorC = SumofCovarianceNormsMetric(generator_name="OptimizeBasinHoppingSensorManager",
-                                                   tracks_key="tracksC")
+uncertainty_generatorC = SumofCovarianceNormsMetric(
+    generator_name="OptimizeBasinHoppingSensorManager",
+    tracks_key="tracksC")
 
 # %%
 # Generate a metric manager.
@@ -593,15 +607,15 @@ fig.plot_metrics(metrics, metric_names=['SIAP Position Accuracy at times',
                  color=['blue', 'orange', 'green'])
 
 # %%
-# Both graphs show that there is little performance difference between the different sensor managers.
-# Positional accuracy remains consistently good and velocity accuracy improves after overcoming
-# the initial differences in the priors.
+# Both graphs show that there is little performance difference between the different sensor
+# managers. Positional accuracy remains consistently good and velocity accuracy improves after
+# overcoming the initial differences in the priors.
 #
 # Uncertainty metric
 # ^^^^^^^^^^^^^^^^^^
 #
-# Next we look at the uncertainty metric which computes the sum of covariance matrix norms of each state at each
-# time step. This is plotted over time for each sensor manager method.
+# Next, we look at the uncertainty metric which computes the sum of covariance matrix norms of
+# each state at each time step. This is plotted over time for each sensor manager method.
 
 fig2 = MetricPlotter()
 fig2.plot_metrics(metrics, metric_names=['Sum of Covariance Norms Metric'],
@@ -632,9 +646,11 @@ print(f'Optimised Brute Force: {cell_run_time2} s')
 print(f'Optimised Basin Hopping: {cell_run_time3} s')
 
 # %%
-# These run times show that each of the optimised methods are significantly quicker than the brute force method
-# whilst maintaining a similar tracking performance. This difference becomes more clear when the complexity of
-# the situation increases - by including additional sensors for example.
+#
+# The run times show that the optimised methods are significantly quicker than the brute
+# force method whilst maintaining similar tracking performance. This difference becomes more
+# clear when the complexity of the situation increases - by including additional sensors for
+# example.
 
 # %%
 # References
