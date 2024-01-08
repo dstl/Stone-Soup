@@ -7,7 +7,7 @@ Kalman filter with Out-of-Sequence measurements
 ===============================================
 """
 
-# %
+# %%
 # In this example we present how to deal with
 # out of sequence measurements (OOSM) using
 # Kalman filters. This problem is significant
@@ -176,9 +176,6 @@ ensemble = EnsembleState.generate_ensemble(
 # priors for the Particle filter tracking
 prior = EnsembleState(state_vector=ensemble, timestamp=start_time)
 
-from stonesoup.types.hypothesis import SingleHypothesis
-from stonesoup.types.track import Track
-
 # %%
 # 4) Run the tracker and visualise the results.
 # ---------------------------------------------
@@ -189,6 +186,9 @@ from stonesoup.types.track import Track
 # detections by the delay so we can process them
 # correctly. Finally we can plot the resulting track.
 #
+
+from stonesoup.types.hypothesis import SingleHypothesis
+from stonesoup.types.track import Track
 
 # Evaluate the delay between the measurements
 delay = measurements2[0].timestamp - measurements1[0].timestamp
@@ -207,10 +207,10 @@ for k in range(num_steps):  # loop over the timestep
     hypothesis = SingleHypothesis(prediction, measurements2[k])
     post = updater2.update(hypothesis)
     track.append(post)
-    prior = track[-1]
+    prior = track[-2]
 
 plotter.plot_tracks(track, [0, 2], uncertainty=True, particle=True)
-plotter.fig
+plotter.fig.show()
 
 # %%
 # Conclusions
@@ -220,8 +220,8 @@ plotter.fig
 # with the presence of out of sequence or delayed
 # measurements from a sensor. We have employed
 # an Ensemble Kalman filter to ease the tracking.
-#
 
+# %%
 # References
 # ----------
 # .. [#] S. Pornsarayouth and M. Yamakita, "Ensemble Kalman
