@@ -203,7 +203,9 @@ tracker = MultiTargetTracker(
 #
 # Plot the outputs
 # ^^^^^^^^^^^^^^^^
-# We plot the ground truth, detections and the tracker output using the Stone Soup :class:`Plotter`.
+# We plot the ground truth, detections and the tracker output
+# using the Stone Soup :class:`AnimatedPlotterly`. First, get the ground truths, detections,
+# and tracks from the tracker:
 groundtruth = set()
 detections = set()
 tracks = set()
@@ -214,6 +216,8 @@ for time, ctracks in tracker:
     tracks.update(ctracks)
 
 # %%
+# And plot them:
+
 # sphinx_gallery_thumbnail_path = '_static/sphinx_gallery/Tutorial_10.PNG'
 
 from stonesoup.plotter import AnimatedPlotterly
@@ -224,4 +228,4 @@ plotter = AnimatedPlotterly(timesteps, tail_length=1)
 plotter.plot_ground_truths(groundtruth, mapping=[0, 2])
 plotter.plot_measurements(detections, mapping=[0, 2])
 plotter.plot_tracks(tracks, mapping=[0, 2])
-plotter.fig
+plotter.show()
