@@ -375,39 +375,44 @@ plotterA.plot_ground_truths(truths, [0, 2])
 plotterA.plot_tracks(set(tracksA), [0, 2], uncertainty=True, plot_history=False)
 
 
-def plot_sensor_fov(fig_, sensor_history):
+def plot_sensor_fov(fig_, sensor_set, sensor_history):
     # Plot sensor field of view
     trace_base = len(fig_.data)
-    fig_.add_trace(go.Scatter(mode='lines',
-                              line=go.scatter.Line(color='black',
-                                                   dash='dash')))
+    for _ in sensor_set:
+        fig_.add_trace(go.Scatter(mode='lines',
+                                  line=go.scatter.Line(color='black',
+                                                       dash='dash')))
 
     for frame in fig_.frames:
         traces_ = list(frame.traces)
         data_ = list(frame.data)
-        x = [0, 0]
-        y = [0, 0]
+
         timestring = frame.name
         timestamp = datetime.strptime(timestring, "%Y-%m-%d %H:%M:%S")
 
-        if timestamp in sensor_history:
-            sensor_ = sensor_history[timestamp]
-            for i, fov_side in enumerate((-1, 1)):
-                range_ = min(getattr(sensor_, 'max_range', np.inf), 100)
-                x[i], y[i] = pol2cart(range_,
-                                      sensor_.dwell_centre[0, 0]
-                                      + sensor_.fov_angle / 2 * fov_side) \
-                    + sensor_.position[[0, 1], 0]
-        else:
-            continue
+        for n_, sensor_ in enumerate(sensor_set):
+            x = [0, 0]
+            y = [0, 0]
 
-        data_.append(go.Scatter(x=[x[0], sensor_.position[0], x[1]],
-                                y=[y[0], sensor_.position[1], y[1]],
-                                mode="lines",
-                                line=go.scatter.Line(color='black',
-                                                     dash='dash'),
-                                showlegend=False))
-        traces_.append(trace_base)
+            if timestamp in sensor_history:
+                sensor_ = sensor_history[timestamp][sensor_]
+                for i, fov_side in enumerate((-1, 1)):
+                    range_ = min(getattr(sensor_, 'max_range', np.inf), 100)
+                    x[i], y[i] = pol2cart(range_,
+                                          sensor_.dwell_centre[0, 0]
+                                          + sensor_.fov_angle / 2 * fov_side) \
+                        + sensor_.position[[0, 1], 0]
+            else:
+                continue
+
+            data_.append(go.Scatter(x=[x[0], sensor_.position[0], x[1]],
+                                    y=[y[0], sensor_.position[1], y[1]],
+                                    mode="lines",
+                                    line=go.scatter.Line(color='black',
+                                                         dash='dash'),
+                                    showlegend=False))
+            traces_.append(trace_base + n_)
+
         frame.traces = traces_
         frame.data = data_
 
