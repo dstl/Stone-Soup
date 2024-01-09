@@ -113,7 +113,7 @@ from stonesoup.plotter import AnimatedPlotterly
 
 plotter = AnimatedPlotterly(timesteps, tail_length=1)
 plotter.plot_ground_truths(truths, [0, 2])
-plotter.show()
+plotter.fig
 
 # %%
 # Create sensors
@@ -400,7 +400,7 @@ def plot_sensor_fov(fig_, sensor_set, sensor_history):
 
 
 plot_sensor_fov(plotterA.fig, sensor_setA, sensor_history_A)
-plotterA.show()
+plotterA.fig
 
 # %%
 # In comparison to Tutorial 1, the performance of the :class:`~.RandomSensorManager` has
@@ -479,7 +479,7 @@ plotterB.plot_sensors(sensor_setB)
 plotterB.plot_ground_truths(truths, [0, 2])
 plotterB.plot_tracks(tracksB, [0, 2], uncertainty=True, plot_history=False)
 plot_sensor_fov(plotterB.fig, sensor_setB, sensor_history_B)
-plotterB.show()
+plotterB.fig
 
 # %%
 # The smaller uncertainty ellipses in this plot suggest that the

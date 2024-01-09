@@ -110,7 +110,7 @@ from stonesoup.plotter import AnimatedPlotterly
 
 plotter = AnimatedPlotterly(timesteps, tail_length=1)
 plotter.plot_ground_truths(truths, [0, 2])
-plotter.show()
+plotter.fig
 
 # %%
 # Create sensors
@@ -418,7 +418,7 @@ def plot_sensor_fov(fig_, sensor_set, sensor_history):
 
 
 plot_sensor_fov(plotterA.fig, sensor_setA, sensor_history_A)
-plotterA.show()
+plotterA.fig
 
 # %%
 # The resulting plot is exactly the same as Tutorial 2.
@@ -472,7 +472,7 @@ plotterB.plot_sensors(sensor_setB)
 plotterB.plot_ground_truths(truths, [0, 2])
 plotterB.plot_tracks(tracksB, [0, 2], uncertainty=True, plot_history=False)
 plot_sensor_fov(plotterB.fig, sensor_setB, sensor_history_B)
-plotterB.show()
+plotterB.fig
 
 # %%
 # Run optimised basin hopping sensor manager
@@ -523,7 +523,7 @@ plotterC.plot_sensors(sensor_setC)
 plotterC.plot_ground_truths(truths, [0, 2])
 plotterC.plot_tracks(tracksC, [0, 2], uncertainty=True, plot_history=False)
 plot_sensor_fov(plotterC.fig, sensor_setC, sensor_history_C)
-plotterC.show()
+plotterC.fig
 
 # %%
 # At first glance, the plots for each of the optimised sensor managers show a very

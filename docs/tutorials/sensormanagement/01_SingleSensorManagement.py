@@ -173,7 +173,7 @@ from stonesoup.plotter import AnimatedPlotterly
 
 plotter = AnimatedPlotterly(timesteps, tail_length=1)
 plotter.plot_ground_truths(truths, [0, 2])
-plotter.show()
+plotter.fig
 
 # %%
 # Create sensors
@@ -444,7 +444,7 @@ def plot_sensor_fov(fig_, sensor_history):
 
 
 plot_sensor_fov(plotterA.fig, sensor_history_A)
-plotterA.show()
+plotterA.fig
 
 # %%
 # Run brute force sensor manager
@@ -517,7 +517,7 @@ plotterB.plot_sensors(sensorB)
 plotterB.plot_ground_truths(truths, [0, 2])
 plotterB.plot_tracks(tracksB, [0, 2], uncertainty=True, plot_history=False)
 plot_sensor_fov(plotterB.fig, sensor_history_B)
-plotterB.show()
+plotterB.fig
 
 # %%
 # The smaller uncertainty ellipses in this plot suggest that the
