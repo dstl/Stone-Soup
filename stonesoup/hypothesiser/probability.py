@@ -192,3 +192,88 @@ class PDAHypothesiser(Hypothesiser):
     @lru_cache()
     def _gate_threshold(prob_gate, n):
         return chi2.ppf(float(prob_gate), n)
+
+
+class IPDAHypothesiser(PDAHypothesiser):
+    """ Integrated PDA Hypothesiser
+
+    [1] Vladimirov, Lyudmil (2021) Mathematical Models and Monte-Carlo Algorithms for Improved
+    Detection of Targets in the Commercial Maritime Domain. Doctor of Philosophy thesis,
+    University of Liverpool.
+    """
+
+    prob_survive: Probability = Property(doc="Probability of survival", default=Probability(0.99))
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+
+    def hypothesise(self, track, detections, timestamp, **kwargs):
+        r"""Evaluate and return all track association hypotheses.
+        """
+
+        hypotheses = list()
+        validated_measurements = 0
+        measure = SquaredMahalanobis(state_covar_inv_cache_size=None)
+
+        # Existence probability prediction
+        track.exist_prob = self.prob_survive * track.exist_prob
+
+        # See Eq. (4.61) in [1] for the weight calculation
+        w = (1 - track.exist_prob) / ((1 - self.prob_detect * self.prob_gate) * track.exist_prob)
+
+        # Common state & measurement prediction
+        prediction = self.predictor.predict(track, timestamp=timestamp, **kwargs)
+        # Missed detection hypothesis
+        probability = Probability(1 - self.prob_detect * self.prob_gate * track.exist_prob)
+
+        hypotheses.append(
+            SingleProbabilityHypothesis(
+                prediction,
+                MissedDetection(timestamp=timestamp),
+                probability,
+                metadata={"w": w}
+            ))
+
+        # True detection hypotheses
+        for detection in detections:
+            # Re-evaluate prediction
+            prediction = self.predictor.predict(
+                track.state, timestamp=detection.timestamp)
+            # Compute measurement prediction and probability measure
+            measurement_prediction = self.updater.predict_measurement(
+                prediction, detection.measurement_model, **kwargs)
+            # Calculate difference before to handle custom types (mean defaults to zero)
+            # This is required as log pdf coverts arrays to floats
+            log_pdf = multivariate_normal.logpdf(
+                (detection.state_vector - measurement_prediction.state_vector).ravel(),
+                cov=measurement_prediction.covar)
+            pdf = Probability(log_pdf, log_value=True)
+
+            if measure(measurement_prediction, detection) \
+                    <= self._gate_threshold(self.prob_gate, measurement_prediction.ndim):
+                validated_measurements += 1
+                valid_measurement = True
+            else:
+                # Will be gated out unless include_all is set
+                valid_measurement = False
+
+            if self.include_all or valid_measurement:
+                # Notice that we use also multiply by exist prob here
+                probability = pdf * self.prob_detect * track.exist_prob
+                if self.clutter_spatial_density is not None:
+                    probability /= self.clutter_spatial_density
+
+                # True detection hypothesis
+                hypotheses.append(
+                    SingleProbabilityHypothesis(
+                        prediction,
+                        detection,
+                        probability,
+                        measurement_prediction))
+
+        if self.clutter_spatial_density is None:
+            for hypothesis in hypotheses[1:]:  # Skip missed detection
+                hypothesis.probability *= self._validation_region_volume(
+                    self.prob_gate, hypothesis.measurement_prediction) / validated_measurements
+
+        return MultipleHypothesis(hypotheses, normalise=True, total_weight=1)

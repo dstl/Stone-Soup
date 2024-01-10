@@ -172,3 +172,74 @@ class JPDA(DataAssociator):
                 measurements.add(measurement)
 
         return True
+
+
+class JIPDA(JPDA):
+    """Joint Integrated Probabilistic Data Association (JIPDA)
+
+    [1] Vladimirov, Lyudmil (2021) Mathematical Models and Monte-Carlo Algorithms for Improved
+    Detection of Targets in the Commercial Maritime Domain. Doctor of Philosophy thesis,
+    University of Liverpool.
+    """
+
+    def associate(self, tracks, detections, timestamp, **kwargs):
+
+        # Calculate MultipleHypothesis for each Track over all
+        # available Detections
+        hypotheses = self.generate_hypotheses(tracks, detections, timestamp, **kwargs)
+
+        # enumerate the Joint Hypotheses of track/detection associations
+        joint_hypotheses = \
+            self.enumerate_JPDA_hypotheses(tracks, hypotheses)
+
+        # Calculate MultiMeasurementHypothesis for each Track over all
+        # available Detections with probabilities drawn from JointHypotheses
+        new_hypotheses = dict()
+
+        for track in tracks:
+
+            single_measurement_hypotheses = list()
+
+            # record the MissedDetection hypothesis for this track
+            prob_misdetect = Probability.sum(
+                joint_hypothesis.probability
+                for joint_hypothesis in joint_hypotheses
+                if not joint_hypothesis.hypotheses[track].measurement)
+
+            # Scale misdetection probability according to Eq. (4.63) in [1]
+            null_hypothesis = next((hyp for hyp in hypotheses[track] if not hyp), None)
+            w = null_hypothesis.metadata['w']
+            prob_misdetect /= (1 + w)
+
+            single_measurement_hypotheses.append(
+                SingleProbabilityHypothesis(
+                    hypotheses[track][0].prediction,
+                    MissedDetection(timestamp=timestamp),
+                    measurement_prediction=hypotheses[track][0].measurement_prediction,
+                    probability=prob_misdetect))
+
+            # record hypothesis for any given Detection being associated with
+            # this track
+            for hypothesis in hypotheses[track]:
+                if not hypothesis:
+                    continue
+                pro_detect_assoc = Probability.sum(
+                    joint_hypothesis.probability
+                    for joint_hypothesis in joint_hypotheses
+                    if joint_hypothesis.hypotheses[track].measurement is hypothesis.measurement)
+
+                single_measurement_hypotheses.append(
+                    SingleProbabilityHypothesis(
+                        hypothesis.prediction,
+                        hypothesis.measurement,
+                        measurement_prediction=hypothesis.measurement_prediction,
+                        probability=pro_detect_assoc))
+
+            track.exist_prob = Probability.sum(hyp.probability
+                                               for hyp in single_measurement_hypotheses)
+
+            result = MultipleHypothesis(single_measurement_hypotheses, True, 1)
+
+            new_hypotheses[track] = result
+
+        return new_hypotheses
