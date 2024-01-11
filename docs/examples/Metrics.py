@@ -39,8 +39,8 @@ Metrics example
 #
 # NB: in all metrics that take a track and a truth as input, we can input two tracks
 # instead to calculate track to track comparisons. This is relevant in scenarios where a
-# second set of tracks is used as a proxy for ground truth. To do this, set the ``tracks_key``
-# parameter to the tracks set and the ``truths_key`` parameter to the second tracks set that is
+# second set of tracks is used as a proxy for ground truth. To do this, set the *tracks_key*
+# parameter to the tracks set and the *truths_key* parameter to the second tracks set that is
 # being used as a ground truth proxy.
 
 from stonesoup.metricgenerator.basicmetrics import BasicMetrics
@@ -361,7 +361,7 @@ tracker_PF = MultiTargetTracker(
 # input into the metric generators will be used to extract the corresponding set from the
 # :class:`~.MultiManager` for metric generation.
 #
-# Setting ``overwrite`` to False allows new data to be added to the :class:`~.MultiManager`
+# Setting *overwrite* to ``False`` allows new data to be added to the :class:`~.MultiManager`
 # without overwriting existing data, as demonstrated in the code below:
 
 
@@ -456,15 +456,15 @@ siap_table = SIAPTableGenerator(siap_averages_PF).compute_metric()
 # :class:`~.MetricPlotter` include:
 #
 # - You can specify exactly which metrics you want to plot by specifying the optional
-#   ``generator_names`` and ``metric_names`` parameters.
-# - ``generator_names`` allows you to specify which generators you want to plot metrics from.
-#   If you don't pass the ``generator_names`` argument, :meth:`plot_metrics()` will automatically
+#   *generator_names* and *metric_names* parameters.
+# - *generator_names* allows you to specify which generators you want to plot metrics from.
+#   If you don't pass the *generator_names* argument, :meth:`plot_metrics()` will automatically
 #   extract all plottable metrics from all metric generators in the :class:`~.MultiManager`
 #   and plot them.
-# - ``metric_names`` allows you to specify which specific metrics types to plot
+# - *metric_names* allows you to specify which specific metrics types to plot
 #   from the metric generators. This is mostly relevant for the SIAP metrics. You can
 #   view which metrics are plottable with :meth:`MetricPlotter.plottable_metrics`.
-# - :meth:`plot_metrics` has a ``combine_plots`` argument which defaults to `True`.
+# - :meth:`plot_metrics` has a *combine_plots* argument which defaults to ``True``.
 #   This means that all metrics of the same type will be plotted together on a single subplot.
 # - You can specify additional formatting, like colour and linestyle, for the plots
 #   produced by using keyword arguments from matplotlib pyplot.
