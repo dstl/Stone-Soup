@@ -170,8 +170,9 @@ class KalmanPredictor(Predictor):
         control_input : :class:`StateVector`, optional
             :math:`\mathbf{u}_k`
         **kwargs :
-            These are passed, via :meth:`~.KalmanFilter.transition_function` to
-            :meth:`~.LinearGaussianTransitionModel.matrix` and
+            These are passed, via :meth:`~.KalmanFilter.transition_function()` to
+            :meth:`~.LinearGaussianTransitionModel.matrix()` and 
+            :meth:`~.LinearControlModel.function()`
 
         Returns
         -------
