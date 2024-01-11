@@ -4,7 +4,7 @@ import pytest
 import numpy as np
 
 from ...types.state import State
-from ..simple import SimpleDetectionSimulator, SwitchDetectionSimulator,\
+from ..simple import SimpleDetectionSimulator, SwitchDetectionSimulator, \
     SingleTargetGroundTruthSimulator, SwitchOneTargetGroundTruthSimulator
 
 

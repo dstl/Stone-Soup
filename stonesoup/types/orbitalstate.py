@@ -571,7 +571,8 @@ class Orbital(Type):
 
     @property
     def mean_motion(self):
-        r"""The mean motion, :math:`\frac{2 \pi}{T}`, where :math:`T` is the period, (rad / [time]).
+        r"""The mean motion, :math:`\frac{2 \pi}{T}`,
+        where :math:`T` is the period, (rad / [time]).
         """
         return 2 * np.pi / self.period
 
@@ -722,7 +723,7 @@ class Orbital(Type):
                 + f"{self.eccentricity:7.7f}"[2:] + ' ' \
                 + f"{self.argument_periapsis*180/np.pi:8.4f}" + ' ' \
                 + f"{self.mean_anomaly*180/np.pi:8.4f}" + ' ' \
-                + f"{self.mean_motion/(2*np.pi) *3600*24:11.8f}" + f"{self.revolution_number:5.0f}"
+                + f"{self.mean_motion/(2*np.pi)*3600*24:11.8f}" + f"{self.revolution_number:5.0f}"
 
         line1 = line1 + str(TLEDictReader.checksum(line1))
         line2 = line2 + str(TLEDictReader.checksum(line2))

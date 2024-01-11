@@ -147,7 +147,7 @@ class StateVectors(Matrix):
     @classmethod
     def _cast(cls, val):
         out = super()._cast(val)
-        if type(out) == Matrix and out.ndim == 2:
+        if type(out) == Matrix and out.ndim == 2:  # noqa: E721
             # Assume still set of State Vectors
             return out.view(StateVectors)
         else:

@@ -28,10 +28,14 @@ can be loaded using:
     the :attr:`stonesoup.plugins` key in the :attr:`entry_points` dictionary.
 """
 import sys
-import pkg_resources
 import warnings
+from importlib.metadata import entry_points
 
-for entry_point in pkg_resources.iter_entry_points('stonesoup.plugins'):
+try:
+    _plugin_points = entry_points()['stonesoup.plugins']
+except KeyError:
+    _plugin_points = []
+for entry_point in _plugin_points:
     try:
         name = entry_point.name
         plugin_module = f'{__name__}.{name}'

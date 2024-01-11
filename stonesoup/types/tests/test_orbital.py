@@ -131,15 +131,14 @@ def test_kep_cart():
     # Firstly just flipping back and forth
     keplerian_sn = OrbitalState(cartesian_s.keplerian_elements, coordinates='keplerian',
                                 grav_parameter=cartesian_s.grav_parameter)
-    assert(np.allclose(cartesian_s.state_vector, keplerian_sn.cartesian_state_vector,
-                       rtol=1e-4))
+    assert np.allclose(cartesian_s.state_vector, keplerian_sn.cartesian_state_vector, rtol=1e-4)
 
     keplerian_ssn = OrbitalState(cartesian_ss.keplerian_elements, coordinates='keplerian',
                                  grav_parameter=cartesian_s.grav_parameter)
 
     # independent initialisation
-    assert(np.allclose(keplerian_s.state_vector, orb_st_vec, rtol=2e-3))
-    assert(np.allclose(keplerian_ssn.state_vector, orb_st_vecs, rtol=2e-3))
+    assert np.allclose(keplerian_s.state_vector, orb_st_vec, rtol=2e-3)
+    assert np.allclose(keplerian_ssn.state_vector, orb_st_vecs, rtol=2e-3)
 
     # Test timestamp
     assert keplerian_s.epoch == dtime
@@ -152,37 +151,37 @@ def test_tle_cart():
 
     # Note that we need to convert to floats to do the comparison because np.allclose invokes the
     # np.isfinite() function which throws an error on Angle types
-    assert(np.allclose(np.float64(cartesian_s.two_line_element),
-                       np.float64(tle_sn.two_line_element), rtol=1e-3))
+    assert np.allclose(np.float64(cartesian_s.two_line_element),
+                       np.float64(tle_sn.two_line_element), rtol=1e-3)
 
     # StateVectors equivalent
     tle_ssn = OrbitalState(cartesian_ss.two_line_element, coordinates='twolineelement',
                            grav_parameter=cartesian_ss.grav_parameter)
-    assert(np.allclose(np.float64(cartesian_ss.equinoctial_elements),
-                       np.float64(tle_ssn.equinoctial_elements), rtol=1e-3))
+    assert np.allclose(np.float64(cartesian_ss.equinoctial_elements),
+                       np.float64(tle_ssn.equinoctial_elements), rtol=1e-3)
 
 
 def test_equ_cart():
     # Test that the equinoctial initialisation delivers the correct elements
     equ_sn = OrbitalState(cartesian_s.equinoctial_elements, coordinates='equinoctial',
                           grav_parameter=cartesian_s.grav_parameter)
-    assert(np.allclose(np.float64(cartesian_s.equinoctial_elements),
-                       np.float64(equ_sn.equinoctial_elements), rtol=1e-3))
+    assert np.allclose(np.float64(cartesian_s.equinoctial_elements),
+                       np.float64(equ_sn.equinoctial_elements), rtol=1e-3)
 
     # StateVectors equivalent
     equ_ssn = OrbitalState(cartesian_ss.equinoctial_elements, coordinates='Equinoctial',
                            grav_parameter=cartesian_ss.grav_parameter)
-    assert(np.allclose(np.float64(cartesian_ss.equinoctial_elements),
-                       np.float64(equ_ssn.equinoctial_elements), rtol=1e-3))
+    assert np.allclose(np.float64(cartesian_ss.equinoctial_elements),
+                       np.float64(equ_ssn.equinoctial_elements), rtol=1e-3)
 
 
 # Now we need to test that the output is actually correct.
 # Test Cartesian input and Keplerian output on known equivalents
 def test_cart_kep():
     # Simple assertion
-    assert(np.all(cartesian_s.state_vector == orb_st_vec))
+    assert np.all(cartesian_s.state_vector == orb_st_vec)
     # Check Keplerian elements come out right
-    assert(np.allclose(np.float64(cartesian_s.keplerian_elements), out_kep, rtol=1e-3))
+    assert np.allclose(np.float64(cartesian_s.keplerian_elements), out_kep, rtol=1e-3)
 
     # This isn't tested elsewhere so do it here
     assert cartesian_s.specific_orbital_energy == cartesian_ss.specific_orbital_energy[0, 0]
@@ -190,7 +189,7 @@ def test_cart_kep():
 
 # The test TLE output
 def test_cart_tle():
-    assert(np.allclose(np.float64(cartesian_s.two_line_element), out_tle, rtol=1e-3))
+    assert np.allclose(np.float64(cartesian_s.two_line_element), out_tle, rtol=1e-3)
 
 
 # Test some specific quantities
@@ -208,7 +207,7 @@ def test_tle_via_metadata():
     tle_metadata = {'line_1': lin1, 'line_2': lin2}
     tle_state = OrbitalState(None, coordinates='TwoLineElement', metadata=tle_metadata)
 
-    assert (np.allclose(tle_state.state_vector, outstate, rtol=1e-4))
+    assert np.allclose(tle_state.state_vector, outstate, rtol=1e-4)
 
     # Check the dictionary contains items
     tle_dictionary = tle_state.tle_dict
