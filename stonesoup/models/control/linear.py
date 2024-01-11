@@ -20,7 +20,6 @@ class LinearControlModel(ControlModel, LinearModel, GaussianModel):
 
     """
 
-    # control_vector: np.ndarray = Property(doc="Control vector at time :math:`k`")
     control_matrix: np.ndarray = Property(
         doc="Control input model matrix at time :math:`k`, :math:`B_k`")
     control_noise: np.ndarray = Property(
