@@ -8,24 +8,20 @@ Kalman filter with Out-of-Sequence measurements
 """
 
 # %%
-# In this example we present how to deal with
-# out of sequence measurements (OOSM) using
-# Kalman filters. This problem is significant
-# in real-world applications where data
-# from different sources can have some delays
-# and different timesteps (e.g., two sensors
-# observing a target). In literature there are
-# examples (e.g., [#]_) on how to deal with
-# such time-delays and uncertain timesteps.
-# In this example we present a simpler application
-# using the Ensemble Kalman Filter algorithm
+# In this example we present how to deal with out of sequence measurements (OOSM) using Kalman
+# filters. This problem is significant in real-world applications where data from different sources
+# can have some delays and different timesteps (e.g., two sensors observing a target).
+# In the literature, there are examples (e.g., [#]_) on how to deal with such time-delays and
+# uncertain timesteps.
+# In this example, we present a simpler application using the Ensemble Kalman Filter algorithm
 # available in Stone Soup to tackle this problem.
 #
 # This example follows the following structure:
-# 1) prepare the ground truth;
-# 2) set up the sensors and generate the measaurements;
-# 3) instantiate the tracking components;
-# 4) run the tracker and visualise the results.
+#
+# 1. prepare the ground truth;
+# 2. set up the sensors and generate the measurements;
+# 3. instantiate the tracking components;
+# 4. run the tracker and visualise the results.
 #
 
 # %%
@@ -51,6 +47,10 @@ from stonesoup.types.state import GaussianState
 transition_model = CombinedLinearGaussianTransitionModel([ConstantVelocity(0.05),
                                                           ConstantVelocity(0.05)])
 
+# %%
+# 1) Prepare the ground truth;
+# ----------------------------
+
 # initiate the groundtruth
 truth = GroundTruthPath([GroundTruthState([0, 1, 0, 1], timestamp=start_time)])
 
@@ -62,17 +62,14 @@ for k in range(1, num_steps):
         timestamp=start_time + timedelta(seconds=k)))
 
 # %%
-# 2) Set up the sensors and generate the measaurements;
+# 2) Set up the sensors and generate the measurements;
 # -----------------------------------------------------
-# In this example we consider two ideal radars using
-# :class:`~.CartesianToBearingRange` measurement model.
-# The second sensor sends the detections with a
-# fixed delay of 5 seconds. So the two sets of
+# In this example we consider two ideal radars using :class:`~.CartesianToBearingRange` measurement
+# model.
+# The second sensor sends the detections with a fixed delay of 5 seconds. So the two sets of
 # detections have a fixed, constant, delay.
-# Now, we can collect the measurements from the
-# two sensors. The two measurement model have
-# differnet translation offset from the location of
-# the sensors.
+# Now, we can collect the measurements from the two sensors.
+# The two measurement model have different translation offset from the location of the sensors.
 #
 
 # Load the measurement model
@@ -84,7 +81,7 @@ measurement_model_1 = CartesianToBearingRange(  # relative to the first sensor
     noise_covar=np.diag([np.radians(0.1), 3]),
     translation_offset=np.array([[-60], [0]]))
 
-measurement_model_2 = CartesianToBearingRange(  # relative to the first sensor
+measurement_model_2 = CartesianToBearingRange(  # relative to the second sensor
     ndim_state=4,
     mapping=(0, 2),
     noise_covar=np.diag([np.radians(0.1), 3]),
@@ -96,22 +93,19 @@ from stonesoup.types.detection import Detection
 # Instantiate two list for the detections
 measurements1 = []
 measurements2 = []
-for state in truth:  # loop over the groud truth detections
+for state in truth:  # loop over the ground truth detections
     measurement = measurement_model_1.function(state, noise=True)
     measurements1.append(Detection(measurement, timestamp=state.timestamp,
-                                  measurement_model=measurement_model_1))
+                                   measurement_model=measurement_model_1))
     # collect the measurements for the delayed radar
     measurement = measurement_model_2.function(state, noise=True)
     measurements2.append(Detection(measurement, timestamp=state.timestamp + timedelta(seconds=5),
-                                  measurement_model=measurement_model_2))
+                                   measurement_model=measurement_model_2))
 
 # %%
-# We have generated two sets of
-# detections of the same target, one for each radar,
-# with the latter where the detection timestamp
-# has a fixed delay of 5 seconds. Let's visualise the track and the
-# set of detections. To plot the sensors we use a
-# :class:`~.FixedPlatform` object.
+# We have generated two sets of detections of the same target, one for each radar, with the latter
+# where the detection timestamp has a fixed delay of 5 seconds. Let's visualise the track and the
+# set of detections. To plot the sensors we use a :class:`~.FixedPlatform`.
 #
 from stonesoup.platform.base import FixedPlatform
 
@@ -146,24 +140,20 @@ plotter.show()
 # %%
 # 3) Instantiate the tracking components;
 # ---------------------------------------
-# In this example we employ an Ensemble Kalman filter
-# by loading the predictor and updater using :class:`~.EnsemblePredictor`
-# and :class:`~.EnsembleUpdater`. This filter combines
-# the functionality of the Kalman filter and the particle
-# filter. To access the two sets of detections we
-# initialise two different updaters, with the correct
-# measurement models, to take into account the
-# detection translation offset.
-# For simplicity, we assume that the detections
-# obtained by the second sensor can be corrected by the delay
-# and correspond to the first set of measurements.
+# In this example we employ an Ensemble Kalman filter by loading the predictor and updater using
+# :class:`~.EnsemblePredictor` and :class:`~.EnsembleUpdater`. This filter combines the
+# functionality of the Kalman filter and the particle filter. To access the two sets of detections
+# we initialise two different updaters, with the correct measurement models, to take into account
+# the detection translation offset.
+# For simplicity, we assume that the detections obtained by the second sensor can be corrected by
+# the delay and correspond to the first set of measurements.
 #
 
 from stonesoup.predictor.ensemble import EnsemblePredictor
 from stonesoup.updater.ensemble import EnsembleUpdater
 
 predictor = EnsemblePredictor(transition_model)
-# We employ two updaters for accounting the translation offset
+# We employ two updaters to account for the different sensor translation offsets
 updater1 = EnsembleUpdater(measurement_model_1)
 updater2 = EnsembleUpdater(measurement_model_2)
 
@@ -174,19 +164,15 @@ ensemble = EnsembleState.generate_ensemble(
     mean=np.array([0, 1, 0, 1]),
     covar=np.diag([5, 2, 5, 2]),
     num_vectors=100)
-# This approach is similar to setting up the
-# priors for the Particle filter tracking
+# This approach is similar to setting up the priors for Particle filter tracking
 prior = EnsembleState(state_vector=ensemble, timestamp=start_time)
 
 # %%
 # 4) Run the tracker and visualise the results.
 # ---------------------------------------------
-# We have prepared the tracker components and we
-# are ready to generate the final track.
-# Before passing the measurements to the
-# tracking algorithm we need to correct the
-# detections by the delay so we can process them
-# correctly. Finally we can plot the resulting track.
+# We have prepared the tracker components and we are ready to generate the final track.
+# Before passing the measurements to the tracking algorithm we need to correct the detections by
+# the delay so we can process them correctly. Finally we can plot the resulting track.
 #
 
 from stonesoup.types.hypothesis import SingleHypothesis
@@ -217,17 +203,13 @@ plotter.show()
 # %%
 # Conclusions
 # -----------
-# In this simple example we have presented
-# how it is possible to perform the tracking
-# with the presence of out of sequence or delayed
-# measurements from a sensor. We have employed
-# an Ensemble Kalman filter to ease the tracking.
+# In this simple example we have presented how it is possible to perform the tracking with the
+# presence of out of sequence or delayed measurements from a sensor. We have employed an Ensemble
+# Kalman filter to ease the tracking.
 
 # %%
 # References
 # ----------
-# .. [#] S. Pornsarayouth and M. Yamakita, "Ensemble Kalman
-#        filtering of out-of-sequence measurements for
-#        continuous-time model," 2012 American Control
-#        Conference (ACC), Montreal, QC, Canada, 2012,
-#        pp. 4801-4806, doi: 10.1109/ACC.2012.6315469.
+# .. [#] S. Pornsarayouth and M. Yamakita, "Ensemble Kalman filtering of out-of-sequence
+#        measurements for continuous-time model," 2012 American Control Conference (ACC),
+#        Montreal, QC, Canada, 2012, pp. 4801-4806, doi: 10.1109/ACC.2012.6315469.
