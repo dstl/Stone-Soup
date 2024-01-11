@@ -210,7 +210,7 @@ for k in range(num_steps):  # loop over the timestep
     prior = track[-2]
 
 plotter.plot_tracks(track, [0, 2], uncertainty=True, particle=True)
-plotter.fig.show()
+plotter.fig
 
 # %%
 # Conclusions
