@@ -98,7 +98,8 @@ def jacobian(fun, x, **kwargs):
     delta[delta < 1e-8] = 1e-8
 
     x2 = copy.copy(x)  # Create a clone of the input
-    x2.state_vector = np.tile(x.state_vector, ndim + 1) + np.eye(ndim, ndim + 1) * delta[:, np.newaxis]
+    x2.state_vector = np.tile(x.state_vector, ndim + 1) + np.eye(ndim, ndim + 1) * \
+        delta[:, np.newaxis]
     x2.state_vector = x2.state_vector.view(StateVectors)
 
     F = fun(x2, **kwargs)
@@ -281,7 +282,8 @@ def unscented_transform(sigma_points_states, mean_weights, covar_weights,
 
     # Calculate cross-covariance
     cross_covar = (
-            (sigma_points - sigma_points[:, 0:1]) @ np.diag(mean_weights) @ (sigma_points_t - mean).T
+            (sigma_points - sigma_points[:, 0:1]) @ np.diag(mean_weights) @
+            (sigma_points_t - mean).T
     ).view(CovarianceMatrix)
 
     return mean, covar, cross_covar, sigma_points_t, mean_weights, covar_weights
@@ -627,7 +629,8 @@ def gm_reduce_single(means, covars, weights):
 
     # Calculate covar
     delta_means = means - mean
-    covar = np.sum(covars * weights, axis=2, dtype=np.float_) + weights * delta_means @ delta_means.T
+    covar = np.sum(covars * weights, axis=2, dtype=np.float_) + \
+        weights * delta_means @ delta_means.T
 
     return mean.view(StateVector), covar.view(CovarianceMatrix)
 
@@ -864,7 +867,7 @@ def cubature_transform(state, fun, points_noise=None, covar_noise=None, alpha=1.
     :meth:`gauss2cubature`, then passes these through the given function and reconstructs the
     Gaussian using :meth:`cubature2gauss`. Returns the mean, covariance, cross covariance and
     transformed cubature points. This instance includes a scaling parameter :math:`\alpha`, not
-    included in [#]_, which allows for the selection of cubature points closer to, or further
+    included in [#f]_, which allows for the selection of cubature points closer to, or further
     from, tne mean.
 
     Parameters
@@ -898,7 +901,7 @@ def cubature_transform(state, fun, points_noise=None, covar_noise=None, alpha=1.
 
     References
     ----------
-    .. [#] I. Arasaratnam and S. Haykin, “Cubature Kalman Filters,” in IEEE Transactions on
+    .. [#f] I. Arasaratnam and S. Haykin, “Cubature Kalman Filters,” in IEEE Transactions on
            Automatic Control, vol. 54, no. 6, pp. 1254-1269, June 2009,
            doi: 10.1109/TAC.2009.2019800.
 
