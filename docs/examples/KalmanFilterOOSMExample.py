@@ -128,18 +128,20 @@ sensor2_platform = FixedPlatform(
     position_mapping=(0, 2),
     sensors=None)
 
-from stonesoup.plotter import Plotterly
+from stonesoup.plotter import AnimatedPlotterly
 
-plotter = Plotterly()
+time_steps = [start_time + timedelta(seconds=i) for i in range(num_steps + 10)]
+
+plotter = AnimatedPlotterly(timesteps=time_steps)
 plotter.plot_ground_truths(truth, [0, 2])
 plotter.plot_measurements(measurements1, [0, 2], marker=dict(color='blue', symbol='0'),
                           measurements_label='Detections with no lag')
 plotter.plot_measurements(measurements2, [0, 2], marker=dict(color='orange', symbol='0'),
                           measurements_label='Detections with lag')
 plotter.plot_sensors([sensor1_platform, sensor2_platform],
-                     [0, 1], marker=dict(color='black', symbol='129', size=15),
+                     marker=dict(color='black', symbol='129', size=15),
                      sensor_label='Fixed Platforms')
-plotter.fig
+plotter.show()
 
 # %%
 # 3) Instantiate the tracking components;
@@ -210,7 +212,7 @@ for k in range(num_steps):  # loop over the timestep
     prior = track[-2]
 
 plotter.plot_tracks(track, [0, 2], uncertainty=True, particle=True)
-plotter.fig
+plotter.show()
 
 # %%
 # Conclusions
