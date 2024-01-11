@@ -7,7 +7,6 @@ Metrics example
 """
 
 # %%
-#
 # This example demonstrates different metrics available in Stone Soup and how they
 # can be used with the :class:`~.MultiManager` to assess tracking performance. It also
 # demonstrates how to use the :class:`~.MetricPlotter` class to easily generate metric plots for
@@ -49,7 +48,6 @@ basic_EKF = BasicMetrics(generator_name='basic_EKF', tracks_key='EKF_tracks', tr
 basic_PF = BasicMetrics(generator_name='basic_PF', tracks_key='PF_tracks', truths_key='truths')
 
 # %%
-#
 # Next, we create the Optimal SubPattern Assignment (OSPA) metric generator. This metric is
 # calculated at each time step to show how far the tracks are from the ground truth paths. It
 # returns an overall multi-track to multi-ground-truth missed distance for each time step.
@@ -100,7 +98,6 @@ from stonesoup.dataassociator.tracktotrack import TrackToTruth
 associator = TrackToTruth(association_threshold=30)
 
 # %%
-#
 # Next, we create metric generators for the :class:`~.SumofCovarianceNormsMetric`. They will
 # calculate the sum of the covariance matrix norms of each track state at each time step. These
 # metrics produced will indicate how uncertain the tracks we have produced are. Higher sum of
@@ -507,7 +504,6 @@ graph.set_fig_title('Sum of Covariance Norms Metric')  # set figure title
 graph.set_ax_title(['Extended Kalman Filter', 'Particle Filter'])  # set title for each axis
 
 # %%
-#
 # For both trackers, we start with the highest uncertainty as tracks are initiated. Uncertainty
 # decreases until just past the middle of our timeframe and begins to increase again as time
 # increases.
