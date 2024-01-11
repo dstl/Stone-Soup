@@ -761,3 +761,47 @@ def sde_euler_maruyama_integration(fun, t_values, state_x0):
         a, b = fun(state_x, t)
         state_x.state_vector = state_x.state_vector + a*delta_t + b@delta_w
     return state_x.state_vector
+
+
+def gauss2cubature(state, alpha=1.0):
+    r"""Evaluate the cubature points for an input Gaussian state. This is done under the assumption
+    that the input state is :math:`\mathcal{N}(\mathbf{\mu}, \Sigma)` of dimension :math:`n`. We
+    calculate the square root of the covariance (via Cholesky factorization), and find the cubature
+    points, :math:`X`, as,
+
+    .. math::
+
+        \Sigma &= S S^T
+
+        X_i &= S \xi_i + \mathbf{\mu}
+
+    for :math:`i = 1,...,2n`, where :math:`\xi_i = \alpha \sqrt{n} [\pm \mathbf{1}]_i` and
+    :math:`[\pm \mathbf{1}]_i`, are the positive and negative unit vectors in each dimension. We
+    include a scaling parameter :math:`\alpha` to allow the selection of cubature points closer to
+    the mean or more in the tails, as a potentially useful free parameter.
+
+    Parameters
+    ----------
+    state : :class:`~.GaussianState`
+        A Gaussian state with mean and covariance
+    alpha : float, optional
+        scaling parameter allowing the selection of cubature points closer to the mean (lower
+        values) or further from the mean (higher values)
+
+    Returns
+    -------
+     : :class:`~.StateVectors`
+        Cubature points (as a :class:`~.StateVectors` of dimension :math:`n \times 2n`)
+
+    """
+    ndim_state = np.shape(state.state_vector)[0]
+
+    sqrt_covar = np.linalg.cholesky(state.covar, lower=True)
+    cuba_points = alpha * np.sqrt(ndim_state) * np.hstack((np.identity(ndim_state), -np.identity(ndim_state)))
+
+    if np.issubdtype(cuba_points.dtype, np.integer):
+        cuba_points = cuba_points.astype(float)
+
+    cuba_points = sqrt_covar @ cuba_points + state.mean
+
+    return StateVectors(cuba_points)
