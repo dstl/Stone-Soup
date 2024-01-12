@@ -59,8 +59,8 @@ def cholesky_eps(A, lower=False):
     L = np.zeros(A.shape)
     for i in range(A.shape[0]):
         for j in range(i):
-            L[i, j] = (A[i, j] - L[i, :]@L[j, :].T) / L[j, j]
-        val = A[i, i] - L[i, :]@L[i, :].T
+            L[i, j] = (A[i, j] - L[i, :] @ L[j, :].T) / L[j, j]
+        val = A[i, i] - L[i, :] @ L[i, :].T
         L[i, i] = np.sqrt(val) if val > eps else np.sqrt(eps)
 
     if lower:
@@ -69,7 +69,7 @@ def cholesky_eps(A, lower=False):
         return L.T
 
 
-def jacobian(fun, x,  **kwargs):
+def jacobian(fun, x, **kwargs):
     """Compute Jacobian through finite difference calculation
 
     Parameters
@@ -91,19 +91,19 @@ def jacobian(fun, x,  **kwargs):
 
     # For numerical reasons the step size needs to large enough. Aim for 1e-8
     # relative to spacing between floating point numbers for each dimension
-    delta = 1e8*np.spacing(x.state_vector.astype(np.float64).ravel())
+    delta = 1e8 * np.spacing(x.state_vector.astype(np.float_).ravel())
     # But at least 1e-8
     # TODO: Is this needed? If not, note special case at zero.
     delta[delta < 1e-8] = 1e-8
 
     x2 = copy.copy(x)  # Create a clone of the input
-    x2.state_vector = np.tile(x.state_vector, ndim+1) + np.eye(ndim, ndim+1)*delta[:, np.newaxis]
+    x2.state_vector = np.tile(x.state_vector, ndim + 1) + np.eye(ndim, ndim + 1) * delta[:, np.newaxis]
     x2.state_vector = x2.state_vector.view(StateVectors)
 
     F = fun(x2, **kwargs)
 
     jac = np.divide(F[:, :ndim] - F[:, -1:], delta)
-    return jac.astype(np.float64)
+    return jac.astype(np.float_)
 
 
 def gauss2sigma(state, alpha=1.0, beta=2.0, kappa=None):
@@ -165,9 +165,9 @@ def gauss2sigma(state, alpha=1.0, beta=2.0, kappa=None):
 
     # Can't use in place addition/subtraction as casting issues may arise when mixing float/int
     sigma_points[:, 1:(ndim_state + 1)] = \
-        sigma_points[:, 1:(ndim_state + 1)] + sqrt_sigma*np.sqrt(c)
+        sigma_points[:, 1:(ndim_state + 1)] + sqrt_sigma * np.sqrt(c)
     sigma_points[:, (ndim_state + 1):] = \
-        sigma_points[:, (ndim_state + 1):] - sqrt_sigma*np.sqrt(c)
+        sigma_points[:, (ndim_state + 1):] - sqrt_sigma * np.sqrt(c)
 
     # Put these sigma points into s State object list
     sigma_points_states = []
@@ -213,7 +213,7 @@ def sigma2gauss(sigma_points, mean_weights, covar_weights, covar_noise=None):
 
     points_diff = sigma_points - mean
 
-    covar = points_diff@(np.diag(covar_weights))@(points_diff.T)
+    covar = points_diff @ (np.diag(covar_weights)) @ (points_diff.T)
     if covar_noise is not None:
         covar = covar + covar_noise
     return mean.view(StateVector), covar.view(CovarianceMatrix)
@@ -280,7 +280,7 @@ def unscented_transform(sigma_points_states, mean_weights, covar_weights,
 
     # Calculate cross-covariance
     cross_covar = (
-        (sigma_points-sigma_points[:, 0:1]) @ np.diag(mean_weights) @ (sigma_points_t-mean).T
+            (sigma_points - sigma_points[:, 0:1]) @ np.diag(mean_weights) @ (sigma_points_t - mean).T
     ).view(CovarianceMatrix)
 
     return mean, covar, cross_covar, sigma_points_t, mean_weights, covar_weights
@@ -303,7 +303,7 @@ def cart2pol(x, y):
 
     """
 
-    rho = np.sqrt(x**2 + y**2)
+    rho = np.sqrt(x ** 2 + y ** 2)
     phi = np.arctan2(y, x)
     return (rho, phi)
 
@@ -328,9 +328,9 @@ def cart2sphere(x, y, z):
 
     """
 
-    rho = np.sqrt(x**2 + y**2 + z**2)
+    rho = np.sqrt(x ** 2 + y ** 2 + z ** 2)
     phi = np.arctan2(y, x)
-    theta = np.arcsin(z/rho)
+    theta = np.arcsin(z / rho)
     return (rho, phi, theta)
 
 
@@ -419,7 +419,7 @@ def cart2az_el_rg(x, y, z):
     (float, float, float)
         A tuple of the form `(phi, theta, rho)`
     """
-    rho = np.sqrt(x**2 + y**2 + z**2)
+    rho = np.sqrt(x ** 2 + y ** 2 + z ** 2)
     phi = np.arcsin(x / rho)
     theta = np.arcsin(y / rho)
     return phi, theta, rho
@@ -585,9 +585,9 @@ def gm_sample(means, covars, size, weights=None):
         means = means.view(StateVectors)
 
     if isinstance(means, StateVectors) and weights is None:
-        weights = np.array([1/means.shape[1]]*means.shape[1])
+        weights = np.array([1 / means.shape[1]] * means.shape[1])
     elif weights is None:
-        weights = np.array([1/len(means)]*len(means))
+        weights = np.array([1 / len(means)] * len(means))
 
     n_samples = np.random.multinomial(size, weights)
     samples = np.vstack([np.random.multivariate_normal(mean.ravel(), covar, sample)
@@ -616,7 +616,7 @@ def gm_reduce_single(means, covars, weights):
         The covariance of the reduced/single Gaussian
     """
     # Normalise weights such that they sum to 1
-    weights = weights/Probability.sum(weights)
+    weights = weights / Probability.sum(weights)
 
     # Cast means as a StateVectors, so this works with ndarray types
     means = means.view(StateVectors)
@@ -626,7 +626,7 @@ def gm_reduce_single(means, covars, weights):
 
     # Calculate covar
     delta_means = means - mean
-    covar = np.sum(covars*weights, axis=2, dtype=np.float64) + weights*delta_means@delta_means.T
+    covar = np.sum(covars * weights, axis=2, dtype=np.float_) + weights * delta_means @ delta_means.T
 
     return mean.view(StateVector), covar.view(CovarianceMatrix)
 
@@ -646,7 +646,7 @@ def mod_bearing(x):
         Angle in radians in the range math: :math:`-\pi` to :math:`+\pi`
     """
 
-    x = (x+np.pi) % (2.0*np.pi)-np.pi
+    x = (x + np.pi) % (2.0 * np.pi) - np.pi
 
     return x
 
@@ -665,8 +665,8 @@ def mod_elevation(x):
     float
         Angle in radians in the range math: :math:`-\pi/2` to :math:`+\pi/2`
     """
-    x = x % (2*np.pi)  # limit to 2*pi
-    N = x//(np.pi/2)   # Count # of 90 deg multiples
+    x = x % (2 * np.pi)  # limit to 2*pi
+    N = x // (np.pi / 2)  # Count # of 90 deg multiples
     if N == 1:
         x = np.pi - x
     elif N == 2:
@@ -727,9 +727,9 @@ def dotproduct(a, b):
 
     # Decide whether this is a StateVector or a StateVectors
     if type(a) is StateVector and type(b) is StateVector:
-        return np.sum(a*b)
+        return np.sum(a * b)
     elif type(a) is StateVectors and type(b) is StateVectors:
-        return np.atleast_2d(np.asarray(np.sum(a*b, axis=0)))
+        return np.atleast_2d(np.asarray(np.sum(a * b, axis=0)))
     else:
         raise ValueError("Inputs must be `StateVector` or `StateVectors` and of the same type")
 
@@ -759,7 +759,7 @@ def sde_euler_maruyama_integration(fun, t_values, state_x0):
         delta_t = next_t - t
         delta_w = np.random.normal(scale=np.sqrt(delta_t), size=(state_x.ndim, 1))
         a, b = fun(state_x, t)
-        state_x.state_vector = state_x.state_vector + a*delta_t + b@delta_w
+        state_x.state_vector = state_x.state_vector + a * delta_t + b @ delta_w
     return state_x.state_vector
 
 
@@ -775,8 +775,8 @@ def gauss2cubature(state, alpha=1.0):
 
         X_i &= S \xi_i + \mathbf{\mu}
 
-    for :math:`i = 1,...,2n`, where :math:`\xi_i = \alpha \sqrt{n} [\pm \mathbf{1}]_i` and
-    :math:`[\pm \mathbf{1}]_i`, are the positive and negative unit vectors in each dimension. We
+    for :math:`i = 1,...,2n`, where :math:`\xi_i = \sqrt{ \alpha n} [\pm \mathbf{1}]_i` and
+    :math:`[\pm \mathbf{1}]_i` are the positive and negative unit vectors in each dimension. We
     include a scaling parameter :math:`\alpha` to allow the selection of cubature points closer to
     the mean or more in the tails, as a potentially useful free parameter.
 
@@ -796,8 +796,8 @@ def gauss2cubature(state, alpha=1.0):
     """
     ndim_state = np.shape(state.state_vector)[0]
 
-    sqrt_covar = np.linalg.cholesky(state.covar, lower=True)
-    cuba_points = alpha * np.sqrt(ndim_state) * np.hstack((np.identity(ndim_state), -np.identity(ndim_state)))
+    sqrt_covar = np.linalg.cholesky(state.covar)
+    cuba_points = np.sqrt(alpha*ndim_state) * np.hstack((np.identity(ndim_state), -np.identity(ndim_state)))
 
     if np.issubdtype(cuba_points.dtype, np.integer):
         cuba_points = cuba_points.astype(float)
@@ -805,3 +805,48 @@ def gauss2cubature(state, alpha=1.0):
     cuba_points = sqrt_covar @ cuba_points + state.mean
 
     return StateVectors(cuba_points)
+
+
+def cubature2gauss(cubature_points, covar_noise=None, alpha=1.0):
+    r"""Get the predicted Gaussian mean and covariance from the cubature points. For dimension
+    :math:`n` there are :math:`m = 2n` cubature points. The mean is,
+
+    .. math::
+
+        \mu = \frac{1}{m} \sum\limits_{i=1}^{m} X_i
+
+    and the covariance
+
+    .. math::
+
+        \Sigma = \frac{1}{\alpha}\left(\frac{1}{m} \sum\limits_{i=1}^{m} X_i X_i^T -
+        \mathbf{\mu}\mathbf{\mu}^T\right) + Q
+
+    where :math:`Q` is an optional additive noise matrix. The scaling parameter :math:`\alpha`
+    allow the for cubature points closer to the mean or more in the tails,
+
+    Parameters
+    ----------
+    cubature_points : :class:`~.StateVectors`
+        Cubature points (as a :class:`~.StateVectors` of dimension :math:`n \times 2n`)
+    alpha : float, optional
+        scaling parameter allowing the nomination of cubature points closer to the mean (lower
+        values) or further from the mean (higher values)
+
+    Returns
+    -------
+     : :class:`~.GaussianState`
+        A Gaussian state with mean and covariance
+
+    """
+
+    m = np.shape(cubature_points)[1]
+    mean = np.average(cubature_points, axis=1)
+    sigma_mult = cubature_points @ cubature_points.T
+    mean_mult = mean @ mean.T
+    covar = (1/alpha)*((1/m) * sigma_mult - mean_mult)
+
+    if covar_noise is not None:
+        covar = covar + covar_noise
+
+    return mean.view(StateVector), covar.view(CovarianceMatrix)
