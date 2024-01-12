@@ -6,10 +6,10 @@ import itertools as it
 from typing import TYPE_CHECKING
 
 from ..base import Base, Property
-from ..platform.base import Platform
 
 if TYPE_CHECKING:
     from ..sensor.sensor import Sensor
+    from ..platform.base import Platform
 
 
 class SensorManager(Base, ABC):
@@ -29,7 +29,7 @@ class SensorManager(Base, ABC):
     """
     sensors: Set['Sensor'] = Property(doc="The sensor(s) which the sensor manager is managing.")
 
-    platforms: Set[Platform] = Property(doc="The platform(s) which the sensor manager is "
+    platforms: Set['Platform'] = Property(doc="The platform(s) which the sensor manager is "
                                             "managing.")
 
     reward_function: Callable = Property(
@@ -46,15 +46,17 @@ class SensorManager(Base, ABC):
                           "to the sensor set will not be considered by the sensor manager or "
                           "reward function.")
 
-    @property
-    def actionables(self):
-        actionables = set()
+    @sensors.getter
+    def sensors(self):
+        sensors = self._property_sensors
         if self.take_sensors_from_platforms:
             for platform in self.platforms:
-                self.sensors.update(platform.sensors)
-        actionables.update(self.sensors, self.platforms)
+                sensors.update(platform.sensors)
+        return sensors
 
-        return actionables
+    @property
+    def actionables(self):
+        return self.platforms | self.sensors
 
     @abstractmethod
     def choose_actions(self, timestamp, nchoose, **kwargs):
