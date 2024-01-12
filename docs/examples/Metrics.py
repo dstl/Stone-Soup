@@ -7,36 +7,40 @@ Metrics example
 """
 
 # %%
-# This example demonstrates some of the different metrics available in Stone Soup and how they can be used with the
-# :class:`~.MultiManager` to assess tracking performance. It also demonstrates how to use the :class:`~.MetricPlotter`
-# class to easily generate metric plots for visualisation.
+# This example demonstrates different metrics available in Stone Soup and how they
+# can be used with the :class:`~.MultiManager` to assess tracking performance. It also
+# demonstrates how to use the :class:`~.MetricPlotter` class to easily generate metric plots for
+# visualisation.
 #
 # To generate metrics, we need:
-#  - At least one :class:`~.MetricGenerator` - these are used to determine the metric type we want to generate and to
-#    compute the metrics themselves.
-#  - The :class:`~.MultiManager` metric manager - this is used to hold the metric generator(s) as well as all the ground
-#    truth, track, and detection sets we want to generate our metrics from. We will generate our metrics using the
-#    :meth:`generate_metrics` method of the :class:`~.MultiManager` class.
+#  - At least one :class:`~.MetricGenerator` - these are used to determine the metric type
+#    we want to generate and to compute the metrics themselves.
+#  - The :class:`~.MultiManager` metric manager - this is used to hold the metric generator(s)
+#    as well as all the ground truth, track, and detection sets we want to generate our
+#    metrics from. We will generate our metrics using the :meth:`generate_metrics` method
+#    of the :class:`~.MultiManager` class.
 #
-# In this example, we will create a variety of metric generators for different types of metrics. These metrics will be
-# used to assess and compare tracks produced from the same set of ground truth paths and detections by the Extended
-# Kalman Filter and the Particle Filter.
+# In this example, we will create a variety of metric generators for different types of metrics.
+# These metrics will be used to assess and compare tracks produced from the same set of ground
+# truth paths and detections by the Extended Kalman Filter and the Particle Filter.
 
 # %%
 # Create metric generators and metric manager
 # -------------------------------------------
-# In this section we create the metric generators in preparation for generating metrics later on.
+# In this section we create the metric generators in preparation for generating metrics later.
 #
-# First we create some Basic Metrics generators that will show us the number of tracks, the number of targets and the
-# ratio of tracks to targets. As with all the metric generators, we must give our generator a unique name to
-# identify it later, and the keys for our tracks and ground truth data (and detections set if relevant). When we
-# generate the metrics, these keys will be used to access the data that we will store in the MultiManager and allow us
-# to specify which tracks or truths we want to generate metrics for.
+# First, we create some :class:`~.BasicMetrics` generators that will show us the number of tracks,
+# the number of targets, and the ratio between them. As with all the metric generators,
+# we must give ours a unique name to identify it later, and the keys for our tracks and
+# ground truth data (and detections set if relevant). When we generate the metrics, these keys
+# will be used to access the data stored in the MultiManager and allow us to specify
+# which tracks or truths we want to generate metrics for.
 #
-# NB: in all metrics that take a track and a truth as input, it is possible to input two tracks instead for calculating
-# track to track comparisons. This is relevant in scenarios where a second set of tracks is used as a proxy for ground
-# truth. To do this, set the `tracks_key` parameter to the tracks set and the `truths_key` parameter to the second
-# tracks set that is being used as a ground truth proxy.
+# NB: in all metrics that take a track and a truth as input, we can input two tracks
+# instead to calculate track to track comparisons. This is relevant in scenarios where a
+# second set of tracks is used as a proxy for ground truth. To do this, set the *tracks_key*
+# parameter to the tracks set and the *truths_key* parameter to the second tracks set that is
+# being used as a ground truth proxy.
 
 from stonesoup.metricgenerator.basicmetrics import BasicMetrics
 
@@ -44,12 +48,12 @@ basic_EKF = BasicMetrics(generator_name='basic_EKF', tracks_key='EKF_tracks', tr
 basic_PF = BasicMetrics(generator_name='basic_PF', tracks_key='PF_tracks', truths_key='truths')
 
 # %%
-# Next we create the Optimal SubPattern Assignment (OSPA) metric generator. This metric is calculated at each time step
-# to show how far the tracks are from the ground truth paths. It returns an overall multi-track to multi-ground-truth
-# missed distance for each time step.
+# Next, we create the Optimal SubPattern Assignment (OSPA) metric generator. This metric is
+# calculated at each time step to show how far the tracks are from the ground truth paths. It
+# returns an overall multi-track to multi-ground-truth missed distance for each time step.
 #
-# The generator has two additional properties: :math:`p \in [1,\infty]` for outlier sensitivity and :math:`c > 1` for
-# cardinality penalty. [#]_
+# The generator has two additional properties: :math:`p \in [1,\infty]` for outlier sensitivity
+# and :math:`c > 1` for cardinality penalty. [#]_
 
 from stonesoup.metricgenerator.ospametric import OSPAMetric
 
@@ -61,16 +65,16 @@ ospa_EKF_PF = OSPAMetric(c=40, p=1, generator_name='OSPA_EKF-PF',
                          tracks_key='EKF_tracks', truths_key='PF_tracks')
 
 # %%
-# Next we create the Single Integrated Air Picture (SIAP) metric generators. These metrics are applicable to tracking in
-# general and not just in relation to an air picture. [#]_
+# Next, we create the Single Integrated Air Picture (SIAP) metric generators. These metrics are
+# applicable to tracking in general - not just the air domain. [#]_
 #
-# The SIAP generators will generate a series of different individual SIAP metrics that will provide information about
-# the accuracy of the tracking. They will generate different SIAP metrics for each time step, as well as overall
-# averages. You will see the SIAP metric averages and more detail about what the different metrics mean in the table
-# generated towards the end of the notebook.
+# The SIAP generators will generate a series of different SIAP metrics that
+# provide information about the accuracy of the tracking. They generate different SIAP
+# metrics for each time step and calculate averages. SIAP metric averages
+# and more explanation into the different plotted metrics are provided later.
 #
-# The SIAP Metrics require a way to associate tracks to truth, so we'll use a Track to Truth associator which uses
-# Euclidean distance measure by default.
+# The SIAP Metrics require a way to associate tracks to truth, so we'll use a Track to Truth
+# associator which uses Euclidean distance measure by default.
 
 from stonesoup.metricgenerator.tracktotruthmetrics import SIAPMetrics
 from stonesoup.measures import Euclidean
@@ -94,9 +98,10 @@ from stonesoup.dataassociator.tracktotrack import TrackToTruth
 associator = TrackToTruth(association_threshold=30)
 
 # %%
-# Next we create metric generators for the Sum of Covariance Norms. They will calculate the sum of the covariance matrix
-# norms of each track state at each time step. These metrics produced will indicate how uncertain the tracks we have
-# produced are. Higher sum of covariance norms means higher uncertainty.
+# Next, we create metric generators for the :class:`~.SumofCovarianceNormsMetric`. They will
+# calculate the sum of the covariance matrix norms of each track state at each time step. These
+# metrics produced will indicate how uncertain the tracks we have produced are. Higher sum of
+# covariance norms means higher uncertainty.
 
 from stonesoup.metricgenerator.uncertaintymetric import SumofCovarianceNormsMetric
 
@@ -106,8 +111,9 @@ sum_cov_norms_PF = SumofCovarianceNormsMetric(tracks_key='PF_tracks',
                                               generator_name='sum_cov_norms_PF')
 
 # %%
-# Finally, we create two plot generators - one for each of the two different trackers we are using. These will take in
-# the tracks, ground truths, and detections that we generate and plot them in 2 dimensions.
+# Finally, we create two plot generators - one for each of the two different trackers we are
+# using. These will take in the tracks, ground truths, and detections that we generate and plot
+# them in 2 dimensions.
 
 from stonesoup.metricgenerator.plotter import TwoDPlotter
 
@@ -119,7 +125,7 @@ plot_generator_PF = TwoDPlotter([0, 2], [0, 2], [0, 2], uncertainty=True, tracks
                                 generator_name='PF_plot')
 
 # %%
-# Now we add all of our metric generators to the :class:`~.MultiManager`.
+# Add our metric generators to the :class:`~.MultiManager`:
 
 from stonesoup.metricgenerator.manager import MultiManager
 
@@ -139,9 +145,10 @@ metric_manager = MultiManager([basic_EKF,
 # %%
 # Generate ground truth and detections
 # ------------------------------------
-# In this section, we generate the ground truth paths and the detections to be tracked - we will simulate targets that
-# can turn left or right. Both our Extended Kalman Filter tracker and Particle Filter tracker will be given the same
-# sets of truths and detections to track so that we can fairly compare the results.
+# In this section, we generate the ground truth paths and the detections to be tracked - we will
+# simulate targets that can turn left or right. Both our Extended Kalman Filter tracker and
+# Particle Filter tracker will be given the same sets of truths and detections to track, so
+# we can fairly compare the results.
 
 import numpy as np
 import datetime
@@ -200,8 +207,8 @@ ground_truth_gen = SwitchMultiTargetGroundTruthSimulator(
 )
 
 # %%
-# Next we create a sensor and use it to generate detections from the targets. The sensor we use in this example is a
-# radar with imperfect measurements in bearing-range space.
+# Next, we create a sensor and use it to generate detections from the targets.
+# In this example, we use a radar with imperfect measurements in bearing-range space.
 
 from stonesoup.sensor.radar import RadarBearingRange
 
@@ -226,7 +233,7 @@ detector = PlatformDetectionSimulator(ground_truth_gen, platforms=[platform])
 detector, *detectors = tee(detector, 3)
 
 # %%
-# Now we plot the ground truth paths and detections:
+# Plot the ground truth paths and detections:
 
 detections = set()
 truths = set()
@@ -246,8 +253,8 @@ plotter.fig
 # %%
 # Create and run the trackers
 # ---------------------------
-# Now we create and run the two different trackers, one with the Extended Kalman Filter (EKF) and one with the Particle
-# Filter (PF). We start first with the EKF tracker.
+# We now create and run the two trackers: one with the Extended Kalman Filter (EKF)
+# and the other with the Particle Filter (PF). We start with the EKF tracker.
 
 from stonesoup.predictor.kalman import ExtendedKalmanPredictor
 from stonesoup.updater.kalman import ExtendedKalmanUpdater
@@ -291,7 +298,7 @@ initiator_EKF = MultiMeasurementInitiator(
 
 from stonesoup.tracker.simple import MultiTargetTracker
 
-kalman_tracker_EKF = MultiTargetTracker(  # Runs the tracker
+kalman_tracker_EKF = MultiTargetTracker(  # Run the tracker
     initiator=initiator_EKF,
     deleter=deleter,
     detector=detectors[0],
@@ -300,7 +307,7 @@ kalman_tracker_EKF = MultiTargetTracker(  # Runs the tracker
 )
 
 # %%
-# Now we create and run the tracker with the Particle Filter:
+# Run the tracker with the Particle Filter:
 
 from stonesoup.predictor.particle import ParticlePredictor
 from stonesoup.resampler.particle import ESSResampler
@@ -342,15 +349,17 @@ tracker_PF = MultiTargetTracker(
 # %%
 # Add data to metric manager and generate metrics
 # -----------------------------------------------
-# Now that we have all of our ground truth, detections, and tracks data, we can add it to the metric manager.
+# Now that we have all of our ground truth, detections, and tracks data, we can add it to the
+# metric manager.
 #
-# The MultiManager :meth:`~.MultiManager.add_data()` method takes a dictionary of lists/sets of ground truth,
-# detections, and/or tracks data. It can take multiple sets of each type. Each state set must have a unique key assigned
-# to it. The track, truth, and detection keys that we input into the metric generators will be used to extract the
-# corresponding set from the :class:`~.MultiManager` for metric generation.
+# The MultiManager :meth:`~.MultiManager.add_data()` method takes a dictionary of lists/sets of
+# ground truth, detections, and/or tracks data. It can take multiple sets of each type. Each
+# state set must have a unique key assigned to it. The track, truth, and detection keys that we
+# input into the metric generators will be used to extract the corresponding set from the
+# :class:`~.MultiManager` for metric generation.
 #
-# Setting overwrite to False allows new data to be added to the :class:`~.MultiManager` without overwriting data that is
-# already in it, as demonstrated in the code below.
+# Setting *overwrite* to ``False`` allows new data to be added to the :class:`~.MultiManager`
+# without overwriting existing data, as demonstrated in the code below:
 
 
 # add tracks data to metric manager
@@ -360,7 +369,7 @@ for step, (time, current_tracks) in enumerate(kalman_tracker_EKF, 1):
 for step, (time, current_tracks) in enumerate(tracker_PF, 1):
     metric_manager.add_data({'PF_tracks': current_tracks}, overwrite=False)
 
-# then add truths and detections
+# add truths and detections
 metric_manager.add_data({'truths': truths,
                          'detections': detections}, overwrite=False)
 
@@ -370,17 +379,19 @@ metric_manager.add_data({'truths': truths,
 # ----------------
 # We are now ready to generate and view all the metrics from our MultiManager.
 #
-# Because we have two plot generators in our metric manager, two plots will be produced and displayed when we generate
-# the metrics. They will show the ground truth paths, detections, and tracks. One will display the tracks produced by
-# the EKF tracker and the other will display the tracks from the PF tracker.
+# Because we have two :class:`~.TwoDPlotter` generators in our metric manager, two plots will be
+# displayed when we generate the metrics. They will show the ground truth paths,
+# detections, and tracks. One will display the tracks produced by the EKF tracker and the other
+# will display the tracks from the PF tracker.
 
 metrics = metric_manager.generate_metrics()
 
 # %%
-# We can see from the plots above that the two trackers exhibit similar performance in tracking the ground truths.
+# We can see from the plots above that the two trackers exhibit similar performance in tracking
+# the ground truths.
 #
-# Let's look at the metrics we've generated to compare them further. We'll start by printing out the basic metrics,
-# which give us information on the number of tracks versus targets.
+# Let's look at the metrics we've generated to compare them further. We'll start by printing out
+# the basic metrics which give us information on the number of tracks vs targets.
 
 for generator in metrics.keys():
     if 'basic' in generator:
@@ -389,15 +400,16 @@ for generator in metrics.keys():
             print(f"{metric.title}: {metric.value}")
 
 # %%
-# The basic metrics show that both the EKF and the PF have successfully produced tracks for each of the ground truth
-# paths so have a 1:1 track-to-target ratio.
+# The basic metrics show that both the EKF and the PF have successfully produced tracks for each
+# of the ground truth paths so have a 1:1 track-to-target ratio.
 #
-# Next we'll look at the averages of each of the SIAP metrics to compare.
+# Next, we'll look at the averages of each of the SIAP metrics to compare.
 #
-# First we extract the SIAP averages from the :class:`~.MultiManager`. Then we use the :class:`~.SIAPTableGenerator` to
-# display the average metrics in a table which shows us descriptions for each metric.
+# First, we extract the SIAP averages from the :class:`~.MultiManager`. Then, we use the
+# :class:`~.SIAPTableGenerator` to display the average metrics in a table which shows us
+# descriptions for each metric.
 #
-# We will create a table for the EKF SIAPs first.
+# We first create a table for the EKF SIAPs:
 
 from stonesoup.metricgenerator.metrictables import SIAPTableGenerator
 
@@ -407,7 +419,7 @@ siap_averages_EKF = {siap_metrics.get(metric) for metric in siap_metrics
 siap_table = SIAPTableGenerator(siap_averages_EKF).compute_metric()
 
 # %%
-# Now we produce a table for the PF SIAPs for comparison.
+# Now we produce a table for the PF SIAPs for comparison:
 
 siap_metrics = metrics['SIAP_PF-truth']
 siap_averages_PF = {siap_metrics.get(metric) for metric in siap_metrics
@@ -415,41 +427,47 @@ siap_averages_PF = {siap_metrics.get(metric) for metric in siap_metrics
 siap_table = SIAPTableGenerator(siap_averages_PF).compute_metric()
 
 # %%
-# We can see that the values for most of the SIAP metric averages are not very different between the two trackers, again
-# showing their tracking quality is very similar. Other specific observations include:
 #
-# - SIAP Ambiguity of just above 1 indicates that there are places where multiple tracks overlap the same section of
-#   ground truth path, which we can see is the case from the plots above.
-# - A Longest Track Segment of 0.88 indicates that on average the three different tracks produced are not following 100%
-#   of the ground truth paths. We can see on the lower left area of our plots that the tracks have been confused.
-# - Positional and velocity errors of ~0.80 and 0.66, respectively, indicate that there is some distance between the
-#   tracks and ground truth paths. Again, we can see this from the plots. The range for these errors is 0-infinity so
-#   the errors are not significant.
-# - SIAP Spuriousness of 0 show us no tracks have been created that are not associated to a true object. We might get
-#   higher spuriousness if we added clutter to our detections.
+# We can see that the values for most of the SIAP metric averages are similar between
+# the trackers, again showing their tracking quality is very similar. Other specific
+# observations include:
+#
+# - SIAP Ambiguity of just above 1 indicates that there are places where multiple tracks overlap
+#   the same section of ground truth path, which we can see is the case from the plots above.
+# - The Longest Track Segment (0.88) indicates that, on average, the three different tracks
+#   produced are not following 100% of the ground truth paths. We can see on the lower left area
+#   of our plots that the tracks have been confused.
+# - Positional and velocity errors of ~0.80 and 0.66 indicate that there is some
+#   distance between the tracks and ground truth paths. Again, we can see this from the plots.
+#   The range for these errors is 0-infinity so the errors are not significant.
+# - SIAP Spuriousness of 0 show us no tracks have been created that are not associated to a true
+#   object. We might get higher spuriousness if we added clutter to our detections.
 
 # %%
 # Plot metrics
 # ------------
 # We will use :class:`~.MetricPlotter` to plot some of our metrics below.
 #
-# To use :class:`~.MetricPlotter` we first create an instance of the class. We can then use the :meth:`plot_metrics()`
-# method to plot the metrics of our choice. Key features of :class:`~.MetricPlotter`:
+# To use :class:`~.MetricPlotter`, we first create an instance of the class. We then use the
+# :meth:`plot_metrics()` method to plot the metrics of our choice. Key features of
+# :class:`~.MetricPlotter` include:
 #
-# - You can specify exactly which metrics you want to plot by specifying the optional `generator_names` and
-#   `metric_names` parameters.
-# - `generator_names` allows you to specify which generators you want to plot metrics from. If you don't pass the
-#   `generator_names` argument, :meth:`plot_metrics()` will automatically extract all plottable metrics from all metric
-#   generators in the :class:`~.MultiManager` and plot them.
-# - `metric_names` allows you to specify which specific metrics types you want to plot from the metric generators. This
-#   is mostly relevant for the SIAP metrics. You can view which metrics are plottable with
-#   :meth:`MetricPlotter.plottable_metrics`.
-# - :meth:`plot_metrics` has a `combine_plots` argument which defaults to True. This means that all metrics of the same
-#   type will be plotted together on a single subplot.
-# - You can specify additional formatting, like colour and linestyle, for the plots produced by using keyword arguments
-#   from matplotlib pyplot.
+# - You can specify exactly which metrics you want to plot by specifying the optional
+#   *generator_names* and *metric_names* parameters.
+# - *generator_names* allows you to specify which generators you want to plot metrics from.
+#   If you don't pass the *generator_names* argument, :meth:`plot_metrics()` will automatically
+#   extract all plottable metrics from all metric generators in the :class:`~.MultiManager`
+#   and plot them.
+# - *metric_names* allows you to specify which specific metrics types to plot
+#   from the metric generators. This is mostly relevant for the SIAP metrics. You can
+#   view which metrics are plottable with :meth:`MetricPlotter.plottable_metrics`.
+# - :meth:`plot_metrics` has a *combine_plots* argument which defaults to ``True``.
+#   This means that all metrics of the same type will be plotted together on a single subplot.
+# - You can specify additional formatting, like colour and linestyle, for the plots
+#   produced by using keyword arguments from matplotlib pyplot.
 #
-# We start by plotting the OSPA distances and SIAP metrics. Plots will be combined for the same metric type.
+# We start by plotting the OSPA distances and SIAP metrics. Plots will be combined for the
+# same metric type.
 
 from stonesoup.plotter import MetricPlotter
 
@@ -460,21 +478,22 @@ graph.plot_metrics(metrics, generator_names=['OSPA_EKF-truth',
                                              'SIAP_EKF-truth',
                                              'SIAP_PF-truth'],
                    # metric_names=['OSPA distances',
-                   #               'SIAP Position Accuracy at times'],  # uncomment and run to see effect
+                   #               'SIAP Position Accuracy at times']
+                   # uncomment and run to see effect
                    color=['orange', 'green', 'blue'])
 
-# update y-axis label and title, other subplots are displaying auto-generated title and labels
+# update y-axis label and title; other subplots are displaying auto-generated title and labels
 graph.axes[0].set(ylabel='OSPA metrics', title='OSPA distances over time')
 graph.fig.show()
 
 # %%
-# From these plots, we can see that towards the end of the time frame is where we lose some accuracy of our tracks and
-# where more errors are introduced. We can once again see how similar the tracking performance is across both trackers.
-# The blue line in the OSPA distances plot indicates the distance between tracks produced by both trackers at each time
-# step.
+# From these plots, we can see that we lose some track accuracy towards the end of the
+# simulation. We can once again see how similar the tracking performance is across both
+# trackers. The blue line in the OSPA distances plot indicates the distance between tracks
+# produced by both trackers at each time step.
 #
-# Now we will plot the sum of covariance norms metrics for both trackers. This time we plot the metrics separately and
-# we specify additional keyword arguments to customise the plot.
+# We now plot the sum of covariance norms metrics for both trackers. We plot the
+# metrics separately and specify additional keyword arguments to customise the plot.
 
 graph = MetricPlotter()
 graph.plot_metrics(metrics, generator_names=['sum_cov_norms_EKF',
@@ -485,10 +504,12 @@ graph.set_fig_title('Sum of Covariance Norms Metric')  # set figure title
 graph.set_ax_title(['Extended Kalman Filter', 'Particle Filter'])  # set title for each axis
 
 # %%
-# For both trackers, we start with the highest uncertainty as tracks are initiated. Uncertainty decreases until just
-# past the middle of our timeframe and begins to increase again as we get further from the start time.
+# For both trackers, we start with the highest uncertainty as tracks are initiated. Uncertainty
+# decreases until just past the middle of our timeframe and begins to increase again as time
+# increases.
 #
-# You can change the parameters in the ground truth and trackers and see how it affects the different metrics.
+# You can change the parameters in the ground truth and trackers and see how it affects the
+# different metrics.
 
 
 # %%
