@@ -333,17 +333,17 @@ class UnscentedKalmanPredictor(KalmanPredictor):
             self.control_model.function(**kwargs)
 
     @predict_lru_cache()
-    def predict(self, prior, control_input=None, timestamp=None, **kwargs):
+    def predict(self, prior, timestamp=None, control_input=None, **kwargs):
         r"""The unscented version of the predict step
 
         Parameters
         ----------
         prior : :class:`~.State`
             Prior state, :math:`\mathbf{x}_{k-1}`
-        control_input: :class:`~.State`
-            Control input vector, :math:`\mathbf{u}_k`
         timestamp : :class:`datetime.datetime`
             Time to transit to (:math:`k`)
+        control_input: :class:`~.State`
+            Control input vector, :math:`\mathbf{u}_k`
         **kwargs : various, optional
             These are passed to :meth:`~.TransitionModel.covar`
 
