@@ -268,7 +268,6 @@ def test_plotterly_dimension():
 
     Plotterly(Dimension.TWO)  # default
     Plotterly(2)  # check that ints are passed through
-    
     with pytest.raises(TypeError):
         Plotterly(dimension=3)
 
