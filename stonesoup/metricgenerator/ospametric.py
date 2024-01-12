@@ -324,7 +324,8 @@ class GOSPAMetric(MetricGenerator):
         else:
             m, n = len(track_states), len(truth_states)
 
-        cost_matrix = np.full((m, n), self.c, dtype=np.float_)  # c could be int, so force to float
+        # c could be int, so force to float
+        cost_matrix = np.full((m, n), self.c, dtype=np.float64)
 
         for i_track, track_state, in zip_longest(range(m), track_states):
             for i_truth, truth_state in zip_longest(range(n), truth_states):

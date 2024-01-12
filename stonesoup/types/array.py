@@ -184,7 +184,7 @@ class StateVectors(Matrix):
             # Can just use standard numpy averaging if not using custom objects
             state_vector = np.average(np.asarray(state_vectors), axis=axis, weights=weights)
             # Convert type as may have type of weights
-            state_vector = StateVector(state_vector.astype(np.float_, copy=False))
+            state_vector = StateVector(state_vector.astype(np.float64, copy=False))
         elif axis == 1:  # Need to handle special cases of averaging potentially
             state_vector = StateVector(
                 np.empty((state_vectors.shape[0], 1), dtype=state_vectors.dtype))

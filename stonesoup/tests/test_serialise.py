@@ -143,7 +143,7 @@ def test_arrays(serialised_file, instance):
 @pytest.mark.parametrize(
     'values',
     [[np.int_(10), np.int16(20), np.int64(-30)],
-     [np.float_(10.0), np.float64(20.1), np.float32(-0.5), np.longfloat(10.5)]],
+     [np.float64(20.1), np.float32(-0.5), np.longfloat(10.5)]],
     ids=['int', 'float'])
 def test_numpy_dtypes(serialised_file, values):
     serialised_str = serialised_file.dumps(values)

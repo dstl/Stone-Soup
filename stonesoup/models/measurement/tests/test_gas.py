@@ -131,7 +131,7 @@ def test_isotropic_plume(state, mapping, translation_offset):
     expected_log_likelihood = model.logpdf(conc, state)
     expected_likelihood = model.pdf(conc, state)
 
-    assert np.all(np.isclose(expected_likelihood.astype(np.float_),
+    assert np.all(np.isclose(expected_likelihood.astype(np.float64),
                              np.exp(expected_log_likelihood)))
 
     pred_conc = isoplume_h(unmapped_state, translation_offset=translation_offset)

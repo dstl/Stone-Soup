@@ -85,7 +85,7 @@ def test_particle(updater):
         indx = dummy_constraint_function(prediction)
         assert np.all(updated_state.weight[indx] == 0)
 
-    assert np.isclose(np.sum(updated_state.weight.astype(np.float_)), 1.0, rtol=1e-5)
+    assert np.isclose(np.sum(updated_state.weight.astype(np.float64)), 1.0, rtol=1e-5)
     assert updated_state.timestamp == timestamp
     assert updated_state.hypothesis.measurement_prediction == measurement_prediction
     assert updated_state.hypothesis.prediction == prediction
