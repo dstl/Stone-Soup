@@ -31,8 +31,9 @@ class Matrix(np.ndarray):
     def __array_ufunc__(self, ufunc, method, *inputs, **kwargs):
         if ufunc in (np.isfinite, np.matmul):
             # Custom types break here, so simply convert to floats.
-            inputs = [np.asfarray(input_) if isinstance(input_, Matrix) else input_
-                      for input_ in inputs]
+            inputs = [
+                np.asarray(input_, dtype=np.float64) if isinstance(input_, Matrix) else input_
+                for input_ in inputs]
         else:
             # Change to standard ndarray
             inputs = [np.asarray(input_) if isinstance(input_, Matrix) else input_
@@ -194,7 +195,8 @@ class StateVectors(Matrix):
                     state_vector[dim, 0] = type_.average(row, weights=weights)
                 else:
                     # Else use numpy built in, converting to float array
-                    state_vector[dim, 0] = type_(np.average(np.asfarray(row), weights=weights))
+                    state_vector[dim, 0] = type_(
+                        np.average(np.asarray(row, dtype=np.float64), weights=weights))
         else:
             return NotImplemented
 
@@ -214,11 +216,11 @@ class StateVectors(Matrix):
             # Only really handle simple usage here
             avg, w_sum = np.average(state_vectors, axis=1, weights=aweights, returned=True)
 
-            X = np.asfarray(state_vectors - avg)
+            X = np.asarray(state_vectors - avg, dtype=np.float64)
             if aweights is None:
                 X_T = X.T
             else:
-                X_T = (X*np.asfarray(aweights)).T
+                X_T = (X*np.asarray(aweights, dtype=np.float64)).T
             cov = X @ X_T.conj()
             cov *= np.true_divide(1, float(w_sum))
         else:

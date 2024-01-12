@@ -652,7 +652,7 @@ def test_range_and_angles_to_other(first_state, second_state, expected_measureme
     range_, azimuth, elevation = platform1.range_and_angles_to_other(platform2)
     # Assert difference close to zero, to handle angle wrapping (-pi == pi)
     delta = np.array([elevation, Bearing(azimuth), range_]) - expected_measurement[0:3]
-    assert np.allclose(np.asfarray(delta), 0.0)
+    assert np.allclose(np.asarray(delta, dtype=np.float64), 0.0)
 
 
 # @pytest.mark.parametrize('platform_class', [FixedPlatform, MovingPlatform])

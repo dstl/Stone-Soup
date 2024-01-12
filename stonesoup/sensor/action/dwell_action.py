@@ -51,7 +51,7 @@ class ChangeDwellAction(Action):
             # so rotate then stay
             duration = self.rotation_end_time - current_time
 
-        dwell_centre = np.asfarray(copy(init_value))  # in case value is mutable
+        dwell_centre = np.asarray(copy(init_value), dtype=np.float64)  # in case value is mutable
 
         angle_delta = duration.total_seconds() * self.generator.rps * 2 * np.pi
         if self.increasing_angle:
