@@ -967,7 +967,8 @@ class Plotterly(_Plotter):
     A plotting class which is used to simplify the process of plotting ground truths,
     measurements, clutter and tracks. Tracks can be plotted with uncertainty ellipses or
     particles if required. Legends are automatically generated with each plot.
-    Three dimensional plots can be created using the optional dimension parameter.
+    Three dimensional plots can be created using the optional dimension parameter but are
+    not currently supported.
 
     Parameters
     ----------
@@ -985,14 +986,10 @@ class Plotterly(_Plotter):
     def __init__(self, dimension=Dimension.TWO, **kwargs):
         if go is None:
             raise RuntimeError("Usage of Plotterly plotter requires installation of `plotly`")
-        if isinstance(dimension, type(Dimension.TWO)):
-            self.dimension = dimension
-        elif isinstance(dimension, int):
-            self.dimension = Dimension(dimension)
-        else:
-            raise TypeError("%s is an unsupported type for \'dimension\'; "
-                            "expected type %s" % (type(dimension), type(Dimension.TWO)))
-        if self.dimension != dimension.TWO:
+
+        self.dimension = Dimension(dimension)  # allows 2, 3, Dimension(2), Dimension(3)
+
+        if self.dimension != 2:
             raise TypeError("Only 2D plotting currently supported")
 
         from plotly import colors

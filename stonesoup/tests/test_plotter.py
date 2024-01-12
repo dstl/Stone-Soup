@@ -1,5 +1,5 @@
 import numpy as np
-from stonesoup.plotter import Plotter, Dimension, AnimatedPlotterly, AnimationPlotter
+from stonesoup.plotter import Plotter, Dimension, AnimatedPlotterly, AnimationPlotter, Plotterly
 import pytest
 import matplotlib.pyplot as plt
 
@@ -255,3 +255,29 @@ def test_animated_plotterly_uneven_times():
         AnimatedPlotterly([start_time,
                            start_time + timedelta(seconds=1),
                            start_time + timedelta(seconds=3)])
+
+
+def test_plotterly_empty():
+    plotter = Plotterly()
+    plotter.plot_ground_truths({}, [0, 2])
+    plotter.plot_measurements({}, [0, 2])
+    plotter.plot_tracks({}, [0, 2])
+
+
+def test_plotterly_dimension():
+
+    Plotterly(Dimension.TWO)  # default
+    Plotterly(2)  # check that ints are passed through
+    
+    with pytest.raises(TypeError):
+        Plotterly(dimension=3)
+
+    with pytest.raises(TypeError):
+        Plotterly(dimension=Dimension.THREE)
+
+
+def test_plotterly():
+    plotter = Plotterly()
+    plotter.plot_ground_truths(truth, [0, 2])
+    plotter.plot_measurements(all_measurements, [0, 2])
+    plotter.plot_tracks(track, [0, 2], uncertainty=True)
