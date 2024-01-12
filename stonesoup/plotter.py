@@ -45,6 +45,7 @@ class Dimension(IntEnum):
     THREE: int
         Specifies 3D plotting for Plotter object
     """
+    ONE = 1  # 1D plotting mode (plot state over time in Plotterly)
     TWO = 2  # 2D plotting mode (original plotter.py functionality)
     THREE = 3  # 3D plotting mode
 
@@ -981,7 +982,7 @@ class Plotterly(_Plotter):
     Attributes
     ----------
     fig: plotly.graph_objects.Figure
-        Generated figure for graphs to be plotted on
+        Generated figure to display graphs.
     """
     def __init__(self, dimension=Dimension.TWO, **kwargs):
         if go is None:
@@ -998,6 +999,11 @@ class Plotterly(_Plotter):
             yaxis=dict(title=dict(text="<i>y</i>"), scaleanchor="x", scaleratio=1),
             colorway=colors.qualitative.Plotly,  # Needed to match colours later.
         )
+
+        if self.dimension == 3:
+            warnings.warn("Work in Progress for 3D plotting.")
+            layout_kwargs.update(dict(scene_aspectmode='data'))  # auto shapes fig to fit data well
+
         layout_kwargs.update(kwargs)
 
         # Generate plot axes
@@ -1012,6 +1018,12 @@ class Plotterly(_Plotter):
         text.extend([f"{key}: {value}" for key, value in getattr(state, 'metadata', {}).items()])
 
         return "<br>".join((str(t) for t in text))
+
+    def _check_mapping(self, mapping):
+        if len(mapping) == 0:
+            raise ValueError("No indices provided in mapping.")
+        elif len(mapping) != self.dimension:
+            raise TypeError("Plotter dimension is not same as the mapping dimension.")
 
     def plot_ground_truths(self, truths, mapping, truths_label="Ground Truth", **kwargs):
         """Plots ground truth(s)
@@ -1039,17 +1051,19 @@ class Plotterly(_Plotter):
         if not isinstance(truths, Collection) or isinstance(truths, StateMutableSequence):
             truths = {truths}
 
+        self._check_mapping(mapping)  # ensure mapping is compatible with plotter dimension
+
         truths_kwargs = dict(
             mode="lines", line=dict(dash="dash"), legendgroup=truths_label, legendrank=100,
             name=truths_label)
+
+        if self.dimension == 3:
+        # make ground truth line thicker so easier to see in 3d plot
+            truths_kwargs.update(dict(line=dict(width=8, dash="longdashdot")))
+
         truths_kwargs.update(kwargs)
         add_legend = truths_kwargs['legendgroup'] not in {trace.legendgroup
                                                           for trace in self.fig.data}
-
-        if len(mapping) == 0:
-            raise ValueError("No indices in mapping to reference to")
-        elif len(mapping) > 2:
-            warnings.warn("Mapping has length over 2. Additional mapping indices are ignored")
 
         for truth in truths:
             scatter_kwargs = truths_kwargs.copy()
@@ -1058,16 +1072,26 @@ class Plotterly(_Plotter):
                 add_legend = False
             else:
                 scatter_kwargs['showlegend'] = False
-            if len(mapping) == 1:
+
+            if self.dimension == 1:
                 self.fig.add_scatter(
                     x=[state.timestamp for state in truth],
                     y=[state.state_vector[mapping[0]] for state in truth],
                     text=[self._format_state_text(state) for state in truth],
                     **scatter_kwargs)
-            elif len(mapping) > 1:
+
+            elif self.dimension == 2:
                 self.fig.add_scatter(
                     x=[state.state_vector[mapping[0]] for state in truth],
                     y=[state.state_vector[mapping[1]] for state in truth],
+                    text=[self._format_state_text(state) for state in truth],
+                    **scatter_kwargs)
+
+            elif self.dimension == 3:
+                self.fig.add_scatter3d(
+                    x=[state.state_vector[mapping[0]] for state in truth],
+                    y=[state.state_vector[mapping[1]] for state in truth],
+                    z=[state.state_vector[mapping[2]] for state in truth],
                     text=[self._format_state_text(state) for state in truth],
                     **scatter_kwargs)
 
@@ -1109,10 +1133,7 @@ class Plotterly(_Plotter):
         else:
             measurements_set = set(measurements)
 
-        if len(mapping) == 0:
-            raise ValueError("No indices in mapping to reference to")
-        elif len(mapping) > 2:
-            warnings.warn("Mapping has length over 2. Additional mapping indices are ignored")
+        self._check_mapping(mapping)
 
         plot_detections, plot_clutter = self._conv_measurements(measurements_set,
                                                                 mapping,
@@ -1124,6 +1145,10 @@ class Plotterly(_Plotter):
             measurement_kwargs = dict(
                 mode='markers', marker=dict(color='#636EFA'),
                 name=name, legendgroup=name, legendrank=200)
+
+            if self.dimension == 3:  # make markers smaller in 3d plot
+                measurement_kwargs.update(dict(marker=dict(size=4, color='#636EFA')))
+
             measurement_kwargs.update(kwargs)
             if measurement_kwargs['legendgroup'] not in {trace.legendgroup
                                                          for trace in self.fig.data}:
@@ -1132,20 +1157,25 @@ class Plotterly(_Plotter):
                 measurement_kwargs['showlegend'] = False
             detection_array = np.asfarray(list(plot_detections.values()))
 
-            if len(mapping) == 1:
+            if self.dimension == 1:
                 self.fig.add_scatter(
                     x=[state.timestamp for state in plot_detections.keys()],
                     y=detection_array[:, 0],
                     text=[self._format_state_text(state) for state in plot_detections.keys()],
                     **measurement_kwargs,
                 )
-            elif len(mapping) > 1:
-                if len(mapping) > 2:
-                    warnings.warn("Mapping has length over 2. "
-                                  "Additional mapping indices are ignored")
+            elif self.dimension == 2:
                 self.fig.add_scatter(
                     x=detection_array[:, 0],
                     y=detection_array[:, 1],
+                    text=[self._format_state_text(state) for state in plot_detections.keys()],
+                    **measurement_kwargs,
+                )
+            elif self.dimension == 3:
+                self.fig.add_scatter3d(
+                    x=detection_array[:, 0],
+                    y=detection_array[:, 1],
+                    z=detection_array[:, 2],
                     text=[self._format_state_text(state) for state in plot_detections.keys()],
                     **measurement_kwargs,
                 )
@@ -1155,6 +1185,11 @@ class Plotterly(_Plotter):
             measurement_kwargs = dict(
                 mode='markers', marker=dict(symbol="star-triangle-up", color='#FECB52'),
                 name=name, legendgroup=name, legendrank=210)
+
+            if self.dimension == 3:  # update - star-triangle-up not in 3d plotly
+                measurement_kwargs.update(dict(marker=dict(size=4, symbol="diamond",
+                                                           color='#FECB52')))
+
             measurement_kwargs.update(kwargs)
             if measurement_kwargs['legendgroup'] not in {trace.legendgroup
                                                          for trace in self.fig.data}:
@@ -1163,21 +1198,25 @@ class Plotterly(_Plotter):
                 measurement_kwargs['showlegend'] = False
             clutter_array = np.asfarray(list(plot_clutter.values()))
 
-            if len(mapping) == 1:
+            if self.dimension == 1:
                 self.fig.add_scatter(
                     x=[state.timestamp for state in plot_clutter.keys()],
                     y=clutter_array[:, 0],
                     text=[self._format_state_text(state) for state in plot_clutter.keys()],
                     **measurement_kwargs,
                 )
-            elif len(mapping) > 1:
-                if len(mapping) > 2:
-                    warnings.warn("Mapping has length over 2. "
-                                  "Additional mapping indices are ignored")
-
+            elif self.dimension == 2:
                 self.fig.add_scatter(
                     x=clutter_array[:, 0],
                     y=clutter_array[:, 1],
+                    text=[self._format_state_text(state) for state in plot_clutter.keys()],
+                    **measurement_kwargs,
+                )
+            elif self.dimension == 3:
+                self.fig.add_scatter3d(
+                    x=clutter_array[:, 0],
+                    y=clutter_array[:, 1],
+                    z=clutter_array[:, 2],
                     text=[self._format_state_text(state) for state in plot_clutter.keys()],
                     **measurement_kwargs,
                 )
@@ -1247,14 +1286,11 @@ class Plotterly(_Plotter):
         add_legend = track_kwargs['legendgroup'] not in {trace.legendgroup
                                                          for trace in self.fig.data}
 
-        if len(mapping) == 0:
-            raise ValueError("No indices in mapping to reference to")
-        elif len(mapping) == 1:
-            if uncertainty or particle:
-                raise NotImplementedError("Plotting against time hasn't been implemented for "
-                                          "uncertainty or particles ")
-        elif len(mapping) > 2:
-            warnings.warn("Mapping has length over 2. Additional mapping indices are ignored")
+        self._check_mapping(mapping)
+
+        if self.dimension == 1 and (uncertainty or particle):
+            raise NotImplementedError("Plotting against time hasn't been implemented for "
+                                      "uncertainty or particles ")
 
         if same_color:
             color = track_kwargs.get('marker', {}).get('color') or \
