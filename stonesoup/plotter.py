@@ -968,16 +968,14 @@ class Plotterly(_Plotter):
     A plotting class which is used to simplify the process of plotting ground truths,
     measurements, clutter and tracks. Tracks can be plotted with uncertainty ellipses or
     particles if required. Legends are automatically generated with each plot.
-    Three dimensional plots can be created using the optional dimension parameter but are
-    not currently supported.
+    Three-dimensional plots can be created using the optional dimension parameter.
 
     Parameters
     ----------
     dimension: enum \'Dimension\'
-        Optional parameter to specify 2D or 3D plotting. Currently only 2D plotting is
-        supported.
+        Optional parameter to specify 1D, 2D, or 3D plotting.
     \\*\\*kwargs: dict
-        Additional arguments to be passed to Figure.
+        Additional arguments to be passed to the Plotly.graph_objects Figure.
 
     Attributes
     ----------
@@ -1001,7 +999,6 @@ class Plotterly(_Plotter):
         )
 
         if self.dimension == 3:
-            warnings.warn("Work in Progress for 3D plotting.")
             layout_kwargs.update(dict(scene_aspectmode='data'))  # auto shapes fig to fit data well
 
         layout_kwargs.update(kwargs)
@@ -1057,8 +1054,7 @@ class Plotterly(_Plotter):
             mode="lines", line=dict(dash="dash"), legendgroup=truths_label, legendrank=100,
             name=truths_label)
 
-        if self.dimension == 3:
-        # make ground truth line thicker so easier to see in 3d plot
+        if self.dimension == 3:  # make ground truth line thicker so easier to see in 3d plot
             truths_kwargs.update(dict(line=dict(width=8, dash="longdashdot")))
 
         truths_kwargs.update(kwargs)
@@ -1244,7 +1240,7 @@ class Plotterly(_Plotter):
         return colorway[color_index]
 
     def plot_tracks(self, tracks, mapping, uncertainty=False, particle=False, track_label="Tracks",
-                    ellipse_points=30, same_color=False, **kwargs):
+                    ellipse_points=30, err_freq=1, same_color=False, **kwargs):
         """Plots track(s)
 
         Plots each track generated, generating a legend automatically. If ``uncertainty=True``
@@ -1269,6 +1265,9 @@ class Plotterly(_Plotter):
             Label to apply to all tracks for legend.
         ellipse_points: int
             Number of points for polygon approximating ellipse shape
+        err_freq: int
+            Frequency of error bar plotting on tracks. Default value is 1, meaning
+            error bars are plotted at every track step.
         same_color: bool
             Should all the tracks have the same colour. Default False
         \\*\\*kwargs: dict
@@ -1279,18 +1278,17 @@ class Plotterly(_Plotter):
         if not isinstance(tracks, Collection) or isinstance(tracks, StateMutableSequence):
             tracks = {tracks}  # Make a set of length 1
 
+        self._check_mapping(mapping)  # check size of mapping against dimension of plotter
+
         # Plot tracks
         track_colors = {}
         track_kwargs = dict(mode='markers+lines', legendgroup=track_label, legendrank=300)
+
+        if self.dimension == 3:  # change visuals to work well in 3d
+            track_kwargs.update(dict(line=dict(width=7)), marker=dict(size=4))
         track_kwargs.update(kwargs)
         add_legend = track_kwargs['legendgroup'] not in {trace.legendgroup
                                                          for trace in self.fig.data}
-
-        self._check_mapping(mapping)
-
-        if self.dimension == 1 and (uncertainty or particle):
-            raise NotImplementedError("Plotting against time hasn't been implemented for "
-                                      "uncertainty or particles ")
 
         if same_color:
             color = track_kwargs.get('marker', {}).get('color') or \
@@ -1322,14 +1320,20 @@ class Plotterly(_Plotter):
             else:
                 track_colors[track] = self.get_next_color()
 
-            if len(mapping) == 1:
+            if self.dimension == 1:  # plot 1D tracks
+
+                if uncertainty or particle:
+                    raise NotImplementedError
+
                 self.fig.add_scatter(
                     x=[state.timestamp for state in track],
                     y=[float(getattr(state, 'mean', state.state_vector)[mapping[0]])
                        for state in track],
                     text=[self._format_state_text(state) for state in track],
                     **scatter_kwargs)
-            elif len(mapping) > 1:
+
+            elif self.dimension == 2:  # plot 2D tracks
+
                 self.fig.add_scatter(
                     x=[float(getattr(state, 'mean', state.state_vector)[mapping[0]])
                        for state in track],
@@ -1338,11 +1342,51 @@ class Plotterly(_Plotter):
                     text=[self._format_state_text(state) for state in track],
                     **scatter_kwargs)
 
+            elif self.dimension == 3:  # plot 3D tracks
+
+                if particle:
+                    raise NotImplementedError
+
+                # create empty error arrays
+                err_x = np.array([np.nan for _ in range(len(track))], dtype=float)
+                err_y = np.array([np.nan for _ in range(len(track))], dtype=float)
+                err_z = np.array([np.nan for _ in range(len(track))], dtype=float)
+
+                if uncertainty:  # find x,y,z error bars for relevant states
+
+                    for count, state in enumerate(track):
+
+                        if not count % err_freq:  # ie count % err_freq = 0
+                            HH = np.eye(track.ndim)[mapping, :]  # Get position mapping matrix
+                            cov = HH @ state.covar @ HH.T
+
+                            err_x[count] = np.sqrt(cov[0, 0])
+                            err_y[count] = np.sqrt(cov[1, 1])
+                            err_z[count] = np.sqrt(cov[2, 2])
+
+                self.fig.add_scatter3d(
+                    x=[float(getattr(state, 'mean', state.state_vector)[mapping[0]])
+                       for state in track],
+                    error_x=dict(type='data', thickness=10, width=3, array=err_x),
+
+                    y=[float(getattr(state, 'mean', state.state_vector)[mapping[1]])
+                       for state in track],
+                    error_y=dict(type='data', thickness=10, width=3, array=err_y),
+
+                    z=[float(getattr(state, 'mean', state.state_vector)[mapping[2]])
+                       for state in track],
+                    error_z=dict(type='data', thickness=10, width=3, array=err_z),
+                    # note that 3D error thickness seems to be broken in Plotly
+
+                    text=[self._format_state_text(state) for state in track],
+                    **scatter_kwargs)
+
             track_colors[track] = (self.fig.data[-1].line.color
                                    or self.fig.data[-1].marker.color
                                    or self.get_next_color())
 
-        if uncertainty:
+        # earlier checking means this only applies to 2D.
+        if uncertainty and self.dimension == 2:
             name = track_kwargs['legendgroup'] + "<br>(Ellipses)"
             add_legend = name not in {trace.legendgroup for trace in self.fig.data}
             for track in tracks:
@@ -1360,7 +1404,8 @@ class Plotterly(_Plotter):
                         ellipse_kwargs['showlegend'] = False
 
                     self.fig.add_scatter(x=points[0, :], y=points[1, :], **ellipse_kwargs)
-        if particle:
+
+        if particle and self.dimension == 2:
             name = track_kwargs['legendgroup'] + "<br>(Particles)"
             add_legend = name not in {trace.legendgroup for trace in self.fig.data}
             for track in tracks:
@@ -1377,6 +1422,8 @@ class Plotterly(_Plotter):
                         particle_kwargs['showlegend'] = False
                     data = state.state_vector[mapping[:2], :]
                     self.fig.add_scattergl(x=data[0], y=data[1], **particle_kwargs)
+
+
 
     @staticmethod
     def _generate_ellipse_points(state, mapping, n_points=30):
@@ -1434,6 +1481,11 @@ class Plotterly(_Plotter):
 
         if not isinstance(sensors, Collection):
             sensors = {sensors}
+
+        self._check_mapping(mapping)  # ensure mapping is compatible with plotter dimension
+
+        if self.dimension == 1 or self.dimension == 3:
+            raise NotImplementedError
 
         sensor_kwargs = dict(mode='markers', marker=dict(symbol='x', color='black'),
                              legendgroup=sensor_label, legendrank=50)
