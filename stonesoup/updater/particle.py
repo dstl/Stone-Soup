@@ -577,16 +577,16 @@ class SMCPHDUpdater(ParticleUpdater):
         # Update weights Eq. (8) of [1]
         # w_k^i = \sum_{z \in Z_k}{w^{n,i}}, where i is the index of z in Z_k
         log_post_weights = logsumexp(log_weights_per_hyp, axis=1)
-        prediction.log_weight = log_post_weights
 
         # Resample
-        log_num_targets = logsumexp(log_post_weights)  # N_{k|k}
-        # Normalize weights
-        prediction.log_weight = log_post_weights - log_num_targets
         if self.resampler is not None:
-            prediction = self.resampler.resample(prediction, self.num_samples)  # Resample
-        # De-normalize
-        prediction.log_weight = prediction.log_weight + log_num_targets
+            # Normalize weights
+            log_num_targets = logsumexp(log_post_weights)  # N_{k|k}
+            prediction.log_weight = log_post_weights - log_num_targets
+            # Resample
+            prediction = self.resampler.resample(prediction, self.num_samples)
+            # De-normalize
+            prediction.log_weight += log_num_targets
 
         return Update.from_state(
             state=multihypothesis[0].prediction,
