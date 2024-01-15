@@ -32,7 +32,7 @@ class DynamicallyIteratedUpdater(Updater):
     1. Anton Kullberg, Isaac Skog, Gustaf Hendeby,
     "Iterated Filters for Nonlinear Transition Models"
     """
-    measurement_model: MeasurementModel = Property(doc="measurement model", default=None)
+    measurement_model = None
     predictor: Predictor = Property(doc="Predictor to use for iterating over the predict step. "
                                         "Probably should be the same predictor used for the "
                                         "initial predict step")
