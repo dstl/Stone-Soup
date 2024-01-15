@@ -479,11 +479,11 @@ class RunManager:
             file.close()
         except Exception as er:
             info_logger.error(f"{datetime.now()} Failed to load config data: {er}")
-            config_data = {"tracker": None, "groundtruth": None, "metricmanager": None}
+            config_data = {"tracker": None, "ground_truth": None, "metric_manager": None}
             exit()
         tracker = config_data.get("tracker")
-        groundtruth = config_data.get("groundtruth")
-        metric_manager = config_data.get("metricmanager")
+        groundtruth = config_data.get("ground_truth")
+        metric_manager = config_data.get("metric_manager")
 
         # Try to find groundtruth in tracker if not set
         if groundtruth is None:
@@ -513,6 +513,7 @@ class RunManager:
         """
         if os.path.exists(config_dir):
             files = os.listdir(config_dir)
+            # files = [file.name for file in os.scandir(config_dir) if not file.is_dir()]
         else:
             return None
         return files
