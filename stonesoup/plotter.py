@@ -1420,8 +1420,6 @@ class Plotterly(_Plotter):
                     data = state.state_vector[mapping[:2], :]
                     self.fig.add_scattergl(x=data[0], y=data[1], **particle_kwargs)
 
-
-
     @staticmethod
     def _generate_ellipse_points(state, mapping, n_points=30):
         """Generate error ellipse points for given state and mapping"""
