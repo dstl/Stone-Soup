@@ -390,14 +390,47 @@ class VariableStepBayesianRecursiveUpdater(BayesianRecursiveUpdater):
 
 
 class ErrorControllerBayesianRecursiveUpdater(BayesianRecursiveUpdater):
-    atol: float = Property(doc="TODO")
-    rtol: float = Property(doc="TODO")
-    f: float = Property(doc="TODO")
-    fmin: float = Property(doc="TODO")
-    fmax: float = Property(doc="TODO")
+    """
+    Extension of the variable-step Bayesian recursive update method, which introduces
+    error-controlling parameters. This method allows the step size to adjust according to the
+    error value from the previous step. Implementation based on algorithm 3 of [1]. Default
+    values for parameters atol, rtol, f, fmin and fmax are copied from values stated in examples
+    in [1]
+
+    References
+    ----------
+
+    1. K. Michaelson, A. A. Popov and R. Zanetti,
+    "Bayesian Recursive Update for Ensemble Kalman Filters"
+
+    """
+    atol: float = Property(default=1.e-3,
+                           doc="Absolute tolerance value")
+    rtol: float = Property(default=1.e-3,
+                           doc="Relative tolerance value")
+    f: float = Property(doc="Nominal value for step size scale factor")
+    fmin: float = Property(doc="Minimum value for step size scale factor")
+    fmax: float = Property(doc="Maximum value for step size scale factor")
 
     def update(self, hypothesis, **kwargs):
+        """
+        Update method of the ErrorControllerBayesianRecursiveUpdater. This method allows the
+        step size to adjust according to the error value from the previous step.
 
+        Parameters
+        ----------
+        hypothesis : :class:`~.SingleHypothesis`
+            the prediction-measurement association hypothesis. This hypothesis
+            may carry a predicted measurement, or a predicted state. In the
+            latter case a predicted measurement will be calculated.
+
+        Returns
+        -------
+        : :class:`~.GaussianStateUpdate`
+            The posterior state Gaussian with mean :math:`\\mathbf{x}_{k|k}` and
+            covariance :math:`P_{x|x}`
+
+        """
         if not self.number_steps > 0:
             raise ValueError("Updater cannot run 0 times (or less). This would not provide an "
                              "updated state")
@@ -488,7 +521,9 @@ class ErrorControllerBayesianRecursiveUpdater(BayesianRecursiveUpdater):
             X_i_prime = X_iminus1 + 0.5*(deltaX_i + deltaX_i_prime)
 
             # 24) sc calculation
-            sc = StateVector(np.max(np.hstack((np.abs(X_i), np.abs(X_i_prime))), axis=1))
+            sc = self.atol + \
+                StateVector(np.max(np.hstack((np.abs(X_i), np.abs(X_i_prime))), axis=1)) * \
+                self.rtol
 
             # 25) error calculation
             error = np.sqrt(np.mean((np.multiply(1/sc, X_i - X_i_prime)) ** 2))
