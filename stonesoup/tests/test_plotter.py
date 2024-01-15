@@ -76,13 +76,23 @@ for n, measurements in enumerate(all_measurements):
     else:  # When data associator says no detections are good enough, we'll keep the prediction
         track.append(hypothesis.prediction)
 
+sensor2d = RadarElevationBearingRange(
+    position_mapping=(0, 2),
+    noise_covar=np.array([[0, 0],
+                          [0, 0]]),
+    ndim_state=4,
+    position=np.array([[10], [50]]))
+
+sensor3d = RadarElevationBearingRange(
+    position_mapping=(0, 2, 4),
+    noise_covar=np.array([[0, 0, 0],
+                          [0, 0, 0]]),
+    ndim_state=6,
+    position=np.array([[10], [50], [0]])
+)
+
 plotter = Plotter()
 # Test functions
-
-
-def test_dimension_raise():
-    with pytest.raises(ValueError):
-        Plotter(dimension=1)  # expected to raise ValueError
 
 
 def test_dimension_inlist():  # ensure dimension type is in predefined enum list
@@ -116,14 +126,7 @@ def test_particle_3d():  # warning should arise if particle is attempted in 3d m
 
 def test_plot_sensors():
     plotter3d = Plotter(Dimension.THREE)
-    sensor = RadarElevationBearingRange(
-        position_mapping=(0, 2, 4),
-        noise_covar=np.array([[0, 0, 0],
-                              [0, 0, 0]]),
-        ndim_state=6,
-        position=np.array([[10], [50], [0]])
-    )
-    plotter3d.plot_sensors(sensor, marker='o', color='red')
+    plotter3d.plot_sensors(sensor3d, marker='o', color='red')
     plt.close()
     assert 'Sensors' in plotter3d.legend_dict
 
@@ -240,13 +243,7 @@ def test_animated_plotterly_empty():
 
 def test_animated_plotterly_sensor_plot():
     plotter = AnimatedPlotterly([start_time, start_time+timedelta(seconds=1)])
-    sensor = RadarElevationBearingRange(
-        position_mapping=(0, 2),
-        noise_covar=np.array([[0, 0],
-                              [0, 0]]),
-        ndim_state=4,
-        position=np.array([[10], [50]]))
-    plotter.plot_sensors(sensor)
+    plotter.plot_sensors(sensor2d)
 
 
 def test_animated_plotterly_uneven_times():
@@ -262,21 +259,61 @@ def test_plotterly_empty():
     plotter.plot_ground_truths({}, [0, 2])
     plotter.plot_measurements({}, [0, 2])
     plotter.plot_tracks({}, [0, 2])
-
-
-def test_plotterly_dimension():
-
-    Plotterly(Dimension.TWO)  # default
-    Plotterly(2)  # check that ints are passed through
     with pytest.raises(TypeError):
-        Plotterly(dimension=3)
+        plotter.plot_tracks({})
+    with pytest.raises(ValueError):
+        plotter.plot_tracks({}, [])
+
+
+def test_plotterly_1d():
+    plotter1d = Plotterly(dimension=1)
+    plotter1d.plot_ground_truths(truth, [0])
+    plotter1d.plot_measurements(all_measurements, [0])
+    plotter1d.plot_tracks(track, [0])
+
+    # check that particle=True does not plot
+    with pytest.raises(NotImplementedError):
+        plotter1d.plot_tracks(track, [0], particle=True)
+
+    # check that uncertainty=True does not plot
+    with pytest.raises(NotImplementedError):
+        plotter1d.plot_tracks(track, [0], uncertainty=True)
+
+
+def test_plotterly_2d():
+    plotter2d = Plotterly()
+    plotter2d.plot_ground_truths(truth, [0, 2])
+    plotter2d.plot_measurements(all_measurements, [0, 2])
+    plotter2d.plot_tracks(track, [0, 2], uncertainty=True)
+    plotter2d.plot_sensors(sensor2d)
+
+
+def test_plotterly_3d():
+    plotter3d = Plotterly(dimension=3)
+    plotter3d.plot_ground_truths(truth, [0, 1, 2])
+    plotter3d.plot_measurements(all_measurements, [0, 1, 2])
+    plotter3d.plot_tracks(track, [0, 1, 2], uncertainty=True)
+
+    with pytest.raises(NotImplementedError):
+        plotter3d.plot_tracks(track, [0, 1, 2], particle=True)
+
+
+@pytest.mark.parametrize("dim, mapping", [
+    (1, [0, 1]),
+    (1, [0, 1, 2]),
+    (2, [0]),
+    (2, [0, 1, 2]),
+    (3, [0]),
+    (3, [0, 1])])
+def test_plotterly_wrong_dimension(dim, mapping):
+    # ensure that plotter doesn't run for truth, measurements, and tracks
+    # if dimension of those are not the same as the plotter's dimension
+    plotter = Plotterly(dimension=dim)
+    with pytest.raises(TypeError):
+        plotter.plot_ground_truths(truth, mapping)
 
     with pytest.raises(TypeError):
-        Plotterly(dimension=Dimension.THREE)
+        plotter.plot_measurements(all_measurements, mapping)
 
-
-def test_plotterly():
-    plotter = Plotterly()
-    plotter.plot_ground_truths(truth, [0, 2])
-    plotter.plot_measurements(all_measurements, [0, 2])
-    plotter.plot_tracks(track, [0, 2], uncertainty=True)
+    with pytest.raises(TypeError):
+        plotter.plot_tracks(track, mapping)

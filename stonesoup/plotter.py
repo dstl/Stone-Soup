@@ -988,9 +988,6 @@ class Plotterly(_Plotter):
 
         self.dimension = Dimension(dimension)  # allows 2, 3, Dimension(2), Dimension(3)
 
-        if self.dimension != 2:
-            raise TypeError("Only 2D plotting currently supported")
-
         from plotly import colors
         layout_kwargs = dict(
             xaxis=dict(title=dict(text="<i>x</i>")),
