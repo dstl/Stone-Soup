@@ -994,8 +994,8 @@ class Plotterly(_Plotter):
 
         from plotly import colors
         layout_kwargs = dict(
-            xaxis=dict(title=dict(text="<i>x</i>")),
-            yaxis=dict(title=dict(text="<i>y</i>"), scaleanchor="x", scaleratio=1),
+            xaxis_title="x",
+            yaxis_title="y",
             colorway=colors.qualitative.Plotly,  # Needed to match colours later.
         )
         layout_kwargs.update(kwargs)
