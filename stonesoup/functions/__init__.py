@@ -5,6 +5,7 @@ import numpy as np
 
 from ..types.numeric import Probability
 from ..types.array import StateVector, StateVectors, CovarianceMatrix
+from ..types.state import State
 
 
 def tria(matrix):
@@ -850,3 +851,64 @@ def cubature2gauss(cubature_points, covar_noise=None, alpha=1.0):
         covar = covar + covar_noise
 
     return mean.view(StateVector), covar.view(CovarianceMatrix)
+
+
+def cubature_transform(state, fun, points_noise=None, covar_noise=None, alpha=1.0):
+    """Undertakes the cubature transform as described in [#]_
+
+    Given a Gaussian distribution, calculates the set of cubature points using
+    :meth:`gauss2cubature`, then passes these through the given function and reconstructs the
+    Gaussian using :meth:`cubature2gauss`. Returns the mean, covariance, cross covariance and
+    transformed cubature points.
+
+    Parameters
+    ----------
+    state : :class:`~.GaussianState`
+        A Gaussian state with mean and covariance
+    fun : function handle
+        A (non-linear) transition function
+        Must be of the form "y = fun(x,w)", where y can be a scalar or \
+        :class:`numpy.ndarray` of shape `(Ns, 1)` or `(Ns,)`
+    covar_noise : :class:`~.CovarianceMatrix` of shape `(Ns, Ns)`, optional
+        Additive noise covariance matrix
+        (default is `None`)
+    points_noise : :class:`numpy.ndarray` of shape `(Ns, 2*Ns+1,)`, optional
+        points to pass into f's second argument
+        (default is `None`)
+    alpha : float, optional
+        scaling parameter allowing the selection of cubature points closer to the mean (lower
+        values) or further from the mean (higher values)
+
+    Returns
+    -------
+    : :class:`~.StateVector` of shape `(Ns, 1)`
+        Transformed mean
+    : :class:`~.CovarianceMatrix` of shape `(Ns, Ns)`
+        Transformed covariance
+    : :class:`~.CovarianceMatrix` of shape `(Ns,Nm)`
+        Calculated cross-covariance matrix
+    : :class:`~.StateVectors` of shape `(Ns, 2*Ns)`
+        An array containing the locations of the transformed cubature points
+
+    References
+    ----------
+    [#] I. Arasaratnam and S. Haykin, “Cubature Kalman Filters,” in IEEE Transactions on Automatic
+    Control, vol. 54, no. 6, pp. 1254-1269, June 2009, doi: 10.1109/TAC.2009.2019800.
+
+    """
+    ndim_state = np.shape(state.state_vector)[0]
+    cubature_points = gauss2cubature(state)
+
+    if points_noise is None:
+        cubature_points_t = StateVectors([fun(State(cub_point)) for cub_point in cubature_points])
+    else:
+        cubature_points_t = StateVectors(
+            [fun(State(cub_point), points_noise) for cub_point, point_noise in zip(cubature_points, points_noise)])
+
+    mean, covar = cubature2gauss(cubature_points_t, covar_noise)
+
+    cross_covar = (1/alpha)*((1.0 / (2 * ndim_state)) * cubature_points @ cubature_points_t.T - \
+                  np.average(cubature_points, axis=1) @ mean.T)
+    cross_covar = cross_covar.view(CovarianceMatrix)
+
+    return mean, covar, cross_covar, cubature_points_t

@@ -6,8 +6,9 @@ from pytest import approx, raises
 
 from .. import (
     cholesky_eps, jacobian, gm_reduce_single, mod_bearing, mod_elevation, gauss2sigma,
-    rotx, roty, rotz, cart2sphere, cart2angles, pol2cart, sphere2cart, dotproduct, gm_sample)
-from ...types.array import StateVector, StateVectors, Matrix
+    rotx, roty, rotz, cart2sphere, cart2angles, pol2cart, sphere2cart, dotproduct, gm_sample,
+    gauss2cubature, cubature2gauss)
+from ...types.array import StateVector, StateVectors, Matrix, CovarianceMatrix
 from ...types.state import State, GaussianState
 
 
@@ -332,3 +333,29 @@ def test_gm_sample(means, covars, weights, size):
         assert samples.shape[0] == means[0].shape[0]
     else:
         assert samples.shape[0] == means.shape[0]
+
+@pytest.mark.parametrize(
+    "mean, covar, alp",
+    [
+        (StateVector([0]), CovarianceMatrix([[1]]), None),
+        (StateVector([-7, 5]), CovarianceMatrix([[1.1, -0.04], [-0.04, 1.2]]), 2.0),
+        (StateVector([12, -4, 0, 5]), CovarianceMatrix([[0.7, 0.04, -0.02, 0],
+                                                        [0.04, 1.1, 0.09, 0.06],
+                                                        [-0.02, 0.09, 0.9, -0.01],
+                                                        [0, 0.06, -0.01, 1.1]]), 0.7)
+    ]
+)
+def test_cubature_transform(mean, covar, alp):
+
+    instate = GaussianState(mean, covar)
+
+    # First test the cubature points conversions
+    if alp is None:
+        cub_pts = gauss2cubature(instate)
+        outsv, outcovar = cubature2gauss(cub_pts)
+    else:
+        cub_pts = gauss2cubature(instate, alpha=alp)
+        outsv, outcovar = cubature2gauss(cub_pts, alpha=alp)
+
+    assert np.allclose(outsv, instate.state_vector)
+    assert np.allclose(outcovar, instate.covar)
