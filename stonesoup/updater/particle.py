@@ -375,12 +375,12 @@ class RaoBlackwellisedParticleUpdater(MultiModelParticleUpdater):
 
             # Looks up p(m_k|m_k-1)
             log_prob_of_transition = np.log(
-                np.asfarray(predictor.transition_matrix)[model_index, :])
+                np.asarray(predictor.transition_matrix)[model_index, :], dtype=np.float64)
 
             log_product_of_probs = \
-                np.asfarray(np.log(prob_position_given_model_and_old_position)) \
+                np.asarray(np.log(prob_position_given_model_and_old_position), dtype=np.float64) \
                 + log_prob_of_transition[:, np.newaxis] \
-                + np.asfarray(np.log(prediction.model_probabilities))  # p(m_k-1|x_1:k-1)
+                + np.asarray(np.log(prediction.model_probabilities), dtype=np.float64)
 
             denominator_components.append(logsumexp(log_product_of_probs, axis=0))
 

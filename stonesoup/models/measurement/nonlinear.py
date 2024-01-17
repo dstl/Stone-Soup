@@ -990,7 +990,7 @@ class CartesianToElevationBearingRangeRate(NonLinearGaussianMeasurement, Reversi
         xyz_pos = self.rotation_matrix @ xyz_pos
         xyz_vel = self.rotation_matrix @ xyz_vel
 
-        jac = np.zeros((4, 6), dtype=np.float_)
+        jac = np.zeros((4, 6), dtype=np.float64)
 
         x, y, z = xyz_pos
         vx, vy, vz = xyz_vel

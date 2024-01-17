@@ -638,7 +638,7 @@ class ParticleState(State):
         if weight is not None and log_weight is not None:
             raise ValueError("Cannot provide both weight and log weight")
         elif log_weight is None and weight is not None:
-            log_weight = np.log(np.asfarray(weight))
+            log_weight = np.log(np.asarray(weight, dtype=np.float64))
             if idx is not None:
                 args[idx] = log_weight
             else:
@@ -748,7 +748,7 @@ class ParticleState(State):
         if value is None:
             self.log_weight = None
         else:
-            self.log_weight = np.log(np.asfarray(value))
+            self.log_weight = np.log(np.asarray(value, dtype=np.float64))
             self.__dict__['weight'] = np.asanyarray(value)
 
     @weight.getter

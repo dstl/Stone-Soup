@@ -144,7 +144,7 @@ class KafkaDetectionReader(DetectionReader, _KafkaReader):
         timestamp = self._get_time(data)
         state_vector = StateVector(
             [[data[field_name]] for field_name in self.state_vector_fields],
-            dtype=np.float_,
+            dtype=np.float64,
         )
         return Detection(
             state_vector=state_vector,
@@ -208,7 +208,7 @@ class KafkaGroundTruthReader(GroundTruthReader, _KafkaReader):
         timestamp = self._get_time(data)
         state_vector = StateVector(
             [[data[field_name]] for field_name in self.state_vector_fields],
-            dtype=np.float_,
+            dtype=np.float64,
         )
         return GroundTruthState(
             state_vector=state_vector,

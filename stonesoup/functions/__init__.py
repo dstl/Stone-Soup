@@ -91,7 +91,7 @@ def jacobian(fun, x,  **kwargs):
 
     # For numerical reasons the step size needs to large enough. Aim for 1e-8
     # relative to spacing between floating point numbers for each dimension
-    delta = 1e8*np.spacing(x.state_vector.astype(np.float_).ravel())
+    delta = 1e8*np.spacing(x.state_vector.astype(np.float64).ravel())
     # But at least 1e-8
     # TODO: Is this needed? If not, note special case at zero.
     delta[delta < 1e-8] = 1e-8
@@ -103,7 +103,7 @@ def jacobian(fun, x,  **kwargs):
     F = fun(x2, **kwargs)
 
     jac = np.divide(F[:, :ndim] - F[:, -1:], delta)
-    return jac.astype(np.float_)
+    return jac.astype(np.float64)
 
 
 def gauss2sigma(state, alpha=1.0, beta=2.0, kappa=None):
@@ -626,7 +626,7 @@ def gm_reduce_single(means, covars, weights):
 
     # Calculate covar
     delta_means = means - mean
-    covar = np.sum(covars*weights, axis=2, dtype=np.float_) + weights*delta_means@delta_means.T
+    covar = np.sum(covars*weights, axis=2, dtype=np.float64) + weights*delta_means@delta_means.T
 
     return mean.view(StateVector), covar.view(CovarianceMatrix)
 

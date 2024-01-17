@@ -1130,7 +1130,7 @@ class Plotterly(_Plotter):
                 measurement_kwargs['showlegend'] = True
             else:
                 measurement_kwargs['showlegend'] = False
-            detection_array = np.asfarray(list(plot_detections.values()))
+            detection_array = np.asarray(list(plot_detections.values()), dtype=np.float64)
 
             if len(mapping) == 1:
                 self.fig.add_scatter(
@@ -1161,7 +1161,7 @@ class Plotterly(_Plotter):
                 measurement_kwargs['showlegend'] = True
             else:
                 measurement_kwargs['showlegend'] = False
-            clutter_array = np.asfarray(list(plot_clutter.values()))
+            clutter_array = np.asarray(list(plot_clutter.values()), dtype=np.float64)
 
             if len(mapping) == 1:
                 self.fig.add_scatter(
