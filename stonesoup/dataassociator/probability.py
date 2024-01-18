@@ -33,7 +33,7 @@ class PDA(DataAssociator):
 
 
 class JPDA(DataAssociator):
-    r"""Joint Probabilistic Data Association (JPDA)
+    """Joint Probabilistic Data Association (JPDA)
 
     Given a set of Detections and a set of Tracks, each Detection has a
     probability that it is associated with each specific Track. Rather than
