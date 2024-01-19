@@ -203,7 +203,7 @@ plotter.plot_ground_truths(truths, [0, 2])
 plotter.plot_measurements(scan, [0, 2], measurements_label='Detections',
                           measurement_model=measurement_model)
 plotter.plot_tracks(track, [0, 2])
-plotter.fig
+plotter.show()
 
 # %%
 # Conclusion
@@ -227,4 +227,3 @@ plotter.fig
 # .. [#] S. R. Maskell, R. G. Everitt, R. Wright, M. Briers, 2005,
 #        Multi-target out-of-sequence data association: Tracking using
 #        graphical models, Information Fusion.
-#
