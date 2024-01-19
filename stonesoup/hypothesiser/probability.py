@@ -102,7 +102,7 @@ class PDAHypothesiser(Hypothesiser):
         https://ieeexplore.ieee.org/stamp/stamp.jsp?arnumber=5338565
 
         [2] "Robotics 2 Data Association" (Lecture notes) -
-        http://ais.informatik.uni-freiburg.de/teaching/ws10/robotics2/pdfs/rob2-15-dataassociation.pdf
+        http://ais.informatik.uni-freiburg.de/teaching/ws11/robotics2/pdfs/rob2-20-dataassociation.pdf
 
         Parameters
         ----------
