@@ -15,20 +15,20 @@ Algorithm dealing with Out-of-Sequence measurements
 # As shown in literature (e.g., [#]_) there are
 # multiple approaches on how to deal with OOS measurements,
 # spanning from simply ignoring them, assuming that the fraction
-# of these is small and it will not significally impact the quality of the
+# of these is small and it will not, significally, impact the quality of the
 # tracking, iterate over last $\math{\ell}$ measurements with
 # a fixed lag (see what it is called Algorithm A and B in [#]_ and
-# [#]_, see also the previous examples)
-# or, like in this example, you can include any OOSM
-# and re-process the measurement using inverse-time dynamics creating
-# pseudo-measurements. This approach is called in literature as Algorithm C
+# [#]_, see also the previous examples) or, like in this example,
+# you can include any OOSM and re-process the measurement using
+# inverse-time dynamics creating pseudo-measurements.
+# This approach is called in literature as Algorithm C
 # (from [#]_, [#]_) and it will be refered as such later on.
 # To explain how does it work let's consider a single target scenario,
 # this algorithm deals with the presence of delayed measurements by
 # using the predicted dynamics of the target to go back in time from
 # the actual arrival time and obtain a pseudo-measurement obtained from
-# simulating the measurement at the "expected" scan time.
-# In this manner we can reconstruct the measurement chain and not
+# simulating the detection at the "expected" scan time.
+# In this manner we can reconstruct the measurements chain and not
 # discard any information, as well, we don't need to store a large fix-lag
 # distribution of data (as can happen with other algorithms).
 # In this example, we focus our efforts in showing how to use the
@@ -43,11 +43,10 @@ Algorithm dealing with Out-of-Sequence measurements
 # to highlight the differences.
 #
 # This example follows this structure:
-# 1) create the ground truths scans and detections of the targets;
-# 2) instantiate the tracking components;
-# 3) run the tracker and apply the algorithm over delayed measurements;
-# 4) run the comparison between the resulting tracks and plot the
-# results.
+# 1) Create the ground truths scans and detections of the targets;
+# 2) Instantiate the tracking components;
+# 3) Run the tracker and apply the algorithm on delayed measurements;
+# 4) Run the comparison between the resulting tracks and plot the results.
 #
 
 # %%
@@ -65,7 +64,7 @@ np.random.seed(2000)  # fix a random seed
 num_steps = 65
 scans_delay = 5  # seconds between each scan
 extra_delay = 2  # external delay in some scans
-delay = 0
+delay = 0        # empty delay
 prob_detect = 0.90  # Probability of detection
 lambdaV = 2  # Parameters for the clutter
 v_bounds = np.array([[-1, 450], [-130, 130]])  # Parameters for the clutter
@@ -90,6 +89,7 @@ from stonesoup.types.update import GaussianStateUpdate  # needed for the track
 # the detections to Cartesian coordinates. We simulate two
 # targets moving using :class:`~.ConstantVelocity` transition
 # model.
+#
 
 # instantiate the transition model
 transition_model = CombinedLinearGaussianTransitionModel([ConstantVelocity(1e-4),
@@ -127,7 +127,7 @@ for k in range(1, num_steps):
         timestamp=start_time + timedelta(seconds=scans_delay*k)))
 _ = truths.add(truth)
 
-# Create the measurements models
+# Create the measurement model
 from stonesoup.models.measurement.nonlinear import CartesianToBearingRange
 
 sensor_1_mm = CartesianToBearingRange(
@@ -158,7 +158,7 @@ for k in range(num_steps):
         delay = 0
 
     for truth in truths:
-        if np.random.rand() <= prob_detect:  # for simplicity both get a detection at the same time
+        if np.random.rand() <= prob_detect:  # for simplicity both scans get a detection at the same time
             measurement = sensor_1_mm.function(truth[k], noise=True)
             detections1.add(TrueDetection(state_vector=measurement,
                                          groundtruth_path=truth,
@@ -182,6 +182,7 @@ for k in range(num_steps):
             state2 = State(state_vector=StateVector([x2, truth.state_vector[1],
                                                      y2, truth.state_vector[3]]))
 
+            # Since the x-y locations are random, ignore the noise
             detections1.add(Clutter(sensor_1_mm.function(state1, noise=False),
                                     timestamp=truth[k].timestamp,
                                     measurement_model=sensor_1_mm))
@@ -193,12 +194,15 @@ for k in range(num_steps):
     scan_s2.append(detections2)
 
 # %%
-# 2) instantiate the tracking components;
+# 2) Instantiate the tracking components;
 # ---------------------------------------
-# We have a series of scan from the two sensors that contains the true detections and some clutter.
-# It is time to initiate the tracking components, for this example we consider
+# We have a series of scan from the two sensors that contains true detections and some clutter.
+# It is time to instantiate the tracking components, for this example we consider
 # a :class:`~.UnscentedKalmanUpdater` and :class:`~.UnscentedKalmanPredictor` filter.
 # As well we use a probabilistic data associator using :class:`~.JPDA` and :class:`~.PDAHypothesiser`.
+# We consider a single updater since the measurement model is the same for
+# both sensors.
+#
 
 #Load the kalman filter components
 from stonesoup.updater.kalman import UnscentedKalmanUpdater
@@ -225,11 +229,11 @@ data_associator = JPDA(hypothesiser=hypothesiser)
 from stonesoup.types.track import Track
 
 priori1 = GaussianState(state_vector=np.array([0, 1, -100, 0.3]),
-                        covar=np.diag([1,1,1,1]),
+                        covar=np.diag([1, 1, 1, 1]),
                         timestamp=start_time)
 
 priori2 = GaussianState(state_vector=np.array([0, 1, 100, -0.3]),
-                        covar=np.diag([1,1,1,1]),
+                        covar=np.diag([1, 1, 1, 1]),
                         timestamp=start_time)
 
 # prepare both the cases for using the algorithm C and
@@ -239,13 +243,13 @@ oosm_tracks = (Track([priori1]), Track([priori2]))
 noOsm_tracks = (Track([priori1]), Track([priori2]))
 
 # %%
-# 3) Run the tracker and apply the algorithm over delayed measurements;
-# ---------------------------------------------------------------------
+# 3) Run the tracker and apply the algorithm on delayed measurements;
+# -------------------------------------------------------------------
 # We can now run the tracker and generate the tracks.
-# By looping over the scans we can spot any OOS measurement and there apply
-# the algorithm. When we encounter a delayed measurement, at time $\math{\tau}$, we make use of both
+# By looping over the scans we can spot any OOS measurement and apply the algorithm.
+# When we encounter a delayed measurement, at time $\math{\tau}$, we make use of both
 # the measurement model and transition model: first we use the measurement model
-# inverse function at  $\math{\tau}$ to obtain a predicted Cartesian location of the
+# inverse function at $\math{\tau}$ to obtain a predicted Cartesian location of the
 # target, then we use the transition model with time-inverse dynamics ($t_{k} - \math{\tau}$)
 # to trace back where the target was in the scan-timestamp ($t$). With this pseudo-location, which is an
 # approximation, we can compute the pseudo-measurement usign the measurement model.
@@ -253,7 +257,7 @@ noOsm_tracks = (Track([priori1]), Track([priori2]))
 # process this as a true detection.
 #
 
-for k in range(len(scan_s1)):  # loop over the scans, ignore the timestamp so far
+for k in range(len(scan_s1)):  # loop over the scans
 
     for detections_1, detections_2 in zip(scan_s1[k], scan_s2[k]):
 
@@ -309,7 +313,9 @@ for k in range(len(scan_s1)):  # loop over the scans, ignore the timestamp so fa
                     track.append(post)
 
 # %%
-# Run the tracker ignoring OOSM measurements
+# Run the tracker while ignoring OOSM measurements
+#
+
 for k in range(len(scan_s1)):
     for detections_1, detections_2 in zip(scan_s1[k], scan_s2[k]):
         # Include only the In-sequence measurements
@@ -330,7 +336,7 @@ for k in range(len(scan_s1)):
 # %%
 # 4) Run the comparison between the resulting tracks and plot the results.
 # ------------------------------------------------------------------------
-# We have obtained the tracks from the detections and we have two sets of
+# We have obtained the final tracks from the detections and we have two sets of
 # tracks, one with OOSM and one without. We now can visualise the results
 # and evaluate the track-to-truh accuracy using the OSPA metric tool.
 #
