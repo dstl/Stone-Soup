@@ -7,7 +7,7 @@ from pytest import approx, raises
 from .. import (
     cholesky_eps, jacobian, gm_reduce_single, mod_bearing, mod_elevation, gauss2sigma,
     rotx, roty, rotz, cart2sphere, cart2angles, pol2cart, sphere2cart, dotproduct, gm_sample,
-    gauss2cubature, cubature2gauss)
+    gauss2cubature, cubature2gauss, cubature_transform)
 from ...types.array import StateVector, StateVectors, Matrix, CovarianceMatrix
 from ...types.state import State, GaussianState
 
@@ -349,13 +349,21 @@ def test_cubature_transform(mean, covar, alp):
 
     instate = GaussianState(mean, covar)
 
+    def identity_function(inpu):
+        return inpu.state_vector
+
     # First test the cubature points conversions
     if alp is None:
         cub_pts = gauss2cubature(instate)
         outsv, outcovar = cubature2gauss(cub_pts)
+        mean, covar, cross_covar, cubature_points = cubature_transform(instate, identity_function)
     else:
         cub_pts = gauss2cubature(instate, alpha=alp)
         outsv, outcovar = cubature2gauss(cub_pts, alpha=alp)
+        mean, covar, cross_covar, cubature_points = cubature_transform(instate, identity_function,
+                                                                       alpha=alp)
 
     assert np.allclose(outsv, instate.state_vector)
     assert np.allclose(outcovar, instate.covar)
+    assert np.allclose(mean, instate.state_vector)
+    assert np.allclose(covar, instate.covar)

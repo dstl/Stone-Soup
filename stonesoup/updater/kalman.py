@@ -12,7 +12,7 @@ from ..types.update import Update
 from ..models.base import LinearModel
 from ..models.measurement.linear import LinearGaussian
 from ..models.measurement import MeasurementModel
-from ..functions import gauss2sigma, unscented_transform
+from ..functions import gauss2sigma, unscented_transform, cubature_transform
 from ..measures import Measure, Euclidean
 
 
@@ -796,3 +796,56 @@ class SchmidtKalmanUpdater(ExtendedKalmanUpdater):
         post_cov[np.ix_(self.consider, ~self.consider)] -= khp.T
 
         return post_cov.view(CovarianceMatrix), kalman_gain
+
+
+class CubatureKalmanUpdater(KalmanUpdater):
+    """The cubature Kalman filter version of the Kalman updater. Inherits most of its functionality
+    from :class:`~.KalmanUpdater`.
+
+    The :meth:`predict_measurement` function uses the :func:`cubature_transform` function to
+    estimate a (Gaussian) predicted measurement. This is then updated via the standard Kalman
+    update equations.
+
+    """
+    measurement_model: MeasurementModel = Property(
+        default=None,
+        doc="The measurement model to be used. This need not be defined if a "
+            "measurement model is provided in the measurement. If no model "
+            "specified on construction, or in the measurement, then error "
+            "will be thrown.")
+    alpha: float = Property(
+        default=1.0,
+        doc="Scaling parameter. Default is 1.0. Lower values select points closer to the mean and "
+            "vice versa.")
+
+    @lru_cache()
+    def predict_measurement(self, predicted_state, measurement_model=None):
+        """Cubature Kalman Filter measurement prediction step. Uses the cubature transform to
+        estimate a Gauss-distributed predicted measurement.
+
+        Parameters
+        ----------
+        predicted_state : :class:`~.GaussianStatePrediction`
+            A predicted state
+        measurement_model : :class:`~.MeasurementModel`, optional
+            The measurement model used to generate the measurement prediction.
+            This should be used in cases where the measurement model is
+            dependent on the received measurement (the default is `None`, in
+            which case the updater will use the measurement model specified on
+            initialisation)
+
+        Returns
+        -------
+        : :class:`~.GaussianMeasurementPrediction`
+            The measurement prediction
+
+        """
+        measurement_model = self._check_measurement_model(measurement_model)
+
+        meas_pred_mean, meas_pred_covar, cross_covar, _ = \
+            cubature_transform(predicted_state,
+                               measurement_model.function,
+                               covar_noise=measurement_model.covar(), alpha=self.alpha)
+
+        return MeasurementPrediction.from_state(
+            predicted_state, meas_pred_mean, meas_pred_covar, cross_covar=cross_covar)
