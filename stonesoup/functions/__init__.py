@@ -859,7 +859,9 @@ def cubature_transform(state, fun, points_noise=None, covar_noise=None, alpha=1.
     Given a Gaussian distribution, calculates the set of cubature points using
     :meth:`gauss2cubature`, then passes these through the given function and reconstructs the
     Gaussian using :meth:`cubature2gauss`. Returns the mean, covariance, cross covariance and
-    transformed cubature points.
+    transformed cubature points. This instance includes a scaling parameter :math:`\alpha`, not
+    included in [#]_, which allows for the selection of cubature points closer to, or further
+    from, tne mean.
 
     Parameters
     ----------
@@ -892,8 +894,9 @@ def cubature_transform(state, fun, points_noise=None, covar_noise=None, alpha=1.
 
     References
     ----------
-    [#] I. Arasaratnam and S. Haykin, “Cubature Kalman Filters,” in IEEE Transactions on Automatic
-    Control, vol. 54, no. 6, pp. 1254-1269, June 2009, doi: 10.1109/TAC.2009.2019800.
+    .. [#] I. Arasaratnam and S. Haykin, “Cubature Kalman Filters,” in IEEE Transactions on
+           Automatic Control, vol. 54, no. 6, pp. 1254-1269, June 2009,
+           doi: 10.1109/TAC.2009.2019800.
 
     """
     ndim_state = np.shape(state.state_vector)[0]
