@@ -54,8 +54,6 @@ Algorithm dealing with Out-of-Sequence measurements
 # ^^^^^^^^^^^^^^^
 from datetime import datetime, timedelta
 import numpy as np
-import matplotlib.pyplot as plt
-from ordered_set import OrderedSet
 from copy import deepcopy
 
 # Simulation parameters
@@ -350,7 +348,7 @@ plotter.plot_tracks(oosm_tracks, [0, 2], track_label='OOSM Tracks',
                     line= dict(color='orange'))
 plotter.plot_tracks(noOsm_tracks, [0, 2], track_label='no-OOSM Tracks',
                     line= dict(color='red'))
-plotter.fig
+plotter.show()
 
 # %%
 # Evaluate the track-to-truth accuracy
@@ -409,4 +407,3 @@ graph.fig
 # .. [#] S. R. Maskell, R. G. Everitt, R. Wright, M. Briers, 2005,
 #        Multi-target out-of-sequence data association: Tracking using
 #        graphical models, Information Fusion.
-#
