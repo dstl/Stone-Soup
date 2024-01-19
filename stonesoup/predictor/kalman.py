@@ -12,7 +12,7 @@ from ..models.transition import TransitionModel
 from ..models.transition.linear import LinearGaussianTransitionModel
 from ..models.control import ControlModel
 from ..models.control.linear import LinearControlModel
-from ..functions import gauss2sigma, unscented_transform
+from ..functions import gauss2sigma, unscented_transform, cubature_transform
 
 
 class KalmanPredictor(Predictor):
@@ -471,3 +471,95 @@ class SqrtKalmanPredictor(ExtendedKalmanPredictor):
             return np.linalg.cholesky(trans_m@sqrt_prior_cov@sqrt_prior_cov.T@trans_m.T +
                                       sqrt_trans_cov@sqrt_trans_cov.T +
                                       ctrl_mat@sqrt_ctrl_noi@sqrt_ctrl_noi.T@ctrl_mat.T)
+
+
+class CubatureKalmanPredictor(KalmanPredictor):
+    """CubatureKalmanFilter class
+
+    Analogously to the unscented filter, the predict is accomplished by calculating the cubature
+    points from the Gaussian mean and covariance, then putting these through the (in general
+    non-linear) transition function, then reconstructing the Gaussian. This is accomplished via the
+    :meth:`cubature_transform` function.
+
+    """
+    transition_model: TransitionModel = Property(doc="The transition model to be used.")
+    control_model: ControlModel = Property(
+        default=None,
+        doc="The control model to be used. Default `None` where the predictor "
+            "will create a zero-effect linear :class:`~.ControlModel`.")
+    alpha: float = Property(
+        default=1.0,
+        doc="Scaling parameter. Default is 1.0. Lower values select points closer to the mean and "
+            "vice versa.")
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+
+        self._time_interval = None
+
+    def _transition_and_control_function(self, prior_state, **kwargs):
+        r"""Returns the result of applying the transition and control functions
+        for the cubature transform
+
+        Parameters
+        ----------
+        prior_state_vector : :class:`~.State`
+            Prior state vector
+        **kwargs : various, optional
+            These are passed to :class:`~.TransitionModel.function`
+
+        Returns
+        -------
+        : :class:`numpy.ndarray`
+            The combined, noiseless, effect of applying the transition and
+            control
+        """
+
+        return self.transition_model.function(prior_state, **kwargs) + \
+            self.control_model.function(**kwargs)
+
+    @predict_lru_cache()
+    def predict(self, prior, timestamp=None, control_input=None, **kwargs):
+        r"""The unscented version of the predict step
+
+        Parameters
+        ----------
+        prior : :class:`~.State`
+            Prior state, :math:`\mathbf{x}_{k-1}`
+        timestamp : :class:`datetime.datetime`
+            Time to transit to (:math:`k`)
+        control_input: :class:`~.State`
+            Control input vector, :math:`\mathbf{u}_k`
+        **kwargs : various, optional
+            These are passed to :meth:`~.TransitionModel.covar` and :meth:`ControlModel.covar`
+
+        Returns
+        -------
+        : :class:`~.GaussianStatePrediction`
+            The predicted state :math:`\mathbf{x}_{k|k-1}` and the predicted
+            state covariance :math:`P_{k|k-1}`
+        """
+
+        # Get the prediction interval
+        predict_over_interval = self._predict_over_interval(prior, timestamp)
+
+        # The covariance on the transition model + the control model
+        # TODO: See equivalent note to unscented transform.
+        ctrl_mat = self.control_model.matrix(time_interval=predict_over_interval, **kwargs)
+        ctrl_noi = self.control_model.covar(**kwargs)
+        total_noise_covar = \
+            self.transition_model.covar(time_interval=predict_over_interval, **kwargs) \
+            + ctrl_mat @ ctrl_noi @ ctrl_mat.T
+
+        # This ensures that function passed to transform has the correct time interval and control
+        # input
+        transition_and_control_function = partial(
+            self._transition_and_control_function,
+            control_input=control_input,
+            time_interval=predict_over_interval)
+
+        x_pred, p_pred, _, _ = cubature_transform(prior, transition_and_control_function,
+                                                  covar_noise=total_noise_covar, alpha=self.alpha)
+
+        return Prediction.from_state(prior, x_pred, p_pred, timestamp=timestamp,
+                                     transition_model=self.transition_model)
