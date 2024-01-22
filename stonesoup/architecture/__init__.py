@@ -1,4 +1,5 @@
 from abc import abstractmethod
+from operator import attrgetter
 
 import pydot
 
@@ -9,7 +10,7 @@ from ..types.groundtruth import GroundTruthPath
 from ..types.detection import TrueDetection, Clutter
 from ._functions import _default_label
 
-from typing import List, Collection, Tuple, Set, Union, Dict
+from typing import List, Tuple, Collection, Set, Union, Dict
 import numpy as np
 import networkx as nx
 import graphviz
@@ -62,15 +63,9 @@ class Architecture(Base):
         last_letters = {'Node': '', 'SensorNode': '', 'FusionNode': '', 'SensorFusionNode': '',
                         'RepeaterNode': ''}
         for node in self.di_graph.nodes:
-            if node.label:
-                label = node.label
-            else:
-                label, last_letters = _default_label(node, last_letters)
-                node.label = label
-            attr = {"label": f"{label}", "color": f"{node.colour}", "shape": f"{node.shape}",
-                    "fontsize": f"{node.font_size}", "width": f"{node.node_dim[0]}",
-                    "height": f"{node.node_dim[1]}", "fixedsize": True}
-            self.di_graph.nodes[node].update(attr)
+            if not node.label:
+                node.label, last_letters = _default_label(node, last_letters)
+            self.di_graph.nodes[node].update(self._node_kwargs(node))
 
     def recipients(self, node: Node):
         """Returns a set of all nodes to which the input node has a direct edge to"""
@@ -195,37 +190,43 @@ class Architecture(Base):
                 repeater_nodes.add(node)
         return repeater_nodes
 
-    def plot(self, dir_path, filename=None, use_positions=False, plot_title=False,
-             bgcolour="white", node_style="filled", font_name='helvetica', save_plot=True,
-             plot_style=None):
+    @staticmethod
+    def _node_kwargs(node, use_position=True):
+        node_kwargs = {
+            'label': node.label,
+            'shape': node.shape,
+            'color': node.colour,
+        }
+        if node.font_size:
+            node_kwargs['fontsize'] = node.font_size
+        if node.node_dim:
+            node_kwargs['width'] = node.node_dim[0]
+            node_kwargs['height'] = node.node_dim[1]
+        if use_position and node.position:
+            if not isinstance(node.position, Tuple):
+                raise TypeError("Node position, must be Sequence of length 2")
+            node_kwargs["pos"] = f"{node.position[0]},{node.position[1]}!"
+        return node_kwargs
+
+    def plot(self, use_positions=False, plot_title=False,
+             bgcolour="transparent", node_style="filled", font_name='helvetica', plot_style=None):
         """Creates a pdf plot of the directed graph and displays it
 
-        :param dir_path: The path to save the pdf and .gv files to
-        :param filename: Name to call the associated files
         :param use_positions:
         :param plot_title: If a string is supplied, makes this the title of the plot. If True, uses
         the name attribute of the graph to title the plot. If False, no title is used.
         Default is False
         :param bgcolour: String containing the background colour for the plot.
-        Default is "lightgray". See graphviz attributes for more information.
+        Default is "transparent". See graphviz attributes for more information.
         One alternative is "white"
         :param node_style: String containing the node style for the plot.
         Default is "filled". See graphviz attributes for more information.
         One alternative is "solid".
-        :param save_plot: Boolean set to true by default. Setting to False prevents the plot from
-        being displayed.
         :param plot_style: String providing a style to be used to plot the graph. Currently only
         one option for plot style given by plot_style = 'hierarchical'.
         """
-        if use_positions:
-            for node in self.di_graph.nodes:
-                if not isinstance(node.position, Tuple):
-                    raise TypeError("If use_positions is set to True, every node must have a "
-                                    "position, given as a Tuple of length 2")
-                attr = {"pos": f"{node.position[0]},{node.position[1]}!"}
-                self.di_graph.nodes[node].update(attr)
-        elif self.is_hierarchical or plot_style == 'hierarchical':
-
+        is_hierarchical = self.is_hierarchical or plot_style == 'hierarchical'
+        if is_hierarchical:
             # Find top node and assign location
             top_nodes = self.top_level_nodes
             if len(top_nodes) == 1:
@@ -233,103 +234,60 @@ class Architecture(Base):
             else:
                 raise ValueError("Graph with more than one top level node provided.")
 
-            top_node.position = (0, 0)
-            attr = {"pos": f"{top_node.position[0]},{top_node.position[1]}!"}
-            self.di_graph.nodes[top_node].update(attr)
-
-            # Set of nodes that have been plotted / had their positions updated
-            plotted_nodes = set()
-            plotted_nodes.add(top_node)
-
-            # Set of nodes that have been plotted, but need to have recipient nodes plotted
-            layer_nodes = set()
-            layer_nodes.add(top_node)
-
             # Initialise a layer count
-            layer = -1
-            while len(plotted_nodes) < len(self.all_nodes):
-
-                # Initialise an empty set to store nodes to be considered in the next iteration
-                next_layer_nodes = set()
-
-                # Iterate through nodes on the current layer (nodes that have been plotted but have
-                # sender nodes that are not plotted)
-                for layer_node in layer_nodes:
-
-                    # Find senders of the recipient node
-                    senders = self.senders(layer_node)
-
-                    # Find number of leaf nodes that are senders to the recipient
-                    n_recipient_leaves = self.number_of_leaves(layer_node)
-
-                    # Get recipient x_loc
-                    recipient_x_loc = layer_node.position[0]
-
-                    # Get location of left limit of the range that leaf nodes will be plotted in
-                    l_x_loc = recipient_x_loc - n_recipient_leaves/2
-                    left_limit = l_x_loc
-
-                    for sender in senders:
-                        # Calculate x_loc of the sender node
-                        x_loc = left_limit + self.number_of_leaves(sender)/2
-
-                        # Update the left limit
-                        left_limit += self.number_of_leaves(sender)
-
-                        # Update the position of the sender node
-                        sender.position = (x_loc, layer)
-                        attr = {"pos": f"{sender.position[0]},{sender.position[1]}!"}
-                        self.di_graph.nodes[sender].update(attr)
-
-                        # Add sender node to list of nodes to be considered in next iteration, and
-                        # to list of nodes that have been plotted
-                        next_layer_nodes.add(sender)
-                        plotted_nodes.add(sender)
-
-                # Set list of nodes to be considered next iteration
-                layer_nodes = next_layer_nodes
-
-                # Update layer count for correct y location
-                layer -= 1
+            node_layers = [[top_node]]
+            processed_nodes = {top_node}
+            while self.all_nodes - processed_nodes:
+                senders = [
+                    sender
+                    for node in node_layers[-1]
+                    for sender in sorted(self.senders(node), key=attrgetter('label'))]
+                if not senders:
+                    break
+                else:
+                    node_layers.append(senders)
+                    processed_nodes.update(senders)
 
         strict = nx.number_of_selfloops(self.di_graph) == 0 and not self.di_graph.is_multigraph()
-        graph = pydot.Dot(graph_name='', strict=strict, graph_type='digraph')
-        for node in self.all_nodes:
-            if use_positions or self.is_hierarchical or plot_style == 'hierarchical':
-                str_position = '"' + str(node.position[0]) + ',' + str(node.position[1]) + '!"'
-                new_node = pydot.Node('"' + node.label + '"', label=node.label, shape=node.shape,
-                                      pos=str_position, color=node.colour, fontsize=node.font_size,
-                                      height=str(node.node_dim[1]), width=str(node.node_dim[0]),
-                                      fixedsize=True)
-            else:
-                new_node = pydot.Node('"' + node.label + '"', label=node.label, shape=node.shape,
-                                      color=node.colour, fontsize=node.font_size,
-                                      height=str(node.node_dim[1]), width=str(node.node_dim[0]),
-                                      fixedsize=True)
-            graph.add_node(new_node)
+        graph = pydot.Dot(graph_name='', strict=strict, graph_type='digraph', rankdir='BT')
+        if isinstance(plot_title, str):
+            graph.set_graph_defaults(label=plot_title, labelloc='t')
+        elif isinstance(plot_title, bool) and plot_title:
+            graph.set_graph_defaults(label=self.name, labelloc='t')
+        elif not isinstance(plot_title, bool):
+            raise ValueError("Plot title must be a string or bool")
+        graph.set_graph_defaults(bgcolor=bgcolour)
+        graph.set_node_defaults(fontname=font_name, style=node_style)
+
+        if is_hierarchical:
+            for n, layer_nodes in enumerate(node_layers):
+                subgraph = pydot.Subgraph(rank='max' if n == 0 else 'same')
+                for node in layer_nodes:
+                    new_node = pydot.Node(
+                        node.label.replace("\n", " "), **self._node_kwargs(node, use_positions))
+                    subgraph.add_node(new_node)
+                graph.add_subgraph(subgraph)
+        else:
+            graph.set_overlap('false')
+            for node in self.all_nodes:
+                new_node = pydot.Node(
+                    node.label.replace("\n", " "), **self._node_kwargs(node, use_positions))
+                graph.add_node(new_node)
 
         for edge in self.edges.edge_list:
-            new_edge = pydot.Edge('"' + edge[0].label + '"', '"' + edge[1].label + '"')
+            new_edge = pydot.Edge(
+                edge[0].label.replace("\n", " "), edge[1].label.replace("\n", " "))
             graph.add_edge(new_edge)
 
-        dot = graph.to_string()
-        dot_split = dot.split('{', maxsplit=1)
-        dot_split.insert(1, '\n' + f"graph [bgcolor={bgcolour}]")
-        dot_split.insert(1, '\n' + f"node [fontname={font_name}]")
-        dot_split.insert(1, '{ \n' + f"node [style={node_style}]")
-        dot = ''.join(dot_split)
+        viz_graph = graphviz.Source(
+            graph.to_string(), engine='dot' if is_hierarchical else 'neato')
+        self._viz_graph = viz_graph
+        return viz_graph
 
-        if plot_title:
-            if plot_title is True:
-                plot_title = self.name
-            elif not isinstance(plot_title, str):
-                raise ValueError("Plot title must be a string, or True")
-            dot = dot[:-2] + "labelloc=\"t\";\n" + f"label=\"{plot_title}\";" + "}"
-        if not filename:
-            filename = self.name
-        viz_graph = graphviz.Source(dot, filename=filename, directory=dir_path, engine='neato')
-        if save_plot:
-            viz_graph.view()
+    def _repr_html_(self):
+        if getattr(self, '_viz_graph', None) is None:
+            self.plot()
+        return self._viz_graph._repr_image_svg_xml()
 
     @property
     def density(self):
@@ -502,15 +460,9 @@ class NetworkArchitecture(Architecture):
         last_letters = {'Node': '', 'SensorNode': '', 'FusionNode': '', 'SensorFusionNode': '',
                         'RepeaterNode': ''}
         for node in self.di_graph.nodes:
-            if node.label:
-                label = node.label
-            else:
-                label, last_letters = _default_label(node, last_letters)
-                node.label = label
-            attr = {"label": f"{label}", "color": f"{node.colour}", "shape": f"{node.shape}",
-                    "fontsize": f"{node.font_size}", "width": f"{node.node_dim[0]}",
-                    "height": f"{node.node_dim[1]}", "fixedsize": True}
-            self.di_graph.nodes[node].update(attr)
+            if not node.label:
+                node.label, last_letters = _default_label(node, last_letters)
+            self.di_graph.nodes[node].update(self._node_kwargs(node))
 
     def measure(self, ground_truths: List[GroundTruthPath], noise: Union[bool, np.ndarray] = True,
                 **kwargs) -> Dict[SensorNode, Set[Union[TrueDetection, Clutter]]]:

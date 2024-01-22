@@ -34,11 +34,12 @@ class Node(Base):
         default='rectangle',
         doc='Shape used to display nodes. Default is a rectangle')
     font_size: int = Property(
-        default=5,
-        doc='Font size for node labels. Default is 5')
+        default=None,
+        doc='Font size for node labels. Default is None')
     node_dim: tuple = Property(
-        default=(0.5, 0.5),
-        doc='Width and height of nodes for graph icons. Default is (0.5, 0.5)')
+        default=None,
+        doc='Width and height of nodes for graph icons. '
+            'Default is None, which will size to label automatically.')
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -91,9 +92,6 @@ class SensorNode(Node):
     shape: str = Property(
         default='oval',
         doc='Shape used to display nodes. Default is an oval')
-    node_dim: tuple = Property(
-        default=(0.6, 0.3),
-        doc='Width and height of nodes for graph icons. Default is (0.6, 0.3)')
 
 
 class FusionNode(Node):
@@ -112,9 +110,6 @@ class FusionNode(Node):
     shape: str = Property(
         default='hexagon',
         doc='Shape used to display nodes. Default is a hexagon')
-    node_dim: tuple = Property(
-        default=(0.8, 0.4),
-        doc='Width and height of nodes for graph icons. Default is (0.8, 0.4)')
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -168,9 +163,6 @@ class SensorFusionNode(SensorNode, FusionNode):
     shape: str = Property(
         default='diamond',
         doc='Shape used to display nodes. Default is a diamond')
-    node_dim: tuple = Property(
-        default=(0.9, 0.5),
-        doc='Width and height of nodes for graph icons. Default is (0.9, 0.5)')
 
 
 class RepeaterNode(Node):
@@ -183,9 +175,6 @@ class RepeaterNode(Node):
     shape: str = Property(
         default='rectangle',
         doc='Shape used to display nodes. Default is a rectangle')
-    node_dim: tuple = Property(
-        default=(0.7, 0.4),
-        doc='Width and height of nodes for graph icons. Default is (0.7, 0.4)')
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)

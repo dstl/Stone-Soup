@@ -7,8 +7,6 @@
 ===============================================
 """
 
-import tempfile
-
 # %%
 # Introduction
 # ------------
@@ -114,9 +112,4 @@ edges = Edges(edges=[edge1, edge2])
 from stonesoup.architecture import InformationArchitecture
 
 arch = InformationArchitecture(edges=edges)
-arch.plot(tempfile.gettempdir(), save_plot=False)
-
-# %%
-# .. image:: ../../_static/architecture_simpleexample.png
-#   :width: 500
-#   :alt: Image showing basic example of an architecture plot
+arch

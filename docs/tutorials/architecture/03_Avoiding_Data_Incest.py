@@ -7,7 +7,6 @@
 ========================
 """
 
-import tempfile
 import random
 import copy
 import numpy as np
@@ -182,18 +181,15 @@ node_B1_tracker = copy.deepcopy(tracker)
 node_B1_tracker.detector = FusionQueue()
 
 node_A1 = SensorNode(sensor=bad_sensor,
-                     label='Bad \n SensorNode',
-                     position=(-1, -1))
+                     label='Bad\nSensorNode')
 node_B1 = SensorFusionNode(sensor=good_sensor,
-                           label='Good \n SensorFusionNode',
+                           label='Good\nSensorFusionNode',
                            tracker=node_B1_tracker,
-                           fusion_queue=node_B1_tracker.detector,
-                           position=(1, -1))
+                           fusion_queue=node_B1_tracker.detector)
 node_C1 = FusionNode(tracker=track_tracker,
                      fusion_queue=fq,
                      latency=0,
-                     label='FusionNode',
-                     position=(0, 0))
+                     label='Fusion Node')
 
 # %%
 # Edges
@@ -213,12 +209,8 @@ NH_edges = Edges([Edge((node_A1, node_B1), edge_latency=1),
 # ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 NH_architecture = InformationArchitecture(NH_edges, current_time=start_time, use_arrival_time=True)
-NH_architecture.plot(tempfile.gettempdir(), use_positions=True, save_plot=False)
-
-# %%
-# .. image:: ../../_static/tutorial3img1.png
-#   :width: 500
-#   :alt: Image showing information architecture
+NH_architecture.plot(plot_style='hierarchical')  # Style similar to hierarchical
+NH_architecture
 
 # %%
 # Run the Simulation
@@ -283,18 +275,15 @@ node_B2_tracker = copy.deepcopy(tracker)
 node_B2_tracker.detector = FusionQueue()
 
 node_A2 = SensorNode(sensor=bad_sensor,
-                     label='Bad \n SensorNode',
-                     position=(-1, -1))
+                     label='Bad\nSensorNode')
 node_B2 = SensorFusionNode(sensor=good_sensor,
-                           label='Good \n SensorFusionNode',
+                           label='Good\nSensorFusionNode',
                            tracker=node_B2_tracker,
-                           fusion_queue=node_B2_tracker.detector,
-                           position=(1, -1))
+                           fusion_queue=node_B2_tracker.detector)
 node_C2 = FusionNode(tracker=track_tracker2,
                      fusion_queue=fq2,
                      latency=0,
-                     label='FusionNode',
-                     position=(0, 0))
+                     label='Fusion Node')
 
 # %%
 # Create Edges forming a Hierarchical Architecture
@@ -308,12 +297,7 @@ H_edges = Edges([Edge((node_A2, node_C2), edge_latency=0),
 # ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 H_architecture = InformationArchitecture(H_edges, current_time=start_time, use_arrival_time=True)
-H_architecture.plot(tempfile.gettempdir(), use_positions=True, save_plot=False)
-
-# %%
-# .. image:: ../../_static/tutorial3img2.png
-#   :width: 500
-#   :alt: Image showing information architecture
+H_architecture
 
 # %%
 # Run the Simulation

@@ -7,7 +7,6 @@
 =========================================
 """
 
-import tempfile
 import random
 from datetime import datetime, timedelta
 import copy
@@ -222,14 +221,7 @@ edges=Edges([Edge((node_A, node_C), edge_latency=0.5),
 # ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 information_architecture = InformationArchitecture(edges, current_time=start_time)
-
-information_architecture.plot(tempfile.gettempdir(), save_plot=False)
-
-# %%
-# .. image:: ../../_static/ArchitectureTutorial_InformationArch_img.png
-#   :width: 500
-#   :alt: Image showing information architecture
-
+information_architecture
 
 # %%
 # Simulate measuring and propagating data over the network
@@ -396,12 +388,7 @@ for time in timesteps:
 # The plot below displays the Network Architecture we have built. This includes all Nodes,
 # including those that do not feature in the Information Architecture (the repeater nodes).
 
-network_architecture.plot(tempfile.gettempdir(), save_plot=False)
-
-# %%
-# .. image:: ../../_static/ArchitectureTutorial_NetworkArch_img.png
-#   :width: 500
-#   :alt: Image showing network architecture
+network_architecture
 
 # %%
 # Plot the Network Architecture's Information Architecture
@@ -414,13 +401,7 @@ network_architecture.plot(tempfile.gettempdir(), save_plot=False)
 # representation of multiple edges and nodes that a data piece would be transferred through in
 # order to pass from a sender to a recipient node.
 
-network_architecture.information_arch.plot(tempfile.gettempdir(), save_plot=False)
-
-# %%
-# .. image:: ../../_static/ArchitectureTutorial_InformationArch_img.png
-#   :width: 500
-#   :alt: Image showing information architecture
-
+network_architecture.information_arch
 
 # %%
 # Plot Tracks at the Fusion Nodes
