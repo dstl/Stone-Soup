@@ -1,117 +1,123 @@
+#!/usr/bin/env python
+# coding: utf-8
+
 """
+====================================
 Expected Likelihood Particle Filters
 ====================================
-The problem of target tracking in clutter is always a complex problem, in particular when dealing with
-non-linear or non-gaussian trajectories.
-
-This example shows the implementation of a Particle tracker for multi target case in a cluttered scenario.
-This example uses the probabilistic data association (J)PDA to assign particles to tracks, however it is possible
-to use (G)NN (nearest neighbour) data association methods. The Tracker Particle ~class has also the
-method for single target case.
-
-To run this example we have to set up the ground truths and the measurements before setting up a simplistic
-particle filter. This example follows the implementation that can be found in [#]_.
-
 """
 
 # %%
-# Layout
-# ------
+# Target tracking in cluttered environments is always a complex problem, in particular when dealing with
+# non linear or non gaussian trajectories.
+#
+# This example shows the implementation of the expected likelihood particle tracker (ELPF) for
+# a multi target case in a cluttered scenario (see [#]_ for details). This particle filter method is based
+# on the expected likelihood obtained from the mixture model of the target measurement noise and clutter
+# statistics, and it has proven to be lighter in computational needs and with higher accuracy in cluttered scenarios.
+# This example uses the probabilistic data association (J)PDA to assign detections to tracks, this implementation
+# is not limited to a probabilistic data associator, indeed it is possible to use the a distance
+# based data associator as (G)NN (nearest neighbour).
+# In this example we employ a JPDA probabilistic data associator, however as shown in other examples it is
+# possible to use Efficient Hypothesis Management (EHM) via the Stone Soup plugin
+# PyEHM ('PyEHM <https://github.com/sglvladi/pyehm>`_).
+#
 # The layout of this example follows:
 #
-# 1) Create the targets ground truths transition models;
-# 2) Generate the targets detections;
-# 3) Set up the simulation using a particle filter, data associator and the tracker components;
-# 4) Tun the simulation and create the plots.
+# 1. The ground truths are created using the transition model;
+# 2. Generate scans containing detections and clutter;
+# 3. Setup the particle filter, data associators and tracker components;
+# 4. Final tracks results are plotted.
 #
 
-# Some general imports
+# %%
+# General imports
+# ^^^^^^^^^^^^^^^
 import numpy as np
-from datetime import datetime
-from datetime import timedelta
-from matplotlib import pyplot as plt
+from datetime import datetime, timedelta
 from scipy.stats import uniform
 
-# Load transition models and GroundTruths models
-from stonesoup.models.transition.linear import (
-    CombinedLinearGaussianTransitionModel, ConstantVelocity)
+# Simulation parameters
+np.random.seed(1908)  # Set a random seed
+simulation_start = datetime.now().replace(microsecond=0)
+prob_detect = 0.95  # detection probability
+simulation_timesteps = 100
+
+# Clutter parameters
+clutter_rate = 1
+clutter_area = np.array([[-1, 1], [-1, 1]]) * 25
+surveillance_area = ((clutter_area[0][1] - clutter_area[0][0])*
+                     (clutter_area[1][1] - clutter_area[1][0]))
+clutter_spatial_density = clutter_rate/surveillance_area
+
+# %%
+# Stone Soup imports
+# ^^^^^^^^^^^^^^^^^^
+from stonesoup.models.transition.linear import \
+    CombinedLinearGaussianTransitionModel, ConstantVelocity
 from stonesoup.models.measurement.linear import LinearGaussian
-from stonesoup.types.array import StateVector
 from stonesoup.types.state import GaussianState
 from stonesoup.types.groundtruth import GroundTruthPath, GroundTruthState
 from stonesoup.types.detection import TrueDetection
 from stonesoup.types.detection import Clutter
+from stonesoup.buffered_generator import BufferedGenerator
+from stonesoup.reader import Reader, DetectionReader
 
 # %%
-# 1) Create Ground truth model, detections and clutter
-# ----------------------------------------------------
-# Firstly we initialise the transition and measurement models. We initialise the transition model using a
-# linear gaussian model and we create the tracks of the targets.
+# 1. Create Groundtruth
+# ^^^^^^^^^^^^^^^^^^^^^
+# Firstly we initialise the transition and measurement models
 
-# Define some general parameters before running the simulation
-start_time = datetime.now()  # simulation start time
-np.random.seed(1908)         # set the random seed
-prob_detect = 0.9            # Probability of detection
-num_iter = 100               # Number of timesteps to run
-clutter_rate = .01           # clutter rate
-surveillance_region = [[-10, 30], [-10, 30]]  # The surveillance region x=[-10, 30], y=[-10, 30]
-surveillance_area = (surveillance_region[0][1] - surveillance_region[0][0]) \
-                    * (surveillance_region[1][1] - surveillance_region[1][0])
-clutter_intensity = clutter_rate / surveillance_area
-
-# Models - initialise the models for the Groundtruth
+# transition model for the particle filer
 transition_model = CombinedLinearGaussianTransitionModel(
-    [ConstantVelocity(0.05), ConstantVelocity(0.05)])
+    [ConstantVelocity(0.1), ConstantVelocity(0.1)])
 
-measurement_model = LinearGaussian(4, mapping=[0, 2], noise_covar=np.diag([0.5, 0.5]))
-
-# defined the ground truth transition model, in this case we have two linear tracks
+# a noiseless transition model for the ground truths
 gnd_transition_model = CombinedLinearGaussianTransitionModel([ConstantVelocity(0.),
                                                               ConstantVelocity(0.)])
 
-# Create a set for the true detections
+# Define a detection models
+measurement_model = LinearGaussian(ndim_state=4,
+                                   mapping=(0, 2),
+                                   noise_covar=np.diag([0.5, 0.5]))
+
+# Generate ground-truths
 truths = set()
 
-# First target track
-truth = GroundTruthPath([GroundTruthState([0, 0.2, 0, 0.2], timestamp=start_time)])
-for k in range(1, num_iter + 1):
+# Instantiate the first entry
+truth = GroundTruthPath([GroundTruthState([0, 0.2, 0, 0.2], timestamp=simulation_start)])
+for k in range(1, simulation_timesteps):
     truth.append(GroundTruthState(
-        gnd_transition_model.function(truth[k - 1], noise=True,
+        gnd_transition_model.function(truth[k-1], noise=True,
                                       time_interval=timedelta(seconds=1)),
-        timestamp=start_time + timedelta(seconds=k)))
+        timestamp=simulation_start + timedelta(seconds=k)))
 truths.add(truth)
 
-# Second target track
-truth = GroundTruthPath([GroundTruthState([0, 0.2, 20, -0.2], timestamp=start_time)])
-for k in range(1, num_iter + 1):
+truth = GroundTruthPath([GroundTruthState([0, 0.2, 20, -0.2], timestamp=simulation_start)])
+for k in range(1, simulation_timesteps):
     truth.append(GroundTruthState(
-        gnd_transition_model.function(truth[k - 1], noise=True,
+        gnd_transition_model.function(truth[k-1], noise=True,
                                       time_interval=timedelta(seconds=1)),
-        timestamp=start_time + timedelta(seconds=k)))
+        timestamp=simulation_start + timedelta(seconds=k)))
 truths.add(truth)
 
-# Create a list of timestamps for the tracks
-timestamps = [start_time]
-for k in range(1, num_iter + 1):
-    timestamps.append(start_time + timedelta(seconds=k))
+# generate the timestamps
+timestamps = [simulation_start]
+for k in range(1, simulation_timesteps):
+    timestamps.append(simulation_start + timedelta(seconds=k))
 
 # %%
-# 2) Simulate the detections
-# --------------------------
-#
-# With the ground truth tracks defined now we have to store the various true detections
-# and the clutter present in each scan that will be used by the tracker.
+# 2. Generate scans containing detections and clutter;
+# ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+# Create a series of scans to collect the detections and clutter
+# from the targets.
 
-# Define the temporal scans
 scans = []
-
-# Loop over the timesteps to collect the true detections and the clutter
-for k in range(num_iter):
+for k in range(simulation_timesteps):
     measurement_set = set()
 
-    # True detections
+    # detections
     for truth in truths:
-        # Generate actual detection from the state with a 10% chance that no detection is received.
         if np.random.rand() <= prob_detect:
             measurement = measurement_model.function(truth[k], noise=True)
             measurement_set.add(TrueDetection(state_vector=measurement,
@@ -124,136 +130,136 @@ for k in range(num_iter):
         truth_y = truth[k].state_vector[2]
 
     # Clutter detections
-    for _ in range(np.random.poisson(0.1)):
+    for _ in range(np.random.poisson(clutter_rate)):
         x = uniform.rvs(-10, 30)
-        y = uniform.rvs(-10, 30)
+        y = uniform.rvs(0, 25)
         measurement_set.add(Clutter(np.array([[x], [y]]), timestamp=truth[k].timestamp,
                                     measurement_model=measurement_model))
-    scans.append((timestamps[k], measurement_set))
+    scans.append(measurement_set)
 
-# $$
-# 3) set up the Particle filter components and the detector
-# ---------------------------------------------------------
-# At this stage we have generated a series of GroundTruth detections
-# for the two targets and some Clutter detections.
-# Now we can create a measurement detector and
-# prepare the particle filter components.
-# As presented in previous tutorials and examples, we need a predictor,
-# an updater and, in the specific case of particle filters, a resampler for
-# the filter.
+# %%
+# Visualise the detections and the ground truth
+# ---------------------------------------------
 
+from stonesoup.plotter import AnimatedPlotterly
 
-# Load the components for a Buffered detection reader
-from stonesoup.buffered_generator import BufferedGenerator
-from stonesoup.reader import DetectionReader
+plotter = AnimatedPlotterly(timesteps=timestamps)
+plotter.plot_measurements(scans, [0, 2], measurements_label='Scans')
+plotter.plot_ground_truths(truths, [0, 2])
+plotter.fig
 
-class SimpleDetector(DetectionReader):
-    @BufferedGenerator.generator_method
-    def detections_gen(self):
-        for timestamp, measurement_set in scans:
-            yield timestamp, measurement_set
+# %%
+# 3. Set up the Particle filter;
+# ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+# We have a series of scans containing the detections and clutter, now we can load the
+# tracker components starting from :class:`~.ParticlePredictor`, :class:`~.ParticleUpdater` and
+# resampler which we employ a :class:~.SystematicResampler`. In this particle filter implementation
+# the resampler should not be passed to the updater, as usual, but needs to be loaded in the
+# tracker object later otherwise it will result in an error.
 
-
-# Load the particle predictor
+# Load the predictor
 from stonesoup.predictor.particle import ParticlePredictor
 predictor = ParticlePredictor(transition_model)
 
-# Load the resampler
+# load the resampler
 from stonesoup.resampler.particle import SystematicResampler
 resampler = SystematicResampler()
 
-# Load the particle updater, at this stage we don't need the resampler component
-# inside the particle updater. We can, also, not specify the measurement model in the
-# updater
+# load the updater
 from stonesoup.updater.particle import ParticleUpdater
 updater = ParticleUpdater(measurement_model)
 
 # %%
 # After having initialised the predictor, updater and resampler we consider the data associator.
-# This example uses a joint probabilistic data association (JPDA, or PDA in the single target case).
-# The tracker can use a distance data associator as Nearest Neighbour (Global in the multi-target case) using
-# the distances of the points from the expected tracks.
-# In this case we use a JPDA data associator, it is possible to extend this using efficient
-# hypothesys management (EHM) like from PyEHM.
+# This example uses a joint probabilistic data association (:class:`~.JPDA`, or :class:`~.PDA`
+# in the single target case).
+# The tracker can also use a distance-based data associator :class:`~.NearestNeighbour`
+# (:class:`~.GNNWith2DAssignment` in the multi-target case) using the distances of the points from the tracks.
 
+# load the hypothesiser
 from stonesoup.hypothesiser.probability import PDAHypothesiser
 hypothesiser = PDAHypothesiser(predictor=predictor,
                                updater=updater,
-                               clutter_spatial_density=clutter_intensity,
+                               clutter_spatial_density=clutter_spatial_density,
                                prob_detect=prob_detect,
-                               prob_gate=0.9999
-                               )
-# load the data associator probability
+                               prob_gate=0.9999)
+
 from stonesoup.dataassociator.probability import JPDA
 data_associator = JPDA(hypothesiser)
 
 # %%
-# Initiator & Deleter
-# With the data associator component we need to initialise the track initiator and the deleter
-# to match the particles with the tracks. For the deleter we consider a :class:`~.UpdateTimeDeleter`.
-# For the initiator, in general multi-target examples we usually use a :class:`~.MultiMeasurementInitiator`
-# however we are using particles, we can adopt a :class:`~.GaussianParticleInitiator`.
+# With the data associator we need to initialise the tracks by using an initiator and a deleter
+# to pair the detections with the tracks. We consider a time based deleter using :class:`~.UpdateTimeStepsDeleter`.
+# In general multi-target examples a :class:`~.MultiMeasurementInitiator` is often chosen, however
+# in this case, since we are using particles we can easily adopt a :class:`~.GaussianParticleInitiator`.
 
-# We consider a time based deleter.
 from stonesoup.deleter.time import UpdateTimeStepsDeleter
-deleter = UpdateTimeStepsDeleter(time_steps_since_update=4)
+deleter = UpdateTimeStepsDeleter(2)
 
-# Initialise the prior state
 from stonesoup.initiator.simple import SimpleMeasurementInitiator, GaussianParticleInitiator
-prior_state = GaussianState(
-    StateVector(np.array([10., 0.0, 10., 0.0])),
-    np.diag([5, 0.5, 5, 0.5])**2
-)
 
-initiator_part = SimpleMeasurementInitiator(prior_state=prior_state,
+# Prior state
+prior_state = GaussianState(np.array([10., 0.0, 10., 0.0]),
+                            np.diag([10, 1 , 10, 1])**2,
+                            timestamp=simulation_start)
+
+# Initiator initialisation
+initiator_part = SimpleMeasurementInitiator(prior_state,
                                             measurement_model=measurement_model)
 
-# Gaussian particle initiator
 initiator = GaussianParticleInitiator(initiator=initiator_part,
                                       number_particles=500)
 
+# Create a detector to process the detections and scans
+class SimpleDetector(DetectionReader):
+    @BufferedGenerator.generator_method
+    def detections_gen(self):
+        for timestamp, measurement_set in zip(timestamps, scans):
+            yield timestamp, measurement_set
 # %%
-# 4) Run the simulation
-# ---------------------
+# 4. Run the tracker;
+# ^^^^^^^^^^^^^^^^^^^
 # We have initialised all the relevant components needed for the tracker,
 # we can now pass these all to the :class:`~.MultiTargetExpectedLikelihoodParticleFilter`
-# tracker and generate the various tracks and finally plot them.
+# tracker and generate the various tracks.
 
+# Load the ELPF tracker
 from stonesoup.tracker.particle import MultiTargetExpectedLikelihoodParticleFilter
 
+# Instantiate the detector
+detector = SimpleDetector()
+
+# Tracker
 tracker = MultiTargetExpectedLikelihoodParticleFilter(
     initiator=initiator,
     deleter=deleter,
-    detector=SimpleDetector(),
+    detector=detector,
     data_associator=data_associator,
     updater=updater,
-    resampler=resampler)  # if the resampler is not specified, :class:`~.SystematicResampler` is used
+    resampler=resampler)  # if the resampler is not specified, ~SystematicResampler is used
 
-# Generate the plots
-fig1 = plt.figure(figsize=(13, 7))
-ax1 = plt.gca()
+# loop over the tracker generate the final tracks
+tracks = set()
+for step, (time, current_tracks) in enumerate(tracker, 1):
+    tracks.update(current_tracks)
 
-for k, (timestamp, tracks) in enumerate(tracker):
-    ax1.cla()
-    for i, truth in enumerate(truths):
-        data = np.array([s.state_vector for s in truth[:k + 1]])
-        ax1.plot(data[:, 0], data[:, 2], '--', label=f'Groundtruth Track {i + 1}')
-    for i, track in enumerate(tracks):
-        data = np.array([s.mean for s in track[:k + 1]])
-        ax1.plot(data[:, 0], data[:, 2], '--', label=f'Track {i + 1}')
-        ax1.plot(track.state.state_vector[0, :], track.state.state_vector[2, :],
-                 'r.', label='Particles')
-    plt.axis([*surveillance_region[0], *surveillance_region[1]])
-    plt.legend(loc='center right')
-    plt.pause(0.01)
+# Visualise the final tracks obtained
+plotter.plot_tracks(tracks, [0, 2], track_label="ELPF tracks", line=dict(color="brown"),
+                    uncertainty=False, particle=True)
+plotter.fig
 
 # %%
-# This concludes this short tutorial on how to use expected likelihood particle filter
-# in the multi-targets case using a particle filter using Stone Soup components.
+# Conclusion
+# ----------
+# In this example we have presented how to implement and use the Expected Likelihood
+# Particle filter in a cluttered multi-target scenario. This Particle filter implementation allows to use
+# a probabilistic data associator with greater accuracy (by comparing to the standard Particle filter implementation)
+# when dealing with cluttered environments and non-linear detections and trajectories.
+#
 
 # %%
 # References
 # ----------
-# [1] Marrs, A., Maskell, S., and Bar-Shalom, Y., “Expected likelihood for tracking in clutter with
-# particle filters”, in Signal and Data Processing of Small Targets 2002, 2002, vol. 4728,
-# pp. 230–239. doi:10.1117/12.478507
+#.. [#] Marrs, A., Maskell, S., and Bar-Shalom, Y., “Expected likelihood for tracking in clutter with
+#       particle filters”, in Signal and Data Processing of Small Targets 2002, 2002, vol. 4728,
+#       pp. 230–239. doi:10.1117/12.478507
