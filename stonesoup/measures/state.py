@@ -482,10 +482,11 @@ class KLDivergence(Measure):
 
                 n_dims = state1.ndim
 
-                trace_term = np.trace(np.linalg.inv(state2.covar)@state1.covar)
+                inv_state2_covar = np.linalg.inv(state2.covar)
+                trace_term = np.trace(inv_state2_covar@state1.covar)
 
-                mahalanobis_term = np.transpose(state2.state_vector - state1.state_vector) @ \
-                    np.linalg.inv(state2.covar)@(state2.state_vector - state1.state_vector)
+                delta = state2.state_vector - state1.state_vector
+                mahalanobis_term = delta.T @ inv_state2_covar @ delta
 
                 kld = float(0.5*(log_term - n_dims + trace_term + mahalanobis_term))
 
