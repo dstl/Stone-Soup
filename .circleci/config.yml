@@ -66,6 +66,11 @@ jobs:
       - restore_cache:
           key: dependencies-doc-{{ .Environment.CACHE_VERSION }}-{{ checksum "/home/circleci/.pyenv/version" }}-{{ checksum "setup.cfg" }}
       - run:
+          name: Install OS Dependencies
+          command: |
+            sudo apt-get update
+            sudo apt-get install -y graphviz
+      - run:
           name: Install Dependencies
           command: |
             python -m venv venv
