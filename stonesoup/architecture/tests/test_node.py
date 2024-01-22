@@ -12,7 +12,7 @@ from ...types.state import State, StateVector
 def test_node(data_pieces, times, nodes):
     node = Node()
     assert node.latency == 0.0
-    assert node.font_size == 5
+    assert node.font_size is None
     assert len(node.data_held) == 3
     assert node.data_held == {"fused": {}, "created": {}, "unfused": {}}
 
@@ -41,7 +41,6 @@ def test_sensor_node(nodes):
     assert snode.sensor == sensor
     assert snode.colour == '#006eff'
     assert snode.shape == 'oval'
-    assert snode.node_dim == (0.6, 0.3)
 
 
 def test_fusion_node(tracker):
@@ -51,7 +50,6 @@ def test_fusion_node(tracker):
 
     assert fnode.colour == '#00b53d'
     assert fnode.shape == 'hexagon'
-    assert fnode.node_dim == (0.8, 0.4)
     assert fnode.tracks == set()
 
     with pytest.raises(TypeError):
@@ -70,7 +68,6 @@ def test_sf_node(tracker, nodes):
 
     assert sfnode.colour == '#fc9000'
     assert sfnode.shape == 'diamond'
-    assert sfnode.node_dim == (0.9, 0.5)
 
     assert sfnode.tracks == set()
 
@@ -80,4 +77,3 @@ def test_repeater_node():
 
     assert rnode.colour == '#909090'
     assert rnode.shape == 'rectangle'
-    assert rnode.node_dim == (0.7, 0.4)

@@ -10,70 +10,49 @@ from ..node import RepeaterNode, SensorNode, FusionNode
 from stonesoup.types.detection import TrueDetection
 
 
-def test_hierarchical_plot(tmpdir, nodes, edge_lists):
+def test_hierarchical_plot(nodes, edge_lists):
 
     edges = edge_lists["hierarchical_edges"]
     sf_radar_edges = edge_lists["sf_radar_edges"]
 
     arch = InformationArchitecture(edges=edges)
 
-    arch.plot(dir_path=tmpdir.join('test.pdf'), save_plot=False)
-
-    # Check that nodes are plotted on the correct layer. x position of each node is can change
-    # depending on the order that they are iterated though, hence not entirely predictable so no
-    # assertion on this is made.
-    assert nodes['s1'].position[1] == 0
-    assert nodes['s2'].position[1] == -1
-    assert nodes['s3'].position[1] == -1
-    assert nodes['s4'].position[1] == -2
-    assert nodes['s5'].position[1] == -2
-    assert nodes['s6'].position[1] == -2
-    assert nodes['s7'].position[1] == -3
-
-    # Check that type(position) for each node is a tuple.
-    assert type(nodes['s1'].position) == tuple
-    assert type(nodes['s2'].position) == tuple
-    assert type(nodes['s3'].position) == tuple
-    assert type(nodes['s4'].position) == tuple
-    assert type(nodes['s5'].position) == tuple
-    assert type(nodes['s6'].position) == tuple
-    assert type(nodes['s7'].position) == tuple
+    arch.plot()
 
     decentralised_edges = edge_lists["decentralised_edges"]
     arch = InformationArchitecture(edges=decentralised_edges)
 
     with pytest.raises(ValueError):
-        arch.plot(dir_path=tmpdir.join('test.pdf'), save_plot=False, plot_style='hierarchical')
+        arch.plot(plot_style='hierarchical')
 
     arch2 = InformationArchitecture(edges=sf_radar_edges)
 
-    arch2.plot(dir_path=tmpdir.join('test2.pdf'), save_plot=False)
+    arch2.plot()
 
 
-def test_plot_title(nodes, tmpdir, edge_lists):
+def test_plot_title(nodes, edge_lists):
     edges = edge_lists["decentralised_edges"]
 
     arch = InformationArchitecture(edges=edges)
 
     # Check that plot function runs when plot_title is given as a str.
-    arch.plot(dir_path=tmpdir.join('test.pdf'), save_plot=False, plot_title="This is the title of "
-                                                                            "my plot")
+    arch.plot(plot_title="This is the title of my plot")
 
     # Check that plot function runs when plot_title is True.
-    arch.plot(dir_path=tmpdir.join('test.pdf'), save_plot=False, plot_title=True)
+    arch.plot(plot_title=True)
 
     # Check that error is raised when plot_title is not a str or a bool.
     x = RepeaterNode()
     with pytest.raises(ValueError):
-        arch.plot(dir_path=tmpdir.join('test.pdf'), save_plot=False, plot_title=x)
+        arch.plot(plot_title=x)
 
 
-def test_plot_positions(nodes, tmpdir):
+def test_plot_positions(nodes):
     edges1 = Edges([Edge((nodes['p2'], nodes['p1'])), Edge((nodes['p3'], nodes['p1']))])
 
     arch1 = InformationArchitecture(edges=edges1)
 
-    arch1.plot(dir_path=tmpdir.join('test.pdf'), save_plot=False, use_positions=True)
+    arch1.plot(use_positions=True)
 
     # Assert positions are correct after plot() has run
     assert nodes['p1'].position == (0, 0)
@@ -81,15 +60,14 @@ def test_plot_positions(nodes, tmpdir):
     assert nodes['p3'].position == (1, -1)
 
     # Change plot positions to non tuple values
-    nodes['p3'].position = RepeaterNode()
+    nodes['p1'].position = RepeaterNode()
     nodes['p2'].position = 'Not a tuple'
     nodes['p3'].position = ['Definitely', 'not', 'a', 'tuple']
 
-    edges2 = Edges([Edge((nodes['s2'], nodes['s1'])), Edge((nodes['s3'], nodes['s1']))])
-    arch2 = InformationArchitecture(edges=edges2)
+    edges2 = Edges([Edge((nodes['p2'], nodes['p1'])), Edge((nodes['p3'], nodes['p1']))])
 
     with pytest.raises(TypeError):
-        arch2.plot(dir_path=tmpdir.join('test.pdf'), save_plot=False, use_positions=True)
+        InformationArchitecture(edges=edges2)
 
 
 def test_density(edge_lists):
