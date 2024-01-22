@@ -169,4 +169,4 @@ class InformationKalmanPredictor(KalmanPredictor):
                                                            **kwargs)
 
         return Prediction.from_state(prior, pred_info_state, pred_info_matrix, timestamp=timestamp,
-                                     transition_model=self.transition_model)
+                                     transition_model=self.transition_model, prior=prior)

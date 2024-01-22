@@ -57,7 +57,8 @@ class ParticlePredictor(Predictor):
                                      parent=prior,
                                      state_vector=new_state_vector,
                                      timestamp=timestamp,
-                                     transition_model=self.transition_model)
+                                     transition_model=self.transition_model,
+                                     prior=prior)
 
 
 class ParticleFlowKalmanPredictor(ParticlePredictor):
@@ -104,7 +105,8 @@ class ParticleFlowKalmanPredictor(ParticlePredictor):
                                      log_weight=particle_prediction.log_weight,
                                      timestamp=particle_prediction.timestamp,
                                      fixed_covar=kalman_prediction.covar,
-                                     transition_model=self.transition_model)
+                                     transition_model=self.transition_model,
+                                     prior=prior)
 
 
 class MultiModelPredictor(Predictor):
@@ -342,7 +344,8 @@ class BernoulliParticlePredictor(ParticlePredictor):
             existence_probability=predicted_existence,
             parent=untransitioned_state,
             timestamp=timestamp,
-            transition_model=self.transition_model
+            transition_model=self.transition_model,
+            prior=prior
         )
         return new_particle_state
 
