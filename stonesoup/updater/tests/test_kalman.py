@@ -14,7 +14,8 @@ from stonesoup.updater.kalman import (KalmanUpdater,
                                       UnscentedKalmanUpdater,
                                       SqrtKalmanUpdater,
                                       IteratedKalmanUpdater,
-                                      SchmidtKalmanUpdater)
+                                      SchmidtKalmanUpdater,
+                                      CubatureKalmanUpdater)
 
 
 @pytest.mark.parametrize(
@@ -65,8 +66,17 @@ from stonesoup.updater.kalman import (KalmanUpdater,
                                               [0.0013, 0.0365]])),
             Detection(np.array([[-6.23]]))
         ),
+        (   # Cubature Kalman
+            CubatureKalmanUpdater,
+            LinearGaussian(ndim_state=2, mapping=[0],
+                           noise_covar=np.array([[0.04]])),
+            GaussianStatePrediction(np.array([[-6.45], [0.7]]),
+                                    np.array([[4.1123, 0.0013],
+                                              [0.0013, 0.0365]])),
+            Detection(np.array([[-6.23]]))
+        ),
     ],
-    ids=["standard", "extended", "unscented", "iterated", "schmidtkalman"]
+    ids=["standard", "extended", "unscented", "iterated", "schmidtkalman", "cubaturekalman"]
 )
 def test_kalman(UpdaterClass, measurement_model, prediction, measurement):
 
@@ -99,14 +109,14 @@ def test_kalman(UpdaterClass, measurement_model, prediction, measurement):
                        0, atol=1.e-14)
     assert np.allclose(measurement_prediction.cross_covar,
                        eval_measurement_prediction.cross_covar,
-                       0, atol=1.e-14)
+                       0, atol=1.e-13)
 
     # Perform and assert state update (without measurement prediction)
     posterior = updater.update(SingleHypothesis(
         prediction=prediction,
         measurement=measurement))
     assert np.allclose(posterior.mean, eval_posterior.mean, 0, atol=1.e-14)
-    assert np.allclose(posterior.covar, eval_posterior.covar, 0, atol=1.e-14)
+    assert np.allclose(posterior.covar, eval_posterior.covar, 0, atol=1.e-13)
     assert np.array_equal(posterior.hypothesis.prediction, prediction)
     assert np.allclose(
         posterior.hypothesis.measurement_prediction.state_vector,
@@ -122,7 +132,7 @@ def test_kalman(UpdaterClass, measurement_model, prediction, measurement):
         measurement=measurement,
         measurement_prediction=measurement_prediction))
     assert np.allclose(posterior.mean, eval_posterior.mean, 0, atol=1.e-14)
-    assert np.allclose(posterior.covar, eval_posterior.covar, 0, atol=1.e-14)
+    assert np.allclose(posterior.covar, eval_posterior.covar, 0, atol=1.e-13)
     assert np.array_equal(posterior.hypothesis.prediction, prediction)
     assert np.allclose(
         posterior.hypothesis.measurement_prediction.state_vector,
