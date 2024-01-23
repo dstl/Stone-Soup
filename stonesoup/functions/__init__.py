@@ -98,7 +98,8 @@ def jacobian(fun, x, **kwargs):
     delta[delta < 1e-8] = 1e-8
 
     x2 = copy.copy(x)  # Create a clone of the input
-    x2.state_vector = np.tile(x.state_vector, ndim + 1) + np.eye(ndim, ndim + 1) * delta[:, np.newaxis]
+    x2.state_vector = np.tile(x.state_vector, ndim + 1) + np.eye(ndim, ndim + 1) * \
+                      delta[:, np.newaxis]
     x2.state_vector = x2.state_vector.view(StateVectors)
 
     F = fun(x2, **kwargs)
@@ -231,7 +232,7 @@ def unscented_transform(sigma_points_states, mean_weights, covar_weights,
 
     Parameters
     ----------
-    sigma_points : :class:`~.StateVectors` of shape `(Ns, 2*Ns+1)`
+    sigma_points_states : :class:`~.StateVectors` of shape `(Ns, 2*Ns+1)`
         An array containing the locations of the sigma points
     mean_weights : :class:`numpy.ndarray` of shape `(2*Ns+1,)`
         An array containing the sigma point mean weights
@@ -281,7 +282,8 @@ def unscented_transform(sigma_points_states, mean_weights, covar_weights,
 
     # Calculate cross-covariance
     cross_covar = (
-            (sigma_points - sigma_points[:, 0:1]) @ np.diag(mean_weights) @ (sigma_points_t - mean).T
+            (sigma_points - sigma_points[:, 0:1]) @ np.diag(mean_weights) @ (sigma_points_t -
+                                                                             mean).T
     ).view(CovarianceMatrix)
 
     return mean, covar, cross_covar, sigma_points_t, mean_weights, covar_weights
@@ -627,7 +629,8 @@ def gm_reduce_single(means, covars, weights):
 
     # Calculate covar
     delta_means = means - mean
-    covar = np.sum(covars * weights, axis=2, dtype=np.float_) + weights * delta_means @ delta_means.T
+    covar = np.sum(covars * weights, axis=2, dtype=np.float_) + weights * delta_means @ \
+            delta_means.T
 
     return mean.view(StateVector), covar.view(CovarianceMatrix)
 
@@ -798,7 +801,8 @@ def gauss2cubature(state, alpha=1.0):
     ndim_state = np.shape(state.state_vector)[0]
 
     sqrt_covar = np.linalg.cholesky(state.covar)
-    cuba_points = np.sqrt(alpha*ndim_state) * np.hstack((np.identity(ndim_state), -np.identity(ndim_state)))
+    cuba_points = np.sqrt(alpha*ndim_state) * np.hstack((np.identity(ndim_state),
+                                                         -np.identity(ndim_state)))
 
     if np.issubdtype(cuba_points.dtype, np.integer):
         cuba_points = cuba_points.astype(float)
@@ -830,6 +834,9 @@ def cubature2gauss(cubature_points, covar_noise=None, alpha=1.0):
     ----------
     cubature_points : :class:`~.StateVectors`
         Cubature points (as a :class:`~.StateVectors` of dimension :math:`n \times 2n`)
+    covar_noise : :class:`~.CovarianceMatrix` of shape `(Ns, Ns)`, optional
+        Additive noise covariance matrix
+        (default is `None`)
     alpha : float, optional
         scaling parameter allowing the nomination of cubature points closer to the mean (lower
         values) or further from the mean (higher values)
@@ -906,12 +913,13 @@ def cubature_transform(state, fun, points_noise=None, covar_noise=None, alpha=1.
         cubature_points_t = StateVectors([fun(State(cub_point)) for cub_point in cubature_points])
     else:
         cubature_points_t = StateVectors(
-            [fun(State(cub_point), points_noise) for cub_point, point_noise in zip(cubature_points, points_noise)])
+            [fun(State(cub_point), points_noise) for cub_point, point_noise in
+             zip(cubature_points, points_noise)])
 
     mean, covar = cubature2gauss(cubature_points_t, covar_noise)
 
-    cross_covar = (1/alpha)*((1.0 / (2 * ndim_state)) * cubature_points @ cubature_points_t.T - \
-                  np.average(cubature_points, axis=1) @ mean.T)
+    cross_covar = (1/alpha)*((1.0 / (2 * ndim_state)) * cubature_points @ cubature_points_t.T -
+                             np.average(cubature_points, axis=1) @ mean.T)
     cross_covar = cross_covar.view(CovarianceMatrix)
 
     return mean, covar, cross_covar, cubature_points_t

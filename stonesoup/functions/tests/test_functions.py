@@ -334,6 +334,7 @@ def test_gm_sample(means, covars, weights, size):
     else:
         assert samples.shape[0] == means.shape[0]
 
+
 @pytest.mark.parametrize(
     "mean, covar, alp",
     [
