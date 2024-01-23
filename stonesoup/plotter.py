@@ -986,7 +986,8 @@ class Plotterly(_Plotter):
         if go is None:
             raise RuntimeError("Usage of Plotterly plotter requires installation of `plotly`")
 
-        self.dimension = Dimension(dimension)  # allows 2, 3, Dimension(2), Dimension(3)
+        self.dimension = Dimension(dimension)  # allows 1, 2, 3,
+        # Dimension(1), Dimension(2) or Dimension(3)
 
         from plotly import colors
         layout_kwargs = dict(
