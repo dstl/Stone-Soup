@@ -27,10 +27,11 @@ class SensorManager(Base, ABC):
     which communicate with other sensor managers in a networked fashion.
 
     """
-    sensors: Set['Sensor'] = Property(doc="The sensor(s) which the sensor manager is managing.")
+    sensors: Set['Sensor'] = Property(
+        default=set(), doc="The sensor(s) which the sensor manager is managing.")
 
-    platforms: Set['Platform'] = Property(doc="The platform(s) which the sensor manager is "
-                                            "managing.")
+    platforms: Set['Platform'] = Property(
+        default=set(), doc="The platform(s) which the sensor manager is managing.")
 
     reward_function: Callable = Property(
         default=None, doc="A function or class designed to work out the reward associated with an "

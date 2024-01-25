@@ -264,13 +264,24 @@ def test_sensor_managers(predictor_obj, updater_obj, reward_function_obj, track1
         for sensor in sensor_set:
             sensor.timestamp = time_start
 
-    sensor_managerA = BruteForceSensorManager(sensorsA, reward_function)
-    sensor_managerB = OptimizeBruteSensorManager(sensorsB, reward_function)
-    sensor_managerC = OptimizeBasinHoppingSensorManager(sensorsC,
-                                                        reward_function)
-    sensor_managerD = OptimizeBruteSensorManager(sensorsD, reward_function,
-                                                 generate_full_output=True,
-                                                 finish=True)
+    sensor_managerA = BruteForceSensorManager(
+        sensors=sensorsA,
+        reward_function=reward_function
+    )
+    sensor_managerB = OptimizeBruteSensorManager(
+        sensors=sensorsB,
+        reward_function=reward_function
+    )
+    sensor_managerC = OptimizeBasinHoppingSensorManager(
+        sensors=sensorsC,
+        reward_function=reward_function
+    )
+    sensor_managerD = OptimizeBruteSensorManager(
+        sensors=sensorsD,
+        reward_function=reward_function,
+        generate_full_output=True,
+        finish=True
+    )
 
     sensor_managers = [sensor_managerA,
                        sensor_managerB,
