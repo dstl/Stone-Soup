@@ -249,11 +249,11 @@ def reduce_tracks(tracks):
 plotter = Plotterly()
 
 plotter.plot_ground_truths(truths, [0, 2])
-plotter.plot_tracks(reduce_tracks(node_C.tracks), [0, 2], track_label="Node C",
+plotter.plot_tracks(reduce_tracks(node_C.tracks), [0, 2], track_label=node_C.label,
                     line=dict(color='#00FF00'), uncertainty=True)
-plotter.plot_tracks(reduce_tracks(node_F.tracks), [0, 2], track_label="Node F",
+plotter.plot_tracks(reduce_tracks(node_F.tracks), [0, 2], track_label=node_F.label,
                     line=dict(color='#FF0000'), uncertainty=True)
-plotter.plot_tracks(reduce_tracks(node_G.tracks), [0, 2], track_label="Node G",
+plotter.plot_tracks(reduce_tracks(node_G.tracks), [0, 2], track_label=node_G.label,
                     line=dict(color='#0000FF'), uncertainty=True)
 plotter.plot_sensors(sensor_set)
 plotter.fig
@@ -409,11 +409,11 @@ network_architecture.information_arch
 
 plotter = Plotterly()
 plotter.plot_ground_truths(truths, [0, 2])
-plotter.plot_tracks(reduce_tracks(node_C.tracks), [0, 2], track_label="Node C",
+plotter.plot_tracks(reduce_tracks(node_C.tracks), [0, 2], track_label=node_C.label,
                     line=dict(color='#00FF00'), uncertainty=True)
-plotter.plot_tracks(reduce_tracks(node_F.tracks), [0, 2], track_label="Node F",
+plotter.plot_tracks(reduce_tracks(node_F.tracks), [0, 2], track_label=node_F.label,
                     line=dict(color='#FF0000'), uncertainty=True)
-plotter.plot_tracks(reduce_tracks(node_G.tracks), [0, 2], track_label="Node G",
+plotter.plot_tracks(reduce_tracks(node_G.tracks), [0, 2], track_label=node_G.label,
                     line=dict(color='#0000FF'), uncertainty=True)
 plotter.plot_sensors(sensor_set)
 plotter.fig
