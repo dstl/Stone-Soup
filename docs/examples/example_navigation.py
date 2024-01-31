@@ -8,53 +8,39 @@ Example using navigation measurement model
 """
 
 # %%
-# In this example, we present how to perform the
-# tracking task using an inertia
-# navigation measurement model making use of
-# instruments mounted on the sensor.
-# This example is relevant for tracking
-# sensors in environments where GPS tracking is not
-# available and we integrate the information
-# obtained from instruments on board, as the
-# accelerometer and gyroscope, with fixed target locations,
-# also refereed as landmarks. In this example, we simulate a
-# three dimensional sensor, moving in 3D cartesian space,
-# we have the measurements from on-board instruments
-# that evaluates the Euler angles, whose describe the
-# sensor rotations and orientation during the flight, as
-# well as the the 3D forces acting on the sensor.
-# This example aims to provide an idea of how to use the
-# combination of the measurement models
-# :class:`~.AccelerometerMeasurementModel` and
-# :class:`~.GyroscopeMeasurementModel` to model
-# the inertia navigation measurements.
-# In this example we ignore GPS measurements, therefore
-# we employ the knowledge of fixed targets
-# to adjust the navigation tracking from drifting, a common
-# problem in navigation scenario.
-# The state space we are considering is a 15 dimensions object, which
-# combines 3D nearly-constant Acceleration model and the 3D Euler angles,
-# whose are the heading (:math:`\psi`), the pitch (:math:`\theta`)
-# and the roll (:math:`\phi`) and their time derivative.
+r"""In this example, we present how to perform the tracking task using an inertia
+navigation measurement model making use of instruments mounted on the sensor.
+This example is relevant for tracking sensors in environments where GPS tracking is not
+available and we integrate the information obtained from instruments on board, as the
+accelerometer and gyroscope, with fixed target locations, also refereed as landmarks. 
+In this example, we simulate a three dimensional sensor, moving in 3D cartesian space,
+we have the measurements from on-board instruments that evaluates the Euler angles, whose describe the
+sensor rotations and orientation during the flight, as well as the the 3D forces acting on the sensor.
+This example aims to provide an idea of how to use the combination of the measurement models
+:class:`~.AccelerometerMeasurementModel` and :class:`~.GyroscopeMeasurementModel` to model
+the inertia navigation measurements.
+In this example we ignore GPS measurements, therefore we employ the knowledge of fixed targets
+to adjust the navigation tracking from drifting, a common problem in navigation scenario.
+The state space we are considering is a 15 dimensions object, which combines 3D 
+nearly-constant Acceleration model and the 3D Euler angles, whose are the heading (
+:math:`\psi`), the pitch (:math:`\theta`) and the roll (:math:`\phi`) and their time derivative.
+"""
 #
-# This example follows this points:
-# 1) Describe the transition model;
-# 2) Obtain the ground truth and measurements;
-# 3) Instantiate the tracker components;
-# 4) Run the tracker and obtain the final track.
+# This example follows these points:
+# 1. Describe the transition model;
+# 2. Obtain the ground truth and measurements;
+# 3. Instantiate the tracker components;
+# 4. Run the tracker and obtain the final track.
 #
 
 # %%
 # 1) Describe the transition model
 # --------------------------------
-# As we have previously said, we want a 15 dimensions
-# transition model for the sensor, in the simplest form we can combine
-# :class:`~.ConstantAcceleration` and :class:`~.ConstantVelocity`
-# transition model. Since the sensor is moving onto
-# a fixed plane placed 1km above ground, we employ an
-# exponential declining acceleration model, using :class:`~.Singer` model,
-# to address the z- movements. A more complex, and realistic, approach
-# would involve Van-Loan models for the transition.
+# As we have previously said, we want a 15 dimensions transition model for the sensor,
+# in the simplest form we can combine :class:`~.ConstantAcceleration` and :class:`~.ConstantVelocity`
+# transition model. Since the sensor is moving onto a fixed plane placed 1km above ground, we employ an
+# exponential declining acceleration model, using :class:`~.Singer` model, to address
+# the z- movements. A more complex, and realistic, approach would involve Van-Loan models for the transition.
 #
 
 # %%
@@ -72,6 +58,7 @@ from stonesoup.types.state import State, StateVector, StateVectors, GaussianStat
 from stonesoup.models.transition.linear import CombinedGaussianTransitionModel, \
     ConstantVelocity, ConstantAcceleration, Singer
 from stonesoup.functions.navigation import getEulersAngles
+from stonesoup.types.angle import Angle
 
 # %%
 # Simulation parameters setup
@@ -79,7 +66,7 @@ from stonesoup.functions.navigation import getEulersAngles
 
 # Lets assume a target sensor with these specifics
 radius = 5000   # meters
-speed = 200     # meters
+speed = 200     # meters/seconds
 center = np.array([0, 0, 1000])  # 3D center placed at 1km in height
 n_timesteps = 100
 
@@ -90,14 +77,10 @@ np.random.seed(2000)  # fix a random seed for reproducibility
 # %%
 # Describe the ground truth
 # ^^^^^^^^^^^^^^^^^^^^^^^^^
-# In a different manner from other examples,
-# we create the groundtruth of the sensor without considering
-# the process noise, and at the same time, we calculate the
-# sensor Euler angles. It is possible to still use the
-# existing transition models and extend the state vectors
-# to include such angles.
+# In a different manner from other examples, we create the groundtruth of the sensor without considering
+# the process noise, and at the same time, we calculate the sensor Euler angles. It is possible to still use the
+# existing transition models and extend the state vectors to include such angles.
 #
-
 
 # Create a function to create the groundtruth paths
 def describe_sensor_motion(target_speed: float,
@@ -149,6 +132,8 @@ def describe_sensor_motion(target_speed: float,
     angles_indexes = [9, 11, 13]
     vangles_indexes = [10, 12, 14]
 
+    sensor_dynamics[angles_indexes]
+
     # loop over the timestep
     for i in number_of_timesteps:
         theta = target_speed * i / target_radius + 0
@@ -192,34 +177,26 @@ def describe_sensor_motion(target_speed: float,
 transition_model = CombinedGaussianTransitionModel([ConstantAcceleration(1.5),
                                                     ConstantAcceleration(1.5),
                                                     Singer(0.1, 10),
-                                                    ConstantVelocity(0.5),
-                                                    ConstantVelocity(0.5),
-                                                    ConstantVelocity(0.5)
+                                                    ConstantVelocity(0),
+                                                    ConstantVelocity(0),
+                                                    ConstantVelocity(0)
                                                     ])
-
 
 # %%
 # 2) Obtain the ground truth and gather the measurements;
 # -------------------------------------------------------
-# We have instantiated a function to describe the
-# target-sensor dynamics, obtaining the Euler angles
-# from the vessel acceleration and velocity
-# adopting the ad-hoc function :class:`~.getEulerAngles`.
-# Likewise, we have instantiated the 15 dimension transition
-# model using a constant acceleration model for the 3D dynamics and a
-# constant velocity for modelling the Euler angles
-# dynamics. We consider as well the :class:`~.Singer` model
-# for an exponential declining acceleration model for the
-# z coordinate, since the sensor is moving on a fixed plane at
-# 1 km above the surface.
-# At this stage we can start collecting both the groundtruths and
-# the measurement using a composite measurement model merging the
-# measurements from the :class:`~.AccelerometerMeasurementModel`,
-# the :class:`~.GyroscopeMeasurementModel` and
-# the landmarks, using an :class:`~.CartesianAzimuthElevationMeasurementModel`.
-# This measurement model combines the specific forces
-# measured by the accelerometer instrument and the angular rotation
-# from the inertia movements of the target. The landmarks helps reducing the
+# We have instantiated a function to describe the # target-sensor dynamics, obtaining the Euler angles
+# from the vessel acceleration and velocity # adopting the ad-hoc function :class:`~.getEulerAngles`.
+# Likewise, we have instantiated the 15 dimension transition # model using a constant acceleration
+# model for the 3D dynamics and a constant velocity for modelling the Euler angles
+# dynamics. We consider as well the :class:`~.Singer` model for an exponential declining acceleration
+# model for the z-coordinate, since the sensor is moving on a fixed plane at 1 km above the surface.
+# At this stage we can start collecting both the groundtruths and # the measurement using a composite
+# measurement model merging the measurements from the :class:`~.AccelerometerMeasurementModel`,
+# the :class:`~.GyroscopeMeasurementModel` and the landmarks, using an
+# :class:`~.CartesianAzimuthElevationMeasurementModel`.
+# This measurement model combines the specific forces measured by the accelerometer instrument
+# and the angular rotation from the inertia movements of the target. The landmarks helps reducing the
 # navigation drift.
 #
 
@@ -236,16 +213,12 @@ timestamps, truths = describe_sensor_motion(speed,
 # %%
 # Load and instantiate the measurement model
 # ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-# We consider a case with the three fixed targets,
-# landmarks, and we use the on-board
-# measurements. To merge all these measurements
-# we employ a :class:`~.CombinedReversibleGaussianMeasurementModel`
+# We consider a case with the three fixed targets, landmarks, and we use the on-board
+# measurements. To merge all these measurements # we employ a :class:`~.CombinedReversibleGaussianMeasurementModel`
 # to concatenate all the different measurement models.
-# We specify a reference frame to evaluate the gravity
-# forces applied onto the sensor, and it is needed for the
-# accelerometer and gyroscope measurements. The landmarks are
-# placed on the ground (z~0). Overall the measurement model will
-# have 14 dimensions space.
+# We specify a reference frame to evaluate the gravity forces applied onto the sensor, and it is needed for the
+# accelerometer and gyroscope measurements. The landmarks are placed on the ground (z~0).
+# Overall the measurement model will have 14 dimensions space.
 #
 
 from stonesoup.models.measurement.nonlinear import AccelerometerMeasurementModel, \
@@ -277,7 +250,7 @@ accelerometer = AccelerometerMeasurementModel(
 gyroscope = GyroscopeMeasurementModel(
     ndim_state=15,
     mapping=(0, 3, 6),
-    noise_covar=np.diag([1, 1, 1]),  # Gyroscope
+    noise_covar=np.diag([1e-7, 1e-7, 1e-7]),  # Gyroscope
     reference_frame=reference_frame
 )
 
@@ -310,15 +283,13 @@ for truth in truths:
                                      timestamp=truth.timestamp,
                                      measurement_model=measurement_model))
 
+
 # %%
 # 3) instantiate the tracker components;
 # --------------------------------------
-# We have the truths and the detections,
-# in this simple example we do not include measurement clutter.
+# We have the truths and the detections, in this simple example we do not include measurement clutter.
 # Now we can set up the tracker components.
-# In this example we consider an UnscentedKalmanFilter given
-# the non-linearity of the problem.
-
+# In this example we consider an UnscentedKalmanFilter given the non-linearity of the problem.
 
 # %%
 # Load the filter components
@@ -332,8 +303,7 @@ updater = UnscentedKalmanUpdater(None)
 # Covariance of the starting location
 covar_starting_position = np.repeat(10, 15)
 
-# Instantiate the prior, with a known location of
-# the sensor
+# Instantiate the prior, with a known location of the sensor
 prior = GaussianState(
     state_vector=truths[0].state_vector,
     covar=np.diag(covar_starting_position),
@@ -343,11 +313,8 @@ prior = GaussianState(
 # %%
 # 4) Run the tracker and obtain the final track.
 # ----------------------------------------------
-# We have the tracker components and the starting
-# (prior) knowledge, now we can loop over the
-# various measurements and using a
-# :class:`~.SingleHypothesis` we can perform the
-# tracking.
+# We have the tracker components and the starting (prior) knowledge, now we can loop over the
+# various measurements and using a :class:`~.SingleHypothesis` we can perform the tracking.
 #
 
 # Load these components to do the tracking
@@ -367,8 +334,7 @@ for k, measurement in enumerate(measurement_set):
 # %%
 # Load the plotter
 # ^^^^^^^^^^^^^^^^
-# To plot the various landmarks we
-# make use of the fixed platform object.
+# To plot the various landmarks we make use of the fixed platform object.
 
 from stonesoup.platform.base import FixedPlatform
 
@@ -399,15 +365,11 @@ plotter.fig
 # %%
 # Conclusion
 # ----------
-# In this example we have shown how to use the inertia
-# navigation and how to integrate the tracking using
-# fixed landmarks. As it is evident from the tracking result
-# this scenario is particularly complex and it is not possible
-# to run a perfect track with the limited information available.
-# Using different measurements for the landmarks, e.g. including the
-# range between the target and sensor
+# In this example we have shown how to use the inertia navigation functions and how to integrate the tracking using
+# fixed landmarks. As it is evident from the tracking result this scenario is particularly complex
+# and it is not possible to run a perfect track with the limited information available.
+# Using different measurements for the landmarks, e.g. including the range between the target and sensor
 # (i.e., see :class:`~.CartesianAzimuthElevationRangeMeasurementModel`),
-# would improve the tracking. However this example aims to
-# give an opportunity to show how to perform tracking
+# would improve the tracking. However this example aims to give an opportunity to show how to perform tracking
 # in the inertia navigation context.
 #

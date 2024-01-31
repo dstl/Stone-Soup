@@ -17,8 +17,8 @@ from ...base import ReversibleModel
 from ...measurement.linear import LinearGaussian
 from ....functions import jacobian as compute_jac
 from ....functions import pol2cart
-from ....functions import rotz, rotx, roty, cart2sphere, cart2az_el_rg
-from ....functions.navigation import getAngularRotationVector, getForceVector, angle_wrap
+from ....functions import rotz, rotx, roty, cart2sphere, cart2az_el_rg, mod_bearing
+from ....functions.navigation import getAngularRotationVector, getForceVector
 from ....types.angle import Bearing, Elevation, Azimuth
 from ....types.array import StateVector, StateVectors
 from ....types.state import State, CovarianceMatrix, ParticleState
@@ -1402,24 +1402,21 @@ def h_az_el(state_vector, pos_map, target_state, translation_offset):
     # The target state behaves as a fixed landmark
     sensor_location = state_vector[pos_map] - translation_offset
 
-    diff_position = np.array([target_state -
-                              sensor_location]).reshape(-1)
+    diff_position = target_state - sensor_location
 
     # evaluate the range
-    rg = np.sqrt(diff_position[0] * diff_position[0] +
-                 diff_position[1] * diff_position[1] +
-                 diff_position[2] * diff_position[2])
+    rg = np.linalg.norm(diff_position, axis=0)
 
     # evaluate the absolute azimuth and elevation of the target respect to the sensor
-    absolute_azimuth = np.array(atan2(diff_position[1], diff_position[0])).reshape(-1, 1)
-    absolute_elevation = np.array(asin(diff_position[2] / rg)).reshape(-1, 1)
+    absolute_azimuth = np.arctan2(diff_position[1], diff_position[0])
+    absolute_elevation = np.arcsin(diff_position[2] / rg)
 
     # evaluate the sensor heading and elevation
-    heading = np.array(np.radians(state_vector[9])).reshape(-1, 1)
-    pitch = np.array(np.radians(state_vector[11])).reshape(-1, 1)
+    heading = state_vector[13, :]
+    pitch = state_vector[11, :]
 
     # Transform the azimuths and elevation and fix for 180 degrees in case
-    azimuth = Azimuth(angle_wrap(absolute_azimuth - heading))
+    azimuth = Azimuth(mod_bearing(absolute_azimuth - heading))
     elevation = Elevation(absolute_elevation - pitch)
 
     return StateVector([azimuth, elevation])
@@ -1430,24 +1427,21 @@ def h_az_el_range(state_vector, pos_map, target_state, translation_offset):
 
     sensor_location = state_vector[pos_map] - translation_offset
 
-    diff_position = np.array([target_state -
-                              sensor_location]).reshape(-1)
+    diff_position = target_state - sensor_location
 
     # evaluate the range
-    rg = np.sqrt(diff_position[0] * diff_position[0] +
-                 diff_position[1] * diff_position[1] +
-                 diff_position[2] * diff_position[2])
+    rg = np.linalg.norm(diff_position, axis=0)
 
     # evaluate the absolute azimuth and elevation of the target respect to the sensor
-    absolute_azimuth = np.array(atan2(diff_position[1], diff_position[0])).reshape(-1, 1)
-    absolute_elevation = np.array(asin(diff_position[2] / rg)).reshape(-1, 1)
+    absolute_azimuth = np.arctan2(diff_position[1], diff_position[0])
+    absolute_elevation = np.arcsin(diff_position[2] / rg)
 
     # evaluate the sensor heading and elevation
-    heading = np.array(np.radians(state_vector[9])).reshape(-1, 1)
-    pitch = np.array(np.radians(state_vector[11])).reshape(-1, 1)
+    heading = state_vector[13, :]
+    pitch = state_vector[11, :]
 
     # Transform the azimuths and elevation and fix for 180 degrees in case
-    azimuth = Azimuth(angle_wrap(absolute_azimuth - heading))
+    azimuth = Azimuth(mod_bearing(absolute_azimuth - heading))
     elevation = Elevation(absolute_elevation - pitch)
 
     return StateVector([azimuth, elevation, rg])
@@ -1584,7 +1578,7 @@ def test_models_sensor(h, ModelClass, state_vec, mapping, R,
                 StateVector([[5000, 0., -8.0,
                               0., 200., 0.,
                               1000., 0., 0.,
-                              90, 2.29,
+                              np.radians(90), np.radians(2.29),
                               0.0, 0.0,
                               0.0, 0.0]]),
                 np.array([0, 3, 6]),         # mapping
@@ -1598,7 +1592,7 @@ def test_models_sensor(h, ModelClass, state_vec, mapping, R,
                 StateVector([[5000, 0., -8.0,
                               0., 200., 0.,
                               1000., 0., 0.,
-                              90, 2.29,
+                              np.radians(90), np.radians(2.29),
                               0.0, 0.0,
                               0.0, 0.0]]),
                 np.array([0, 3, 6]),          # mapping

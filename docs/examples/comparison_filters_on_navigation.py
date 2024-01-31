@@ -7,28 +7,22 @@ Comparing different tracking algorithm using navigation measurements
 ====================================================================
 """
 
-# This example compares the performances of various filters
-# in tracking objects with navigation-like measurements models.
-# We are interested in this scenario to show how we can use
-# measurements models in the navigation context, and how
-# different tracking algorithm perform.
+# This example compares the performances of various filters in tracking objects with
+# navigation-like measurements models. We are interested in this scenario to show how we can use
+# measurements models in the navigation context, and how different tracking algorithms perform.
 #
-# In an different example, we have explained how to
-# set up the problem involving Euler angles and
-# forces acting onto a sensor, using measurement models components
-# coming from :class:`~.AccelerometerMeasurementModel`,
-# :class:`~.GyroscopeMeasurementModel` and fixed targets, landmarks,
+# In an different example, we have explained how to set up the problem involving Euler angles and
+# forces acting onto a sensor, using measurement models components coming from
+# :class:`~.AccelerometerMeasurementModel`, :class:`~.GyroscopeMeasurementModel` and fixed targets, landmarks,
 # in Stone soup.
-# This example will show the performances in a 1-to-1 comparison
-# using Extended Kalman filter (EKF), Unscented Kalman Filter
-# (UKF) and Particle filter (PF) in a single target-sensor scenario.
+# This example will show the performances in a 1-to-1 comparison using Extended Kalman filter (EKF),
+# Unscented Kalman Filter (UKF) and Particle filter (PF) in a single target-sensor scenario.
 #
 # This example follows this schema:
-# 1) Instantiate the target-sensor ground truths and gather the measurements;
-# 2) Prepare and load the various filters components;
-# 3) Run the trackers and obtain the tracks;
-# 4) Create and visualise the performances of the
-# tracking algorithms.
+# 1. Instantiate the target-sensor ground truths and gather the measurements;
+# 2. Prepare and load the various filters components;
+# 3. Run the trackers and obtain the tracks;
+# 4. Create and visualise the performances of the tracking algorithms.
 #
 
 # %%
@@ -54,7 +48,7 @@ from stonesoup.functions.navigation import getEulersAngles
 
 
 # Simulation parameters
-np.random.seed(2000) # fix a random seed
+np.random.seed(2010) # fix a random seed
 simulation_steps = 100
 timesteps = np.linspace(1, simulation_steps+1, simulation_steps+1)
 start_time = datetime.now().replace(microsecond=0)
@@ -66,12 +60,9 @@ center = np.array([0, 0, 1000]) # latitude, longitude, altitutde (meters)
 # %%
 # 1) Instantiate the target ground truth path
 # -------------------------------------------
-# For this example we consider a different
-# approach for describing the target ground truth.
-# We evaluate the sensor motion on a circular
-# trajectory by modelling simply the 3D movements
-# and measure the Euler angles associated with
-# the object direction.
+# For this example we consider a different approach for describing the target ground truth.
+# We evaluate the sensor motion on a circular  trajectory by modelling simply the 3D movements
+# and measure the Euler angles associated with  the object direction.
 #
 
 from stonesoup.types.detection import TrueDetection
@@ -166,13 +157,15 @@ def describe_sensor_motion(target_speed: float,
 
 # Instantiate the transition model, We consider the Singer model for
 # an exponential declining acceleration in the z-coordinate.
-transition_model = CombinedLinearGaussianTransitionModel([ConstantAcceleration(1.5),
-                                     ConstantAcceleration(1.5),
-                                     Singer(0.1, 10),
-                                     ConstantVelocity(0.5),
-                                     ConstantVelocity(0.5),
-                                     ConstantVelocity(0.5)
-                                     ])
+transition_model = CombinedLinearGaussianTransitionModel([
+    ConstantAcceleration(1.5),
+    ConstantAcceleration(1.5),
+    Singer(0.1, 10),
+    ConstantVelocity(0),
+    ConstantVelocity(0),
+    ConstantVelocity(0)
+    ])
+
 
 # Generate the ground truths
 timestamps, groundtruths = describe_sensor_motion(speed, radius, center, start_time,
@@ -209,14 +202,14 @@ measurement_model_list = []
 accelerometer = AccelerometerMeasurementModel(
     ndim_state=15,
     mapping=(0, 3, 6),
-    noise_covar=np.diag([1, 1, 5]),  # Acceleration
+    noise_covar=np.diag([1, 1, 10]),  # Acceleration
     reference_frame=reference_frame
 )
 
 gyroscope = GyroscopeMeasurementModel(
     ndim_state=15,
     mapping=(0, 3, 6),
-    noise_covar=np.diag([1, 1, 1]),  # Gyroscope
+    noise_covar=np.diag([1e-5, 1e-5, 1e-5]),  # Gyroscope, noise in micro radiands
     reference_frame=reference_frame
 )
 
@@ -231,7 +224,7 @@ for target in targets:
         CartesianAzimuthElevationRangeMeasurementModel(
             ndim_state=15,
             mapping=(0, 3, 6),
-            noise_covar=np.diag([1, 1, 25]),
+            noise_covar=np.diag([1, 1, 10]),
             target_location=StateVector(target),
             translation_offset=None)
     )
@@ -249,11 +242,10 @@ for truth in groundtruths:
 # %%
 # 2) Prepare and load the various filters components;
 # ---------------------------------------------------
-# So far we have generate the sensor original track and
+# So far we have generated the sensor original track and
 # we have gathered the measurements using the :class:`~.CombinedReversibleGaussianMeasurementModel`.
-# We can now load the various filter components for the
-# EKF, UKF and PF. Then we need to instantiate the
-# components as the prior and the tracks.
+# We can now load the various filter components for the EKF, UKF and PF.
+# Then, we need to instantiate the components as the prior and the tracks.
 
 # Load the Kalman components
 from stonesoup.updater.kalman import UnscentedKalmanUpdater, ExtendedKalmanUpdater
@@ -262,7 +254,7 @@ from stonesoup.predictor.kalman import UnscentedKalmanPredictor, ExtendedKalmanP
 # Load the Particle filter components
 from stonesoup.updater.particle import ParticleUpdater
 from stonesoup.predictor.particle import ParticlePredictor
-from stonesoup.resampler.particle import SystematicResampler
+from stonesoup.resampler.particle import ESSResampler
 
 # Extended Kalman filter
 EKF_predictor = ExtendedKalmanPredictor(transition_model)
@@ -274,7 +266,7 @@ UKF_updater = UnscentedKalmanUpdater(measurement_model=None)
 
 # Particle filter
 PF_predictor = ParticlePredictor(transition_model)
-resampler = SystematicResampler()
+resampler = ESSResampler()
 PF_updater = ParticleUpdater(measurement_model=None,
                              resampler=resampler)
 
@@ -292,15 +284,16 @@ from stonesoup.types.state import ParticleState
 from stonesoup.types.numeric import Probability
 from stonesoup.types.particle import Particle
 
-number_particles=512
+# Number of particles
+number_particles=1024
 
 samples = multivariate_normal.rvs(
     np.array(prior.state_vector).reshape(-1),
-    np.diag(covar_starting_position),
+    np.diag([10, 0.1, 0.1, 10, 0.1, 0.1, 10, 0.1, 0.1, 1e-5, 1e-5, 1e-5, 1e-5, 1e-5, 1e-5]),
     size=number_particles)
 
 particles = [Particle(sample.reshape(-1, 1),
-                      weight= Probability(1./number_particles))
+                      weight=Probability(1.))
              for sample in samples]
 
 # Particle prior
@@ -323,14 +316,10 @@ priors = [prior, prior, particle_prior]
 # %%
 # 3) Run the trackers and obtain the tracks;
 # ------------------------------------------
-# We can run the various trackers
-# and generate some tracks.
-# Then, we store the various objects into
-# a metric manager to evaluate the tracking
-# performances and perform a 1-to-1
-# comparison on the accuracy of the
+# We can run the various trackers and generate some tracks.
+# Then, we store the various objects into a metric manager to evaluate the tracking
+# performances and perform a 1-to-1 comparison on the accuracy of the
 # tracking algorithms.
-
 
 # Loop over the various trackers
 for predictor, updater, track, prior in zip(predictors, updaters, tracks, priors):
@@ -373,9 +362,8 @@ plt.close(plotter.fig)
 # %%
 # 4) Create and visualise the performances of the tracking algorithms
 # -------------------------------------------------------------------
-# We have all the components from the tracking and now we can
-# measure how well the various filter perform. We consider the
-# RMSE (root mean square error) between the tracks and the
+# We have all the components from the tracking and now we can measure how well the
+# various filter perform. We consider the RMSE (root mean square error) between the tracks and the
 # groundtruth over the various simulation timesteps.
 #
 
@@ -408,17 +396,11 @@ plt.show()
 # %%
 # Conclusion
 # ----------
-# In this example we have compared the
-# performances of some tracking algorithms
-# available in Stone Soup providing measurements
-# from the accelerometer and gyroscope on board of a
-# sensor and using some landmarks on the ground to
-# adjust the tracking. By adressing the RMSE (root mean
-# square error) of the tracks obtained we can see that
-# the Kalman Filter based algorithms offer good performances
-# over the simulation, while the Particle filter seems
-# to suffer from the high dimensionality of the
-# problem. Overall, the intent of this example was to
-# show how to use and perform a 1-to-1 comparison
+# In this example we have compared the performances of some tracking algorithms available in
+# Stone Soup providing measurements from the accelerometer and gyroscope on board of a
+# sensor and using some landmarks on the ground to adjust the tracking. By adressing the RMSE (root mean
+# square error) of the tracks obtained we can see that the Kalman Filter based algorithms offer good performances
+# over the simulation, while the Particle filter seems to suffer from the high dimensionality of the
+# problem. Overall, the intent of this example was to show how to use and perform a 1-to-1 comparison
 # between these algorithms in Stone Soup.
 #

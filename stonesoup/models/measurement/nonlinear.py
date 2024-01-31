@@ -12,8 +12,8 @@ from ...types.numeric import Probability
 
 from ...functions import cart2pol, pol2cart, \
     cart2sphere, sphere2cart, cart2angles, \
-    build_rotation_matrix, cart2az_el_rg, az_el_rg2cart
-from ...functions.navigation import getForceVector, getAngularRotationVector, angle_wrap
+    build_rotation_matrix, cart2az_el_rg, az_el_rg2cart, mod_bearing
+from ...functions.navigation import getForceVector, getAngularRotationVector
 from ...types.array import StateVector, CovarianceMatrix, StateVectors
 from ...types.angle import Bearing, Elevation, Azimuth
 from ..base import LinearModel, GaussianModel, ReversibleModel
@@ -1411,7 +1411,7 @@ class AccelerometerMeasurementModel(NonLinearGaussianMeasurement):
     coordinates, including the gravitation forces and
     the Earth relative movement.
     This time varying model transforms the
-    3D positional coordinates (x,y,z) with the
+    3D positional coordinates (x, y, z) with the
     time derivative (velocity, dx, dy, dz) into measurements
     of the accelerations applied to the object.
 
@@ -1463,7 +1463,7 @@ class AccelerometerMeasurementModel(NonLinearGaussianMeasurement):
 
     def rvs(self, num_samples=1, **kwargs) -> Union[StateVector, StateVectors]:
         out = super().rvs(num_samples, **kwargs)
-        out = np.array([0, 0, 0]).reshape(-1, 1) + out
+        out = np.array([[0], [0], [0]]) + out
         return out
 
 
@@ -1525,7 +1525,7 @@ class GyroscopeMeasurementModel(NonLinearGaussianMeasurement):
 
     def rvs(self, num_samples=1, **kwargs) -> Union[StateVector, StateVectors]:
         out = super().rvs(num_samples, **kwargs)
-        out = np.array([0., 0., 0.]).reshape(-1, 1) + out
+        out = np.array([[0.], [0.], [0.]]) + out
         return out
 
 
@@ -1554,12 +1554,12 @@ class CartesianAzimuthElevationMeasurementModel(NonLinearGaussianMeasurement):
 
     target_location: StateVector = Property(
         default=StateVector([0, 0, 0]),
-        doc="A 3x1 array specifying the Cartesian Target location in terms of :math:`x,y,z` "
+        doc=r"A 3x1 array specifying the Cartesian Target location in terms of :math:`x,y,z` "
             "coordinates.")
 
     translation_offset: StateVector = Property(
         default=None,
-        doc="A 3x1 array specifying the Cartesian origin offset in terms of :math:`x,y,z` "
+        doc=r"A 3x1 array specifying the Cartesian origin offset in terms of :math:`x,y,z` "
             "coordinates.")
 
     def __init__(self, *args, **kwargs):
@@ -1585,40 +1585,28 @@ class CartesianAzimuthElevationMeasurementModel(NonLinearGaussianMeasurement):
             else:
                 noise = 0
 
-        # keep the case of multiple points
-        npts = state.state_vector.shape[1]
+        # adjust the sensor location with the translation offset, if present
+        sensor_location = state.state_vector[self.mapping, :] - self.translation_offset
 
-        azimuths = np.zeros((1, npts))
-        elevations = np.zeros((1, npts))
+        diff_position = self.target_location - sensor_location
 
-        for ipoint in range(npts):
-            # adjust the sensor location with the translation offset, if present
-            sensor_location = state.state_vector[self.mapping, ipoint] - \
-                              self.translation_offset
+        # evaluate the range
+        rg = np.linalg.norm(diff_position, axis=0)
 
-            diff_position = np.array([self.target_location -
-                                      sensor_location]).reshape(-1)
+        # evaluate the absolute azimuth and elevation of the target respect to the sensor
+        absolute_azimuth = np.arctan2(diff_position[1], diff_position[0])
+        absolute_elevation = np.arcsin(diff_position[2] / rg)
 
-            # evaluate the range
-            rg = np.sqrt(diff_position[0] * diff_position[0] +
-                         diff_position[1] * diff_position[1] +
-                         diff_position[2] * diff_position[2])
+        # evaluate the sensor heading and elevation
+        heading = state.state_vector[13, :]
+        pitch = state.state_vector[11, :]
 
-            # evaluate the absolute azimuth and elevation of the target respect to the sensor
-            absolute_azimuth = np.array(atan2(diff_position[1], diff_position[0])).reshape(-1, 1)
-            absolute_elevation = np.array(asin(diff_position[2] / rg)).reshape(-1, 1)
+        # Transform the azimuths and elevation and fix for 180 degrees in case
+        azimuths = [Azimuth(angle) for angle in mod_bearing(absolute_azimuth - heading)]
 
-            # evaluate the sensor heading and elevation
-            heading = np.array(np.radians(state.state_vector[9, ipoint])).reshape(-1, 1)
-            pitch = np.array(np.radians(state.state_vector[11, ipoint])).reshape(-1, 1)
+        elevations = [Elevation(angle) for angle in absolute_elevation - pitch]
 
-            # Transform the azimuths and elevation and fix for 180 degrees in case
-            azimuths[:, ipoint] = [Azimuth(angle_wrap(angle - heading[index])) for index, angle in
-                                   enumerate(absolute_azimuth)]
-            elevations[:, ipoint] = [Elevation(angle - pitch[index]) for index, angle in
-                                     enumerate(absolute_elevation)]
-
-        return StateVector([*azimuths, *elevations]) + noise
+        return StateVector([azimuths, elevations]) + noise
 
     def rvs(self, num_samples=1, **kwargs) -> Union[StateVector, StateVectors]:
         out = super().rvs(num_samples, **kwargs)
@@ -1656,12 +1644,12 @@ class CartesianAzimuthElevationRangeMeasurementModel(NonLinearGaussianMeasuremen
 
     target_location: StateVector = Property(
         default=StateVector([0, 0, 0]),
-        doc="A 3x1 array specifying the Cartesian Target location in terms of :math:`x,y,z` "
+        doc=r"A 3x1 array specifying the Cartesian Target location in terms of :math:`x,y,z` "
             "coordinates.")
 
     translation_offset: StateVector = Property(
         default=None,
-        doc="A 3x1 array specifying the Cartesian origin offset in terms of :math:`x,y,z` "
+        doc=r"A 3x1 array specifying the Cartesian origin offset in terms of :math:`x,y,z` "
             "coordinates.")
 
     def __init__(self, *args, **kwargs):
@@ -1687,40 +1675,27 @@ class CartesianAzimuthElevationRangeMeasurementModel(NonLinearGaussianMeasuremen
             else:
                 noise = 0
 
-        # keep the case of multiple points
-        npts = state.state_vector.shape[1]
+        # adjust the sensor location with the translation offset, if present
+        sensor_location = state.state_vector[self.mapping, :] - self.translation_offset
 
-        azimuths = np.zeros((1, npts))
-        elevations = np.zeros((1, npts))
-        ranges = np.zeros((1, npts))
-        for ipoint in range(npts):
-            # adjust the sensor location with the translation offset, if present
-            sensor_location = state.state_vector[self.mapping, ipoint] - \
-                              self.translation_offset
+        diff_position = self.target_location - sensor_location
 
-            diff_position = np.array([self.target_location -
-                                      sensor_location]).reshape(-1)
+        # evaluate the range
+        rg = np.linalg.norm(diff_position, axis=0)
 
-            # evaluate the range
-            rg = np.sqrt(diff_position[0] * diff_position[0] +
-                         diff_position[1] * diff_position[1] +
-                         diff_position[2] * diff_position[2])
-            ranges[:, ipoint] = rg
-            # evaluate the absolute azimuth and elevation of the target respect to the sensor
-            absolute_azimuth = np.array(atan2(diff_position[1], diff_position[0])).reshape(-1, 1)
-            absolute_elevation = np.array(asin(diff_position[2] / rg)).reshape(-1, 1)
+        # evaluate the absolute azimuth and elevation of the target respect to the sensor
+        absolute_azimuth = np.arctan2(diff_position[1], diff_position[0])
+        absolute_elevation = np.arcsin(diff_position[2] / rg)
 
-            # evaluate the sensor heading and elevation
-            heading = np.array(np.radians(state.state_vector[9, ipoint])).reshape(-1, 1)
-            pitch = np.array(np.radians(state.state_vector[11, ipoint])).reshape(-1, 1)
+        # evaluate the sensor heading and elevation - if they are already in radians, avoid
+        heading = state.state_vector[13, :]
+        pitch = state.state_vector[11, :]
 
-            # Transform the azimuths and elevation and fix for 180 degrees in case
-            azimuths[:, ipoint] = [Azimuth(angle_wrap(angle - heading[index])) for index, angle in
-                                   enumerate(absolute_azimuth)]
-            elevations[:, ipoint] = [Elevation(angle - pitch[index]) for index, angle in
-                                     enumerate(absolute_elevation)]
+        # Transform the azimuths and elevation and fix for 180 degrees in case
+        azimuths = [Azimuth(angle) for angle in mod_bearing(absolute_azimuth - heading)]
+        elevations = [Elevation(angle) for angle in absolute_elevation - pitch]
 
-        return StateVectors([*azimuths, *elevations, *ranges]) + noise
+        return StateVectors([azimuths, elevations, rg]) + noise
 
     def rvs(self, num_samples=1, **kwargs) -> Union[StateVector, StateVectors]:
         out = super().rvs(num_samples, **kwargs)

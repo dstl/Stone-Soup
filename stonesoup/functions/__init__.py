@@ -405,7 +405,11 @@ def sphere2cart(rho, phi, theta):
 
 def sphere2GCS(x, y, z):
     """Convert Cartesian coordinates to Latitude, Longitude and altitude
-        (Geographic Coordinate System)
+        (Geographic Coordinate System), this function makes use of
+        pymap3d function ECEF2Geodetic.
+        ECEF (Earth centric, Earth Fixed Frame) is the usual reference frame
+        when considering the motion on objects on the Earth sphere.
+        The reference ellipsoid is WGS 84.
 
     Parameters
     ----------
@@ -422,43 +426,7 @@ def sphere2GCS(x, y, z):
         A tuple of the form `(latitude, longitude, altitude)`
     """
 
-    # Define the Earth major semi axis (m)
-    a = 6378137.0
-
-    # Define the Earth minor axis (m)
-    b = 6356752.314245
-
-    # Calculate the sphere flattening
-    flattening = (a - b)/a
-
-    # Calculate the major eccentricity squared
-    ecc_sqd = flattening * (2. - flattening)
-
-    #
-    eps = ecc_sqd / (1. - ecc_sqd)
-
-    # calculate the 2D radius
-    p = np.sqrt(x*x + y*y)
-
-    # calculate the q factor, please note this is in radians
-    q = np.arctan2((z * a),
-                   (p * b))
-
-    # calculate the sin and cosine of q
-    sin_q = np.sin(q)
-    cos_q = np.cos(q)
-
-    # calculate the two angles phi and lambda
-    phi = np.arctan2((z + eps * b * np.power(sin_q, 3)),
-                     (p - ecc_sqd * a * np.power(cos_q, 3)))
-    lambd = np.arctan2(y, x)
-
-    v = a / np.sqrt(1.0 - ecc_sqd * np.power(np.sin(phi), 2))
-
-    # Calculate the altitude, latitude and longitude
-    altitude = (p/np.cos(phi)) - v
-    latitude = np.degrees(phi)
-    longitude = np.degrees(lambd)
+    latitude, longitude, altitude = pymap3d.ecef2geodetic(x, y, z)
 
     return (latitude, longitude, altitude)
 
