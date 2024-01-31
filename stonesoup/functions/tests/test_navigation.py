@@ -97,5 +97,6 @@ def test_functions_using_states():
 
     assert np.allclose(getAngularRotationVector(state_test, reference), angular_rotation)
     assert np.allclose(getForceVector(state_test, reference), force_vector)
-    assert np.allclose(euler2rotationVector(state_test[ang_idx], state_test[vang_idx]), euler_rotation)
+    assert np.allclose(euler2rotationVector(state_test[ang_idx], state_test[vang_idx]),
+                       euler_rotation)
     assert np.allclose(getEulersAngles(state_test[speed_idx], state_test[acc_idx]), euler_angles)
