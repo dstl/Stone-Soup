@@ -4,10 +4,9 @@ Navigation functions
 """
 
 import numpy as np
-from math import pi
 import pymap3d
 from . import localSphere2GCS, build_rotation_matrix
-from stonesoup.types.angle import Angle
+
 
 def earthSpeedFlatSq(dx, dy):
     r"""Calculate the Earth speed flat vector respect to the reference
@@ -174,6 +173,7 @@ def euler2rotationVector(psiThetaPhi, dpsiThetaPhi):
 
     return np.einsum('ijh, jh-> ih', R, dpsiThetaPhi)
 
+
 def getAngularRotationVector(states, latLonAlt0):
     r"""Function to obtain the rotation vector measured by
         the gyroscope instrument.
@@ -217,6 +217,7 @@ def getAngularRotationVector(states, latLonAlt0):
     omega_ib_b = ((Rbn @ omega_ie_n) + omega_nb_b)
 
     return omega_ib_b
+
 
 def earthTurnRateVector(Lat_degs):
     r"""Function to obtain the Earth turn rate vector
@@ -344,11 +345,11 @@ def getGravityVector(lat_degs, alt):
     """
 
     # Define some WGS 84 ellipsoid
-    earth_major_axis = pymap3d.Ellipsoid.from_name("wgs84").semimajor_axis  # meters
+    # earth_major_axis = pymap3d.Ellipsoid.from_name("wgs84").semimajor_axis  # meters
     earth_minor_axis = pymap3d.Ellipsoid.from_name("wgs84").semiminor_axis  # meters
 
     # Get the Earth flattening and eccentricity
-    #flattening = (earth_major_axis - earth_minor_axis) / earth_major_axis
+    # flattening = (earth_major_axis - earth_minor_axis) / earth_major_axis
     flattening = pymap3d.Ellipsoid.from_name("wgs84").flattening
 
     # eccentricity = np.sqrt(flattening * (2 - flattening))
@@ -373,9 +374,9 @@ def getGravityVector(lat_degs, alt):
     # gravity component north
     g_north = -8.08e-9 * alt * np.sin(2 * lat_rads)
     # gravity component low
-    g_down = g0_L * (1. - (2. / earth_radius) * (1. + flattening * (1. - 2. *
-                                                                    ((np.sin(lat_rads)) ** 2))
-                                                 + ((omega_i_e ** 2 * earth_radius ** 2 * earth_minor_axis) / mu))
+    g_down = g0_L * (1. - (2. / earth_radius) *
+                     (1. + flattening * (1. - 2. * ((np.sin(lat_rads)) ** 2)) +
+                      ((omega_i_e ** 2 * earth_radius ** 2 * earth_minor_axis) / mu))
                      * alt + (3 / (earth_radius ** 2)) * alt ** 2)
 
     g_vector = np.array([g_north, np.zeros_like(g_down), g_down])

@@ -3,7 +3,6 @@ import pytest
 from pytest import approx
 from scipy.stats import multivariate_normal
 from scipy.linalg import inv
-from math import atan2, asin
 
 from ..nonlinear import (
     CartesianToElevationBearingRange, CartesianToBearingRange,
@@ -1416,8 +1415,8 @@ def h_az_el(state_vector, pos_map, target_state, translation_offset):
     pitch = state_vector[11, :]
 
     # Transform the azimuths and elevation and fix for 180 degrees in case
-    azimuth = Azimuth(mod_bearing(absolute_azimuth - heading))
-    elevation = Elevation(absolute_elevation - pitch)
+    azimuth = [Azimuth(angle) for angle in mod_bearing(absolute_azimuth - heading)]
+    elevation = [Elevation(angle) for angle in absolute_elevation - pitch]
 
     return StateVector([azimuth, elevation])
 
@@ -1441,8 +1440,8 @@ def h_az_el_range(state_vector, pos_map, target_state, translation_offset):
     pitch = state_vector[11, :]
 
     # Transform the azimuths and elevation and fix for 180 degrees in case
-    azimuth = Azimuth(mod_bearing(absolute_azimuth - heading))
-    elevation = Elevation(absolute_elevation - pitch)
+    azimuth = [Azimuth(angle) for angle in mod_bearing(absolute_azimuth - heading)]
+    elevation = [Elevation(angle) for angle in absolute_elevation - pitch]
 
     return StateVector([azimuth, elevation, rg])
 
@@ -1626,6 +1625,7 @@ def test_models_landmarks(h, ModelClass, state_vec, mapping, R,
     # (without noise)
     meas_pred_wo_noise = model.function(state)
     eval_m = h(state_vec, mapping, target_state, translation_offset)
+    print(eval_m, eval_m.shape, meas_pred_wo_noise, meas_pred_wo_noise.shape)
     assert np.array_equal(meas_pred_wo_noise, eval_m)
 
     # Ensure model creates noise

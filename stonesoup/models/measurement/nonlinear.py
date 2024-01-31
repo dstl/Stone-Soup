@@ -2,7 +2,7 @@ from abc import ABC
 import copy
 from typing import Sequence, Tuple, Union
 
-from math import sqrt, atan2, asin
+from math import sqrt
 import numpy as np
 from scipy.linalg import inv, pinv, block_diag
 from scipy.stats import multivariate_normal

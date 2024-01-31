@@ -8,23 +8,22 @@ Example using navigation measurement model
 """
 
 # %%
-r"""In this example, we present how to perform the tracking task using an inertia
-navigation measurement model making use of instruments mounted on the sensor.
-This example is relevant for tracking sensors in environments where GPS tracking is not
-available and we integrate the information obtained from instruments on board, as the
-accelerometer and gyroscope, with fixed target locations, also refereed as landmarks. 
-In this example, we simulate a three dimensional sensor, moving in 3D cartesian space,
-we have the measurements from on-board instruments that evaluates the Euler angles, whose describe the
-sensor rotations and orientation during the flight, as well as the the 3D forces acting on the sensor.
-This example aims to provide an idea of how to use the combination of the measurement models
-:class:`~.AccelerometerMeasurementModel` and :class:`~.GyroscopeMeasurementModel` to model
-the inertia navigation measurements.
-In this example we ignore GPS measurements, therefore we employ the knowledge of fixed targets
-to adjust the navigation tracking from drifting, a common problem in navigation scenario.
-The state space we are considering is a 15 dimensions object, which combines 3D 
-nearly-constant Acceleration model and the 3D Euler angles, whose are the heading (
-:math:`\psi`), the pitch (:math:`\theta`) and the roll (:math:`\phi`) and their time derivative.
-"""
+# In this example, we present how to perform the tracking task using an inertia
+# navigation measurement model making use of instruments mounted on the sensor.
+# This example is relevant for tracking sensors in environments where GPS tracking is not
+# available and we integrate the information obtained from instruments on board, as the
+# accelerometer and gyroscope, with fixed target locations, also refereed as landmarks.
+# In this example, we simulate a three dimensional sensor, moving in 3D cartesian space,
+# we have the measurements from on-board instruments that evaluates the Euler angles, whose describe the
+# sensor rotations and orientation during the flight, as well as the the 3D forces acting on the sensor.
+# This example aims to provide an idea of how to use the combination of the measurement models
+# :class:`~.AccelerometerMeasurementModel` and :class:`~.GyroscopeMeasurementModel` to model
+# the inertia navigation measurements.
+# In this example we ignore GPS measurements, therefore we employ the knowledge of fixed targets
+# to adjust the navigation tracking from drifting, a common problem in navigation scenario.
+# The state space we are considering is a 15 dimensions object, which combines 3D
+# nearly-constant Acceleration model and the 3D Euler angles, whose are the heading (
+# :math:`\psi`), the pitch (:math:`\theta`) and the roll (:math:`\phi`) and their time derivative.
 #
 # This example follows these points:
 # 1. Describe the transition model;
@@ -185,8 +184,8 @@ transition_model = CombinedGaussianTransitionModel([ConstantAcceleration(1.5),
 # %%
 # 2) Obtain the ground truth and gather the measurements;
 # -------------------------------------------------------
-# We have instantiated a function to describe the # target-sensor dynamics, obtaining the Euler angles
-# from the vessel acceleration and velocity # adopting the ad-hoc function :class:`~.getEulerAngles`.
+# We have instantiated a function to describe the  target-sensor dynamics, obtaining the Euler angles
+# from the vessel acceleration and velocity  adopting the ad-hoc function :class:`~.getEulerAngles`.
 # Likewise, we have instantiated the 15 dimension transition # model using a constant acceleration
 # model for the 3D dynamics and a constant velocity for modelling the Euler angles
 # dynamics. We consider as well the :class:`~.Singer` model for an exponential declining acceleration
@@ -214,7 +213,7 @@ timestamps, truths = describe_sensor_motion(speed,
 # Load and instantiate the measurement model
 # ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 # We consider a case with the three fixed targets, landmarks, and we use the on-board
-# measurements. To merge all these measurements # we employ a :class:`~.CombinedReversibleGaussianMeasurementModel`
+# measurements. To merge all these measurements we employ a :class:`~.CombinedReversibleGaussianMeasurementModel`
 # to concatenate all the different measurement models.
 # We specify a reference frame to evaluate the gravity forces applied onto the sensor, and it is needed for the
 # accelerometer and gyroscope measurements. The landmarks are placed on the ground (z~0).

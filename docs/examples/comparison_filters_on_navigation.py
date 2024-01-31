@@ -7,6 +7,7 @@ Comparing different tracking algorithm using navigation measurements
 ====================================================================
 """
 
+# %%
 # This example compares the performances of various filters in tracking objects with
 # navigation-like measurements models. We are interested in this scenario to show how we can use
 # measurements models in the navigation context, and how different tracking algorithms perform.
@@ -317,9 +318,9 @@ priors = [prior, prior, particle_prior]
 # 3) Run the trackers and obtain the tracks;
 # ------------------------------------------
 # We can run the various trackers and generate some tracks.
-# Then, we store the various objects into a metric manager to evaluate the tracking
-# performances and perform a 1-to-1 comparison on the accuracy of the
-# tracking algorithms.
+# Then, we evaluate the tracking results and perform a 1-to-1 comparison on the accuracy of the
+# tracking algorithms using the RMSE.
+#
 
 # Loop over the various trackers
 for predictor, updater, track, prior in zip(predictors, updaters, tracks, priors):
@@ -357,7 +358,6 @@ plotter.plot_tracks(track_pf, mapping=[0, 3, 6], track_label='PF')
 plotter.plot_sensors({*platforms}, mapping=[0, 1, 2],
                      sensor_label='Landmarks')
 plotter.fig
-plt.close(plotter.fig)
 
 # %%
 # 4) Create and visualise the performances of the tracking algorithms
