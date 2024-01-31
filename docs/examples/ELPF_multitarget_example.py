@@ -56,6 +56,7 @@ clutter_spatial_density = clutter_rate/surveillance_area
 from stonesoup.models.transition.linear import \
     CombinedLinearGaussianTransitionModel, ConstantVelocity
 from stonesoup.models.measurement.linear import LinearGaussian
+from stonesoup.models.measurement.nonlinear import CartesianToBearingRange
 from stonesoup.types.state import GaussianState
 from stonesoup.types.groundtruth import GroundTruthPath, GroundTruthState
 from stonesoup.types.detection import TrueDetection
@@ -79,13 +80,13 @@ gnd_transition_model = CombinedLinearGaussianTransitionModel([ConstantVelocity(0
 # Define a detection models
 measurement_model = LinearGaussian(ndim_state=4,
                                    mapping=(0, 2),
-                                   noise_covar=np.diag([0.5, 0.5]))
+                                   noise_covar=np.diag([0.7, 0.7]))
 
 # Generate ground-truths
 truths = set()
 
 # Instantiate the first entry
-truth = GroundTruthPath([GroundTruthState([0, 0.2, 0, 0.2], timestamp=simulation_start)])
+truth = GroundTruthPath([GroundTruthState([-10, 0.25, -10, 0.25], timestamp=simulation_start)])
 for k in range(1, simulation_timesteps):
     truth.append(GroundTruthState(
         gnd_transition_model.function(truth[k-1], noise=True,
@@ -93,7 +94,7 @@ for k in range(1, simulation_timesteps):
         timestamp=simulation_start + timedelta(seconds=k)))
 truths.add(truth)
 
-truth = GroundTruthPath([GroundTruthState([0, 0.2, 20, -0.2], timestamp=simulation_start)])
+truth = GroundTruthPath([GroundTruthState([-10, 0.25, 20, -0.25], timestamp=simulation_start)])
 for k in range(1, simulation_timesteps):
     truth.append(GroundTruthState(
         gnd_transition_model.function(truth[k-1], noise=True,
@@ -162,8 +163,8 @@ from stonesoup.predictor.particle import ParticlePredictor
 predictor = ParticlePredictor(transition_model)
 
 # load the resampler
-from stonesoup.resampler.particle import SystematicResampler
-resampler = SystematicResampler()
+from stonesoup.resampler.particle import ESSResampler
+resampler = ESSResampler()
 
 # load the updater
 from stonesoup.updater.particle import ParticleUpdater
@@ -190,22 +191,37 @@ data_associator = JPDA(hypothesiser)
 # %%
 # With the data associator we need to initialise the tracks by using an initiator and a deleter
 # to pair the detections with the tracks. We consider a time based deleter using :class:`~.UpdateTimeStepsDeleter`.
-# In general multi-target examples a :class:`~.MultiMeasurementInitiator` is often chosen, however
-# in this case, since we are using particles we can easily adopt a :class:`~.GaussianParticleInitiator`.
+# We adopt :class:`~.MultiMeasurementInitiator` that behaves as initial tracker, using a
+# distance based data associator and Extended Kalman predictor and updater.
 
 from stonesoup.deleter.time import UpdateTimeStepsDeleter
 deleter = UpdateTimeStepsDeleter(2)
 
-from stonesoup.initiator.simple import SimpleMeasurementInitiator, GaussianParticleInitiator
+from stonesoup.initiator.simple import GaussianParticleInitiator, MultiMeasurementInitiator
+from stonesoup.dataassociator.neighbour import GNNWith2DAssignment
+from stonesoup.hypothesiser.distance import DistanceHypothesiser
+from stonesoup.measures import Mahalanobis
+
+
+from stonesoup.updater.kalman import ExtendedKalmanUpdater
+initiator_updater = ExtendedKalmanUpdater(measurement_model)
+from stonesoup.predictor.kalman import ExtendedKalmanPredictor
+initiator_predictor = ExtendedKalmanPredictor(gnd_transition_model)
 
 # Prior state
-prior_state = GaussianState(np.array([10., 0.0, 10., 0.0]),
-                            np.diag([10, 1 , 10, 1])**2,
+prior_state = GaussianState(np.array([-10, 0, 0, 0]),
+                            np.diag([5, 1 , 5, 1])**2,
                             timestamp=simulation_start)
 
-# Initiator initialisation
-initiator_part = SimpleMeasurementInitiator(prior_state,
-                                            measurement_model=measurement_model)
+initiator_part = MultiMeasurementInitiator(
+    prior_state,
+    measurement_model=None,
+    deleter=deleter,
+    data_associator=GNNWith2DAssignment(
+        DistanceHypothesiser(initiator_predictor, initiator_updater, Mahalanobis(), missed_distance=3)),
+    updater=initiator_updater,
+    min_points=5
+    )
 
 initiator = GaussianParticleInitiator(initiator=initiator_part,
                                       number_particles=500)
@@ -240,12 +256,11 @@ tracker = MultiTargetExpectedLikelihoodParticleFilter(
 
 # loop over the tracker generate the final tracks
 tracks = set()
-for step, (time, current_tracks) in enumerate(tracker, 1):
+for time, current_tracks in tracker:
     tracks.update(current_tracks)
 
 # Visualise the final tracks obtained
-plotter.plot_tracks(tracks, [0, 2], track_label="ELPF tracks", line=dict(color="brown"),
-                    uncertainty=False, particle=True)
+plotter.plot_tracks(tracks, [0, 2], track_label="ELPF tracks", line=dict(color="brown"))
 plotter.fig
 
 # %%
