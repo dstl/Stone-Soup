@@ -20,6 +20,7 @@ def test_diekf():
 
     time1 = datetime.datetime.now()
     time2 = time1 + datetime.timedelta(seconds=1)
+    time3 = time2 + datetime.timedelta(seconds=1)
 
     transition_model = ConstantTurn([0.05, 0.05], np.radians(2))
 
@@ -91,3 +92,24 @@ def test_diekf():
              [0.002, -0.007, 0.401, 0.486, 0.008],
              [0., -0.008, 0., 0.008, 0.009]]),
         atol=1.e-3)
+
+    prediction = sub_predictor.predict(updated_state, time3)
+    measurement = Detection(state_vector=StateVector([[Bearing(3.133)], [47.777]]),
+                            timestamp=time3,
+                            measurement_model=measurement_model)
+    hypothesis = SingleHypothesis(prediction=prediction, measurement=measurement)
+    updated_state = updater.update(hypothesis=hypothesis)
+
+    assert np.allclose(
+        updated_state.state_vector,
+        StateVector([[2.555], [1.010], [1.226], [0.820], [0.002]]),
+        atol=1e-3)
+    assert np.allclose(
+        updated_state.covar,
+        CovarianceMatrix(
+            [[5.904e-01,  2.501e-01, 2.800e-02, 3.878e-04, -5.127e-03],
+             [2.501e-01,  2.984e-01, -4.381e-03, -2.161e-02, -1.362e-02],
+             [2.800e-02, -4.381e-03, 2.121e+00, 6.620e-01, 9.775e-03],
+             [3.878e-04, -2.161e-02, 6.620e-01, 4.395e-01, 1.740e-02],
+             [-5.127e-03, -1.362e-02, 9.775e-03, 1.740e-02, 1.107e-02]]),
+        atol=1e-3)
