@@ -229,6 +229,8 @@ class ExtendedKalmanPredictor(KalmanPredictor):
         ----------
         prior : :class:`~.State`
             :math:`\mathbf{x}_{k-1}`
+        linearisation_point : :class:`~State`, optional
+            State to linearise over. Default `None` where prior will be used.
         **kwargs : various, optional
             These are passed to :meth:`~.TransitionModel.matrix` or
             :meth:`~.TransitionModel.jacobian`
