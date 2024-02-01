@@ -81,9 +81,6 @@ class _GridActionableMovable(FixedMovable):
         self.move(timestamp, *args, **kwargs)
 
 
-# Actionable.register(_GridActionableMovable)
-
-
 class NStepDirectionalGridMovable(_GridActionableMovable):
     """This is a movable that enables movement in a grid like fashion according
     to a number of steps and step sizes. Actions are applied symmetrically on the
