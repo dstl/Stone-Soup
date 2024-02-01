@@ -2,7 +2,6 @@ from typing import Sequence
 import numpy as np
 from ..base import Property
 
-from stonesoup.sensormanager.actionable import Actionable
 from stonesoup.movable import FixedMovable
 from stonesoup.movable.action.move_position_action import NStepDirectionalGridActionGenerator
 from stonesoup.types.state import State
@@ -82,7 +81,7 @@ class _GridActionableMovable(FixedMovable):
         self.move(timestamp, *args, **kwargs)
 
 
-Actionable.register(_GridActionableMovable)
+# Actionable.register(_GridActionableMovable)
 
 
 class NStepDirectionalGridMovable(_GridActionableMovable):

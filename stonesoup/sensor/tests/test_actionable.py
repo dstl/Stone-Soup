@@ -4,7 +4,7 @@ import numpy as np
 import pytest
 
 from ..action.dwell_action import DwellActionsGenerator, ChangeDwellAction
-from stonesoup.sensormanager.actionable import Actionable, ActionableProperty
+from stonesoup.sensormanager.action import Actionable, ActionableProperty
 from ..base import Property
 from ...types.angle import Bearing
 from ...types.array import StateVector

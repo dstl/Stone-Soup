@@ -12,10 +12,10 @@ from stonesoup.functions import cart2sphere, cart2pol, build_rotation_matrix, ro
 from stonesoup.models.transition import TransitionModel
 from stonesoup.types.array import StateVector
 from stonesoup.types.state import State, StateMutableSequence
-from stonesoup.movable.actionable import MovableActionable
+from stonesoup.sensormanager.action import Actionable
 
 
-class Movable(StateMutableSequence, MovableActionable, ABC):
+class Movable(StateMutableSequence, Actionable, ABC):
     states: MutableSequence[State] = Property(
         doc="A list of States which enables the platform's history to be "
             "accessed in simulators and for plotting. Initiated as a "
