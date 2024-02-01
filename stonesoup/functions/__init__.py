@@ -861,14 +861,14 @@ def cubature2gauss(cubature_points, covar_noise=None, alpha=1.0):
 
 
 def cubature_transform(state, fun, points_noise=None, covar_noise=None, alpha=1.0):
-    """Undertakes the cubature transform as described in [#]_
+    r"""Undertakes the cubature transform as described in [#f]_
 
     Given a Gaussian distribution, calculates the set of cubature points using
     :meth:`gauss2cubature`, then passes these through the given function and reconstructs the
     Gaussian using :meth:`cubature2gauss`. Returns the mean, covariance, cross covariance and
     transformed cubature points. This instance includes a scaling parameter :math:`\alpha`, not
-    included in [#f]_, which allows for the selection of cubature points closer to, or further
-    from, tne mean.
+    included in the reference detailed above, which allows for the selection of cubature points
+    closer to, or further from, tne mean.
 
     Parameters
     ----------
