@@ -19,7 +19,7 @@ Reward Functions
     :special-members:
 
 
-Actionable Functionality
-------------------------
+Actionables
+-----------
 .. automodule:: stonesoup.sensormanager.action
     :show-inheritance:
