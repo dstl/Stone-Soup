@@ -41,16 +41,19 @@ The following arguments are accepted.
 The runmanager will work with 3 different options:
 
 1. A single configuration file with single run.
+
   .. code::
 
       python runmanager.py -c "path/to/config.yaml"
 
 2. A single configuration file with a parameter file. This will run `n` amount of times based on amount of parameter combinations.
+
   .. code::
 
       python runmanager.py -c "path/to/config.yaml" -p "path/to/parameters.json"
 
 3. A directory of configuration files with parameter files. This will run `n` amount of times based on amount of parameter combinations across all configs.
+
   .. code::
 
       python runmanager.py -d "path/to/configdirectory"
