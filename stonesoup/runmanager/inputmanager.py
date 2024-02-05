@@ -460,31 +460,32 @@ class InputManager:
 
         return combination_list
 
-    def darray_navigator(self, val, val_min, val_max, iteration_list, n_samples):
-        """Not used at the moment. Navigate inside the ndarray with a n depth and
-        calculate all the iterations
-
-        Parameters
-        ----------
-        val : [type]
-            [description]
-        val_min : [type]
-            [description]
-        val_max : [type]
-            [description]
-        iteration_list : [type]
-            [description]
-        n_samples : int
-            number of parameter combinations
-        """
-        if type(val) is list:
-            for x in range(len(val)):
-                new_iteration_list = []
-                iteration_list.append(new_iteration_list)
-                self.darray_navigator(val[x], val_min[x], val_max[x],
-                                      new_iteration_list, n_samples)
-        else:
-            iteration_list.append(self.iterations(val_min, val_max, n_samples))
+# TODO: Delete this function? It is not used
+    # def darray_navigator(self, val, val_min, val_max, iteration_list, n_samples):
+    #     """Not used at the moment. Navigate inside the ndarray with a n depth and
+    #     calculate all the iterations
+    #
+    #     Parameters
+    #     ----------
+    #     val : [type]
+    #         [description]
+    #     val_min : [type]
+    #         [description]
+    #     val_max : [type]
+    #         [description]
+    #     iteration_list : [type]
+    #         [description]
+    #     n_samples : int
+    #         number of parameter combinations
+    #     """
+    #     if type(val) is list:
+    #         for x in range(len(val)):
+    #             new_iteration_list = []
+    #             iteration_list.append(new_iteration_list)
+    #             self.darray_navigator(val[x], val_min[x], val_max[x],
+    #                                   new_iteration_list, n_samples)
+    #     else:
+    #         iteration_list.append(self.iterations(val_min, val_max, n_samples))
 
     # Calculate the steps for each item in a list
     @staticmethod

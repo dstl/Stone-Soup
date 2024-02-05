@@ -65,7 +65,7 @@ def test_metrics_to_csv(tmpdir):
                                   metric.SingleTimeMetric("n", 4, "gen2.2", date_time2)],
                                  "gen2")
 
-    test_metrics = [test_metric, test_metric2]
+    test_metrics = {'metric1': test_metric, 'metric2': test_metric2}
 
     runmanager_metrics.metrics_to_csv(tmpdir, test_metrics)
 

@@ -1,5 +1,4 @@
 import csv
-import glob
 import json
 import os
 from datetime import datetime, timedelta
@@ -81,6 +80,7 @@ class RunManagerMetrics:
             with open(os.path.join(dir_name, filename), 'a', newline='') as csvfile:
                 writer = csv.writer(csvfile)
                 writer.writerows(zip(*[metricDictionary[key] for key in keys]))
+
         except Exception as e:
             print(f'{datetime.now()}: Failed to write to {filename}, {e}')
 
@@ -99,7 +99,7 @@ class RunManagerMetrics:
             dictionary version of metric manager to be used for printing CSV files
         """
         metricDictionary = {}
-        for metric in metrics:
+        for metric in metrics.values():
             if isinstance(metric.value, list):
                 metricDictionary[metric.title] = []
                 metricDictionary["timestamp"] = []
@@ -320,7 +320,10 @@ class RunManagerMetrics:
         DataFrame
             Returns the sum of dataframes loaded from CSV files.
         """
-        all_files = glob.glob(f'./{directory}*/run*[!!]/metrics.csv', recursive=True)
+        all_files = [os.path.join(root, name)
+                     for root, dirs, files in os.walk(directory)
+                     for name in files
+                     if name.endswith("metrics.csv")]
         batch = self.batch_list(all_files, chunk_size)
         summed_dataframe = pd.DataFrame()
         for files in batch:

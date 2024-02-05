@@ -58,11 +58,11 @@ class RunManager:
         self.config_dir = rm_args.get("config_dir")
         self.nruns = rm_args.get("nruns")
         # self.montecarlo = rm_args.get("montecarlo")  # Not implemented yet
-        self.nprocesses = rm_args.get("n_processes")
+        self.nprocesses = rm_args.get("processes")
         self.output_dir = rm_args.get("output_dir")
 
         if self.output_dir is None:
-            self.output_dir = ""
+            self.output_dir = "./"
 
         self.total_trackers = 0
         self.current_run = 0
@@ -176,30 +176,36 @@ class RunManager:
 
         try:
             info_logger.info(f"{datetime.now()} Averaging metrics for all Monte-Carlo Simulations")
-            directory = glob.glob(f'./{self.output_dir}/{config}_{self.config_starttime}'
-                                  f'*/simulation*',
-                                  recursive=False)
+
+            directory = glob.glob(os.path.join(self.output_dir, f'{config}_{self.config_starttime}'
+                                                                f'*/simulation*'), recursive=False)
+
             if directory:
                 for simulation in directory:
                     summed_df, sim_amt = self.run_manager_metrics.sum_simulations(simulation,
                                                                                   batch_size)
                     df = self.run_manager_metrics.average_simulations(summed_df, sim_amt)
-                    df.to_csv(f"./{simulation}/average.csv", index=False)
+                    df.to_csv(f"{simulation}/average.csv", index=False)
             else:
-                if self.output_dir != "":
+                if str(self.output_dir).startswith("./"):
+                    directory = glob.glob(os.path.join(self.output_dir,
+                                                       f'{config}_{self.config_starttime}*'),
+                                          recursive=False)
+                    summed_df, sim_amt = self.run_manager_metrics.sum_simulations(directory,
+                                                                                  batch_size)
+                    df = self.run_manager_metrics.average_simulations(summed_df, sim_amt)
+                    df.to_csv(f"{config}_{self.config_starttime}/average.csv", index=False)
+
+                else:
                     directory = glob.glob(f'{self.output_dir}/{config}_{self.config_starttime}*',
                                           recursive=False)
                     for node in directory:
                         summed_df, sim_amt = self.run_manager_metrics.sum_simulations(node,
                                                                                       batch_size)
+
                         df = self.run_manager_metrics.average_simulations(summed_df, sim_amt)
-                        df.to_csv(f"./{node}/average.csv", index=False)
-                else:
-                    directory = glob.glob(f'{config}_{self.config_starttime}*', recursive=False)
-                    summed_df, sim_amt = self.run_manager_metrics.sum_simulations(directory,
-                                                                                  batch_size)
-                    df = self.run_manager_metrics.average_simulations(summed_df, sim_amt)
-                    df.to_csv(f"./{config}_{self.config_starttime}/average.csv", index=False)
+                        df.to_csv(f"{node}/average.csv", index=False)
+
             end = time.time()
             info_logger.info(f"{datetime.now()} Finished Averaging in " +
                              f"--- {end - start} seconds ---")
@@ -512,8 +518,7 @@ class RunManager:
             returns a list of files paths from specified directory
         """
         if os.path.exists(config_dir):
-            files = os.listdir(config_dir)
-            # files = [file.name for file in os.scandir(config_dir) if not file.is_dir()]
+            files = [file.name for file in os.scandir(config_dir) if not file.is_dir()]
         else:
             return None
         return files
@@ -646,7 +651,7 @@ class RunManager:
             string of the datetime for the metrics directory name
         """
         path, config = os.path.split(self.config_path)
-        dir_name = f"{self.output_dir}/{config}_{dt_string}/run_{runs_num + 1}"
+        dir_name = os.path.join(self.output_dir, f"{config}_{dt_string}/run_{runs_num + 1}")
         self.run_manager_metrics.generate_config(dir_name, tracker, ground_truth, metric_manager)
         self.current_run = runs_num
 
@@ -662,7 +667,8 @@ class RunManager:
         self.parameter_details_log["Tracking Status"] = tracker_status
         self.parameter_details_log["Metric Status"] = metric_status
         self.parameter_details_log["Fail Status"] = fail_status
-        self.run_manager_metrics.create_summary_csv(f"{self.output_dir}{config}_{dt_string}",
+        self.run_manager_metrics.create_summary_csv(os.path.join(self.output_dir,
+                                                                 f"{config}_{dt_string}"),
                                                     self.parameter_details_log)
 
     def prepare_monte_carlo_simulation(self, combo_dict, nruns, nprocesses):
@@ -746,8 +752,8 @@ class RunManager:
         """
         self.current_trackers = idx
         path, config = os.path.split(self.config_path)
-        dir_name = f"{self.output_dir}{config}_{dt_string}/" + \
-            f"simulation_{idx}/run_{runs_num + 1}"
+        dir_name = os.path.join(self.output_dir, f"{config}_{dt_string}/" +
+                                f"simulation_{idx}/run_{runs_num + 1}")
         self.run_manager_metrics.generate_config(dir_name, tracker, ground_truth, metric_manager)
         simulation_parameters = dict(
             tracker=tracker,
@@ -765,7 +771,8 @@ class RunManager:
         self.parameter_details_log["Tracking Status"] = tracker_status
         self.parameter_details_log["Metric Status"] = metric_status
         self.parameter_details_log["Fail Status"] = fail_status
-        self.run_manager_metrics.create_summary_csv(f"{self.output_dir}{config}_{dt_string}",
+        self.run_manager_metrics.create_summary_csv(os.path.join(self.output_dir,
+                                                                 f"{config}_{dt_string}"),
                                                     self.parameter_details_log)
 
     def logging_starting(self, log_time):

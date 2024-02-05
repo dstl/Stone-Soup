@@ -12,7 +12,7 @@ from ...hypothesiser.distance import DistanceHypothesiser
 from ...measures import Mahalanobis
 from ...metricgenerator.manager import SimpleManager
 from ...metricgenerator.ospametric import OSPAMetric
-from ...models.control.linear import LinearControlModel
+# from ...models.control.linear import LinearControlModel
 from ...models.transition.linear import CombinedLinearGaussianTransitionModel, ConstantVelocity
 from ...predictor.kalman import KalmanPredictor
 from ...simulator.simple import SimpleDetectionSimulator, MultiTargetGroundTruthSimulator
@@ -42,14 +42,15 @@ def config_parameters():
     transition_model = CombinedLinearGaussianTransitionModel(model_list=[ConstantVelocity(0.05),
                                                                          ConstantVelocity(0.05)])
 
-    control_model = LinearControlModel(ndim_state=4,
-                                       mapping=[],
-                                       control_vector=np.ndarray([0, 0, 0, 0]),
-                                       control_matrix=np.zeros([4, 4]),
-                                       control_noise=np.zeros([4, 4]))
+    # control_model = LinearControlModel(ndim_state=4,
+    #                                    mapping=[],
+    #                                    control_vector=np.array([0, 0, 0, 0]),
+    #                                    control_matrix=np.zeros([4, 4]),
+    #                                    control_noise=np.zeros([4, 4]))
 
     predictor = KalmanPredictor(transition_model=transition_model,
-                                control_model=control_model)
+                                # control_model=control_model
+                                control_model=None)
 
     updater = KalmanUpdater(measurement_model=measurement_model)
 
@@ -333,42 +334,6 @@ def tempfiles(config_parameters, tempdirs):
             'test_pair_json': test_pair_json,
             'test_pair_yaml': test_pair_yaml,
             'config_single_file': config_single_file}
-
-
-# @pytest.fixture()
-# def files():
-#
-#     # test_config = "stonesoup/runmanager/tests/test_configs/test_config_all.yaml"
-#     # test_config_nomm = "stonesoup/runmanager/tests/test_configs/test_config_nomm.yaml"
-#     # test_config_trackeronly = \
-#     #     "stonesoup/runmanager/tests/test_configs/test_config_trackeronly.yaml"
-#     # test_config_dummy = "stonesoup/runmanager/tests/test_configs/dummy.yaml"
-#     test_json = "stonesoup/runmanager/tests/test_configs/dummy_parameters.json"
-#     test_json_no_run = "stonesoup/runmanager/tests/test_configs/dummy_parameters_no_run.json"
-#
-#     # return {'test_config': test_config,
-#     #         'test_config_nomm': test_config_nomm,
-#     #         'test_config_trackeronly': test_config_trackeronly,
-#     #         'test_config_dummy': test_config_dummy,
-#     #         'test_json': test_json,
-#     #         'test_json_no_run': test_json_no_run
-#     #         }
-#     return {'test_json': test_json,
-#             'test_json_no_run': test_json_no_run
-#             }
-
-# @pytest.fixture()
-# def directories():
-#
-#     test_config_dir = "stonesoup/runmanager/tests/test_configs/"
-#     test_config_dir_single_file = "stonesoup/runmanager/tests/test_configs/test_single_file/"
-#     test_config_dir_additional_pairs = \
-#         "stonesoup/runmanager/tests/test_configs/test_additional_pairs/"
-#
-#     return {'test_config_dir': test_config_dir,
-#             'test_config_dir_single_file': test_config_dir_single_file,
-#             'test_config_dir_additional_pairs': test_config_dir_additional_pairs
-#             }
 
 
 @pytest.fixture()
