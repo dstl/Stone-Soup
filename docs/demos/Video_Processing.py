@@ -82,13 +82,13 @@ Video processing, Object detection & Tracking
 
 import os
 from pytube import YouTube
-VIDEO_FILENAME = 'sample1'
-VIDEO_EXTENTION = '.mp4'
-VIDEO_PATH = os.path.join(os.getcwd(), VIDEO_FILENAME+VIDEO_EXTENTION)
+video_filename = 'sample1'
+video_extension = '.mp4'
+video_path = os.path.join(os.getcwd(), video_filename + video_extension)
 
-if not os.path.exists(VIDEO_PATH):
+if not os.path.exists(video_path):
     yt = YouTube('http://www.youtube.com/watch?v=MNn9qKG2UFI')
-    yt.streams.get_by_itag(18).download(filename=VIDEO_PATH)
+    yt.streams.get_by_itag(18).download(filename=video_path)
 
 # %%
 # Building the video reader
@@ -103,7 +103,7 @@ import datetime
 from stonesoup.reader.video import VideoClipReader
 start_time = datetime.timedelta(minutes=0, seconds=10)
 end_time = datetime.timedelta(minutes=0, seconds=12)
-frame_reader = VideoClipReader(VIDEO_PATH, start_time, end_time)
+frame_reader = VideoClipReader(video_path, start_time, end_time)
 
 # %%
 # It is also possible to apply clip transformations and effects, as per the
@@ -199,7 +199,7 @@ ani = animation.ArtistAnimation(fig, artists, interval=20, blit=True, repeat_del
 #   **The downloaded model has a size of approximately 500 MB**. Therefore it is advised that you
 #   run the script on a stable (ideally not mobile) internet connection. The files will only be
 #   downloaded the first time the script is run. In consecutive runs the code will skip this step,
-#   provided that ``PATH_TO_MODEL`` and ``PATH_TO_LABELS`` are valid paths.
+#   provided that ``path_to_model`` and ``path_to_labels`` are valid paths.
 
 import os
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'    # Suppress TensorFlow logging (1)
@@ -223,8 +223,8 @@ def download_model(model_name):
     model_dir = pathlib.Path(model_dir)/"saved_model"
     return str(model_dir)
 
-MODEL_NAME = 'faster_rcnn_inception_resnet_v2_atrous_lowproposals_coco_2018_01_28'
-PATH_TO_MODEL = download_model(MODEL_NAME)
+model_name = 'faster_rcnn_inception_resnet_v2_atrous_lowproposals_coco_2018_01_28'
+path_to_model = download_model(model_name)
 
 # Download labels file
 def download_labels(filename):
@@ -235,8 +235,8 @@ def download_labels(filename):
     label_dir = pathlib.Path(label_dir)
     return str(label_dir)
 
-LABEL_FILENAME = 'mscoco_label_map.pbtxt'
-PATH_TO_LABELS = download_labels(LABEL_FILENAME)
+label_filename = 'mscoco_label_map.pbtxt'
+path_to_labels = download_labels(label_filename)
 
 
 # %%
@@ -244,8 +244,8 @@ PATH_TO_LABELS = download_labels(LABEL_FILENAME)
 # ~~~~~~~~~~~~~~~~~~~~~
 # Next, we proceed to initialise our detector object. To do this, we require the ``frame_reader``
 # object we built previously, as well as a path to the (downloaded) ``saved_model`` directory and
-# label (.pbtxt) file, which we have already defined above under the ``PATH_TO_MODEL`` and
-# ``PATH_TO_LABELS`` variables.
+# label (.pbtxt) file, which we have already defined above under the ``path_to_model`` and
+# ``path_to_labels`` variables.
 #
 # The :class:`~.TensorFlowBoxObjectDetector` object can optionally be configured to digest frames
 # from the provided reader asynchronously, and only perform detection on the last frame digested,
@@ -256,7 +256,7 @@ PATH_TO_LABELS = download_labels(LABEL_FILENAME)
 from stonesoup.detector.tensorflow import TensorFlowBoxObjectDetector
 
 run_async = False                           # Configure the detector to run in synchronous mode
-detector = TensorFlowBoxObjectDetector(frame_reader, PATH_TO_MODEL, PATH_TO_LABELS,
+detector = TensorFlowBoxObjectDetector(frame_reader, path_to_model, path_to_labels,
                                        run_async=run_async)
 
 # %%
