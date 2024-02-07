@@ -239,6 +239,7 @@ plotter.fig
 # (MHT) simulation, by employing the existing components present in Stone Soup
 # and perform the tracking in a heavy cluttered multi-target scenario.
 
+# %%
 # References
 # ----------
 # .. [#] Xia, Y., Granström, K., Svensson, L., García-Fernández, Á.F., and Williams, J.L.,
