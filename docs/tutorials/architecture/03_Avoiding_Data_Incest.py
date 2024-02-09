@@ -215,16 +215,16 @@ NH_architecture.plot(plot_style='hierarchical')  # Style similar to hierarchical
 NH_architecture
 
 # %%
-# Run the Simulation
-# ^^^^^^^^^^^^^^^^^^
+# Run the Non-Hierarchical Simulation
+# ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 for time in timesteps:
     NH_architecture.measure(truths, noise=True)
     NH_architecture.propagate(time_increment=1)
 
 # %%
-# Extract all detections that arrived at Node C
-# ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+# Extract all detections that arrived at Non-Hierarchical Node C
+# ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 from stonesoup.types.detection import TrueDetection
 
@@ -235,8 +235,8 @@ for timestep in node_C1.data_held['unfused']:
             NH_detections.add(datapiece.data)
 
 # %%
-# Plot the tracks stored at Node C
-# ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+# Plot the tracks stored at Non-Hierarchical Node C
+# ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 from stonesoup.plotter import Plotterly
 
@@ -295,23 +295,23 @@ H_edges = Edges([Edge((node_A2, node_C2), edge_latency=0),
                 Edge((node_B2, node_C2), edge_latency=0)])
 
 # %%
-# Create the Non-Hierarchical Architecture
+# Create the Hierarchical Architecture
 # ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 H_architecture = InformationArchitecture(H_edges, current_time=start_time, use_arrival_time=True)
 H_architecture
 
 # %%
-# Run the Simulation
-# ^^^^^^^^^^^^^^^^^^
+# Run the Hierarchical Simulation
+# ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 for time in timesteps:
     H_architecture.measure(truths, noise=True)
     H_architecture.propagate(time_increment=1)
 
 # %%
-# Extract all detections that arrived at Node C
-# ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+# Extract all detections that arrived at Hierarchical Node C
+# ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 H_detections = set()
 for timestep in node_C2.data_held['unfused']:
@@ -320,8 +320,8 @@ for timestep in node_C2.data_held['unfused']:
             H_detections.add(datapiece.data)
 
 # %%
-# Plot the tracks stored at Node C
-# ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+# Plot the tracks stored at Hierarchical Node C
+# ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 plotter = Plotterly()
 plotter.plot_ground_truths(truths, [0, 2])
