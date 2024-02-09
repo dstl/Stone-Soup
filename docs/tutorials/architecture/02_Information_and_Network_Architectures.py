@@ -220,6 +220,8 @@ edges=Edges([Edge((node_A, node_C), edge_latency=0.5),
 # Build and plot Information Architecture
 # ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+# sphinx_gallery_thumbnail_path = '_static/sphinx_gallery/ArchTutorial_2.png'
+
 information_architecture = InformationArchitecture(edges, current_time=start_time)
 information_architecture
 

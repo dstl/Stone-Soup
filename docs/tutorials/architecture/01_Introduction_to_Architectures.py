@@ -109,6 +109,8 @@ edges = Edges(edges=[edge1, edge2])
 # The `current_time` property of an Architecture instance maintains the current time within the
 # simulation. By default, this begins at the current time of the operating system.
 
+# sphinx_gallery_thumbnail_path = '_static/sphinx_gallery/ArchTutorial_1.png'
+
 from stonesoup.architecture import InformationArchitecture
 
 arch = InformationArchitecture(edges=edges)
