@@ -50,12 +50,15 @@ Equinoctial
 
 
 """
-import numpy as np
-import pytest
 from datetime import datetime
 
-from ...types.array import StateVector, StateVectors
-from ..orbitalstate import OrbitalState
+import numpy as np
+import pytest
+
+pytest.importorskip("astropy")
+
+from ...types.array import StateVector, StateVectors  # noqa: E402
+from ..orbitalstate import OrbitalState  # noqa: E402
 
 # Time
 dtime = datetime.now()
