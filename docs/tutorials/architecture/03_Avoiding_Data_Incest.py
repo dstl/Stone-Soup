@@ -208,6 +208,8 @@ NH_edges = Edges([Edge((node_A1, node_B1), edge_latency=1),
 # Create the Non-Hierarchical Architecture
 # ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+# sphinx_gallery_thumbnail_path = '_static/sphinx_gallery/ArchTutorial_3.png'
+
 NH_architecture = InformationArchitecture(NH_edges, current_time=start_time, use_arrival_time=True)
 NH_architecture.plot(plot_style='hierarchical')  # Style similar to hierarchical
 NH_architecture
