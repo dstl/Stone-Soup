@@ -4,6 +4,8 @@ from typing import MutableSequence, MutableMapping, Sequence
 from .state import State, StateMutableSequence, CategoricalState, CompositeState
 from ..base import Property
 
+from datetime import datetime
+
 
 class GroundTruthState(State):
     """Ground Truth State type"""
@@ -39,6 +41,13 @@ class GroundTruthPath(StateMutableSequence):
         super().__init__(*args, **kwargs)
         if self.id is None:
             self.id = str(uuid.uuid4())
+
+    def available_at_time(self, time: datetime):
+        new_path = []
+        for state in self.states:
+            if state.timestamp <= time:
+                new_path.append(state)
+        return GroundTruthPath(new_path, self.id)
 
 
 class CompositeGroundTruthState(CompositeState):

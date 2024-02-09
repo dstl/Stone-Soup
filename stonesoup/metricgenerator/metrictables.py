@@ -135,3 +135,75 @@ class SIAPTableGenerator(RedGreenTableGenerator):
             "SIAP ID Correctness": "Fraction of true objects with correct ID assignment",
             "SIAP ID Ambiguity": "Fraction of true objects with ambiguous ID assignment"
         }
+
+
+class SiapDiffTableGenerator(SIAPTableGenerator):
+    """
+    Given two sets of metric generators, the SiapDiffTableGenerator returns a table displaying the
+    difference between two sets of metrics. Allows quick comparison of two sets of metrics.
+    """
+    metrics2: Collection[MetricGenerator] = Property(doc="Set of metrics to put in the table")
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+
+    def compute_metric(self, **kwargs):
+        """Generate table method
+
+        Returns a matplotlib Table of metrics for two sets of values. Table contains metric
+        descriptions, target values and a coloured value cell for each set of metrics.
+        The colour of each value cell represents how the pair of values of the metric compare to
+        eachother, with the better value showing in green. Table also contains a 'Diff' value
+        displaying the difference between the pair of metric values."""
+
+        white = (1, 1, 1)
+        cellText = [["Metric", "Description", "Target", "Metrics 1 Value", "Metrics 2 Value",
+                     "Diff"]]
+        cellColors = [[white, white, white, white, white, white]]
+
+        t1_metrics = sorted(self.metrics, key=attrgetter('title'))
+        t2_metrics = sorted(self.metrics2, key=attrgetter('title'))
+
+        for t1metric, t2metric in zip(t1_metrics, t2_metrics):
+            #  Add metric details to table row
+            metric_name = t1metric.title
+            description = self.descriptions[metric_name]
+            target = self.targets[metric_name]
+            t1value = t1metric.value
+            t2value = t2metric.value
+            diff = round(t1value - t2value, ndigits=2)
+            cellText.append([metric_name, description, target, "{:.2f}".format(t1value),
+                             "{:.2f}".format(t2value), diff])
+
+            # Generate color for value cell based on closeness to target value
+            # Closeness to infinity cannot be represented as a color
+            if target is not None and not target == np.inf:
+                red_value1 = 1
+                green_value1 = 1
+                red_value2 = 1
+                green_value2 = 1
+                # A value of 1 for both red & green produces yellow
+
+                if abs(t1value - target) < abs(t2value - target):
+                    red_value1 = 0
+                    green_value2 = 0
+                elif abs(t1value - target) > abs(t2value - target):
+                    red_value2 = 0
+                    green_value1 = 0
+
+                cellColors.append(
+                    [white, white, white, (red_value1, green_value1, 0, 0.5),
+                     (red_value2, green_value2, 0, 0.5), white])
+            else:
+                cellColors.append([white, white, white, white, white, white])
+
+        # "Plot" table
+        scale = (1, 3)
+        fig = plt.figure(figsize=(len(cellText)*scale[0] + 1, len(cellText[0])*scale[1]/2))
+        ax = fig.add_subplot(1, 1, 1)
+        ax.axis('off')
+        table = matplotlib.table.table(ax, cellText, cellColors, loc='center')
+        table.auto_set_column_width([0, 1, 2, 3])
+        table.scale(*scale)
+
+        return table
