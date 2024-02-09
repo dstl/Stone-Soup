@@ -351,18 +351,18 @@ edges = Edges([Edge((node_A, repeaternode1), edge_latency=0.5),
 # :class:`~.NetworkArchitecture`
 #
 # - Firstly, providing the :class:`~.NetworkArchitecture` with an `edge_list` for the network
-# architecture (an Edges object), and a pre-fabricated InformationArchitecture object, which must
-# be provided as property `information_arch`.
+#   architecture (an Edges object), and a pre-fabricated InformationArchitecture object, which must
+#   be provided as property `information_arch`.
 #
-# - Secondly, by providing the NetworkArchitecture with two `edge_list`s: one for the network
-# architecture and one for the information architecture.
+# - Secondly, by providing the NetworkArchitecture with two `edge_list` values: one for the network
+#   architecture and one for the information architecture.
 #
 # - Thirdly, by providing just a set of edges for the network architecture. In this case,
-# the NetworkArchitecture class will infer which nodes in the network architecture are also
-# part of the information architecture, and form an edge set by calculating the fastest routes
-# (the lowest latency) between each set of nodes in the architecture. Warning: this method is for
-# ease of use, and may not represent the information architecture you are designing - it is
-# best to check by plotting the generated information architecture.
+#   the NetworkArchitecture class will infer which nodes in the network architecture are also
+#   part of the information architecture, and form an edge set by calculating the fastest routes
+#   (the lowest latency) between each set of nodes in the architecture. Warning: this method is for
+#   ease of use, and may not represent the information architecture you are designing - it is
+#   best to check by plotting the generated information architecture.
 #
 
 
@@ -406,8 +406,8 @@ network_architecture
 network_architecture.information_arch
 
 # %%
-# Plot Tracks at the Fusion Nodes
-# ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+# Plot Tracks at the Fusion Nodes (Network Architecture)
+# ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 plotter = Plotterly()
 plotter.plot_ground_truths(truths, [0, 2])
