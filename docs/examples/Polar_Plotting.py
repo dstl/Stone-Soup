@@ -124,7 +124,8 @@ for t in timesteps:
 # Time (s) vs Azimuth Angle (Radians)
 # ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 mapping = [0]
-plotter_az_t_cart = Plotterly(title="Cartesian - Time (s) vs Azimuth Angle (Radians)",
+plotter_az_t_cart = Plotterly(dimension=1,
+                              title="Cartesian - Time (s) vs Azimuth Angle (Radians)",
                               xaxis=dict(title=dict(text="Time (seconds)")),
                               yaxis=dict(title=dict(text="Bearing (Radians)"))
                               )
