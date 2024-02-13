@@ -8,19 +8,24 @@ General Multi Hypotheses tracking implementation example
 """
 
 # %%
-# Multi hypotheses tracking (MHT) algorithm is considered one of the best algorithm
-# for visual tracking, which consists in creating a tree of potential tracks for
-# each target candidate (in a multi-target scenario) and prune such hypotheses
-# in the data association phase. It is particularly efficient in maintain trajectories of
+# The multi hypotheses tracking (MHT) algorithm is considered one of the best tracking algorithms,
+# consisting of creating a tree of potential tracks for
+# each target candidate (in a multi-target scenario) and pruning such hypotheses
+# in the data association phase. It is particularly efficient in maintaining trajectories of
 # multiple objects and handling uncertainties and ambiguities of tracks (e.g. presence of
 # clutter).
+#
 # MHT, by definition, has several algorithms that fall under this definition, which
-# we can list as Global Nearest Neighbour (GNN), Joint Probabilistic Data association
-# (JPDA), Multi-frame assignment
+# include Global Nearest Neighbour
+# (GNN, tutorial `here <https://stonesoup.readthedocs.io/en/v1.1/auto_tutorials/06_DataAssociation-MultiTargetTutorial.html#sphx-glr-auto-tutorials-06-dataassociation-multitargettutorial-py>'__),
+# Joint Probabilistic Data association
+# (JPDA, tutorial `here <https://stonesoup.readthedocs.io/en/v1.1/auto_tutorials/08_JPDATutorial.html#sphx-glr-auto-tutorials-08-jpdatutorial-py>'__),
+# Multi-frame assignment
 # (MFA [#]_, see other example `here <https://stonesoup.readthedocs.io/en/v1.1/auto_examples/MFA_example.html#sphx-glr-auto-examples-mfa-example-py>`__),
 # Multi Bernoulli filter and Probabilistic multi hypotheses tracking (PMHT).
+# Some of these algorithms are already implemented the Stone Soup.
 # In this example we employ the multi-frame assignment data associator and
-# hypothesiser for showing how to use components present in Stone Soup.
+# hypothesiser using their Stone Soup implementation.
 #
 # This example follows this structure:
 #   1. Create ground truth and detections;
@@ -36,7 +41,7 @@ from datetime import datetime, timedelta
 from itertools import tee
 
 # %%
-# Stone soup imports
+# Stone Soup imports
 # ^^^^^^^^^^^^^^^^^^
 from stonesoup.types.array import StateVector, CovarianceMatrix
 from stonesoup.types.state import GaussianState
@@ -54,9 +59,9 @@ prob_detection = 0.99
 initial_state_mean = StateVector([[10], [0], [10], [0]])
 initial_covariance = CovarianceMatrix(np.diag([30, 1, 40, 1]))
 
-# clutter will be generated uniformly in this are around the target
+# clutter will be generated uniformly in this area around the targets
 clutter_area = np.array([[-1, 1], [-1, 1]])*150
-clutter_rate = 10
+clutter_rate = 9
 surveillance_area = ((clutter_area[0][1] - clutter_area[0][0])*
                      (clutter_area[1][1] - clutter_area[1][0]))
 clutter_spatial_density = clutter_rate/surveillance_area
@@ -65,7 +70,7 @@ clutter_spatial_density = clutter_rate/surveillance_area
 # 1. Create ground truth and detections;
 # --------------------------------------
 # We have prepared all the general parameters for the simulation,
-# including the clutter spatial density, in this example we set
+# including the clutter spatial density. In this example we set
 # the birth rate and the death probability as zero, using only the knowledge of the
 # prior states to generate the tracks so the number of targets is fixed (3 in this case).
 # We can, now, instantiate the transition model
@@ -85,7 +90,7 @@ initial_state = GaussianState(state_vector=initial_state_mean,
 transition_model = CombinedLinearGaussianTransitionModel([ConstantVelocity(0.005),
                                                           ConstantVelocity(0.005)])
 
-# Define a measuremnet model
+# Define the measurement model
 measurement_model = CartesianToBearingRange(ndim_state=4,
                                             mapping=(0, 2),
                                             noise_covar=np.diag([np.radians(1), 5]))
@@ -137,21 +142,22 @@ plotter.fig
 # example we consider an unscented kalman filter since we are
 # dealing with non-linear measurements. We consider a
 # :class:`~.UnscentedKalmanPredictor` and :class:`~.UnscentedKalmanUpdater`.
-# As said previously, we consider a Multi-frame assignment data associator
+# As said previously, we consider a multi-frame assignment data associator
 # which wraps a :class:`~.PDAHypothesiser` probability hypothesiser into a
 # :class:`~.MFAHypothesiser` to work with the :class:`~.MFADataAssociator`.
 # To instantiate the tracks we could use :class:`~.GaussianMixtureInitiator` which
-# wraps a Gaussian Initiator (such as :class:`~.MultiMeasurementInitiator`) and
-# create GaussianMixture states, however it is not straightforward to adjust it
-# from its original implementation (meant for GM-PHD application).
-# Therefore, to create the track priors we consider a :class:`~.GaussianMixture` state over a
-# :class:`~.TaggedWeightedGaussianState`, which can be used in MFA, and set it
-# on the pre-existing states passed to the multi-groundtruth simulator.
-# As it is now, there is not a tracker wrapper (as
+# uses a Gaussian Initiator (such as :class:`~.MultiMeasurementInitiator`) to
+# create GaussianMixture prior states, however, its current implementation
+# is intended for a GM-PHD filter making it troublesome to adapt for our needs.
+# Therefore, we consider :class:`~.TaggedWeightedGaussianState` to create the track priors,
+# which can be handled by MFA components, using the pre-existing states fed to the
+# multi-groundtruth simulator.
+# Such prior states are, then, wrapped in :class:`~.GaussianMixture` states.
+# As it is now, there is not a tracker wrapper (as for the
 # :class:`~.MultiTargetMixtureTracker`) that can be applied directly when dealing with MFA,
 # so we need to specify the tracking loop explicitly.
 
-# load the components
+# load tracker the components
 from stonesoup.predictor.kalman import UnscentedKalmanPredictor
 from stonesoup.updater.kalman import UnscentedKalmanUpdater
 
@@ -235,7 +241,7 @@ plotter.fig
 # %%
 # Conclusion
 # ----------
-# In this example we have presented how to set up a Multi-hypotheses tracking
+# In this example we have presented how to set up a multi-hypotheses tracking
 # (MHT) simulation, by employing the existing components present in Stone Soup
 # and perform the tracking in a heavy cluttered multi-target scenario.
 
