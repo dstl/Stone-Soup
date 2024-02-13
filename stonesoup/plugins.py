@@ -32,9 +32,13 @@ import warnings
 from importlib.metadata import entry_points
 
 try:
-    _plugin_points = entry_points()['stonesoup.plugins']
-except KeyError:
-    _plugin_points = []
+    _plugin_points = entry_points(group='stonesoup.plugins')
+except TypeError:  # Older interface, doesn't accept group keyword
+    try:
+        _plugin_points = entry_points()['stonesoup.plugins']
+    except KeyError:
+        _plugin_points = []
+
 for entry_point in _plugin_points:
     try:
         name = entry_point.name
