@@ -36,7 +36,7 @@ try:
 except TypeError:  # Older interface, doesn't accept group keyword
     try:
         _plugin_points = entry_points()['stonesoup.plugins']
-    except KeyError:
+    except KeyError:  # pragma: no cover
         _plugin_points = []
 
 for entry_point in _plugin_points:
@@ -45,5 +45,5 @@ for entry_point in _plugin_points:
         plugin_module = f'{__name__}.{name}'
         sys.modules[plugin_module] = entry_point.load()
 
-    except (ImportError, ModuleNotFoundError) as e:
+    except (ImportError, ModuleNotFoundError) as e:  # pragma: no cover
         warnings.warn(f'Failed to load module. {e}')
