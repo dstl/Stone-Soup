@@ -710,7 +710,7 @@ def test_vsbruf_single_step(n_steps, force_sym_cov, use_joseph_cov, measurement_
 
     updater = VariableStepBayesianRecursiveUpdater(measurement_model=measurement_model,
                                                    number_steps=n_steps,
-                                                   use_joseph_cov=False,
+                                                   use_joseph_cov=use_joseph_cov,
                                                    force_symmetric_covariance=force_sym_cov)
 
     hypothesis = SingleHypothesis(prediction=prediction,
