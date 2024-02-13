@@ -17,9 +17,9 @@ General Multi Hypotheses tracking implementation example
 #
 # MHT, by definition, has several algorithms that fall under this definition, which
 # include Global Nearest Neighbour
-# (GNN, tutorial `here <https://stonesoup.readthedocs.io/en/v1.1/auto_tutorials/06_DataAssociation-MultiTargetTutorial.html#sphx-glr-auto-tutorials-06-dataassociation-multitargettutorial-py>'__),
+# (GNN, tutorial `here <https://stonesoup.readthedocs.io/en/v1.1/auto_tutorials/06_DataAssociation-MultiTargetTutorial.html#sphx-glr-auto-tutorials-06-dataassociation-multitargettutorial-py>`__),
 # Joint Probabilistic Data association
-# (JPDA, tutorial `here <https://stonesoup.readthedocs.io/en/v1.1/auto_tutorials/08_JPDATutorial.html#sphx-glr-auto-tutorials-08-jpdatutorial-py>'__),
+# (JPDA, tutorial `here <https://stonesoup.readthedocs.io/en/v1.1/auto_tutorials/08_JPDATutorial.html#sphx-glr-auto-tutorials-08-jpdatutorial-py>`__),
 # Multi-frame assignment
 # (MFA [#]_, see other example `here <https://stonesoup.readthedocs.io/en/v1.1/auto_examples/MFA_example.html#sphx-glr-auto-examples-mfa-example-py>`__),
 # Multi Bernoulli filter and Probabilistic multi hypotheses tracking (PMHT).
