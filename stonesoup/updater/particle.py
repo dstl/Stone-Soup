@@ -578,6 +578,11 @@ class SMCPHDUpdater(ParticleUpdater):
         # w_k^i = \sum_{z \in Z_k}{w^{n,i}}, where i is the index of z in Z_k
         log_post_weights = logsumexp(log_weights_per_hyp, axis=1)
 
+        # Apply constraints if defined
+        if self.constraint_func is not None:
+            part_indx = self.constraint_func(prediction)
+            log_post_weights[part_indx] = -1 * np.inf
+
         # Resample
         if self.resampler is not None:
             # Normalize weights
