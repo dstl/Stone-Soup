@@ -16,12 +16,9 @@ General Multi Hypotheses tracking implementation example
 # clutter).
 #
 # MHT, by definition, has several algorithms that fall under this definition, which
-# include Global Nearest Neighbour
-# (GNN, tutorial `here <https://stonesoup.readthedocs.io/en/v1.1/auto_tutorials/06_DataAssociation-MultiTargetTutorial.html#sphx-glr-auto-tutorials-06-dataassociation-multitargettutorial-py>`__),
-# Joint Probabilistic Data association
-# (JPDA, tutorial `here <https://stonesoup.readthedocs.io/en/v1.1/auto_tutorials/08_JPDATutorial.html#sphx-glr-auto-tutorials-08-jpdatutorial-py>`__),
-# Multi-frame assignment
-# (MFA [#]_, see other example `here <https://stonesoup.readthedocs.io/en/v1.1/auto_examples/MFA_example.html#sphx-glr-auto-examples-mfa-example-py>`__),
+# include Global Nearest Neighbour (GNN, :ref:`auto_tutorials/06_DataAssociation-MultiTargetTutorial:tutorial here`),
+# Joint Probabilistic Data association (JPDA, :ref:`auto_tutorials/08_JPDATutorial:tutorial here`),
+# Multi-frame assignment (MFA [#]_, see other :ref:`auto_examples/MFA_example:example here`),
 # Multi Bernoulli filter and Probabilistic multi hypotheses tracking (PMHT).
 # Some of these algorithms are already implemented the Stone Soup.
 # In this example we employ the multi-frame assignment data associator and
@@ -62,8 +59,8 @@ initial_covariance = CovarianceMatrix(np.diag([30, 1, 40, 1]))
 # clutter will be generated uniformly in this area around the targets
 clutter_area = np.array([[-1, 1], [-1, 1]])*150
 clutter_rate = 9
-surveillance_area = ((clutter_area[0][1] - clutter_area[0][0])*
-                     (clutter_area[1][1] - clutter_area[1][0]))
+surveillance_area = ((clutter_area[0, 1] - clutter_area[0, 0])*
+                     (clutter_area[1, 1] - clutter_area[1, 0]))
 clutter_spatial_density = clutter_rate/surveillance_area
 
 # %%
@@ -73,8 +70,8 @@ clutter_spatial_density = clutter_rate/surveillance_area
 # including the clutter spatial density. In this example we set
 # the birth rate and the death probability as zero, using only the knowledge of the
 # prior states to generate the tracks so the number of targets is fixed (3 in this case).
-# We can, now, instantiate the transition model
-# of the targets and the measurement model. In this example we employ
+#
+# We can instantiate the transition model of the targets and the measurement model. In this example we employ
 # :class:`~.CartesianToBearingRange` non-linear measurement model.
 # Then we pass all these details to a :class:`~.MultiTargetGroundTruthSimulator`
 # and use a :class:`~.SimpleDetectionSimulator`
@@ -138,13 +135,14 @@ plotter.fig
 # %%
 # 2. Instantiate the tracking components and tracker;
 # ---------------------------------------------------
-# We need to prepare the tracker and its components. In this
-# example we consider an unscented kalman filter since we are
-# dealing with non-linear measurements. We consider a
-# :class:`~.UnscentedKalmanPredictor` and :class:`~.UnscentedKalmanUpdater`.
+# We need to prepare the tracker and its components. In this example we consider an
+# Unscented Kalman filter since we are dealing with non-linear measurements.
+# We consider a :class:`~.UnscentedKalmanPredictor` and :class:`~.UnscentedKalmanUpdater`.
+#
 # As said previously, we consider a multi-frame assignment data associator
 # which wraps a :class:`~.PDAHypothesiser` probability hypothesiser into a
 # :class:`~.MFAHypothesiser` to work with the :class:`~.MFADataAssociator`.
+#
 # To instantiate the tracks we could use :class:`~.GaussianMixtureInitiator` which
 # uses a Gaussian Initiator (such as :class:`~.MultiMeasurementInitiator`) to
 # create GaussianMixture prior states, however, its current implementation
@@ -153,6 +151,7 @@ plotter.fig
 # which can be handled by MFA components, using the pre-existing states fed to the
 # multi-groundtruth simulator.
 # Such prior states are, then, wrapped in :class:`~.GaussianMixture` states.
+#
 # As it is now, there is not a tracker wrapper (as for the
 # :class:`~.MultiTargetMixtureTracker`) that can be applied directly when dealing with MFA,
 # so we need to specify the tracking loop explicitly.
@@ -251,4 +250,3 @@ plotter.fig
 # .. [#] Xia, Y., Granström, K., Svensson, L., García-Fernández, Á.F., and Williams, J.L.,
 #        2019. Multiscan Implementation of the Trajectory Poisson Multi-Bernoulli Mixture Filter.
 #        J. Adv. Information Fusion, 14(2), pp. 213–235.
-
