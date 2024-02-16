@@ -58,7 +58,7 @@ class SensorManager(Base, ABC):
 
     @sensors.getter
     def sensors(self):
-        sensors = self._property_sensors
+        sensors = self._property_sensors.copy()
         if self.take_sensors_from_platforms:
             for platform in self.platforms:
                 sensors.update(platform.sensors)
