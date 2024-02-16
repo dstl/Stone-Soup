@@ -42,9 +42,10 @@ class SensorManager(Base, ABC):
                           "any type and in any units.")
 
     take_sensors_from_platforms: bool = Property(
-        default=True, doc="Whether to update the sensor set with any sensors that are on the "
-                          "platform(s) but not already in the sensor set. Any sensors not added "
-                          "to the sensor set will not be considered by the sensor manager or "
+        default=True, doc="Whether to include sensors that are on the "
+                          "platform(s) but not explicitly passed to the sensor manager. "
+                          "Any sensors not added "
+                          "will not be considered by the sensor manager or "
                           "reward function.")
 
     @sensors.getter
