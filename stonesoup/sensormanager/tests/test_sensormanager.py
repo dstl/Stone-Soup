@@ -7,13 +7,15 @@ import copy
 import pytest
 
 from ...types.array import StateVector, StateVectors
-from ...types.state import GaussianState, ParticleState
+from ...types.state import GaussianState, ParticleState, State
+from ...types.angle import Angle
 from ...types.track import Track
 from ...sensor.radar import RadarRotatingBearingRange
 from ...sensor.action.dwell_action import ChangeDwellAction
 from ...sensormanager import RandomSensorManager, BruteForceSensorManager, GreedySensorManager
 from ...sensormanager.reward import UncertaintyRewardFunction, ExpectedKLDivergence, \
     MultiUpdateExpectedKLDivergence
+from ...sensormanager.action import Actionable
 from ...sensormanager.optimise import OptimizeBruteSensorManager, \
     OptimizeBasinHoppingSensorManager
 from ...predictor.kalman import KalmanPredictor
@@ -25,6 +27,8 @@ from ...models.transition.linear import CombinedLinearGaussianTransitionModel, \
 from ...hypothesiser.distance import DistanceHypothesiser
 from ...measures import Mahalanobis
 from ...dataassociator.neighbour import GNNWith2DAssignment
+from ...platform import Platform
+from ...movable.grid import NStepDirectionalGridMovable
 
 
 def test_random_choose_actions():
@@ -375,3 +379,66 @@ def test_greedy_manager(params):
     assert dwell_centres[timesteps[15]] - np.radians(45) < 1e-3
     assert dwell_centres[timesteps[25]] - np.radians(-45) < 1e-3
     assert dwell_centres[timesteps[35]] - np.radians(-135) < 1e-3
+
+
+def test_sensor_manager_with_platform(params):
+    start_time = params['start_time']
+    predictor = params['predictor']
+    updater = params['updater']
+
+    platform = Platform(movement_controller=NStepDirectionalGridMovable(
+        states=[State(StateVector([[-20], [0]]), start_time)],
+        position_mapping=(0, 1),
+        resolution=1,
+        n_steps=2,
+        step_size=2
+    ))
+
+    sensor = RadarRotatingBearingRange(
+        position_mapping=(0, 2),
+        noise_covar=np.array([[np.radians(0.5) ** 2, 0], [0, 1 ** 2]]),
+        ndim_state=4,
+        rpm=60,
+        fov_angle=np.radians(60),
+        dwell_centre=StateVector([0.0]),
+        max_range=50,
+        resolution=Angle(np.radians(60))
+    )
+
+    sensor_set = set()
+    platform_set = set()
+
+    platform.add_sensor(sensor)
+    platform_set.add(platform)
+
+    reward_function = UncertaintyRewardFunction(predictor, updater)
+    greedysensormanager = GreedySensorManager(
+        sensors=sensor_set,
+        platforms=platform_set,
+        reward_function=reward_function,
+        take_sensors_from_platforms=True
+    )
+
+    assert greedysensormanager.sensors != set()
+    for i in greedysensormanager.sensors:
+        assert isinstance(i, RadarRotatingBearingRange)
+    for i in greedysensormanager.platforms:
+        assert isinstance(i, Platform)
+
+    assert len(greedysensormanager.actionables) == 2
+    for i in greedysensormanager.actionables:
+        assert isinstance(i, Actionable) or isinstance(i.movement_controller, Actionable)
+
+    sensor_set = set()
+    platform_set = set()
+    platform.add_sensor(sensor)
+    platform_set.add(platform)
+
+    greedysensormanager = GreedySensorManager(
+        sensors=sensor_set,
+        platforms=platform_set,
+        reward_function=reward_function,
+        take_sensors_from_platforms=False
+    )
+    assert greedysensormanager.sensors == set()
+    assert len(greedysensormanager.actionables) == 1
