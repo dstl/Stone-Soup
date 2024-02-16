@@ -435,7 +435,6 @@ def test_sensor_manager_with_platform(params):
     platform_set.add(platform)
 
     greedysensormanager = GreedySensorManager(
-        sensors=sensor_set,
         platforms=platform_set,
         reward_function=reward_function,
         take_sensors_from_platforms=False
