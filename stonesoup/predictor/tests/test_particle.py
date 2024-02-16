@@ -14,7 +14,7 @@ from ...types.numeric import Probability
 from ...types.particle import Particle
 from ...types.prediction import ParticleStatePrediction, BernoulliParticleStatePrediction
 from ...types.update import BernoulliParticleStateUpdate
-from ...types.state import ParticleState, BernoulliParticleState, GaussianState
+from ...types.state import ParticleState, BernoulliParticleState
 from ...models.measurement.linear import LinearGaussian
 from ...types.detection import Detection
 from ...sampler.particle import ParticleSampler
@@ -292,11 +292,13 @@ def test_smcphd(birth_scheme):
     time_interval = new_timestamp - timestamp
 
     # Parameters for SMC-PHD
-    prob_death = Probability(0.01)  # Probability of death
-    prob_birth = Probability(0.1)  # Probability of birth
+    death_probability = Probability(0.01)  # Probability of death
+    birth_probability = Probability(0.1)  # Probability of birth
     birth_rate = 0.05  # Birth-rate (Mean number of new targets per scan)
-    birth_density = GaussianState(StateVector(np.array([20., 0.0])),
-                                  np.diag([10. ** 2, 1. ** 2]))  # Birth density
+    birth_sampler = ParticleSampler(distribution_func=np.random.multivariate_normal,
+                                    params={'mean': np.array([20., 0.0]),
+                                            'cov': np.diag([10. ** 2, 1. ** 2])},
+                                    ndim_state=2)
     num_particles = 9  # Number of particles
 
     # Define prior state
@@ -306,27 +308,44 @@ def test_smcphd(birth_scheme):
 
     if birth_scheme == 'some_other_scheme':
         with pytest.raises(ValueError):
-            SMCPHDPredictor(transition_model=cv, birth_density=birth_density,
-                            prob_death=prob_death, prob_birth=prob_birth,
-                            birth_rate=birth_rate, birth_scheme=birth_scheme)
+            SMCPHDPredictor(transition_model=cv,
+                            death_probability=death_probability,
+                            birth_probability=birth_probability,
+                            birth_rate=birth_rate,
+                            birth_sampler=birth_sampler,
+                            birth_func_num_samples_field='size',
+                            birth_scheme=birth_scheme)
         return
 
-    predictor = SMCPHDPredictor(transition_model=cv, birth_density=birth_density,
-                                prob_death=prob_death, prob_birth=prob_birth,
-                                birth_rate=birth_rate, birth_scheme=birth_scheme)
+    predictor = SMCPHDPredictor(transition_model=cv,
+                                death_probability=death_probability,
+                                birth_probability=birth_probability,
+                                birth_rate=birth_rate,
+                                birth_sampler=birth_sampler,
+                                birth_func_num_samples_field='size',
+                                birth_scheme=birth_scheme)
 
     # Ensure same random numbers are generated
     np.random.seed(16549)
 
+    # Perform the prediction
     prediction = predictor.predict(prior, timestamp=new_timestamp)
 
-    prob_survive = np.exp(-float(prob_death) * time_interval.total_seconds())
+    # Compute the expected survival probability
+    prob_survive = np.exp(-float(death_probability) * time_interval.total_seconds())
+
+    # Compute the expected surviving particles
+    # NOTE: The line below is valid since process noise is zero
     eval_particles = [Particle(cv.matrix(timestamp=new_timestamp,
                                          time_interval=time_interval)
                                @ particle.state_vector,
                                prob_survive * particle.weight)
                       for particle in prior_particles]
     if birth_scheme == 'mixture':
+        # NOTE: In the lines below, we utilise the knowledge that the above configuration results
+        #       in a single birth particle, that replaces the first particle in the prior, whose
+        #       state vector is known. This might not be the case for other configurations, or if
+        #       the random seed is changed.
         birth_weight = birth_rate / num_particles
         new_weight = (prob_survive + birth_weight) * 1 / num_particles
         eval_particles[0].state_vector = StateVector([[11.31091636],
@@ -335,16 +354,25 @@ def test_smcphd(birth_scheme):
             particle.weight = new_weight
 
     else:
-        num_birth = round(float(prob_birth) * num_particles)
+        # NOTE: Once again, we utilise the knowledge that the above configuration results in a
+        #       single birth particle, that is appended to the prior (since birth_scheme is
+        #       'expansion'), and whose state vector is known. This might not be the case for
+        #       other configurations, or if the random seed is changed.
+        num_birth = round(float(birth_probability) * num_particles)
         birth_weight = birth_rate / num_birth
         eval_particles.append(Particle(state_vector=StateVector([[18.3918058],
                                                                  [0.31072265]]),
                                        weight=birth_weight,
                                        parent=None))
 
+    # Construct the expected prediction
     eval_prediction = ParticleStatePrediction(None, new_timestamp, particle_list=eval_particles)
 
+    # Check that the computed mean is close to the expected mean
     assert np.allclose(prediction.mean, eval_prediction.mean)
+    # Check that the timestamp is correct
     assert prediction.timestamp == new_timestamp
+    # Check that the state vectors are correct
     assert np.allclose(eval_prediction.state_vector, prediction.state_vector)
+    # Check that the weights are correct
     assert np.allclose(prediction.log_weight, eval_prediction.log_weight)
