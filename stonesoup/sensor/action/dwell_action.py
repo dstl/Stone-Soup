@@ -4,7 +4,7 @@ from typing import Iterator
 
 import numpy as np
 
-from . import Action, RealNumberActionGenerator
+from ...sensormanager.action import Action, RealNumberActionGenerator
 from ...base import Property
 from ...functions import mod_bearing
 from ...types.angle import Angle, Bearing
@@ -20,7 +20,7 @@ class ChangeDwellAction(Action):
                                       doc="Indicated the direction of change in the "
                                           "dwell centre angle.")
 
-    def act(self, current_time, timestamp, init_value):
+    def act(self, current_time, timestamp, init_value, **kwargs):
         """Assumes that duration keeps within the action end time
 
         Parameters

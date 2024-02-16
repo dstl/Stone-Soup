@@ -7,18 +7,9 @@ Movables
 .. automodule:: stonesoup.movable.movable
     :show-inheritance:
 
-Actions
--------
 
-.. automodule:: stonesoup.movable.action
-    :show-inheritance:
+Grid-based Movables
+-------------------
 
-.. automodule:: stonesoup.movable.action.move_position_action
-    :show-inheritance:
-
-
-Actionable
-----------
-
-.. automodule:: stonesoup.movable.actionable_movable
+.. automodule:: stonesoup.movable.grid
     :show-inheritance:

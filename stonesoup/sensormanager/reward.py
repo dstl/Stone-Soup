@@ -7,7 +7,7 @@ import numpy as np
 
 from ..measures import KLDivergence
 from ..platform import Platform
-from ..sensor.actionable import Actionable
+from ..sensormanager.action import Actionable
 from ..types.detection import TrueDetection
 from ..base import Base, Property
 from ..predictor.particle import ParticlePredictor
@@ -16,7 +16,7 @@ from ..updater.kalman import ExtendedKalmanUpdater
 from ..types.track import Track
 from ..types.hypothesis import SingleHypothesis
 from ..sensor.sensor import Sensor
-from ..sensor.action import Action
+from ..sensormanager.action import Action
 from ..types.prediction import Prediction
 from ..updater.particle import ParticleUpdater
 from ..resampler.particle import SystematicResampler
@@ -95,15 +95,13 @@ class UncertaintyRewardFunction(RewardFunction):
 
         predicted_sensors = set()
         memo = {}
-        # For each sensor in the configuration
-        for sensor, actions in config.items():
-            predicted_sensor = copy.deepcopy(sensor, memo)
-            predicted_sensor.add_actions(actions)
-            predicted_sensor.act(metric_time)
-            if isinstance(sensor, Sensor):
-                predicted_sensors.add(predicted_sensor)  # checks if its a sensor
-            elif isinstance(sensor, Platform):
-                predicted_sensors.update(predicted_sensor.sensors)
+        # For each sensor/platform in the configuration
+        for actionable, actions in config.items():
+            predicted_actionable = copy.deepcopy(actionable, memo)
+            predicted_actionable.add_actions(actions)
+            predicted_actionable.act(metric_time, noise=False)
+            if isinstance(actionable, Sensor):
+                predicted_sensors.add(predicted_actionable)  # checks if it's a sensor
 
         # Create dictionary of predictions for the tracks in the configuration
         predicted_tracks = set()

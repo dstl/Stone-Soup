@@ -15,7 +15,7 @@ from ...models.measurement.nonlinear import \
      CartesianToBearingRangeRate, CartesianToElevationBearingRangeRate,
      Cartesian2DToBearing)
 from ...sensor.action.dwell_action import DwellActionsGenerator
-from ...sensor.actionable import ActionableProperty
+from ...sensormanager.action import ActionableProperty
 from ...sensor.sensor import Sensor, SimpleSensor
 from ...types.array import CovarianceMatrix
 from ...types.angle import Angle

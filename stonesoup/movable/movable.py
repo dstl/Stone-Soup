@@ -12,9 +12,10 @@ from stonesoup.functions import cart2sphere, cart2pol, build_rotation_matrix, ro
 from stonesoup.models.transition import TransitionModel
 from stonesoup.types.array import StateVector
 from stonesoup.types.state import State, StateMutableSequence
+from stonesoup.sensormanager.action import Actionable
 
 
-class Movable(StateMutableSequence, ABC):
+class Movable(StateMutableSequence, Actionable, ABC):
     states: MutableSequence[State] = Property(
         doc="A list of States which enables the platform's history to be "
             "accessed in simulators and for plotting. Initiated as a "
@@ -45,6 +46,9 @@ class Movable(StateMutableSequence, ABC):
             self.velocity_mapping = [p + 1 for p in self.position_mapping]
         if not self.states:
             raise ValueError('States must not be empty: it must contain least one state.')
+
+    def validate_timestamp(self):
+        pass
 
     @property
     def position(self) -> StateVector:
@@ -94,14 +98,13 @@ class Movable(StateMutableSequence, ABC):
         raise NotImplementedError
 
     @abstractmethod
-    def move(self, timestamp: datetime.datetime, **kwargs) -> None:
+    def move(self, timestamp: datetime.datetime, noise: bool = True, **kwargs) -> None:
         """Update the platform position using the :attr:`transition_model`.
 
         Parameters
         ----------
-        timestamp: :class:`datetime.datetime`, optional
-            A timestamp signifying when the end of the maneuver \
-            (the default is ``None``)
+        timestamp: :class:`datetime.datetime`
+            A timestamp signifying when the end of the maneuver
 
         Notes
         -----
@@ -301,7 +304,7 @@ class MovingMovable(Movable):
             raise AttributeError('Cannot set the position of a moving platform with a '
                                  'transition model')
 
-    def move(self, timestamp=None, **kwargs) -> None:
+    def move(self, timestamp=None, noise=True, **kwargs) -> None:
         """Propagate the platform position using the :attr:`transition_model`.
 
         Parameters
@@ -335,7 +338,7 @@ class MovingMovable(Movable):
             raise AttributeError('Platform without a transition model cannot be moved')
 
         state_vector = self.transition_model.function(state=self.state,
-                                                      noise=True,
+                                                      noise=noise,
                                                       timestamp=timestamp,
                                                       time_interval=time_interval,
                                                       **kwargs)
@@ -366,7 +369,7 @@ class MultiTransitionMovable(MovingMovable):
     def transition_model(self):
         return self.transition_models[self.transition_index]
 
-    def move(self, timestamp=None, **kwargs) -> None:
+    def move(self, timestamp=None, noise=True, **kwargs) -> None:
         """Propagate the platform position using the :attr:`transition_model`.
 
         Parameters
@@ -407,7 +410,7 @@ class MultiTransitionMovable(MovingMovable):
 
                 temp_state_vector = self.transition_model.function(
                     state=temp_state,
-                    noise=True,
+                    noise=noise,
                     time_interval=self.current_interval,
                     **kwargs
                 )
@@ -422,7 +425,7 @@ class MultiTransitionMovable(MovingMovable):
             else:
                 temp_state_vector = self.transition_model.function(
                     state=temp_state,
-                    noise=True,
+                    noise=noise,
                     time_interval=time_interval,
                     **kwargs
                 )

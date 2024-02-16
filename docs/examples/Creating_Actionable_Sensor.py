@@ -41,7 +41,7 @@ given actions.
 #   action is complete (end time is reached).
 #
 
-from stonesoup.sensor.action import Action
+from stonesoup.sensormanager.action import Action
 
 
 class ChangeDirectionAction(Action):
@@ -118,7 +118,7 @@ class ChangeDirectionAction(Action):
 #   This way, for a given :class:`ChangeDirectionAction` or particular direction, we can say
 #   whether this is possible by simply asking "is this IN my generator?".
 
-from stonesoup.sensor.action import ActionGenerator
+from stonesoup.sensormanager.action import ActionGenerator
 from stonesoup.base import Property
 from stonesoup.sensor.sensor import Sensor
 
@@ -204,7 +204,7 @@ class DirectionActionsGenerator(ActionGenerator):
 from numpy import pi
 
 from stonesoup.sensor.sensor import Sensor
-from stonesoup.sensor.actionable import ActionableProperty
+from stonesoup.sensormanager.action import ActionableProperty
 from stonesoup.models.measurement.linear import LinearGaussian
 from stonesoup.models.measurement.nonlinear import Cartesian2DToBearing
 from stonesoup.types.detection import TrueDetection
