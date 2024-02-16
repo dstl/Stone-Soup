@@ -53,8 +53,8 @@ class SensorManager(Base, ABC):
 
         if self.platforms is None:
             self.platforms = set()
-        if self.sensors is None:
-            self.sensors = set()
+        if self._property_sensors is None:
+            self._property_sensors = set()
 
     @sensors.getter
     def sensors(self):
