@@ -537,9 +537,10 @@ class SMCPHDUpdater(ParticleUpdater):
 
     References
     ----------
-    .. [#] Ba-Ngu Vo, S. Singh and A. Doucet, "Sequential Monte Carlo Implementation of the
-           PHD Filter for Multi-target Tracking," Sixth International Conference of Information
-           Fusion, 2003. Proceedings of the, 2003, pp. 792-799, doi: 10.1109/ICIF.2003.177320.
+    .. [#] Ba-Ngu Vo, S. Singh and A. Doucet, "Sequential monte carlo implementation of the phd
+           filter for multi-target tracking," Sixth International Conference of Information
+           Fusion, 2003. Proceedings of the, Cairns, QLD, Australia, 2003, pp. 792-799,
+           doi: 10.1109/ICIF.2003.177320.
     .. [#] P. Horridge and S. Maskell,  “Using a probabilistic hypothesis density filter to
            confirm tracks in a multi-target environment,” in 2011 Jahrestagung der Gesellschaft
            fr Informatik, October 2011.
@@ -551,14 +552,14 @@ class SMCPHDUpdater(ParticleUpdater):
         doc="Average number of clutter measurements per time step, per unit volume")
     num_samples: int = Property(
         default=1024,
-        doc="The number of samples. Default is 1024")
+        doc="The number of particles to be output by the updater. Default is 1024")
 
-    def update(self, multihypothesis, **kwargs):
+    def update(self, hypotheses, **kwargs):
         """ SMC-PHD update step
 
         Parameters
         ----------
-        multihypothesis : :class:`~.MultipleHypothesis`
+        hypotheses : :class:`~.MultipleHypothesis`
             A container of :class:`~SingleHypothesis` objects. All hypotheses are assumed to have
             the same prediction (and hence same timestamp).
 
@@ -568,8 +569,8 @@ class SMCPHDUpdater(ParticleUpdater):
             The state posterior
         """
 
-        prediction = copy.copy(multihypothesis[0].prediction)
-        detections = [hypothesis.measurement for hypothesis in multihypothesis if hypothesis]
+        prediction = hypotheses[0].prediction
+        detections = [hypothesis.measurement for hypothesis in hypotheses if hypothesis]
 
         # Calculate w^{n,i} Eq. (20) of [2]
         log_weights_per_hyp = self.get_log_weights_per_hypothesis(prediction, detections)
@@ -583,23 +584,24 @@ class SMCPHDUpdater(ParticleUpdater):
             part_indx = self.constraint_func(prediction)
             log_post_weights[part_indx] = -1 * np.inf
 
+        # Create the updated state
+        updated_state = Update.from_state(
+            state=prediction,
+            hypothesis=hypotheses,
+            timestamp=prediction.timestamp
+        )
+
         # Resample
         if self.resampler is not None:
             # Normalize weights
             log_num_targets = logsumexp(log_post_weights)  # N_{k|k}
-            prediction.log_weight = log_post_weights - log_num_targets
+            updated_state.log_weight = log_post_weights - log_num_targets
             # Resample
-            prediction = self.resampler.resample(prediction, self.num_samples)
+            updated_state = self.resampler.resample(updated_state, self.num_samples)
             # De-normalize
-            prediction.log_weight += log_num_targets
+            updated_state.log_weight += log_num_targets
 
-        return Update.from_state(
-            state=multihypothesis[0].prediction,
-            state_vector=prediction.state_vector,
-            log_weight=prediction.log_weight,
-            hypothesis=multihypothesis,
-            timestamp=multihypothesis[0].measurement.timestamp,
-        )
+        return updated_state
 
     def get_log_weights_per_hypothesis(self, prediction, detections):
         num_samples = prediction.state_vector.shape[1]
