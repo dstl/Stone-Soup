@@ -68,7 +68,7 @@ from stonesoup.simulator.platform import PlatformDetectionSimulator
 
 start_time = datetime.now().replace(microsecond=0)
 number_of_steps = 75  # Number of timestep of the simulation
-np.random.seed(1908)  # Random seed for reproducibility
+np.random.seed(2000)  # Random seed for reproducibility
 n_particles = 2**10
 
 # Instantiate the target transition model
@@ -96,7 +96,7 @@ groundtruth_simulation = SingleTargetGroundTruthSimulator(
 # ^^^^^^^^^^^^^^^^^^^^
 
 clutter_model = ClutterModel(
-    clutter_rate=1.0,
+    clutter_rate=0.9,
     distribution=np.random.default_rng().uniform,
     dist_params=((0, 120), (-5, 105)))
 # dist_params describe the area where the clutter is detected
@@ -159,7 +159,8 @@ radar2plot, radar2KF, radar2PF = tee(radar_simulator2, 3)
 # Before preparing the different trackers components, let's visualise the target and its detections from the
 # two sensors. In this way we can appreciate how the measurements are different and can lead to separate
 # tracks.
-#
+
+#%%
 # Stone Soup plotting and metric imports
 from stonesoup.plotter import Plotterly
 from stonesoup.metricgenerator.basicmetrics import BasicMetrics
@@ -298,8 +299,9 @@ PF_initiator = GaussianParticleInitiator(
 # ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 #
 # At this stage we have all the components needed to perform the tracking using both Kalman and particle
-# filters. We need to create a way to perform the track fusion.
-# To perform such fusion, we employ the covariance intersection algorithm adopting the
+# filters.
+#
+# To perform the track fusion, we employ the covariance intersection algorithm adopting the
 # :class:`~.ChernoffUpdater` class, treating the tracks as :class:`~.GaussianMixture` detections.
 
 
@@ -439,7 +441,7 @@ plotter.plot_tracks(PF_track2, [0, 2], line=dict(color="gold"), track_label='PF 
 plotter.plot_tracks(PF_fused_track, [0, 2], line=dict(color="red"), track_label='PF fused track')
 plotter.plot_tracks(KF_fused_track, [0, 2], line=dict(color="blue"), track_label='KF fused track')
 plotter.plot_tracks(KF_track1, [0, 2], line=dict(color="cyan"), track_label='KF partial track 1')
-plotter.plot_tracks(KF_track2, [0, 2], line=dict(color="azure"), track_label='KF partial track 2')
+plotter.plot_tracks(KF_track2, [0, 2], line=dict(color="skyblue"), track_label='KF partial track 2')
 
 plotter.fig
 
@@ -447,7 +449,7 @@ plotter.fig
 # 4. Evaluate the obtained tracks with the groundtruth trajectory.
 # ----------------------------------------------------------------
 # At this stage we have almost completed our example. We have created the detections from the radars,
-# performed the tracking and the fusion of the tracks. Now we use the :class:`~.MetricManager`
+# performed the tracking and the fusion of the tracks. We employ the :class:`~.MetricManager`
 # to generate summary statistics on the accuracy of the tracks by comparing them with the
 # groundtruth trajectory.
 #
