@@ -16,9 +16,9 @@ General Multi Hypotheses tracking implementation example
 # clutter).
 #
 # MHT, by definition, has several algorithms that fall under this definition, which
-# include Global Nearest Neighbour (GNN, :ref:`auto_tutorials/06_DataAssociation-MultiTargetTutorial:tutorial here`),
-# Joint Probabilistic Data association (JPDA, :ref:`auto_tutorials/08_JPDATutorial:tutorial here`),
-# Multi-frame assignment (MFA [#]_, see other :ref:`auto_examples/MFA_example:example here`),
+# include Global Nearest Neighbour (GNN, :doc:`check here <tutorials/06_DataAssociation-MultiTargetTutorial>`),
+# Joint Probabilistic Data association (JPDA, :doc:`tutorial here <tutorials/08_JPDATutorial>`),
+# Multi-frame assignment (MFA [#]_, see other :doc:`example here <MFA_example>`),
 # Multi Bernoulli filter and Probabilistic multi hypotheses tracking (PMHT).
 # Some of these algorithms are already implemented the Stone Soup.
 # In this example we employ the multi-frame assignment data associator and
