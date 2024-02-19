@@ -918,8 +918,8 @@ def cubature_transform(state, fun, points_noise=None, covar_noise=None, alpha=1.
 
     mean, covar = cubature2gauss(cubature_points_t, covar_noise)
 
-    cross_covar = (1/alpha)*((1.0 / (2 * ndim_state)) * cubature_points @ cubature_points_t.T -
-                             np.average(cubature_points, axis=1) @ mean.T)
+    cross_covar = (1/alpha)*((1.0 / (2 * ndim_state)) * cubature_points @ cubature_points_t.T
+                             - np.average(cubature_points, axis=1) @ mean.T)
     cross_covar = cross_covar.view(CovarianceMatrix)
 
     return mean, covar, cross_covar, cubature_points_t
