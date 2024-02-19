@@ -560,4 +560,4 @@ class CubatureKalmanPredictor(KalmanPredictor):
                                                   covar_noise=total_noise_covar, alpha=self.alpha)
 
         return Prediction.from_state(prior, x_pred, p_pred, timestamp=timestamp,
-                                     transition_model=self.transition_model)
+                                     transition_model=self.transition_model, prior=prior)
