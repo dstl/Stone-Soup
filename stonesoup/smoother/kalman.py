@@ -11,8 +11,8 @@ from ..types.prediction import GaussianStatePrediction
 from ..types.update import GaussianStateUpdate
 from ..models.transition.base import TransitionModel
 from ..models.transition.linear import LinearGaussianTransitionModel
-from ..functions import gauss2sigma, unscented_transform
-
+from ..functions import gauss2sigma, unscented_transform, stochasticCubatureRulePoints
+from ..types.array import StateVector, StateVectors
 
 class KalmanSmoother(Smoother):
     r"""
@@ -304,4 +304,102 @@ class UnscentedKalmanSmoother(KalmanSmoother):
             sigma_point_states, mean_weights, covar_weights,
             transition_function)
 
-        return cross_covar @ np.linalg.inv(prediction.covar)
+        return cross_covar @ np.linalg.inv(prediction.covar)    
+    
+class SIFKalmanSmoother(KalmanSmoother):
+        r"""The stochastic integration version of the Kalman filter. As with the parent version of the Kalman
+        smoother, the mean and covariance of the prediction are retrieved from the track. The
+        stochastic integration is used to calculate the smoothing gain.
+
+        """
+        transition_model: TransitionModel = Property(doc="The transition model to be used.")
+
+        Nmax: float = Property(
+            default=10,
+            doc="maximal number of iterations of SIR")
+        Nmin: float = Property(
+            default=5,
+            doc="minimal number of iterations of stochastic integration rule (SIR)")
+        Eps: float = Property(
+            default=5e-3,
+            doc="allowed threshold for integration error")
+        SIorder: float = Property(
+            default=3,
+            doc="order of SIR (orders 1, 3, 5 are currently supported)")
+
+        def _smooth_gain(self, state, prediction, time_interval, **kwargs):
+            """Calculate the smoothing gain
+
+            Parameters
+            ----------
+            state : :class:`~.State`
+                The input state
+            prediction : :class:`~.GaussianStatePrediction`
+                The prediction from the subsequent timestep
+
+            Returns
+            -------
+             : Matrix
+                The smoothing gain
+
+            """
+            
+            # - initialisation
+            predMean = prediction.mean
+            filtMean = state.mean
+            filtVar = state.covar
+            
+            
+            # This ensures that the time interval is correctly applied.
+            transition_function = partial(
+                self._transition_model(state).function,
+                time_interval=time_interval)
+            
+            
+            nx = predMean.shape[0]
+            
+            efMean = filtMean.copy()
+            efVar = filtVar.copy()
+            Sf = np.linalg.cholesky(efVar)
+            IPxx = np.zeros((nx, nx))
+            VPxx = np.zeros((nx, nx))
+            N = 0  # number of iterations
+            
+            # - SIR recursion for measurement predictive moments computation
+            # -- until either required number of iterations is reached or threshold is reached
+            while N < self.Nmin or all([N < self.Nmax, (np.linalg.norm(VPxx) > self.Eps)]):
+                N += 1
+            
+                # -- cubature points and weights computation (for standard normal PDF)
+                SCRSigmaPoints, w = stochasticCubatureRulePoints(nx, self.SIorder)
+            
+                # -- points transformation for given filtering mean and covariance matrix
+                # xpoints = np.dot(Sf, SCRSigmaPoints) + efMean[:, np.newaxis]
+                xpoints = Sf@SCRSigmaPoints + np.matlib.repmat(efMean,1,np.size(SCRSigmaPoints,1))
+                # -- points transformation via measurement equation (deterministic part)
+                # fpoints = ffunct(xpoints, wMean, Time)
+                
+                sigma_points_states = []
+                for xpoint in xpoints.T:
+                    state_copy = copy.copy(prediction)
+                    state_copy.state_vector = StateVector(xpoint)
+                    sigma_points_states.append(state_copy)
+                fpoints = StateVectors([
+                    transition_function(sigma_points_state) for sigma_points_state in sigma_points_states])
+            
+                # -- stochastic integration rule for predictive measurement mean and covariance matrix
+                fpoints_diff = fpoints - predMean
+                xpoints_diff = xpoints - filtMean
+                SumRPxx = xpoints_diff@(fpoints_diff*np.matlib.repmat(w,nx,1)).T
+      
+            
+                # --- update cross-covariance matrix IPxx
+                DPxx = (SumRPxx - IPxx) / N
+                IPxx += DPxx
+                VPxx = (N - 2) * VPxx / N + DPxx**2
+            
+            # - measurement predictive moments
+            Pxxps = IPxx
+            
+            
+            return Pxxps @ np.linalg.inv(prediction.covar)

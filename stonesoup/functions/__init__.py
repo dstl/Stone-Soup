@@ -761,3 +761,122 @@ def sde_euler_maruyama_integration(fun, t_values, state_x0):
         a, b = fun(state_x, t)
         state_x.state_vector = state_x.state_vector + a*delta_t + b@delta_w
     return state_x.state_vector
+
+def RandOrthMat(n,tol=1e-6):    
+    """Random orthogonal real matrix
+
+    M = RANDORTHMAT(n)
+    generates a random n x n orthogonal real matrix.
+    M = RANDORTHMAT(n,tol)
+    explicitly specifies a thresh value that measures linear dependence
+    of a newly formed column with the existing columns. Defaults to 1e-6.
+        
+    In this version the generated matrix distribution *is* uniform over the manifold
+    O(n) w.r.t. the induced R^(n^2) Lebesgue measure, at a slight computational 
+    overhead (randn + normalization, as opposed to rand ). 
+         
+    (c) Ofek Shilon , 2006.
+
+    Parameters
+    ==========
+    n integer
+        matrix size
+
+    Returns
+    =======
+    numpy.ndarray n x n
+       Random orthogonal real matrix
+    """
+           
+    M = np.zeros((n,n)) # prealloc
+
+#     # Gram-schmidt on random column vectors
+    vi = np.random.rand(n,1)  
+#     # the n-dimensional normal distribution has spherical symmetry, which implies
+#     # that after normalization the drawn vectors would be uniformly distributed on the
+#     # n-dimensional unit sphere.
+    M[:,0] = (vi*1/(np.linalg.norm(vi))).T
+
+    for i in range(1,n):
+        nrm = 0
+        while nrm<tol:
+            vi = np.random.rand(n,1) 
+            vi = vi - M[:,0:i] @ ( M[:,0:i].T @ vi )  
+            nrm = np.linalg.norm(vi)
+        M[:,i] = (vi/nrm).T
+    
+    return(M)
+
+
+ 
+def stochasticCubatureRulePoints(nx,order):
+    """Stochstic cubature rule points
+
+    computation of cubature points and weights for the stochastic integration
+
+    Parameters
+    ==========
+    integer
+        number of points
+
+    Returns
+    =======
+    numpy.ndarray dim x nx
+        Matrix of sigma points
+    """
+    
+    if order == 1:
+        X = np.random.randn(nx,1)
+        SCRSigmaPoints = np.concatenate((X,-X), axis=1)
+        weights = (np.array([0.5, 0.5]))
+    if order == 3:
+        CRSigmaPoints = np.concatenate((np.zeros((nx,1)),np.eye(nx),-np.eye(nx)),axis = 1)
+        rho = np.sqrt(np.random.chisquare(nx+2))
+        Q = RandOrthMat(nx)
+        SCRSigmaPoints = Q*rho@CRSigmaPoints
+        weights=np.insert(0.5*np.ones(2*nx)/rho**2,0,(1-nx/rho**2))
+
+    if order == 5:
+        # generating random values
+        r=np.sqrt(np.random.chisquare(2*nx+7))
+        #r = 2.720195529973557
+        q=np.random.beta(nx+2,3/2)
+        #q = 0.9076006070686173
+        rho=r*np.sin(np.arcsin(q)/2)
+        delta=r*np.cos(np.arcsin(q)/2)
+        
+        #calculating weights
+        c1up=nx+2-delta**2
+        c1do=rho**2*(rho**2-delta**2)
+        c2up=nx+2-rho**2
+        c2do=delta**2*(delta**2-rho**2)
+        cdo=2*(nx+1)**2*(nx+2)
+        c3=(7-nx)*nx**2
+        c4=4*(nx-1)**2
+        coef1=c1up*c3/cdo/c1do
+        coef2=c2up*c3/cdo/c2do
+        coef3=c1up*c4/cdo/c1do
+        coef4=c2up*c4/cdo/c2do
+        
+        pom = np.concatenate((np.ones(2*nx+2)*coef1,np.ones(2*nx+2)*coef2,np.ones(nx*(nx+1))*coef3,np.ones(nx*(nx+1))*coef4),axis = 0)
+        weights= np.insert(pom,0,(1-nx*(rho**2+delta**2-nx-2)/(rho**2*delta**2)))
+        
+        # Calculating sigma points
+        Q = RandOrthMat(nx)
+        #Q = np.array([[ 0.78578954, -0.61849398],[ 0.61849398,  0.78578954]])
+        v = np.zeros((nx,nx+1))
+        for i in range(0,nx):
+            v[i,i]=np.sqrt((nx+1)*(nx-i)/nx/(nx-i+1))
+            for j in range(i+1,nx+1):
+                v[i,j]=-np.sqrt((nx+1)/((nx-i)*nx*(nx-i+1)))
+        v = Q @ v
+        y=np.zeros((nx,int(nx*(nx+1)/2)))
+        cnt=-1 
+        for j in range(0,nx+1):
+            for i in range(0,j):
+                cnt=cnt+1
+                y[:,cnt]=(v[:,j]+v[:,i])/np.linalg.norm(v[:,j]+v[:,i],2)
+        
+        SCRSigmaPoints = np.block([np.zeros((nx,1)),-rho*v,rho*v,-delta*v,+delta*v,-rho*y,rho*y,-delta*y,delta*y]) 
+    return(SCRSigmaPoints,weights)
+
