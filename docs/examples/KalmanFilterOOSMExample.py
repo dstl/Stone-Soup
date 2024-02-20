@@ -10,30 +10,34 @@ Kalman filter with Out-of-Sequence measurements
 # %%
 # In other examples we have shown how to deal with out-of-sequence measurements (OOSM)
 # with methods like using inverse-time dynamics or creating a buffer where store and re-order
-# the measurements according to their lag.
-# In this example we present how to deal with OOS measurements using Kalman
-# filters. The problem of OOS measurements is significant in real-world applications
+# the measurements according to their delay.
+# In this example we present a method on how to deal with OOS measurements using Kalman
+# filters, my making the assumption that the delay of the delayed measurements is known, and constant.
+# The problem of OOS measurements is significant in real-world applications
 # where data from different sources can have some delays and different timesteps
 # (e.g., two sensors observing a target) due to systems configuration and different processing
-# chain lenght.
+# chain length.
 #
-# In the literature, there are examples (e.g., [#]_) on how to deal with such time-delays and
+# In the literature, there are examples (e.g. [#]_) on how to deal with such time-delays and
 # uncertain timesteps.
 # In this example we consider different approaches on how to deal with the OOSM,
 # we have a tracker (called Tracker 1) which will run as the measurements arrive without any
 # treatment of delay, in this tracker we are looping every timestep as :math:`t_{now}` and
 # process every new detection without any adjustments on their time arrival.
+#
 # A second tracker (Tracker 2), built with the same components of Tracker 1, iterates
 # at :math:`t_{now}`-:math:`t_{delay}` basically waiting for the delayed detections to arrive
 # and adjusting for the delay. This tracker will lag behind the ground-truth detections which
 # arrive at :math:`t_{now}`.
-# As control we consider a third tracker (Tracker 3) which will work excluding all the
+#
+# As a control, we consider a third tracker (Tracker 3) which will work by excluding all the
 # delayed detections (in this case considering only the detections from one sensor).
 # The third tracker is a valid application and it is often suggested as viable option when dealing
 # with OOSM.
+#
 # In this example, we consider Extended Kalman Filter algorithm components for each tracker.
 #
-# This example follows the following structure:
+# This example follows this structure:
 #
 # 1. prepare the ground truth;
 # 2. set up the sensors and generate the measurements;
@@ -69,8 +73,7 @@ transition_model = CombinedLinearGaussianTransitionModel([ConstantVelocity(0.5),
 # %%
 # 1. Prepare the ground truth;
 # ----------------------------
-# In this example we consider a single target moving on a
-# nearly constant transition model.
+# In this example, we consider a single target moving with near constant velocity.
 
 # initiate the groundtruth
 truth = GroundTruthPath([GroundTruthState([0, 1, 0, 1], timestamp=start_time)])
@@ -84,12 +87,11 @@ for k in range(1, num_steps):
 
 # %%
 # 2. Set up the sensors and generate the measurements;
-# -----------------------------------------------------
-# We consider two ideal sensors using :class:`~.CartesianToBearingRange` measurement
-# model.
+# ----------------------------------------------------
+# We consider two ideal sensors using :class:`~.CartesianToBearingRange` measurement model.
 # The second sensor sends the detections with a fixed delay of 5 seconds.
-# In this way the two sets of detections have a fixed, constant, delay.
-# The two measurement model have different translation offset due to the location of the sensors.
+# In this scenario, there is a fixed, constant, delay between the two sets of detections.
+# The two measurement models have different translation offsets due to the location of the sensors.
 # In this scenario we consider a negligible clutter noise.
 
 # Load the measurement model
@@ -113,29 +115,22 @@ from stonesoup.types.detection import Detection
 # Instantiate two list for the detections
 measurements1 = []
 measurements2 = []
-measurements1p = []
-measurements2p = []
 
 for state in truth:  # loop over the ground truth detections
     measurement = measurement_model_1.function(state, noise=True)
-    measurements1.append((state.timestamp,
-                          Detection(measurement, timestamp=state.timestamp,
-                                    measurement_model=measurement_model_1)))
-    measurements1p.append(Detection(measurement, timestamp=state.timestamp,
-                                    measurement_model=measurement_model_1))
+    measurements1.append(Detection(measurement, timestamp=state.timestamp,
+                                   measurement_model=measurement_model_1))
+
     # collect the measurements for the delayed radar
     measurement = measurement_model_2.function(state, noise=True)
-    measurements2.append((state.timestamp + timedelta(seconds=5),
-                          Detection(measurement, timestamp=state.timestamp + timedelta(seconds=5),
-                                    measurement_model=measurement_model_2)))
-    measurements2p.append(Detection(measurement, timestamp=state.timestamp + timedelta(seconds=5),
-                                    measurement_model=measurement_model_2))
+    measurements2.append(Detection(measurement, timestamp=state.timestamp + timedelta(seconds=5),
+                                   measurement_model=measurement_model_2))
 
 # %%
 # We have generated two sets of detections of the same target, one for each sensor, with the latter
 # where the detection timestamp has a fixed delay of 5 seconds.
 #
-# Let's visualise the track and the set of detections, we use :class:`~.FixedPlatform` to show the
+# Let's visualise the track and the set of detections. We use :class:`~.FixedPlatform` to show the
 # sensors locations.
 
 from stonesoup.platform.base import FixedPlatform
@@ -159,9 +154,9 @@ time_steps = [start_time + timedelta(seconds=2*i) for i in range(num_steps + 5)]
 
 plotter = AnimatedPlotterly(timesteps=time_steps)
 plotter.plot_ground_truths(truth, [0, 2])
-plotter.plot_measurements(measurements1p, [0, 2], marker=dict(color='blue', symbol='0'),
+plotter.plot_measurements(measurements1, [0, 2], marker=dict(color='blue', symbol='0'),
                           measurements_label='Detections with no lag')
-plotter.plot_measurements(measurements2p, [0, 2], marker=dict(color='orange', symbol='0'),
+plotter.plot_measurements(measurements2, [0, 2], marker=dict(color='orange', symbol='0'),
                           measurements_label='Detections with lag')
 plotter.plot_sensors([sensor1_platform, sensor2_platform],
                      marker=dict(color='black', symbol='129', size=15),
@@ -171,11 +166,10 @@ plotter.fig
 # %%
 # 3) Instantiate the tracking components;
 # ---------------------------------------
-# In this example we employ an Extended Kalman components by loading the predictor and updater using
+# In this example we employ an Extended Kalman Filter (EKF) components by loading the predictor and updater using
 # :class:`~.ExtendedKalmanPredictor` and :class:`~.ExtendedKalmanUpdater`.
 # The choice of these components comes from the non-linear nature of the measurement
 # model chosen.
-#
 
 # load the extended kalman filter components
 from stonesoup.updater.kalman import ExtendedKalmanUpdater
@@ -204,10 +198,10 @@ prior3 = deepcopy(prior1)
 # We have prepared the tracker components and we are ready to generate the final tracks.
 #
 # Tracker 1 will consider all the detections as they are arriving from the sensors considering
-# each timestep as :math:`t_{now}`, we should expect that as the delayed detections start to
+# each timestep as :math:`t_{now}`. We should expect that as the delayed detections start to
 # arrive the tracking quality will significantly drop.
 #
-# Tracker 2 will be lagging behind the timesteps, :math:`t_{now}-t_{delay}`, in this way
+# Tracker 2 will be lagging behind the timesteps, at :math:`t_{now}+t_{delay}`, in this way
 # the tracker will wait for the delayed detections to arrive and will consider them in the
 # correct order and correct timestep. However the tracks will be behind the ground-truth track.
 #
@@ -219,7 +213,7 @@ from stonesoup.types.hypothesis import SingleHypothesis
 from stonesoup.types.track import Track
 
 # Evaluate the delay between the measurements
-delay = measurements2p[0].timestamp - measurements1p[0].timestamp
+delay = measurements2[0].timestamp - measurements1[0].timestamp
 
 # Initiate the empty track for each tracker
 track1 = Track(prior1)  # Tracker 1 prior
@@ -237,32 +231,32 @@ for k in range(num_steps+5):  # loop over the timestep
         timestep_delay = k
 
     if check_delay < delay:  # if we are below the delay, use only the first detections
-        prediction = predictor.predict(prior1, timestamp=measurements1p[k].timestamp)
-        hypothesis = SingleHypothesis(prediction, measurements1p[k])
+        prediction = predictor.predict(prior1, timestamp=measurements1[k].timestamp)
+        hypothesis = SingleHypothesis(prediction, measurements1[k])
         post = updater1.update(hypothesis)
         track1.append(post)
         prior1 = track1[-1]
 
     else:  # got the delay
         if k < num_steps:  # if we are not at the end of first scans
-            prediction = predictor.predict(prior1, timestamp=measurements1p[k].timestamp)
-            hypothesis = SingleHypothesis(prediction, measurements1p[k])
+            prediction = predictor.predict(prior1, timestamp=measurements1[k].timestamp)
+            hypothesis = SingleHypothesis(prediction, measurements1[k])
             post = updater1.update(hypothesis)
             track1.append(post)
-    #        prior = track[-1]
+
             prediction = predictor.predict(prior1,
-                                           timestamp=measurements2p[k - timestep_delay].timestamp)
+                                           timestamp=measurements2[k - timestep_delay].timestamp)
             hypothesis = SingleHypothesis(prediction,
-                                          measurements2p[k - timestep_delay])
+                                          measurements2[k - timestep_delay])
             post = updater2.update(hypothesis)
             track1.append(post)
             prior1 = track1[-1]
 
         else:  # consider only the second sensors detections
             prediction = predictor.predict(prior1,
-                                           timestamp=measurements2p[k - timestep_delay].timestamp)
+                                           timestamp=measurements2[k - timestep_delay].timestamp)
             hypothesis = SingleHypothesis(prediction,
-                                          measurements2p[k - timestep_delay])
+                                          measurements2[k - timestep_delay])
             post = updater2.update(hypothesis)
             track1.append(post)
             prior1 = track1[-1]
@@ -270,15 +264,14 @@ for k in range(num_steps+5):  # loop over the timestep
     # Tracker 2
     if check_delay >= delay:
         prediction = predictor.predict(prior2,
-                                       timestamp=measurements1p[k - timestep_delay].timestamp +
-                                                 delay)
-        hypothesis = SingleHypothesis(prediction, measurements1p[k - timestep_delay])
+                                       timestamp=measurements1[k - timestep_delay].timestamp + delay)
+        hypothesis = SingleHypothesis(prediction, measurements1[k - timestep_delay])
         post = updater1.update(hypothesis)
         track2.append(post)
         prediction = predictor.predict(prior2,
-                                       timestamp=measurements2p[k - timestep_delay].timestamp)
+                                       timestamp=measurements2[k - timestep_delay].timestamp)
         hypothesis = SingleHypothesis(prediction,
-                                      measurements2p[k - timestep_delay])
+                                      measurements2[k - timestep_delay])
         post = updater2.update(hypothesis)
         track2.append(post)
         prior2 = track2[-1]
@@ -286,9 +279,9 @@ for k in range(num_steps+5):  # loop over the timestep
     # Tracker 3, the "control tracker"
     if k < num_steps:
         prediction = predictor.predict(prior3,
-                                       timestamp=measurements1p[k].timestamp)
+                                       timestamp=measurements1[k].timestamp)
         hypothesis = SingleHypothesis(prediction,
-                                      measurements1p[k])
+                                      measurements1[k])
         post = updater1.update(hypothesis)
         track3.append(post)
         prior3 = track3[-1]
@@ -296,6 +289,13 @@ for k in range(num_steps+5):  # loop over the timestep
 
 # %%
 # Visualise the tracks
+# ^^^^^^^^^^^^^^^^^^^^
+# The current implementation of :class:`~.AnimatedPlotterly` does not allow for a
+# "live" representation of the tracks with out of sequence measurements and tracks lagging
+# behind the :math:`t_{now}`. As well, the tracks are produced after the end of the simulation
+# with the latest :math:`t_{delay}` timesteps of the track are not yet available.
+# However, it is interesting to see a 1-to-1 comparison between the three trackers, even if the
+# Tracker 2 track is not, visually, lagging behind.
 
 plotter.plot_tracks(track1, [0, 2], track_label='Tracker 1')
 plotter.plot_tracks(track2, [0, 2], track_label='Tracker 2',
