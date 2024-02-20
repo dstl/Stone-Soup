@@ -15,7 +15,7 @@ Dealing with Out-Of-Sequence Measurements
 # we aim to provide a toolkit of approaches, better than just chosing to ignore such measurements.
 #
 # In this example we focus on the simpler approach, also known as algorithm A [#]_ (also in [#]_ and [#]_),
-# where we create a ``fixed lag'' storage of measurements and we go over the detections
+# where we create a "fixed lag" storage of measurements and we go over the detections
 # and place the OOSM in the correct order chain of measurements.
 # The issue with this approach is that the :math:`\ell`-storage of measurements can grow
 # quickly if we are dealing with large number of sensors or targets, therefore computationally expensive.
@@ -199,6 +199,10 @@ plotter.plot_measurements(scans_detections, [0, 2], measurements_label='Detectio
 plotter.plot_tracks(track_lag, [0, 2], line= dict(color='grey'), track_label='Track with lag')
 plotter.fig
 
+# %%
+# Let's deal with OOS detections
+# ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
 # create the lag-storage to process the detections
 lag_storage = []
 
@@ -244,10 +248,10 @@ for k in range(len(arrival_time_ordered)):
                     track.append(post)
                     prior = track[-1]
 # %%
-# Adding the track with algorithm
-# ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+# Adding the final track
+# ^^^^^^^^^^^^^^^^^^^^^^
 
-plotter.plot_tracks(track, [0, 2], line= dict(color='blue'), track_label='Track with algorithm')
+plotter.plot_tracks(track, [0, 2], line= dict(color='blue'), track_label='Track with OOSM treated')
 plotter.fig
 
 # %%
