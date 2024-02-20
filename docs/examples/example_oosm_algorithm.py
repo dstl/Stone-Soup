@@ -8,45 +8,40 @@ Algorithm dealing with Out-of-Sequence measurements
 """
 
 # %%
-# This example focuses on a different approach to
-# deal with out-of-sequence measurements (OOSM),
-# in comparison to the other examples present in the
-# Stone Soup library.
-# As shown in literature (e.g., [#]_) there are
-# multiple approaches on how to deal with OOS measurements,
-# spanning from simply ignoring them, assuming that the fraction
-# of these is small and it will not, significally, impact the quality of the
-# tracking, iterate over last $\math{\ell}$ measurements with
-# a fixed lag (see what it is called Algorithm A and B in [#]_ and
-# [#]_, see also the previous examples) or, like in this example,
-# you can include any OOSM and re-process the measurement using
+# In previous examples, we have shown how to deal with out-of-sequence measurements (OOSM) by
+# using a fixed time-delay, or a time buffer. This example focuses on a different approach to deal
+# with OOSM.
+#
+# As shown in literature (e.g., [1]_) there are multiple approaches on how to deal with OOS measurements,
+# spanning from simply ignoring them, assuming that the fraction of these is small and it will not,
+# significally, impact the quality of the tracking, iterate over last :math:`\ell` measurements with
+# a fixed lag (see what it is called Algorithm A and B in [2]_ and [3]_, see also the previous examples)
+# or, like in this example, you can include any OOSM and re-process the measurement using
 # inverse-time dynamics creating pseudo-measurements.
-# This approach is called in literature as Algorithm C
-# (from [#]_, [#]_) and it will be refered as such later on.
-# To explain how does it work let's consider a single target scenario,
-# this algorithm deals with the presence of delayed measurements by
-# using the predicted dynamics of the target to go back in time from
-# the actual arrival time and obtain a pseudo-measurement obtained from
+#
+# This approach is called in literature as Algorithm C (from [2]_, [3]_) and it will be refered as such later on.
+#
+# To explain how it works, we consider a single target scenario.
+# This algorithm deals with the presence of delayed measurements by using the predicted dynamics of the target
+# to go back in time from the actual arrival time and obtain a pseudo-measurement obtained from
 # simulating the detection at the "expected" scan time.
-# In this manner we can reconstruct the measurements chain and not
-# discard any information, as well, we don't need to store a large fix-lag
-# distribution of data (as can happen with other algorithms).
-# In this example, we focus our efforts in showing how to use the
-# algorithm C in a multi-target scenario with clutter.
-# We simulate two sensors obtaining scans of two objects
-# travelling with a nearly constant velocity transition model
-# and with some level of clutter, at specific timesteps we insert a
-# delay in one of the sensor scan and we employ Algorithm C to
-# process in the correct way the chain of measurements.
-# To visualise the benefit of the algorithm we, also, include a
-# tracking where we ignore OOSM at all and we employ track-to-truth metrics
-# to highlight the differences.
+# In this manner we can reconstruct the measurements chain and not discard any information, as well,
+# we don't need to store a large fix-lag distribution of data (as can happen with other algorithms).
+#
+# In this example, we focus our efforts in showing how to use the algorithm C in a multi-target scenario with clutter.
+# We simulate two sensors obtaining scans of two objects travelling with a nearly constant velocity transition model
+# and with some level of clutter, at specific timesteps we insert a delay in one of the scan from the sensor and we
+# employ Algorithm C to process in the correct way the chain of measurements.
+#
+# To visualise the benefit of the algorithm, we also include a tracker which ignores OOSM completely. We also
+# employ track-to-truth metrics to highlight the differences.
 #
 # This example follows this structure:
-# 1) Create the ground truths scans and detections of the targets;
-# 2) Instantiate the tracking components;
-# 3) Run the tracker and apply the algorithm on delayed measurements;
-# 4) Run the comparison between the resulting tracks and plot the results.
+#
+# 1. Create the ground truths scans and detections of the targets;
+# 2. Instantiate the tracking components;
+# 3. Run the tracker and apply the algorithm on delayed measurements;
+# 4. Run the comparison between the resulting tracks and plot the results.
 #
 
 # %%
@@ -78,15 +73,12 @@ from stonesoup.types.state import GaussianState, State, StateVector
 from stonesoup.types.update import GaussianStateUpdate  # needed for the track
 
 # %%
-# 1) Create the ground truths and detections scans of the targets;
+# 1. Create the ground truths and detections scans of the targets;
 # ----------------------------------------------------------------
-# Let's start this example by creating the ground truths and the
-# detections obtained by the two sensors, we simulate the
-# sensor detections by using a non-linear measurement model
-# :class:`~.CartesianToBearingRange`, which allows to inverse-transform
-# the detections to Cartesian coordinates. We simulate two
-# targets moving using :class:`~.ConstantVelocity` transition
-# model.
+# Let's start this example by creating the ground truths and the detections obtained by the two sensors.
+# We simulate the sensor detections by using a non-linear measurement model :class:`~.CartesianToBearingRange`,
+# which allows to inverse-transform the detections to Cartesian coordinates. We simulate two
+# targets moving using :class:`~.ConstantVelocity` transition model.
 #
 
 # instantiate the transition model
@@ -131,7 +123,7 @@ from stonesoup.models.measurement.nonlinear import CartesianToBearingRange
 sensor_1_mm = CartesianToBearingRange(
     ndim_state=4,
     mapping=(0, 2),
-    noise_covar=np.diag([np.radians(8), 14]))
+    noise_covar=np.diag([np.radians(5), 14]))
 
 # For simplicity let's assume both sensors have the same specifics
 sensor_2_mm = deepcopy(sensor_1_mm)
@@ -192,12 +184,16 @@ for k in range(num_steps):
     scan_s2.append(detections2)
 
 # %%
-# 2) Instantiate the tracking components;
+# 2. Instantiate the tracking components;
 # ---------------------------------------
-# We have a series of scan from the two sensors that contains true detections and some clutter.
-# It is time to instantiate the tracking components, for this example we consider
+# We have a series of scans from the two sensors that contains true detections and some clutter.
+#
+# The scans simulate the data obtained by the sensors, which contains both noise, in the form of
+# clutter, and detections of the targets in the field of view.
+#
+# It is time to instantiate the tracking components. For this example we consider
 # a :class:`~.UnscentedKalmanUpdater` and :class:`~.UnscentedKalmanPredictor` filter.
-# As well we use a probabilistic data associator using :class:`~.JPDA` and :class:`~.PDAHypothesiser`.
+# We use a probabilistic data associator using :class:`~.JPDA` and :class:`~.PDAHypothesiser`.
 # We consider a single updater since the measurement model is the same for
 # both sensors.
 #
@@ -234,24 +230,24 @@ priori2 = GaussianState(state_vector=np.array([0, 1, 100, -0.3]),
                         covar=np.diag([1, 1, 1, 1]),
                         timestamp=start_time)
 
-# prepare both the cases for using the algorithm C and
-# excluding the OOSM
+# prepare both the cases for using the algorithm C and excluding the OOSM
 oosm_tracks = (Track([priori1]), Track([priori2]))
 
 noOsm_tracks = (Track([priori1]), Track([priori2]))
 
 # %%
-# 3) Run the tracker and apply the algorithm on delayed measurements;
+# 3. Run the tracker and apply the algorithm on delayed measurements;
 # -------------------------------------------------------------------
 # We can now run the tracker and generate the tracks.
+#
 # By looping over the scans we can spot any OOS measurement and apply the algorithm.
-# When we encounter a delayed measurement, at time $\math{\tau}$, we make use of both
+# When we encounter a delayed measurement, at time :math:`\tau`, we make use of both
 # the measurement model and transition model: first we use the measurement model
-# inverse function at $\math{\tau}$ to obtain a predicted Cartesian location of the
-# target, then we use the transition model with time-inverse dynamics ($t_{k} - \math{\tau}$)
-# to trace back where the target was in the scan-timestamp ($t$). With this pseudo-location, which is an
-# approximation, we can compute the pseudo-measurement usign the measurement model.
-# In this way now we have a pseudo-measurement at $t$ and we can keep the time-chain and
+# inverse function at :math:`\tau` to obtain a predicted Cartesian location of the
+# target, then we use the transition model with time-inverse dynamics (:math:`t_{k} - \tau`)
+# to trace back where the target was in the scan-timestamp (:math:`t`). With this pseudo-location, which is an
+# approximation, we can compute the pseudo-measurement using the measurement model.
+# In this way now we have a pseudo-measurement at :math:`t` and we can keep the time-chain and
 # process this as a true detection.
 #
 
@@ -332,11 +328,11 @@ for k in range(len(scan_s1)):
 
 
 # %%
-# 4) Run the comparison between the resulting tracks and plot the results.
+# 4. Run the comparison between the resulting tracks and plot the results.
 # ------------------------------------------------------------------------
 # We have obtained the final tracks from the detections and we have two sets of
 # tracks, one with OOSM and one without. We now can visualise the results
-# and evaluate the track-to-truh accuracy using the OSPA metric tool.
+# and evaluate the track-to-track accuracy using the OSPA metric tool.
 #
 
 from stonesoup.plotter import AnimatedPlotterly
@@ -348,10 +344,10 @@ plotter.plot_tracks(oosm_tracks, [0, 2], track_label='OOSM Tracks',
                     line= dict(color='orange'))
 plotter.plot_tracks(noOsm_tracks, [0, 2], track_label='no-OOSM Tracks',
                     line= dict(color='red'))
-plotter.show()
+plotter.fig
 
 # %%
-# Evaluate the track-to-truth accuracy
+# Evaluate the track-to-track accuracy
 # ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 from stonesoup.metricgenerator.ospametric import OSPAMetric
@@ -398,12 +394,12 @@ graph.fig
 # %%
 # References
 # ----------
-# .. [#] Y. Bar-Shalom, M. Mallick, H. Chen, R. Washburn, 2002,
+# .. [1] Y. Bar-Shalom, M. Mallick, H. Chen, R. Washburn, 2002,
 #        One-step solution for the general out-of-sequence measurement
 #        problem in tracking, Proceedings of the 2002 IEEE Aerospace
 #        Conference.
-# .. [#] Y. Bar-Shalom, 2002, Update with out-of-sequence measurements in tracking:
+# .. [2] Y. Bar-Shalom, 2002, Update with out-of-sequence measurements in tracking:
 #        exact solution, IEEE Transactons on Aerospace and Electronic Systems 38.
-# .. [#] S. R. Maskell, R. G. Everitt, R. Wright, M. Briers, 2005,
+# .. [3] S. R. Maskell, R. G. Everitt, R. Wright, M. Briers, 2005,
 #        Multi-target out-of-sequence data association: Tracking using
 #        graphical models, Information Fusion.
