@@ -233,7 +233,9 @@ class DummyDetector(DetectionReader):
     def detections_gen(self):
         yield self.current
 
+# %%
 # Unscented Kalman Filter
+
 # load the Unscented Kalman filter predictor and updater
 UKF_updater = UnscentedKalmanUpdater(measurement_model=None)
 UKF_predictor = UnscentedKalmanPredictor(transition_model)
@@ -320,8 +322,9 @@ PF_initiator = GaussianParticleInitiator(
     initiator=initiator_particles,
     number_particles=n_particles)
 
-
+# %%
 # Instantiate each of the Trackers, without specifying the detector
+
 UKF_tracker = MultiTargetTracker(
     initiator=UKF_initiator,
     deleter=deleter,
