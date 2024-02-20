@@ -11,16 +11,16 @@ Dealing with Out-Of-Sequence Measurements
 # In real world tracking situations, out of sequence measurements (OOSM) are a frequent
 # issue and it is important to have tools to minimise their impact in our tracking capabilities.
 #
-# In literature there are sophisticated solutions to adress this challenge and in a series of examples and
-# we aim to provide a toolkit of approaches, better than just chosing to ignore such measurements.
+# In literature there are sophisticated solutions to adress this challenge. In a series of examples,
+# we aim to provide a toolkit of approaches, better than just choosing to ignore such measurements.
 #
 # In this example we focus on the simpler approach, also known as algorithm A [#]_ (also in [#]_ and [#]_),
 # where we create a "fixed lag" storage of measurements and we go over the detections
 # and place the OOSM in the correct order chain of measurements.
 # The issue with this approach is that the :math:`\ell`-storage of measurements can grow
 # quickly if we are dealing with large number of sensors or targets, therefore computationally expensive.
-# As comparison we add a track where the detections are processed as they arrive at the tracker (no
-# reordering based on the detection timestamp) to prove that the tracking performance is worse in that scenario.
+# As a comparison, we add a track where the detections are processed as they arrive at the tracker (no
+# reordering based on the detection timestamp), to prove that the tracking performance is worse in that scenario.
 #
 # In other examples we present other algorithms and approaches to deal with OOSM in different manners (e.g. time
 # inverse dynamics).
@@ -55,18 +55,22 @@ from stonesoup.types.state import GaussianState, State, StateVector
 # %%
 # 1) Create ground truth and detections;
 # --------------------------------------
-# In this example we consider a single target moving on a nearly constant velocity trajectory
-# and an sensor obtains the detections.
+# In this example, we consider a single target moving on a nearly constant velocity trajectory.
+# A sensor obtains the detections.
 #
-# For simplicity we assume clutter to be negligible in this example. The OOS measurements are assumed to
-# have a, known, fixed lag, the scans are happening every 5 seconds and these measurements
+# For simplicity, we assume clutter to be negligible in this example. The OOS measurements are assumed to
+# have a, known, fixed lag. The scans are happening every 5 seconds and these measurements
 # are coming with a delay of 25 seconds.
 #
-# To model the delayed arrival of detections we record the arrival time of the scans and
+# The scans are a simplistic representation of real data coming from the sensor, at each timestamp
+# the sensor collects data on its field of view, which consists of noise detections (in the means of
+# clutter) and target measurements. The type of the sensor is modelled by the measurement model.
+#
+# To model the delayed arrival of detections, we record the arrival time of the scans and
 # we add the delay on the arrival time only, while keeping the detection timestamp correct.
 # Then,  we re-order the scans by their arrival time. In this way the tracker will receive the
-# detection as their arrival time, creating the presence of delayed measurements and allowing to apply the
-# algorithm.
+# detections at their arrival time, creating the presence of delayed measurements, and allowing the application of
+# the algorithm.
 
 # instantiate the transition model
 transition_model = CombinedLinearGaussianTransitionModel([ConstantVelocity(0.05),
@@ -99,7 +103,6 @@ measurement_model = LinearGaussian(
     noise_covar=np.diag([50, 50]))
 
 # Collect the measurements using scans
-scans_detections = []
 scans = []
 
 # Create the detections
@@ -119,8 +122,6 @@ for k in range(num_steps):
     detections.add(TrueDetection(state_vector=measurement,
                                   groundtruth_path=truth,
                                   timestamp=truth[k].timestamp))
-    # store the scans into a list for plotting
-    scans_detections.append(detections)
 
     # Scans for tracking and reordering
     scans.append((truth[k].timestamp + timedelta(seconds=delay), detections))
@@ -132,8 +133,9 @@ arrival_time_ordered = sorted(scans, key=lambda dscan: dscan[0])
 # 2. Instantiate the tracking components;
 # ---------------------------------------
 # We have the scans containing the detections ordered by their arrival time.
-# It is time to prepare the tracking components, in this simple example we employ a
-# :class:`~.KalmanPredictor` and :class:`~.KalmanUpdater` to perform the tracking.
+# It is time to prepare the tracking components.
+# In this simple example we employ a :class:`~.KalmanPredictor`
+# and :class:`~.KalmanUpdater` to perform the tracking.
 #
 
 from stonesoup.updater.kalman import KalmanUpdater
@@ -191,6 +193,9 @@ for k in range(len(arrival_time_ordered)):  # loop over the scans
 # Visualise the tracking
 # ^^^^^^^^^^^^^^^^^^^^^^
 # Now visualise the detections and the track without the algorithm applied.
+
+# Collect the detections
+scans_detections = [item[1] for item in arrival_time_ordered]
 
 plotter = AnimatedPlotterly(timesteps=timestamps)
 plotter.plot_ground_truths(truths, [0, 2])
