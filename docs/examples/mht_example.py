@@ -16,11 +16,12 @@ General Multi Hypotheses tracking implementation example
 # clutter).
 #
 # MHT, by definition, has several algorithms that fall under this definition, which
-# include Global Nearest Neighbour (GNN, :doc:`check here <tutorials/06_DataAssociation-MultiTargetTutorial>`),
-# Joint Probabilistic Data association (JPDA, :doc:`tutorial here <tutorials/08_JPDATutorial>`),
+# include Global Nearest Neighbour (GNN, :doc:`check here <../tutorials/06_DataAssociation-MultiTargetTutorial>`),
+# Joint Probabilistic Data association (JPDA, :doc:`tutorial here <../tutorials/08_JPDATutorial>`),
 # Multi-frame assignment (MFA [#]_, see other :doc:`example here <MFA_example>`),
 # Multi Bernoulli filter and Probabilistic multi hypotheses tracking (PMHT).
 # Some of these algorithms are already implemented the Stone Soup.
+#
 # In this example we employ the multi-frame assignment data associator and
 # hypothesiser using their Stone Soup implementation.
 #
@@ -73,7 +74,7 @@ clutter_spatial_density = clutter_rate/surveillance_area
 #
 # We can instantiate the transition model of the targets and the measurement model. In this example we employ
 # :class:`~.CartesianToBearingRange` non-linear measurement model.
-# Then we pass all these details to a :class:`~.MultiTargetGroundTruthSimulator`
+# Then, we pass all these details to a :class:`~.MultiTargetGroundTruthSimulator`
 # and use a :class:`~.SimpleDetectionSimulator`
 # to obtain the target ground truth tracks, detections and clutter.
 #
