@@ -7,22 +7,21 @@ Using linearised ODEs from non-linear dynamic models in Stone Soup
 """
 
 # %%
-# In real world applications objects are subject to much more complex
-# dynamics than the simpler approximations we have
-# considered in other examples. However, working with non-linear
-# and time-variant dynamics can be challenging and computationally
-# expensive, hence the needs of approximation methods to ease
-# the simulation and the tracking performance.
+# In real world applications objects are subject to much more complex dynamics than the simpler
+# approximations we have considered in other examples. However, working with non-linear
+# and time-variant dynamics can be challenging and computationally expensive, hence the needs of
+# approximation methods to ease the simulation and the tracking performance.
+#
 # In this example we present a simple method to adopt when you have to linearise
 # a non-linear dynamical model and use such linearised method in a
 # Stone soup application acting as transition model.
+#
 # Specifically in this example we will show how to use the Van Loan method [#]_
 # to linearise the gravitational forces acting on a satellite orbiting Earth
-# and create a transition model to model the target trajectory, then making use of
-# standard Stone Soup components perform the tracking.
-# This method can be used in other context such as navigation.
+# and create a transition model to model the target trajectory, then making use of Stone Soup components
+# perform the tracking. This method can be used in other context such as navigation.
 #
-# To linearise the dynamical functions, OrdinaryOrdinary Differential Equations (ODEs), we
+# To linearise the dynamical functions, Ordinary Differential Equations (ODEs), we
 # make use of libraries that allow to automatically differentiate the function over
 # the variables, in this specific case we employ https://pypi.org/project/torch/.
 #
@@ -71,8 +70,9 @@ Grav0 = 3.9860 * 1e5  # gravitational constant in km units
 # a linearised model that can be used to create tracks of the targets.
 # To do so we create a class that behaves in a similar way as the
 # Stone Soup transition model classes, with explicit definition of
-# ``function'' to generate new data point using the transition matrix and
+# ``function`` to generate new data point using the transition matrix and
 # ``covar`` for the covariance matrix.
+#
 # The approach is a general formuation and can be used for multiple functions.
 #
 
@@ -116,6 +116,7 @@ class LinearisedModel(GaussianTransitionModel, TimeVariantModel):
 
         # use autograd to create the matrix components
         jac_rows = torch.autograd.functional.jacobian(d_acc, torch.tensor(istate))
+
         for i, r in enumerate(jac_rows):
             A[i] = r
 
@@ -136,15 +137,13 @@ class LinearisedModel(GaussianTransitionModel, TimeVariantModel):
 
         # Obtain the jacobian of the ODE
         dA = self._get_jacobian(da, state, timestamp=timestamp)
+
         # Make the jacobian available for all the class at specific time and state
         self.dA = dA
 
         # Compute the integral of the Jacobian
         # Get \int e^{dA*s}\,ds
-        int_eA = expm(dt * np.block([
-            [dA, np.identity(nx)],
-            [np.zeros([nx, 2 * nx])
-             ]]))[:nx, nx:]
+        int_eA = expm(dt * np.block([[dA, np.identity(nx)], [np.zeros([nx, 2 * nx])]]))[:nx, nx:]
 
         # Get new value of x
         x = [i for i in state.state_vector]
@@ -174,6 +173,7 @@ class LinearisedModel(GaussianTransitionModel, TimeVariantModel):
         # use the differential equation and time delta
         da = self.differential_equation
         dt = kwargs['time_interval'].total_seconds()
+
         # create a new state using the linearised ODE
         new_state = self._do_linearise(da, state, dt)
 
@@ -204,16 +204,15 @@ class LinearisedModel(GaussianTransitionModel, TimeVariantModel):
         G = expm(dt * np.block([[-self.dA, dQ],
                                 [np.zeros([nx, nx]),
                                  np.transpose(self.dA)]]))
-        Q = np.transpose(G[nx:, nx:]) @ (G[:nx, nx:])
+        Q = np.transpose(G[nx:, nx:]) @ (G[:nx, :nx])
         Q = (Q + np.transpose(Q)) / 2.
 
         return CovarianceMatrix(Q)
 
 
 # %%
-# We have specified a class that takes as input
-# a differential equation, e.g. a force, that can be linearised and
-# the process noise, these needs to be applied in the transition method.
+# We have specified a class that requires  a differential equation, e.g. a force,
+# that can be linearised and the process noise as inputs. These imputs will generate the transition method.
 # We need to define an ODE, linearise it and use the transition matrix.
 
 # create the ODE function
@@ -243,30 +242,32 @@ def acceleration_function(state, constants=None, **kwargs):
 # We have the transition model, we can create a single target
 # subject to such forces and model the dynamics accordingly. Then,
 # we can specify the measurement model and obtain the measurements
-# from the ground truths available. We use a non-linear 3D measurement model using
-# :class:`~.CartesianToElevationBearingRange`.
-
+# from the ground truths available.
+#
+# We employ a non-linear 3D measurement model using :class:`~.CartesianToElevationBearingRange`.
 
 # Create the linearised transition model
 transition_model = LinearisedModel(
     differential_equation=acceleration_function,
-    linear_noise_coeffs=np.array([1, 1, 1])
+    linear_noise_coeffs=np.array([10, 10, 10])
 )
 
 # Create an initial state, from a known orbital state
 initial_state = np.array([20757, -2.676,
                           36700, 1.513,
-                          -279.938, 0.0213])  # The states are in km
+                          -279.938, 0.0213]) # The states are in km
 
 # Define the initial covariance
-initial_covariance = CovarianceMatrix(np.diag([500, 10, 500,
-                                               10, 500, 10]))
+initial_covariance = CovarianceMatrix(np.diag([5000, 100, 5000,
+                                               100, 5000, 100]))
 
 # Define the trajectory prior
 prior= GaussianState(state_vector=StateVector(initial_state),
                      covar=initial_covariance,
                      timestamp=start_time)
 
+# %%
+# Create the gound truths
 
 # initialise the ground truth
 truth = GroundTruthPath([
@@ -277,7 +278,7 @@ truth = GroundTruthPath([
 for k in range(1, simulation_step + 1):
     truth.append(GroundTruthState(
         transition_model.function(truth[k - 1],
-                                  noise=False,
+                                  noise=False,   # if True the orbit will not be circular anymore
                                   time_interval=time_interval),
         timestamp=start_time + timedelta(seconds=k*time_interval.total_seconds())))
 
@@ -289,7 +290,7 @@ from stonesoup.types.detection import TrueDetection
 measurement_model = CartesianToElevationBearingRange(
     ndim_state=6,
     mapping=(0, 2, 4),
-    noise_covar=np.diag([np.radians(0.005), np.radians(0.005), 100])
+    noise_covar= np.diag([50e-6, 50e-6, 5000])  # angles in microradians
 )
 
 # Create the measurements
@@ -326,8 +327,8 @@ plotter.fig
 # 3. Instantiate the tracker components and run the tracker
 # ---------------------------------------------------------
 # We employ a :class:`~.ExtendedKalmanUpdater` and
-# :class:`~.ExtendedKalmanPredictor` to perform the tracking,
-# since we are dealing with a single target tracker we don't specify
+# :class:`~.ExtendedKalmanPredictor` to perform the tracking.
+# Since we are dealing with a single target tracker we don't specify
 # any track deleter and initiator. As well, in this simpler case
 # we don't consider any misdetection or clutter.
 
@@ -341,6 +342,7 @@ updater = ExtendedKalmanUpdater(measurement_model)
 
 # Prepare the tracking
 track = Track([prior])
+
 for measurement in measurements:
     prediction = predictor.predict(prior, timestamp=measurement.timestamp)
     hypothesis = SingleHypothesis(prediction, measurement)
@@ -364,4 +366,3 @@ plotter.fig
 # ----------
 # .. [#] C. Van Loan, “Computing integrals involving the matrix exponential”,
 #        IEEE Transactions on Automatic 460 Control, Vol. 23, No. 3, pp 395—404, 1978.
-
