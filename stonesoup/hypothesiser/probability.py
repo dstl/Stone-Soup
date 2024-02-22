@@ -147,10 +147,10 @@ class PDAHypothesiser(Hypothesiser):
                 prediction, detection.measurement_model, **kwargs)
             # Calculate difference before to handle custom types (mean defaults to zero)
             # This is required as log pdf coverts arrays to floats
-            log_pdf = multivariate_normal.logpdf(
+            log_prob = multivariate_normal.logpdf(
                 (detection.state_vector - measurement_prediction.state_vector).ravel(),
                 cov=measurement_prediction.covar)
-            pdf = Probability(log_pdf, log_value=True)
+            probability = Probability(log_prob, log_value=True)
 
             if measure(measurement_prediction, detection) \
                     <= self._gate_threshold(self.prob_gate, measurement_prediction.ndim):
@@ -161,7 +161,7 @@ class PDAHypothesiser(Hypothesiser):
                 valid_measurement = False
 
             if self.include_all or valid_measurement:
-                probability = pdf * self.prob_detect
+                probability *= self.prob_detect
                 if self.clutter_spatial_density is not None:
                     probability /= self.clutter_spatial_density
 

@@ -116,6 +116,9 @@ def test_probability_multiply():
     assert isinstance(probability1*value1, float)
     assert approx(45.0) == probability2*value1
 
+    probability1 *= 0.5
+    assert isinstance(probability1, Probability)
+
 
 def test_probability_divide():
     probability1 = Probability(0.2)
