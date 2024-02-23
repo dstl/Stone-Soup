@@ -11,7 +11,8 @@ from stonesoup.types.track import Track
 @pytest.mark.parametrize(
     "check_timestamp, predict_measurement",
     [
-     (True, True),
+     (True, False),
+     (False, True),
      (False, False)
     ]
 )
