@@ -1,5 +1,5 @@
 
-from .._functions import _dict_set, _default_label, _default_letters
+from .._functions import _dict_set, _default_label_gen
 from ..node import RepeaterNode
 
 
@@ -39,24 +39,13 @@ def test_dict_set():
 
 
 def test_default_label(nodes):
-    last_letters = {'Node': '', 'SensorNode': '', 'FusionNode': '', 'SensorFusionNode': '',
-                    'RepeaterNode': 'Z'}
     node = nodes['a']
-    label, last_letters = _default_label(node, last_letters)
-    assert last_letters['Node'] == 'A'
-    assert label == 'Node \nA'
+    label = next(_default_label_gen(type(node)))
+    assert label == 'Node\nA'
 
     repeater = RepeaterNode()
-    assert last_letters['RepeaterNode'] == 'Z'
-    label, last_letters = _default_label(repeater, last_letters)
-    assert last_letters['RepeaterNode'] == 'AA'
-    assert label == 'RepeaterNode \nAA'
-
-
-def test_default_letters():
-    assert _default_letters('') == 'A'
-    assert _default_letters('A') == 'B'
-    assert _default_letters('Z') == 'AA'
-    assert _default_letters('AA') == 'AB'
-    assert _default_letters('AZ') == 'BA'
-    assert _default_letters('ZZ') == 'AAA'
+    gen = _default_label_gen(type(repeater))
+    label = [next(gen) for i in range(26)][-1]  # A-Z 26 chars
+    assert label.split("\n")[-1] == 'Z'
+    label = next(gen)
+    assert label == 'RepeaterNode\nAA'
