@@ -1,6 +1,6 @@
 import copy
-
-from typing import Sequence, Literal
+from enum import Enum
+from typing import Sequence
 
 import numpy as np
 from scipy.special import logsumexp
@@ -11,6 +11,7 @@ from ._utils import predict_lru_cache
 from .kalman import KalmanPredictor, ExtendedKalmanPredictor
 from ..base import Property
 from ..models.transition import TransitionModel
+from ..sampler.particle import ParticleSampler
 from ..types.numeric import Probability
 from ..types.prediction import Prediction
 from ..types.state import GaussianState
@@ -387,22 +388,29 @@ class BernoulliParticlePredictor(ParticlePredictor):
         return detections
 
 
-class SMCPHDPredictor(Predictor):
-    """SMC-PHD Predictor class
+class SMCPHDBirthSchemeEnum(Enum):
+    """SMC-PHD Birth scheme enumeration"""
+    EXPANSION = 'expansion'  #: Expansion birth scheme
+    MIXTURE = 'mixture'      #: Mixture birth scheme
 
-    Sequential Monte Carlo (SMC) PHD predictor implementation, based on [#]_.
+
+class SMCPHDPredictor(Predictor):
+    """Sequential Monte Carlo Probability Hypothesis Density (SMC-PHD) Predictor class
+
+    An implementation of a particle predictor that propagates only the first-order moment (i.e. the
+    Probability Hypothesis Density) of the multi-target state density based on [#phd]_.
 
     .. note::
 
         - It is assumed that the proposal distribution is the same as the dynamics
-        - Target "spawing" is not implemented
+        - Target "spawning" is not implemented
 
     Parameters
     ----------
 
     References
     ----------
-     .. [#] Ba-Ngu Vo, S. Singh and A. Doucet, "Sequential monte carlo implementation of the phd
+     .. [#phd] Ba-Ngu Vo, S. Singh and A. Doucet, "Sequential monte carlo implementation of the phd
             filter for multi-target tracking," Sixth International Conference of Information
             Fusion, 2003. Proceedings of the, Cairns, QLD, Australia, 2003, pp. 792-799,
             doi: 10.1109/ICIF.2003.177320
@@ -411,31 +419,40 @@ class SMCPHDPredictor(Predictor):
     death_probability: Probability = Property(
         doc="The probability of death per unit time. This is used to calculate the probability "
             r"of survival as :math:`1 - \exp(-\lambda \Delta t)` where :math:`\lambda` is the "
-            r"probability of death and :math:`\Delta t` is the time interval.")
+            r"probability of death and :math:`\Delta t` is the time interval")
     birth_probability: Probability = Property(
-        doc="Probability of target birth.")
+        doc="Probability of target birth. In the current implementation, this is used to calculate"
+            "the number of birth particles, as per the explanation under :py:attr:`~birth_scheme`")
     birth_rate: float = Property(
-        doc="The expected number of new/born targets at each iteration.")
-    birth_sampler: Sampler = Property(
-        doc="Sampler object used for sampling birth particles. Current implementation assumes "
-            "the :class:`~.ParticleSampler` is used, but any equivalent sampler can be used. The "
-            "weight of the sampled birth particles is ignored and calculated internally based on "
-            "the birth rate and number of particles.")
+        doc="The expected number of new/born targets at each iteration. This is used to calculate"
+            "the weight of the birth particles")
+    birth_sampler: ParticleSampler = Property(
+        doc="Sampler object used for sampling birth particles. The weight of the sampled birth "
+            "particles is ignored and calculated internally based on the :py:attr:`~birth_rate` "
+            "and number of particles")
     birth_func_num_samples_field: str = Property(
         default='num_samples',
         doc="The field name of the number of samples parameter for the birth sampler. This is "
             "required since the number of samples required for the birth sampler may be vary"
-            "between iterations. Default is 'num_samples'")
-    birth_scheme: Literal["expansion", "mixture"] = Property(
-        default="expansion",
-        doc="The scheme for birth particles. Options are 'expansion' | 'mixture'. "
-            "Default is 'expansion'"
+            "between iterations. Default is ``'num_samples'``")
+    birth_scheme: SMCPHDBirthSchemeEnum = Property(
+        default=SMCPHDBirthSchemeEnum.EXPANSION,
+        doc="The scheme for birth particles. Options are ``'expansion'`` | ``'mixture'``. Default "
+            "is ``'expansion'``.\n\n"
+            " - The ``'expansion'`` scheme follows the implementation of [#phd]_, meaning that "
+            "birth particles are appended to the list of surviving particles, where the number of "
+            "birth particles is computed as :math:`P_b N` where :math:`P_b` is the birth "
+            "probability and :math:`N` is the number of particles.\n"
+            " - The ``'mixture'`` scheme draws from a binomial distribution, with probability "
+            ":math:`P_b`, for each particle to decide if it gets replaced by a birth particle. "
+            "The weights of the particles are then updated as a mixture of the survival and birth "
+            "probabilities."
     )
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        if self.birth_scheme not in ["expansion", "mixture"]:
-            raise ValueError("Invalid birth scheme. Options are 'expansion' | 'mixture'")
+        # Ensure birth scheme is a valid BirthSchemeEnum
+        self.birth_scheme = SMCPHDBirthSchemeEnum(self.birth_scheme)
 
     @predict_lru_cache()
     def predict(self, prior, timestamp=None, **kwargs):
@@ -466,7 +483,7 @@ class SMCPHDPredictor(Predictor):
         log_prob_survive = -float(self.death_probability) * time_interval.total_seconds()
 
         # Perform birth and update weights
-        if self.birth_scheme == "expansion":
+        if self.birth_scheme == SMCPHDBirthSchemeEnum.EXPANSION:
             # Expansion birth scheme, as described in [1]
             # Compute number of birth particles (J_k) as a fraction of the number of particles
             num_birth = round(float(self.birth_probability) * num_samples)

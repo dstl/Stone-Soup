@@ -8,7 +8,8 @@ import pytest
 
 from ...models.transition.linear import ConstantVelocity
 from ...predictor.particle import (
-    ParticlePredictor, ParticleFlowKalmanPredictor, BernoulliParticlePredictor, SMCPHDPredictor)
+    ParticlePredictor, ParticleFlowKalmanPredictor, BernoulliParticlePredictor, SMCPHDPredictor,
+    SMCPHDBirthSchemeEnum)
 from ...types.array import StateVector
 from ...types.numeric import Probability
 from ...types.particle import Particle
@@ -279,7 +280,12 @@ def test_bernoulli_particle_detection():
 
 @pytest.mark.parametrize(
     "birth_scheme",
-    ('mixture', 'expansion', 'some_other_scheme'))
+    (
+        SMCPHDBirthSchemeEnum.MIXTURE,  # Mixture birth scheme and Enum test
+        'expansion',                    # Expansion birth scheme and string test
+        'some_other_scheme'             # Invalid birth scheme
+    )
+)
 def test_smcphd(birth_scheme):
 
     # Initialise a transition model
@@ -341,7 +347,7 @@ def test_smcphd(birth_scheme):
                                @ particle.state_vector,
                                prob_survive * particle.weight)
                       for particle in prior_particles]
-    if birth_scheme == 'mixture':
+    if SMCPHDBirthSchemeEnum(birth_scheme) == SMCPHDBirthSchemeEnum.MIXTURE:
         # NOTE: In the lines below, we utilise the knowledge that the above configuration results
         #       in a single birth particle, that replaces the first particle in the prior, whose
         #       state vector is known. This might not be the case for other configurations, or if
