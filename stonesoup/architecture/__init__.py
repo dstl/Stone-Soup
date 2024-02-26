@@ -8,7 +8,7 @@ from .node import Node, SensorNode, RepeaterNode, FusionNode
 from .edge import Edges, DataPiece, Edge
 from ..types.groundtruth import GroundTruthPath
 from ..types.detection import TrueDetection, Clutter
-from ._functions import _default_label
+from ._functions import _default_label_gen
 
 from typing import List, Tuple, Collection, Set, Union, Dict
 import numpy as np
@@ -59,12 +59,13 @@ class Architecture(Base):
             raise ValueError("The graph is not connected. Use force_connected=False, "
                              "if you wish to override this requirement")
 
-        # Set attributes such as label, colour, shape, etc. for each node
-        last_letters = {'Node': '', 'SensorNode': '', 'FusionNode': '', 'SensorFusionNode': '',
-                        'RepeaterNode': ''}
+        node_label_gens = {}
+        labels = {node.label.replace("\n", " ") for node in self.di_graph.nodes if node.label}
         for node in self.di_graph.nodes:
             if not node.label:
-                node.label, last_letters = _default_label(node, last_letters)
+                label_gen = node_label_gens.setdefault(type(node), _default_label_gen(type(node)))
+                while not node.label or node.label.replace("\n", " ") in labels:
+                    node.label = next(label_gen)
             self.di_graph.nodes[node].update(self._node_kwargs(node))
 
     def recipients(self, node: Node):
@@ -457,11 +458,13 @@ class NetworkArchitecture(Architecture):
         # Need to reset digraph for info-arch
         self.di_graph = nx.to_networkx_graph(self.edges.edge_list, create_using=nx.DiGraph)
         # Set attributes such as label, colour, shape, etc. for each node
-        last_letters = {'Node': '', 'SensorNode': '', 'FusionNode': '', 'SensorFusionNode': '',
-                        'RepeaterNode': ''}
+        node_label_gens = {}
+        labels = {node.label.replace("\n", " ") for node in self.di_graph.nodes if node.label}
         for node in self.di_graph.nodes:
             if not node.label:
-                node.label, last_letters = _default_label(node, last_letters)
+                label_gen = node_label_gens.setdefault(type(node), _default_label_gen(type(node)))
+                while not node.label or node.label.replace("\n", " ") in labels:
+                    node.label = next(label_gen)
             self.di_graph.nodes[node].update(self._node_kwargs(node))
 
     def measure(self, ground_truths: List[GroundTruthPath], noise: Union[bool, np.ndarray] = True,
