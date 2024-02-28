@@ -1,3 +1,4 @@
+import copy
 import operator
 import random
 import warnings
@@ -62,7 +63,7 @@ class InformationArchitectureGenerator(Base):
     def generate(self):
         edgelist, degrees = self.generate_edgelist()
 
-        nodes = self.assign_nodes(degrees)
+        nodes, edgelist = self.assign_nodes(degrees, edgelist)
 
         arch = self.generate_architecture(nodes, edgelist)
 
@@ -79,10 +80,10 @@ class InformationArchitectureGenerator(Base):
         arch = InformationArchitecture(arch_edges, self.start_time)
         return arch
 
-    def assign_nodes(self, degrees):
+    def assign_nodes(self, degrees, edgelist):
         reordered = []
         for node_no in degrees.keys():
-            reordered.append((node_no, degrees[node_no]['degree']))
+            reordered.append((node_no, degrees[node_no]['target']))
 
         reordered.sort(key=operator.itemgetter(1))
         order = []
@@ -96,19 +97,20 @@ class InformationArchitectureGenerator(Base):
         nodes = {}
         n_sensors = 0
         n_trackers = 0
-        for node_no, type in zip(order, components):
-            if type == 's':
+        for node_no, node_type in zip(order, components):
+            if node_type == 's':
                 node = SensorNode(sensor=self.sensors[n_sensors], label=str(node_no))
                 n_sensors += 1
                 nodes[node_no] = node
 
-            if type == 'f':
+            elif node_type == 'f':
                 node = FusionNode(tracker=self.trackers[n_trackers],
-                                  fusion_queue=self.trackers[n_trackers].detector.reader)
+                                  fusion_queue=self.trackers[n_trackers].detector.reader,
+                                  label=str(node_no))
                 n_trackers += 1
                 nodes[node_no] = node
 
-            if type == 'sf':
+            elif node_type == 'sf':
                 node = SensorFusionNode(sensor=self.sensors[n_sensors], label=str(node_no),
                                         tracker=self.trackers[n_trackers],
                                         fusion_queue=self.trackers[n_trackers].detector.reader)
@@ -116,7 +118,16 @@ class InformationArchitectureGenerator(Base):
                 n_trackers += 1
                 nodes[node_no] = node
 
-        return nodes
+        new_edgelist = copy.copy(edgelist)
+        for edge in edgelist:
+            s = edge[0]
+            t = edge[1]
+
+            if isinstance(nodes[s], FusionNode) and type(nodes[t]) == SensorNode:
+                new_edgelist.remove((s, t))
+                new_edgelist.append((t, s))
+
+        return nodes, new_edgelist
 
     def generate_edgelist(self):
         count = 0
