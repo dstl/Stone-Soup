@@ -94,7 +94,7 @@ seed = 818 # np.random.randint(0, 1000) # 706, 959, 547
 print(seed)
 np.random.seed(seed)
 
-path = r'C:\Users\sglvladi\OneDrive\Workspace\PostDoc\CADMURI\MATLAB\simple\data\minn_2.mat'
+path = r'.\data\minn_2.mat'
 
 net_dict = load_graph_dict(path)
 G = RoadNetwork.from_dict(net_dict)
@@ -178,7 +178,7 @@ prior_state = ParticleStateUpdate(state_vector=prior_sv,
 predictor = ParticlePredictor(transition_model)
 # Updater
 resampler = SystematicResampler()
-updater = ParticleUpdater(measurement_model, resampler)
+updater = ParticleUpdater(measurement_model, resampler=resampler)
 # Initiate track
 track = Track([prior_state], id=gnd_path.id)
 
