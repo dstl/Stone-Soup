@@ -104,7 +104,12 @@ class ShortestPathToDestinationMeasurementModel(NonLinearGaussianMeasurement):
             d = state2.state_vector[-2, :]
             s = state2.state_vector[-1, :]
             for i in range(num_particles):
-                path = self.graph.shortest_path(s[i], d[i], path_type='edge')[(s[i], d[i])]
+                try:
+                    path = self.graph.shortest_path(s[i], d[i], path_type='edge')[(s[i], d[i])]
+                except KeyError:
+                    # If no path exists, set likelihood to -inf
+                    likelihood[i] = -np.inf
+                    continue
                 idx = np.where(path == e[i])[0]
                 if len(idx) == 0:
                     likelihood[i] = -np.inf
