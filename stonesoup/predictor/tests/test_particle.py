@@ -1,3 +1,5 @@
+import itertools
+
 import datetime
 import copy
 
@@ -6,7 +8,10 @@ import pytest
 
 from ...models.transition.linear import ConstantVelocity
 from ...predictor.particle import (
-    ParticlePredictor, ParticleFlowKalmanPredictor, BernoulliParticlePredictor)
+    ParticlePredictor, ParticleFlowKalmanPredictor, BernoulliParticlePredictor, SMCPHDPredictor,
+    SMCPHDBirthSchemeEnum)
+from ...types.array import StateVector
+from ...types.numeric import Probability
 from ...types.particle import Particle
 from ...types.prediction import ParticleStatePrediction, BernoulliParticleStatePrediction
 from ...types.update import BernoulliParticleStateUpdate
@@ -271,3 +276,109 @@ def test_bernoulli_particle_detection():
     assert np.allclose(eval_weight, prediction.weight.astype(np.float64))
     # check that the weights are normalised
     assert np.around(float(np.sum(prediction.weight)), decimals=1) == 1
+
+
+@pytest.mark.parametrize(
+    "birth_scheme",
+    (
+        SMCPHDBirthSchemeEnum.MIXTURE,  # Mixture birth scheme and Enum test
+        'expansion',                    # Expansion birth scheme and string test
+        'some_other_scheme'             # Invalid birth scheme
+    )
+)
+def test_smcphd(birth_scheme):
+
+    # Initialise a transition model
+    cv = ConstantVelocity(noise_diff_coeff=0)
+
+    # Define time related variables
+    timestamp = datetime.datetime.now()
+    timediff = 2  # 2sec
+    new_timestamp = timestamp + datetime.timedelta(seconds=timediff)
+    time_interval = new_timestamp - timestamp
+
+    # Parameters for SMC-PHD
+    death_probability = Probability(0.01)  # Probability of death
+    birth_probability = Probability(0.1)  # Probability of birth
+    birth_rate = 0.05  # Birth-rate (Mean number of new targets per scan)
+    birth_sampler = ParticleSampler(distribution_func=np.random.multivariate_normal,
+                                    params={'mean': np.array([20., 0.0]),
+                                            'cov': np.diag([10. ** 2, 1. ** 2])},
+                                    ndim_state=2)
+    num_particles = 9  # Number of particles
+
+    # Define prior state
+    prior_particles = [Particle(np.array([[i], [j]]), 1/num_particles)
+                       for i, j in itertools.product([10, 20, 30], [10, 20, 30])]
+    prior = ParticleState(None, particle_list=prior_particles, timestamp=timestamp)
+
+    if birth_scheme == 'some_other_scheme':
+        with pytest.raises(ValueError):
+            SMCPHDPredictor(transition_model=cv,
+                            death_probability=death_probability,
+                            birth_probability=birth_probability,
+                            birth_rate=birth_rate,
+                            birth_sampler=birth_sampler,
+                            birth_func_num_samples_field='size',
+                            birth_scheme=birth_scheme)
+        return
+
+    predictor = SMCPHDPredictor(transition_model=cv,
+                                death_probability=death_probability,
+                                birth_probability=birth_probability,
+                                birth_rate=birth_rate,
+                                birth_sampler=birth_sampler,
+                                birth_func_num_samples_field='size',
+                                birth_scheme=birth_scheme)
+
+    # Ensure same random numbers are generated
+    np.random.seed(16549)
+
+    # Perform the prediction
+    prediction = predictor.predict(prior, timestamp=new_timestamp)
+
+    # Compute the expected survival probability
+    prob_survive = np.exp(-float(death_probability) * time_interval.total_seconds())
+
+    # Compute the expected surviving particles
+    # NOTE: The line below is valid since process noise is zero
+    eval_particles = [Particle(cv.matrix(timestamp=new_timestamp,
+                                         time_interval=time_interval)
+                               @ particle.state_vector,
+                               prob_survive * particle.weight)
+                      for particle in prior_particles]
+    if SMCPHDBirthSchemeEnum(birth_scheme) == SMCPHDBirthSchemeEnum.MIXTURE:
+        # NOTE: In the lines below, we utilise the knowledge that the above configuration results
+        #       in a single birth particle, that replaces the first particle in the prior, whose
+        #       state vector is known. This might not be the case for other configurations, or if
+        #       the random seed is changed.
+        birth_weight = birth_rate / num_particles
+        new_weight = (prob_survive + birth_weight) * 1 / num_particles
+        eval_particles[0].state_vector = StateVector([[11.31091636],
+                                                      [-1.39374536]])
+        for particle in eval_particles:
+            particle.weight = new_weight
+
+    else:
+        # NOTE: Once again, we utilise the knowledge that the above configuration results in a
+        #       single birth particle, that is appended to the prior (since birth_scheme is
+        #       'expansion'), and whose state vector is known. This might not be the case for
+        #       other configurations, or if the random seed is changed.
+        num_birth = round(float(birth_probability) * num_particles)
+        birth_weight = birth_rate / num_birth
+        eval_particles.append(Particle(state_vector=StateVector([[18.3918058],
+                                                                 [0.31072265]]),
+                                       weight=birth_weight,
+                                       parent=None))
+
+    # Construct the expected prediction
+    eval_prediction = ParticleStatePrediction(None, new_timestamp, particle_list=eval_particles)
+
+    # Check that the computed mean is close to the expected mean
+    assert np.allclose(prediction.mean, eval_prediction.mean)
+    # Check that the timestamp is correct
+    assert prediction.timestamp == new_timestamp
+    # Check that the state vectors are correct
+    assert np.allclose(eval_prediction.state_vector, prediction.state_vector)
+    # Check that the weights are correct
+    assert np.allclose(prediction.log_weight, eval_prediction.log_weight)

@@ -14,6 +14,7 @@ from ..functions import cholesky_eps, sde_euler_maruyama_integration
 from ..predictor.particle import MultiModelPredictor, RaoBlackwellisedMultiModelPredictor
 from ..resampler import Resampler
 from ..regulariser import Regulariser
+from ..types.numeric import Probability
 from ..types.prediction import (
     Prediction, ParticleMeasurementPrediction, GaussianStatePrediction, MeasurementPrediction)
 from ..types.update import ParticleStateUpdate, Update
@@ -519,3 +520,119 @@ class BernoulliParticleUpdater(ParticleUpdater):
         Astack = np.stack([A] * B.shape[1]).transpose(1, 0, 2)
         Bstack = np.stack([B] * A.shape[0]).transpose(0, 2, 1)
         return np.squeeze(logsumexp(Astack + Bstack, axis=2))
+
+
+class SMCPHDUpdater(ParticleUpdater):
+    """Sequential Monte Carlo Probability Hypothesis Density (SMC-PHD) Updater class
+
+    An implementation of a particle updater that estimates only the first-order moment (i.e. the
+    Probability Hypothesis Density) of the multi-target state density based on [#phd1]_ and
+    [#phd2]_.
+
+    .. note::
+
+        - It is assumed that the proposal distribution is the same as the dynamics
+        - Target "spawning" is not implemented
+
+    Parameters
+    ----------
+
+    References
+    ----------
+    .. [#phd1] Ba-Ngu Vo, S. Singh and A. Doucet, "Sequential monte carlo implementation of the phd
+           filter for multi-target tracking," Sixth International Conference of Information
+           Fusion, 2003. Proceedings of the, Cairns, QLD, Australia, 2003, pp. 792-799,
+           doi: 10.1109/ICIF.2003.177320.
+    .. [#phd2] P. Horridge and S. Maskell,  “Using a probabilistic hypothesis density filter to
+           confirm tracks in a multi-target environment,” in 2011 Jahrestagung der Gesellschaft
+           fr Informatik, October 2011.
+    """
+    prob_detect: Probability = Property(
+        default=Probability(0.85),
+        doc="Target Detection Probability")
+    clutter_intensity: float = Property(
+        doc="Average number of clutter measurements per time step, per unit volume")
+    num_samples: int = Property(
+        default=None,
+        doc="The number of particles to be output by the updater, after resampling. If the "
+            "corresponding predictor has been configured in ``'expansion'`` mode, users should set"
+            "this to the number of particles they want to output, otherwise the number of "
+            "particles will continuously grow. Default is ``None``, which will output the same "
+            "number of particles as the input prediction.")
+
+    def update(self, hypotheses, **kwargs):
+        """ SMC-PHD update step
+
+        Parameters
+        ----------
+        hypotheses : :class:`~.MultipleHypothesis`
+            A container of :class:`~SingleHypothesis` objects. All hypotheses are assumed to have
+            the same prediction (and hence same timestamp).
+
+        Returns
+        -------
+        : :class:`~.ParticleStateUpdate`
+            The state posterior
+        """
+
+        prediction = hypotheses[0].prediction
+        detections = [hypothesis.measurement for hypothesis in hypotheses if hypothesis]
+        num_samples = len(prediction) if self.num_samples is None else self.num_samples
+
+        # Calculate w^{n,i} Eq. (20) of [#phd2]
+        log_weights_per_hyp = self.get_log_weights_per_hypothesis(prediction, detections)
+
+        # Update weights Eq. (8) of [phd1]
+        # w_k^i = \sum_{z \in Z_k}{w^{n,i}}, where i is the index of z in Z_k
+        log_post_weights = logsumexp(log_weights_per_hyp, axis=1)
+
+        # Apply constraints if defined
+        if self.constraint_func is not None:
+            part_indx = self.constraint_func(prediction)
+            log_post_weights[part_indx] = -1 * np.inf
+
+        # Create the updated state
+        updated_state = Update.from_state(
+            state=prediction,
+            hypothesis=hypotheses,
+            timestamp=prediction.timestamp
+        )
+
+        # Resample
+        if self.resampler is not None:
+            # Normalise weights
+            log_num_targets = logsumexp(log_post_weights)  # N_{k|k}
+            updated_state.log_weight = log_post_weights - log_num_targets
+            # Resample
+            updated_state = self.resampler.resample(updated_state, num_samples)
+            # De-normalise
+            updated_state.log_weight += log_num_targets
+
+        return updated_state
+
+    def get_log_weights_per_hypothesis(self, prediction, detections):
+        num_samples = prediction.state_vector.shape[1]
+
+        # Compute g(z|x) matrix as in [#phd1]
+        g = self._get_measurement_loglikelihoods(prediction, detections)
+
+        # Calculate w^{n,i} Eq. (20) of [#phd2]
+        Ck = np.log(self.prob_detect) + g + prediction.log_weight[:, np.newaxis]
+        C = logsumexp(Ck, axis=0)
+        k = np.log(self.clutter_intensity)
+        C_plus = np.logaddexp(C, k)
+        log_weights_per_hyp = np.full((num_samples, len(detections) + 1), -np.inf)
+        log_weights_per_hyp[:, 0] = np.log(1 - self.prob_detect) + prediction.log_weight
+        if len(detections):
+            log_weights_per_hyp[:, 1:] = Ck - C_plus
+
+        return log_weights_per_hyp
+
+    def _get_measurement_loglikelihoods(self, prediction, detections):
+        num_samples = prediction.state_vector.shape[1]
+        # Compute g(z|x) matrix as in [1]
+        g = np.zeros((num_samples, len(detections)))
+        for i, detection in enumerate(detections):
+            measurement_model = self._check_measurement_model(detection.measurement_model)
+            g[:, i] = measurement_model.logpdf(detection, prediction, noise=True)
+        return g
