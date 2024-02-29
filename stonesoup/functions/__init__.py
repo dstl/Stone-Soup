@@ -911,14 +911,14 @@ def cubature_transform(state, fun, points_noise=None, covar_noise=None, alpha=1.
     if points_noise is None:
         cubature_points_t = StateVectors([fun(State(cub_point)) for cub_point in cubature_points])
     else:
-        cubature_points_t = StateVectors(
-            [fun(State(cub_point), points_noise) for cub_point, point_noise in
-             zip(cubature_points, points_noise)])
+        cubature_points_t = StateVectors([
+            fun(State(cub_point), points_noise)
+            for cub_point, point_noise in zip(cubature_points, points_noise)])
 
     mean, covar = cubature2gauss(cubature_points_t, covar_noise)
 
-    cross_covar = (1/alpha)*((1.0 / (2 * ndim_state)) * cubature_points @ cubature_points_t.T -
-                             np.average(cubature_points, axis=1) @ mean.T)
+    cross_covar = (1/alpha)*((1.0 / (2 * ndim_state)) * cubature_points @ cubature_points_t.T
+                             - np.average(cubature_points, axis=1) @ mean.T)
     cross_covar = cross_covar.view(CovarianceMatrix)
 
     return mean, covar, cross_covar, cubature_points_t

@@ -495,11 +495,6 @@ class CubatureKalmanPredictor(KalmanPredictor):
         doc="Scaling parameter. Default is 1.0. Lower values select points closer to the mean and "
             "vice versa.")
 
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-
-        self._time_interval = None
-
     def _transition_and_control_function(self, prior_state, **kwargs):
         r"""Returns the result of applying the transition and control functions
         for the cubature transform
@@ -565,4 +560,4 @@ class CubatureKalmanPredictor(KalmanPredictor):
                                                   covar_noise=total_noise_covar, alpha=self.alpha)
 
         return Prediction.from_state(prior, x_pred, p_pred, timestamp=timestamp,
-                                     transition_model=self.transition_model)
+                                     transition_model=self.transition_model, prior=prior)
