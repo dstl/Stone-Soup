@@ -513,8 +513,8 @@ class CubatureKalmanPredictor(KalmanPredictor):
             control
         """
 
-        return self.transition_model.function(prior_state, **kwargs) + \
-            self.control_model.function(**kwargs)
+        return self.transition_model.function(prior_state, **kwargs) \
+            + self.control_model.function(**kwargs)
 
     @predict_lru_cache()
     def predict(self, prior, timestamp=None, control_input=None, **kwargs):
