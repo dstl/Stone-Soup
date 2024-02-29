@@ -60,8 +60,8 @@ def cholesky_eps(A, lower=False):
     L = np.zeros(A.shape)
     for i in range(A.shape[0]):
         for j in range(i):
-            L[i, j] = (A[i, j] - L[i, :] @ L[j, :].T) / L[j, j]
-        val = A[i, i] - L[i, :] @ L[i, :].T
+            L[i, j] = (A[i, j] - L[i, :]@L[j, :].T) / L[j, j]
+        val = A[i, i] - L[i, :]@L[i, :].T
         L[i, i] = np.sqrt(val) if val > eps else np.sqrt(eps)
 
     if lower:
@@ -92,20 +92,19 @@ def jacobian(fun, x, **kwargs):
 
     # For numerical reasons the step size needs to large enough. Aim for 1e-8
     # relative to spacing between floating point numbers for each dimension
-    delta = 1e8 * np.spacing(x.state_vector.astype(np.float_).ravel())
+    delta = 1e8*np.spacing(x.state_vector.astype(np.float64).ravel())
     # But at least 1e-8
     # TODO: Is this needed? If not, note special case at zero.
     delta[delta < 1e-8] = 1e-8
 
     x2 = copy.copy(x)  # Create a clone of the input
-    x2.state_vector = np.tile(x.state_vector, ndim + 1) + np.eye(ndim, ndim + 1) * \
-        delta[:, np.newaxis]
+    x2.state_vector = np.tile(x.state_vector, ndim+1) + np.eye(ndim, ndim+1)*delta[:, np.newaxis]
     x2.state_vector = x2.state_vector.view(StateVectors)
 
     F = fun(x2, **kwargs)
 
     jac = np.divide(F[:, :ndim] - F[:, -1:], delta)
-    return jac.astype(np.float_)
+    return jac.astype(np.float64)
 
 
 def gauss2sigma(state, alpha=1.0, beta=2.0, kappa=None):
@@ -167,9 +166,9 @@ def gauss2sigma(state, alpha=1.0, beta=2.0, kappa=None):
 
     # Can't use in place addition/subtraction as casting issues may arise when mixing float/int
     sigma_points[:, 1:(ndim_state + 1)] = \
-        sigma_points[:, 1:(ndim_state + 1)] + sqrt_sigma * np.sqrt(c)
+        sigma_points[:, 1:(ndim_state + 1)] + sqrt_sigma*np.sqrt(c)
     sigma_points[:, (ndim_state + 1):] = \
-        sigma_points[:, (ndim_state + 1):] - sqrt_sigma * np.sqrt(c)
+        sigma_points[:, (ndim_state + 1):] - sqrt_sigma*np.sqrt(c)
 
     # Put these sigma points into s State object list
     sigma_points_states = []
