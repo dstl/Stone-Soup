@@ -12,23 +12,23 @@ Kalman filter with Out-of-Sequence measurements
 # with methods like using inverse-time dynamics or creating a buffer where store and re-order
 # the measurements according to their delay.
 # In this example we present a method on how to deal with OOS measurements using Kalman
-# filters, my making the assumption that the delay of the delayed measurements is known, and constant.
+# filters, by making the assumption that the delay of the delayed measurements is known, and constant.
 # The problem of OOS measurements is significant in real-world applications
 # where data from different sources can have some delays and different timesteps
 # (e.g., two sensors observing a target) due to systems configuration and different processing
 # chain length.
 #
-# In the literature, there are examples (e.g. [#]_) on how to deal with such time-delays and
-# uncertain timesteps.
+# In the literature, there are examples on how to deal with such time-delays and
+# uncertain timesteps [#]_.
 # In this example we consider different approaches on how to deal with the OOSM,
 # we have a tracker (called Tracker 1) which will run as the measurements arrive without any
-# treatment of delay, in this tracker we are looping every timestep as :math:`t_{now}` and
+# treatment of delay, in this tracker we are looping every timestep as :math:`t_{\text{now}}` and
 # process every new detection without any adjustments on their time arrival.
 #
 # A second tracker (Tracker 2), built with the same components of Tracker 1, iterates
-# at :math:`t_{now}`-:math:`t_{delay}` basically waiting for the delayed detections to arrive
+# at :math:`t_{\text{now}}`-:math:`t_{\text{delay}}` basically waiting for the delayed detections to arrive
 # and adjusting for the delay. This tracker will lag behind the ground-truth detections which
-# arrive at :math:`t_{now}`.
+# arrive at :math:`t_{\text{now}}`.
 #
 # As a control, we consider a third tracker (Tracker 3) which will work by excluding all the
 # delayed detections (in this case considering only the detections from one sensor).
@@ -198,10 +198,10 @@ prior3 = deepcopy(prior1)
 # We have prepared the tracker components and we are ready to generate the final tracks.
 #
 # Tracker 1 will consider all the detections as they are arriving from the sensors considering
-# each timestep as :math:`t_{now}`. We should expect that as the delayed detections start to
+# each timestep as :math:`t_{\text{now}}`. We should expect that as the delayed detections start to
 # arrive the tracking quality will significantly drop.
 #
-# Tracker 2 will be lagging behind the timesteps, at :math:`t_{now}+t_{delay}`, in this way
+# Tracker 2 will be lagging behind the timesteps, at :math:`t_{\text{now}}+t_{\text{delay}}`, in this way
 # the tracker will wait for the delayed detections to arrive and will consider them in the
 # correct order and correct timestep. However the tracks will be behind the ground-truth track.
 #
@@ -292,8 +292,8 @@ for k in range(num_steps+5):  # loop over the timestep
 # ^^^^^^^^^^^^^^^^^^^^
 # The current implementation of :class:`~.AnimatedPlotterly` does not allow for a
 # "live" representation of the tracks with out of sequence measurements and tracks lagging
-# behind the :math:`t_{now}`. As well, the tracks are produced after the end of the simulation
-# with the latest :math:`t_{delay}` timesteps of the track are not yet available.
+# behind the :math:`t_{\text{now}}`. As well, the tracks are produced after the end of the simulation
+# with the latest :math:`t_{\text{delay}}` timesteps of the track are not yet available.
 # However, it is interesting to see a 1-to-1 comparison between the three trackers, even if the
 # Tracker 2 track is not, visually, lagging behind.
 
