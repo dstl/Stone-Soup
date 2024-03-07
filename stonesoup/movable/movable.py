@@ -255,9 +255,10 @@ class MovingMovable(Movable):
 
         This is defined as a 3x1 StateVector of angles (rad), specifying the sensor orientation in
         terms of the counter-clockwise rotation around each Cartesian axis in the order
-        :math:`x,y,z`. The rotation angles are positive if the rotation is in the counter-clockwise
-        direction when viewed by an observer looking along the respective rotation axis,
-        towards the origin.
+        :math:`x,y,z`. The x and z rotation angles are positive if the rotation is in the
+        counter-clockwise direction when viewed by an observer looking along the respective
+        rotation axis, towards the origin. The y rotation angle is the opposite (matching
+        'elevation')
 
         The orientation of this platform is defined as along the direction of its velocity, with
         roll always set to zero (as this is the angle the platform is rotated about the velocity

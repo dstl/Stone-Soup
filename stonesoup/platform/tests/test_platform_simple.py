@@ -445,69 +445,91 @@ def rotation_offsets_3d():
 def expected_orientations_3d():
     pi = np.pi
     offset_3d_movement = np.arctan(1 / np.sqrt(2))
+    fwd_left_elevated_45_el = np.arcsin(np.sin(np.pi / 4) / np.sqrt(2))
+    fwd_left_elevated_45_az = np.arctan(1 / np.cos(np.pi / 4))
+    fwd_left_elevated_o3m_el = np.arcsin(np.sin(offset_3d_movement) / np.sqrt(2))
+    fwd_left_elevated_o3m_az = np.arctan(1 / np.cos(offset_3d_movement))
 
-    return [np.array([[0., 0., 0.], [pi/4, 0., 0.], [0., pi/4, 0.], [-pi/4, 0., 0.],
-                      [0., -pi/4, 0.], [0., 0., pi/4], [0., 0., -pi/4]]),
-            np.array([[0., pi/2, 0.], [pi/4, pi/2, 0.], [0., 3*pi/4, 0.], [-pi/4, pi/2, 0.],
-                      [0., pi/4, 0.], [0., pi/2, pi/4], [0., pi/2, -pi/4]]),
-            np.array([[0., 0., pi/2], [pi/4, 0., pi/2], [0., pi/4, pi/2], [-pi/4, 0., pi/2],
-                      [0., -pi/4, pi/2], [0., 0., 3*pi/4], [0., 0., pi/4]]),
-            np.array([[0., 0., 0.], [pi/4, 0., 0.], [0., pi/4, 0.], [-pi/4, 0., 0.],
-                      [0., -pi/4, 0.], [0., 0., pi/4], [0., 0., -pi/4]]),
-            np.array([[0., pi/2, 0.], [pi/4, pi/2, 0.], [0., 3*pi/4, 0.], [-pi/4, pi/2, 0.],
-                      [0., pi/4, 0.], [0., pi/2, pi/4], [0., pi/2, -pi/4]]),
-            np.array([[0., 0., pi/2], [pi/4, 0., pi/2], [0., pi/4, pi/2], [-pi/4, 0., pi/2],
-                      [0., -pi/4, pi/2], [0., 0., 3*pi/4], [0., 0., pi/4]]),
-            np.array([[0., pi/4, 0.], [pi/4, pi/4, 0.], [0., pi/2, 0.], [-pi/4, pi/4, 0.],
-                      [0., 0., 0.], [0., pi/4, pi/4], [0., pi/4, -pi/4]]),
-            np.array([[0., pi/4, pi/2], [pi/4, pi/4, pi/2], [0., pi/2, pi/2],
-                      [-pi/4, pi/4, pi/2], [0., 0., pi/2], [0., pi/4, 3*pi/4], [0., pi/4, pi/4]]),
-            np.array([[0., offset_3d_movement, pi/4], [pi/4, offset_3d_movement, pi/4],
-                      [0., pi/4+offset_3d_movement, pi/4], [-pi/4, offset_3d_movement, pi/4],
-                      [0., -pi/4+offset_3d_movement, pi/4], [0., offset_3d_movement, pi/2],
-                      [0., offset_3d_movement, 0.]]),
-            np.array([[0., 0., pi], [pi/4, 0., pi], [0., pi/4, pi], [-pi/4, 0., pi],
-                      [0., -pi/4, pi], [0., 0., 5*pi/4], [0., 0., 3*pi/4]]),
-            np.array([[0., 0., -pi/2], [pi/4, 0., -pi/2], [0., pi/4, -pi/2], [-pi/4, 0., -pi/2],
-                      [0., -pi/4, -pi/2], [0., 0., -pi/4], [0., 0., -3*pi/4]]),
-            np.array([[0., -pi/2, 0.], [pi/4, -pi/2, 0.], [0., -pi/4, 0.], [-pi/4, -pi/2, 0.],
-                      [0., -3*pi/4, 0.], [0., -pi/2, pi/4], [0., -pi/2, -pi/4]]),
-            np.array([[0., 0., pi], [pi/4, 0., pi], [0., pi/4, pi], [-pi/4, 0., pi],
-                      [0., -pi/4, pi], [0., 0., 5*pi/4], [0., 0., 3*pi/4]]),
-            np.array([[0., 0., -pi/2], [pi/4, 0., -pi/2], [0., pi/4, -pi/2], [-pi/4, 0., -pi/2],
-                      [0., -pi/4, -pi/2], [0., 0., -pi/4], [0., 0., -3*pi/4]]),
-            np.array([[0., -pi/2, 0.], [pi/4, -pi/2, 0.], [0., -pi/4, 0.], [-pi/4, -pi/2, 0.],
-                      [0., -3*pi/4, 0.], [0., -pi/2, pi/4], [0., -pi/2, -pi/4]]),
-            np.array([[0., -pi/4, pi], [pi/4, -pi/4, pi], [0., 0., pi], [-pi/4, -pi/4, pi],
-                      [0., -pi/2, pi], [0., -pi/4, 5*pi/4], [0., -pi/4, 3*pi/4]]),
-            np.array([[0., -pi/4, -pi/2], [pi/4, -pi/4, -pi/2], [0., 0., -pi/2],
-                      [-pi/4, -pi/4, -pi/2], [0., -pi/2, -pi/2], [0., -pi/4, -pi/4],
-                      [0., -pi/4, -3*pi/4]])]
+    return [np.array([[0., 0., 0.], [pi / 4, 0., 0.], [0., pi / 4, 0.], [-pi / 4, 0., 0.],
+                      [0., -pi / 4, 0.], [0., 0., pi / 4], [0., 0., -pi / 4]]),
+            np.array([[0., pi / 2, 0.], [pi / 4, pi / 2, 0.], [0., pi / 4, pi],
+                      [-pi / 4, pi / 2, 0.], [0., pi / 4, 0.], [0., pi / 4, pi / 2],
+                      [0., pi / 4, -pi / 2]]),
+            np.array([[0., 0., pi / 2], [pi / 4, 0., pi / 2], [0., pi / 4, pi / 2],
+                      [-pi / 4, 0., pi / 2],
+                      [0., -pi / 4, pi / 2], [0., 0., 3 * pi / 4], [0., 0., pi / 4]]),
+            np.array([[0., 0., 0.], [pi / 4, 0., 0.], [0., pi / 4, 0.], [-pi / 4, 0., 0.],
+                      [0., -pi / 4, 0.], [0., 0., pi / 4], [0., 0., -pi / 4]]),
+            np.array([[0., pi / 2, 0.], [pi / 4, pi / 2, 0.], [0., pi / 4, pi],
+                      [-pi / 4, pi / 2, 0.], [0., pi / 4, 0.], [0., pi / 4, pi / 2],
+                      [0., pi / 4, -pi / 2]]),
+            np.array([[0., 0., pi / 2], [pi / 4, 0., pi / 2], [0., pi / 4, pi / 2],
+                      [-pi / 4, 0., pi / 2],
+                      [0., -pi / 4, pi / 2], [0., 0., 3 * pi / 4], [0., 0., pi / 4]]),
+            np.array(
+                [[0., pi / 4, 0.], [pi / 4, pi / 4, 0.], [0., pi / 2, 0.], [-pi / 4, pi / 4, 0.],
+                 [0., 0., 0.], [0., fwd_left_elevated_45_el, fwd_left_elevated_45_az],
+                 [0., fwd_left_elevated_45_el, -fwd_left_elevated_45_az]]),
+            np.array([[0., pi / 4, pi / 2], [pi / 4, pi / 4, pi / 2], [0., pi / 2, pi / 2],
+                      [-pi / 4, pi / 4, pi / 2], [0., 0., pi / 2],
+                      [0., fwd_left_elevated_45_el, pi / 2 + fwd_left_elevated_45_az],
+                      [0., fwd_left_elevated_45_el, pi / 2 - fwd_left_elevated_45_az]]),
+            np.array([[0., offset_3d_movement, pi / 4], [pi / 4, offset_3d_movement, pi / 4],
+                      [0., pi / 4 + offset_3d_movement, pi / 4],
+                      [-pi / 4, offset_3d_movement, pi / 4],
+                      [0., -pi / 4 + offset_3d_movement, pi / 4],
+                      [0., fwd_left_elevated_o3m_el, fwd_left_elevated_o3m_az + np.pi / 4],
+                      [0., fwd_left_elevated_o3m_el, np.pi / 4 - fwd_left_elevated_o3m_az]]),
+            np.array([[0., 0., pi], [pi / 4, 0., pi], [0., pi / 4, pi], [-pi / 4, 0., pi],
+                      [0., -pi / 4, pi], [0., 0., - 3 * pi / 4], [0., 0., 3 * pi / 4]]),
+            np.array([[0., 0., -pi / 2], [pi / 4, 0., -pi / 2], [0., pi / 4, -pi / 2],
+                      [-pi / 4, 0., -pi / 2],
+                      [0., -pi / 4, -pi / 2], [0., 0., -pi / 4], [0., 0., -3 * pi / 4]]),
+            np.array([[0., -pi / 2, 0.], [pi / 4, -pi / 2, 0.], [0., -pi / 4, 0.],
+                      [-pi / 4, -pi / 2, 0.],
+                      [0., - pi / 4, pi], [0., -pi / 4, pi / 2], [0., -pi / 4, -pi / 2]]),
+            np.array([[0., 0., pi], [pi / 4, 0., pi], [0., pi / 4, pi], [-pi / 4, 0., pi],
+                      [0., -pi / 4, pi], [0., 0., -3 * pi / 4], [0., 0., 3 * pi / 4]]),
+            np.array([[0., 0., -pi / 2], [pi / 4, 0., -pi / 2], [0., pi / 4, -pi / 2],
+                      [-pi / 4, 0., -pi / 2],
+                      [0., -pi / 4, -pi / 2], [0., 0., -pi / 4], [0., 0., -3 * pi / 4]]),
+            np.array([[0., -pi / 2, 0.], [pi / 4, -pi / 2, 0.], [0., -pi / 4, 0.],
+                      [-pi / 4, -pi / 2, 0.],
+                      [0., - pi / 4, pi], [0., -pi / 4, pi / 2], [0., -pi / 4, -pi / 2]]),
+            np.array(
+                [[0., -pi / 4, pi], [pi / 4, -pi / 4, pi], [0., 0., pi], [-pi / 4, -pi / 4, pi],
+                 [0., -pi / 2, pi],
+                 [0., -fwd_left_elevated_45_el, -pi + fwd_left_elevated_45_az],
+                 [0., -fwd_left_elevated_45_el, pi - fwd_left_elevated_45_az]]),
+            np.array([[0., -pi / 4, -pi / 2], [pi / 4, -pi / 4, -pi / 2], [0., 0., -pi / 2],
+                      [-pi / 4, -pi / 4, -pi / 2], [0., -pi / 2, -pi / 2],
+                      [0., -fwd_left_elevated_45_el, -pi / 2 + fwd_left_elevated_45_az],
+                      [0., -fwd_left_elevated_45_el, -pi / 2 - fwd_left_elevated_45_az]])]
 
 
 def expected_orientations_2d():
     pi = np.pi
     return [
-        np.array([[0., 0., 0.], [0., 0., pi/4],  [0., 0., -pi/4], [0., 0., pi/2],
-                  [0., 0., -pi/2]]),
-        np.array([[0., 0., pi/2],  [0., 0., 3 * pi/4], [0., 0., pi/4], [0., 0., pi],
+        np.array([[0., 0., 0.], [0., 0., pi / 4], [0., 0., -pi / 4], [0., 0., pi / 2],
+                  [0., 0., -pi / 2]]),
+        np.array([[0., 0., pi / 2], [0., 0., 3 * pi / 4], [0., 0., pi / 4], [0., 0., pi],
                   [0., 0., 0.]]),
-        np.array([[0., 0., 0.],  [0., 0., pi/4], [0., 0., -pi/4], [0., 0., pi/2],
-                  [0., 0., -pi/2]]),
-        np.array([[0., 0., pi/2],  [0., 0., 3 * pi/4], [0., 0., pi/4], [0., 0., pi],
+        np.array([[0., 0., 0.], [0., 0., pi / 4], [0., 0., -pi / 4], [0., 0., pi / 2],
+                  [0., 0., -pi / 2]]),
+        np.array([[0., 0., pi / 2], [0., 0., 3 * pi / 4], [0., 0., pi / 4], [0., 0., pi],
                   [0., 0., 0.]]),
-        np.array([[0., 0., pi/4], [0., 0., pi/2], [0., 0., 0.], [0., 0., 3 * pi/4],
-                  [0., 0., -pi/4]]),
-        np.array([[0., 0., pi],  [0., 0., 5*pi/4], [0., 0., 3 * pi/4], [0., 0., 3 * pi/2],
-                  [0., 0., pi/2]]),
-        np.array([[0., 0., -pi/2], [0., 0., -pi/4], [0., 0., -3 * pi/4], [0., 0., 0.],
+        np.array([[0., 0., pi / 4], [0., 0., pi / 2], [0., 0., 0.], [0., 0., 3 * pi / 4],
+                  [0., 0., -pi / 4]]),
+        np.array([[0., 0., pi], [0., 0., -3 * pi / 4], [0., 0., 3 * pi / 4], [0., 0., -pi / 2],
+                  [0., 0., pi / 2]]),
+        np.array([[0., 0., -pi / 2], [0., 0., -pi / 4], [0., 0., -3 * pi / 4], [0., 0., 0.],
                   [0., 0., -pi]]),
-        np.array([[0., 0., pi], [0., 0., 5 * pi/4], [0., 0., 3 * pi/4], [0., 0., 3 * pi/2],
-                  [0., 0., pi/2]]),
-        np.array([[0., 0., -pi/2],  [0., 0., -pi/4], [0., 0., -3 * pi/4], [0., 0., 0.],
+        np.array([[0., 0., pi], [0., 0., -3 * pi / 4], [0., 0., 3 * pi / 4], [0., 0., - pi / 2],
+                  [0., 0., pi / 2]]),
+        np.array([[0., 0., -pi / 2], [0., 0., -pi / 4], [0., 0., -3 * pi / 4], [0., 0., 0.],
                   [0., 0., -pi]]),
-        np.array([[0., 0., -3 * pi/4],  [0., 0., -pi/2], [0., 0., -pi], [0., 0., -pi/4],
-                  [0., 0., -5 * pi/4]])
+        np.array([[0., 0., -3 * pi / 4], [0., 0., -pi / 2], [0., 0., -pi], [0., 0., -pi / 4],
+                  [0., 0., 3 * pi / 4]])
     ]
 
 
@@ -555,7 +577,7 @@ def test_rotation_offsets_3d(state, expected_platform_orientation, expected_sens
         [model_1d] * (radars_3d[0].ndim_state // 2))
     platform_state = State(state, timestamp)
 
-    # This defines the position_mapping to the platforms state vector (i.e. x and y)
+    # This defines the position_mapping to the platforms state vector (i.e. x, y and z)
     mounting_mapping = np.array([0, 2, 4])
     # create a platform with the simple radar mounted
     for sensor, offset in zip(radars_3d, rotation_offsets_3d):

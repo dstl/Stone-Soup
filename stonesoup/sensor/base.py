@@ -3,6 +3,8 @@ from typing import Optional
 
 from stonesoup.movable import Movable, FixedMovable
 from stonesoup.types.state import State
+from stonesoup.types.angle import mod_bearing
+from stonesoup.functions import cart2sphere, build_rotation_matrix_xyz
 
 from ..base import Base, Property
 from ..types.array import StateVector
@@ -115,7 +117,14 @@ class PlatformMountable(Base, ABC):
             """
         if self.movement_controller is None:
             return None
-        return self.movement_controller.orientation + self.rotation_offset
+        x_axis = (1, 0, 0)
+        rotmat = build_rotation_matrix_xyz(-self.movement_controller.orientation) @ \
+                 build_rotation_matrix_xyz(-self.rotation_offset)
+        offset_axis = rotmat @ x_axis
+        roll = mod_bearing(self.movement_controller.orientation[0] + self.rotation_offset[0])
+        # convert cartesian direction, 'offset_axis', into an orientation
+        _, yaw, pitch = cart2sphere(*offset_axis)
+        return StateVector([roll, pitch, yaw])
 
     @orientation.setter
     def orientation(self, value: StateVector):
