@@ -18,24 +18,26 @@ Particle filtering with Out-of-sequence Measurements
 # case of Particle filters (the algorithm implementation can be found here [#]_).
 #
 # Particle filters (PF) work in a different manner compared to the Kalman filters because they sequentially
-# update the distribution while the latter updates only the filtered distribution.
-# In the PF application we have each trajectory, defined as particles, have an associated weight.
+# update the distribution, while the latter updates only the filtered distribution.
+# In the PF application, we have each trajectory defined as a particle, where each have an associated weight.
 # Weights can vary as new information arrives (measurements or clutter).
 #
-# The algorithm presented follows this logic: a measurement arrives at a time :math:`t_{k}`, if
-# :math:`t_{k} > t_{k-1}` we apply the stadard particle filter tracking method.
-# If :math:`t_{k} < t_{k-1}`, so it is a delayed measurement, then we look
-# in the list of measurements where :math:`t_{k}` belongs. In detail, we look for two indices, :math:`a` and
-# :math:`b`, such that :math:`t_{a} > t_{k} > t_{b}`. In this manner, we are able to insert the measurement in each
-# particle tracjectory history.
+# The algorithm presented follows this logic: we have a series of measurements that arrive to the detector at
+# different consecutive timesteps, :math:`k=0,1,2...`, and their detection time is defined as :math:`t_{k}`.
+# If :math:`t_{k} > t_{k-1}`, meaning :math:`t_{k}` is consecutive to :math:`t_{k-1}`, we apply the stadard
+# particle filter tracking method.
+# Instead, if :math:`t_{k} < t_{k-1}`, a delayed measurement, then we apply this algorithm.
+# We look in the list of measurements where :math:`t_{k}` belongs.
+# In detail, we look for two indices, :math:`a` and :math:`b`, such that :math:`t_{a} > t_{k} > t_{b}`.
+# In this manner, we are able to insert the measurement in each particle tracjectory history at the right time.
 #
-# We have obtained a time location for the new measurement, then we sample the particles from the
-# state at :math:`t_{b}` with new weights (un-normalised), then we apply the prediction and update steps with the
+# We have obtained a time location for the new measurement. We then sample the particles from the
+# state at :math:`t_{b}` with new weights (un-normalised), before applying the prediction and update steps with the
 # delayed measurement :math:`t_{k}`, normalising the particle weights. To finalise the track we
 # re-order the existing data such that :math:`t_{n} > t_{m}, \forall (n, m)`.
 #
-# However, it is important to note that there is the risk of accumulating some disparity over time,
-# as we deal with these measurements, this disparity can significantly impact the tracking performances
+# However, it is important to note that there is the risk of accumulating some disparity over time.
+# As we deal with these measurements, this disparity can significantly impact the tracking performances
 # causing some degeneracy. To solve this issue, we can use a resampling step, where the
 # particles are probabilistically replicated or discarded, resulting in a shift of the
 # degeneracy to the end of the track.
@@ -43,7 +45,7 @@ Particle filtering with Out-of-sequence Measurements
 # In this example we consider a simple single target scenario with negligible level of clutter.
 # The scans mimic the data obtained by a sensor, and over time some of these have a delay in their arrival time,
 # which we consider as OOSM data. To evaluate the improvement of applying this algorithm,
-# we consider an implementation where we ignore the delayed measurements at all.
+# we also consider an implementation where we ignore any measurement that we know has been delayed.
 #
 # This example follows this structure:
 #   1. Create ground truth and detections;
@@ -86,11 +88,11 @@ truths = set()
 # 1. Create ground truth and detections;
 # --------------------------------------
 # In this example we consider a target moving on a nearly constant velocity transition model,
-# the detections are obtained by a :class:`~.CartesianToBearingRange` measurement model.
+# where the detections are obtained by a :class:`~.CartesianToBearingRange` measurement model.
 # In this scenario we consider a negligible level of clutter.
 #
-# The detections are stored in scans, which contain also the time of arrival,
-# when a delayed measurement appears, the timestamp of arrival will be modified, but not the
+# The detections are stored in scans, which contain also the time of arrival.
+# When a delayed measurement appears, the timestamp of arrival will be modified, but not the
 # timestamp attached to the measurement.
 # As we collect all the scans, we order them by their arrival time.
 
@@ -149,8 +151,8 @@ arrival_time_ordered = sorted(scans, key=lambda dscan: dscan[0])
 # ---------------------------------------
 # We load the various tracking components using the particle filter
 # :class:`~.ParticleUpdater` and :class:`~.ParticlePredictor`. For the
-# resampler we consider :class:`~.ESSResampler`. Then, to initialise the
-# tracks we start defining a :class:`~.GaussianState`, we sample
+# resampler we consider :class:`~.ESSResampler`, which calls :class:`~.SystematicResampler` by default.
+# Then, to initialise the tracks we start defining a :class:`~.GaussianState`. We sample
 # the particles using a Multivariate Normal distribution around the prior state.
 # We assign a weight to each particle, at the beginning they will have the same weight.
 # Finally we create a :class:`~.ParticleState` with the new particles and their weights.
@@ -296,9 +298,9 @@ plotter = AnimatedPlotterly(timestamps)
 plotter.plot_ground_truths(truths, [0, 2])
 
 plotter.plot_measurements(scans_detections, [0, 2])
-plotter.plot_tracks(track, [0, 2], track_label='Track with OOSM',
+plotter.plot_tracks(track, [0, 2], track_label='Track dealing with OOSM',
                     line= dict(color='blue'))
-plotter.plot_tracks(track2, [0, 2], track_label='Track without OOSM')
+plotter.plot_tracks(track2, [0, 2], track_label='Track ignoring OOSM')
 plotter.fig
 
 # %%
@@ -306,7 +308,7 @@ plotter.fig
 # ----------
 # In this example, we have presented a method on how to deal with OOSM using particle filters.
 # This algorithm, that works by inserting the delayed measurements in the particle history track, allows
-# to have better tracking performances and not discard any information from the sensors, to validate that
+# to have better tracking performances and not discard any information from the sensors. To validate that,
 # we made a 1-to-1 comparison with a tracker which systematically ignores OOSM.
 
 # %%
