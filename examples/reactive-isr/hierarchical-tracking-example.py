@@ -77,7 +77,7 @@ def to_single_state(tracks):
 
 
 # Parameters
-np.random.seed(1000)
+np.random.seed(1005)
 clutter_rate = 1  # Mean number of clutter points per scan
 max_range = 50  # Max range of sensor (meters)
 surveillance_area = np.pi * max_range ** 2  # Surveillance region area
@@ -371,13 +371,15 @@ for (timestamp, tracks1), (_, tracks2), (_, tracks3) in zip(*leaf_trackers):
         # Add legend info
         for i, color in enumerate(colors):
             plt.plot([], [], f'--{color}', label=f'Groundtruth (Sensor {i + 1})')
-            plt.plot([], [], f':{color}', label=f'Tracklets (Sensor {i + 1})')
             plt.plot([], [], f'x{color}', label=f'Detections (Sensor {i + 1})')
-        plt.plot([], [], f'-*m', label=f'Fused Tracks')
+        plt.plot([], [], '-*c', label=f'Fused Tracks (Fuse Tracker 1)')
+        plt.plot([], [], '-*r', label=f'Fused Tracks (Fuse Tracker 2)')
+        plt.plot([], [], f'-*m', label=f'Fused Tracks (Top Tracker)')
 
         plt.legend(loc='upper right')
         plt.xlim((-200, 200))
         plt.ylim((-200, 200))
         plt.pause(0.01)
+        a=2
 
 print(datetime.now() - sim_start_time)

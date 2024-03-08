@@ -8,8 +8,6 @@ from matplotlib.path import Path
 from shapely.geometry import Point
 from shapely.ops import unary_union
 
-from reactive_isr_core.data import BeliefState, AssetList, GeoLocation, SensorType, ActionList
-
 from stonesoup.types.track import Track
 from stonesoup.custom.sensor.movable import MovableUAVCamera
 from stonesoup.sensor.sensor import Sensor
@@ -107,78 +105,3 @@ def _prob_detect_func(prob_detect, fovs):
                 return prob_detect if poly.contains(point) else Probability(0.1)
 
     return prob_detect_func
-
-
-def belief_state_to_tracks(belief: BeliefState) -> Sequence[Track]:
-    """Converts a belief state to a set of stonesoup tracks"""
-    targets = belief.targets
-    tracks = []
-    for target_id, target_detection in targets.items():
-        state_vector = StateVector([target_detection.location.longitude,
-                                    target_detection.velocity.longitude,
-                                    target_detection.location.latitude,
-                                    target_detection.velocity.latitude,
-                                    target_detection.location.altitude,
-                                    target_detection.velocity.altitude])
-        covariance_matrix = np.zeros((6, 6), dtype=float)
-        covariance_matrix[0::2, 0::2] = target_detection.location_error
-        covariance_matrix[1::2, 1::2] = target_detection.velocity_error
-        metadata = {
-            'target_type_confidences': target_detection.target_type_confidences,
-        }
-        state = GaussianState(state_vector, covariance_matrix,
-                              timestamp=target_detection.time)
-        track = Track(id=target_id, states=[state], init_metadata=metadata)
-        track.exist_prob = Probability(target_detection.confidence)
-        tracks.append(track)
-    return tracks
-
-
-def assets_to_sensors(assets: AssetList, region_corners: List[GeoLocation],
-                      action_resolutions: Dict[str, float]) -> Sequence[Sensor]:
-    """Converts a set of assets to a list of stonesoup sensors"""
-    sensors = []
-    for asset in assets.assets:
-        if SensorType.AERIAL_V_CAMERA in asset.asset_description.sensor_types:
-            sensor_position = StateVector([asset.asset_status.location.longitude,
-                                           asset.asset_status.location.latitude,
-                                           asset.asset_status.location.altitude])
-            lim_x = np.sort([loc.longitude for loc in region_corners])
-            lim_y = np.sort([loc.latitude for loc in region_corners])
-            limits = {'location_x': lim_x, 'location_y': lim_y}
-            sensor = MovableUAVCamera(ndim_state=6, mapping=[0, 2, 4],
-                                      noise_covar=np.diag([0.05, 0.05, 0.05]),
-                                      fov_radius=asset.asset_description.fov_radius,
-                                      location_x=sensor_position[0],
-                                      location_y=sensor_position[1],
-                                      resolutions=action_resolutions,
-                                      position=sensor_position,
-                                      limits=limits)
-            sensor.id = asset.asset_description.id
-            sensors.append(sensor)
-        else:
-            raise NotImplementedError("Only aerial cameras are supported")
-    return sensors
-
-
-def action_list_to_config(assets, action_list: ActionList,
-                          region_corners: List[GeoLocation],
-                          action_resolutions: Dict[str, float],
-                          time: datetime) -> Mapping[Sensor, Sequence[ssAction]]:
-    """Converts a reactive_isr_core action list to a stonesoup config"""
-    sensors = assets_to_sensors(assets, region_corners, action_resolutions)
-    config = {}
-
-    for action in action_list.actions:
-        try:
-            sensor = next(s for s in sensors if s.id == action.asset_id)
-        except StopIteration as exc:
-            raise ValueError(f"Asset {action.asset_id} not found") from exc
-        location_x, location_y = action.location.longitude, action.location.latitude
-        action_generators = sensor.actions(time)
-        x_action_gen = next(a for a in action_generators if a.attribute == 'location_x')
-        y_action_gen = next(a for a in action_generators if a.attribute == 'location_y')
-        x_action = x_action_gen.action_from_value(location_x)
-        y_action = y_action_gen.action_from_value(location_y)
-        config[sensor] = (x_action, y_action)
-    return config

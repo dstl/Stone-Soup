@@ -124,7 +124,8 @@ class SMCPHD_JIPDA(_BaseTracker):
                                        clutter_intensity=self.clutter_intensity,
                                        num_samples=self.num_samples,
                                        resampler=resampler,
-                                       birth_scheme=self.birth_scheme)
+                                       birth_scheme=self.birth_scheme,
+                                       scale_birth_weights=True)
         else:
             phd_filter = SMCPHDFilter(birth_density=self.birth_density,
                                       transition_model=self.transition_model,
@@ -136,7 +137,8 @@ class SMCPHD_JIPDA(_BaseTracker):
                                       clutter_intensity=self.clutter_intensity,
                                       num_samples=self.num_samples,
                                       resampler=resampler,
-                                      birth_scheme=self.birth_scheme)
+                                      birth_scheme=self.birth_scheme,
+                                      scale_birth_weights=True)
         # Sample prior state from birth density
         if isinstance(self.birth_density, GaussianMixture):
             state_vector = np.zeros((self.transition_model.ndim_state, 0))
