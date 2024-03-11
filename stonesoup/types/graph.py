@@ -173,27 +173,66 @@ class RoadNetwork(nx.DiGraph):
         raise NotImplementedError("RoadNetwork does not support update")
 
     def clear(self):
+        """Remove all nodes and edges from the graph."""
         super().clear()
         self._edge_list = None
         self._short_paths_cache = {}
 
     def clear_edges(self):
+        """Remove all edges from the graph without altering nodes."""
         super().clear_edges()
         self._edge_list = None
         self._short_paths_cache = {}
 
     def to_gdf(self, **kwargs):
-        d = {'col1': [], 'geometry': []}
-        for i, e in enumerate(self.edges):
-            d['col1'].append(i)
+        """Convert the road network to a GeoDataFrame.
+
+        The GeoDataFrame has the following columns:
+
+            - 'geometry': LineString
+                A LineString representing the edge geometry.
+            - 'weight': float
+                The edge weight.
+            - 'from_node': int
+                The node identifier of the start node.
+            - 'to_node': int
+                The node identifier of the end node.
+        """
+        d = {'geometry': [], 'weight': [], 'from_node': [], 'to_node': []}
+        for e in self.edges:
             d['geometry'].append(
                 LineString([self.nodes[e[0]]['pos'], self.nodes[e[1]]['pos']])
             )
+            d['weight'].append(self.edges[e]['weight'])
+            d['from_node'].append(e[0])
+            d['to_node'].append(e[1])
         gdf = geopandas.GeoDataFrame(d, **kwargs)
         return gdf
 
     @classmethod
     def from_dict(cls, dct):
+        """Create a RoadNetwork from a dictionary.
+
+        Parameters
+        ----------
+        dct : dict
+            A dictionary with keys 'nodes' and 'edges'. The value of 'nodes' is a dictionary
+            mapping node identifiers to a dictionary of node attributes. The value of 'edges' is
+            a dictionary mapping edge identifiers to edge attributes.
+
+        Returns
+        -------
+        RoadNetwork
+            A road network object
+
+        Examples
+        --------
+        >>> dct = {'nodes': {0: {'pos': (0, 0)}, 1: {'pos': (1, 0)},
+        ...                  2: {'pos': (0, 1)}, 3: {'pos': (1, 1)}},
+        ...        'edges': {(0, 1): {'weight': 1}, (0, 2): {'weight': 1},
+        ...                  (1, 3): {'weight': 1}, (2, 3): {'weight': 1}}}
+        >>> net = RoadNetwork.from_dict(dct)
+        """
         # Create empty graph object
         net = RoadNetwork()
 
@@ -372,6 +411,8 @@ class RoadNetwork(nx.DiGraph):
         edges_index = {edge: i for i, edge in enumerate(self.edges)}
         for s, dct in paths.items():
             for t, node_path in dct.items():
+                if s == t:
+                    continue
                 path_edges = zip(node_path, node_path[1:])
                 edge_path = [edges_index[edge] for edge in path_edges]
                 short_paths['node'][(s, t)], short_paths['edge'][(s, t)] = (node_path, edge_path)
