@@ -51,7 +51,7 @@ class RoadNetwork(nx.DiGraph):
             Node attributes to update. Must contain a 'pos' attribute, that is a tuple of (x, y)
             coordinates.
         """
-        if not isinstance(n, int) and n <= 0:
+        if not isinstance(n, int) or n <= 0:
             raise TypeError("Road network nodes must be positive integers")
         if "pos" not in attr:
             raise ValueError("Road network nodes must have a 'pos' attribute")
@@ -75,7 +75,8 @@ class RoadNetwork(nx.DiGraph):
             elif isinstance(n, tuple):
                 self.add_node(n[0], **{**attr, **n[1]})
             else:
-                raise TypeError("Road network nodes must be positive integers")
+                raise ValueError("Invalid node format. Elements of nodes must be integers, or "
+                                 "tuples of (int, dict)")
 
     def remove_node(self, n):
         """Remove node n.
