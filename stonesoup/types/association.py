@@ -97,7 +97,7 @@ class AssociationSet(Type):
         to_remove = set()
         for (assoc1, assoc2) in combinations(self.associations, 2):
             if not (len(assoc1.objects) == 2 and len(assoc2.objects) == 2) or \
-                    not(hasattr(assoc1, 'time_range') and hasattr(assoc2, 'time_range')):
+                    not (hasattr(assoc1, 'time_range') and hasattr(assoc2, 'time_range')):
                 continue
             if assoc1.objects == assoc2.objects:
                 if isinstance(assoc1.time_range, CompoundTimeRange):

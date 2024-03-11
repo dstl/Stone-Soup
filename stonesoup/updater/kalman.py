@@ -115,7 +115,7 @@ class KalmanUpdater(Updater):
         """
         return predicted_state.covar @ measurement_matrix.T
 
-    def _innovation_covariance(self, m_cross_cov, meas_mat, meas_mod):
+    def _innovation_covariance(self, m_cross_cov, meas_mat, meas_mod, **kwargs):
         """Compute the innovation covariance
 
         Parameters
@@ -222,7 +222,7 @@ class KalmanUpdater(Updater):
 
         # The measurement cross covariance and innovation covariance
         meas_cross_cov = self._measurement_cross_covariance(predicted_state, hh)
-        innov_cov = self._innovation_covariance(meas_cross_cov, hh, measurement_model)
+        innov_cov = self._innovation_covariance(meas_cross_cov, hh, measurement_model, **kwargs)
 
         return MeasurementPrediction.from_state(
             predicted_state, pred_meas, innov_cov, cross_covar=meas_cross_cov)
@@ -303,7 +303,7 @@ class ExtendedKalmanUpdater(KalmanUpdater):
             ":meth:`~.NonLinearModel.jacobian`.")
 
     def _measurement_matrix(self, predicted_state, measurement_model=None,
-                            **kwargs):
+                            linearisation_point=None, **kwargs):
         r"""Return the (via :meth:`NonLinearModel.jacobian`) measurement matrix
 
         Parameters
@@ -329,7 +329,9 @@ class ExtendedKalmanUpdater(KalmanUpdater):
         if isinstance(measurement_model, LinearModel):
             return measurement_model.matrix(**kwargs)
         else:
-            return measurement_model.jacobian(predicted_state,
+            if linearisation_point is None:
+                linearisation_point = predicted_state
+            return measurement_model.jacobian(linearisation_point,
                                               **kwargs)
 
 
@@ -358,7 +360,7 @@ class UnscentedKalmanUpdater(KalmanUpdater):
             "true distribution is Gaussian, the value of 2 is optimal. "
             "Default is 2")
     kappa: float = Property(
-        default=0,
+        default=None,
         doc="Secondary spread scaling parameter. Default is calculated as "
             "3-Ns")
 
@@ -401,7 +403,7 @@ class UnscentedKalmanUpdater(KalmanUpdater):
             predicted_state, meas_pred_mean, meas_pred_covar, cross_covar=cross_covar)
 
 
-class SqrtKalmanUpdater(KalmanUpdater):
+class SqrtKalmanUpdater(ExtendedKalmanUpdater):
     r"""The Square root version of the Kalman Updater.
 
     The input :class:`~.State` is a :class:`~.SqrtGaussianState` which means
@@ -616,9 +618,6 @@ class IteratedKalmanUpdater(ExtendedKalmanUpdater):
 
         """
 
-        # Record the starting point
-        prev_state = hypothesis.prediction
-
         # Get the measurement model
         measurement_model = self._check_measurement_model(hypothesis.measurement.measurement_model)
 
@@ -627,7 +626,8 @@ class IteratedKalmanUpdater(ExtendedKalmanUpdater):
 
         # Now update the measurement prediction mean and loop
         iterations = 0
-        while self.measure(prev_state, post_state) > self.tolerance:
+        prev_state = None
+        while iterations == 0 or self.measure(prev_state, post_state) > self.tolerance:
 
             if iterations > self.max_iterations:
                 warnings.warn("Iterated Kalman update did not converge")

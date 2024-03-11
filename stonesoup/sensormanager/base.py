@@ -3,9 +3,13 @@ from typing import Callable, Set
 import random
 import numpy as np
 import itertools as it
+from typing import TYPE_CHECKING
 
 from ..base import Base, Property
-from ..sensor.sensor import Sensor
+
+if TYPE_CHECKING:
+    from ..sensor.sensor import Sensor
+    from ..platform.base import Platform
 
 
 class SensorManager(Base, ABC):
@@ -23,8 +27,11 @@ class SensorManager(Base, ABC):
     which communicate with other sensor managers in a networked fashion.
 
     """
-    sensors: Set[Sensor] = Property(doc="The sensor(s) which the sensor manager is managing. "
-                                        "These must be capable of returning available actions.")
+    sensors: Set['Sensor'] = Property(
+        default=None, doc="The sensor(s) which the sensor manager is managing.")
+
+    platforms: Set['Platform'] = Property(
+        default=None, doc="The platform(s) which the sensor manager is managing.")
 
     reward_function: Callable = Property(
         default=None, doc="A function or class designed to work out the reward associated with an "
@@ -33,6 +40,33 @@ class SensorManager(Base, ABC):
                           "cost of making a measurement. The values returned may be scalar or "
                           "vector in the case of multi-objective optimisation. Metrics may be of "
                           "any type and in any units.")
+
+    take_sensors_from_platforms: bool = Property(
+        default=True, doc="Whether to include sensors that are on the "
+                          "platform(s) but not explicitly passed to the sensor manager. "
+                          "Any sensors not added "
+                          "will not be considered by the sensor manager or "
+                          "reward function.")
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+
+        if self.platforms is None:
+            self.platforms = set()
+        if self._property_sensors is None:
+            self._property_sensors = set()
+
+    @sensors.getter
+    def sensors(self):
+        sensors = self._property_sensors.copy()
+        if self.take_sensors_from_platforms:
+            for platform in self.platforms:
+                sensors.update(platform.sensors)
+        return sensors
+
+    @property
+    def actionables(self):
+        return self.platforms | self.sensors
 
     @abstractmethod
     def choose_actions(self, timestamp, nchoose, **kwargs):
@@ -77,13 +111,13 @@ class RandomSensorManager(SensorManager):
         """
 
         configs = [dict() for _ in range(nchoose)]
-        for sensor_action_assignment in configs:
-            for sensor in self.sensors:
-                action_generators = sensor.actions(timestamp)
+        for config in configs:
+            for actionable in self.actionables:
+                action_generators = actionable.actions(timestamp)
                 chosen_actions = []
                 for action_gen in action_generators:
                     chosen_actions.append(random.choice(list(action_gen)))
-                sensor_action_assignment[sensor] = chosen_actions
+                config[actionable] = chosen_actions
 
         return configs
 
@@ -123,13 +157,13 @@ class BruteForceSensorManager(SensorManager):
 
         all_action_choices = dict()
 
-        for sensor in self.sensors:
+        for actionable in self.actionables:
             # get action 'generator(s)'
-            action_generators = sensor.actions(timestamp)
+            action_generators = actionable.actions(timestamp)
             # list possible action combinations for the sensor
             action_choices = list(it.product(*action_generators))
             # dictionary of sensors: list(action combinations)
-            all_action_choices[sensor] = action_choices
+            all_action_choices[actionable] = action_choices
 
         # get tuple of dictionaries of sensors: actions
         configs = ({sensor: action
@@ -179,29 +213,30 @@ class GreedySensorManager(SensorManager):
             The pairs of :class:`~.Sensor`: [:class:`~.Action`] selected
         """
 
-        chosen_sensor_actions = dict()
+        chosen_actions = dict()
 
-        for sensor in self.sensors:
+        for actionable in self.actionables:
             # get action 'generator(s)'
-            action_generators = sensor.actions(timestamp)
-            # list possible action combinations for the sensor
+            action_generators = actionable.actions(timestamp)
+            # list possible action combinations for the sensor/platform
             action_choices = list(it.product(*action_generators))
 
             best_rewards = np.zeros(nchoose) - np.inf
             selected_actions = [None] * nchoose
             for action in action_choices:
                 # calculate reward for each action
-                reward = self.reward_function({sensor: action}, tracks, timestamp)
+                reward = self.reward_function({actionable: action}, tracks, timestamp)
                 if reward > min(best_rewards):
                     selected_actions[np.argmin(best_rewards)] = action
                     best_rewards[np.argmin(best_rewards)] = reward
 
-            # save nchoose best actions for the sensor
-            chosen_sensor_actions[sensor] = selected_actions
+            # save nchoose best actions for the sensor/platform
+            chosen_actions[actionable] = selected_actions
 
-        # convert from single dict of sensor: list(actions) to list of dicts of sensors: actions
-        selected_configs = [{sensor: chosen_sensor_actions[sensor][i]
-                             for sensor in chosen_sensor_actions}
+        # convert from single dict of actionable: list(actions) to list of dicts of
+        # actionables: actions
+        selected_configs = [{actionable: chosen_actions[actionable][i]
+                             for actionable in chosen_actions}
                             for i in range(nchoose)]
 
         # Return mapping of sensors and chosen actions for sensors

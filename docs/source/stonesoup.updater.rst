@@ -31,6 +31,12 @@ Recursive
 .. automodule:: stonesoup.updater.recursive
     :show-inheritance:
 
+Iterated
+--------
+
+.. automodule:: stonesoup.updater.iterated
+    :show-inheritance:
+
 Information
 -----------
 

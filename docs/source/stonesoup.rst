@@ -26,6 +26,7 @@ Enabling Components
     stonesoup.detector
     stonesoup.feeder
     stonesoup.metricgenerator
+    stonesoup.movable
     stonesoup.platform
     stonesoup.reader
     stonesoup.sensor

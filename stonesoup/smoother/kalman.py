@@ -5,10 +5,10 @@ import numpy as np
 
 from .base import Smoother
 from ..base import Property
-from ..types.multihypothesis import MultipleHypothesis
-from ..types.prediction import Prediction, GaussianStatePrediction
-from ..types.update import Update, GaussianStateUpdate
 from ..models.base import LinearModel
+from ..types.multihypothesis import MultipleHypothesis
+from ..types.prediction import GaussianStatePrediction
+from ..types.update import GaussianStateUpdate
 from ..models.transition.base import TransitionModel
 from ..models.transition.linear import LinearGaussianTransitionModel
 from ..functions import gauss2sigma, unscented_transform
@@ -89,14 +89,14 @@ class KalmanSmoother(Smoother):
         else:
             raise TypeError("States must be GaussianStatePredictions or GaussianStateUpdates.")
 
-    def _transition_model(self, state):
+    def _transition_model(self, prediction):
         """ If it exists, return the transition model from the prediction associated with input
         state. If that doesn't exist then use the (static) transition model defined by the
         smoother.
 
         Parameters
         ----------
-        state : :class:`~.GaussianStatePrediction` or :class:`~.GaussianStateUpdate`
+        prediction : :class:`~.GaussianStatePrediction` or :class:`~.GaussianStateUpdate`
 
         Returns
         -------
@@ -104,20 +104,21 @@ class KalmanSmoother(Smoother):
             The transition model to be associated with state
         """
         # Is there a transition model linked to the prediction?
-        if getattr(self._prediction(state), "transition_model", None) is not None:
-            transition_model = self._prediction(state).transition_model
-        else:  # No? Return the class attribute
+        transition_model = getattr(prediction, "transition_model", None)
+        if transition_model is None:
             transition_model = self.transition_model
 
         return transition_model
 
-    def _transition_matrix(self, state, **kwargs):
+    def _transition_matrix(self, state, transition_model, **kwargs):
         """ Return the transition matrix
 
         Parameters
         ----------
         state : :class:`~.State`
             The input state (to check for a linked prediction)
+        transition_model : :class:`~.TransitionModel`
+            The transition model to be applied to state
         **kwargs
             These are passed to the :meth:`matrix()` function
 
@@ -126,7 +127,7 @@ class KalmanSmoother(Smoother):
          : :class:`numpy.ndarray`
             The transition matrix
         """
-        return self._transition_model(state).matrix(**kwargs)
+        return transition_model.matrix(**kwargs)
 
     def _smooth_gain(self, state, prediction, **kwargs):
         """Calculate the smoothing gain
@@ -144,10 +145,11 @@ class KalmanSmoother(Smoother):
             The smoothing gain
 
         """
-        return state.covar @ self._transition_matrix(state, **kwargs).T @ np.linalg.inv(
-            prediction.covar)
+        return state.covar \
+            @ self._transition_matrix(state, self._transition_model(prediction), **kwargs).T \
+            @ np.linalg.inv(prediction.covar)
 
-    def smooth(self, track):
+    def smooth(self, track, **kwargs):
         """
         Perform the backward recursion to smooth the track.
 
@@ -162,9 +164,15 @@ class KalmanSmoother(Smoother):
             Smoothed track
 
         """
+        try:
+            self._prediction(track[0])
+            start = 0
+        except (ValueError, TypeError):
+            start = 1
+
         subsq_state = track[-1]
         smoothed_states = [subsq_state]
-        for state in reversed(track[:-1]):
+        for state in reversed(track[start:-1]):
 
             # Delta t
             time_interval = subsq_state.timestamp - state.timestamp
@@ -172,22 +180,21 @@ class KalmanSmoother(Smoother):
             # Retrieve the prediction from the subsequent (k+1th) timestep accessed previously
             prediction = self._prediction(subsq_state)
             # The smoothing gain, mean and covariance
-            ksmooth_gain = self._smooth_gain(state, prediction, time_interval=time_interval)
+            ksmooth_gain = self._smooth_gain(
+                state, prediction, time_interval=time_interval, **kwargs)
             smooth_mean = state.state_vector + ksmooth_gain @ (subsq_state.state_vector -
                                                                prediction.state_vector)
             smooth_covar = state.covar + \
                 ksmooth_gain @ (subsq_state.covar - prediction.covar) @ ksmooth_gain.T
 
             # Create a new type called SmoothedState?
-            if isinstance(state, Update):
-                subsq_state = Update.from_state(state, smooth_mean, smooth_covar,
-                                                timestamp=state.timestamp,
-                                                hypothesis=state.hypothesis)
-            elif isinstance(state, Prediction):
-                subsq_state = Prediction.from_state(state, smooth_mean, smooth_covar,
-                                                    timestamp=state.timestamp)
+
+            subsq_state = type(state).from_state(state, smooth_mean, smooth_covar)
 
             smoothed_states.insert(0, subsq_state)
+
+        if start == 1:
+            smoothed_states.insert(0, track[0])
 
         # Deep copy existing track, but avoid copying original states, as this would be super
         # expensive. This works by informing deepcopy that the smoothed states are the
@@ -217,18 +224,20 @@ class ExtendedKalmanSmoother(KalmanSmoother):
     """
     transition_model: TransitionModel = Property(doc="The transition model to be used.")
 
-    def _transition_matrix(self, state, **kwargs):
+    def _transition_matrix(self, state, transition_model, linearisation_point=None, **kwargs):
         r"""Returns the transition matrix, a matrix if the model is linear, or
         approximated as Jacobian otherwise.
-
         Parameters
         ----------
         state : :class:`~.State`
             :math:`\mathbf{x}_{k-1}`
+        transition_model : :class:`~.TransitionModel`
+            transition model to be applied to state
+        linearisation_point : :class:`~State`, optional
+            State to linearise over. Default `None` where state will be used.
         **kwargs : various, optional
             These are passed to :meth:`~.TransitionModel.matrix` or
             :meth:`~.TransitionModel.jacobian`
-
         Returns
         -------
         : :class:`numpy.ndarray`
@@ -236,10 +245,12 @@ class ExtendedKalmanSmoother(KalmanSmoother):
             :meth:`TransitionModel.matrix` exists, or
             :meth:`~.TransitionModel.jacobian` if not)
         """
-        if isinstance(self._transition_model(state), LinearModel):
-            return self._transition_model(state).matrix(**kwargs)
+        if isinstance(transition_model, LinearModel):
+            return transition_model.matrix(**kwargs)
         else:
-            return self._transition_model(state).jacobian(state, **kwargs)
+            if linearisation_point is None:
+                linearisation_point = state
+            return transition_model.jacobian(linearisation_point, **kwargs)
 
 
 class UnscentedKalmanSmoother(KalmanSmoother):
@@ -281,7 +292,7 @@ class UnscentedKalmanSmoother(KalmanSmoother):
         """
         # This ensures that the time interval is correctly applied.
         transition_function = partial(
-            self._transition_model(state).function,
+            self._transition_model(prediction).function,
             time_interval=time_interval)
 
         # Get the sigma points from the mean and covariance.

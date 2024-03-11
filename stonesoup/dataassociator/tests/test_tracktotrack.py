@@ -209,8 +209,8 @@ def test_trackidbased():
 
     association_setB = associator.associate_tracks(tracksB, truths)
     assocB = list(association_setB.associations)[0]
-    assert type(assocB) == Association
+    assert isinstance(assocB, Association)
 
     association_setC = associator.associate_tracks(tracksC, truths)
     assocC = list(association_setC.associations)[0]
-    assert type(assocC) == Association
+    assert isinstance(assocC, Association)

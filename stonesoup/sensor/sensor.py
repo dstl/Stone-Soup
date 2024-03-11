@@ -3,7 +3,7 @@ from typing import Set, Union, Sequence
 
 import numpy as np
 
-from .actionable import Actionable
+from ..sensormanager.action import Actionable
 from .base import PlatformMountable
 from ..base import Property
 from ..models.clutter.clutter import ClutterModel

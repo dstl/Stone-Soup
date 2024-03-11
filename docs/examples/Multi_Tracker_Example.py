@@ -41,7 +41,7 @@ start_time = datetime.datetime.now()
 np.random.seed(2)
 initial_state_mean = StateVector([[0], [0], [0], [0]])
 initial_state_covariance = CovarianceMatrix(np.diag([4, 0.5, 4, 0.5]))
-timestep_size = datetime.timedelta(seconds=5)
+timestep_size = datetime.timedelta(seconds=1)
 number_steps = 20
 initial_state = GaussianState(initial_state_mean, initial_state_covariance)
 
@@ -90,6 +90,7 @@ ground_truth_gen = SwitchMultiTargetGroundTruthSimulator(
     transition_models=[constant_velocity, turn_left, turn_right],
     model_probs=model_probs,  # put in matrix from above
     number_steps=number_steps,  # how long we want each track to be
+    timestep=timestep_size,
     birth_rate=0,
     death_probability=0,
     preexisting_states=preexisting_states

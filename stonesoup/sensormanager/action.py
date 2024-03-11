@@ -1,21 +1,110 @@
 import datetime
 import inspect
 from abc import ABC, abstractmethod
-from typing import Set, Sequence
+from typing import Set, Sequence, Iterator, Any
 
-from .action import Action, ActionGenerator
-from ..base import Base, Property
+from stonesoup.base import Base, Property
+
+
+class Action(Base):
+    """The base class for an action that can be taken by a sensor or platform with an
+    :class:`~.ActionableProperty`."""
+
+    generator: Any = Property(default=None,
+                              readonly=True,
+                              doc="Action generator that created the action.")
+    end_time: datetime.datetime = Property(readonly=True,
+                                           doc="Time at which modification of the "
+                                               "attribute ends.")
+    target_value: Any = Property(doc="Target value.")
+
+    def act(self, current_time, timestamp, init_value, **kwargs):
+        """Return the attribute modified.
+
+        Parameters
+        ----------
+        current_time: datetime.datetime
+            Current time
+        timestamp: datetime.datetime
+            Modification of attribute ends at this time stamp
+        init_value: Any
+            Current value of the modifiable attribute
+
+        Returns
+        -------
+        Any
+            The new value of the attribute
+        """
+        raise NotImplementedError()
+
+    def __eq__(self, other):
+        if not isinstance(other, type(self)):
+            return False
+        return all(getattr(self, name) == getattr(other, name) for name in type(self).properties)
+
+    def __hash__(self):
+        return hash(tuple(getattr(self, name) for name in type(self).properties))
+
+
+class ActionGenerator(Base):
+    """The base class for an action generator."""
+
+    owner: object = Property(doc="Actionable object that has the attribute to be modified.")
+    attribute: str = Property(doc="The name of the attribute to be modified.")
+    start_time: datetime.datetime = Property(doc="Start time of action.")
+    end_time: datetime.datetime = Property(doc="End time of action.")
+    resolution: float = Property(default=None, doc="Resolution of action space")
+
+    @abstractmethod
+    def __contains__(self, item):
+        raise NotImplementedError()
+
+    @abstractmethod
+    def __iter__(self) -> Iterator[Action]:
+        raise NotImplementedError()
+
+    @property
+    def current_value(self):
+        """Return the current value of the owner's attribute."""
+        return getattr(self.owner, self.attribute)
+
+    @property
+    def default_action(self):
+        """The default action to modify the property if there is no given action."""
+        raise NotImplementedError()
+
+
+class RealNumberActionGenerator(ActionGenerator):
+    """Action generator where action is a choice of a real number."""
+
+    @property
+    @abstractmethod
+    def initial_value(self):
+        raise NotImplementedError
+
+    @property
+    @abstractmethod
+    def min(self):
+        raise NotImplementedError
+
+    @property
+    @abstractmethod
+    def max(self):
+        raise NotImplementedError
 
 
 class ActionableProperty(Property):
     """Property that is modified via an :class:`~.Action` with defined, non-equal start and end
     times."""
 
-    def __init__(self, generator_cls,
+    def __init__(self, generator_cls, generator_kwargs_mapping=None,
                  cls=None, *, default=inspect.Parameter.empty,
                  doc=None, readonly=False):
         super().__init__(cls=cls, default=default, doc=doc, readonly=readonly)
         self.generator_cls = generator_cls
+        self.generator_kwargs_mapping = generator_kwargs_mapping
+        if generator_kwargs_mapping is None:
+            self.generator_kwargs_mapping = dict()
 
 
 class Actionable(Base, ABC):
@@ -30,14 +119,10 @@ class Actionable(Base, ABC):
     left to the inheriting type.
     """
 
-    resolutions: dict = Property(
-        default=None,
-        doc="Mapping of each :class:`~.ActionableProperty` of the sensor and "
-            "corresponding resolutions at which the sensor is able to be tasked.")
-
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
+        self._generator_kwargs = dict()
         self.scheduled_actions = dict()  # dictionary of property - action pairs
 
     @property
@@ -51,17 +136,14 @@ class Actionable(Base, ABC):
         """Returns the default action of the action generator associated with the property
         (assumes the property is an :class:`~.ActionableProperty`."""
 
-        if self.resolutions and name in self.resolutions.keys():
-            generator = property_.generator_cls(owner=self,
-                                                attribute=name,
-                                                start_time=self.timestamp,
-                                                end_time=timestamp,
-                                                resolution=self.resolutions[name])
-        else:
-            generator = property_.generator_cls(owner=self,
-                                                attribute=name,
-                                                start_time=self.timestamp,
-                                                end_time=timestamp)
+        generator = property_.generator_cls(
+            owner=self,
+            attribute=name,
+            start_time=self.timestamp,
+            end_time=timestamp,
+            **{key: getattr(self, value)
+               for key, value in property_.generator_kwargs_mapping.items()})
+
         return generator.default_action
 
     def actions(self, timestamp: datetime.datetime, start_timestamp: datetime.datetime = None
@@ -91,17 +173,13 @@ class Actionable(Base, ABC):
 
         generators = set()
         for name, property_ in self._actionable_properties.items():
-            if self.resolutions and name in self.resolutions.keys():
-                generators.add(property_.generator_cls(owner=self,
-                                                       attribute=name,
-                                                       start_time=start_timestamp,
-                                                       end_time=timestamp,
-                                                       resolution=self.resolutions[name]))
-            else:
-                generators.add(property_.generator_cls(owner=self,
-                                                       attribute=name,
-                                                       start_time=start_timestamp,
-                                                       end_time=timestamp))
+            generators.add(property_.generator_cls(
+                owner=self,
+                attribute=name,
+                start_time=start_timestamp,
+                end_time=timestamp,
+                **{key: getattr(self, value)
+                   for key, value in property_.generator_kwargs_mapping.items()}))
         return generators
 
     def add_actions(self, actions: Sequence[Action]) -> bool:
@@ -144,7 +222,7 @@ class Actionable(Base, ABC):
                     break
         return True
 
-    def act(self, timestamp: datetime.datetime):
+    def act(self, timestamp: datetime.datetime, **kwargs):
         """Carry out actions up to a timestamp.
 
         Parameters
@@ -163,26 +241,26 @@ class Actionable(Base, ABC):
                 action = self.scheduled_actions[name]
             except KeyError:
                 action = self._default_action(name, property_, timestamp)
-                setattr(self, name, action.act(self.timestamp, timestamp, value))
+                setattr(self, name, action.act(self.timestamp, timestamp, value, **kwargs))
             else:
                 end_time = action.end_time
                 if end_time < timestamp:
                     # complete action, remove from schedule
                     # switch to default, and carry-out default until timestamp
-                    interim_value = action.act(self.timestamp, end_time, value)
+                    interim_value = action.act(self.timestamp, end_time, value, **kwargs)
 
                     # remove scheduled action
                     self.scheduled_actions.pop(name)
 
                     action = self._default_action(name, property_, timestamp)
-                    setattr(self, name, action.act(end_time, timestamp, interim_value))
+                    setattr(self, name, action.act(end_time, timestamp, interim_value, **kwargs))
                 elif end_time == timestamp:
                     # complete action and remove from schedule
-                    setattr(self, name, action.act(self.timestamp, timestamp, value))
+                    setattr(self, name, action.act(self.timestamp, timestamp, value, **kwargs))
                     self.scheduled_actions.pop(name)
                 else:
                     # carry-out action to timestamp
-                    setattr(self, name, action.act(self.timestamp, timestamp, value))
+                    setattr(self, name, action.act(self.timestamp, timestamp, value, **kwargs))
 
         self.timestamp = timestamp
 

@@ -88,7 +88,7 @@ class CSVGroundTruthReader(GroundTruthReader, _CSVReader):
 
                 state = GroundTruthState(
                     np.array([[row[col_name]] for col_name in self.state_vector_fields],
-                             dtype=np.float_),
+                             dtype=np.float64),
                     timestamp=time,
                     metadata=self._get_metadata(row))
 
@@ -129,7 +129,7 @@ class CSVDetectionReader(DetectionReader, _CSVReader):
 
                 detections.add(Detection(
                     np.array([[row[col_name]] for col_name in self.state_vector_fields],
-                             dtype=np.float_),
+                             dtype=np.float64),
                     timestamp=time,
                     metadata=self._get_metadata(row)))
 

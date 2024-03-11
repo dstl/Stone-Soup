@@ -88,7 +88,7 @@ class DataFrameGroundTruthReader(GroundTruthReader, _DataFrameReader):
 
             state = GroundTruthState(np.array([[row[col_name]] for col_name
                                               in self.state_vector_fields],
-                                              dtype=np.float_), timestamp=time,
+                                              dtype=np.float64), timestamp=time,
                                      metadata=self._get_metadata(row))
 
             id_ = row[self.path_id_field]
@@ -128,7 +128,7 @@ class DataFrameDetectionReader(DetectionReader, _DataFrameReader):
 
             detections.add(Detection(
                 np.array([[row[col_name]] for col_name in self.state_vector_fields],
-                         dtype=np.float_),
+                         dtype=np.float64),
                 timestamp=time,
                 metadata=self._get_metadata(row)))
 

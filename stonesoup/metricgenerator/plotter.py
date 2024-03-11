@@ -66,7 +66,8 @@ class TwoDPlotter(PlotGenerator):
         return metric
 
     def plot_tracks_truth_detections(self, tracks, groundtruth_paths,
-                                     detections, uncertainty=False, particle=False):
+                                     detections, uncertainty=False, particle=False,
+                                     convert_measurements=True):
         """Plots tracks, truths and detections onto a 2d matplotlib figure
 
         Parameters
@@ -81,6 +82,9 @@ class TwoDPlotter(PlotGenerator):
             If True, function plots uncertainty ellipses.
         particle : bool
             If True, function plots particles.
+        convert_measurements : bool
+            Should the measurements be converted from measurement space to state space before
+            being plotted. Default is True
 
         Returns
         -------
@@ -95,7 +99,7 @@ class TwoDPlotter(PlotGenerator):
         if detections is not None:
             plotter.plot_measurements(detections, [self.detection_indices[0],
                                                    self.detection_indices[1]],
-                                      color='tab:blue')
+                                      convert_measurements, color='tab:blue')
         else:
             detections = []
 

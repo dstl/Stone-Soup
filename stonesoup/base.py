@@ -188,7 +188,7 @@ def _format_note(property_names):
         Note
         ----
         This will be cached until {", ".join(prop_str[:-1])}
-        {"or " if multiple else ""}{prop_str[-1]} {"are" if multiple else "is" } replaced.
+        {"or " if multiple else ""}{prop_str[-1]} {"are" if multiple else "is"} replaced.
         """)
 
 

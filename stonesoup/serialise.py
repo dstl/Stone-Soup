@@ -38,9 +38,9 @@ from collections import OrderedDict, deque
 from functools import lru_cache
 from pathlib import Path
 from importlib import import_module
+from importlib.metadata import entry_points
 
 import numpy as np
-import pkg_resources
 import ruamel.yaml
 from ruamel.yaml.constructor import ConstructorError
 
@@ -56,7 +56,12 @@ typ = 'stonesoup'
 
 def init_typ(yaml):
     # Load additional custom serialisation
-    for entry_point in pkg_resources.iter_entry_points('stonesoup.serialise.yaml'):
+    eps = entry_points()
+    try:
+        entrypoints = eps['stonesoup.serialise.yaml']
+    except KeyError:
+        entrypoints = []
+    for entry_point in entrypoints:
         try:
             entry_point.load()(yaml)
         except (ImportError, ModuleNotFoundError) as e:
@@ -66,7 +71,7 @@ def init_typ(yaml):
     yaml.representer.add_multi_representer(np.ndarray, ndarray_to_yaml)
     yaml.constructor.add_constructor("!numpy.ndarray", ndarray_from_yaml)
     yaml.representer.add_multi_representer(np.integer, yaml.representer.yaml_representers[int])
-    yaml.representer.add_multi_representer(np.floating, yaml.representer.yaml_representers[float])
+    yaml.representer.add_multi_representer(np.floating, npfloating_as_yaml)
 
     # Datetime
     yaml.representer.add_representer(datetime.timedelta, timedelta_to_yaml)
@@ -200,6 +205,11 @@ def angle_to_yaml(representer, node):
 def angle_from_yaml(constructor, tag_suffix, node):
     class_ = get_class(f'!stonesoup.types.angle.{tag_suffix}')
     return class_(float(constructor.construct_scalar(node)))
+
+
+def npfloating_as_yaml(representer, node):
+    """Convert np.floating to YAML."""
+    return representer.yaml_representers[float](representer, float(node))
 
 
 def ndarray_to_yaml(representer, node):

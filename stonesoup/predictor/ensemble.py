@@ -45,4 +45,4 @@ class EnsemblePredictor(KalmanPredictor):
             prior, noise=True, time_interval=time_interval)
 
         return Prediction.from_state(prior, pred_ensemble, timestamp=timestamp,
-                                     transition_model=self.transition_model)
+                                     transition_model=self.transition_model, prior=prior)

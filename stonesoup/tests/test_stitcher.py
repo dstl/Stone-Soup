@@ -155,7 +155,7 @@ def test__merge_forward_and_backward():
     x_forward = {'a': 1, 'b': 2, 'c': 4}
     x_backward = {'d': 1, 'e': 2, 'f': 3}
     x = TrackStitcher._merge_forward_and_backward(x_forward, x_backward)
-    assert type(x) == collections.defaultdict
+    assert isinstance(x, collections.defaultdict)
     x_forward = {'a': {'f_id': 'f_val'}}
     x_backward = {'a': {None: 'b_val'}}
     with pytest.raises(RuntimeError):
