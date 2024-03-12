@@ -94,9 +94,16 @@ seed = 818 # np.random.randint(0, 1000) # 706, 959, 547
 print(seed)
 np.random.seed(seed)
 
-path = r'.\data\minn_2.mat'
+# path = r'.\data\minn_2.mat'
+#
+# net_dict = load_graph_dict(path)
+#
+# with open('./data/road_net.pkl', 'wb') as f:
+#     pickle.dump(net_dict, f)
 
-net_dict = load_graph_dict(path)
+with open('./data/road_net.pkl', 'rb') as f:
+    net_dict = pickle.load(f)
+
 G = RoadNetwork.from_dict(net_dict)
 
 num_nodes = G.number_of_nodes()
