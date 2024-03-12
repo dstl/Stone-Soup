@@ -92,28 +92,34 @@ class ShortestPathToDestinationTransitionModel(TransitionModel, TimeVariantModel
         # 2) SMC destination sampling
         # Get all valid destinations given the current edge
         if self.destination_resample_probability:
-            v_dest = dict()
             edges = new_state_vectors[-3, :].astype(int)
-            sources = new_state_vectors[-1, :].astype(int)
-            unique_sources = list(np.unique(sources))
-            s_paths = self.graph.shortest_path(unique_sources, self.possible_destinations,
-                                               path_type='edge')
             unique_edges = np.unique(edges)
+            sources = list(np.unique(new_state_vectors[-1, :].astype(int)))
+            s_paths = self.graph.shortest_path(sources, self.possible_destinations,
+                                               path_type='edge')
+            v_dest = dict()
             for edge in unique_edges:
-                for (source, dest), path in s_paths.items():
-                    # If the path contains the edge
-                    if np.any(path == edge):
-                        try:
-                            v_dest[edge].append(dest)
-                        except KeyError:
-                            v_dest[edge] = [dest]
+                # Filter paths that contain the edge
+                filtered_paths = filter(lambda x: np.any(x[1] == edge), s_paths.items())
+                v_dest_tmp = {dest for (_, dest), _ in filtered_paths}
+                if len(v_dest_tmp):
+                    try:
+                        v_dest[edge] |= v_dest_tmp
+                    except KeyError:
+                        v_dest[edge] = v_dest_tmp
 
             # Perform destination sampling
             resample_inds = np.flatnonzero(
                 np.random.binomial(1, float(self.destination_resample_probability), num_particles)
             )
             for i in resample_inds:
-                new_state_vectors[-2, i] = np.random.choice(v_dest[edges[i]])
+                try:
+                    v_dest_tmp = list(v_dest[edges[i]])
+                except KeyError:
+                    # If no valid destinations exist for the current edge, keep the current
+                    # destination
+                    continue
+                new_state_vectors[-2, i] = np.random.choice(v_dest_tmp)
 
         # 3) Process edge change
         # The CV propagation may lead to r's which are either less that zero or more than the
@@ -171,7 +177,7 @@ class ShortestPathToDestinationTransitionModel(TransitionModel, TimeVariantModel
         # This is required as log pdf coverts arrays to floats
         likelihood = np.atleast_1d(
             multivariate_normal.logpdf((state1.state_vector - self.function(state2, **kwargs)).T,
-                                       cov=covar))
+                                       cov=covar, allow_singular=True))
 
         if len(likelihood) == 1:
             likelihood = likelihood[0]
