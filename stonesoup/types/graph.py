@@ -1,5 +1,5 @@
 import itertools
-from typing import Sequence, Tuple, Dict
+from typing import Sequence
 
 import numpy as np
 import geopandas
@@ -342,7 +342,7 @@ class RoadNetwork(nx.DiGraph):
                     short_paths['edge'][(s, t)] = \
                         self._short_paths_cache[method][weight]['edge'][(s, t)]
         except KeyError as e:
-            raise KeyError('Shortest path not found for the given source and target')
+            raise KeyError('Shortest path not found for the given source and target') from e
 
         # Return the requested path(s)
         return self._format_shortest_paths_output(short_paths, path_type)
