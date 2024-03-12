@@ -9,7 +9,7 @@ from scipy.io import loadmat
 from scipy.stats import multivariate_normal as mvn
 import cProfile as profile
 
-
+from examples.road_net.utils import highlight_nodes, highlight_edges, plot_network
 from simulation import simulate
 from stonesoup.functions.graph import get_xy_from_range_edge
 from stonesoup.models.transition.linear import ConstantVelocity
@@ -190,17 +190,17 @@ gs = fig.add_gridspec(2, 3)
 ax1 = fig.add_subplot(gs[:, :2])
 ax2 = fig.add_subplot(gs[0, 2])
 ax3 = fig.add_subplot(gs[1, 2])
-G.plot_network(ax1)
-G.plot_network(ax2)
+plot_network(G, ax1)
+plot_network(G, ax2)
 for key, value in short_paths['edge'].items():
-    G.highlight_edges(ax1, value, edge_color='y')
-    G.highlight_edges(ax2, value, edge_color='y')
-G.highlight_edges(ax1, gnd_route_e, edge_color='g')
-G.highlight_edges(ax2, gnd_route_e, edge_color='g')
-G.highlight_nodes(ax1, destinations, node_color='m', node_size=10)
-G.highlight_nodes(ax2, destinations, node_color='m', node_size=10)
-G.highlight_nodes(ax1, [destination], node_color='r', node_size=10)
-G.highlight_nodes(ax2, [destination], node_color='r', node_size=10)
+    highlight_edges(G, ax1, value, edge_color='y')
+    highlight_edges(G, ax2, value, edge_color='y')
+highlight_edges(G, ax1, gnd_route_e, edge_color='g')
+highlight_edges(G, ax2, gnd_route_e, edge_color='g')
+highlight_nodes(G, ax1, destinations, node_color='m', node_size=10)
+highlight_nodes(G, ax2, destinations, node_color='m', node_size=10)
+highlight_nodes(G, ax1, [destination], node_color='r', node_size=10)
+highlight_nodes(G, ax2, [destination], node_color='r', node_size=10)
 ax1.plot([], [], '-g', label='True path')
 ax1.plot([], [], 'sr', label='True destination')
 ax1.plot([], [], '-y', label='Confuser paths')
