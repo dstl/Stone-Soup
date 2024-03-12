@@ -26,7 +26,7 @@ def normalise_re(r_i, e_i, path, G):
 
     """
     edge_len = calc_edge_len(e_i, G)
-    idx = np.where(path == e_i)[0]
+    idx = np.where(np.asarray(path) == e_i)[0]
 
     if not len(idx):
         # If idx is empty, it means that the edge does not exist on the given
@@ -78,7 +78,7 @@ def calc_edge_len(e, G):
     Parameters
     ----------
     e: int
-        The edge index
+        The edge index in G.edge_list
     G: RoadNetwork
         The graph
 
@@ -94,7 +94,22 @@ def calc_edge_len(e, G):
 
 
 def get_xy_from_range_edge(r, e, G):
+    """ Get XY coordinates from range and edge index
 
+    Parameters
+    ----------
+    r: float or np.ndarray of float
+        The range or list of ranges
+    e: int or np.ndarray of int
+        The edge index or list of edge indices
+    G: RoadNetwork
+        The graph
+
+    Returns
+    -------
+    np.ndarray
+        The XY coordinates
+    """
     r = np.atleast_1d(r)
     e = np.atleast_1d(e).astype(int)
 
