@@ -78,3 +78,17 @@ def test_shortest_path_model(graph, use_indicator):
     else:
         # The likelihood should be equal to the likelihood of the noise
         assert np.isclose(likelihood, mvn.logpdf(noise.T, mean=np.zeros(2), cov=R))
+
+    # Test the logpdf method (current edge is not in the shortest path to destination)
+    # Assume the state is at edge 0 (1->2), the source node is 1 and the destination is node 4
+    # (i.e. the shortest path is 1->3->4)
+    state_vector = StateVector([0, 1, 0, 4, 1])
+    state = State(state_vector)
+    detection = Detection(StateVector(graph.nodes[1]['pos']) + noise)  # Create a detection
+    likelihood = measurement_model.logpdf(detection, state)
+    if use_indicator:
+        # The likelihood should be equal to -np.inf
+        assert likelihood == -np.inf
+    else:
+        # The likelihood should be equal to the likelihood of the noise
+        assert np.isclose(likelihood, mvn.logpdf(noise.T, mean=np.zeros(2), cov=R))

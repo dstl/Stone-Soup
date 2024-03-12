@@ -83,9 +83,15 @@ def test_road_network_building(nodes, edges, mode):
     assert network.number_of_nodes() == len(nodes) - 1  # 3 nodes left
     assert network.number_of_edges() == len(edges) - 3  # 1 edge left
 
+    # Test adding nodes with common position
+    network.add_nodes_from([5, 6], pos=(0, 0))
+    assert network.number_of_nodes() == len(nodes) + 1  # 3 + 2 = 5 nodes
+    assert network.nodes[5]['pos'] == (0, 0)
+    assert network.nodes[6]['pos'] == (0, 0)
+
     # Test we can clear the edges and nodes
     network.clear_edges()
-    assert network.number_of_edges() == 0 and network.number_of_nodes() == len(nodes) - 1
+    assert network.number_of_edges() == 0 and network.number_of_nodes() == len(nodes) + 1
     network.clear()
     assert network.number_of_nodes() == 0 and network.number_of_edges() == 0
 
