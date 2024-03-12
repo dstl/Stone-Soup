@@ -27,9 +27,9 @@ class ShortestPathToDestinationMeasurementModel(NonLinearGaussianMeasurement):
         x_k = \left[r_k, \cdots, e_k, d_k, s_k\right]
 
     and :math:`e_k` denotes the edge the target is currently on, :math:`r_k` is the distance
-    travelled along the edge, :m    ath:`d_k` is the destination node, and :math:`s_k` is the source
-    node. The notation :math:`\cdots` denotes additional state variables that are not used in this
-    model (e.g. velocity).
+    travelled along the edge, :m    ath:`d_k` is the destination node, and :math:`s_k` is
+    the source node. The notation :math:`\cdots` denotes additional state variables that are not
+    used in this model (e.g. velocity).
 
     The likelihood function is defined in either of two ways, depending on the value of
     :attr:`use_indicator`:
@@ -43,7 +43,8 @@ class ShortestPathToDestinationMeasurementModel(NonLinearGaussianMeasurement):
 
     .. math::
 
-        p(y_k|x_k) = \begin{cases}\mathcal{N}(y_k; h(x_k), R), & \text{if } e_k \in \text{shortest_path}(s_k, d_k) \\
+        p(y_k|x_k) = \begin{cases}\mathcal{N}(y_k; h(x_k), R),
+                                            & \text{if } e_k \in \text{shortest_path}(s_k, d_k) \\
                     0 & \text{otherwise}\end{cases}
 
     where :math:`\text{shortest_path}(s_k, d_k)` is the shortest path between the source node
@@ -93,11 +94,11 @@ class ShortestPathToDestinationMeasurementModel(NonLinearGaussianMeasurement):
     def logpdf(self, state1, state2, **kwargs):
         sv = self.function(state2, **kwargs)
         num_particles = sv.shape[1]
-        likelihood = mvn.logpdf(
+        likelihood = np.atleast_1d(mvn.logpdf(
             sv.T,
             mean=state1.state_vector.ravel(),
             cov=self.covar(**kwargs)
-        )
+        ))
         if self.use_indicator:
             # If edge is not in the path, set likelihood to 0 (log(0)=-inf)
             e = state2.state_vector[-3, :]
@@ -113,5 +114,8 @@ class ShortestPathToDestinationMeasurementModel(NonLinearGaussianMeasurement):
                 idx = np.where(path == e[i])[0]
                 if len(idx) == 0:
                     likelihood[i] = -np.inf
+
+        if len(likelihood) == 1:
+            likelihood = likelihood[0]
 
         return likelihood
