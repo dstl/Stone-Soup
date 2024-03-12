@@ -7,7 +7,7 @@ from stonesoup.models.measurement.nonlinear import NonLinearGaussianMeasurement
 from stonesoup.types.graph import RoadNetwork
 
 
-class ShortestPathToDestinationMeasurementModel(NonLinearGaussianMeasurement):
+class OptimalPathToDestinationMeasurementModel(NonLinearGaussianMeasurement):
     r"""Shortest path to destination measurement model
 
     This is a measurement model that projects the target's position on the road network to a 2D

@@ -2,7 +2,7 @@ import pytest
 import numpy as np
 from scipy.stats import multivariate_normal as mvn
 
-from stonesoup.models.measurement.graph import ShortestPathToDestinationMeasurementModel
+from stonesoup.models.measurement.graph import OptimalPathToDestinationMeasurementModel
 from stonesoup.types.array import StateVector
 from stonesoup.types.detection import Detection
 from stonesoup.types.graph import RoadNetwork
@@ -44,9 +44,9 @@ def test_shortest_path_model(graph, use_indicator):
     # Measurement model
     mapping = [0, 1]
     R = np.eye(2) * 0.0002
-    measurement_model = ShortestPathToDestinationMeasurementModel(ndim_state=5, mapping=mapping,
-                                                                  noise_covar=R, graph=graph,
-                                                                  use_indicator=use_indicator)
+    measurement_model = OptimalPathToDestinationMeasurementModel(ndim_state=5, mapping=mapping,
+                                                                 noise_covar=R, graph=graph,
+                                                                 use_indicator=use_indicator)
 
     # Test the function method (without noise)
     state_vector = StateVector([0, 1, 1, 3, 1])

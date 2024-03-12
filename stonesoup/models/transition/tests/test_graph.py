@@ -4,7 +4,7 @@ import numpy as np
 import pytest
 from scipy.stats import multivariate_normal as mvn
 
-from stonesoup.models.transition.graph import ShortestPathToDestinationTransitionModel
+from stonesoup.models.transition.graph import OptimalPathToDestinationTransitionModel
 from stonesoup.models.transition.linear import ConstantVelocity
 from stonesoup.types.array import StateVectors
 from stonesoup.types.graph import RoadNetwork
@@ -41,7 +41,7 @@ def graph():
 
 @pytest.fixture(scope='function')
 def eval_fixture(request):
-    """Fixture for evaluating the ShortestPathToDestinationTransitionModel model."""
+    """Fixture for evaluating the OptimalPathToDestinationTransitionModel model."""
     dest_resample_prob, possible_destinations = request.param
     if not dest_resample_prob and not possible_destinations:
         eval_state_vectors = StateVectors([[0.03944934, 0., 1., 0.,
@@ -188,7 +188,7 @@ def test_shortest_path_model(eval_fixture, graph):
 
     # Model-related components
     cv_model = ConstantVelocity(1)
-    transition_model = ShortestPathToDestinationTransitionModel(
+    transition_model = OptimalPathToDestinationTransitionModel(
         transition_model=cv_model,
         graph=graph,
         destination_resample_probability=dest_resample_prob,

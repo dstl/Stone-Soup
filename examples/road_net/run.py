@@ -13,8 +13,8 @@ from examples.road_net.utils import highlight_nodes, highlight_edges, plot_netwo
 from simulation import simulate
 from stonesoup.functions.graph import get_xy_from_range_edge
 from stonesoup.models.transition.linear import ConstantVelocity
-from stonesoup.models.transition.graph import ShortestPathToDestinationTransitionModel
-from stonesoup.models.measurement.graph import ShortestPathToDestinationMeasurementModel
+from stonesoup.models.transition.graph import OptimalPathToDestinationTransitionModel
+from stonesoup.models.measurement.graph import OptimalPathToDestinationMeasurementModel
 from stonesoup.predictor.particle import ParticlePredictor
 from stonesoup.resampler.particle import SystematicResampler
 from stonesoup.types.array import StateVector, StateVectors
@@ -141,13 +141,13 @@ short_paths = G.shortest_path(source, destinations, path_type='both')
 
 # Transition model
 cv_model = ConstantVelocity(0.01)
-transition_model = ShortestPathToDestinationTransitionModel(
+transition_model = OptimalPathToDestinationTransitionModel(
     cv_model, G, possible_destinations=destinations)
 
 # Measurement model
 mapping = [0,1]
 R = np.eye(2)*0.0002
-measurement_model = ShortestPathToDestinationMeasurementModel(
+measurement_model = OptimalPathToDestinationMeasurementModel(
     ndim_state=5, mapping=mapping, noise_covar=R, graph=G)
 
 # Simulate detections

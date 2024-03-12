@@ -15,7 +15,7 @@ from stonesoup.types.numeric import Probability
 from stonesoup.types.state import State
 
 
-class ShortestPathToDestinationTransitionModel(TransitionModel, TimeVariantModel):
+class OptimalPathToDestinationTransitionModel(TransitionModel, TimeVariantModel):
     r""" Shortest path to destination transition model.
 
     A transition model that models a target travelling along the shortest path to a destination,
