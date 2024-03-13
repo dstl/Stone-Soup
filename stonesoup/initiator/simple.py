@@ -501,3 +501,46 @@ class EnsembleInitiator(GaussianInitiator):
                 hypothesis=track.hypothesis)
 
         return tracks
+
+
+class ParticleGaussianInitiator(GaussianInitiator):
+    """Particle Gaussian Initiator class
+
+    Utilising Particle Initiator, convert the resultant track's state to generate a Gaussian state,
+    overwriting with a :class:`~.GaussianState`.
+    """
+
+    initiator: ParticleInitiator = Property(
+        doc="Particle Initiator which will be used to generate tracks.")
+
+    def initiate(self, detections, timestamp, **kwargs):
+        """Initiates tracks given unassociated measurements
+
+        Parameters
+        ----------
+        detections : set of :class:`~.Detection`
+            A list of unassociated detections
+        timestamp: datetime.datetime
+            Current timestamp
+
+        Returns
+        -------
+        : set of :class:`~.Track`
+            A list of new tracks with an initial :class:`~.GaussianState`
+        """
+        tracks = self.initiator.initiate(detections, timestamp, **kwargs)
+
+        for track in tracks:
+            mu = track.mean
+            covar = track.covar
+            timestamp = track.timestamp
+
+            track[-1] = State.from_state(
+                state=track.state,
+                state_vector=mu,
+                covar=covar,
+                timestamp=timestamp,
+                target_type=GaussianState
+            )
+
+        return tracks
