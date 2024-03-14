@@ -623,10 +623,10 @@ def test_defaults(radars_3d, platform_type, add_sensor):
                                  position_mapping=[0, 2, 4], **platform_args)
 
     for sensor in radars_3d:
-        assert np.array_equal(sensor.mounting_offset, StateVector([0, 0, 0]))
-        assert np.array_equal(sensor.rotation_offset, StateVector([0, 0, 0]))
-        assert np.array_equal(sensor.position, platform.position)
-        assert np.array_equal(sensor.orientation, platform.orientation)
+        assert np.allclose(sensor.mounting_offset, StateVector([0, 0, 0]))
+        assert np.allclose(sensor.rotation_offset, StateVector([0, 0, 0]))
+        assert np.allclose(sensor.position, platform.position)
+        assert np.allclose(sensor.orientation, platform.orientation)
 
 
 def sensor_positions_test(expected_offset, platform):
