@@ -171,7 +171,11 @@ class GOSPAMetric(MetricGenerator):
         gospa_metrics = []
         for timestamp in timestamps:
             meas_mask = [state.timestamp == timestamp for state in measured_states]
-            meas_points = np.array(measured_states)[meas_mask]
+            # np.array doesn't work for ParticleState
+            meas_points = np.empty(len(measured_states), dtype="O")
+            meas_points[:] = measured_states
+            meas_points = meas_points[meas_mask]
+
             meas_ids = np.array(measured_state_ids)[meas_mask]
 
             truth_mask = [state.timestamp == timestamp for state in truth_states]
