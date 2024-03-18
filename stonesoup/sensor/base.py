@@ -118,8 +118,8 @@ class PlatformMountable(Base, ABC):
         if self.movement_controller is None:
             return None
         x_axis = (1, 0, 0)
-        rotmat = build_rotation_matrix_xyz(-self.movement_controller.orientation) @ \
-            build_rotation_matrix_xyz(-self.rotation_offset)
+        rotmat = (build_rotation_matrix_xyz(-self.movement_controller.orientation) @ 
+            build_rotation_matrix_xyz(-self.rotation_offset))
         offset_axis = rotmat @ x_axis
         roll = mod_bearing(self.movement_controller.orientation[0] + self.rotation_offset[0])
         # convert cartesian direction, 'offset_axis', into an orientation
