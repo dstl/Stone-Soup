@@ -20,7 +20,7 @@ class OptimalPathToDestinationTransitionModel(TransitionModel, TimeVariantModel)
 
     A transition model that models a target travelling along the shortest path to a destination,
     on a given road network. The model is a generalised implementation of the transition model
-    described in [1]_.
+    described in [#net]_.
 
     The state vector :math:`x_k` is assumed to take the form
 
@@ -41,10 +41,10 @@ class OptimalPathToDestinationTransitionModel(TransitionModel, TimeVariantModel)
 
     References
     ----------
-    .. [1] L. Vladimirov and S. Maskell, "A SMC Sampler for Joint Tracking and Destination
-           Estimation from Noisy Data," 2020 IEEE 23rd International Conference on Information
-           Fusion (FUSION), Rustenburg, South Africa, 2020, pp. 1-8,
-           doi: 10.23919/FUSION45008.2020.9190463.
+    .. [#net] L. Vladimirov and S. Maskell, "A SMC Sampler for Joint Tracking and Destination
+              Estimation from Noisy Data," 2020 IEEE 23rd International Conference on Information
+              Fusion (FUSION), Rustenburg, South Africa, 2020, pp. 1-8,
+              doi: 10.23919/FUSION45008.2020.9190463.
     """
     transition_model: LinearGaussianTransitionModel = Property(
         doc=r"A base transition model that models the movement of the target along a given edge. "

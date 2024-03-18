@@ -13,7 +13,7 @@ class OptimalPathToDestinationMeasurementModel(NonLinearGaussianMeasurement):
     This is a measurement model that projects the target's position on the road network to a 2D
     position, via a non-linear transformation function :math:`h(x)`, which parameterizes the
     likelihood of the measurement given the target's state. This is a generalised implementation
-    of the measurement model described in [1]_.
+    of the measurement model described in [#net]_.
 
     The positional measurement noise is modelled as a zero-mean Gaussian distribution with
     covariance :math:`R`, such that:
@@ -49,14 +49,14 @@ class OptimalPathToDestinationMeasurementModel(NonLinearGaussianMeasurement):
 
     where :math:`\text{shortest_path}(s_k, d_k)` is the shortest path between the source node
     :math:`s_k` and destination node :math:`d_k` on the road network. The indicator function
-    implements Eq. (26) in [1]_.
+    implements Eq. (26) in [#net]_.
 
     References
     ----------
-    .. [1] L. Vladimirov and S. Maskell, "A SMC Sampler for Joint Tracking and Destination
-           Estimation from Noisy Data," 2020 IEEE 23rd International Conference on Information
-           Fusion (FUSION), Rustenburg, South Africa, 2020, pp. 1-8,
-           doi: 10.23919/FUSION45008.2020.9190463.
+    .. [#net] L. Vladimirov and S. Maskell, "A SMC Sampler for Joint Tracking and Destination
+              Estimation from Noisy Data," 2020 IEEE 23rd International Conference on Information
+              Fusion (FUSION), Rustenburg, South Africa, 2020, pp. 1-8,
+              doi: 10.23919/FUSION45008.2020.9190463.
     """
 
     graph: RoadNetwork = Property(
