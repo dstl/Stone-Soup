@@ -219,3 +219,73 @@ class NetworkArchitectureGenerator(InformationArchitectureGenerator):
         arch = NetworkArchitecture(edges=arch_edges, current_time=self.start_time)
 
         return arch
+
+
+class MultiInformationArchitectureGenerator(InformationArchitectureGenerator):
+    n_archs: int = Property(
+        doc="Tuple containing a minimum and maximum value for the number of routes created in the "
+            "network architecture to represent a single edge in the information architecture.",
+        default=2)
+
+    def generate(self):
+        edgelist, degrees = self.generate_edgelist()
+
+        nodes, edgelist = self.assign_nodes(degrees, edgelist)
+
+        arch = self.generate_architecture(nodes, edgelist)
+
+        return arch
+
+    def assign_nodes(self, degrees, edgelist):
+        reordered = []
+        for node_no in degrees.keys():
+            reordered.append((node_no, degrees[node_no]['target']))
+
+        reordered.sort(key=operator.itemgetter(1))
+        order = []
+        for t in reordered:
+            order.append(t[0])
+
+        components = ['s'] * self.n_sensor_nodes + \
+                     ['sf'] * self.n_sensor_fusion_nodes + \
+                     ['f'] * self.n_fusion_nodes
+
+        nodes = {}
+        n_sensors = 0
+        n_trackers = 0
+        for node_no, node_type in zip(order, components):
+            if node_type == 's':
+                lab = str(node_no)
+                sensor = copy.deepcopy(self.sensors[n_sensors])
+
+                for arch_no in range(self.n_archs):
+                    node = SensorNode(sensor=sensor, label=lab)
+                    #nodes[][node_no] = node
+                n_sensors += 1
+
+
+            elif node_type == 'f':
+                node = FusionNode(tracker=self.trackers[n_trackers],
+                                  fusion_queue=self.trackers[n_trackers].detector.reader,
+                                  label=str(node_no))
+                n_trackers += 1
+                nodes[node_no] = node
+
+            elif node_type == 'sf':
+                node = SensorFusionNode(sensor=self.sensors[n_sensors], label=str(node_no),
+                                        tracker=self.trackers[n_trackers],
+                                        fusion_queue=self.trackers[n_trackers].detector.reader)
+                n_sensors += 1
+                n_trackers += 1
+                nodes[node_no] = node
+
+        new_edgelist = copy.copy(edgelist)
+        for edge in edgelist:
+            s = edge[0]
+            t = edge[1]
+
+            if isinstance(nodes[s], FusionNode) and type(nodes[t]) == SensorNode:
+                new_edgelist.remove((s, t))
+                new_edgelist.append((t, s))
+
+        return nodes, new_edgelist
