@@ -20,10 +20,10 @@ Comparing different tracking algorithm using navigation measurements
 # Unscented Kalman Filter (UKF) and Particle filter (PF) in a single target-sensor scenario.
 #
 # This example follows this schema:
-# 1. Instantiate the target-sensor ground truths and gather the measurements;
-# 2. Prepare and load the various filters components;
-# 3. Run the trackers and obtain the tracks;
-# 4. Create and visualise the performances of the tracking algorithms.
+#   1. Instantiate the target-sensor ground truths and gather the measurements;
+#   2. Prepare and load the various filters components;
+#   3. Run the trackers and obtain the tracks;
+#   4. Create and visualise the performances of the tracking algorithms.
 #
 
 # %%
@@ -176,7 +176,8 @@ timestamps, groundtruths = describe_sensor_motion(speed, radius, center, start_t
 # ^^^^^^^^^^^^^^^^^^^^^^^^^^
 # As for the other example, we compose our measurement model
 # using the accelearation, gyroscope and landmarks measurement models.
-# We for the landmarks we consider a :class:`~.CartesianAzimuthElevationRangeMeasurementModel`
+#
+# For the landmarks we consider a :class:`~.CartesianAzimuthElevationRangeMeasurementModel`
 # which provides the Azimuth, Elevation and Range between the
 # sensor and the fixed target to ease the tracking efficiency.
 #
@@ -358,7 +359,6 @@ plotter.plot_tracks(track_pf, mapping=[0, 3, 6], track_label='PF')
 plotter.plot_sensors({*platforms}, mapping=[0, 1, 2],
                      sensor_label='Landmarks')
 plotter.fig
-plt.close()  # close the current figure
 
 # %%
 # 4) Create and visualise the performances of the tracking algorithms
@@ -385,6 +385,7 @@ for j in range(simulation_steps):
                                (track_ukf[j].state_vector[3] - groundtruths[j].state_vector[3])**2. +
                                (track_ukf[j].state_vector[6] - groundtruths[j].state_vector[6])**2.)/3.)
 
+plt.close()  # close the previous figure
 plt.plot(timesteps[0:simulation_steps], pf_track[0,:], color='red', linestyle='--', label='PF track')
 plt.plot(timesteps[0:simulation_steps], ukf_track[0,:], color='blue', linestyle='--', label='UKF track')
 plt.plot(timesteps[0:simulation_steps], ekf_track[0,:], color='orange', linestyle='--', label='EKF track')
@@ -399,11 +400,13 @@ plt.show()
 # ----------
 # In this example we have compared the performances of some tracking algorithms available in
 # Stone Soup providing measurements from the accelerometer and gyroscope on board of a
-# sensor and using some landmarks on the ground to adjust the tracking. By adressing the RMSE (root mean
-# square error) of the tracks obtained we can see that the Kalman Filter based algorithms offer good performances
-# over the simulation, while the Particle filter seems to suffer from the high dimensionality of the
-# problem. Overall, the intent of this example was to show how to use and perform a 1-to-1 comparison
-# between these algorithms in Stone Soup.
+# sensor and using some landmarks on the ground to adjust the tracking.
 #
+# By adressing the RMSE (root mean square error) of the tracks obtained we can see that the Kalman
+# Filter based algorithms offer good performances over the simulation, while the Particle filter
+# seems to suffer from the high dimensionality of the problem.
+#
+# Overall, the intent of this example was to show how to use and perform a 1-to-1 comparison
+# between these algorithms in Stone Soup.
 
 # sphinx_gallery_thumbnail_number = 1

@@ -26,10 +26,10 @@ Example using navigation measurement model
 # :math:`\psi`), the pitch (:math:`\theta`) and the roll (:math:`\phi`) and their time derivative.
 #
 # This example follows these points:
-# 1. Describe the transition model;
-# 2. Obtain the ground truth and measurements;
-# 3. Instantiate the tracker components;
-# 4. Run the tracker and obtain the final track.
+#   1. Describe the transition model;
+#   2. Obtain the ground truth and measurements;
+#   3. Instantiate the tracker components;
+#   4. Run the tracker and obtain the final track.
 #
 
 # %%
@@ -184,10 +184,11 @@ transition_model = CombinedGaussianTransitionModel([ConstantAcceleration(1.5),
 # 2) Obtain the ground truth and gather the measurements;
 # -------------------------------------------------------
 # We have instantiated a function to describe the  target-sensor dynamics, obtaining the Euler angles
-# from the vessel acceleration and velocity  adopting the ad-hoc function :class:`~.getEulerAngles`.
-# Likewise, we have instantiated the 15 dimension transition # model using a constant acceleration
-# model for the 3D dynamics and a constant velocity for modelling the Euler angles
-# dynamics. We consider as well the :class:`~.Singer` model for an exponential declining acceleration
+# from the vessel acceleration and velocity adopting the ad-hoc function :class:`~.get_euler_angles`.
+# Likewise, we have instantiated the 15 dimension transition model using a constant acceleration
+# model for the 3D dynamics and a constant velocity for modelling the Euler angles dynamics.
+#
+# We consider, as well, the :class:`~.Singer` model for an exponential declining acceleration
 # model for the z-coordinate, since the sensor is moving on a fixed plane at 1 km above the surface.
 # At this stage we can start collecting both the groundtruths and the measurement using a composite
 # measurement model merging the measurements from the :class:`~.AccelerometerMeasurementModel`,
@@ -287,6 +288,7 @@ for truth in truths:
 # --------------------------------------
 # We have the truths and the detections, in this simple example we do not include measurement clutter.
 # Now we can set up the tracker components.
+#
 # In this example we consider an UnscentedKalmanFilter given the non-linearity of the problem.
 
 # %%

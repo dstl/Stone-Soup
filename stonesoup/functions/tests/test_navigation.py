@@ -2,9 +2,9 @@ import pytest
 import numpy as np
 
 from stonesoup.types.state import StateVector
-from stonesoup.functions.navigation import earth_speed_flat_sq, earth_speed_sq, earth_turn_rate_vector, \
-    get_gravity_vector, get_eulers_angles, get_force_vector, get_angular_rotation_vector, \
-    euler2rotation_vector
+from stonesoup.functions.navigation import earth_speed_flat_sq, earth_speed_sq, \
+    earth_turn_rate_vector, get_gravity_vector, get_eulers_angles, get_force_vector, \
+    get_angular_rotation_vector, euler2rotation_vector
 
 
 @pytest.mark.parametrize(

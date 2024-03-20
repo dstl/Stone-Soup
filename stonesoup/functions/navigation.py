@@ -174,8 +174,8 @@ def euler2rotation_vector(psi_theta_phi, dpsi_theta_phi):
     return np.einsum('ijh, jh-> ih', R, dpsi_theta_phi)
 
 
-def get_angular_rotation_vector(states, lat_lon_alt0, position_mapping = (0, 3, 6),
-                                angles_mapping = (9, 11, 13), d_angles_mapping = (10, 12, 14)):
+def get_angular_rotation_vector(states, lat_lon_alt0, position_mapping=(0, 3, 6),
+                                angles_mapping=(9, 11, 13), d_angles_mapping=(10, 12, 14)):
     r"""Function to obtain the rotation vector measured by
         the gyroscope instrument.
 
@@ -258,8 +258,9 @@ def earth_turn_rate_vector(Lat_degs):
     return omega_ie_n
 
 
-def get_force_vector(state, lat_lon_alt0, position_mapping = (0, 3, 6), velocity_mapping = (1, 4, 7),
-                     acceleration_mapping = (2, 5, 8), angles_mapping = (9, 11, 13)):
+def get_force_vector(state, lat_lon_alt0, position_mapping=(0, 3, 6),
+                     velocity_mapping=(1, 4, 7), acceleration_mapping=(2, 5, 8),
+                     angles_mapping=(9, 11, 13)):
     """ Measure the force measured by the accelerometer.
         The final product is a matrix that measure
         the forces as explained in [#]_.
