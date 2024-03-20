@@ -5,10 +5,10 @@ Navigation functions
 
 import numpy as np
 import pymap3d
-from . import localSphere2GCS, build_rotation_matrix
+from . import local_sphere2GCS, build_rotation_matrix
 
 
-def earthSpeedFlatSq(dx, dy):
+def earth_speed_flat_sq(dx, dy):
     r"""Calculate the Earth speed flat vector respect to the reference
     frame, from 2D Cartesian coordinates.
 
@@ -28,7 +28,7 @@ def earthSpeedFlatSq(dx, dy):
     return np.power(dx, 2) + np.power(dy, 2)
 
 
-def earthSpeedSq(dx, dy, dz):
+def earth_speed_sq(dx, dy, dz):
     r"""Calculate the Earth speed respect to the reference frame
     from 3D Cartesian coordinates.
 
@@ -50,8 +50,8 @@ def earthSpeedSq(dx, dy, dz):
     return np.power(dx, 2) + np.power(dy, 2) + np.power(dz, 2)
 
 
-def earthSpeedFlat(dx, dy):
-    r"""Same as :class:`~.EarthSpeedFlatSq` but squared.
+def earth_speed_flat(dx, dy):
+    r"""Same as :class:`~.earth_speed_flat_sq` but squared.
 
     Parameters
     ----------
@@ -65,10 +65,10 @@ def earthSpeedFlat(dx, dy):
     -------
     np.array: square root of the sum of the powers of dx and dy
     """
-    return np.sqrt(earthSpeedFlatSq(dx, dy))
+    return np.sqrt(earth_speed_flat_sq(dx, dy))
 
 
-def getEulersAngles(earthSpeed, earthAcceleration):
+def get_eulers_angles(earth_speed, earth_acceleration):
     r"""Function to obtain the Euler angles from the
         speed of the aeroplane. The Euler angles are:
 
@@ -80,13 +80,13 @@ def getEulersAngles(earthSpeed, earthAcceleration):
 
     Parameters
     ----------
-    earthSpeed : np.array, float
-                Earth velocity components (dx, dy, dz)
-                in local Earth coordinates (m/s)
+    earth_speed : np.array, float
+                  Earth velocity components (dx, dy, dz)
+                  in local Earth coordinates (m/s)
 
-    earthAcceleration : np.array, float
-                  Earth acceleration components (ddx, ddy, ddz)
-                  in local Earth coordinates (m/s^2)
+    earth_acceleration : np.array, float
+                         Earth acceleration components (ddx, ddy, ddz)
+                         in local Earth coordinates (m/s^2)
 
     Returns
     -------
@@ -98,13 +98,13 @@ def getEulersAngles(earthSpeed, earthAcceleration):
 
     """
 
-    dx, dy, dz = earthSpeed
-    ddx, ddy, ddz = earthAcceleration
+    dx, dy, dz = earth_speed
+    ddx, ddy, ddz = earth_acceleration
 
     # Calculate the earth speed
-    Esfq = earthSpeedFlatSq(dx, dy)
-    Esf = earthSpeedFlat(dx, dy)
-    Ess = earthSpeedSq(dx, dy, dz)
+    Esfq = earth_speed_flat_sq(dx, dy)
+    Esf = earth_speed_flat(dx, dy)
+    Ess = earth_speed_sq(dx, dy, dz)
 
     Phi = np.arctan2(dy, dx)
     Theta = np.arctan2(-dz, Esf)
@@ -115,7 +115,7 @@ def getEulersAngles(earthSpeed, earthAcceleration):
     composite_euler_acc_angles = np.array([0, 0, 0])
 
     # in case of acceleration different from 0
-    if earthAcceleration.any() > 0:
+    if earth_acceleration.any() > 0:
 
         num_dphi = dx*ddy - dy*ddx
 
@@ -130,7 +130,7 @@ def getEulersAngles(earthSpeed, earthAcceleration):
     return (composite_euler_angles, composite_euler_acc_angles)
 
 
-def euler2rotationVector(psiThetaPhi, dpsiThetaPhi):
+def euler2rotation_vector(psi_theta_phi, dpsi_theta_phi):
     r""" Function to obtain the rotation vector for given Euler angles
         and their time derivative. The Euler angles are
         the heading of the plane, the pitch and roll.
@@ -139,10 +139,10 @@ def euler2rotationVector(psiThetaPhi, dpsiThetaPhi):
 
     Parameters
     ----------
-    psiThetaPhi: np.array, float
-                    array containing the three Euler angles (radians)
+    psi_theta_phi: np.array, float
+                   array containing the three Euler angles (radians)
 
-    dpsiThetaPhi: np.array, float
+    dpsi_theta_phi: np.array, float
                     array containing the time derivative of the
                     three Euler angles (radians/s)
 
@@ -158,8 +158,8 @@ def euler2rotationVector(psiThetaPhi, dpsiThetaPhi):
            Navigation Systems (Second Edition), Artech House, 2013.
     """
 
-    phi_rad = psiThetaPhi[0, :]
-    theta_rad = psiThetaPhi[1, :]
+    phi_rad = psi_theta_phi[0, :]
+    theta_rad = psi_theta_phi[1, :]
 
     sin_theta = np.sin(theta_rad)
     cos_theta = np.cos(theta_rad)
@@ -171,10 +171,11 @@ def euler2rotationVector(psiThetaPhi, dpsiThetaPhi):
                   [np.zeros_like(theta_rad), -sin_phi, cos_phi * cos_theta]
                   ])
 
-    return np.einsum('ijh, jh-> ih', R, dpsiThetaPhi)
+    return np.einsum('ijh, jh-> ih', R, dpsi_theta_phi)
 
 
-def getAngularRotationVector(states, latLonAlt0):
+def get_angular_rotation_vector(states, lat_lon_alt0, position_mapping = (0, 3, 6),
+                                angles_mapping = (9, 11, 13), d_angles_mapping = (10, 12, 14)):
     r"""Function to obtain the rotation vector measured by
         the gyroscope instrument.
 
@@ -183,8 +184,15 @@ def getAngularRotationVector(states, latLonAlt0):
     states: :class:`~.State`
         target state containing the positions, velocities,
         acceleration and the Euler angles
-    latLonAlt0: np.array
+    lat_lon_alt0: np.array
         reference frame in latitude, longitude and altitude
+
+    position_mapping: tuple
+                      indeces of the position mapping
+    angles_mapping: tuple
+                    indeces of the angle mapping
+    d_angles_mapping: tuple
+                      indeces of the angle derivative mapping
 
     Returns
     -------
@@ -192,34 +200,29 @@ def getAngularRotationVector(states, latLonAlt0):
                 :math:`\omega_{deg}' array of the rotation vectors (radians/s)
     """
 
-    # specify the mapping - may fail if we are not doing things in 3D
-    position_mapping = (0, 3, 6)
-    angles_mapping = (9, 11, 13)
-    dangles_mapping = (10, 12, 14)
-
     # Coordinates in navigation reference frame
     localpos = states[position_mapping, :]  # use the indices of the position
-    psiThetaPhi = states[angles_mapping, :]  # use the indices of the Euler angles
-    dpsiThetaPhi = states[dangles_mapping, :]  # use the indices of the dEuler
+    psi_theta_phi = states[angles_mapping, :]  # use the indices of the Euler angles
+    dpsi_theta_phi = states[d_angles_mapping, :]  # use the indices of the dEuler
 
     # Convert the local reference point to latitude and longitude
-    lat_deg, _, _ = localSphere2GCS(localpos[0, :],
-                                    localpos[1, :],
-                                    localpos[2, :],
-                                    latLonAlt0)
+    lat_deg, _, _ = local_sphere2GCS(localpos[0, :],
+                                     localpos[1, :],
+                                     localpos[2, :],
+                                     lat_lon_alt0)
 
-    omega_nb_b = euler2rotationVector(psiThetaPhi, dpsiThetaPhi)
+    omega_nb_b = euler2rotation_vector(psi_theta_phi, dpsi_theta_phi)
 
-    omega_ie_n = earthTurnRateVector(lat_deg[:])
+    omega_ie_n = earth_turn_rate_vector(lat_deg[:])
 
-    Rbn = build_rotation_matrix(psiThetaPhi)
+    Rbn = build_rotation_matrix(psi_theta_phi)
 
     omega_ib_b = ((Rbn @ omega_ie_n) + omega_nb_b)
 
     return omega_ib_b
 
 
-def earthTurnRateVector(Lat_degs):
+def earth_turn_rate_vector(Lat_degs):
     r"""Function to obtain the Earth turn rate vector
         given the latitude in degrees. The Earth turn rate
         is equal to :math:`7.29\times10^5` radians per seconds.
@@ -255,7 +258,8 @@ def earthTurnRateVector(Lat_degs):
     return omega_ie_n
 
 
-def getForceVector(state, latLonAlt0):
+def get_force_vector(state, lat_lon_alt0, position_mapping = (0, 3, 6), velocity_mapping = (1, 4, 7),
+                     acceleration_mapping = (2, 5, 8), angles_mapping = (9, 11, 13)):
     """ Measure the force measured by the accelerometer.
         The final product is a matrix that measure
         the forces as explained in [#]_.
@@ -263,11 +267,18 @@ def getForceVector(state, latLonAlt0):
     Parameters
     ----------
     state : :class:`~.State`
-        Target states in 15-dimension space
+            Target states in 15-dimension space
 
-    latLonAlt0: np.array
-        reference frame array in latitude,
-        longitude and altitude
+    lat_lon_alt0: np.array
+                  reference frame array in latitude, longitude and altitude
+    position_mapping: tuple
+                      indeces of the position mapping
+    velocity_mapping: tuple
+                      indeces of the velocity mapping
+    acceleration_mapping: tuple
+                      indeces of the acceleration mapping
+    angles_mapping: tuple
+                      indeces of the angle mapping
 
     Returns
     -------
@@ -282,22 +293,16 @@ def getForceVector(state, latLonAlt0):
            Foundations 456 and Trends in Signal Processing, Vol. 11, No. 1–2, pp 1–153, 2017.
     """
 
-    # mapping
-    position_mapping = (0, 3, 6)
-    velocity_mapping = (1, 4, 7)
-    acceleration_mapping = (2, 5, 8)
-    angles_mapping = (9, 11, 13)
-
     # coordinates in local navigation frame
     localpos = state[position_mapping, :]
     localvel = state[velocity_mapping, :]
     localacc = state[acceleration_mapping, :]
-    psiThetaPhi = state[angles_mapping, :]  # turn it to radians to fix the calculations
+    psi_theta_phi = state[angles_mapping, :]
 
-    lat_deg, _, alt = localSphere2GCS(localpos[0, :],
-                                      localpos[1, :],
-                                      localpos[2, :],
-                                      latLonAlt0)
+    lat_deg, _, alt = local_sphere2GCS(localpos[0, :],
+                                       localpos[1, :],
+                                       localpos[2, :],
+                                       lat_lon_alt0)
 
     # get the 3D local position, acceleration velocity
     p_n = localpos
@@ -305,21 +310,21 @@ def getForceVector(state, latLonAlt0):
     v_n_n = localvel
 
     # omega rotation
-    omega_ie_n = earthTurnRateVector(lat_deg)
+    omega_ie_n = earth_turn_rate_vector(lat_deg)
 
     a_ii_n = a_nn_n + 2 * np.cross(omega_ie_n, v_n_n, axis=0) + \
         np.cross(omega_ie_n, np.cross(omega_ie_n, p_n, axis=0), axis=0)
 
-    grav_n = getGravityVector(lat_deg[:], alt[:])
+    grav_n = get_gravity_vector(lat_deg[:], alt[:])
 
-    Rbn = build_rotation_matrix(psiThetaPhi)
+    Rbn = build_rotation_matrix(psi_theta_phi)
 
     fb = Rbn @ (a_ii_n - grav_n)
 
     return fb
 
 
-def getGravityVector(lat_degs, alt):
+def get_gravity_vector(lat_degs, alt):
     """Obtain the gravity vector for a particular
         latitude and altitude.
         This code is adapted from [#]_.

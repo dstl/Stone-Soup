@@ -17,7 +17,7 @@ from ...measurement.linear import LinearGaussian
 from ....functions import jacobian as compute_jac
 from ....functions import pol2cart
 from ....functions import rotz, rotx, roty, cart2sphere, cart2az_el_rg, mod_bearing
-from ....functions.navigation import getAngularRotationVector, getForceVector
+from ....functions.navigation import get_angular_rotation_vector, get_force_vector
 from ....types.angle import Bearing, Elevation, Azimuth
 from ....types.array import StateVector, StateVectors
 from ....types.state import State, CovarianceMatrix, ParticleState
@@ -1448,15 +1448,15 @@ def h_az_el_range(state_vector, pos_map, target_state, translation_offset):
 
 def h_accelerometer(state_vector, reference_frame):
     ' test the accelerometer'
-    acceleration_components = getForceVector(state_vector,
-                                             latLonAlt0=reference_frame)
+    acceleration_components = get_force_vector(state_vector,
+                                               lat_lon_alt0=reference_frame)
     return StateVectors(acceleration_components)
 
 
 def h_gyroscope(state_vector, reference_frame):
     ' test the gyroscope'
-    angles_components = getAngularRotationVector(state_vector,
-                                                 latLonAlt0=reference_frame)
+    angles_components = get_angular_rotation_vector(state_vector,
+                                                    lat_lon_alt0=reference_frame)
     return StateVectors(angles_components)
 
 

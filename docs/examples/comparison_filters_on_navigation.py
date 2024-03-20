@@ -45,11 +45,11 @@ from stonesoup.types.groundtruth import GroundTruthState, GroundTruthPath
 from stonesoup.types.state import GaussianState
 from stonesoup.types.array import StateVector
 from stonesoup.types.detection import Detection
-from stonesoup.functions.navigation import getEulersAngles
+from stonesoup.functions.navigation import get_eulers_angles
 
 
 # Simulation parameters
-np.random.seed(2010) # fix a random seed
+np.random.seed(2010)  # fix a random seed
 simulation_steps = 100
 timesteps = np.linspace(1, simulation_steps+1, simulation_steps+1)
 start_time = datetime.now().replace(microsecond=0)
@@ -84,7 +84,7 @@ def describe_sensor_motion(target_speed: float,
     -----------
     target_speed: float
         Speed of the sensor;
-    target_tadius: float
+    target_radius: float
         radius of the circular trajectory;
     starting_position: np.array
         starting point of the trajectory, latitude, longitude
@@ -137,8 +137,8 @@ def describe_sensor_motion(target_speed: float,
                            np.array([np.cos(theta), np.sin(theta), 0])
 
         # Now using the velocity and accelerations terms we get the Euler angles
-        angles, dangles = getEulersAngles(sensor_dynamics[velocity_indexes],
-                                          sensor_dynamics[acceleration_indexes])
+        angles, dangles = get_eulers_angles(sensor_dynamics[velocity_indexes],
+                                            sensor_dynamics[acceleration_indexes])
 
         # add the Euler angles and their time derivative
         # please check that are all angles
@@ -358,6 +358,7 @@ plotter.plot_tracks(track_pf, mapping=[0, 3, 6], track_label='PF')
 plotter.plot_sensors({*platforms}, mapping=[0, 1, 2],
                      sensor_label='Landmarks')
 plotter.fig
+plt.close()  # close the current figure
 
 # %%
 # 4) Create and visualise the performances of the tracking algorithms
@@ -372,17 +373,17 @@ pf_track, ekf_track, ukf_track, = np.zeros((1, simulation_steps)), \
                                   np.zeros((1, simulation_steps))
 
 for j in range(simulation_steps):
-    pf_track[:, j] = np.sqrt((track_pf[j].state_vector[0].mean() - groundtruths[j].state_vector[0])**2. +
-                             (track_pf[j].state_vector[3].mean() - groundtruths[j].state_vector[3])**2. +
-                             (track_pf[j].state_vector[6].mean() - groundtruths[j].state_vector[6])**2.)
+    pf_track[:, j] = np.sqrt(((track_pf[j].state_vector[0].mean() - groundtruths[j].state_vector[0])**2. +
+                              (track_pf[j].state_vector[3].mean() - groundtruths[j].state_vector[3])**2. +
+                              (track_pf[j].state_vector[6].mean() - groundtruths[j].state_vector[6])**2.)/3.)
 
-    ekf_track[:, j] = np.sqrt((track_ekf[j].state_vector[0] - groundtruths[j].state_vector[0])**2. +
-                             (track_ekf[j].state_vector[3] - groundtruths[j].state_vector[3])**2. +
-                             (track_ekf[j].state_vector[6] - groundtruths[j].state_vector[6])**2.)
+    ekf_track[:, j] = np.sqrt(((track_ekf[j].state_vector[0] - groundtruths[j].state_vector[0])**2. +
+                               (track_ekf[j].state_vector[3] - groundtruths[j].state_vector[3])**2. +
+                               (track_ekf[j].state_vector[6] - groundtruths[j].state_vector[6])**2.)/3.)
 
-    ukf_track[:, j] = np.sqrt((track_ukf[j].state_vector[0] - groundtruths[j].state_vector[0])**2. +
-                             (track_ukf[j].state_vector[3] - groundtruths[j].state_vector[3])**2. +
-                             (track_ukf[j].state_vector[6] - groundtruths[j].state_vector[6])**2.)
+    ukf_track[:, j] = np.sqrt(((track_ukf[j].state_vector[0] - groundtruths[j].state_vector[0])**2. +
+                               (track_ukf[j].state_vector[3] - groundtruths[j].state_vector[3])**2. +
+                               (track_ukf[j].state_vector[6] - groundtruths[j].state_vector[6])**2.)/3.)
 
 plt.plot(timesteps[0:simulation_steps], pf_track[0,:], color='red', linestyle='--', label='PF track')
 plt.plot(timesteps[0:simulation_steps], ukf_track[0,:], color='blue', linestyle='--', label='UKF track')
@@ -404,3 +405,5 @@ plt.show()
 # problem. Overall, the intent of this example was to show how to use and perform a 1-to-1 comparison
 # between these algorithms in Stone Soup.
 #
+
+# sphinx_gallery_thumbnail_number = 1

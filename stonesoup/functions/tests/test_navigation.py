@@ -2,9 +2,9 @@ import pytest
 import numpy as np
 
 from stonesoup.types.state import StateVector
-from stonesoup.functions.navigation import earthSpeedFlatSq, earthSpeedSq, earthTurnRateVector, \
-    getGravityVector, getEulersAngles, getForceVector, getAngularRotationVector, \
-    euler2rotationVector
+from stonesoup.functions.navigation import earth_speed_flat_sq, earth_speed_sq, earth_turn_rate_vector, \
+    get_gravity_vector, get_eulers_angles, get_force_vector, get_angular_rotation_vector, \
+    euler2rotation_vector
 
 
 @pytest.mark.parametrize(
@@ -20,11 +20,11 @@ def test_EarthSpeed(x, y, z):
     speed3D = np.power(x, 2) + np.power(y, 2) + np.power(z, 2)
     speed2D = np.power(x, 2) + np.power(y, 2)
 
-    # check that the 2D speed is the same as calculated with EarthSpeedSq
-    assert np.allclose(speed3D, earthSpeedSq(x, y, z))
+    # check that the 2D speed is the same as calculated with earth_speed_sq
+    assert np.allclose(speed3D, earth_speed_sq(x, y, z))
 
     # check that the 3D speed is the same as calculated with EarthSpeed
-    assert np.allclose(speed2D, earthSpeedFlatSq(x, y))
+    assert np.allclose(speed2D, earth_speed_flat_sq(x, y))
 
 
 @pytest.mark.parametrize(
@@ -38,11 +38,11 @@ def test_EarthSpeed(x, y, z):
     ]
 )
 def test_earthTurnRateVector(latitude):
-    """earthTurnRateVector test"""
+    """earth_turn_rate_vector test"""
 
     turn_rate = 7.292115e-5
 
-    assert np.allclose(earthTurnRateVector(latitude),
+    assert np.allclose(earth_turn_rate_vector(latitude),
                        turn_rate*np.array([
                            np.cos(np.radians(latitude)),
                            np.zeros_like(latitude),
@@ -58,8 +58,8 @@ def test_earthTurnRateVector(latitude):
     ]
 )
 def test_getGravityVector(latitude, altitude, gv):
-    """getGravityVector test"""
-    assert np.allclose(getGravityVector(latitude, altitude), gv, rtol=1e-4)
+    """get_gravity_vector test"""
+    assert np.allclose(get_gravity_vector(latitude, altitude), gv, rtol=1e-4)
 
 
 def test_functions_using_states():
@@ -95,8 +95,8 @@ def test_functions_using_states():
     euler_angles = (np.array([0.,  -0.04846913, -0.24497866]),
                     np.array([0., -0.04668526, 0.05882353]))
 
-    assert np.allclose(getAngularRotationVector(state_test, reference), angular_rotation)
-    assert np.allclose(getForceVector(state_test, reference), force_vector)
-    assert np.allclose(euler2rotationVector(state_test[ang_idx], state_test[vang_idx]),
+    assert np.allclose(get_angular_rotation_vector(state_test, reference), angular_rotation)
+    assert np.allclose(get_force_vector(state_test, reference), force_vector)
+    assert np.allclose(euler2rotation_vector(state_test[ang_idx], state_test[vang_idx]),
                        euler_rotation)
-    assert np.allclose(getEulersAngles(state_test[speed_idx], state_test[acc_idx]), euler_angles)
+    assert np.allclose(get_eulers_angles(state_test[speed_idx], state_test[acc_idx]), euler_angles)

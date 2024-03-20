@@ -11,11 +11,11 @@ Example using navigation measurement model
 # In this example, we present how to perform the tracking task using an inertia
 # navigation measurement model making use of instruments mounted on the sensor.
 # This example is relevant for tracking sensors in environments where GPS tracking is not
-# available and we integrate the information obtained from instruments on board, as the
+# available and we integrate the information obtained from instruments on board, the
 # accelerometer and gyroscope, with fixed target locations, also refereed as landmarks.
 # In this example, we simulate a three dimensional sensor, moving in 3D cartesian space,
 # we have the measurements from on-board instruments that evaluates the Euler angles, whose describe the
-# sensor rotations and orientation during the flight, as well as the the 3D forces acting on the sensor.
+# sensor rotations and orientation during the flight, as well as the 3D forces acting on the sensor.
 # This example aims to provide an idea of how to use the combination of the measurement models
 # :class:`~.AccelerometerMeasurementModel` and :class:`~.GyroscopeMeasurementModel` to model
 # the inertia navigation measurements.
@@ -56,8 +56,7 @@ from stonesoup.types.detection import Detection
 from stonesoup.types.state import State, StateVector, StateVectors, GaussianState
 from stonesoup.models.transition.linear import CombinedGaussianTransitionModel, \
     ConstantVelocity, ConstantAcceleration, Singer
-from stonesoup.functions.navigation import getEulersAngles
-from stonesoup.types.angle import Angle
+from stonesoup.functions.navigation import get_eulers_angles
 
 # %%
 # Simulation parameters setup
@@ -105,7 +104,7 @@ def describe_sensor_motion(target_speed: float,
     start_time: datetime,
         start of the simulation;
     number_of_timesteps: np.array
-        simulation length
+        simulation lenght
 
     Return:
     -------
@@ -153,8 +152,8 @@ def describe_sensor_motion(target_speed: float,
                 [np.cos(theta), np.sin(theta), 0])
 
         # Now using the velocity and accelerations terms we get the Euler angles
-        angles, dangles = getEulersAngles(sensor_dynamics[velocity_indexes],
-                                          sensor_dynamics[acceleration_indexes])
+        angles, dangles = get_eulers_angles(sensor_dynamics[velocity_indexes],
+                                            sensor_dynamics[acceleration_indexes])
 
         # add the Euler angles and their time derivative
         # please check that are all angles
@@ -190,12 +189,12 @@ transition_model = CombinedGaussianTransitionModel([ConstantAcceleration(1.5),
 # model for the 3D dynamics and a constant velocity for modelling the Euler angles
 # dynamics. We consider as well the :class:`~.Singer` model for an exponential declining acceleration
 # model for the z-coordinate, since the sensor is moving on a fixed plane at 1 km above the surface.
-# At this stage we can start collecting both the groundtruths and # the measurement using a composite
+# At this stage we can start collecting both the groundtruths and the measurement using a composite
 # measurement model merging the measurements from the :class:`~.AccelerometerMeasurementModel`,
-# the :class:`~.GyroscopeMeasurementModel` and the landmarks, using an
+# the :class:`~.GyroscopeMeasurementModel` and the landmarks, using a
 # :class:`~.CartesianAzimuthElevationMeasurementModel`.
 # This measurement model combines the specific forces measured by the accelerometer instrument
-# and the angular rotation from the inertia movements of the target. The landmarks helps reducing the
+# and the angular rotation from the inertia movements of the target. The landmarks help to reduce the
 # navigation drift.
 #
 
@@ -345,8 +344,7 @@ for target in targets:
     platforms.append(
         FixedPlatform(
             states=GaussianState(state,
-                                 np.diag([1, 1, 1, 1, 1, 1])
-                                 ),
+                                 np.diag([1, 1, 1, 1, 1, 1])),
             position_mapping=(0, 2, 4)
             ))
 

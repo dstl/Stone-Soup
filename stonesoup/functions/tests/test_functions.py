@@ -8,7 +8,7 @@ from pymap3d import geodetic2enu
 from .. import (
     cholesky_eps, jacobian, gm_reduce_single, mod_bearing, mod_elevation, gauss2sigma,
     rotx, roty, rotz, cart2sphere, cart2angles, pol2cart, sphere2cart, dotproduct, gm_sample,
-    sphere2GCS, localSphere2GCS)
+    sphere2GCS, local_sphere2GCS)
 from ...types.array import StateVector, StateVectors, Matrix
 from ...types.state import State, GaussianState
 
@@ -379,8 +379,8 @@ def test_sphere2GCS():
                           rtol=1e-3, atol=1e-3))  # check if the tolerance if enough
 
 
-def test_localSphere2GCS():
-    """localSphere2GCS test"""
+def test_local_sphere2GCS():
+    """local_sphere2GCS test"""
 
     # list of cities
     list_locations = [[51.507359, -0.136439],
@@ -399,8 +399,8 @@ def test_localSphere2GCS():
                                 reference_frame[0], reference_frame[1], reference_frame[2]))
 
     for idx, ixyz in enumerate(xyz):
-        np.allclose(localSphere2GCS(ixyz[0], ixyz[1], ixyz[2],
-                                    reference_frame),
+        np.allclose(local_sphere2GCS(ixyz[0], ixyz[1], ixyz[2],
+                                     reference_frame),
                     np.array([list_locations[idx][0],
                               list_locations[idx][1],
                               1.]),

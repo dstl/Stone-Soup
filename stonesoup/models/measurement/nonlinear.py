@@ -13,7 +13,7 @@ from ...types.numeric import Probability
 from ...functions import cart2pol, pol2cart, \
     cart2sphere, sphere2cart, cart2angles, \
     build_rotation_matrix, cart2az_el_rg, az_el_rg2cart, mod_bearing
-from ...functions.navigation import getForceVector, getAngularRotationVector
+from ...functions.navigation import get_force_vector, get_angular_rotation_vector
 from ...types.array import StateVector, CovarianceMatrix, StateVectors
 from ...types.angle import Bearing, Elevation, Azimuth
 from ..base import LinearModel, GaussianModel, ReversibleModel
@@ -1433,8 +1433,22 @@ class AccelerometerMeasurementModel(NonLinearGaussianMeasurement):
     # We need a reference frame to measure the gravitational forces
     reference_frame: StateVector = Property(
         default=None,
-        doc="Reference frame in latitude, longitude and altitude"
-    )
+        doc="Reference frame in latitude, longitude and altitude")
+
+    # velocity mapping
+    velocity_mapping: Tuple[int, int, int] = Property(
+        default=(1, 4, 7),
+        doc="Mapping to the targets velocity within its state space")
+
+    # acceleration mapping
+    acceleration_mapping: Tuple[int, int, int] = Property(
+        default=(2, 5, 8),
+        doc="Mapping to the targets acceleration within its state space")
+
+    # angle mapping
+    angle_mapping: Tuple[int, int, int] = Property(
+        default=(9, 11, 13),
+        doc="Mapping to the targets Euler angles within its state space")
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -1456,8 +1470,12 @@ class AccelerometerMeasurementModel(NonLinearGaussianMeasurement):
             else:
                 noise = 0
 
-        acceleration_components = getForceVector(state.state_vector,
-                                                 latLonAlt0=self.reference_frame)
+        acceleration_components = get_force_vector(state.state_vector,
+                                                   self.reference_frame,
+                                                   self.mapping,
+                                                   self.velocity_mapping,
+                                                   self.acceleration_mapping,
+                                                   self.angle_mapping)
 
         return StateVectors(acceleration_components) + noise
 
@@ -1495,8 +1513,16 @@ class GyroscopeMeasurementModel(NonLinearGaussianMeasurement):
 
     reference_frame: StateVector = Property(
         default=None,
-        doc="Reference frame in latitude, longitude and altitude"
-    )
+        doc="Reference frame in latitude, longitude and altitude")
+
+    # angle mapping
+    angle_mapping: Tuple[int, int, int] = Property(
+        default=(9, 11, 13),
+        doc="Mapping to the targets Euler angles within its state space")
+    # d angle mapping
+    d_angle_mapping: Tuple[int, int, int] = Property(
+        default=(10, 12, 14),
+        doc="Mapping to the targets time derivative Euler angles within its state space")
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -1518,8 +1544,11 @@ class GyroscopeMeasurementModel(NonLinearGaussianMeasurement):
             else:
                 noise = 0
 
-        angles_components = getAngularRotationVector(state.state_vector,
-                                                     latLonAlt0=self.reference_frame)
+        angles_components = get_angular_rotation_vector(state.state_vector,
+                                                        self.reference_frame,
+                                                        self.mapping,
+                                                        self.angle_mapping,
+                                                        self.d_angle_mapping)
 
         return StateVectors(angles_components) + noise
 

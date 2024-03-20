@@ -431,7 +431,7 @@ def sphere2GCS(x, y, z):
     return (latitude, longitude, altitude)
 
 
-def localSphere2GCS(xEast, yNorth, zUp, origin):
+def local_sphere2GCS(x_east, y_north, z_up, origin):
     """Function similar to MATLAB local2latlong.
         We pass the local x Easting, y Northing and
         z altitude and a local reference point origin
@@ -440,11 +440,11 @@ def localSphere2GCS(xEast, yNorth, zUp, origin):
 
     Parameters
     ----------
-    xEast: float
+    x_east: float
         The x coordinate in meters
-    yNorth: float
+    y_north: float
         the y coordinate in meters
-    zUp: float
+    z_up: float
         the z coordinate in meters
     origin : Tuple
         Local reference point
@@ -459,7 +459,7 @@ def localSphere2GCS(xEast, yNorth, zUp, origin):
 
     # The reference ellipsoid is WGS-84
     # we use the pymap3d enu2geodetic to obtain the results
-    latitude, longitude, altitude = pymap3d.enu2geodetic(xEast, yNorth, zUp,
+    latitude, longitude, altitude = pymap3d.enu2geodetic(x_east, y_north, z_up,
                                                          lat0, lon0, alt0)
 
     return (latitude, longitude, altitude)
