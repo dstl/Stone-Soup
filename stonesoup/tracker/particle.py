@@ -41,7 +41,7 @@ class _BaseExpectedLikelihoodParticleFilter(Tracker):
 
     def _get_detections(self):
         time, detections = next(self.detector_iter)
-        timestamps = set([detection.timestamp for detection in detections])
+        timestamps = {detection.timestamp for detection in detections}
         if len(timestamps) > 1:
             raise ValueError("All detections must have the same timestamp")
         return time, detections
@@ -69,7 +69,7 @@ class _BaseExpectedLikelihoodParticleFilter(Tracker):
                     associated_detections.add(hypothesis.measurement)
 
         # Compute the new state
-        new_log_weights = np.logaddexp.reduce(particle_weights_per_hypothesis, axis=0)
+        new_log_weights = logsumexp(particle_weights_per_hypothesis, axis=0)
 
         # Normalise the weights
         new_log_weights -= logsumexp(new_log_weights)
