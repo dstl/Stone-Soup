@@ -1634,8 +1634,8 @@ class CartesianAzimuthElevationMeasurementModel(NonLinearGaussianMeasurement):
         azimuths = [Azimuth(angle) for angle in mod_bearing(absolute_azimuth - heading)]
 
         elevations = [Elevation(angle) for angle in absolute_elevation - pitch]
-
-        return StateVector([azimuths, elevations]) + noise
+        #print(len(azimuths), len(elevations))
+        return StateVectors([azimuths, elevations]) + noise
 
     def rvs(self, num_samples=1, **kwargs) -> Union[StateVector, StateVectors]:
         out = super().rvs(num_samples, **kwargs)
