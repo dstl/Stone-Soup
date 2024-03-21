@@ -12,7 +12,8 @@ from ...types.numeric import Probability
 
 from ...functions import cart2pol, pol2cart, \
     cart2sphere, sphere2cart, cart2angles, \
-    build_rotation_matrix, cart2az_el_rg, az_el_rg2cart
+    build_rotation_matrix, cart2az_el_rg, az_el_rg2cart, mod_bearing
+from ...functions.navigation import get_force_vector, get_angular_rotation_vector
 from ...types.array import StateVector, CovarianceMatrix, StateVectors
 from ...types.angle import Bearing, Elevation, Azimuth
 from ..base import LinearModel, GaussianModel, ReversibleModel
@@ -1400,3 +1401,350 @@ class CartesianToAzimuthElevationRange(NonLinearGaussianMeasurement, ReversibleM
         out = super().rvs(num_samples, **kwargs)
         out = np.array([[Azimuth(0.)], [Elevation(0.)], [0.]]) + out
         return out
+
+
+class AccelerometerMeasurementModel(NonLinearGaussianMeasurement):
+    r"""This is an implementation of the
+    Accelerometer measurement model, which models the
+    acceleration of the object, i.e. aircraft, in the
+    inertial frame resolved in the navigation frame
+    coordinates, including the gravitation forces and
+    the Earth relative movement.
+    This time varying model transforms the
+    3D positional coordinates (x, y, z) with the
+    time derivative (velocity, dx, dy, dz) into measurements
+    of the accelerations applied to the object.
+
+    Parameters
+    ----------
+    class:`~.State` object comprised of the ground
+            truth model where we can extract the acceleration measurements.
+
+    Returns
+    -------
+    :class:`numpy.ndarray` of shape (:py:attr:`~ndim_state`, 3)
+        The model function evaluated given the provided time interval.
+
+    Note
+    ----
+    The current implementation of this class assumes a 3D Cartesian plane.
+    """
+
+    # We need a reference frame to measure the gravitational forces
+    reference_frame: StateVector = Property(
+        default=None,
+        doc="Reference frame in latitude, longitude and altitude")
+
+    # velocity mapping
+    velocity_mapping: Tuple[int, int, int] = Property(
+        default=(1, 4, 7),
+        doc="Mapping to the targets velocity within its state space")
+
+    # acceleration mapping
+    acceleration_mapping: Tuple[int, int, int] = Property(
+        default=(2, 5, 8),
+        doc="Mapping to the targets acceleration within its state space")
+
+    # angle mapping
+    angle_mapping: Tuple[int, int, int] = Property(
+        default=(9, 11, 13),
+        doc="Mapping to the targets Euler angles within its state space")
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        # Set values to defaults if not provided
+        if self.reference_frame is None:
+            self.reference_frame = StateVector([0, 0, 0])
+
+    @property
+    def ndim_meas(self):
+        return 3
+
+    def function(self, state, noise=False, **kwargs) -> StateVectors:
+        """Evaluate the measurements from the object state
+        """
+
+        if isinstance(noise, bool) or noise is None:
+            if noise:
+                noise = self.rvs(num_samples=state.state_vector.shape[1], **kwargs)
+            else:
+                noise = 0
+
+        acceleration_components = get_force_vector(state.state_vector,
+                                                   self.reference_frame,
+                                                   self.mapping,
+                                                   self.velocity_mapping,
+                                                   self.acceleration_mapping,
+                                                   self.angle_mapping)
+
+        return StateVectors(acceleration_components) + noise
+
+    def rvs(self, num_samples=1, **kwargs) -> Union[StateVector, StateVectors]:
+        out = super().rvs(num_samples, **kwargs)
+        out = np.array([[0], [0], [0]]) + out
+        return out
+
+
+class GyroscopeMeasurementModel(NonLinearGaussianMeasurement):
+    r"""This is an implementation of the
+    Gyroscope measurement model. This model allows to
+    calculate the velocities of how the Euler angles of
+    the 3D object vary during motion.
+    The Euler angles are defined as heading (:math:`\psi`),
+    pitch (:math:`\theta`) and roll (:math:`\phi`).
+
+    This model evaluates the acceleration of the
+    3D object on the orientation of the angles.
+
+    Parameters
+    ----------
+    class:`~.State` object comprised of the ground
+            truth model where we can extract some measurements
+
+    Returns
+    -------
+    :class:`numpy.ndarray` of shape (:py:attr:`~ndim_state`, 3)
+        The model function evaluated given the provided time interval.
+
+    Note
+    ----
+    The current implementation of this class assumes a 3D Cartesian plane.
+    """
+
+    reference_frame: StateVector = Property(
+        default=None,
+        doc="Reference frame in latitude, longitude and altitude")
+
+    # angle mapping
+    angle_mapping: Tuple[int, int, int] = Property(
+        default=(9, 11, 13),
+        doc="Mapping to the targets Euler angles within its state space")
+    # d angle mapping
+    d_angle_mapping: Tuple[int, int, int] = Property(
+        default=(10, 12, 14),
+        doc="Mapping to the targets time derivative Euler angles within its state space")
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        # Set values to defaults if not provided
+        if self.reference_frame is None:
+            self.reference_frame = StateVector([0, 0, 0])
+
+    @property
+    def ndim_meas(self):
+        return 3
+
+    def function(self, state, noise=False, **kwargs) -> StateVectors:
+        """Evaluate the measurements from the object state
+        """
+
+        if isinstance(noise, bool) or noise is None:
+            if noise:
+                noise = self.rvs(num_samples=state.state_vector.shape[1], **kwargs)
+            else:
+                noise = 0
+
+        angles_components = get_angular_rotation_vector(state.state_vector,
+                                                        self.reference_frame,
+                                                        self.mapping,
+                                                        self.angle_mapping,
+                                                        self.d_angle_mapping)
+
+        return StateVectors(angles_components) + noise
+
+    def rvs(self, num_samples=1, **kwargs) -> Union[StateVector, StateVectors]:
+        out = super().rvs(num_samples, **kwargs)
+        out = np.array([[0.], [0.], [0.]]) + out
+        return out
+
+
+class CartesianAzimuthElevationMeasurementModel(NonLinearGaussianMeasurement):
+
+    r"""This measurement model mimics the
+    Radio Frequency (RF) Sensing functionality and
+    data acquisition. This model provides information of
+    a target given the direction of motion and 3D components
+    of the observing sensor in terms of Azimuth and Elevation.
+
+    Parameters
+    ----------
+    class:`~.State` object comprised of the ground
+            truth model where we can extract some measurements
+
+    Returns
+    -------
+    :class:`numpy.ndarray` of shape (:py:attr:`~ndim_state`, 2)
+        The model function evaluated given the provided time interval.
+
+    Note
+    ----
+    The current implementation of this class assumes a 3D Cartesian plane.
+    """
+
+    target_location: StateVector = Property(
+        default=StateVector([0, 0, 0]),
+        doc=r"A 3x1 array specifying the Cartesian Target location in terms of :math:`x,y,z` "
+            "coordinates.")
+
+    translation_offset: StateVector = Property(
+        default=None,
+        doc=r"A 3x1 array specifying the Cartesian origin offset in terms of :math:`x,y,z` "
+            "coordinates.")
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        # Set values to defaults if not provided
+        if self.translation_offset is None:
+            self.translation_offset = StateVector([0] * 3)
+        if self.target_location is None:
+            # It should be given
+            self.translation_offset = StateVector([0] * 3)
+
+    @property
+    def ndim_meas(self):
+        return 2
+
+    def function(self, state,
+                 noise=False,
+                 **kwargs) -> StateVectors:
+
+        if isinstance(noise, bool) or noise is None:
+            if noise:
+                noise = self.rvs(num_samples=state.state_vector.shape[1], **kwargs)
+            else:
+                noise = 0
+
+        # adjust the sensor location with the translation offset, if present
+        sensor_location = state.state_vector[self.mapping, :] - self.translation_offset
+
+        diff_position = self.target_location - sensor_location
+
+        # evaluate the range
+        rg = np.linalg.norm(diff_position, axis=0)
+
+        # evaluate the absolute azimuth and elevation of the target respect to the sensor
+        absolute_azimuth = np.arctan2(diff_position[1], diff_position[0])
+        absolute_elevation = np.arcsin(diff_position[2] / rg)
+
+        # evaluate the sensor heading and elevation
+        heading = state.state_vector[13, :]
+        pitch = state.state_vector[11, :]
+
+        # Transform the azimuths and elevation and fix for 180 degrees in case
+        azimuths = [Azimuth(angle) for angle in mod_bearing(absolute_azimuth - heading)]
+
+        elevations = [Elevation(angle) for angle in absolute_elevation - pitch]
+        
+        return StateVectors([azimuths, elevations]) + noise
+
+    def rvs(self, num_samples=1, **kwargs) -> Union[StateVector, StateVectors]:
+        out = super().rvs(num_samples, **kwargs)
+        out = np.array([[Azimuth(0.)], [Elevation(0.)]]) + out
+        return out
+
+
+class CartesianAzimuthElevationRangeMeasurementModel(NonLinearGaussianMeasurement,
+                                                     ReversibleModel):
+    r"""This measurement model mimics the
+    Radio Frequency (RF) Sensing functionality and
+    data acquisition. This model provides information of
+    a target given the direction of motion and 3D components
+    of the observing sensor in terms of Azimuth, Elevation and Range.
+
+    The functionality of this measurement model is similar to
+    :class:`~.CartesianToAzimuthElevationRange`, but in this case
+    we incorporate the knowledge of the range between the
+    target and sensor.
+
+    Parameters
+    ----------
+    class:`~.State` object comprised of the ground
+            truth model where we can extract some measurements
+
+    Returns
+    -------
+    :class:`numpy.ndarray` of shape (:py:attr:`~ndim_state`, 2)
+        The model function evaluated given the provided time interval.
+
+    Note
+    ----
+    The current implementation of this class assumes a 3D Cartesian plane.
+    """
+
+    target_location: StateVector = Property(
+        default=StateVector([0, 0, 0]),
+        doc=r"A 3x1 array specifying the Cartesian Target location in terms of :math:`x,y,z` "
+            "coordinates.")
+
+    translation_offset: StateVector = Property(
+        default=None,
+        doc=r"A 3x1 array specifying the Cartesian origin offset in terms of :math:`x,y,z` "
+            "coordinates.")
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        # Set values to defaults if not provided
+        if self.translation_offset is None:
+            self.translation_offset = StateVector([0] * 3)
+        if self.target_location is None:
+            # It should be given
+            self.target_location = StateVector([0] * 3)
+
+    @property
+    def ndim_meas(self):
+        return 3
+
+    def function(self, state,
+                 noise=False,
+                 **kwargs) -> StateVectors:
+
+        if isinstance(noise, bool) or noise is None:
+            if noise:
+                noise = self.rvs(num_samples=state.state_vector.shape[1], **kwargs)
+            else:
+                noise = 0
+
+        # adjust the sensor location with the translation offset, if present
+        sensor_location = state.state_vector[self.mapping, :] - self.translation_offset
+
+        diff_position = self.target_location - sensor_location
+
+        # evaluate the range
+        rg = np.linalg.norm(diff_position, axis=0)
+
+        # evaluate the absolute azimuth and elevation of the target respect to the sensor
+        absolute_azimuth = np.arctan2(diff_position[1], diff_position[0])
+        absolute_elevation = np.arcsin(diff_position[2] / rg)
+
+        # evaluate the sensor heading and elevation - if they are already in radians, avoid
+        heading = state.state_vector[13, :]
+        pitch = state.state_vector[11, :]
+
+        # Transform the azimuths and elevation and fix for 180 degrees in case
+        azimuths = [Azimuth(angle) for angle in mod_bearing(absolute_azimuth - heading)]
+        elevations = [Elevation(angle) for angle in absolute_elevation - pitch]
+
+        return StateVectors([azimuths, elevations, rg]) + noise
+
+    def rvs(self, num_samples=1, **kwargs) -> Union[StateVector, StateVectors]:
+        out = super().rvs(num_samples, **kwargs)
+        out = np.array([[Azimuth(0.)], [Elevation(0.)], [0.]]) + out
+        return out
+
+    def inverse_function(self, detection, **kwargs) -> StateVector:
+
+        az, el, range = detection.state_vector
+
+        # define the output vector
+        out_vector = np.zeros((15, 1)).view(StateVector)
+
+        z = np.sqrt(((range**2.)*(np.cos(az))**2.)/(1. + (np.cos(az))**2*(np.tan(el)**2.)))
+        x = z * np.tan(az)
+        y = z * np.tan(el)
+
+        xyz = StateVectors([x, y, z])
+
+        # fill the output vector with x,y,z positions
+        out_vector[self.mapping, :] = xyz + self.translation_offset
+
+        return out_vector
