@@ -443,7 +443,7 @@ class KLDivergence(Measure):
 
         """
         if isinstance(state1, ParticleState) and isinstance(state2, ParticleState):
-            if len(state1.particles) == len(state2.particles):
+            if len(state1) == len(state2):
 
                 log_term = np.zeros(state1.log_weight.shape)
 
@@ -457,7 +457,7 @@ class KLDivergence(Measure):
                 kld = np.sum(np.exp(state1.log_weight)*log_term)
             else:
                 raise ValueError(f'The input sizes are not compatible '
-                                 f'({len(state1.particles)} != {len(state2.particles)})')
+                                 f'({len(state1)} != {len(state2)})')
 
         elif isinstance(state1, GaussianState) and isinstance(state2, GaussianState):
 
