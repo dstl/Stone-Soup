@@ -576,11 +576,10 @@ class SMCPHDUpdater(ParticleUpdater):
         """
 
         prediction = hypotheses[0].prediction
-        detections = [hypothesis.measurement for hypothesis in hypotheses if hypothesis]
         num_samples = len(prediction) if self.num_samples is None else self.num_samples
 
         # Calculate w^{n,i} Eq. (20) of [#phd2]
-        log_weights_per_hyp = self.get_log_weights_per_hypothesis(prediction, detections)
+        log_weights_per_hyp = self.get_log_weights_per_hypothesis(hypotheses)
 
         # Update weights Eq. (8) of [phd1]
         # w_k^i = \sum_{z \in Z_k}{w^{n,i}}, where i is the index of z in Z_k
@@ -610,7 +609,24 @@ class SMCPHDUpdater(ParticleUpdater):
 
         return updated_state
 
-    def get_log_weights_per_hypothesis(self, prediction, detections):
+    def get_log_weights_per_hypothesis(self, hypotheses):
+        """Calculate the log particle weights per hypothesis
+
+        Parameters
+        ----------
+        hypotheses : :class:`~.MultipleHypothesis`
+            A container of :class:`~SingleHypothesis` objects. All hypotheses are assumed to have
+            the same prediction (and hence same timestamp).
+
+        Returns
+        -------
+        : :class:`~numpy.ndarray`
+            The log weights per hypothesis, where the first dimension is the number of particles
+            and the second dimension is the number of hypotheses. The first hypothesis (column) is
+            always the missed detection hypothesis.
+        """
+        prediction = hypotheses[0].prediction
+        detections = [hypothesis.measurement for hypothesis in hypotheses if hypothesis]
         num_samples = prediction.state_vector.shape[1]
 
         # Compute g(z|x) matrix as in [#phd1]
