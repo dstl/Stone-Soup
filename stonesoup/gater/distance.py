@@ -38,7 +38,7 @@ class DistanceGater(Gater):
         return MultipleHypothesis(sorted(gated_hypotheses, reverse=True))
 
 
-class StateSpaceDistanceGater(Gater):
+class TrackingStateSpaceDistanceGater(Gater):
     """
     This Distance Gater measures in the track state space (not measurement state space).
 

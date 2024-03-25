@@ -1,14 +1,22 @@
 import datetime
-import pytest
-import numpy as np
 
-from ..distance import DistanceGater
+import numpy as np
+import pytest
+
+from ..distance import DistanceGater, TrackingStateSpaceDistanceGater
+from ... import measures as measures
+from ...hypothesiser.distance import DistanceHypothesiser
 from ...hypothesiser.probability import PDAHypothesiser
+from ...models.measurement.nonlinear import CartesianToBearingRange
+from ...models.transition.linear import CombinedLinearGaussianTransitionModel, \
+    ConstantVelocity
+from ...predictor.kalman import ExtendedKalmanPredictor
 from ...types.detection import Detection
 from ...types.hypothesis import SingleHypothesis
+from ...types.state import GaussianState
 from ...types.track import Track
 from ...types.update import GaussianStateUpdate
-from ... import measures as measures
+from ...updater.kalman import ExtendedKalmanUpdater
 
 measure = measures.Mahalanobis()
 
@@ -66,3 +74,105 @@ def test_distance(predictor, updater, detections, gate_threshold, num_gated):
 
     # There is a SINGLE missed detection hypothesis
     assert len([hypothesis for hypothesis in hypotheses if not hypothesis]) == 1
+
+
+@pytest.fixture()
+def standard_distance_hypothesiser():
+    transition_model = CombinedLinearGaussianTransitionModel([ConstantVelocity(0.05),
+                                                              ConstantVelocity(0.05)])
+    predictor = ExtendedKalmanPredictor(transition_model)
+    updater = ExtendedKalmanUpdater(measurement_model)
+    hypothesiser = DistanceHypothesiser(predictor, updater, measure=measures.Euclidean())
+    return hypothesiser
+
+
+@pytest.fixture()
+def hypothesiser_with_tracking_state_space_distance_gater(standard_distance_hypothesiser):
+    hypothesiser_with_gate = TrackingStateSpaceDistanceGater(
+        hypothesiser=standard_distance_hypothesiser,
+        measure=measures.Euclidean(),
+        gate_threshold=10,
+    )
+    return hypothesiser_with_gate
+
+
+start_time = datetime.datetime(2024, 1, 1)
+
+track = Track([GaussianState(
+    state_vector=[0, 0, 100, 0],
+    timestamp=start_time,
+    covar=np.diag([1.5, 0.5, 1.5, 0.5])
+)])
+
+measurement_model = CartesianToBearingRange(
+    ndim_state=4,
+    mapping=(0, 2),
+    noise_covar=np.diag([np.radians(0.2), 1]),  # Covariance matrix. 0.2 degree variance in
+    # bearing and 1 metre in range
+    translation_offset=np.array([[0], [0]])  # Offset measurements to location of
+    # sensor in cartesian.
+)
+
+
+@pytest.mark.parametrize(
+    "detection",
+    [
+        # Perfect detection
+        Detection(state_vector=[np.pi/2, 100],
+                  timestamp=start_time,
+                  measurement_model=measurement_model),
+        # Detection with slightly wrong range
+        Detection(state_vector=[np.pi/2, 109],
+                  timestamp=start_time,
+                  measurement_model=measurement_model),
+        # Detection with slightly wrong bearing
+        Detection(state_vector=[0.01 + np.pi/2, 109],
+                  timestamp=start_time,
+                  measurement_model=measurement_model),
+    ],
+    ids=["test1", "test2", "test3"]
+)
+def test_tracking_state_space_distance_gater_good_detections(
+        detection, standard_distance_hypothesiser,
+        hypothesiser_with_tracking_state_space_distance_gater):
+
+    hypothesiser_with_gate = hypothesiser_with_tracking_state_space_distance_gater
+
+    hypotheses_no_gate = standard_distance_hypothesiser.hypothesise(
+        track, {detection}, timestamp=start_time)
+    hypotheses_with_gate = hypothesiser_with_gate.hypothesise(
+        track, {detection}, timestamp=start_time)
+
+    assert len(hypotheses_no_gate) == len(hypotheses_with_gate) == 2
+
+
+@pytest.mark.parametrize(
+    "detection",
+    [
+        # Correct range. Wrong bearing
+        Detection(state_vector=[0, 100],
+                  timestamp=start_time,
+                  measurement_model=measurement_model),
+        # Correct bearing. Wrong range
+        Detection(state_vector=[np.pi / 2, 111],
+                  timestamp=start_time,
+                  measurement_model=measurement_model),
+        # Detection with slightly wrong bearing
+        Detection(state_vector=[-np.pi / 2, 109],
+                  timestamp=start_time,
+                  measurement_model=measurement_model),
+    ],
+    ids=["test1", "test2", "test3"]
+)
+def test_tracking_state_space_distance_gater_bad_detections(
+        detection, standard_distance_hypothesiser,
+        hypothesiser_with_tracking_state_space_distance_gater):
+    hypothesiser_with_gate = hypothesiser_with_tracking_state_space_distance_gater
+
+    hypotheses_no_gate = standard_distance_hypothesiser.hypothesise(
+        track, {detection}, timestamp=start_time)
+    hypotheses_with_gate = hypothesiser_with_gate.hypothesise(
+        track, {detection}, timestamp=start_time)
+
+    assert len(hypotheses_no_gate) == 2
+    assert len(hypotheses_with_gate) == 1
