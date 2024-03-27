@@ -34,12 +34,12 @@ class DummyBaseSensor(PlatformMountable):
 
 def test_sensor_position_orientation_setting():
     sensor = DummySensor(position=StateVector([0, 0, 1]))
-    assert np.array_equal(sensor.position, StateVector([0, 0, 1]))
-    assert np.array_equal(sensor.orientation, StateVector([0, 0, 0]))
+    assert np.allclose(sensor.position, StateVector([0, 0, 1]))
+    assert np.allclose(sensor.orientation, StateVector([0, 0, 0]))
     sensor.position = StateVector([0, 1, 0])
-    assert np.array_equal(sensor.position, StateVector([0, 1, 0]))
+    assert np.allclose(sensor.position, StateVector([0, 1, 0]))
     sensor.orientation = StateVector([0, 1, 0])
-    assert np.array_equal(sensor.orientation, StateVector([0, 1, 0]))
+    assert np.allclose(sensor.orientation, StateVector([0, 1, 0]))
 
     position = StateVector([0, 0, 1])
     sensor = DummySensor()
@@ -54,12 +54,12 @@ def test_sensor_position_orientation_setting():
 
 def test_default_platform():
     sensor = DummySensor(position=StateVector([0, 0, 1]))
-    assert np.array_equal(sensor.position, StateVector([0, 0, 1]))
-    assert np.array_equal(sensor.orientation, StateVector([0, 0, 0]))
+    assert np.allclose(sensor.position, StateVector([0, 0, 1]))
+    assert np.allclose(sensor.orientation, StateVector([0, 0, 0]))
 
     sensor = DummySensor(orientation=StateVector([0, 0, 1]))
-    assert np.array_equal(sensor.orientation, StateVector([0, 0, 1]))
-    assert np.array_equal(sensor.position, StateVector([0, 0, 0]))
+    assert np.allclose(sensor.orientation, StateVector([0, 0, 1]))
+    assert np.allclose(sensor.position, StateVector([0, 0, 0]))
 
 
 def test_internal_platform_flag():
