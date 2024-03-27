@@ -112,15 +112,17 @@ class PMHTTracker(Tracker):
         # Keep logpi for overlap
         self._log_pi = self._log_pi[-self.overlap_len:]
         # Add new measurements to batch
-        for _ in range(self.batch_len - self.overlap_len): # TODO: What if we don't have a full batch?
-                #try:
+        time = None
+        for _ in range(self.batch_len - self.overlap_len):  # TODO: What if we don't have a full batch?
+            try:
                 time, detections = next(self.detector_iter)
                 self._measurement_history_times.append(time)
                 self._measurement_history.append(detections)
                 self._extend_track_priors(detections, time)
-                #except StopIteration: # Stop early if the detector has ended
-                #    break
-
+            except StopIteration:  # Stop early if the detector has ended
+                break
+        if time is None:
+            raise StopIteration
         return time
 
     def _compute_log_weights(self):
