@@ -91,6 +91,7 @@ intersphinx_mapping = {
     'matplotlib': ('https://matplotlib.org/', None),
     'numpy': ('https://docs.scipy.org/doc/numpy', None),
     'scipy': ('https://docs.scipy.org/doc/scipy/reference', None),
+    'networkx': ('https://networkx.org/documentation/stable', None),
 }
 
 # Add any paths that contain templates here, relative to this directory.
