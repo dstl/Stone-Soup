@@ -102,6 +102,7 @@ def test_probability_subtraction():
 def test_probability_multiply():
     probability1 = Probability(0.2)
     probability2 = Probability(0.3)
+    value1 = 150.0
 
     assert approx(0.06) == probability1 * probability2
     assert (probability1 * probability2).log_value == log(0.2) + log(0.3)
@@ -111,6 +112,12 @@ def test_probability_multiply():
 
     assert approx(-0.4) == probability1 * -2
     assert approx(-0.6) == -2 * probability2
+
+    assert isinstance(probability1*value1, float)
+    assert approx(45.0) == probability2*value1
+
+    probability1 *= 0.5
+    assert isinstance(probability1, Probability)
 
 
 def test_probability_divide():
