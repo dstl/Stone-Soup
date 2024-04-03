@@ -10,8 +10,11 @@ import numpy as np
 
 from stonesoup.architecture import SensorNode, FusionNode, Edge, Edges, InformationArchitecture, \
     NetworkArchitecture
+from stonesoup.architecture.edge import FusionQueue
 from stonesoup.architecture.node import SensorFusionNode, RepeaterNode
 from stonesoup.base import Base, Property
+from stonesoup.feeder.track import Tracks2GaussianDetectionFeeder
+from stonesoup.sensor.sensor import Sensor
 
 
 class InformationArchitectureGenerator(Base):
@@ -33,11 +36,18 @@ class InformationArchitectureGenerator(Base):
     mean_degree: float = Property(
         doc="Average (mean) degree of nodes in the network.",
         default=None)
-    sensors: list = Property(
-        doc="A list of sensors that are used to create SensorNodes.",
+    base_sensor: Sensor = Property(
+        doc="Sensor class object that will be duplicated to create multiple sensors. Position of "
+            "this sensor is used with 'sensor_max_distance' to calculate a position for "
+            "duplicated sensors.",
         default=None)
-    trackers: list = Property(
-        doc="A list of trackers that are used to create FusionNodes.",
+    sensor_max_distance: tuple = Property(
+        doc="Max distance each sensor can be from base_sensor.position. Should be a tuple of "
+            "length equal to len(base_sensor.position_mapping)",
+        default=None)
+    base_tracker: list = Property(
+        doc="Tracker class object that will be duplicated to create multiple trackers. Should have "
+            "detector=None.",
         default=None)
     iteration_limit: int = Property(
         doc="Limit for the number of iterations the generate_edgelist() method can make when "
@@ -47,6 +57,10 @@ class InformationArchitectureGenerator(Base):
         doc="Bool where True allows invalid graphs to be returned without throwing an error. "
             "False by default",
         default=False)
+    n_archs: int = Property(
+        doc="Tuple containing a minimum and maximum value for the number of routes created in the "
+            "network architecture to represent a single edge in the information architecture.",
+        default=2)
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -57,6 +71,8 @@ class InformationArchitectureGenerator(Base):
 
         self.n_edges = np.ceil(self.n_nodes * self.mean_degree * 0.5)
 
+        if self.sensor_max_distance is None:
+            self.sensor_max_distance = tuple(np.zeros(len(self.base_sensor.position_mapping)))
         if self.arch_type not in ['decentralised', 'hierarchical']:
             raise ValueError('arch_style must be "decentralised" or "hierarchical"')
 
@@ -65,9 +81,11 @@ class InformationArchitectureGenerator(Base):
 
         nodes, edgelist = self.assign_nodes(degrees, edgelist)
 
-        arch = self.generate_architecture(nodes, edgelist)
-
-        return arch
+        archs = list()
+        for architecture in nodes.keys():
+            arch = self.generate_architecture(nodes[architecture], edgelist)
+            archs.append(arch)
+        return archs
 
     def generate_architecture(self, nodes, edgelist):
         edges = []
@@ -95,35 +113,63 @@ class InformationArchitectureGenerator(Base):
                      ['f'] * self.n_fusion_nodes
 
         nodes = {}
-        n_sensors = 0
-        n_trackers = 0
+        for architecture in range(self.n_archs):
+            nodes[architecture] = {}
+
         for node_no, node_type in zip(order, components):
+
             if node_type == 's':
-                node = SensorNode(sensor=self.sensors[n_sensors], label=str(node_no))
-                n_sensors += 1
-                nodes[node_no] = node
+                pos = np.array(
+                    [[p + random.uniform(-d, d)] for p, d in zip(self.base_sensor.position,
+                                                                 self.sensor_max_distance)])
+                for architecture in range(self.n_archs):
+                    s = copy.deepcopy(self.base_sensor)
+                    s.position = pos
+
+                    node = SensorNode(sensor=s, label=str(node_no))
+                    nodes[architecture][node_no] = node
 
             elif node_type == 'f':
-                node = FusionNode(tracker=self.trackers[n_trackers],
-                                  fusion_queue=self.trackers[n_trackers].detector.reader,
-                                  label=str(node_no))
-                n_trackers += 1
-                nodes[node_no] = node
+                for architecture in range(self.n_archs):
+                    t = copy.deepcopy(self.base_tracker)
+
+                    fq = FusionQueue()
+                    t.detector = Tracks2GaussianDetectionFeeder(fq)
+
+                    node = FusionNode(tracker=t,
+                                      fusion_queue=fq,
+                                      label=str(node_no))
+
+                    nodes[architecture][node_no] = node
 
             elif node_type == 'sf':
-                node = SensorFusionNode(sensor=self.sensors[n_sensors], label=str(node_no),
-                                        tracker=self.trackers[n_trackers],
-                                        fusion_queue=self.trackers[n_trackers].detector.reader)
-                n_sensors += 1
-                n_trackers += 1
-                nodes[node_no] = node
+                pos = np.array(
+                    [[p + random.uniform(-d, d)] for p, d in zip(self.base_sensor.position,
+                                                                 self.sensor_max_distance)])
+
+                for architecture in range(self.n_archs):
+                    s = copy.deepcopy(self.base_sensor)
+                    s.position = pos
+
+                    t = copy.deepcopy(self.base_tracker)
+
+                    fq = FusionQueue()
+                    t.detector = Tracks2GaussianDetectionFeeder(fq)
+
+                    node = SensorFusionNode(sensor=s,
+                                            tracker=t,
+                                            fusion_queue=fq)
+
+                    nodes[architecture][node_no] = node
 
         new_edgelist = copy.copy(edgelist)
         for edge in edgelist:
             s = edge[0]
             t = edge[1]
 
-            if isinstance(nodes[s], FusionNode) and type(nodes[t]) == SensorNode:
+            if self.arch_type != 'hierarchical' and \
+                    isinstance(nodes[0][s], FusionNode) and \
+                    type(nodes[0][t]) == SensorNode:
                 new_edgelist.remove((s, t))
                 new_edgelist.append((t, s))
 
@@ -200,92 +246,45 @@ class NetworkArchitectureGenerator(InformationArchitectureGenerator):
             "network architecture to represent a single edge in the information architecture.",
         default=(1, 2))
 
-    def generate_architecture(self, nodes, edgelist):
-        edges = []
-
-        for e in edgelist:
-            # Choose number of routes between two information architecture nodes
-            n = self.n_routes if len(self.n_routes) == 1 else \
-                random.randint(self.n_routes[0], self.n_routes[1])
-
-            for route in range(n):
-                r = RepeaterNode()
-                edge1 = Edge((nodes[e[0]], r))
-                edge2 = Edge((r, nodes[e[1]]))
-                edges.append(edge1)
-                edges.append(edge2)
-
-        arch_edges = Edges(edges)
-        arch = NetworkArchitecture(edges=arch_edges, current_time=self.start_time)
-
-        return arch
-
-
-class MultiInformationArchitectureGenerator(InformationArchitectureGenerator):
-    n_archs: int = Property(
-        doc="Tuple containing a minimum and maximum value for the number of routes created in the "
-            "network architecture to represent a single edge in the information architecture.",
-        default=2)
-
     def generate(self):
         edgelist, degrees = self.generate_edgelist()
 
         nodes, edgelist = self.assign_nodes(degrees, edgelist)
 
-        arch = self.generate_architecture(nodes, edgelist)
+        nodes, edgelist = self.add_network(nodes, edgelist)
 
+        archs = list()
+        for architecture in nodes.keys():
+            arch = self.generate_architecture(nodes[architecture], edgelist)
+            archs.append(arch)
+        return archs
+
+    def add_network(self, nodes, edgelist):
+        network_edgelist = []
+        i = 0
+        for e in edgelist:
+            # Choose number of routes between two information architecture nodes
+            n = self.n_routes[0] if len(self.n_routes) == 1 else \
+                random.randint(self.n_routes[0], self.n_routes[1])
+
+            for route in range(n):
+                r_lab = 'r' + str(i)
+                for architecture in nodes.keys():
+                    r = RepeaterNode(label=r_lab)
+                    network_edgelist.append((e[0], r_lab))
+                    network_edgelist.append((r_lab, e[1]))
+                    nodes[architecture][r_lab] = r
+                i += 1
+
+        return nodes, network_edgelist
+
+    def generate_architecture(self, nodes, edgelist):
+        edges = []
+        for t in edgelist:
+            edge = Edge((nodes[t[0]], nodes[t[1]]))
+            edges.append(edge)
+
+        arch_edges = Edges(edges)
+
+        arch = NetworkArchitecture(arch_edges, self.start_time)
         return arch
-
-    def assign_nodes(self, degrees, edgelist):
-        reordered = []
-        for node_no in degrees.keys():
-            reordered.append((node_no, degrees[node_no]['target']))
-
-        reordered.sort(key=operator.itemgetter(1))
-        order = []
-        for t in reordered:
-            order.append(t[0])
-
-        components = ['s'] * self.n_sensor_nodes + \
-                     ['sf'] * self.n_sensor_fusion_nodes + \
-                     ['f'] * self.n_fusion_nodes
-
-        nodes = {}
-        n_sensors = 0
-        n_trackers = 0
-        for node_no, node_type in zip(order, components):
-            if node_type == 's':
-                lab = str(node_no)
-                sensor = copy.deepcopy(self.sensors[n_sensors])
-
-                for arch_no in range(self.n_archs):
-                    node = SensorNode(sensor=sensor, label=lab)
-                    #nodes[][node_no] = node
-                n_sensors += 1
-
-
-            elif node_type == 'f':
-                node = FusionNode(tracker=self.trackers[n_trackers],
-                                  fusion_queue=self.trackers[n_trackers].detector.reader,
-                                  label=str(node_no))
-                n_trackers += 1
-                nodes[node_no] = node
-
-            elif node_type == 'sf':
-                node = SensorFusionNode(sensor=self.sensors[n_sensors], label=str(node_no),
-                                        tracker=self.trackers[n_trackers],
-                                        fusion_queue=self.trackers[n_trackers].detector.reader)
-                n_sensors += 1
-                n_trackers += 1
-                nodes[node_no] = node
-
-        new_edgelist = copy.copy(edgelist)
-        for edge in edgelist:
-            s = edge[0]
-            t = edge[1]
-
-            if isinstance(nodes[s], FusionNode) and type(nodes[t]) == SensorNode:
-                new_edgelist.remove((s, t))
-                new_edgelist.append((t, s))
-
-        return nodes, new_edgelist
