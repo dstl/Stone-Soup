@@ -302,6 +302,11 @@ class MultiModelParticleUpdater(ParticleUpdater):
         # Normalise the weights
         update.log_weight -= logsumexp(update.log_weight)
 
+        # Apply constraints if defined
+        if self.constraint_func is not None:
+            part_indx = self.constraint_func(update)
+            update.log_weight[part_indx] = -1*np.inf
+
         # Resample
         resample_flag = True
         if self.resampler is not None:
@@ -344,7 +349,6 @@ class RaoBlackwellisedParticleUpdater(MultiModelParticleUpdater):
 
         update = Update.from_state(
             hypothesis.prediction,
-            log_weight=copy.copy(hypothesis.prediction.log_weight),
             hypothesis=hypothesis,
             timestamp=hypothesis.measurement.timestamp,
         )
@@ -358,6 +362,11 @@ class RaoBlackwellisedParticleUpdater(MultiModelParticleUpdater):
 
         # Normalise the weights
         update.log_weight -= logsumexp(update.log_weight)
+
+        # Apply constraints if defined
+        if self.constraint_func is not None:
+            part_indx = self.constraint_func(update)
+            update.log_weight[part_indx] = -1*np.inf
 
         # Resample
         resample_flag = True
@@ -515,6 +524,11 @@ class BernoulliParticleUpdater(ParticleUpdater):
 
             # Normalise weights
             updated_state.log_weight -= logsumexp(updated_state.log_weight)
+
+        # Apply constraints if defined
+        if self.constraint_func is not None:
+            part_indx = self.constraint_func(updated_state)
+            updated_state.log_weight[part_indx] = -1*np.inf
 
         # Resampling
         if self.resampler is not None:
