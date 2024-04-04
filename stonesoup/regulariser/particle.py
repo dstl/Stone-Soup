@@ -137,6 +137,7 @@ class MCMCRegulariser(Regulariser):
             index = alpha > selector
 
             posterior = copy.copy(posterior)
+            posterior.state_vector = copy.copy(posterior.state_vector)
             posterior.state_vector[:, index] = moved_particles.state_vector[:, index]
 
         return posterior
