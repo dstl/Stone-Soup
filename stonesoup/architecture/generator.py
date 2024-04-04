@@ -15,6 +15,8 @@ from stonesoup.architecture.node import SensorFusionNode, RepeaterNode
 from stonesoup.base import Base, Property
 from stonesoup.feeder.track import Tracks2GaussianDetectionFeeder
 from stonesoup.sensor.sensor import Sensor
+from stonesoup.tracker import Tracker
+from stonesoup.tracker.simple import MultiTargetTracker
 
 
 class InformationArchitectureGenerator(Base):
@@ -45,7 +47,7 @@ class InformationArchitectureGenerator(Base):
         doc="Max distance each sensor can be from base_sensor.position. Should be a tuple of "
             "length equal to len(base_sensor.position_mapping)",
         default=None)
-    base_tracker: list = Property(
+    base_tracker: Tracker = Property(
         doc="Tracker class object that will be duplicated to create multiple trackers. Should have "
             "detector=None.",
         default=None)
@@ -99,6 +101,8 @@ class InformationArchitectureGenerator(Base):
         return arch
 
     def assign_nodes(self, degrees, edgelist):
+
+        # Order nodes by target degree (number of other nodes passing data to it)
         reordered = []
         for node_no in degrees.keys():
             reordered.append((node_no, degrees[node_no]['target']))
@@ -108,14 +112,24 @@ class InformationArchitectureGenerator(Base):
         for t in reordered:
             order.append(t[0])
 
+        # Reorder so that nodes at the top of the information chain will not be sensor nodes if
+        # possible
+        top_nodes = [n for n in degrees.keys() if degrees[n]['source'] == 0]
+        for n in top_nodes:
+            order.remove(n)
+            order.append(n)
+
+        # Order of s/sf/f nodes
         components = ['s'] * self.n_sensor_nodes + \
                      ['sf'] * self.n_sensor_fusion_nodes + \
                      ['f'] * self.n_fusion_nodes
 
+        # Create dictionary entry for each architecture copy
         nodes = {}
         for architecture in range(self.n_archs):
             nodes[architecture] = {}
 
+        # Create Nodes
         for node_no, node_type in zip(order, components):
 
             if node_type == 's':
@@ -132,7 +146,6 @@ class InformationArchitectureGenerator(Base):
             elif node_type == 'f':
                 for architecture in range(self.n_archs):
                     t = copy.deepcopy(self.base_tracker)
-
                     fq = FusionQueue()
                     t.detector = Tracks2GaussianDetectionFeeder(fq)
 
@@ -152,26 +165,26 @@ class InformationArchitectureGenerator(Base):
                     s.position = pos
 
                     t = copy.deepcopy(self.base_tracker)
-
                     fq = FusionQueue()
                     t.detector = Tracks2GaussianDetectionFeeder(fq)
 
                     node = SensorFusionNode(sensor=s,
                                             tracker=t,
-                                            fusion_queue=fq)
+                                            fusion_queue=fq,
+                                            label=str(node_no))
 
                     nodes[architecture][node_no] = node
 
         new_edgelist = copy.copy(edgelist)
-        for edge in edgelist:
-            s = edge[0]
-            t = edge[1]
 
-            if self.arch_type != 'hierarchical' and \
-                    isinstance(nodes[0][s], FusionNode) and \
-                    type(nodes[0][t]) == SensorNode:
-                new_edgelist.remove((s, t))
-                new_edgelist.append((t, s))
+        if self.arch_type != 'hierarchical':
+            for edge in edgelist:
+                s = edge[0]
+                t = edge[1]
+
+                if isinstance(nodes[0][s], FusionNode) and type(nodes[0][t]) == SensorNode:
+                    new_edgelist.remove((s, t))
+                    new_edgelist.append((t, s))
 
         return nodes, new_edgelist
 
