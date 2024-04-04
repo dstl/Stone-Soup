@@ -4,10 +4,11 @@ from scipy.stats import multivariate_normal, uniform
 from typing import Sequence, Callable
 
 from .base import Regulariser
-from ..functions import cholesky_eps
-from ..types.state import ParticleState
-from ..models.transition import TransitionModel
 from ..base import Property
+from ..functions import cholesky_eps
+from ..models.transition import TransitionModel
+from ..predictor.particle import MultiModelPredictor
+from ..types.state import ParticleState
 
 
 class MCMCRegulariser(Regulariser):
@@ -43,7 +44,22 @@ class MCMCRegulariser(Regulariser):
             "object and return an array-like object of logical indices. "
     )
 
-    def regularise(self, prior, posterior):
+    def _transition_prior(self, prior, posterior, **kwargs):
+        hypothesis = posterior.hypothesis[0] if isinstance(posterior.hypothesis, Sequence) \
+            else posterior.hypothesis
+        transition_model = hypothesis.prediction.transition_model
+        if not transition_model:
+            transition_model = self.transition_model
+
+        if transition_model:
+            transitioned_prior = copy.copy(prior)
+            transitioned_prior.state_vector = transition_model.function(
+                prior, noise=False, time_interval=posterior.timestamp - prior.timestamp)
+            return transitioned_prior
+        else:
+            return prior
+
+    def regularise(self, prior, posterior, **kwargs):
         """Regularise the particles
 
         Parameters
@@ -65,19 +81,8 @@ class MCMCRegulariser(Regulariser):
         if not isinstance(prior, ParticleState):
             raise TypeError('Only ParticleState type is supported!')
 
-        regularised_particles = copy.copy(posterior)
-        moved_particles = copy.copy(posterior)
-        transitioned_prior = copy.copy(prior)
-
         hypotheses = posterior.hypothesis if isinstance(posterior.hypothesis, Sequence) \
             else [posterior.hypothesis]
-
-        transition_model = hypotheses[0].prediction.transition_model or self.transition_model
-        if transition_model is not None:
-            time_interval = posterior.timestamp - prior.timestamp
-            transitioned_prior.state_vector = \
-                transition_model.function(prior, noise=False, time_interval=time_interval)
-
         detections = {hypothesis.measurement for hypothesis in hypotheses if hypothesis}
 
         if detections:
@@ -91,6 +96,7 @@ class MCMCRegulariser(Regulariser):
             covar_est = posterior.covar
 
             # move particles
+            moved_particles = copy.copy(posterior)
             moved_particles.state_vector = moved_particles.state_vector + \
                 hopt * cholesky_eps(covar_est) @ np.random.randn(ndim, nparticles)
 
@@ -100,6 +106,7 @@ class MCMCRegulariser(Regulariser):
                 moved_particles.state_vector[:, part_indx] = posterior.state_vector[:, part_indx]
 
             # Evaluate likelihoods
+            transitioned_prior = self._transition_prior(prior, posterior, **kwargs)
             part_diff = moved_particles.state_vector - transitioned_prior.state_vector
             move_likelihood = multivariate_normal.logpdf(part_diff.T,
                                                          cov=covar_est)
@@ -129,6 +136,42 @@ class MCMCRegulariser(Regulariser):
             selector = uniform.rvs(size=nparticles)
             index = alpha > selector
 
-            regularised_particles.state_vector[:, index] = moved_particles.state_vector[:, index]
+            posterior = copy.copy(posterior)
+            posterior.state_vector[:, index] = moved_particles.state_vector[:, index]
 
-        return regularised_particles
+        return posterior
+
+
+class MultiModelMCMCRegulariser(MCMCRegulariser):
+    """MCMC Regulariser for :class:`~.MultiModelParticleState`
+
+    This is a version of the :class:`~.MCMCRegulariser` that supports case where multiple
+    models are used i.e. with :class:`~.MultiModelParticleUpdater`.
+    """
+    transition_model = None
+    transition_models: Sequence[TransitionModel] = Property(
+        doc="Transition models used to for particle transition, selected by model index on "
+            "particle. Models dimensions can be subset of the overall state space, by "
+            "using :attr:`model_mappings`."
+    )
+    model_mappings: Sequence[Sequence[int]] = Property(
+        doc="Sequence of mappings associated with each transition model. This enables mapping "
+            "between model and state space, enabling use of models that may have different "
+            "dimensions (e.g. velocity or acceleration). Parts of the state that aren't mapped "
+            "are set to zero.")
+
+    def _transition_prior(self, prior, posterior, **kwargs):
+        transitioned_prior = copy.copy(prior)
+        transitioned_prior.state_vector = copy.copy(prior.state_vector)
+        for model_index, transition_model in enumerate(self.transition_models):
+            current_model_indices = prior.dynamic_model == model_index
+            current_model_count = np.count_nonzero(current_model_indices)
+            if current_model_count == 0:
+                continue
+
+            new_state_vector = MultiModelPredictor.apply_model(
+                prior[current_model_indices], transition_model, posterior.timestamp,
+                self.model_mappings[model_index], noise=False)
+
+            transitioned_prior.state_vector[:, current_model_indices] = new_state_vector
+        return transitioned_prior

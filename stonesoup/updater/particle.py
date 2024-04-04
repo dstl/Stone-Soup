@@ -302,8 +302,17 @@ class MultiModelParticleUpdater(ParticleUpdater):
         # Normalise the weights
         update.log_weight -= logsumexp(update.log_weight)
 
-        if self.resampler:
-            update = self.resampler.resample(update)
+        # Resample
+        resample_flag = True
+        if self.resampler is not None:
+            resampled_state = self.resampler.resample(update)
+            if resampled_state == update:
+                resample_flag = False
+            update = resampled_state
+
+        if self.regulariser is not None and resample_flag:
+            update = self.regulariser.regularise(update.parent, update)
+
         return update
 
 
@@ -350,8 +359,17 @@ class RaoBlackwellisedParticleUpdater(MultiModelParticleUpdater):
         # Normalise the weights
         update.log_weight -= logsumexp(update.log_weight)
 
-        if self.resampler:
-            update = self.resampler.resample(update)
+        # Resample
+        resample_flag = True
+        if self.resampler is not None:
+            resampled_state = self.resampler.resample(update)
+            if resampled_state == update:
+                resample_flag = False
+            update = resampled_state
+
+        if self.regulariser is not None and resample_flag:
+            update = self.regulariser.regularise(update.parent, update)
+
         return update
 
     @staticmethod
