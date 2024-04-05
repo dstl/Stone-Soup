@@ -2,9 +2,9 @@
 # coding: utf-8
 
 """
-===================================================
-Algorithm dealing with Out-of-Sequence measurements
-===================================================
+=========================================
+Handling OOSM using inverse time dynamics
+=========================================
 """
 
 # %%
@@ -12,25 +12,26 @@ Algorithm dealing with Out-of-Sequence measurements
 # using a fixed time-delay, or a time buffer. This example focuses on a different approach to deal
 # with OOSM.
 #
-# As shown in literature (e.g., [1]_) there are multiple approaches on how to deal with OOS measurements,
-# spanning from simply ignoring them, assuming that the fraction of these is small and it will not,
-# significally, impact the quality of the tracking, iterate over last :math:`\ell` measurements with
-# a fixed lag (see what it is called Algorithm A and B in [2]_ and [3]_, see also the previous examples)
+# As shown in literature (e.g., [1]_) there are multiple approaches on how to deal with OOS measurements.
+# Simply ignoring them, assuming that the fraction of these is small and it will not,
+# significantly impact the quality of the tracking; iterating over last :math:`\ell` measurements with
+# a fixed lag (see what it is called Algorithm A and B in [2]_ and [3]_, and the other OOSM examples)
 # or, like in this example, you can include any OOSM and re-process the measurement using
 # inverse-time dynamics creating pseudo-measurements.
 #
-# This approach is called in literature as Algorithm C (from [2]_, [3]_) and it will be refered as such later on.
+# This approach is known in literature as Algorithm C (from [2]_, [3]_) and it will be referred to as such
+# later on.
 #
 # To explain how it works, we consider a single target scenario.
 # This algorithm deals with the presence of delayed measurements by using the predicted dynamics of the target
 # to go back in time from the actual arrival time and obtain a pseudo-measurement obtained from
 # simulating the detection at the "expected" scan time.
-# In this manner we can reconstruct the measurements chain and not discard any information, as well,
+# In this manner we can reconstruct the measurements chain without discarding any information, and
 # we don't need to store a large fix-lag distribution of data (as can happen with other algorithms).
 #
 # In this example, we focus our efforts in showing how to use the algorithm C in a multi-target scenario with clutter.
 # We simulate two sensors obtaining scans of two objects travelling with a nearly constant velocity transition model
-# and with some level of clutter, at specific timesteps we insert a delay in one of the scan from the sensor and we
+# and with some level of clutter. At specific timesteps we insert a delay in one of the scans from the sensor and we
 # employ Algorithm C to process in the correct way the chain of measurements.
 #
 # To visualise the benefit of the algorithm, we also include a tracker which ignores OOSM completely. We also
@@ -123,7 +124,7 @@ from stonesoup.models.measurement.nonlinear import CartesianToBearingRange
 sensor_1_mm = CartesianToBearingRange(
     ndim_state=4,
     mapping=(0, 2),
-    noise_covar=np.diag([np.radians(5), 14]))
+    noise_covar=np.diag([np.radians(5), 10]))
 
 # For simplicity let's assume both sensors have the same specifics
 sensor_2_mm = deepcopy(sensor_1_mm)
@@ -331,7 +332,7 @@ for k in range(len(scan_s1)):
 # 4. Run the comparison between the resulting tracks and plot the results.
 # ------------------------------------------------------------------------
 # We have obtained the final tracks from the detections and we have two sets of
-# tracks, one with OOSM and one without. We now can visualise the results
+# tracks, one with OOSM and one without. We can visualise the results
 # and evaluate the track-to-track accuracy using the OSPA metric tool.
 #
 
@@ -387,7 +388,7 @@ graph.fig
 # ----------
 # In this example we have explained how to deal with out of sequence
 # detections using Algorithm C and time-inverse dynamics.
-# In the OSPA metric summary presented we saw that the difference between considering and
+# In the OSPA metric summary presented we see that the difference between considering and
 # ignoring OOSM can be significant, even in a simple scenario as this one considered.
 #
 
@@ -403,3 +404,5 @@ graph.fig
 # .. [3] S. R. Maskell, R. G. Everitt, R. Wright, M. Briers, 2005,
 #        Multi-target out-of-sequence data association: Tracking using
 #        graphical models, Information Fusion.
+#
+# # sphinx_gallery_thumbnail_number = 1
