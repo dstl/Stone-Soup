@@ -22,13 +22,13 @@ Particle filtering with Out-of-sequence Measurements
 # In the PF application, we have each trajectory defined as a particle, where each have an associated weight.
 # Weights can vary as new information arrives (measurements or clutter).
 #
-# The algorithm presented follows this logic: we have a series of measurements that arrive to the detector at
-# different consecutive timesteps, :math:`k=0,1,2...`, and their detection time is defined as :math:`t_{k}`.
+# We have a series of measurements that arrive to the detector at different consecutive timesteps,
+# :math:`k=0,1,2...`, with detection time defined as :math:`t_{k}`.
 # If :math:`t_{k} > t_{k-1}`, meaning :math:`t_{k}` is consecutive to :math:`t_{k-1}`, we apply the stadard
 # particle filter tracking method.
-# Instead, if :math:`t_{k} < t_{k-1}`, a delayed measurement, then we apply this algorithm.
-# We look in the list of measurements where :math:`t_{k}` belongs.
-# In detail, we look for two indices, :math:`a` and :math:`b`, such that :math:`t_{a} > t_{k} > t_{b}`.
+# Instead, if :math:`t_{k} < t_{k-1}`, a delayed measurement, then we apply this algorithm:
+# search in the list of measurements where :math:`t_{k}` belongs and find two indices, :math:`a` and :math:`b`,
+# such that :math:`t_{a} > t_{k} > t_{b}`.
 # In this manner, we are able to insert the measurement in each particle tracjectory history at the right time.
 #
 # We have obtained a time location for the new measurement. We then sample the particles from the
@@ -36,7 +36,7 @@ Particle filtering with Out-of-sequence Measurements
 # delayed measurement :math:`t_{k}`, normalising the particle weights. To finalise the track we
 # re-order the existing data such that :math:`t_{n} > t_{m}, \forall (n, m)`.
 #
-# However, it is important to note that there is the risk of accumulating some disparity over time.
+# It is important to note that there is the risk of accumulating some disparity over time.
 # As we deal with these measurements, this disparity can significantly impact the tracking performances
 # causing some degeneracy. To solve this issue, we can use a resampling step, where the
 # particles are probabilistically replicated or discarded, resulting in a shift of the
@@ -86,7 +86,7 @@ truths = set()
 
 # %%
 # 1. Create ground truth and detections;
-# --------------------------------------
+# ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 # In this example we consider a target moving on a nearly constant velocity transition model,
 # where the detections are obtained by a :class:`~.CartesianToBearingRange` measurement model.
 # In this scenario we consider a negligible level of clutter.
@@ -148,14 +148,14 @@ arrival_time_ordered = sorted(scans, key=lambda dscan: dscan[0])
 
 # %%
 # 2. Instantiate the tracking components;
-# ---------------------------------------
-# We load the various tracking components using the particle filter
+# ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+# We load the various tracking components for the particle filter including
 # :class:`~.ParticleUpdater` and :class:`~.ParticlePredictor`. For the
-# resampler we consider :class:`~.ESSResampler`, which calls :class:`~.SystematicResampler` by default.
+# resampler we use :class:`~.ESSResampler`, which calls :class:`~.SystematicResampler` by default.
 # Then, to initialise the tracks we start defining a :class:`~.GaussianState`. We sample
 # the particles using a Multivariate Normal distribution around the prior state.
 # We assign a weight to each particle, at the beginning they will have the same weight.
-# Finally we create a :class:`~.ParticleState` with the new particles and their weights.
+# Finally we create a :class:`~.ParticleState` prior with the new particles and their weights.
 
 # Load the particle filter components
 from stonesoup.updater.particle import ParticleUpdater
@@ -193,11 +193,11 @@ particle_prior = ParticleState(state_vector=None,
 
 # %%
 # 3. Run the tracker, apply the algorithm and visualise the results.
-# ------------------------------------------------------------------
-# We have now all the components ready. To understand the benefits of
-# this algorithm we compute a track where the delayed detections are ignored.
+# ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 # The algorithm is applied only when the detection timestamp (:math:`t_{k}`) is not
 # greater than the previous recorded timestamp (:math:`t_{k-1}`).
+# To understand the benefits of this algorithm we compute a track where the
+# delayed detections are ignored.
 
 # Load the tracking components
 from stonesoup.types.hypothesis import SingleHypothesis
