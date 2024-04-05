@@ -1,4 +1,5 @@
 import datetime
+from typing import Tuple, Set
 
 from .base import Tracker, _TrackerMixInNext
 from ..base import Property
@@ -42,7 +43,7 @@ class PointProcessMultiTargetTracker(_TrackerMixInNext, Tracker):
         self.gaussian_mixture = GaussianMixture()
 
     @property
-    def tracks(self) -> set[Track]:
+    def tracks(self) -> Set[Track]:
         tracks = set()
         for track in self.target_tracks.values():
             tracks.add(track)
@@ -75,7 +76,7 @@ class PointProcessMultiTargetTracker(_TrackerMixInNext, Tracker):
                             self.extraction_threshold:
                         self.target_tracks[tag] = Track([component], id=tag)
 
-    def __next__(self) -> tuple[datetime.datetime, set[Track]]:
+    def __next__(self) -> Tuple[datetime.datetime, Set[Track]]:
         time, detections = next(self.detector_iter)
         # Add birth component
         self.birth_component.timestamp = time
