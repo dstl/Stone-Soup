@@ -1,5 +1,5 @@
 import pytest
-
+import random
 import numpy as np
 from ordered_set import OrderedSet
 from datetime import datetime, timedelta
@@ -364,3 +364,78 @@ def edge_lists(nodes, radar_nodes):
             "disconnected_loop_edges": disconnected_loop_edges, "repeater_edges": repeater_edges,
             "radar_edges": radar_edges, "sf_radar_edges": sf_radar_edges,
             "network_edges": network_edges}
+
+
+@pytest.fixture()
+def generator_params():
+    start_time = datetime.now().replace(microsecond=0)
+    np.random.seed(1990)
+    random.seed(1990)
+
+    from stonesoup.models.transition.linear import CombinedLinearGaussianTransitionModel, \
+        ConstantVelocity
+    from stonesoup.types.groundtruth import GroundTruthPath, GroundTruthState
+
+    # Generate transition model
+    transition_model = CombinedLinearGaussianTransitionModel([ConstantVelocity(0.005),
+                                                              ConstantVelocity(0.005)])
+
+    yps = range(0, 100, 10)  # y value for prior state
+    truths = OrderedSet()
+    ntruths = 3  # number of ground truths in simulation
+    time_max = 60  # timestamps the simulation is observed over
+    timesteps = [start_time + timedelta(seconds=k) for k in range(time_max)]
+
+    xdirection = 1
+    ydirection = 1
+
+    # Generate ground truths
+    for j in range(0, ntruths):
+        truth = GroundTruthPath([GroundTruthState([0, xdirection, yps[j], ydirection],
+                                                  timestamp=timesteps[0])], id=f"id{j}")
+
+        for k in range(1, time_max):
+            truth.append(
+                GroundTruthState(transition_model.function(truth[k - 1], noise=True,
+                                                           time_interval=timedelta(seconds=1)),
+                                 timestamp=timesteps[k]))
+        truths.add(truth)
+
+        xdirection *= -1
+        if j % 2 == 0:
+            ydirection *= -1
+
+    base_sensor = RadarRotatingBearingRange(
+        position_mapping=(0, 2),
+        noise_covar=np.array([[np.radians(0.5) ** 2, 0],
+                              [0, 1 ** 2]]),
+        ndim_state=4,
+        position=np.array([[10], [10]]),
+        rpm=60,
+        fov_angle=np.radians(360),
+        dwell_centre=StateVector([0.0]),
+        max_range=np.inf,
+        resolutions={'dwell_centre': Angle(np.radians(30))}
+    )
+
+    predictor = KalmanPredictor(transition_model)
+    updater = ExtendedKalmanUpdater(measurement_model=None)
+    hypothesiser = DistanceHypothesiser(predictor, updater, measure=Mahalanobis(),
+                                        missed_distance=5)
+    data_associator = GNNWith2DAssignment(hypothesiser)
+    deleter = CovarianceBasedDeleter(covar_trace_thresh=1)
+    initiator = MultiMeasurementInitiator(
+        prior_state=GaussianState([[0], [0], [0], [0]], np.diag([0, 1, 0, 1])),
+        measurement_model=None,
+        deleter=deleter,
+        data_associator=data_associator,
+        updater=updater,
+        min_points=2,
+    )
+
+    base_tracker = MultiTargetTracker(initiator, deleter, None, data_associator, updater)
+
+    return {'start_time': start_time,
+            'truths': truths,
+            'base_sensor': base_sensor,
+            'base_tracker': base_tracker}
