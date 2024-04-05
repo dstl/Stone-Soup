@@ -2,9 +2,9 @@
 # coding: utf-8
 
 """
-=========================================
-Dealing with Out-Of-Sequence Measurements
-=========================================
+==================================================================
+Dealing with Out-Of-Sequence Measurements with a fixed lag storage
+==================================================================
 """
 
 # %%
@@ -15,10 +15,17 @@ Dealing with Out-Of-Sequence Measurements
 # we aim to provide a toolkit of approaches, better than just choosing to ignore such measurements.
 #
 # In this example we focus on the simpler approach, also known as algorithm A [#]_ (also in [#]_ and [#]_),
-# where we create a "fixed lag" storage of measurements and we go over the detections
-# and place the OOSM in the correct order chain of measurements.
+# where we create a "fixed lag" storage (called :math:`\ell`-storage) of measurements and we go over the
+# detections and place the OOSM in the correct order chain of measurements.
+#
+# We employ a buffer of size :math:`\ell` where the measurements are temporarely stored before being processed
+# by the tracker. This buffer collects measurements until it is filled, checks the timestamps and
+# re-order them accordingly and releases the data with the smallest timestamp.
+# As a new measurement arrives, it is stored in the buffer and the same precedure is applied.
+#
 # The issue with this approach is that the :math:`\ell`-storage of measurements can grow
 # quickly if we are dealing with large number of sensors or targets, therefore computationally expensive.
+#
 # As a comparison, we add a track where the detections are processed as they arrive at the tracker (no
 # reordering based on the detection timestamp), to prove that the tracking performance is worse in that scenario.
 #
@@ -33,7 +40,7 @@ Dealing with Out-Of-Sequence Measurements
 
 # %%
 # General imports
-# ^^^^^^^^^^^^^^^
+# ---------------
 import numpy as np
 from datetime import datetime, timedelta
 from copy import deepcopy
@@ -45,7 +52,7 @@ num_steps = 65  # simulation steps
 
 # %%
 # Stone Soup Imports
-# ^^^^^^^^^^^^^^^^^^
+# ------------------
 
 from stonesoup.models.transition.linear import CombinedLinearGaussianTransitionModel, \
     ConstantVelocity
@@ -53,13 +60,13 @@ from stonesoup.types.groundtruth import GroundTruthPath, GroundTruthState
 from stonesoup.types.state import GaussianState, State, StateVector
 
 # %%
-# 1) Create ground truth and detections;
-# --------------------------------------
+# 1. Create ground truth and detections;
+# ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 # In this example, we consider a single target moving on a nearly constant velocity trajectory.
 # A sensor obtains the detections.
 #
 # For simplicity, we assume clutter to be negligible in this example. The OOS measurements are assumed to
-# have a, known, fixed lag. The scans are happening every 5 seconds and these measurements
+# have a known, fixed lag. The scans are happening every 5 seconds and these measurements
 # are coming with a delay of 25 seconds.
 #
 # The scans are a simplistic representation of real data coming from the sensor, at each timestamp
@@ -131,7 +138,7 @@ arrival_time_ordered = sorted(scans, key=lambda dscan: dscan[0])
 
 # %%
 # 2. Instantiate the tracking components;
-# ---------------------------------------
+# ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 # We have the scans containing the detections ordered by their arrival time.
 # It is time to prepare the tracking components.
 # In this simple example we employ a :class:`~.KalmanPredictor`
@@ -155,16 +162,11 @@ prior_lag = deepcopy(prior)
 
 # %%
 # 3. Run the tracker and visualise the results.
-# ---------------------------------------------
+# ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 # We have the detections and the tracking components ready to be used.
 #
-# It is known that some detections arrived with a fixed delay, therefore we create a
-# buffer storage of fixed dimension (:math:`\ell`) where we store the detections and where we check the
-# timestamps and adjust them to their correct order. When one detection comes with an
-# earlier timestamp (:math:`\tau < t_{k}`), we shuffle the detections to keep the chain of detections.
-#
-# To show how the delayed detections impact the tracking we run a tracker with the detections
-# as they arrive to the tracker without any modification.
+# To show how the delayed detections impact the tracking performances we run a tracker
+# with the detections as they arrive to the tracker without any modification.
 
 # Load tracking components
 from stonesoup.types.hypothesis import SingleHypothesis
@@ -191,7 +193,7 @@ for k in range(len(arrival_time_ordered)):  # loop over the scans
 
 # %%
 # Visualise the tracking
-# ^^^^^^^^^^^^^^^^^^^^^^
+# ----------------------
 # Now visualise the detections and the track without the algorithm applied.
 
 # Collect the detections
@@ -207,6 +209,10 @@ plotter.fig
 # %%
 # Let's deal with OOS detections
 # ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+# It is known that some detections arrived with a fixed delay, therefore we create a
+# buffer storage of fixed dimension (:math:`\ell`) where we store the detections and where we check the
+# timestamps and adjust them to their correct order. When one detection comes with an
+# earlier timestamp (:math:`\tau < t_{k}`), we shuffle the detections to keep the chain of detections.
 
 # create the lag-storage to process the detections
 lag_storage = []
@@ -253,15 +259,15 @@ for k in range(len(arrival_time_ordered)):
                     track.append(post)
                     prior = track[-1]
 # %%
-# Adding the final track
-# ^^^^^^^^^^^^^^^^^^^^^^
+# Plotting the final track
+# ------------------------
 
 plotter.plot_tracks(track, [0, 2], line= dict(color='blue'), track_label='Track with OOSM treated')
 plotter.fig
 
 # %%
 # Conclusion
-# ----------
+# ^^^^^^^^^^
 # In this simple example we have shown an algorithm to deal with out of sequence measurements,
 # with the use a fixed lag buffer where we store the detections and we re-order their arrival time to
 # adjust for any delay. As well, we have shown how poorly is the tracking if we don't
@@ -271,7 +277,7 @@ plotter.fig
 
 # %%
 # References
-# ----------
+# ^^^^^^^^^^
 # .. [#] Y. Bar-Shalom, M. Mallick, H. Chen, R. Washburn, 2002,
 #        One-step solution for the general out-of-sequence measurement
 #        problem in tracking, Proceedings of the 2002 IEEE Aerospace
