@@ -3,7 +3,6 @@ import operator
 import random
 import warnings
 
-import networkx as nx
 from datetime import datetime
 
 import numpy as np
@@ -16,7 +15,6 @@ from stonesoup.base import Base, Property
 from stonesoup.feeder.track import Tracks2GaussianDetectionFeeder
 from stonesoup.sensor.sensor import Sensor
 from stonesoup.tracker import Tracker
-from stonesoup.tracker.simple import MultiTargetTracker
 
 
 class InformationArchitectureGenerator(Base):
@@ -48,8 +46,8 @@ class InformationArchitectureGenerator(Base):
             "length equal to len(base_sensor.position_mapping)",
         default=None)
     base_tracker: Tracker = Property(
-        doc="Tracker class object that will be duplicated to create multiple trackers. Should have "
-            "detector=None.",
+        doc="Tracker class object that will be duplicated to create multiple trackers. "
+            "Should have detector=None.",
         default=None)
     iteration_limit: int = Property(
         doc="Limit for the number of iterations the generate_edgelist() method can make when "
@@ -79,17 +77,17 @@ class InformationArchitectureGenerator(Base):
             raise ValueError('arch_style must be "decentralised" or "hierarchical"')
 
     def generate(self):
-        edgelist, degrees = self.generate_edgelist()
+        edgelist, degrees = self._generate_edgelist()
 
-        nodes, edgelist = self.assign_nodes(degrees, edgelist)
+        nodes, edgelist = self._assign_nodes(degrees, edgelist)
 
         archs = list()
         for architecture in nodes.keys():
-            arch = self.generate_architecture(nodes[architecture], edgelist)
+            arch = self._generate_architecture(nodes[architecture], edgelist)
             archs.append(arch)
         return archs
 
-    def generate_architecture(self, nodes, edgelist):
+    def _generate_architecture(self, nodes, edgelist):
         edges = []
         for t in edgelist:
             edge = Edge((nodes[t[0]], nodes[t[1]]))
@@ -100,7 +98,7 @@ class InformationArchitectureGenerator(Base):
         arch = InformationArchitecture(arch_edges, self.start_time)
         return arch
 
-    def assign_nodes(self, degrees, edgelist):
+    def _assign_nodes(self, degrees, edgelist):
 
         # Order nodes by target degree (number of other nodes passing data to it)
         reordered = []
@@ -188,7 +186,7 @@ class InformationArchitectureGenerator(Base):
 
         return nodes, new_edgelist
 
-    def generate_edgelist(self):
+    def _generate_edgelist(self):
         count = 0
         edges = []
         sources = []
@@ -212,8 +210,8 @@ class InformationArchitectureGenerator(Base):
                 targets = []
                 while i < self.n_edges:
                     source, target = -1, -1
-                    while source == target or (source, target) in edges or (
-                    target, source) in edges:
+                    while source == target or (source, target) in edges or \
+                            (target, source) in edges:
                         source = random.randint(0, self.n_nodes-1)
                         target = random.choice(list(nodes_used))
                         edge = (source, target)
@@ -230,7 +228,7 @@ class InformationArchitectureGenerator(Base):
             if not network_found:
                 if self.allow_invalid_graph:
                     warnings.warn("Unable to find valid graph within iteration limit. Returned "
-                                 "network does not meet requirements")
+                                  "network does not meet requirements")
                 else:
                     raise ValueError("Unable to find valid graph within iteration limit. Returned "
                                      "network does not meet requirements")
@@ -241,12 +239,6 @@ class InformationArchitectureGenerator(Base):
                              'degree': sources.count(node) + targets.count(node)}
 
         return edges, degrees
-
-    @staticmethod
-    def plot_edges(edges):
-        G = nx.DiGraph()
-        G.add_edges_from(edges)
-        nx.draw(G)
 
 
 class NetworkArchitectureGenerator(InformationArchitectureGenerator):
@@ -260,19 +252,19 @@ class NetworkArchitectureGenerator(InformationArchitectureGenerator):
         default=(1, 2))
 
     def generate(self):
-        edgelist, degrees = self.generate_edgelist()
+        edgelist, degrees = self._generate_edgelist()
 
-        nodes, edgelist = self.assign_nodes(degrees, edgelist)
+        nodes, edgelist = self._assign_nodes(degrees, edgelist)
 
-        nodes, edgelist = self.add_network(nodes, edgelist)
+        nodes, edgelist = self._add_network(nodes, edgelist)
 
         archs = list()
         for architecture in nodes.keys():
-            arch = self.generate_architecture(nodes[architecture], edgelist)
+            arch = self._generate_architecture(nodes[architecture], edgelist)
             archs.append(arch)
         return archs
 
-    def add_network(self, nodes, edgelist):
+    def _add_network(self, nodes, edgelist):
         network_edgelist = []
         i = 0
         for e in edgelist:
@@ -282,16 +274,16 @@ class NetworkArchitectureGenerator(InformationArchitectureGenerator):
 
             for route in range(n):
                 r_lab = 'r' + str(i)
+                network_edgelist.append((e[0], r_lab))
+                network_edgelist.append((r_lab, e[1]))
                 for architecture in nodes.keys():
                     r = RepeaterNode(label=r_lab)
-                    network_edgelist.append((e[0], r_lab))
-                    network_edgelist.append((r_lab, e[1]))
                     nodes[architecture][r_lab] = r
                 i += 1
 
         return nodes, network_edgelist
 
-    def generate_architecture(self, nodes, edgelist):
+    def _generate_architecture(self, nodes, edgelist):
         edges = []
         for t in edgelist:
             edge = Edge((nodes[t[0]], nodes[t[1]]))
