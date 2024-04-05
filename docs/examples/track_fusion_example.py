@@ -8,7 +8,7 @@ Comparing different filters in the context of track fusion
 """
 
 # %%
-# This example shows a comparison between a Kalman filter algorithms and particle filter in the
+# This example shows a comparison between a Kalman filter algorithm and particle filter in the
 # context of track fusion. This example is relevant to show how to get a unique track
 # from partial tracks generated from set of different measurements obtained from independent sensors.
 #
@@ -96,7 +96,7 @@ groundtruth_simulation = SingleTargetGroundTruthSimulator(
 # ^^^^^^^^^^^^^^^^^^^^
 
 clutter_model = ClutterModel(
-    clutter_rate=0.9,
+    clutter_rate=0.75,
     distribution=np.random.default_rng().uniform,
     dist_params=((0, 120), (-5, 105)))
 # dist_params describe the area where the clutter is detected
@@ -160,8 +160,6 @@ radar2plot, radar2KF, radar2PF = tee(radar_simulator2, 3)
 # two sensors. In this way we can appreciate how the measurements are different and can lead to separate
 # tracks.
 
-#%%
-# Stone Soup plotting and metric imports
 from stonesoup.plotter import Plotterly
 from stonesoup.metricgenerator.basicmetrics import BasicMetrics
 from stonesoup.metricgenerator.tracktotruthmetrics import SIAPMetrics
@@ -457,23 +455,6 @@ plotter.fig
 # compared to the partial tracks obtained with the single instruments.
 #
 
-# Instantiate the metric manager
-basic_KF = BasicMetrics(generator_name='KF_fused', tracks_key='KF_fused_tracks',
-                        truths_key='truths')
-
-basic_KF1 = BasicMetrics(generator_name='KF1', tracks_key='KF_1_tracks',
-                         truths_key='truths')
-
-basic_KF2 = BasicMetrics(generator_name='KF2', tracks_key='KF_2_tracks',
-                         truths_key='truths')
-
-basic_PF = BasicMetrics(generator_name='PF_fused', tracks_key='PF_fused_tracks',
-                        truths_key='truths')
-basic_PF1 = BasicMetrics(generator_name='PF1', tracks_key='PF_1_tracks',
-                         truths_key='truths')
-basic_PF2 = BasicMetrics(generator_name='PF2', tracks_key='PF_2_tracks',
-                         truths_key='truths')
-
 # Load the SIAP metric
 siap_kf_truth = SIAPMetrics(position_measure=Euclidean((0, 2)),
                             velocity_measure=Euclidean((1, 3)),
@@ -518,13 +499,7 @@ siap_pf2_truth = SIAPMetrics(position_measure=Euclidean((0, 2)),
 associator = TrackToTruth(association_threshold=30)
 
 # Create the metric manager
-metric_manager = MultiManager([basic_KF,
-                               basic_KF1,
-                               basic_KF2,
-                               basic_PF,
-                               basic_PF1,
-                               basic_PF2,
-                               siap_kf_truth,
+metric_manager = MultiManager([siap_kf_truth,
                                siap_kf1_truth,
                                siap_kf2_truth,
                                siap_pf_truth,
