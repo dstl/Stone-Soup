@@ -51,7 +51,7 @@ class _TrackerMixInNext(_TrackerMixInBase):
 
     @abstractmethod
     def __next__(self) -> Tuple[datetime.datetime, Set[Track]]:
-        ...
+        """Pull detections from the detector (`detector_iter`). Act on them to create tracks."""
 
     def update_tracker(self, time: datetime.datetime, detections: Set[Detection]) \
             -> Tuple[datetime.datetime, Set[Track]]:
@@ -73,4 +73,4 @@ class _TrackerMixInUpdate(_TrackerMixInBase):
     @abstractmethod
     def update_tracker(self, time: datetime.datetime, detections: Set[Detection]) \
             -> Tuple[datetime.datetime, Set[Track]]:
-        ...
+        """Use `time` and `detections` to create tracks."""

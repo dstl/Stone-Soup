@@ -89,6 +89,13 @@ def test_tracker_without_detector_iter_error(tracker_class):
 
 
 @pytest.mark.parametrize("tracker_class", [TrackerNextWithDetector, TrackerUpdateWithDetector])
+def test_tracker_detector_none_iter_error(tracker_class):
+    tracker = tracker_class(detector=None)
+    with pytest.raises(AttributeError):
+        iter(tracker)
+
+
+@pytest.mark.parametrize("tracker_class", [TrackerNextWithDetector, TrackerUpdateWithDetector])
 def test_tracker_with_detector_iter(tracker_class):
     tracker = tracker_class()
     assert iter(tracker) is tracker
