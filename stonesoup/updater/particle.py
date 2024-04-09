@@ -529,6 +529,9 @@ class BernoulliParticleUpdater(ParticleUpdater):
         if self.constraint_func is not None:
             part_indx = self.constraint_func(updated_state)
             updated_state.log_weight[part_indx] = -1*np.inf
+            if not any(hypotheses):
+                updated_state.log_weight = copy.copy(updated_state.log_weight)
+            updated_state.log_weight -= logsumexp(updated_state.log_weight)
 
         # Resampling
         if self.resampler is not None:
