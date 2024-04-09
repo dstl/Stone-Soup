@@ -1,22 +1,26 @@
 """Test for updater.particle module"""
 import datetime
+from functools import partial
 
 import numpy as np
 import pytest
+from scipy.stats import multivariate_normal
 
-from ...resampler.particle import SystematicResampler
 from ...models.measurement.linear import LinearGaussian
-from ...models.transition.linear import ConstantVelocity, ConstantAcceleration, KnownTurnRate
 from ...models.transition.linear import CombinedLinearGaussianTransitionModel
+from ...models.transition.linear import ConstantVelocity, ConstantAcceleration, KnownTurnRate
 from ...predictor.particle import RaoBlackwellisedMultiModelPredictor, MultiModelPredictor
-from ...updater.particle import RaoBlackwellisedParticleUpdater, MultiModelParticleUpdater
+from ...regulariser.particle import MultiModelMCMCRegulariser
+from ...resampler.particle import SystematicResampler, ESSResampler
+from ...types.array import StateVectors
 from ...types.detection import Detection
 from ...types.hypothesis import SingleHypothesis
-from ...types.particle import RaoBlackwellisedParticle, MultiModelParticle
+from ...types.particle import RaoBlackwellisedParticle
 from ...types.prediction import (
     RaoBlackwellisedParticleStatePrediction, MultiModelParticleStatePrediction)
 from ...types.state import RaoBlackwellisedParticleState, MultiModelParticleState
 from ...types.update import RaoBlackwellisedParticleStateUpdate, MultiModelParticleStateUpdate
+from ...updater.particle import RaoBlackwellisedParticleUpdater, MultiModelParticleUpdater
 
 
 @pytest.fixture()
@@ -42,7 +46,9 @@ def transition_matrix():
             [0.40, 0.40, 0.2]]
 
 
-@pytest.fixture(params=[None, SystematicResampler])
+@pytest.fixture(params=[
+    None, SystematicResampler, ESSResampler,
+    pytest.param(partial(ESSResampler, threshold=0), id='avoid_resample')])
 def resampler(request):
     if request.param is None:
         return None
@@ -50,26 +56,29 @@ def resampler(request):
         return request.param()
 
 
-def test_multi_model(dynamic_model_list, position_mappings, transition_matrix, resampler):
-    # Initialise particles
-    particle1 = MultiModelParticle(
-        state_vector=[1, 1, -0.5, 1, 1, -0.5],
-        weight=1/3000,
-        dynamic_model=0)
-    particle2 = MultiModelParticle(
-        state_vector=[1, 1, 0.5, 1, 1, 0.5],
-        weight=1/3000,
-        dynamic_model=1)
-    particle3 = MultiModelParticle(
-        state_vector=[1, 1, 0.5, 1, 1, 0.5],
-        weight=1/3000,
-        dynamic_model=2)
+@pytest.fixture(params=[None, MultiModelMCMCRegulariser])
+def regulariser(request, dynamic_model_list, position_mappings, resampler):
+    if request.param is None:
+        return None
+    else:
+        return request.param(dynamic_model_list, position_mappings)
 
-    particles = [particle1, particle2, particle3] * 1000
+
+def test_multi_model(
+        dynamic_model_list, position_mappings, transition_matrix, resampler, regulariser):
+
+    state_vector = StateVectors(multivariate_normal.rvs(
+        [1, 1, 0.5, 1, 1, 0.5],
+        np.diag([0.1, 0.05, 0.01]*2),
+        3000).T)
+
     timestamp = datetime.datetime.now()
 
     particle_state = MultiModelParticleState(
-        None, particle_list=particles, timestamp=timestamp)
+        state_vector,
+        log_weight=np.full((3000, ), np.log(1/3000)),
+        dynamic_model=np.array([0, 1, 2]*1000),
+        timestamp=timestamp)
 
     predictor = MultiModelPredictor(
         dynamic_model_list, transition_matrix, position_mappings
@@ -81,10 +90,11 @@ def test_multi_model(dynamic_model_list, position_mappings, transition_matrix, r
     assert isinstance(prediction, MultiModelParticleStatePrediction)
 
     measurement_model = LinearGaussian(6, [0, 3], np.diag([1, 1]))
-    updater = MultiModelParticleUpdater(measurement_model, predictor, resampler=resampler)
+    updater = MultiModelParticleUpdater(
+        measurement_model, predictor, resampler=resampler, regulariser=regulariser)
 
     # Detection close to where known turn rate model would place particles
-    detection = Detection([[0.5, 7.]], timestamp)
+    detection = Detection([[0.5, 7.]], timestamp, measurement_model=measurement_model)
 
     update = updater.update(hypothesis=SingleHypothesis(prediction, detection))
 
