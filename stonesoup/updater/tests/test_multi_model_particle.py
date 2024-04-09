@@ -64,8 +64,18 @@ def regulariser(request, dynamic_model_list, position_mappings, resampler):
         return request.param(dynamic_model_list, position_mappings)
 
 
+@pytest.fixture(params=[True, False])
+def constraint_func(request):
+    if request.param:
+        def func(particles):
+            part_indx = particles.state_vector[0, :] < 0
+            return part_indx
+        return func
+
+
 def test_multi_model(
-        dynamic_model_list, position_mappings, transition_matrix, resampler, regulariser):
+        dynamic_model_list, position_mappings, transition_matrix, resampler, regulariser,
+        constraint_func):
 
     state_vector = StateVectors(multivariate_normal.rvs(
         [1, 1, 0.5, 1, 1, 0.5],
@@ -91,7 +101,8 @@ def test_multi_model(
 
     measurement_model = LinearGaussian(6, [0, 3], np.diag([1, 1]))
     updater = MultiModelParticleUpdater(
-        measurement_model, predictor, resampler=resampler, regulariser=regulariser)
+        measurement_model, predictor, resampler=resampler, regulariser=regulariser,
+        constraint_func=constraint_func)
 
     # Detection close to where known turn rate model would place particles
     detection = Detection([[0.5, 7.]], timestamp, measurement_model=measurement_model)
@@ -104,11 +115,13 @@ def test_multi_model(
     model_weights = [
         np.sum(update.weight[update.parent.dynamic_model == model_index])
         for model_index in range(len(dynamic_model_list))]
-    assert float(np.sum(model_weights)) == pytest.approx(1)
+    if not constraint_func:
+        assert float(np.sum(model_weights)) == pytest.approx(1)
     assert isinstance(dynamic_model_list[np.argmax(model_weights)], KnownTurnRate)
 
 
-def test_rao_blackwellised(dynamic_model_list, position_mappings, transition_matrix, resampler):
+def test_rao_blackwellised(
+        dynamic_model_list, position_mappings, transition_matrix, resampler, constraint_func):
     # Initialise particles
     particle1 = RaoBlackwellisedParticle(
         state_vector=[1, 1, -0.5, 1, 1, -0.5],
@@ -139,7 +152,8 @@ def test_rao_blackwellised(dynamic_model_list, position_mappings, transition_mat
     assert isinstance(prediction, RaoBlackwellisedParticleStatePrediction)
 
     measurement_model = LinearGaussian(6, [0, 3], np.diag([1, 1]))
-    updater = RaoBlackwellisedParticleUpdater(measurement_model, predictor, resampler=resampler)
+    updater = RaoBlackwellisedParticleUpdater(
+        measurement_model, predictor, resampler=resampler, constraint_func=constraint_func)
 
     # Detection close to where known turn rate model would place particles
     detection = Detection([[0.5, 7.]], timestamp)

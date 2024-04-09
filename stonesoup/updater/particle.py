@@ -299,13 +299,13 @@ class MultiModelParticleUpdater(ParticleUpdater):
             + measurement_model.logpdf(hypothesis.measurement, update, **kwargs) \
             + np.log(transition_matrix[update.parent.dynamic_model, update.dynamic_model])
 
-        # Normalise the weights
-        update.log_weight -= logsumexp(update.log_weight)
-
         # Apply constraints if defined
         if self.constraint_func is not None:
             part_indx = self.constraint_func(update)
             update.log_weight[part_indx] = -1*np.inf
+
+        # Normalise the weights
+        update.log_weight -= logsumexp(update.log_weight)
 
         # Resample
         resample_flag = True
@@ -360,13 +360,13 @@ class RaoBlackwellisedParticleUpdater(MultiModelParticleUpdater):
                                                                          update,
                                                                          **kwargs)
 
-        # Normalise the weights
-        update.log_weight -= logsumexp(update.log_weight)
-
         # Apply constraints if defined
         if self.constraint_func is not None:
             part_indx = self.constraint_func(update)
             update.log_weight[part_indx] = -1*np.inf
+
+        # Normalise the weights
+        update.log_weight -= logsumexp(update.log_weight)
 
         # Resample
         resample_flag = True
