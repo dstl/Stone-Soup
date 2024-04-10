@@ -106,8 +106,7 @@ class ParticleUpdater(Updater):
             predicted_state = resampled_state
 
         if self.regulariser is not None and resample_flag:
-            prior = hypothesis.prediction.parent
-            predicted_state = self.regulariser.regularise(prior,
+            predicted_state = self.regulariser.regularise(predicted_state.parent,
                                                           predicted_state)
 
         return predicted_state
