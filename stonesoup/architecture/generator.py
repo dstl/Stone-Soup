@@ -138,7 +138,9 @@ class InformationArchitectureGenerator(Base):
                     s = copy.deepcopy(self.base_sensor)
                     s.position = pos
 
-                    node = SensorNode(sensor=s, label=str(node_no))
+                    node = SensorNode(sensor=s,
+                                      label=str(node_no),
+                                      latency=0)
                     nodes[architecture][node_no] = node
 
             elif node_type == 'f':
@@ -149,7 +151,8 @@ class InformationArchitectureGenerator(Base):
 
                     node = FusionNode(tracker=t,
                                       fusion_queue=fq,
-                                      label=str(node_no))
+                                      label=str(node_no),
+                                      latency=0)
 
                     nodes[architecture][node_no] = node
 
@@ -169,7 +172,8 @@ class InformationArchitectureGenerator(Base):
                     node = SensorFusionNode(sensor=s,
                                             tracker=t,
                                             fusion_queue=fq,
-                                            label=str(node_no))
+                                            label=str(node_no),
+                                            latency=0)
 
                     nodes[architecture][node_no] = node
 
