@@ -20,7 +20,9 @@ from datetime import datetime, timedelta
 # can occur in a poorly designed network.
 #
 # We design two architectures: a centralised (non-hierarchical) architecture, and a hierarchical
-# alternative, and look to compare the fused results at the central node.
+# alternative, and look to compare the fused results at the central node. We expect to show that
+# non-hierarchical architecture will have poor tracking performance in comparison to the
+# hierarchical alternative.
 #
 # Scenario generation
 # -------------------
@@ -170,7 +172,18 @@ track_tracker = MultiTargetTracker(
 # Non-Hierarchical Architecture
 # -----------------------------
 #
-# We start by constructing the non-hierarchical, centralised architecture.
+# We start by constructing the non-hierarchical, centralised architecture. This architecture
+# consists of 3 nodes: one sensor node, which sends data to a fusion node, and a sensor fusion
+# node. This sensor fusion performs two operations:
+# a) recording its own data from its sensor, and
+# b) fusing its own data with the data received from the sensor node.
+# These detections and fused outputs are passed on to the same fusion node mentioned before.
+# The fusion node receives data from both the sensor node and sensor fusion node. The data
+# passed from the sensor fusion node will contain information that was calculated by processing
+# the detections from the sensor node. This means that the information created by the sensor node
+# is arriving at the fusion node via two routes, but is being treated as if it is from separate
+# sources. This can cause a bias towards the data generated at the sensor node, rather than that
+# created at the sensor fusion node. This is an example of data incest.
 #
 # Nodes
 # ^^^^^
@@ -237,6 +250,11 @@ for timestep in node_C1.data_held['unfused']:
 # %%
 # Plot the tracks stored at Non-Hierarchical Node C
 # ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+# Inspecting the plot below shows multiple tracks. The extra delay incurred by passing data along
+# multiple edges is causing enough of a delay that the multi-target tracker is identifying the
+# delayed measurements as a completely different target. This has a negative impact in tracking
+# performance and metrics. Later in this example, a plot of the hierarchical architecture tracks
+# should show this issue is resolved.
 
 from stonesoup.plotter import Plotterly
 
@@ -259,9 +277,10 @@ plotter.fig
 # Hierarchical Architecture
 # -------------------------
 #
-# We now create an alternative architecture. We recreate the same set of nodes as before, but
-# with a new edge set, which is a subset of the edge set used in the non-hierarchical
-# architecture.
+# We now create an alternative architecture. We recreate the same set of nodes as before. We use
+# the same set of edges as before, but remove the edge from the sensor node to the fusion node.
+# This change stops the same information that is generated at the sensor node, from reaching the
+# fusion node in two forms. This avoids the possibility of data incest from occurring.
 #
 # Regenerate Nodes identical to those in the non-hierarchical example
 # ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -322,6 +341,9 @@ for timestep in node_C2.data_held['unfused']:
 # %%
 # Plot the tracks stored at Hierarchical Node C
 # ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+# The plot of tracks from the hierarchical architecture should show that the issue with multiple
+# tracks being initiated has been resolved. This is due to the removal of the edge causing extra
+# delay.
 
 plotter = Plotterly()
 plotter.plot_ground_truths(truths, [0, 2])
@@ -377,11 +399,11 @@ NH_siap_averages_EKF = {NH_siap_metrics.get(metric) for metric in NH_siap_metric
 # ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 H_siap_EKF_truth = SIAPMetrics(position_measure=Euclidean((0, 2)),
-                             velocity_measure=Euclidean((1, 3)),
-                             generator_name='H_SIAP_EKF-truth',
-                             tracks_key='H_EKF_tracks',
-                             truths_key='truths'
-                             )
+                               velocity_measure=Euclidean((1, 3)),
+                               generator_name='H_SIAP_EKF-truth',
+                               tracks_key='H_EKF_tracks',
+                               truths_key='truths'
+                               )
 
 associator = TrackToTruth(association_threshold=30)
 

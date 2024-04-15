@@ -16,10 +16,35 @@ import numpy as np
 # %%
 # Introduction
 # ------------
+# Intro to Information and Network Architectures
+# ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+# A common example of this is considering posting a letter. You may write some
+# information, put it in an envelope, and post it to a friend who receives, opens, and processes
+# the information that you sent. You and your friend (and anyone else who your friend passes
+# the information to) are nodes in the information architecture. Information architectures only
+# concern nodes that open, process and/or fuse data.
 #
+# Network Architectures consider the underlying framework that enables propagation of information.
+# In our example, consider the post-box, sorting office and delivery vans - these are all nodes
+# in the network architecture. These nodes do not open and process any of the information that is
+# being sent, but they are present in the network and have an effect on the route the information
+# takes to reach its destination, and how long it takes to get there.
+#
+# Intro to this Tutorial
+# ^^^^^^^^^^^^^^^^^^^^^^
 # Following on from Tutorial 01: Introduction to Architectures in Stone Soup, this tutorial
 # provides a more in-depth walk through of generating and simulating information and network
 # architectures.
+#
+# We will first create a representation of an information architecture using
+# :class:`~.InformationArchitecture` and use it to show how we can simulate detection,
+# propagation and fusion of data.
+#
+# We will then design a network architecture that could uphold the already displayed information
+# architecture. To do this we will use :class:`~.NetworkArchitecture`. Additionally, we will use
+# the property `information_arch` of :class:`~.NetworkArchitecture` to show that the
+# overlying information architecture linked to the created network architecture is identical to
+# the information architecture that we started with.
 #
 # We start by generating a set of sensors, and a ground truth from which the sensors will make
 # measurements. We will make use of these in both information and network architecture examples
@@ -219,9 +244,11 @@ edges=Edges([Edge((node_A, node_C), edge_latency=0.5),
 # %%
 # Build and plot Information Architecture
 # ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
+#
 # sphinx_gallery_thumbnail_path = '_static/sphinx_gallery/ArchTutorial_2.png'
-
+#
+# Here we can see the Information Architecture that we have built. We can next run a simulation
+# over this architecture and plot the tracking results.
 information_architecture = InformationArchitecture(edges, current_time=start_time)
 information_architecture
 
@@ -402,6 +429,8 @@ network_architecture
 # to a physical edge between two nodes in the Network Architecture, but it could also be a
 # representation of multiple edges and nodes that a data piece would be transferred through in
 # order to pass from a sender to a recipient node.
+# Observing the plot of the information architecture, we can see that it is identical to the
+# information architecture that we started this tutorial with.
 
 network_architecture.information_arch
 
