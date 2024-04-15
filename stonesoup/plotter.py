@@ -24,6 +24,7 @@ except ImportError:
 from .types import detection
 from .types.groundtruth import GroundTruthPath
 from .types.array import StateVector
+from .types.metric import SingleTimeMetric
 from .types.state import State, StateMutableSequence
 from .types.update import Update
 
@@ -666,20 +667,7 @@ class MetricPlotter(ABC):
     def __init__(self):
         self.fig = None
         self.axes = None
-        self.plottable_metrics = ["OSPA distances",
-                                  "GOSPA Metrics",
-                                  "SIAP Completeness at times",
-                                  "SIAP Ambiguity at times",
-                                  "SIAP Spuriousness at times",
-                                  "SIAP Position Accuracy at times",
-                                  "SIAP Velocity Accuracy at times",
-                                  "SIAP ID Completeness at times",
-                                  "SIAP ID Correctness at times",
-                                  "SIAP ID Ambiguity at times",
-                                  "PCRB Metrics",
-                                  "Sum of Covariance Norms Metric",
-                                  "Mean of Covariance Norms Metric"
-                                  ]
+        self.plottable_metrics = list()
 
     def plot_metrics(self, metrics, generator_names=None, metric_names=None,
                      combine_plots=True, **kwargs):
@@ -711,6 +699,13 @@ class MetricPlotter(ABC):
         : :class:`matplotlib.pyplot.figure`
             Figure containing subplots displaying all plottable metrics.
         """
+        for generator_name in metrics:
+            for metric_name in metrics[generator_name].keys():
+                if isinstance(metrics[generator_name][metric_name].value, List) and (
+                        all(isinstance(x, SingleTimeMetric) for
+                            x in metrics[generator_name][metric_name].value)):
+                    self.plottable_metrics.append(metric_name)
+
         metrics_kwargs = dict(linestyle="-")
         metrics_kwargs.update(kwargs)
 
