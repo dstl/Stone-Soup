@@ -445,7 +445,7 @@ def rotation_offsets_3d():
 def expected_orientations_3d():
     pi = np.pi
     # Define some useful values for repeated use:
-    # The angle of elevation when looking from one corner of a unit square to its diagonally
+    # The angle of elevation when looking from one corner of a unit cube to its diagonally
     # opposite, higher up, corner:
     offset_3d_movement = np.arctan(1 / np.sqrt(2))
     # Starting with a line at az=45deg, el=0 (hence 'fwd_left'), rotate it 45deg in elevation
@@ -454,8 +454,7 @@ def expected_orientations_3d():
     fwd_left_elevated_45_az = np.arctan(np.sqrt(2))
     # Starting with a line at az=45deg, el=0 (hence 'fwd_left'), rotate it by 'offset_3d_movement'
     # in elevation (about y axis, not just adding el, again). The resultant az and el are:
-    fwd_left_elevated_o3m_el = np.arctan(np.sin(offset_3d_movement)/
-                                         np.sqrt(1+np.cos(offset_3d_movement)**2))
+    fwd_left_elevated_o3m_el = np.arcsin(np.sin(offset_3d_movement)/np.sqrt(2))
     fwd_left_elevated_o3m_az = np.arctan(1 / np.cos(offset_3d_movement))
 
     return [np.array([[0., 0., 0.], [pi / 4, 0., 0.], [0., pi / 4, 0.], [-pi / 4, 0., 0.],

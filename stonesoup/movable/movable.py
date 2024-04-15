@@ -258,7 +258,7 @@ class MovingMovable(Movable):
         :math:`x,y,z`. The x and z rotation angles are positive if the rotation is in the
         counter-clockwise direction when viewed by an observer looking along the respective
         rotation axis, towards the origin. The y rotation angle is the opposite (matching
-        'elevation')
+        'elevation').
 
         The orientation of this platform is defined as along the direction of its velocity, with
         roll always set to zero (as this is the angle the platform is rotated about the velocity
