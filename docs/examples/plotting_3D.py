@@ -181,4 +181,4 @@ plt.fig
 # uncertainty and particle representation are not supported for 3D unlike in the 2D plotters
 # which may affect its desirablility.
 
-# sphinx_gallery_thumbnail_path = '_static/sphinx_gallery/Plotter3D.png'
+# sphinx_gallery_thumbnail_path = '_static/sphinx_gallery/Plotter3D.PNG'
