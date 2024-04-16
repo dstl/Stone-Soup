@@ -225,9 +225,10 @@ for k in range(num_steps):
 # %%
 # Visualise the tracks and the detections
 # ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-from stonesoup.plotter import Plotterly
+from stonesoup.plotter import AnimatedPlotterly
 
-plotter = Plotterly()
+timesteps = [start_time + timedelta(seconds=5*k) for k in range(num_steps)]
+plotter = AnimatedPlotterly(timesteps, tail_length=0.2)
 plotter.plot_ground_truths(truths, [0, 2])
 plotter.plot_measurements(scans, [0, 2])
 plotter.fig
