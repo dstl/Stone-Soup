@@ -126,13 +126,13 @@ class Actionable(Base, ABC):
         self.scheduled_actions = dict()  # dictionary of property - action pairs
 
     @property
-    def _actionable_properties(self):
+    def actionable_properties(self):
         """Dictionary of all name - property pairs where the property is an
         :class:`~.ActionableProperty` (i.e. it is modified via action)."""
         return {_name: _property for _name, _property in type(self).properties.items()
                 if isinstance(_property, ActionableProperty)}
 
-    def _default_action(self, name, property_, timestamp):
+    def default_action(self, name, property_, timestamp):
         """Returns the default action of the action generator associated with the property
         (assumes the property is an :class:`~.ActionableProperty`."""
 
@@ -172,7 +172,7 @@ class Actionable(Base, ABC):
             start_timestamp = self.timestamp
 
         generators = set()
-        for name, property_ in self._actionable_properties.items():
+        for name, property_ in self.actionable_properties.items():
             generators.add(property_.generator_cls(
                 owner=self,
                 attribute=name,
@@ -212,10 +212,10 @@ class Actionable(Base, ABC):
         if any(action.end_time < self.timestamp for action in actions):
             raise ValueError("Cannot schedule an action that ends before the current time.")
 
-        if len(actions) > len(self._actionable_properties):
+        if len(actions) > len(self.actionable_properties):
             raise ValueError("Cannot schedule more actions than there are actionable properties.")
 
-        for name in self._actionable_properties:
+        for name in self.actionable_properties:
             for action in actions:
                 if action.generator.attribute == name:
                     self.scheduled_actions[name] = action
@@ -235,12 +235,12 @@ class Actionable(Base, ABC):
             self.timestamp = timestamp
             return
 
-        for name, property_ in self._actionable_properties.items():
+        for name, property_ in self.actionable_properties.items():
             value = getattr(self, name)
             try:
                 action = self.scheduled_actions[name]
             except KeyError:
-                action = self._default_action(name, property_, timestamp)
+                action = self.default_action(name, property_, timestamp)
                 setattr(self, name, action.act(self.timestamp, timestamp, value, **kwargs))
             else:
                 end_time = action.end_time
@@ -252,7 +252,7 @@ class Actionable(Base, ABC):
                     # remove scheduled action
                     self.scheduled_actions.pop(name)
 
-                    action = self._default_action(name, property_, timestamp)
+                    action = self.default_action(name, property_, timestamp)
                     setattr(self, name, action.act(end_time, timestamp, interim_value, **kwargs))
                 elif end_time == timestamp:
                     # complete action and remove from schedule
