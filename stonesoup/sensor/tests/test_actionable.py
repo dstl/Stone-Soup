@@ -36,7 +36,7 @@ def test_actionable():
     assert not actionable.scheduled_actions  # no scheduled actions
 
     # Test actionable property/properties
-    actionable_properties = actionable._actionable_properties
+    actionable_properties = actionable.actionable_properties
     assert isinstance(actionable_properties, dict)
     assert len(actionable_properties) == 1
     assert 'dwell_centre' in actionable_properties.keys()
@@ -45,9 +45,9 @@ def test_actionable():
     end_time = start + timedelta(minutes=2)
 
     # Test default action(s)
-    default_action = actionable._default_action('dwell_centre',
-                                                actionable_properties['dwell_centre'],
-                                                end_time)
+    default_action = actionable.default_action('dwell_centre',
+                                               actionable_properties['dwell_centre'],
+                                               end_time)
     generator = actionable_properties['dwell_centre'].generator_cls(owner=actionable,
                                                                     attribute='dwell_centre',
                                                                     start_time=start,
