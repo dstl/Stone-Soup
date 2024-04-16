@@ -13,41 +13,47 @@ Particle filtering with Out-of-sequence Measurements
 # multi-sensor scenarios.
 #
 # In literature, there are a number of approaches to deal with this problem (see [#]_ and [#]_)
-# and in a series of examples we have presented some algorithms that deal with such measurements.
+# and in a series of examples we have presented some algorithms that deal with such out of sequence
+# measurements.
 # These examples were adopted using a Kalman filter approach, here instead we consider the
 # case of Particle filters (the algorithm implementation can be found here [#]_).
 #
-# Particle filters (PF) work in a different manner compared to the Kalman filters because they sequentially
-# update the distribution, while the latter updates only the filtered distribution.
-# In the PF application, we have each trajectory defined as a particle, where each have an associated weight.
+# Particle filters (PF) work in a different manner compared to the Kalman filters because they
+# sequentially update the distribution, while the latter updates only the filtered distribution.
+# In the PF application, we have each trajectory defined as a particle, where each have an
+# associated weight.
 # Weights can vary as new information arrives (measurements or clutter).
 #
 # We have a series of measurements that arrive to the detector at different consecutive timesteps,
 # :math:`k=0,1,2...`, with detection time defined as :math:`t_{k}`.
-# If :math:`t_{k} > t_{k-1}`, meaning :math:`t_{k}` is consecutive to :math:`t_{k-1}`, we apply the stadard
-# particle filter tracking method.
+# If :math:`t_{k} > t_{k-1}`, meaning :math:`t_{k}` is consecutive to :math:`t_{k-1}`, we apply the
+# standard particle filter tracking method.
 # Instead, if :math:`t_{k} < t_{k-1}`, a delayed measurement, then we apply this algorithm:
-# search in the list of measurements where :math:`t_{k}` belongs and find two indices, :math:`a` and :math:`b`,
-# such that :math:`t_{a} > t_{k} > t_{b}`.
-# In this manner, we are able to insert the measurement in each particle tracjectory history at the right time.
+# search in the list of measurements where :math:`t_{k}` belongs and find two indices, :math:`a`
+# and :math:`b`, such that :math:`t_{a} > t_{k} > t_{b}`.
+# In this manner, we are able to insert the measurement in each particle trajectory history at the
+# right time.
 #
 # We have obtained a time location for the new measurement. We then sample the particles from the
-# state at :math:`t_{b}` with new weights (un-normalised), before applying the prediction and update steps with the
-# delayed measurement :math:`t_{k}`, normalising the particle weights. To finalise the track we
-# re-order the existing data such that :math:`t_{n} > t_{m}, \forall (n, m)`.
+# state at :math:`t_{b}` with new weights (un-normalised), before applying the prediction and update
+# steps with the delayed measurement :math:`t_{k}`, normalising the particle weights.
+# To finalise the track we re-order the existing data such that
+# :math:`t_{n} > t_{m}, \forall (n, m)`.
 #
 # It is important to note that there is the risk of accumulating some disparity over time.
-# As we deal with these measurements, this disparity can significantly impact the tracking performances
-# causing some degeneracy. To solve this issue, we can use a resampling step, where the
+# As we deal with these measurements, this disparity can significantly impact the tracking
+# performances causing some degeneracy. To solve this issue, we can use a resampling step, where the
 # particles are probabilistically replicated or discarded, resulting in a shift of the
 # degeneracy to the end of the track.
 #
 # In this example we consider a simple single target scenario with negligible level of clutter.
-# The scans mimic the data obtained by a sensor, and over time some of these have a delay in their arrival time,
-# which we consider as OOSM data. To evaluate the improvement of applying this algorithm,
-# we also consider an implementation where we ignore any measurement that we know has been delayed.
+# The scans mimic the data obtained by a sensor, and over time some of these have a delay in their
+# arrival time, which we consider as OOSM data. To evaluate the improvement of applying this
+# algorithm, we also consider an implementation where we ignore any measurement that we know has
+# been delayed.
 #
 # This example follows this structure:
+#
 #   1. Create ground truth and detections;
 #   2. Instantiate the tracking components;
 #   3. Run the tracker, apply the algorithm and visualise the results.
@@ -64,7 +70,7 @@ from copy import deepcopy
 start_time = datetime.now().replace(microsecond=0)
 np.random.seed(1908)  # fix the seed
 num_steps = 65  # simulation steps
-number_particles= 256  # number of particles
+number_particles = 256  # number of particles
 
 # %%
 # Stone Soup Imports
@@ -72,7 +78,6 @@ number_particles= 256  # number of particles
 from stonesoup.models.transition.linear import CombinedLinearGaussianTransitionModel, \
     ConstantVelocity
 from stonesoup.types.groundtruth import GroundTruthPath, GroundTruthState
-from stonesoup.types.state import GaussianState, State, StateVector
 
 # instantiate the transition model
 transition_model = CombinedLinearGaussianTransitionModel([ConstantVelocity(0.05),
@@ -115,8 +120,8 @@ from stonesoup.models.measurement.nonlinear import CartesianToBearingRange
 measurement_model = CartesianToBearingRange(
     ndim_state=4,
     mapping=(0, 2),
-    noise_covar = np.diag([np.radians(10), 50]),
-    translation_offset = np.array([[500], [-500]]))
+    noise_covar=np.diag([np.radians(10), 50]),
+    translation_offset=np.array([[500], [-500]]))
 
 # Collect the measurements using scans
 scans = []
@@ -129,7 +134,7 @@ for k in range(num_steps):
     detections = set()
 
     # Introduce the delay
-    if k%5==0 and k>0:
+    if k % 5 == 0 and k > 0:
         delay = 25
     else:
         delay = 0
@@ -152,10 +157,10 @@ arrival_time_ordered = sorted(scans, key=lambda dscan: dscan[0])
 # We load the various tracking components for the particle filter including
 # :class:`~.ParticleUpdater` and :class:`~.ParticlePredictor`. For the
 # resampler we use :class:`~.ESSResampler`, which calls :class:`~.SystematicResampler` by default.
-# Then, to initialise the tracks we start defining a :class:`~.GaussianState`. We sample
+# Then, to initialise the tracks we start by defining a :class:`~.GaussianState`. We sample
 # the particles using a Multivariate Normal distribution around the prior state.
 # We assign a weight to each particle, at the beginning they will have the same weight.
-# Finally we create a :class:`~.ParticleState` prior with the new particles and their weights.
+# Finally, we create a :class:`~.ParticleState` prior with the new particles and their weights.
 
 # Load the particle filter components
 from stonesoup.updater.particle import ParticleUpdater
@@ -168,8 +173,7 @@ updater = ParticleUpdater(measurement_model=measurement_model,
                           resampler=resampler)
 
 # Load the Particle state priors
-from stonesoup.types.state import GaussianState
-from stonesoup.types.state import ParticleState
+from stonesoup.types.state import GaussianState, ParticleState, StateVector
 from stonesoup.types.numeric import Probability
 from stonesoup.types.particle import Particle
 
@@ -236,10 +240,10 @@ for k in range(1, len(arrival_time_ordered)):  # loop over the scans
     else:  # if not, then the detection is delayed, apply the algorithm
 
         # find the index where the arrival time belongs
-        scan_time_arrival = [arrival_time_ordered[kk][0] for kk in range(0, k-1)]  # get all the times
+        scan_time_arrival = [arrival_time_ordered[kk][0] for kk in range(0, k-1)]  # get all times
 
         # Find the index of the t_b < t_k < t_a < t_{k-1}
-        delta_time = [np.abs(entry-arrival_time) for entry in scan_time_arrival]
+        delta_time = [np.abs(entry - arrival_time) for entry in scan_time_arrival]
 
         # identify the index
         tb_index = delta_time.index(np.min(delta_time))
@@ -279,14 +283,14 @@ for k in range(1, len(arrival_time_ordered)):  # loop over the scans
                 new_track.append(track[itrack])
 
         # Re-assign to the track the newly ordered tracks
-        track=new_track
+        track = new_track
 
         # resample the particles, if necessary
         particle_prior = resampler.resample(new_track[-1])
 
 # %%
-# Visualiase the tracks and measurements
-# ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+# Visualise the tracks and measurements
+# ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 # Create the detections scans for the plotting
 scans_detections = [item[1] for item in arrival_time_ordered]
@@ -299,7 +303,7 @@ plotter.plot_ground_truths(truths, [0, 2])
 
 plotter.plot_measurements(scans_detections, [0, 2])
 plotter.plot_tracks(track, [0, 2], track_label='Track dealing with OOSM',
-                    line= dict(color='blue'))
+                    line=dict(color='blue'))
 plotter.plot_tracks(track2, [0, 2], track_label='Track ignoring OOSM')
 plotter.fig
 
@@ -307,15 +311,16 @@ plotter.fig
 # Conclusion
 # ----------
 # In this example, we have presented a method on how to deal with OOSM using particle filters.
-# This algorithm, that works by inserting the delayed measurements in the particle history track, allows
-# to have better tracking performances and not discard any information from the sensors. To validate that,
-# we made a 1-to-1 comparison with a tracker which systematically ignores OOSM.
+# This algorithm works by inserting the delayed measurements in to the particle history track.
+# This allows it to have better tracking performance and not discard any information from the
+# sensors.
+# To validate that, we made a 1-to-1 comparison with a tracker which systematically ignores OOSM.
 
 # %%
 # References
 # ----------
-# .. [#] M. Orton and A. Marrs, 2005, Particle filters for tracking with out-of-sequence measurements,
-#        IEEE Transactions on Aerospace and Electronic Systems.
+# .. [#] M. Orton and A. Marrs, 2005, Particle filters for tracking with out-of-sequence
+#        measurements, IEEE Transactions on Aerospace and Electronic Systems.
 #
 # .. [#] S. R. Maskell, R. G. Everitt, R. Wright, M. Briers, 2005,
 #        Multi-target out-of-sequence data association: Tracking using
