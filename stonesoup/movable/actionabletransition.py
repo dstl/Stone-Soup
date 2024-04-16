@@ -4,7 +4,7 @@ from typing import MutableSequence
 from ..base import Property
 from ..types.state import State, StateVector
 from ..sensormanager.action import ActionableProperty
-from ..movable.movable import MovingMovable, FixedMovable
+from ..movable.movable import MovingMovable
 from ..functions import cart2pol, cart2sphere
 from .action.jerk_action import JerkActionGenerator
 
@@ -63,7 +63,7 @@ class JerkTransitionMovable(MovingMovable):
         elif self.ndim == 2:
             if len(self) >= 2 and np.all(self.velocity < 1e-6):
                 c_pos = self.position
-                p_pos = self[-2].state_vector[self.position_mapping,]
+                p_pos = self[-2].state_vector[self.position_mapping, ]
                 _, bearing = cart2pol(*(c_pos - p_pos))
             else:
                 _, bearing = cart2pol(*velocity.flat)
