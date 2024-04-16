@@ -176,9 +176,9 @@ plt.fig
 #
 # This example shows how the 3D Plotterly plotter offers enhanced visualisation over the
 # available 2D Plotterly plotters for certain use cases. Complex 3D target behaviours can be
-# difficult to visusalise in 2D, and the fact that the syntax is almost identical for the 3D
+# difficult to visualise in 2D, and the fact that the syntax is almost identical for the 3D
 # plotter makes it an attractive visualisation tool. However, it should be noted that
 # uncertainty and particle representation are not supported for 3D unlike in the 2D plotters
-# which may affect its desirablility.
+# which may affect its desirability.
 
 # sphinx_gallery_thumbnail_path = '_static/sphinx_gallery/Plotter3D.PNG'
