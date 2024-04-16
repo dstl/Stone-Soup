@@ -699,11 +699,10 @@ class MetricPlotter(ABC):
         : :class:`matplotlib.pyplot.figure`
             Figure containing subplots displaying all plottable metrics.
         """
-        for generator_name in metrics:
-            for metric_name in metrics[generator_name].keys():
-                if isinstance(metrics[generator_name][metric_name].value, List) and (
-                        all(isinstance(x, SingleTimeMetric) for
-                            x in metrics[generator_name][metric_name].value)):
+        for metric_dict in metrics.values():
+            for metric_name, metric in metric_dict.items():
+                if isinstance(metric.value, List) \
+                        and all(isinstance(x, SingleTimeMetric) for x in metric.value):
                     self.plottable_metrics.append(metric_name)
 
         metrics_kwargs = dict(linestyle="-")
