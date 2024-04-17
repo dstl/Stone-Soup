@@ -8,11 +8,10 @@ Performance comparison between Kalman and Particle Filters
 """
 
 # %%
-# In this example, we present the case of data fusion. In particular,
-# we are looking at measurement fusion from two sensors. The context
-# is a multi-target tracking scenario, where we want to compare
-# the performances of separate filters: an unscented Kalman filter (UKF),
-# an extended Kalman filter (EKF) and a particle filter (PF).
+# In this example, we present the case of data fusion. In particular, we are looking at measurement
+# fusion from two sensors. The context is a multi-target tracking scenario, where we want to compare
+# the performances of separate filters: an unscented Kalman filter (UKF), an extended Kalman filter
+# (EKF) and a particle filter (PF).
 #
 # The example layout follows:
 #
@@ -25,12 +24,12 @@ Performance comparison between Kalman and Particle Filters
 # %%
 # 1. Define the targets trajectories and the sensors collecting the measurements
 # ------------------------------------------------------------------------------
-# Let's define the targets trajectories, assuming a simple case
-# of a straight movement and using the same instrument specifics for both
-# sensors. We consider two :class:`~.RadarBearingRange` radars
-# collecting the detections of the targets, in Cartesian space.
-# The first radar is placed onto a :class:`~.FixedPlatform`, while the
-# second is on a :class:`~.MovingPlatform`.
+# Let's define the targets trajectories, assuming a simple case of a straight movement and using
+# the same instrument specifics for both sensors.
+# We consider two :class:`~.RadarBearingRange` radars collecting the detections of the targets, in
+# Cartesian space.
+# The first radar is placed onto a :class:`~.FixedPlatform`, while the second is on a
+# :class:`~.MovingPlatform`.
 # The targets follow a straight line trajectory for simplicity.
 # For the targets we instantiate the origins and a transition model
 # with a :class:`~.ConstantVelocity` model with noise equal to 0.
@@ -86,8 +85,8 @@ initial_target_state_2 = GaussianState([25, 1, -50, 0.5],
 ground_truth_simulator = MultiTargetGroundTruthSimulator(
     transition_model=gnd_transition_model,
     initial_state=GaussianState([10, 1, 0, 0.5],
-                                 np.diag([5, 0.1, 5, 0.1]),
-                                 timestamp=start_time),
+                                np.diag([5, 0.1, 5, 0.1]),
+                                timestamp=start_time),
     birth_rate=0.0,
     death_probability=0.0,
     number_steps=number_of_steps,
@@ -191,7 +190,7 @@ from stonesoup.measures import Mahalanobis
 
 # Use a GNN 2D assignment, time deleter and initiator
 from stonesoup.dataassociator.neighbour import GNNWith2DAssignment
-from stonesoup.deleter.time import  UpdateTimeDeleter
+from stonesoup.deleter.time import UpdateTimeDeleter
 from stonesoup.initiator.simple import MultiMeasurementInitiator, GaussianParticleInitiator
 
 # Load the UKF components
@@ -304,7 +303,7 @@ hypothesiser_PF = DistanceHypothesiser(
 # define the data associator
 data_associator_PF = GNNWith2DAssignment(hypothesiser_PF)
 
-# To instantiate the track initiator we define a prior state as gaussian state with the target track origin
+# To instantiate the track initiator we define a prior Gaussian state with the target track origin
 # For the initiator we consider a KF based data associator
 initiator_particles = MultiMeasurementInitiator(
     GaussianState([10, 0, 10, 0],
@@ -350,15 +349,14 @@ PF_tracker = MultiTargetTracker(
 # %%
 # 3. Perform the measurement fusion algorithm and run the trackers
 # ----------------------------------------------------------------
-# We have instantiated all the relevant components for the filters,
-# and now we can run the simulation to generate the various detections, clutter and track associations.
-# The final tracks will be passed onto a metric generator
-# plotter to measure the track accuracy.
+# We have instantiated all the relevant components for the filters, and now we can run the
+# simulation to generate the various detections, clutter and track associations.
+# The final tracks will be passed onto a metric generator plotter to measure the track accuracy.
 # We start composing the various metrics statistics available.
 
 # %%
-# Stone Soup plotting imports
-# ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+# Stone Soup plotting and metric imports
+# ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 # Load the plotter
 from stonesoup.plotter import Plotterly
@@ -379,12 +377,12 @@ from stonesoup.metricgenerator.manager import MultiManager
 from stonesoup.plotter import MetricPlotter
 
 # %%
-# Metrics
-# ^^^^^^^
+# Set up the metrics
+# ^^^^^^^^^^^^^^^^^^
 
 # load the metrics for the filters
 basic_UKF = BasicMetrics(generator_name='Unscented Kalman Filter', tracks_key='UKF_tracks',
-                        truths_key='truths')
+                         truths_key='truths')
 basic_EKF = BasicMetrics(generator_name='Extended Kalman Filter', tracks_key='EKF_tracks',
                          truths_key='truths')
 basic_PF = BasicMetrics(generator_name='Particle Filter', tracks_key='PF_tracks',
@@ -392,13 +390,13 @@ basic_PF = BasicMetrics(generator_name='Particle Filter', tracks_key='PF_tracks'
 
 # OSPA
 ospa_UKF_truth = OSPAMetric(c=40, p=1, generator_name='OSPA_UKF_truths',
-                           tracks_key='UKF_tracks',  truths_key='truths')
+                            tracks_key='UKF_tracks',  truths_key='truths')
 ospa_EKF_truth = OSPAMetric(c=40, p=1, generator_name='OSPA_EKF_truths',
                             tracks_key='EKF_tracks',  truths_key='truths')
 ospa_PF_truth = OSPAMetric(c=40, p=1, generator_name='OSPA_PF_truths',
                            tracks_key='PF_tracks',  truths_key='truths')
 
-# Use the track associatior
+# Use the track associator
 associator = TrackToTruth(association_threshold=30)
 
 # Use a metric manager to deal with the various metrics
@@ -479,19 +477,19 @@ metric_manager.add_data({'truths': truths,
 
 plotter = Plotterly()
 plotter.plot_measurements(s1_detections, [0, 2],
-                         measurements_label='Radar 1 measurements'),
+                          measurements_label='Radar 1 measurements'),
 plotter.plot_measurements(s2_detections, [0, 2],
-                         measurements_label='Radar 2 measurements')
-plotter.plot_tracks(ukf_tracks, [0, 2], line= dict(color='green'), track_label='UKF tracks')
-plotter.plot_tracks(ekf_tracks, [0, 2], line= dict(color='blue'), track_label='EKF tracks')
-plotter.plot_tracks(pf_tracks, [0, 2], particle=False, line= dict(color='red'),
+                          measurements_label='Radar 2 measurements')
+plotter.plot_tracks(ukf_tracks, [0, 2], line=dict(color='green'), track_label='UKF tracks')
+plotter.plot_tracks(ekf_tracks, [0, 2], line=dict(color='blue'), track_label='EKF tracks')
+plotter.plot_tracks(pf_tracks, [0, 2], particle=False, line=dict(color='red'),
                     track_label='PF tracks')
 plotter.plot_ground_truths(truths, [0, 2])
 plotter.plot_sensors(sensor1_platform, [0, 1], marker=dict(color='black', symbol='129', size=15),
                      sensor_label='Fixed Platform')
 plotter.plot_ground_truths(sensor2_platform, [0, 2], marker=dict(color='orange', symbol='cross',
-                                                           size=25),
-                     truths_label='Moving Platform')
+                                                                 size=25),
+                           truths_label='Moving Platform')
 plotter.fig
 
 # %%
@@ -513,5 +511,6 @@ graph.fig
 # ----------
 # This concludes this example where we have shown how to perform measurement fusion using two
 # sensors, and we have shown the performances of the tracks obtained by an Unscented Kalman filter,
-# an Extended Kalman Filter and a Particle filter, using distance hypothesiser based data associator.
+# an Extended Kalman Filter and a Particle filter, using distance hypothesiser based data
+# associator.
 #
