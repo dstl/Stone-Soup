@@ -409,21 +409,24 @@ class InformationArchitecture(Architecture):
             if failed_edges and edge in failed_edges:
                 edge._failed(self.current_time, time_increment)
                 continue  # No data passed along these edges
+
+            # Initial update of message categories
             edge.update_messages(self.current_time, use_arrival_time=self.use_arrival_time)
             # fuse goes here?
             for data_piece, time_pertaining in edge.unsent_data:
                 edge.send_message(data_piece, time_pertaining, data_piece.time_arrived)
 
+            # Need to re-run update messages so that messages aren't left as 'pending'
+            edge.update_messages(self.current_time, use_arrival_time=self.use_arrival_time)
+
         # for node in self.processing_nodes:
         #     node.process() # This should happen when a new message is received
+        for fuse_node in self.fusion_nodes:
+            fuse_node.fuse()
 
         if self.fully_propagated:
-            for fuse_node in self.fusion_nodes:
-                fuse_node.fuse()
-
             self.current_time += timedelta(seconds=time_increment)
             return
-
         else:
             self.propagate(time_increment, failed_edges)
 
@@ -501,6 +504,7 @@ class NetworkArchitecture(Architecture):
                 edge._failed(self.current_time, time_increment)
                 continue  # No data passed along these edges
 
+            # Initial update of message categories
             if edge.recipient not in self.information_arch.all_nodes:
                 edge.update_messages(self.current_time, to_network_node=True,
                                      use_arrival_time=self.use_arrival_time)
@@ -516,15 +520,21 @@ class NetworkArchitecture(Architecture):
                     if edge.recipient not in message.data_piece.sent_to:
                         edge.pass_message(message)
 
+            # Need to re-run update messages so that messages aren't left as 'pending'
+            if edge.recipient not in self.information_arch.all_nodes:
+                edge.update_messages(self.current_time, to_network_node=True,
+                                     use_arrival_time=self.use_arrival_time)
+            else:
+                edge.update_messages(self.current_time, use_arrival_time=self.use_arrival_time)
+
         # for node in self.processing_nodes:
         #     node.process() # This should happen when a new message is received
-        if self.fully_propagated:
-            for fuse_node in self.fusion_nodes:
-                fuse_node.fuse()
+        for fuse_node in self.fusion_nodes:
+            fuse_node.fuse()
 
+        if self.fully_propagated:
             self.current_time += timedelta(seconds=time_increment)
             return
-
         else:
             self.propagate(time_increment, failed_edges)
 
