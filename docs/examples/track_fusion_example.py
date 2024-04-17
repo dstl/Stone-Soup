@@ -9,8 +9,8 @@ Comparing different filters in the context of track fusion
 
 # %%
 # This example shows a comparison between a Kalman filter algorithm and particle filter in the
-# context of track fusion. This example is relevant to show how to get a unique track
-# from partial tracks generated from set of different measurements obtained from independent sensors.
+# context of track fusion. This example is relevant to show how to get a unique track from partial
+# tracks generated from set of different measurements obtained from independent sensors.
 #
 # This example simulates the case of a single target moving in a 2D Cartesian space with
 # measurements obtained from two identical, for simplicity, radars with their own trackers.
@@ -29,10 +29,11 @@ Comparing different filters in the context of track fusion
 # %%
 # 1. Initialise the sensors and the target trajectory
 # ---------------------------------------------------
-# We start creating two identical, in terms of performance, radars using  the
-# :class:`~.RadarBearingRange` sensor placed on two separate :class:`~.FixedPlatform`.
+# We start by creating two identical, in terms of performance, radars using  the
+# :class:`~.RadarBearingRange` sensor placed on two separate sensor platforms of type
+# :class:`~.FixedPlatform`.
 # For the target we simulate a single object moving on a straight trajectory.
-# The example setup is simple so it is easier to understand how the algorithm components work.
+# This example is set up such that it is easy to understand how the algorithm components work.
 
 # %%
 # General imports
@@ -110,7 +111,7 @@ clutter_spatial_density = clutter_model.clutter_rate/clutter_area
 # ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 # Let's assume that both radars have the same noise covariance for simplicity
-# These radars will have the +/-0.005 degrees accuracy in bearing and +/- 5 meters in range
+# These radars will have a variance of 0.005 degrees in bearing and 5 meters in range
 radar_noise = CovarianceMatrix(np.diag([np.deg2rad(0.005), 5]))
 
 # Define the specifications of the two radars
@@ -131,7 +132,7 @@ sensor1_platform = FixedPlatform(
     position_mapping=(0, 2),
     sensors=[radar1])
 
-# Instantiate the second one
+# Instantiate the second sensor platform with the second sensor
 sensor2_platform = FixedPlatform(
     states=GaussianState([75, 0, 10, 0],
                          np.diag([1, 0, 1, 0])),
@@ -156,12 +157,11 @@ radar2plot, radar2KF, radar2PF = tee(radar_simulator2, 3)
 # %%
 # Visualise the detections from the sensors
 # ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-# Before preparing the different trackers components, let's visualise the target and its detections from the
-# two sensors. In this way we can appreciate how the measurements are different and can lead to separate
-# tracks.
+# Before preparing the different trackers components, we can visualise the target ground truth and
+# its detections from the two sensors.
+# In this way we can appreciate how the measurements are different and can lead to separate tracks.
 
 from stonesoup.plotter import Plotterly
-from stonesoup.metricgenerator.basicmetrics import BasicMetrics
 from stonesoup.metricgenerator.tracktotruthmetrics import SIAPMetrics
 from stonesoup.measures import Euclidean
 from stonesoup.plotter import MetricPlotter
@@ -172,14 +172,14 @@ from stonesoup.metricgenerator.manager import MultiManager
 s1_detections = []
 s2_detections = []
 
-grountruth_generator = groundtruth_simulation.groundtruth_paths_gen()
+groundtruth_generator = groundtruth_simulation.groundtruth_paths_gen()
 
 truths = set()
 # Iterate over the time steps, extracting the detections and truths
 for (time, sd1), (_, sd2) in zip(radar1plot, radar2plot):
     s1_detections.append(sd1)
     s2_detections.append(sd2)
-    truths.update(next(grountruth_generator)[1])  # consider only the path
+    truths.update(next(groundtruth_generator)[1])  # consider only the path
 
 # Plot the detections from the two radars
 plotter = Plotterly()
@@ -193,11 +193,12 @@ plotter.plot_ground_truths(truths, [0, 2])
 plotter.fig
 
 # %%
-# 2) Initialise the trackers components
+# 2. Initialise the trackers components
 # -------------------------------------
 # We have initialised the sensors and the target trajectory, we can see that the
-# detections from the two sensors differ one from the other, that will lead to two separate tracks.
-# Now, we initialise the components of the two trackers, one using a Extended Kalman filter
+# detections from the two sensors differ from one another, that will lead to two separate tracks.
+#
+# Now, we initialise the components of the two trackers, one using an Extended Kalman filter
 # and a particle filter.
 #
 
@@ -225,7 +226,8 @@ from stonesoup.predictor.particle import ParticlePredictor
 from stonesoup.updater.particle import ParticleUpdater
 from stonesoup.resampler.particle import ESSResampler
 
-# Lets define an helper function to minimise the number of times
+
+# Let's define a helper function to minimise the number of times
 # we have to initialise the same tracker object
 def general_tracker(tracker_class, detector,
                     filter_updater, initiator, deleter,
@@ -260,13 +262,12 @@ data_associator_KF = GNNWith2DAssignment(hypothesiser_KF)
 # define a track time deleter
 deleter = UpdateTimeStepsDeleter(3)
 
-# create an track initiator placed on the target track origin
+# create a track initiator placed on the target track origin
 initiator = SimpleMeasurementInitiator(
     prior_state=initial_target_state,
     measurement_model=None)
 
-# Instantiate the predictor, particle resampler and particle
-# filter updater
+# Instantiate the predictor, particle resampler and particle filter updater
 PF_predictor = ParticlePredictor(transition_model)
 resampler = ESSResampler()
 PF_updater = ParticleUpdater(measurement_model=None,
@@ -281,8 +282,7 @@ hypothesiser_PF = DistanceHypothesiser(
 # define the data associator
 data_associator_PF = GNNWith2DAssignment(hypothesiser_PF)
 
-# To instantiate the track initiator we define a prior state
-# as gaussian state with the target track origin
+# Initiator with a prior Gaussian state with the target track origin
 prior_state = SimpleMeasurementInitiator(
     prior_state=GaussianState([25, 0.5, 70, -0.25],
                               np.diag([5, 2, 5, 2])**2))
@@ -296,10 +296,10 @@ PF_initiator = GaussianParticleInitiator(
 # Stone soup track fusion components
 # ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 #
-# At this stage we have all the components needed to perform the tracking using both Kalman and particle
-# filters.
+# At this stage we have all the components needed to perform the tracking using both Kalman and
+# particle filters.
 #
-# To perform the track fusion, we employ the covariance intersection algorithm adopting the
+# To perform the track fusion, we employ the covariance intersection algorithm implemented in the
 # :class:`~.ChernoffUpdater` class, treating the tracks as :class:`~.GaussianMixture` detections.
 
 
@@ -354,7 +354,7 @@ ch_birth_component = TaggedWeightedGaussianState(
     tag=TaggedWeightedGaussianState.BIRTH,
     timestamp=start_time)
 
-# Instantiate the Track fusion tracker using Point Process Tracker
+# Instantiate the Track fusion tracker using the Point Process Tracker
 track_fusion_tracker = PointProcessMultiTargetTracker(
     detector=None,
     hypothesiser=hypothesiser,
@@ -369,9 +369,8 @@ track_fusion_tracker2 = deepcopy(track_fusion_tracker)
 # %%
 # 3. Run the trackers, generate the partial tracks and merge the final composite track
 # ------------------------------------------------------------------------------------
-# So far, we have shown how to instantiate the various tracker components
-# as well as the fusion tracker. Now, we run the trackers to generate
-# the tracks and we perform the track fusion.
+# So far, we have shown how to instantiate the various tracker components as well as the fusion
+# tracker. Now, we run the trackers to generate the tracks, and perform the track fusion.
 
 # Create the tracks for the particle filters, Kalman and merged ones
 PF_track1, PF_track2, KF_track1, KF_track2 = set(), set(), set(), set()
@@ -403,7 +402,7 @@ track_fusion_tracker.detector = Tracks2GaussianDetectionFeeder(
 track_fusion_tracker2.detector = Tracks2GaussianDetectionFeeder(
     MultiDataFeeder([TrackFusionPF1, TrackFusionPF2]))
 
-# Create a iterator for the trackers
+# Create an iterator for the trackers
 iter_fusion_tracker = iter(track_fusion_tracker)
 iter_fusion_tracker2 = iter(track_fusion_tracker2)
 
@@ -446,10 +445,10 @@ plotter.fig
 # %%
 # 4. Evaluate the obtained tracks with the groundtruth trajectory.
 # ----------------------------------------------------------------
-# At this stage we have almost completed our example. We have created the detections from the radars,
-# performed the tracking and the fusion of the tracks. We employ the :class:`~.MetricManager`
-# to generate summary statistics on the accuracy of the tracks by comparing them with the
-# groundtruth trajectory.
+# At this stage we have almost completed our example. We have created the detections from the
+# radars, performed the tracking and the fusion of the tracks. We now employ the
+# :class:`~.MetricManager` to generate summary statistics on the accuracy of the tracks by comparing
+# them with the ground truth trajectory.
 #
 # If we consider the SIAP metrics, we can appreciate that the fused tracks have a lower error
 # compared to the partial tracks obtained with the single instruments.
@@ -532,8 +531,8 @@ graph.fig
 # %%
 # Conclusions
 # -----------
-# In this example we have shown how it is possible to merge the tracks generated by independent trackers
-# ran on sets of data obtained by separate sensors. We have, also, compared how the Kalman and the particle
-# filters behave in these cases, making track-to-truth comparisons.
+# In this example we have shown how it is possible to merge the tracks generated by independent
+# trackers ran on sets of detections obtained from separate sensors. Finally we compared how the
+# Kalman and the particle filters behave in these cases, making track-to-truth comparisons.
 
 # sphinx_gallery_thumbnail_number = 2
