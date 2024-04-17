@@ -4,8 +4,6 @@ import random
 import warnings
 
 from datetime import datetime
-
-import networkx as nx
 import numpy as np
 
 from stonesoup.architecture import SensorNode, FusionNode, Edge, Edges, InformationArchitecture, \
