@@ -54,6 +54,8 @@ from stonesoup.types.state import GaussianState
 from stonesoup.types.array import CovarianceMatrix
 from stonesoup.simulator.simple import SingleTargetGroundTruthSimulator
 from stonesoup.models.clutter.clutter import ClutterModel
+from stonesoup.types.detection import Clutter
+
 # Instantiate the radars to collect measurements - Use a :class:`~.RadarBearingRange` radar.#
 from stonesoup.sensor.radar.radar import RadarBearingRange
 
@@ -183,10 +185,19 @@ for (time, sd1), (_, sd2) in zip(radar1plot, radar2plot):
 
 # Plot the detections from the two radars
 plotter = Plotterly()
-plotter.plot_measurements(s1_detections, [0, 2], marker=dict(color='orange', symbol='305'),
+plotter.plot_measurements([d for ds in s1_detections for d in ds if not isinstance(d, Clutter)],
+                          [0, 2], marker=dict(color='red'), measurements_label='Sensor 1 measurements')
+
+plotter.plot_measurements([d for ds in s1_detections for d in ds if isinstance(d, Clutter)],
+                          [0, 2], marker=dict(color='red', symbol='star-triangle-up'),
                           measurements_label='Sensor 1 measurements')
-plotter.plot_measurements(s2_detections, [0, 2], marker=dict(color='blue', symbol='0'),
+
+plotter.plot_measurements([d for ds in s2_detections for d in ds if not isinstance(d, Clutter)],
+                          [0, 2], marker=dict(color='blue'), measurements_label='Sensor 2 measurements')
+plotter.plot_measurements([d for ds in s2_detections for d in ds if isinstance(d, Clutter)],
+                          [0, 2], marker=dict(color='blue', symbol='star-triangle-up'),
                           measurements_label='Sensor 2 measurements')
+
 plotter.plot_sensors({sensor1_platform, sensor2_platform}, [0, 1],
                      marker=dict(color='black', symbol='1', size=10))
 plotter.plot_ground_truths(truths, [0, 2])
@@ -225,25 +236,6 @@ from stonesoup.tracker.simple import SingleTargetTracker
 from stonesoup.predictor.particle import ParticlePredictor
 from stonesoup.updater.particle import ParticleUpdater
 from stonesoup.resampler.particle import ESSResampler
-
-
-# Let's define a helper function to minimise the number of times
-# we have to initialise the same tracker object
-def general_tracker(tracker_class, detector,
-                    filter_updater, initiator, deleter,
-                    data_associator):
-    """
-    Helper function to initialise the trackers
-    """
-
-    tracker = tracker_class(
-        initiator=initiator,
-        detector=detector,
-        updater=filter_updater,
-        data_associator=data_associator,
-        deleter=deleter)
-    return tracker
-
 
 # instantiate the Extended Kalman filter predictor and updater
 KF_predictor = UnscentedKalmanPredictor(transition_model)
@@ -376,19 +368,30 @@ track_fusion_tracker2 = deepcopy(track_fusion_tracker)
 PF_track1, PF_track2, KF_track1, KF_track2 = set(), set(), set(), set()
 PF_fused_track, KF_fused_track = set(), set()
 
-# Instantiate the various trackers using the general_tracker function,
 # we assign a unique tracker the detections from a specific radar simulator
-KF_tracker_1 = general_tracker(SingleTargetTracker, radar1KF, KF_updater,
-                               initiator, deleter, data_associator_KF)
+KF_tracker_1 = SingleTargetTracker(initiator=initiator,
+                                   detector=radar1KF,
+                                   updater=KF_updater,
+                                   data_associator=data_associator_KF,
+                                   deleter=deleter)
 
-KF_tracker_2 = general_tracker(SingleTargetTracker, radar2KF, KF_updater,
-                               initiator, deleter, data_associator_KF)
+KF_tracker_2 = SingleTargetTracker(initiator=initiator,
+                                   detector=radar2KF,
+                                   updater=KF_updater,
+                                   data_associator=data_associator_KF,
+                                   deleter=deleter)
 
-PF_tracker_1 = general_tracker(SingleTargetTracker, radar1PF, PF_updater,
-                               PF_initiator, deleter, data_associator_PF)
+PF_tracker_1 = SingleTargetTracker(initiator=PF_initiator,
+                                   detector=radar1PF,
+                                   updater=PF_updater,
+                                   data_associator=data_associator_PF,
+                                   deleter=deleter)
 
-PF_tracker_2 = general_tracker(SingleTargetTracker, radar2PF, PF_updater,
-                               PF_initiator, deleter, data_associator_PF)
+PF_tracker_2 = SingleTargetTracker(initiator=PF_initiator,
+                                   detector=radar2PF,
+                                   updater=PF_updater,
+                                   data_associator=data_associator_PF,
+                                   deleter=deleter)
 
 PartialTrackPF1, TrackFusionPF1 = tee(PF_tracker_1, 2)
 PartialTrackPF2, TrackFusionPF2 = tee(PF_tracker_2, 2)
@@ -406,6 +409,11 @@ track_fusion_tracker2.detector = Tracks2GaussianDetectionFeeder(
 iter_fusion_tracker = iter(track_fusion_tracker)
 iter_fusion_tracker2 = iter(track_fusion_tracker2)
 
+PartialTrackPF1_iter = iter(PartialTrackPF1)
+PartialTrackPF2_iter = iter(PartialTrackPF2)
+PartialTrackKF1_iter = iter(PartialTrackKF1)
+PartialTrackKF2_iter = iter(PartialTrackKF2)
+
 # Loop over the timestep doing the track fusion and partial tracks
 for _ in range(number_of_steps):
     for _ in range(2):
@@ -415,16 +423,16 @@ for _ in range(number_of_steps):
         _, tracks = next(iter_fusion_tracker2)
         PF_fused_track.update(tracks)
 
-    _, PF_sensor_track1 = next(iter(PartialTrackPF1))
+    _, PF_sensor_track1 = next(PartialTrackPF1_iter)
     PF_track1.update(PF_sensor_track1)
 
-    _, PF_sensor_track2 = next(iter(PartialTrackPF2))
+    _, PF_sensor_track2 = next(PartialTrackPF2_iter)
     PF_track2.update(PF_sensor_track2)
 
-    _, KF_sensor_track1 = next(iter(PartialTrackKF1))
+    _, KF_sensor_track1 = next(PartialTrackKF1_iter)
     KF_track1.update(KF_sensor_track1)
 
-    _, KF_sensor_track2 = next(iter(PartialTrackKF2))
+    _, KF_sensor_track2 = next(PartialTrackKF2_iter)
     KF_track2.update(KF_sensor_track2)
 
 truths = set(groundtruth_simulation.groundtruth_paths)
