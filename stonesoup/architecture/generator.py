@@ -1,9 +1,9 @@
 import copy
-import operator
 import random
-import warnings
 
 from datetime import datetime
+
+import networkx as nx
 import numpy as np
 
 from stonesoup.architecture import SensorNode, FusionNode, Edge, Edges, InformationArchitecture, \
@@ -68,7 +68,7 @@ class InformationArchitectureGenerator(Base):
         self.n_fusion_nodes = self.node_ratio[2]
         self.n_sensor_fusion_nodes = self.node_ratio[1]
 
-        self.n_edges = np.ceil(self.n_nodes * self.mean_degree * 0.5)
+        self.n_edges = int(np.ceil(self.n_nodes * self.mean_degree * 0.5))
 
         if self.sensor_max_distance is None:
             self.sensor_max_distance = tuple(np.zeros(len(self.base_sensor.position_mapping)))
@@ -76,9 +76,9 @@ class InformationArchitectureGenerator(Base):
             raise ValueError('arch_style must be "decentralised" or "hierarchical"')
 
     def generate(self):
-        edgelist, degrees = self._generate_edgelist()
+        edgelist, node_labels = self._generate_edgelist()
 
-        nodes, edgelist = self._assign_nodes(degrees, edgelist)
+        nodes = self._assign_nodes(node_labels)
 
         archs = list()
         for architecture in nodes.keys():
@@ -97,52 +97,15 @@ class InformationArchitectureGenerator(Base):
         arch = InformationArchitecture(arch_edges, self.start_time)
         return arch
 
-    def _assign_nodes(self, degrees, edgelist):
+    def _assign_nodes(self, node_labels):
 
-        # Order nodes by target degree (number of other nodes passing data to it)
-        reordered = []
-        for node_no in degrees.keys():
-            reordered.append((node_no, degrees[node_no]['target']))
-
-        reordered.sort(key=operator.itemgetter(1))
-        order = []
-        for t in reordered:
-            order.append(t[0])
-
-        # Reorder so that nodes at the top of the information chain will not be sensor nodes if
-        # possible
-        top_nodes = [n for n in degrees.keys() if degrees[n]['source'] == 0]
-        for n in top_nodes:
-            order.remove(n)
-            order.append(n)
-
-        # Order of s/sf/f nodes
-        components = ['s'] * self.n_sensor_nodes + \
-                     ['sf'] * self.n_sensor_fusion_nodes + \
-                     ['f'] * self.n_fusion_nodes
-
-        # Create dictionary entry for each architecture copy
         nodes = {}
         for architecture in range(self.n_archs):
             nodes[architecture] = {}
 
-        # Create Nodes
-        for node_no, node_type in zip(order, components):
+        for label in node_labels:
 
-            if node_type == 's':
-                pos = np.array(
-                    [[p + random.uniform(-d, d)] for p, d in zip(self.base_sensor.position,
-                                                                 self.sensor_max_distance)])
-                for architecture in range(self.n_archs):
-                    s = copy.deepcopy(self.base_sensor)
-                    s.position = pos
-
-                    node = SensorNode(sensor=s,
-                                      label=str(node_no),
-                                      latency=0)
-                    nodes[architecture][node_no] = node
-
-            elif node_type == 'f':
+            if label.startswith('f'):
                 for architecture in range(self.n_archs):
                     t = copy.deepcopy(self.base_tracker)
                     fq = FusionQueue()
@@ -150,12 +113,13 @@ class InformationArchitectureGenerator(Base):
 
                     node = FusionNode(tracker=t,
                                       fusion_queue=fq,
-                                      label=str(node_no),
+                                      label=label,
                                       latency=0)
 
-                    nodes[architecture][node_no] = node
+                    nodes[architecture][label] = node
 
-            elif node_type == 'sf':
+            elif label.startswith('sf'):
+
                 pos = np.array(
                     [[p + random.uniform(-d, d)] for p, d in zip(self.base_sensor.position,
                                                                  self.sensor_max_distance)])
@@ -171,77 +135,104 @@ class InformationArchitectureGenerator(Base):
                     node = SensorFusionNode(sensor=s,
                                             tracker=t,
                                             fusion_queue=fq,
-                                            label=str(node_no),
+                                            label=label,
                                             latency=0)
 
-                    nodes[architecture][node_no] = node
+                    nodes[architecture][label] = node
 
-        new_edgelist = copy.copy(edgelist)
+            elif label.startswith('s'):
+                pos = np.array(
+                    [[p + random.uniform(-d, d)] for p, d in zip(self.base_sensor.position,
+                                                                 self.sensor_max_distance)])
+                for architecture in range(self.n_archs):
+                    s = copy.deepcopy(self.base_sensor)
+                    s.position = pos
 
-        if self.arch_type != 'hierarchical':
-            for edge in edgelist:
-                s = edge[0]
-                t = edge[1]
+                    node = SensorNode(sensor=s,
+                                      label=label,
+                                      latency=0)
+                    nodes[architecture][label] = node
 
-                if isinstance(nodes[0][s], FusionNode) and type(nodes[0][t]) == SensorNode:
-                    new_edgelist.remove((s, t))
-                    new_edgelist.append((t, s))
+            elif label.startswith('r'):
+                for architecture in range(self.n_archs):
+                    node = RepeaterNode(label=label,
+                                        latency=0)
+                    nodes[architecture][label] = node
 
-        return nodes, new_edgelist
+        return nodes
 
     def _generate_edgelist(self):
-        count = 0
+
         edges = []
-        sources = []
-        targets = []
+
+        nodes = ['f' + str(i) for i in range(self.n_fusion_nodes)] + \
+                ['sf' + str(i) for i in range(self.n_sensor_fusion_nodes)] + \
+                ['s' + str(i) for i in range(self.n_sensor_nodes)]
+
+        valid = False
+
         if self.arch_type == 'hierarchical':
-            for i in range(1, self.n_nodes):
-                target = random.randint(0, i - 1)
-                source = i
-                edge = (source, target)
-                edges.append(edge)
-                sources.append(source)
-                targets.append(target)
-
-        if self.arch_type == 'decentralised':
-            network_found = False
-            while network_found is False and count < self.iteration_limit:
-                i = 0
-                nodes_used = {0}
+            while not valid:
                 edges = []
-                sources = []
-                targets = []
-                while i < self.n_edges:
-                    source, target = -1, -1
-                    while source == target or (source, target) in edges or \
-                            (target, source) in edges:
-                        source = random.randint(0, self.n_nodes-1)
-                        target = random.choice(list(nodes_used))
-                        edge = (source, target)
+                n = self.n_fusion_nodes + self.n_sensor_fusion_nodes
+
+                for i, node in enumerate(nodes):
+                    if i == 0:
+                        continue
+                    elif i == 1:
+                        source = nodes[0]
+                        target = nodes[1]
+                    else:
+                        if node.startswith('s') and not node.startswith('sf'):
+                            source = node
+                            target = nodes[random.randint(0, n - 1)]
+                        else:
+                            source = node
+                            target = nodes[random.randint(0, i - 1)]
+
+                    # Create edge
+                    edge = (source, target)
                     edges.append(edge)
-                    nodes_used |= {source, target}
-                    sources.append(source)
-                    targets.append(target)
-                    i += 1
 
-                if len(nodes_used) == self.n_nodes:
-                    network_found = True
-                count += 1
+                # Logic checks on graph
+                g = nx.DiGraph(edges)
+                for f_node in ['f' + str(i) for i in range(self.n_fusion_nodes)]:
+                    if g.in_degree(f_node) == 0:
+                        valid = False
+                        break
+                    else:
+                        valid = True
 
-            if not network_found:
-                if self.allow_invalid_graph:
-                    warnings.warn("Unable to find valid graph within iteration limit. Returned "
-                                  "network does not meet requirements")
-                else:
-                    raise ValueError("Unable to find valid graph within iteration limit. Returned "
-                                     "network does not meet requirements")
+        elif self.arch_type == 'decentralised':
 
-        degrees = {}
-        for node in range(self.n_nodes):
-            degrees[node] = {'source': sources.count(node), 'target': targets.count(node),
-                             'degree': sources.count(node) + targets.count(node)}
+            while not valid:
 
-        return edges, degrees
+                for i in range(1, self.n_edges + 1):
+                    source = target = -1
+                    if i < self.n_nodes:
+                        source = nodes[i]
+                        target = nodes[random.randint(
+                            0, min(i - 1, len(nodes) - self.n_sensor_nodes - 1))]
+
+                    else:
+                        while source == target \
+                                or (source, target) in edges \
+                                or (target, source) in edges:
+                            source = nodes[random.randint(0, len(nodes) - 1)]
+                            target = nodes[random.randint(0, len(nodes) - self.n_sensor_nodes - 1)]
+
+                    edges.append((source, target))
+
+                # Logic checks on graph
+                g = nx.DiGraph(edges)
+                for f_node in ['f' + str(i) for i in range(self.n_fusion_nodes)]:
+                    if g.in_degree(f_node) == 0:
+                        valid = False
+                        break
+                    else:
+                        valid = True
+
+        return edges, nodes
 
 
 class NetworkArchitectureGenerator(InformationArchitectureGenerator):
@@ -255,11 +246,11 @@ class NetworkArchitectureGenerator(InformationArchitectureGenerator):
         default=(1, 2))
 
     def generate(self):
-        edgelist, degrees = self._generate_edgelist()
+        edgelist, node_labels = self._generate_edgelist()
 
-        nodes, edgelist = self._assign_nodes(degrees, edgelist)
+        edgelist, node_labels = self._add_network(edgelist, node_labels)
 
-        nodes, edgelist = self._add_network(nodes, edgelist)
+        nodes = self._assign_nodes(node_labels)
 
         archs = list()
         for architecture in nodes.keys():
@@ -267,7 +258,7 @@ class NetworkArchitectureGenerator(InformationArchitectureGenerator):
             archs.append(arch)
         return archs
 
-    def _add_network(self, nodes, edgelist):
+    def _add_network(self, edgelist, nodes):
         network_edgelist = []
         i = 0
         for e in edgelist:
@@ -279,12 +270,10 @@ class NetworkArchitectureGenerator(InformationArchitectureGenerator):
                 r_lab = 'r' + str(i)
                 network_edgelist.append((e[0], r_lab))
                 network_edgelist.append((r_lab, e[1]))
-                for architecture in nodes.keys():
-                    r = RepeaterNode(label=r_lab)
-                    nodes[architecture][r_lab] = r
+                nodes.append(r_lab)
                 i += 1
 
-        return nodes, network_edgelist
+        return network_edgelist, nodes
 
     def _generate_architecture(self, nodes, edgelist):
         edges = []
