@@ -40,6 +40,7 @@ Performance comparison between Kalman and Particle Filters
 # ^^^^^^^^^^^^^^^
 import numpy as np
 from datetime import datetime, timedelta
+from itertools import tee
 
 # %%
 # Stone Soup general imports
@@ -210,8 +211,7 @@ from stonesoup.resampler.particle import ESSResampler
 from stonesoup.tracker.simple import MultiTargetTracker
 
 # Load a detection reader
-from stonesoup.buffered_generator import BufferedGenerator
-from stonesoup.reader.base import DetectionReader
+from stonesoup.feeder.multi import MultiDataFeeder
 
 # %%
 # Design the trackers components
@@ -220,17 +220,11 @@ from stonesoup.reader.base import DetectionReader
 # %%
 # Detection reader and track deleter
 
+# Detection reader
+detection_reader = MultiDataFeeder([radar_simulator1, radar_simulator2])
+
 # define a track deleter based on time measurements
 deleter = UpdateTimeDeleter(timedelta(seconds=3), delete_last_pred=False)
-
-# Create a dummy detector to parse the detections
-class DummyDetector(DetectionReader):
-    def __init__(self, *args, **kwargs):
-        self.current = kwargs['current']
-
-    @BufferedGenerator.generator_method
-    def detections_gen(self):
-        yield self.current
 
 # %%
 # Unscented Kalman Filter
@@ -321,6 +315,10 @@ PF_initiator = GaussianParticleInitiator(
     initiator=initiator_particles,
     number_particles=n_particles)
 
+
+# Create multiple copies of the detection reader for each tracker
+dr1, dr2, dr3 = tee(detection_reader, 3)
+
 # %%
 # Instantiate each of the Trackers, without specifying the detector
 
@@ -329,14 +327,14 @@ UKF_tracker = MultiTargetTracker(
     deleter=deleter,
     data_associator=data_associator_UKF,
     updater=UKF_updater,
-    detector=None)
+    detector=dr1)
 
 EKF_tracker = MultiTargetTracker(
     initiator=EKF_initiator,
     deleter=deleter,
     data_associator=data_associator_EKF,
     updater=EKF_updater,
-    detector=None)
+    detector=dr2)
 
 # Instantiate the Particle filter as well
 PF_tracker = MultiTargetTracker(
@@ -344,7 +342,7 @@ PF_tracker = MultiTargetTracker(
     deleter=deleter,
     data_associator=data_associator_PF,
     updater=PF_updater,
-    detector=None)
+    detector=dr3)
 
 # %%
 # 3. Perform the measurement fusion algorithm and run the trackers
@@ -360,9 +358,6 @@ PF_tracker = MultiTargetTracker(
 
 # Load the plotter
 from stonesoup.plotter import Plotterly
-
-# Load the metric manager
-from stonesoup.metricgenerator.basicmetrics import BasicMetrics
 
 # Load the OSPA metric managers
 from stonesoup.metricgenerator.ospametric import OSPAMetric
@@ -380,14 +375,6 @@ from stonesoup.plotter import MetricPlotter
 # Set up the metrics
 # ^^^^^^^^^^^^^^^^^^
 
-# load the metrics for the filters
-basic_UKF = BasicMetrics(generator_name='Unscented Kalman Filter', tracks_key='UKF_tracks',
-                         truths_key='truths')
-basic_EKF = BasicMetrics(generator_name='Extended Kalman Filter', tracks_key='EKF_tracks',
-                         truths_key='truths')
-basic_PF = BasicMetrics(generator_name='Particle Filter', tracks_key='PF_tracks',
-                        truths_key='truths')
-
 # OSPA
 ospa_UKF_truth = OSPAMetric(c=40, p=1, generator_name='OSPA_UKF_truths',
                             tracks_key='UKF_tracks',  truths_key='truths')
@@ -400,10 +387,7 @@ ospa_PF_truth = OSPAMetric(c=40, p=1, generator_name='OSPA_PF_truths',
 associator = TrackToTruth(association_threshold=30)
 
 # Use a metric manager to deal with the various metrics
-metric_manager = MultiManager([basic_UKF,
-                               basic_EKF,
-                               basic_PF,
-                               ospa_UKF_truth,
+metric_manager = MultiManager([ospa_UKF_truth,
                                ospa_EKF_truth,
                                ospa_PF_truth],
                               associator)
@@ -427,6 +411,11 @@ ekf_tracks = set()
 pf_tracks = set()
 truths = set()
 
+# create tracker iterators
+UKF_tracker_iter = iter(UKF_tracker)
+EKF_tracker_iter = iter(EKF_tracker)
+PF_tracker_iter = iter(PF_tracker)
+
 # list for all detections
 full_detections = []
 
@@ -438,26 +427,19 @@ for t in range(number_of_steps):  # loop over the various time-steps
     full_detections.extend(detections_1[1])
     full_detections.extend(detections_2[1])
 
-    for detections in [detections_1, detections_2]:
-
+    for _ in (0, 1):
         # Run the Unscented Kalman tracker
-        UKF_tracker.detector = DummyDetector(current=detections)
-        UKF_tracker.__iter__()
-        _, tracks = next(UKF_tracker)
+        _, tracks = next(UKF_tracker_iter)
         ukf_tracks.update(tracks)
         del tracks
 
         # Run the Extended Kalman filter
-        EKF_tracker.detector = DummyDetector(current=detections)
-        EKF_tracker.__iter__()
-        _, tracks = next(EKF_tracker)
+        _, tracks = next(EKF_tracker_iter)
         ekf_tracks.update(tracks)
         del tracks
 
         # Run the Particle filter Tracker
-        PF_tracker.detector = DummyDetector(current=detections)
-        PF_tracker.__iter__()
-        _, tracks = next(PF_tracker)
+        _, tracks = next(PF_tracker_iter)
         pf_tracks.update(tracks)
 
 # Add data to the metric manager
