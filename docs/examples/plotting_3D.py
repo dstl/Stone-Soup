@@ -136,7 +136,7 @@ fig_ani.fig
 # that one target is spiralling around the other. Due to the way the plotter plots one trace at
 # a time, the rotating target appears to always be in front of the other. The user
 # must mentally combine these two plots to gather a full picture of target movement.
-fig = Plotterly()
+fig = Plotterly(axis_labels=["y", "z"])
 fig.plot_ground_truths(truths, [2, 4])
 fig.plot_measurements(measurements, [2, 4])
 fig.plot_tracks(tracks, [2, 4], uncertainty=True)
