@@ -154,9 +154,9 @@ time_steps = [start_time + timedelta(seconds=2*i) for i in range(num_steps + 5)]
 
 plotter = AnimatedPlotterly(timesteps=time_steps)
 plotter.plot_ground_truths(truth, [0, 2])
-plotter.plot_measurements(measurements1, [0, 2], marker=dict(color='blue', symbol='0'),
+plotter.plot_measurements(measurements1, [0, 2], marker=dict(color='blue'),
                           measurements_label='Detections with no lag')
-plotter.plot_measurements(measurements2, [0, 2], marker=dict(color='orange', symbol='0'),
+plotter.plot_measurements(measurements2, [0, 2], marker=dict(color='orange'),
                           measurements_label='Detections with lag')
 plotter.plot_sensors([sensor1_platform, sensor2_platform],
                      marker=dict(color='black', symbol='129', size=15),
