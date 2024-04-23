@@ -156,11 +156,11 @@ class ChernoffUpdater(Updater):
             )
 
         # Calculate the updated mean and covariance from covariance intersection
-        posterior_covariance = np.linalg.inv(self.omega*np.linalg.inv(measurement_covar) +
-                                             (1-self.omega)*np.linalg.inv(predicted_covar))
-        posterior_mean = posterior_covariance @ (self.omega*np.linalg.inv(measurement_covar)
+        posterior_covariance = np.linalg.pinv(self.omega*np.linalg.pinv(measurement_covar) +
+                                              (1-self.omega)*np.linalg.pinv(predicted_covar))
+        posterior_mean = posterior_covariance @ (self.omega*np.linalg.pinv(measurement_covar)
                                                  @ measurement_mean +
-                                                 (1-self.omega)*np.linalg.inv(predicted_covar)
+                                                 (1-self.omega)*np.linalg.pinv(predicted_covar)
                                                  @ predicted_mean)
 
         # Optionally force the posterior covariance to be a symmetric matrix
