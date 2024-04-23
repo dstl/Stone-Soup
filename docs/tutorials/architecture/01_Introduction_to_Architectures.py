@@ -38,7 +38,7 @@
 #   architecture.
 #
 # - :class:`.~FusionNode`: receives data from child nodes, and fuses to achieve a fused result.
-#   Fused result can be propagated onwards.
+#   The fused result can be propagated onwards.
 #
 # - :class:`.~SensorFusionNode`: has the functionality of both a SensorNode and a FusionNode.
 #

@@ -3,7 +3,7 @@ import numpy as np
 from . import DetectionFeeder
 from ..buffered_generator import BufferedGenerator
 from ..models.measurement.linear import LinearGaussian
-from ..types.detection import GaussianDetection
+from ..types.detection import GaussianDetection, Detection
 from ..types.track import Track
 
 
@@ -36,8 +36,9 @@ class Tracks2GaussianDetectionFeeder(DetectionFeeder):
                             metadata=metadata,
                             target_type=GaussianDetection)
                     )
-                else:
-                    # Assume it's a detection
+                elif isinstance(track, Detection):
                     detections.add(track)
+                else:
+                    raise TypeError(f"track is of type {type(track)}. Expected Track or Detection")
 
             yield time, detections

@@ -100,8 +100,8 @@ class FusionNode(Node):
     tracker: Tracker = Property(
         doc="Tracker used by this Node to fuse together Tracks and Detections")
     fusion_queue: FusionQueue = Property(
-        default=FusionQueue(),
-        doc="The queue from which this node draws data to be fused")
+        default=None,
+        doc="The queue from which this node draws data to be fused. Default is a standard FusionQueue")
     tracks: set = Property(default=None,
                            doc="Set of tracks tracked by the fusion node")
     colour: str = Property(
@@ -114,6 +114,8 @@ class FusionNode(Node):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.tracks = set()  # Set of tracks this Node has recorded
+        if not self.fusion_queue:
+            self.fusion_queue = FusionQueue()
 
         self._track_queue = Queue()
         self._tracking_thread = threading.Thread(
