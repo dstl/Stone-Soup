@@ -35,7 +35,8 @@ class Tracks2GaussianDetectionFeeder(DetectionFeeder):
                             target_type=GaussianDetection)
                     )
                 else:
-                    # Assume it's a detection
+                    if not isinstance(track, Detection):
+                        raise TypeError(f"track is of type {type(track}. Expected Track or Detection")
                     detections.add(track)
 
             yield time, detections

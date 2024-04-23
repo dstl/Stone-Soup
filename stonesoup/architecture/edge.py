@@ -95,8 +95,7 @@ class Edge(Base):
         :param time_sent: Time at which the message was sent
         """
         if not isinstance(data_piece, DataPiece):
-            raise TypeError("Message info must be one of the following types: "
-                            "Detection, Hypothesis or Track")
+            raise TypeError(f"data_piece is type {type(data_piece}. Expected DataPiece")
         # Add message to 'pending' dict of edge
         # data_to_send = copy.deepcopy(data_piece.data)
         # new_datapiece = DataPiece(data_piece.node, data_piece.originator, data_to_send,
