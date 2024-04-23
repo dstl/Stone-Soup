@@ -204,12 +204,17 @@ class Edge(Base):
 
     @property
     def unsent_data(self):
+        from stonesoup.architecture.node import SensorFusionNode
         """Data held by the sender that has not been sent to the recipient."""
         unsent = []
         if isinstance(type(self.sender.data_held), type(None)) or self.sender.data_held is None:
             return unsent
         else:
-            for status in ["fused", "created"]:
+            # for status in ["fused"] if \
+            #         str(type(self.nodes[0])).split('.')[-1].split("'")[0] == 'SensorFusionNode' \
+            #         else ["fused", "created"]:
+            for status in ["fused"] if isinstance(self.nodes[0], SensorFusionNode) else \
+                    ["fused", "created"]:
                 for time_pertaining in self.sender.data_held[status]:
                     for data_piece in self.sender.data_held[status][time_pertaining]:
                         # Data will be sent to any nodes it hasn't been sent to before
