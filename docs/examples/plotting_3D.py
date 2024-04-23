@@ -131,8 +131,8 @@ fig_ani.plot_tracks(tracks, [0, 2])
 fig_ani.fig
 
 # %%
-# To compliment the xy plot, the below figure shows a static plot of the xz plane. Due to
-# rotational symmetry, this is very similar to the view of the yz plane. Again, it is unclear
+# To compliment the xy plot, the below figure shows a static plot of the yz plane. Due to
+# rotational symmetry, this is very similar to the view of the xz plane. Again, it is unclear
 # that one target is spiralling around the other. Due to the way the plotter plots one trace at
 # a time, the rotating target appears to always be in front of the other. The user
 # must mentally combine these two plots to gather a full picture of target movement.
