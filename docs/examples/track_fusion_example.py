@@ -54,7 +54,6 @@ from stonesoup.types.state import GaussianState
 from stonesoup.types.array import CovarianceMatrix
 from stonesoup.simulator.simple import SingleTargetGroundTruthSimulator
 from stonesoup.models.clutter.clutter import ClutterModel
-from stonesoup.types.detection import Clutter
 
 # Instantiate the radars to collect measurements - Use a :class:`~.RadarBearingRange` radar.#
 from stonesoup.sensor.radar.radar import RadarBearingRange
@@ -185,19 +184,10 @@ for (time, sd1), (_, sd2) in zip(radar1plot, radar2plot):
 
 # Plot the detections from the two radars
 plotter = Plotterly()
-plotter.plot_measurements([d for ds in s1_detections for d in ds if not isinstance(d, Clutter)],
-                          [0, 2], marker=dict(color='red'), measurements_label='Sensor 1 measurements')
-
-plotter.plot_measurements([d for ds in s1_detections for d in ds if isinstance(d, Clutter)],
-                          [0, 2], marker=dict(color='red', symbol='star-triangle-up'),
+plotter.plot_measurements(s1_detections, [0, 2], marker=dict(color='red'),
                           measurements_label='Sensor 1 measurements')
-
-plotter.plot_measurements([d for ds in s2_detections for d in ds if not isinstance(d, Clutter)],
-                          [0, 2], marker=dict(color='blue'), measurements_label='Sensor 2 measurements')
-plotter.plot_measurements([d for ds in s2_detections for d in ds if isinstance(d, Clutter)],
-                          [0, 2], marker=dict(color='blue', symbol='star-triangle-up'),
+plotter.plot_measurements(s2_detections, [0, 2], marker=dict(color='blue'),
                           measurements_label='Sensor 2 measurements')
-
 plotter.plot_sensors({sensor1_platform, sensor2_platform}, [0, 1],
                      marker=dict(color='black', symbol='1', size=10))
 plotter.plot_ground_truths(truths, [0, 2])
