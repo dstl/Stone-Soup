@@ -968,6 +968,9 @@ class Plotterly(_Plotter):
     ----------
     dimension: enum \'Dimension\'
         Optional parameter to specify 1D, 2D, or 3D plotting.
+    axis_labels: list
+        Optional parameter to specify the axis labels for non-xy dimensions. Default None, i.e.,
+        "x" and "y".
     \\*\\*kwargs: dict
         Additional arguments to be passed to the Plotly.graph_objects Figure.
 
@@ -976,7 +979,9 @@ class Plotterly(_Plotter):
     fig: plotly.graph_objects.Figure
         Generated figure to display graphs.
     """
-    def __init__(self, dimension=Dimension.TWO, **kwargs):
+    def __init__(self, dimension=Dimension.TWO, axis_labels=None, **kwargs):
+        if not axis_labels:
+            axis_labels = ["x", "y"]
         if go is None:
             raise RuntimeError("Usage of Plotterly plotter requires installation of `plotly`")
 
@@ -985,8 +990,8 @@ class Plotterly(_Plotter):
 
         from plotly import colors
         layout_kwargs = dict(
-            xaxis_title="x",
-            yaxis_title="y",
+            xaxis_title=axis_labels[0],
+            yaxis_title=axis_labels[1],
             colorway=colors.qualitative.Plotly,  # Needed to match colours later.
         )
 
