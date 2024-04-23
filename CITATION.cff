@@ -1,0 +1,174 @@
+cff-version: 1.2.0
+message: "If you use this software, please cite both the article from preferred-citation and the software itself."
+authors:
+- affiliation: Dstl
+  family-names: Hiscocks
+  given-names: Steven
+- family-names: Harrald
+  given-names: Oliver
+- affiliation: Dstl
+  family-names: Barr
+  given-names: Jordi
+- affiliation: Dstl
+  family-names: Perree
+  given-names: Nicola
+- affiliation: "University of Liverpool"
+  family-names: Vladimirov
+  given-names: Lyudmil
+- family-names: Harris
+  given-names: Michael
+- affiliation: Dstl
+  family-names: Webb
+  given-names: Greg
+- family-names: Glover
+  given-names: Timothy
+- affiliation: Dstl
+  family-names: Green
+  given-names: Richard
+- affiliation: Dstl
+  family-names: Rosoman
+  given-names: Oliver
+- affiliation: Dstl
+  family-names: Rogers
+  given-names: Edward
+- family-names: Dorrington
+  given-names: Iain
+- affiliation: Dstl
+  family-names: Wright
+  given-names: James
+- affiliation: Dstl
+  family-names: Pike
+  given-names: Sam
+- affiliation: "University of Liverpool"
+  family-names: Acuto
+  given-names: Alberto
+- family-names: Hunter
+  given-names: Emily
+- affiliation: "British Army"
+  family-names: Fraser
+  given-names: Benjamin
+- affiliation: Dstl
+  family-names: Pritchett
+  given-names: Henry
+- affiliation: Dstl
+  family-names: Osborne
+  given-names: Jonathan
+- affiliation: DRDC
+  family-names: Carniglia
+  given-names: Peter
+- affiliation: Dstl
+  family-names: England
+  given-names: Charles
+- family-names: Carlson
+  given-names: Jared
+- family-names: Flaherty
+  given-names: Leanne
+- affiliation: DRDC
+  family-names: Kirkland
+  given-names: David
+- family-names: Davies
+  given-names: Richard
+- family-names: Naylor
+  given-names: Sam
+- family-names: Campbell
+  given-names: Mark
+- family-names: Last
+  given-names: David
+- family-names: Crew
+  given-names: Declan
+- affiliation: Dstl
+  family-names: Sherman
+  given-names: Christopher
+- family-names: Lee
+  given-names: "Sang Bin"
+- family-names: Gehlen
+  given-names: Joshua
+- family-names: Thomas
+  given-names: Sam
+- family-names: Florence
+  given-names: Scott
+- family-names: Oakes
+  given-names: Benedict
+- family-names: Gorman
+  given-names: Roisín
+- family-names: Harris
+  given-names: Jack
+- family-names: Jenkins
+  given-names: Isaac
+- family-names: Coates
+  given-names: Josh
+- family-names: Oldfield
+  given-names: James
+- affiliation: "University of Liverpool"
+  family-names: Horridge
+  given-names: Paul
+- family-names: Brophy
+  given-names: Charlie
+- family-names: Wragg
+  given-names: John
+- family-names: Rashid
+  given-names: Mamoon
+- family-names: Kang
+  given-names: Jiayun
+- family-names: Hiles
+  given-names: John
+- family-names: Brown
+  given-names: Matt
+- family-names: Nanavati
+  given-names: Rohit
+- affiliation: Dstl
+  family-names: Ablett
+  given-names: Stephen
+- affiliation: Dstl
+  family-names: Wheelhouse
+  given-names: Ed
+title: "Stone Soup"
+doi: 10.5281/zenodo.4663993
+date-released: "2019-04-12"
+type: software
+license: MIT
+url: "https://stonesoup.rtfd.io/"
+repository-code: "https://github.com/dstl/Stone-Soup"
+preferred-citation:
+  authors:
+    - affiliation: Dstl
+      family-names: Hiscocks
+      given-names: Steven
+    - affiliation: Dstl
+      family-names: Barr
+      given-names: Jordi
+    - affiliation: Dstl
+      family-names: Perree
+      given-names: Nicola
+    - affiliation: Dstl
+      family-names: Wright
+      given-names: James
+    - affiliation: Dstl
+      family-names: Pritchett
+      given-names: Henry
+    - affiliation: Dstl
+      family-names: Rosoman
+      given-names: Oliver
+    - affiliation: Dstl
+      family-names: Harris
+      given-names: Michael
+    - affiliation: Dstl
+      family-names: Gorman
+      given-names: Roisín
+    - affiliation: Dstl
+      family-names: Pike
+      given-names: Sam
+    - affiliation: DRDC
+      family-names: Carniglia
+      given-names: Peter
+    - affiliation: "University of Liverpool"
+      family-names: Vladimirov
+      given-names: Lyudmil
+    - affiliation: "University of Liverpool"
+      family-names: Oakes
+      given-names: Benedict
+  title: "Stone Soup: No Longer Just an Appetiser"
+  doi: 10.23919/FUSION52260.2023.10224185
+  type: conference-paper
+  year: "2023"
+  collection-title: "2023 26th International Conference on Information Fusion (FUSION)"
