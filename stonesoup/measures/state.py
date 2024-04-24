@@ -224,7 +224,7 @@ class SquaredMahalanobis(Measure):
         else:
             covar = state.covar
 
-        return np.linalg.inv(covar)
+        return np.linalg.pinv(covar)
 
 
 class Mahalanobis(SquaredMahalanobis):

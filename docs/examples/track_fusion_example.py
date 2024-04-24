@@ -113,7 +113,7 @@ clutter_spatial_density = clutter_model.clutter_rate/clutter_area
 
 # Let's assume that both radars have the same noise covariance for simplicity
 # These radars will have a variance of 0.005 degrees in bearing and 5 meters in range
-radar_noise = CovarianceMatrix(np.diag([np.deg2rad(0.005), 5]))
+radar_noise = CovarianceMatrix(np.diag([np.deg2rad(0.05), 5]))
 
 # Define the specifications of the two radars
 radar1 = RadarBearingRange(
