@@ -5,7 +5,7 @@ import matplotlib
 import numpy as np
 from matplotlib import pyplot as plt
 
-from ..base import Property
+from ..base import Property, Base
 from .base import MetricGenerator, MetricTableGenerator
 
 
@@ -143,15 +143,25 @@ class SIAPTableGenerator(RedGreenTableGenerator):
         }
 
 
-class SiapDiffTableGenerator(SIAPTableGenerator):
+class SiapDiffTableGenerator(Base):
     """
     Given two sets of metric generators, the SiapDiffTableGenerator returns a table displaying the
     difference between two sets of metrics. Allows quick comparison of two sets of metrics.
     """
-    metrics2: Collection[MetricGenerator] = Property(doc="Set of metrics to put in the table")
+    metrics: list[Collection[MetricGenerator]] = Property(doc="Set of metrics to put in the table")
+
+    metrics_labels: list[str] = Property(doc='TODO',
+                                         default=None)
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
+        self.targets = None
+        self.descriptions = None
+        self.set_default_targets()
+        self.set_default_descriptions()
+        if self.metrics_labels is None:
+            self.metrics_labels = ['Metrics ' + str(i) + ' Value'
+                                   for i in range(1, len(self.metrics) + 1)]
 
     def compute_metric(self, **kwargs):
         """Generate table method
@@ -163,45 +173,41 @@ class SiapDiffTableGenerator(SIAPTableGenerator):
         displaying the difference between the pair of metric values."""
 
         white = (1, 1, 1)
-        cellText = [["Metric", "Description", "Target", "Metrics 1 Value", "Metrics 2 Value",
-                     "Diff"]]
-        cellColors = [[white, white, white, white, white, white]]
+        cellText = [["Metric", "Description", "Target"] + self.metrics_labels + ["Max Diff"]]
+        cellColors = [[white] * (4 + len(self.metrics))]
 
-        t1_metrics = sorted(self.metrics, key=attrgetter('title'))
-        t2_metrics = sorted(self.metrics2, key=attrgetter('title'))
+        sorted_metrics = [sorted(metric_gens, key=attrgetter('title'))
+                          for metric_gens in self.metrics]
 
-        for t1metric, t2metric in zip(t1_metrics, t2_metrics):
-            #  Add metric details to table row
-            metric_name = t1metric.title
+        for row_num in range(len(sorted_metrics[0])):
+            row_metrics = [m[row_num] for m in sorted_metrics]
+
+            metric_name = row_metrics[0].title
             description = self.descriptions[metric_name]
             target = self.targets[metric_name]
-            t1value = t1metric.value
-            t2value = t2metric.value
-            diff = round(t1value - t2value, ndigits=2)
-            cellText.append([metric_name, description, target, "{:.2f}".format(t1value),
-                             "{:.2f}".format(t2value), diff])
 
-            # Generate color for value cell based on closeness to target value
-            # Closeness to infinity cannot be represented as a color
-            if target is not None and not target == np.inf:
-                red_value1 = 1
-                green_value1 = 1
-                red_value2 = 1
-                green_value2 = 1
-                # A value of 1 for both red & green produces yellow
+            values = [metric.value for metric in row_metrics]
 
-                if abs(t1value - target) < abs(t2value - target):
-                    red_value1 = 0
-                    green_value2 = 0
-                elif abs(t1value - target) > abs(t2value - target):
-                    red_value2 = 0
-                    green_value1 = 0
+            diff = round(max(values) - min(values), ndigits=3)
 
-                cellColors.append(
-                    [white, white, white, (red_value1, green_value1, 0, 0.5),
-                     (red_value2, green_value2, 0, 0.5), white])
-            else:
-                cellColors.append([white, white, white, white, white, white])
+            row_vals = [metric_name, description, target] + \
+                       ["{:.2f}".format(value) for value in values] + [diff]
+
+            cellText.append(row_vals)
+
+            colours = []
+            for i, value in enumerate(values):
+                other_values = values[:i] + values[i+1:]
+                if all(num <= 0 for num in [abs(value - target) - abs(v - target)
+                                            for v in other_values]):
+                    colours.append((0, 1, 0, 0.5))
+                elif all(num >= 0 for num in [abs(value - target) - abs(v - target)
+                                              for v in other_values]):
+                    colours.append((1, 0, 0, 0.5))
+                else:
+                    colours.append((1, 1, 0, 0.5))
+
+            cellColors.append([white, white, white] + colours + [white])
 
         # "Plot" table
         scale = (1, 3)
@@ -213,3 +219,33 @@ class SiapDiffTableGenerator(SIAPTableGenerator):
         table.scale(*scale)
 
         return table
+
+    def set_default_targets(self):
+        self.targets = {
+            "SIAP Completeness": 1,
+            "SIAP Ambiguity": 1,
+            "SIAP Spuriousness": 0,
+            "SIAP Position Accuracy": 0,
+            "SIAP Velocity Accuracy": 0,
+            "SIAP Rate of Track Number Change": 0,
+            "SIAP Longest Track Segment": 1,
+            "SIAP ID Completeness": 1,
+            "SIAP ID Correctness": 1,
+            "SIAP ID Ambiguity": 0
+        }
+
+    def set_default_descriptions(self):
+        self.descriptions = {
+            "SIAP Completeness": "Fraction of true objects being tracked",
+            "SIAP Ambiguity": "Number of tracks assigned to a true object",
+            "SIAP Spuriousness": "Fraction of tracks that are unassigned to a true object",
+            "SIAP Position Accuracy": "Positional error of associated tracks to their respective "
+                                      "truths",
+            "SIAP Velocity Accuracy": "Velocity error of associated tracks to their respective "
+                                      "truths",
+            "SIAP Rate of Track Number Change": "Rate of number of track changes per truth",
+            "SIAP Longest Track Segment": "Duration of longest associated track segment per truth",
+            "SIAP ID Completeness": "Fraction of true objects with an assigned ID",
+            "SIAP ID Correctness": "Fraction of true objects with correct ID assignment",
+            "SIAP ID Ambiguity": "Fraction of true objects with ambiguous ID assignment"
+        }
