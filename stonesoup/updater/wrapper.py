@@ -4,6 +4,7 @@ from ..types.detection import GaussianDetection
 
 
 class DetectionAndTrackSwitchingUpdater(Updater):
+    """Updater which sorts between Detections and Tracks"""
 
     detection_updater: Updater = Property()
     track_updater: Updater = Property()

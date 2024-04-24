@@ -435,8 +435,8 @@ H_siap_averages_EKF = {H_siap_metrics.get(metric) for metric in H_siap_metrics
 # Further below is plot of SIAP position accuracy over time for the duration of the simulation.
 # Smaller values represent higher accuracy
 
-from stonesoup.metricgenerator.metrictables import SiapDiffTableGenerator
-SiapDiffTableGenerator(NH_siap_averages_EKF, H_siap_averages_EKF).compute_metric()
+from stonesoup.metricgenerator.metrictables import SIAPDiffTableGenerator
+SIAPDiffTableGenerator(NH_siap_averages_EKF, H_siap_averages_EKF).compute_metric()
 
 
 # %%

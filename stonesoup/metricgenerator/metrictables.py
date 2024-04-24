@@ -137,15 +137,16 @@ class SIAPTableGenerator(RedGreenTableGenerator):
         }
 
 
-class SiapDiffTableGenerator(Base):
+class SIAPDiffTableGenerator(Base):
     """
     Given two sets of metric generators, the SiapDiffTableGenerator returns a table displaying the
     difference between two sets of metrics. Allows quick comparison of two sets of metrics.
     """
-    metrics: list[Collection[MetricGenerator]] = Property(doc="Set of metrics to put in the table")
+    metrics: Collection[Collection[MetricGenerator]] = Property(doc="Set of metrics to put in the "
+                                                                    "table")
 
-    metrics_labels: list[str] = Property(doc='TODO',
-                                         default=None)
+    metrics_labels: Collection[str] = Property(doc='List of titles for ',
+                                               default=None)
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -167,7 +168,7 @@ class SiapDiffTableGenerator(Base):
         displaying the difference between the pair of metric values."""
 
         white = (1, 1, 1)
-        cellText = [["Metric", "Description", "Target"] + self.metrics_labels + ["Max Diff"]]
+        cellText = [["Metric", "Description", "Target"] + list(self.metrics_labels) + ["Max Diff"]]
         cellColors = [[white] * (4 + len(self.metrics))]
 
         sorted_metrics = [sorted(metric_gens, key=attrgetter('title'))
