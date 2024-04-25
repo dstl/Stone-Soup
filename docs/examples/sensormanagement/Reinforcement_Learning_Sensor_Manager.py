@@ -920,7 +920,7 @@ plotterB.fig
 # -------
 # Metrics can be used to compare how well different sensor management techniques are working.
 # Full explanations of the OSPA
-# and SIAP metrics can be found in the :doc:`Metrics Example <../Metrics>`.
+# and SIAP metrics can be found in the :doc:`Metrics Example <../metrics/Metrics>`.
 
 from stonesoup.metricgenerator.ospametric import OSPAMetric
 
