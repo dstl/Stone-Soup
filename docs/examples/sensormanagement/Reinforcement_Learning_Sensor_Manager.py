@@ -227,7 +227,7 @@ reward_function = UncertaintyRewardFunction(predictor=predictor, updater=updater
 # must train in an environment in order to create a policy, which later determines the actions it will take. During
 # training, the agent makes decisions and receives rewards, which it uses to optimise the policy.
 # 
-# .. figure:: ../_static/rl_training.png
+# .. figure:: ../../_static/rl_training.png
 #   :width: 800
 #   :alt: Illustration of sequential actions and measurements
 #
@@ -920,7 +920,7 @@ plotterB.fig
 # -------
 # Metrics can be used to compare how well different sensor management techniques are working.
 # Full explanations of the OSPA
-# and SIAP metrics can be found in the :doc:`Metrics Example <Metrics>`.
+# and SIAP metrics can be found in the :doc:`Metrics Example <../Metrics>`.
 
 from stonesoup.metricgenerator.ospametric import OSPAMetric
 
