@@ -1,5 +1,6 @@
 """Mathematical functions used within Stone Soup"""
 import copy
+import warnings
 
 import numpy as np
 
@@ -149,7 +150,11 @@ def gauss2sigma(state, alpha=1.0, beta=2.0, kappa=None):
         kappa = 3.0 - ndim_state
 
     # Compute Square Root matrix via Colesky decomp.
-    sqrt_sigma = np.linalg.cholesky(state.covar)
+    try:
+        sqrt_sigma = np.linalg.cholesky(state.covar)
+    except np.linalg.LinAlgError as e:
+        warnings.warn(repr(e))
+        sqrt_sigma = cholesky_eps(state.covar)
 
     # Calculate scaling factor for all off-center points
     alpha2 = np.power(alpha, 2)
