@@ -495,6 +495,8 @@ graph.fig.show()
 # We now plot the sum of covariance norms metrics for both trackers. We plot the
 # metrics separately and specify additional keyword arguments to customise the plot.
 
+# sphinx_gallery_thumbnail_number = 7
+
 graph = MetricPlotter()
 graph.plot_metrics(metrics, generator_names=['sum_cov_norms_EKF',
                                              'sum_cov_norms_PF'],
