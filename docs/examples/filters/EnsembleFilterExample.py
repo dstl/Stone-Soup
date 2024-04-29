@@ -168,6 +168,8 @@ type(prior.state_vector)
 # we plot each member of the ensembles. As usual, the ellipses represent the uncertainty in the
 # tracks.
 
+# sphinx_gallery_thumbnail_number = 3
+
 from stonesoup.types.hypothesis import SingleHypothesis
 from stonesoup.types.track import Track
 

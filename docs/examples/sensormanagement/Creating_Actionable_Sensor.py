@@ -266,7 +266,7 @@ class DirectedSensor(Sensor):
 # Data Flow
 # ---------
 #
-# .. image:: ../_static/actionable_sensor_flow_diagram.png
+# .. image:: ../../_static/actionable_sensor_flow_diagram.png
 #   :width: 500
 #   :alt: Actionable sensor flow diagram
 #

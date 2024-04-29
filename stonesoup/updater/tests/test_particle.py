@@ -1,4 +1,6 @@
 """Test for updater.particle module"""
+import itertools
+
 import datetime
 from functools import partial
 
@@ -8,16 +10,18 @@ import pytest
 from ...models.measurement.linear import LinearGaussian
 from ...resampler.particle import SystematicResampler
 from ...types.array import StateVectors
-from ...types.detection import Detection
+from ...types.detection import Detection, MissedDetection
 from ...types.hypothesis import SingleHypothesis
 from ...types.multihypothesis import MultipleHypothesis
+from ...types.numeric import Probability
 from ...types.particle import Particle
 from ...types.state import ParticleState
 from ...types.prediction import (
     ParticleStatePrediction, ParticleMeasurementPrediction)
 from ...updater.particle import (
     ParticleUpdater, GromovFlowParticleUpdater,
-    GromovFlowKalmanParticleUpdater, BernoulliParticleUpdater)
+    GromovFlowKalmanParticleUpdater, BernoulliParticleUpdater,
+    SMCPHDUpdater)
 from ...predictor.particle import BernoulliParticlePredictor
 from ...models.transition.linear import ConstantVelocity, CombinedLinearGaussianTransitionModel
 from ...types.update import BernoulliParticleStateUpdate
@@ -263,3 +267,32 @@ def test_regularised_particle(transition_model, model_flag):
     assert updated_state.hypothesis.measurement_prediction == measurement_prediction
     assert updated_state.hypothesis.prediction == prediction
     assert updated_state.hypothesis.measurement == measurement
+
+
+def test_smcphd():
+    prob_detect = Probability(.9)  # 90% chance of detection.
+    clutter_intensity = 1e-5
+    num_particles = 9
+    timestamp = datetime.datetime.now()
+
+    particles = [Particle(np.array([[i], [j]]), 1 / num_particles)
+                 for i, j in itertools.product([10., 20., 30.], [10., 20., 30.])]
+    prediction = ParticleStatePrediction(None, particle_list=particles,
+                                         timestamp=timestamp)
+    measurements = [Detection([[i]], timestamp=timestamp) for i in [10., 20., 30.]]
+
+    hypotheses = [SingleHypothesis(prediction, MissedDetection(timestamp=timestamp), None)]
+    hypotheses.extend([SingleHypothesis(prediction, measurement, None)
+                       for measurement in measurements])
+    multihypothesis = MultipleHypothesis(hypotheses)
+
+    measurement_model = LinearGaussian(ndim_state=2, mapping=[0], noise_covar=np.array([[0.04]]))
+    updater = SMCPHDUpdater(measurement_model=measurement_model, resampler=SystematicResampler(),
+                            prob_detect=prob_detect, clutter_intensity=clutter_intensity,
+                            num_samples=num_particles)
+
+    updated_state = updater.update(multihypothesis)
+
+    assert updated_state.timestamp == timestamp
+    assert updated_state.hypothesis == multihypothesis
+    assert np.isclose(float(updated_state.weight.sum()), 3, atol=1e-1)

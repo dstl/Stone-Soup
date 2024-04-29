@@ -171,6 +171,8 @@ plotter_az_t.fig
 # %%
 # Azimuth Angle (Degrees) vs Range (m)
 # ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+# sphinx_gallery_thumbnail_number = 4
 plotter_az_r = PolarPlotterly(title="Azimuth Angle (Degrees) vs Range (m)")
 mapping = [0, 1]
 plotter_az_r.plot_ground_truths({angular_ground_truth_1}, mapping=mapping, truths_label="Target 1")

@@ -1,5 +1,6 @@
 """Mathematical functions used within Stone Soup"""
 import copy
+import warnings
 
 import numpy as np
 
@@ -149,7 +150,11 @@ def gauss2sigma(state, alpha=1.0, beta=2.0, kappa=None):
         kappa = 3.0 - ndim_state
 
     # Compute Square Root matrix via Colesky decomp.
-    sqrt_sigma = np.linalg.cholesky(state.covar)
+    try:
+        sqrt_sigma = np.linalg.cholesky(state.covar)
+    except np.linalg.LinAlgError as e:
+        warnings.warn(repr(e))
+        sqrt_sigma = cholesky_eps(state.covar)
 
     # Calculate scaling factor for all off-center points
     alpha2 = np.power(alpha, 2)
@@ -685,6 +690,9 @@ def build_rotation_matrix(angle_vector: np.ndarray):
     Calculates and returns the (3D) axis rotation matrix given a vector of
     three angles:
     [roll, pitch/elevation, yaw/azimuth]
+    Order of rotations is in reverse: yaw, pitch, roll (z, y, x)
+    This is the rotation matrix that implements the rotations that convert the input
+    angle_vector to match the x-axis.
 
     Parameters
     ----------
@@ -702,6 +710,33 @@ def build_rotation_matrix(angle_vector: np.ndarray):
     theta_y = angle_vector[1, 0]  # pitch#elevation
     theta_z = -angle_vector[2, 0]  # yaw#azimuth
     return rotx(theta_x) @ roty(theta_y) @ rotz(theta_z)
+
+
+def build_rotation_matrix_xyz(angle_vector: np.ndarray):
+    """
+    Calculates and returns the (3D) axis rotation matrix given a vector of
+    three angles:
+    [roll, pitch/elevation, yaw/azimuth]
+    Order of rotations is roll, pitch, yaw (x, y, z)
+    This is the rotation matrix that implements the rotations that convert a vector aligned to the
+    x-axis to the input angle_vector.
+
+    Parameters
+    ----------
+        angle_vector : :class:`numpy.ndarray` of shape (3, 1): the rotations
+        about the :math:'x, y, z' axes.
+        In aircraft/radar terms these correspond to
+        [roll, pitch/elevation, yaw/azimuth]
+
+    Returns
+    -------
+        :class:`numpy.ndarray` of shape (3, 3)
+            The model (3D) rotation matrix.
+    """
+    theta_x = -angle_vector[0, 0]  # roll
+    theta_y = angle_vector[1, 0]  # pitch#elevation
+    theta_z = -angle_vector[2, 0]  # yaw#azimuth
+    return rotz(theta_z) @ roty(theta_y) @ rotx(theta_x)
 
 
 def dotproduct(a, b):

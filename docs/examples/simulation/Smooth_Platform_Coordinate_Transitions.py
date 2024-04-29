@@ -86,7 +86,7 @@ ax.plot((X[0], X[0] + 2*ux), (Y[0], Y[0] + 2*uy), color='lightgreen', linewidth=
 # turn-rate are constrained according to the following formulae (derived for the case where
 # turn-rate (:math:`w`) and initial bearing (:math:`a`) are positive and :math:`< 180` degrees):
 #
-# .. image:: ../_static/deriving_constant_turn_angle.png
+# .. image:: ../../_static/deriving_constant_turn_angle.png
 #   :width: 900
 #   :alt: Derivation of constant turn equation
 #

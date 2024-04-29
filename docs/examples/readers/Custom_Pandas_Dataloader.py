@@ -293,3 +293,5 @@ detection_reader = DataFrameDetectionReader(
 # read any type of data supported by the pandas library, which gives us a huge range of
 # options. This strategy also saves us the overhead of manually specifying custom Stone
 # Soup Reader classes for each format of data.
+
+# sphinx_gallery_thumbnail_path = '_static/sphinx_gallery/pandas_thumb.png'

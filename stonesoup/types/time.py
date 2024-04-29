@@ -1,6 +1,7 @@
-import datetime
 import copy
+import datetime
 from itertools import combinations, permutations
+from typing import List
 
 from ..base import Property
 from ..types.interval import Interval, Intervals
@@ -27,25 +28,25 @@ class TimeRange(Interval):
     end: datetime.datetime = Property(doc="End of the time range")
 
     @property
-    def start_timestamp(self):
+    def start_timestamp(self) -> datetime.datetime:
         return self.start
 
     @property
-    def end_timestamp(self):
+    def end_timestamp(self) -> datetime.datetime:
         return self.end
 
     @property
-    def duration(self):
+    def duration(self) -> datetime.timedelta:
         """Duration of the time range"""
 
         return self.length
 
     @property
-    def key_times(self):
+    def key_times(self) -> List[datetime.datetime]:
         """Times the TimeRange begins and ends"""
         return [self.start, self.end]
 
-    def __contains__(self, time):
+    def __contains__(self, time) -> bool:
         """Checks if timestamp is within range
 
         Parameters
@@ -66,6 +67,9 @@ class TimeRange(Interval):
 
     def __eq__(self, other):
         return isinstance(other, TimeRange) and super().__eq__(other)
+
+    def __hash__(self):
+        return super().__hash__()
 
     def __sub__(self, time_range):
         """Removes the overlap between this instance and another :class:`~.TimeRange`, or
@@ -158,7 +162,7 @@ class CompoundTimeRange(Intervals):
         return self.intervals
 
     @property
-    def duration(self):
+    def duration(self) -> datetime.timedelta:
         """Duration of the time range"""
         if len(self.time_ranges) == 0:
             return datetime.timedelta(0)
@@ -168,7 +172,7 @@ class CompoundTimeRange(Intervals):
         return total_duration
 
     @property
-    def key_times(self):
+    def key_times(self) -> List[datetime.datetime]:
         """Returns all timestamps at which a component starts or ends"""
         key_times = set()
         for component in self.time_ranges:
@@ -214,7 +218,7 @@ class CompoundTimeRange(Intervals):
         self._remove_overlap()
         self._fuse_components()
 
-    def remove(self, time_range):
+    def remove(self, time_range: TimeRange):
         """Removes a :class:`.~TimeRange` object from the time ranges.
         It must be a member of self.time_ranges"""
         if not isinstance(time_range, TimeRange):
@@ -257,6 +261,9 @@ class CompoundTimeRange(Intervals):
 
     def __eq__(self, other):
         return isinstance(other, CompoundTimeRange) and super().__eq__(other)
+
+    def __hash__(self):
+        return super().__hash__()
 
     def __sub__(self, time_range):
         """Removes any overlap between this and another :class:`~.TimeRange` or

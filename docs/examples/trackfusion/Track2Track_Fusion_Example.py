@@ -64,7 +64,7 @@ Multi-Sensor Fusion: Covariance Intersection Using Tracks as Measurements
 # as the tracker for the track-to-track fusion. The following table shows the formulas used in the
 # regular GM-PHD, and the GM-PHD covariance intersector algorithm.
 #
-# .. image:: ../_static/covariance_intersection_formulas.png
+# .. image:: ../../_static/covariance_intersection_formulas.png
 #   :width: 700
 #   :alt: Formulas for the posterior/fused intensity, gaussian components, updated weight, updated
 #         mean, updated covariance, innovation, Kalman gain, and innovation covariance in the

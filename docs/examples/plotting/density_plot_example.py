@@ -76,6 +76,9 @@ plotter.plot_density(truths, index=None)
 # The function allows you to pick an index of the state sequence (ground truth in this example) to
 # plot. In this example we're only interested in the final state of the sequences. An index of '-1'
 # is the last state in the sequence. The resultant plot is much more spread out.
+
+# sphinx_gallery_thumbnail_number = 4
+
 plotter = Plotter()
 plotter.plot_density(truths, index=-1)
 

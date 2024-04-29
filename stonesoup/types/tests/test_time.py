@@ -267,3 +267,10 @@ def test_remove(times):
     # Remove whole component
     test1.remove(TimeRange(times[1], times[2]))
     assert test1 == CompoundTimeRange([TimeRange(times[4], times[5])])
+
+
+def test_compound_time_range_init_with_compound_time_range(times):
+    time_range = TimeRange(start=times[1], end=times[2])
+    compound_time_range = CompoundTimeRange(time_range)
+    compound_time_range_with_compound_time_range = CompoundTimeRange(compound_time_range)
+    assert compound_time_range.intervals == compound_time_range_with_compound_time_range.intervals
