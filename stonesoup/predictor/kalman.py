@@ -484,7 +484,8 @@ class SqrtKalmanPredictor(ExtendedKalmanPredictor):
 class StochasticIntegrationPredictor(KalmanPredictor):
     """Stochastic Integration Kalman Filter class
 
-    The state prediction is accomplished by stochastic integration
+    The state prediction of nonlinear models is accomplished by the stochastic
+    integration approximation.
     """
     transition_model: TransitionModel = Property(doc="The transition model to be used.")
     control_model: ControlModel = Property(

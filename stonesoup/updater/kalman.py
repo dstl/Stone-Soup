@@ -803,9 +803,8 @@ class StochasticIntegrationUpdater(KalmanUpdater):
     """Stochastic Integration Kalman Filter class. Inherits most
     of the functionality from :class:`~.KalmanUpdater`.
 
-    In this case the :meth:`predict_measurement` function uses the
-    :func:`unscented_transform` function to estimate a (Gaussian) predicted
-    measurement. This is then updated via the standard Kalman update equations.
+    The measurement update of nonlinear measurement models is accomplished by
+    the stochastic integration approximation.
 
     """
     # Can be non-linear and non-differentiable
