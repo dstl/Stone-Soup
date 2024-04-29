@@ -799,8 +799,8 @@ class SchmidtKalmanUpdater(ExtendedKalmanUpdater):
         return post_cov.view(CovarianceMatrix), kalman_gain
 
 
-class SIFKalmanUpdater(KalmanUpdater):
-    """The SIF version of the Kalman Updater. Inherits most
+class StochasticIntegrationUpdater(KalmanUpdater):
+    """Stochastic Integration Kalman Filter class. Inherits most
     of the functionality from :class:`~.KalmanUpdater`.
 
     In this case the :meth:`predict_measurement` function uses the
@@ -926,17 +926,18 @@ class SIFKalmanUpdater(KalmanUpdater):
             # Matrix and predictive state and measurement covariance matrix
 
             hpoints_diff = hpoints - zp
-            SumRPz = hpoints_diff@(np.diag(w))@(hpoints_diff.T)
-            SumRPxz = ((xpoints-xpoints[:, 0:1]) @ np.diag(w) @ (hpoints_diff).T)
+            SumRPz = hpoints_diff @ np.diag(w) @ (hpoints_diff.T)
+            SumRPxz = ((xpoints - xpoints[:, 0:1]) @ np.diag(w) @
+                       (hpoints_diff).T)
 
             # Update covariance matrix IPz
-            DPz = (SumRPz-IPz)/N
-            IPz = IPz+DPz
-            VPz = (N-2)*VPz/N+DPz**2
+            DPz = (SumRPz - IPz) / N
+            IPz = IPz + DPz
+            VPz = (N - 2) * VPz / N + DPz ** 2
             # Update cross-covariance matrix IPxz
-            DPxz = (SumRPxz-IPxz)/N
-            IPxz = IPxz+DPxz
-            VPxz = (N-2)*VPxz/N+DPxz**2
+            DPxz = (SumRPxz - IPxz) / N
+            IPxz = IPxz + DPxz
+            VPxz = (N - 2) * VPxz / N + DPxz ** 2
 
         Pzp = IPz
         Pzp = Pzp + measurement_model.covar() + np.diag(Vz.ravel())

@@ -332,3 +332,8 @@ def test_gm_sample(means, covars, weights, size):
         assert samples.shape[0] == means[0].shape[0]
     else:
         assert samples.shape[0] == means.shape[0]
+
+#def test_random_orthogonal_matrix()
+
+#def test_stochasticCubatureRulePoints():
+    

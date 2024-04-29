@@ -481,8 +481,8 @@ class SqrtKalmanPredictor(ExtendedKalmanPredictor):
                                       ctrl_mat@sqrt_ctrl_noi@sqrt_ctrl_noi.T@ctrl_mat.T)
 
 
-class SIFKalmanPredictor(KalmanPredictor):
-    """StochasticIntegrationKalmanFilter class
+class StochasticIntegrationPredictor(KalmanPredictor):
+    """Stochastic Integration Kalman Filter class
 
     The state prediction is accomplished by stochastic integration
     """
