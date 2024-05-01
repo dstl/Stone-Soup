@@ -1497,7 +1497,7 @@ class Plotterly(_Plotter):
         sensor_xy = np.array([sensor.position[mapping, 0] for sensor in sensors])
         self.fig.add_scatter(x=sensor_xy[:, 0], y=sensor_xy[:, 1], **sensor_kwargs)
 
-    def hide_plot_traces(self, items_to_hide: set):
+    def hide_plot_traces(self, items_to_hide=None):
         """Hide Plot Traces
 
         This function allows plotting items to be invisible as default. Users can toggle the plot
@@ -1505,15 +1505,33 @@ class Plotterly(_Plotter):
 
         Parameters
         ----------
-        items_to_hide : set[str]
+        items_to_hide : Iterable[str]
             The legend label (`legendgroups`) for the plot traces that should be invisible as
-            default
+            default. If left as ``None`` no traces will be shown.
         """
         for fig_data in self.fig.data:
-            if fig_data.legendgroup in items_to_hide:
+            if items_to_hide is None or fig_data.legendgroup in items_to_hide:
                 fig_data.visible = "legendonly"
             else:
                 fig_data.visible = None
+
+    def show_plot_traces(self, items_to_show=None):
+        """Show Plot Traces
+
+        This function allows specific plotting items to be shown as default. All labels not
+        mentioned in `items_to_show` will be invisible and can be manually toggled on.
+
+        Parameters
+        ----------
+        items_to_show : Iterable[str]
+            The legend label (`legendgroups`) for the plot traces that should be shown as
+            default. If left as ``None`` all traces will be shown.
+        """
+        for fig_data in self.fig.data:
+            if items_to_show is None or fig_data.legendgroup in items_to_show:
+                fig_data.visible = None
+            else:
+                fig_data.visible = "legendonly"
 
 
 class PolarPlotterly(_Plotter):
