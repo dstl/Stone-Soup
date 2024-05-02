@@ -2,97 +2,50 @@
 # coding: utf-8
 
 """
-=========================================
-2 - Information and Network Architectures
-=========================================
+========================================
+2 - Information vs Network Architectures
+========================================
 """
-
-import random
-from datetime import datetime, timedelta
-import copy
-import numpy as np
-
+# %%
+# Comparing Information and Network Architectures using ArchitectureGenerators
+# ----------------------------------------------------------------------------
+#
+# In this demo, we intend to show that running a simulation over both an Information
+# Architecture, and its underlying Network Architecture, yields the same results.
+#
+# To build this demonstration, we shall carry out the following steps:
+#
+# 1) Build a ground truth, as a basis for the simulation
+#
+# 2) Build a base sensor model, and a base tracker
+#
+# 3) Use the ArchitectureGenerator classes to generate 2 pairs of identical architectures
+# (1 network, 1 information), where the network architecture is a valid representation of
+# the information architecture.
+#
+# 4) Run simulation over both, and compare results
+#
+# 5) Remove edges from each of the architectures, rerun and
 
 # %%
-# Introduction
-# ------------
-# Intro to Information and Network Architectures
-# ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-# A common example of this is considering posting a letter. You may write some
-# information, put it in an envelope, and post it to a friend who receives, opens, and processes
-# the information that you sent. You and your friend (and anyone else who your friend passes
-# the information to) are nodes in the information architecture. Information architectures only
-# concern nodes that open, process and/or fuse data.
-#
-# Network Architectures consider the underlying framework that enables propagation of information.
-# In our example, consider the post-box, sorting office and delivery vans - these are all nodes
-# in the network architecture. These nodes do not open and process any of the information that is
-# being sent, but they are present in the network and have an effect on the route the information
-# takes to reach its destination, and how long it takes to get there.
-#
-# Intro to this Tutorial
-# ^^^^^^^^^^^^^^^^^^^^^^
-# Following on from Tutorial 01: Introduction to Architectures in Stone Soup, this tutorial
-# provides a more in-depth walk through of generating and simulating information and network
-# architectures.
-#
-# We will first create a representation of an information architecture using
-# :class:`~.InformationArchitecture` and use it to show how we can simulate detection,
-# propagation and fusion of data.
-#
-# We will then design a network architecture that could uphold the already displayed information
-# architecture. To do this we will use :class:`~.NetworkArchitecture`. Additionally, we will use
-# the property `information_arch` of :class:`~.NetworkArchitecture` to show that the
-# overlying information architecture linked to the created network architecture is identical to
-# the information architecture that we started with.
-#
-# We start by generating a set of sensors, and a ground truth from which the sensors will make
-# measurements. We will make use of these in both information and network architecture examples
-# later in the tutorial.
-
-
-# %%
-# Set up variables
-# ^^^^^^^^^^^^^^^^
-
-start_time = datetime.now().replace(microsecond=0)
-np.random.seed(1990)
-random.seed(1990)
-
-
-# %%
-# Create Sensors
+# Module Imports
 # ^^^^^^^^^^^^^^
 
-total_no_sensors = 6
-
+from datetime import datetime, timedelta
 from ordered_set import OrderedSet
-from stonesoup.types.state import StateVector
-from stonesoup.sensor.radar.radar import RadarRotatingBearingRange
-from stonesoup.types.angle import Angle
-
-sensor_set = OrderedSet()
-for n in range(0, total_no_sensors):
-    sensor = RadarRotatingBearingRange(
-        position_mapping=(0, 2),
-        noise_covar=np.array([[np.radians(0.5) ** 2, 0],
-                              [0, 1 ** 2]]),
-        ndim_state=4,
-        position=np.array([[10], [n*20 - 40]]),
-        rpm=60,
-        fov_angle=np.radians(360),
-        dwell_centre=StateVector([0.0]),
-        max_range=np.inf,
-        resolutions={'dwell_centre': Angle(np.radians(30))}
-    )
-    sensor_set.add(sensor)
-for sensor in sensor_set:
-    sensor.timestamp = start_time
-
+import numpy as np
+import random
 
 # %%
-# Create ground truth
-# ^^^^^^^^^^^^^^^^^^^
+# 1 - Ground Truth
+# ----------------
+# We start this tutorial by generating a set of :class:`~.GroundTruthPath`s as a basis for a
+# tracking simulation.
+
+
+start_time = datetime.now().replace(microsecond=0)
+np.random.seed(2024)
+random.seed(2024)
 
 from stonesoup.models.transition.linear import CombinedLinearGaussianTransitionModel, \
     ConstantVelocity
@@ -127,140 +80,152 @@ for j in range(0, ntruths):
     if j % 2 == 0:
         ydirection *= -1
 
-
 # %%
-# Information Architecture Example
-# --------------------------------
+# 2 - Base Tracker and Sensor Models
+# ----------------------------------
+# We can use the ArchitectureGenerator classes to generate multiple identical architectures.
+# These classes take in base tracker and sensor models, which are duplicated and applied to each
+# relevant node in the architecture. The base tracker must not have a detector, in order for it
+# to be duplicated - the detector will be applied during the architecture generation step.
 #
-# An information architecture represents the points in a network which propagate, open, process,
-# and/or fuse data. This type of architecture does not consider the physical network, and hence
-# does not represent any nodes whose only functionality is to pass data in between information
-# processing nodes.
+# Sensor Model
+# ^^^^^^^^^^^^
+# The base sensor model's `position` property is used to calculate a location for sensors in
+# the architectures that we will generate. As you'll see in later steps, we can either plot
+# all sensors at the same location (`base_sensor.position`), or in a specified range around
+# the base_sensor's position (`base_sensor.position` +- a specified distance).
+
+
+from stonesoup.types.state import StateVector
+from stonesoup.sensor.radar.radar import RadarRotatingBearingRange
+from stonesoup.types.angle import Angle
+
+# Create base sensor
+base_sensor = RadarRotatingBearingRange(
+    position_mapping=(0, 2),
+    noise_covar=np.array([[0.25*np.radians(0.5) ** 2, 0],
+                          [0, 0.25*1 ** 2]]),
+    ndim_state=4,
+    position=np.array([[10], [10]]),
+    rpm=60,
+    fov_angle=np.radians(360),
+    dwell_centre=StateVector([0.0]),
+    max_range=np.inf,
+    resolutions={'dwell_centre': Angle(np.radians(30))}
+)
+base_sensor.timestamp = start_time
 
 # %%
-# Information Architecture nodes
-# ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-#
-# Firstly, we set up a set of Nodes that will feature in our information architecture. As the set
-# of nodes will include FusionNodes. As a prerequisite of building a FusionNode, we must first
-# build FusionTrackers and FusionQueues.
+# Tracker
+# ^^^^^^^
+# The base tracker provides a similar concept to the base sensor - it is duplicated and applied
+# to each fusion node. In order to duplicate the tracker, it's components must all be compatible
+# with being deep-copied. This means that we need to remove the fusion queue and reassign it
+# after duplication.
 
-
-# %%
-# Build Tracker
-# ^^^^^^^^^^^^^
 
 from stonesoup.predictor.kalman import KalmanPredictor
 from stonesoup.updater.kalman import ExtendedKalmanUpdater
 from stonesoup.hypothesiser.distance import DistanceHypothesiser
 from stonesoup.measures import Mahalanobis
 from stonesoup.dataassociator.neighbour import GNNWith2DAssignment
-from stonesoup.deleter.error import CovarianceBasedDeleter
+from stonesoup.deleter.time import UpdateTimeStepsDeleter
 from stonesoup.types.state import GaussianState
 from stonesoup.initiator.simple import MultiMeasurementInitiator
 from stonesoup.tracker.simple import MultiTargetTracker
-from stonesoup.architecture.edge import FusionQueue
+from stonesoup.updater.wrapper import DetectionAndTrackSwitchingUpdater
+from stonesoup.updater.chernoff import ChernoffUpdater
 
 predictor = KalmanPredictor(transition_model)
 updater = ExtendedKalmanUpdater(measurement_model=None)
 hypothesiser = DistanceHypothesiser(predictor, updater, measure=Mahalanobis(), missed_distance=5)
 data_associator = GNNWith2DAssignment(hypothesiser)
-deleter = CovarianceBasedDeleter(covar_trace_thresh=7)
+deleter = UpdateTimeStepsDeleter(2)
 initiator = MultiMeasurementInitiator(
     prior_state=GaussianState([[0], [0], [0], [0]], np.diag([0, 1, 0, 1])),
     measurement_model=None,
     deleter=deleter,
     data_associator=data_associator,
     updater=updater,
-    min_points=2,
+    min_points=4,
     )
-
-tracker = MultiTargetTracker(initiator, deleter, None, data_associator, updater)
-
-
-# %%
-# Build Track Tracker
-# ^^^^^^^^^^^^^^^^^^^
-#
-# The track tracker works by treating tracks as detections, in order to enable fusion between
-# tracks and detections together.
-
-from stonesoup.updater.wrapper import DetectionAndTrackSwitchingUpdater
-from stonesoup.updater.chernoff import ChernoffUpdater
-from stonesoup.feeder.track import Tracks2GaussianDetectionFeeder
 
 track_updater = ChernoffUpdater(None)
 detection_updater = ExtendedKalmanUpdater(None)
 detection_track_updater = DetectionAndTrackSwitchingUpdater(None, detection_updater, track_updater)
 
-
-fq = FusionQueue()
-
-track_tracker = MultiTargetTracker(
-    initiator, deleter, Tracks2GaussianDetectionFeeder(fq), data_associator, detection_track_updater)
-
+base_tracker = MultiTargetTracker(
+    initiator, deleter, None, data_associator, detection_track_updater)
 
 # %%
-# Build Information Architecture Nodes
-# ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-from stonesoup.architecture.node import SensorNode, FusionNode
-node_A = SensorNode(sensor=sensor_set[0], label='SensorNode A')
-node_B = SensorNode(sensor=sensor_set[2], label='SensorNode B')
-
-node_C_tracker = copy.deepcopy(tracker)
-node_C_tracker.detector = FusionQueue()
-node_C = FusionNode(tracker=node_C_tracker, fusion_queue=node_C_tracker.detector, latency=0, label='FusionNode C')
-
-node_D = SensorNode(sensor=sensor_set[1], label='SensorNode D')
-node_E = SensorNode(sensor=sensor_set[3], label='SensorNode E')
-
-node_F_tracker = copy.deepcopy(tracker)
-node_F_tracker.detector = FusionQueue()
-node_F = FusionNode(tracker=node_F_tracker, fusion_queue=node_F_tracker.detector, latency=0)
-
-node_H = SensorNode(sensor=sensor_set[4])
-
-node_G = FusionNode(tracker=track_tracker, fusion_queue=fq, latency=0)
-
-
-# %%
-# Build Information Architecture Edges
-# ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-from stonesoup.architecture import InformationArchitecture
-from stonesoup.architecture.edge import Edge, Edges
-
-edges=Edges([Edge((node_A, node_C), edge_latency=0.5),
-                 Edge((node_B, node_C)),
-                 Edge((node_D, node_F)),
-                 Edge((node_E, node_F)),
-                 Edge((node_C, node_G), edge_latency=0),
-                 Edge((node_F, node_G), edge_latency=0),
-                 Edge((node_H, node_G)),
-                ])
-
-
-# %%
-# Build and plot Information Architecture
-# ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+# 3 - Generate Identical Architectures
+# ------------------------------------
+# The NetworkArchitecture class has a property information_arch, which contains the
+# information-architecture-representation of the underlying network architecture. This means
+# that if we use the NetworkArchitectureGenerator class to generate a pair of identical network
+# architectures, we can extract the information architecture from one.
 #
-# sphinx_gallery_thumbnail_path = '_static/sphinx_gallery/ArchTutorial_2.png'
-#
-# Here we can see the Information Architecture that we have built. We can next run a simulation
-# over this architecture and plot the tracking results.
-information_architecture = InformationArchitecture(edges, current_time=start_time)
-information_architecture
+# This will provide us with two completely separate architecture classes: a network architecture,
+# and an information architecture representation of the same network architecture. This will
+# enable us to run simulations on both without interference between the two.
+
+
+from stonesoup.architecture.generator import NetworkArchitectureGenerator
+
+gen = NetworkArchitectureGenerator('decentralised',
+                                   start_time,
+                                   mean_degree=2,
+                                   node_ratio=[3, 1, 2],
+                                   base_tracker=base_tracker,
+                                   base_sensor=base_sensor,
+                                   sensor_max_distance=(30, 30),
+                                   n_archs=4)
+id_net_archs = gen.generate()
+
+# Network and Information arch pair
+network_arch = id_net_archs[0]
+information_arch = id_net_archs[1].information_arch
+
+network_arch.plot()
 
 # %%
-# Simulate measuring and propagating data over the network
-# ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+information_arch.plot()
+
+# %%
+# The two plots above display a network architecture, and corresponding information architecture,
+# respectively. Grey nodes in the network architecture represent repeater nodes - these have the
+# sole purpose of passing data from one node to another. Comparing the two graphs, while ignoring
+# the repeater nodes, should reveal that the two plots are both representations of the same
+# system.
+
+# %%
+# 4 - Tracking Simulations
+# ------------------------
+# With two identical architectures, we can now run a simulation over both, in an attempt to
+# produce identical results.
+#
+# Run Network Architecture Simulation
+# ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+# Run the simulation over the network architecture. We then extract some extra information from
+# the architecture to add to the plot - location of sensors, and detections.
+
 
 for time in timesteps:
-    information_architecture.measure(truths, noise=True)
-    information_architecture.propagate(time_increment=1)
+    network_arch.measure(truths, noise=True)
+    network_arch.propagate(time_increment=1)
 
 # %%
+na_sensors = []
+na_dets = set()
+for sn in network_arch.sensor_nodes:
+    na_sensors.append(sn.sensor)
+    for timestep in sn.data_held['created'].keys():
+        for datapiece in sn.data_held['created'][timestep]:
+            na_dets.add(datapiece.data)
+
+# %%
+# Plot
+# ^^^^
 
 from stonesoup.plotter import Plotterly
 
@@ -271,180 +236,232 @@ def reduce_tracks(tracks):
         for track in tracks}
 
 
-# %%
-# Plot Tracks at the Fusion Nodes
-# ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
 plotter = Plotterly()
-
 plotter.plot_ground_truths(truths, [0, 2])
-plotter.plot_tracks(reduce_tracks(node_C.tracks), [0, 2], track_label=node_C.label,
-                    line=dict(color='#00FF00'), uncertainty=True)
-plotter.plot_tracks(reduce_tracks(node_F.tracks), [0, 2], track_label=node_F.label,
-                    line=dict(color='#FF0000'), uncertainty=True)
-plotter.plot_tracks(reduce_tracks(node_G.tracks), [0, 2], track_label=node_G.label,
-                    line=dict(color='#0000FF'), uncertainty=True)
-plotter.plot_sensors(sensor_set)
+for node in network_arch.fusion_nodes:
+    if True:
+        hexcol = ["#"+''.join([random.choice('ABCDEF0123456789') for i in range(6)])]
+        plotter.plot_tracks(reduce_tracks(node.tracks),
+                            [0, 2],
+                            track_label=str(node.label),
+                            line=dict(color=hexcol[0]),
+                            uncertainty=True)
+plotter.plot_sensors(na_sensors)
+plotter.plot_measurements(na_dets, [0, 2])
 plotter.fig
 
-
 # %%
-# Network Architecture Example
-# ----------------------------
-# A network architecture represents the full physical network behind an information architecture. For an analogy, we
-# might compare an edge in the information architecture to the connection between a sender and recipient of an email.
-# Much of the time, we only care about the information architecture and not the actual mechanisms behind delivery of the
-# email, which is similar in nature to the network architecture.
-# Some nodes have the sole purpose of receiving and re-transmitting data on to other nodes in the network. We call
-# these :class:`~.RepeaterNode`s. Additionally, any :class:`~.Node` present in the :class:`~.InformationArchitecture`
-# must also be modelled in the :class:`~.NetworkArchitecture`.
+# Run Information Architecture Simulation
+# ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+# Run the simulation over the information architecture. As before, we extract some extra
+# information from the architecture to add to the plot - location of sensors, and detections.
 
-# %%
-# Network Architecture Nodes
-# ^^^^^^^^^^^^^^^^^^^^^^^^^^
-#
-# In this example, we will add six new :class:`~.RepeaterNode`s to the existing structure to create our corresponding
-# :class:`~.NetworkArchitecture`.
-
-from stonesoup.architecture.node import RepeaterNode
-
-repeaternode1 = RepeaterNode(label='RepeaterNode 1')
-repeaternode2 = RepeaterNode(label='RepeaterNode 2')
-repeaternode3 = RepeaterNode(label='RepeaterNode 3')
-repeaternode4 = RepeaterNode(label='RepeaterNode 4')
-repeaternode5 = RepeaterNode(label='RepeaterNode 5')
-repeaternode6 = RepeaterNode(label='RepeaterNode 6')
-
-node_A = SensorNode(sensor=sensor_set[0], label='SensorNode A')
-node_B = SensorNode(sensor=sensor_set[2], label='SensorNode B')
-
-node_C_tracker = copy.deepcopy(tracker)
-node_C_tracker.detector = FusionQueue()
-node_C = FusionNode(tracker=node_C_tracker, fusion_queue=node_C_tracker.detector, latency=0,
-                    label='FusionNode C')
-
-node_D = SensorNode(sensor=sensor_set[1], label='SensorNode D')
-node_E = SensorNode(sensor=sensor_set[3], label='SensorNode E')
-
-node_F_tracker = copy.deepcopy(tracker)
-node_F_tracker.detector = FusionQueue()
-node_F = FusionNode(tracker=node_F_tracker, fusion_queue=node_F_tracker.detector, latency=0)
-
-node_H = SensorNode(sensor=sensor_set[4])
-
-fq = FusionQueue()
-track_tracker = MultiTargetTracker(
-    initiator, deleter, Tracks2GaussianDetectionFeeder(fq),
-    data_associator, detection_track_updater)
-
-node_G = FusionNode(tracker=track_tracker, fusion_queue=fq, latency=0)
-
-
-# %%
-# Network Architecture Edges
-# ^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-edges = Edges([Edge((node_A, repeaternode1), edge_latency=0.5),
-               Edge((repeaternode1, node_C), edge_latency=0.5),
-               Edge((node_B, repeaternode3)),
-               Edge((repeaternode3, node_C)),
-               Edge((node_A, repeaternode2), edge_latency=0.5),
-               Edge((repeaternode2, node_C)),
-               Edge((repeaternode1, repeaternode2)),
-               Edge((node_D, repeaternode4)),
-               Edge((repeaternode4, node_F)),
-               Edge((node_E, repeaternode5)),
-               Edge((repeaternode5, node_F)),
-               Edge((node_C, node_G), edge_latency=0),
-               Edge((node_F, node_G), edge_latency=0),
-               Edge((node_H, repeaternode6)),
-               Edge((repeaternode6, node_G))
-               ])
-
-
-# %%
-# Network Architecture Functionality
-# ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-#
-# A network architecture provides a representation of all nodes in a network - the corresponding
-# information architecture is made up of a subset of these nodes.
-#
-# To aid in modelling this in Stone Soup, the NetworkArchitecture class has a property
-# `information_arch`: an InformationArchitecture object representing the information
-# architecture that is underpinned by the network architecture. This means that a
-# NetworkArchitecture object requires two Edge lists: one set of edges representing the
-# network architecture, and another representing links in the information architecture. To
-# ease the setup of these edge lists, there are multiple options for how to instantiate a
-# :class:`~.NetworkArchitecture`
-#
-# - Firstly, providing the :class:`~.NetworkArchitecture` with an `edge_list` for the network
-#   architecture (an Edges object), and a pre-fabricated InformationArchitecture object, which must
-#   be provided as property `information_arch`.
-#
-# - Secondly, by providing the NetworkArchitecture with two `edge_list` values: one for the network
-#   architecture and one for the information architecture.
-#
-# - Thirdly, by providing just a set of edges for the network architecture. In this case,
-#   the NetworkArchitecture class will infer which nodes in the network architecture are also
-#   part of the information architecture, and form an edge set by calculating the fastest routes
-#   (the lowest latency) between each set of nodes in the architecture. Warning: this method is for
-#   ease of use, and may not represent the information architecture you are designing - it is
-#   best to check by plotting the generated information architecture.
-#
-
-
-# %%
-# Instantiate Network Architecture
-# ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-from stonesoup.architecture import NetworkArchitecture
-network_architecture = NetworkArchitecture(edges=edges, current_time=start_time)
-
-
-# %%
-# Simulate measurement and propagation across the Network Architecture
-# ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 for time in timesteps:
-    network_architecture.measure(truths, noise=True)
-    network_architecture.propagate(time_increment=1)
-
-
-# %%
-# Plot the Network Architecture
-# ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-#
-# The plot below displays the Network Architecture we have built. This includes all Nodes,
-# including those that do not feature in the Information Architecture (the repeater nodes).
-
-network_architecture
+    information_arch.measure(truths, noise=True)
+    information_arch.propagate(time_increment=1)
 
 # %%
-# Plot the Network Architecture's Information Architecture
-# ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-#
-# Next we plot the information architecture that is underpinned by the network architecture. The
-# nodes of the information architecture are a subset of the nodes from the network architecture.
-# An edge in the Information Architecture could be equivalent
-# to a physical edge between two nodes in the Network Architecture, but it could also be a
-# representation of multiple edges and nodes that a data piece would be transferred through in
-# order to pass from a sender to a recipient node.
-# Observing the plot of the information architecture, we can see that it is identical to the
-# information architecture that we started this tutorial with.
-
-network_architecture.information_arch
+ia_sensors = []
+ia_dets = set()
+for sn in information_arch.sensor_nodes:
+    ia_sensors.append(sn.sensor)
+    for timestep in sn.data_held['created'].keys():
+        for datapiece in sn.data_held['created'][timestep]:
+            ia_dets.add(datapiece.data)
 
 # %%
-# Plot Tracks at the Fusion Nodes (Network Architecture)
-# ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
 plotter = Plotterly()
 plotter.plot_ground_truths(truths, [0, 2])
-plotter.plot_tracks(reduce_tracks(node_C.tracks), [0, 2], track_label=node_C.label,
-                    line=dict(color='#00FF00'), uncertainty=True)
-plotter.plot_tracks(reduce_tracks(node_F.tracks), [0, 2], track_label=node_F.label,
-                    line=dict(color='#FF0000'), uncertainty=True)
-plotter.plot_tracks(reduce_tracks(node_G.tracks), [0, 2], track_label=node_G.label,
-                    line=dict(color='#0000FF'), uncertainty=True)
-plotter.plot_sensors(sensor_set)
+for node in information_arch.fusion_nodes:
+    if True:
+        hexcol = ["#"+''.join([random.choice('ABCDEF0123456789') for i in range(6)])]
+        plotter.plot_tracks(reduce_tracks(node.tracks), [0, 2], track_label=str(node.label), line=dict(color=hexcol[0]), uncertainty=True)
+plotter.plot_sensors(ia_sensors)
+plotter.plot_measurements(ia_dets, [0, 2])
 plotter.fig
+
+# %%
+# Comparing Tracks from each Architecture
+#
+# The information architecture we have studied is hierarchical, and while the network
+# architecture isn't strictly a hierarchical graph, it does have one central node receiving all
+# information. The central node is Fusion Node 1. The code below plots SIAP metrics for the
+# tracks maintained at Fusion Node 1 in both architecures. Some variation between the two is
+# expected due to the randomness of the measurements, but we aim to show that the results from
+# both architectures are near identical.
+
+top_node = network_arch.top_level_nodes.pop()
+
+# %%
+from stonesoup.metricgenerator.tracktotruthmetrics import SIAPMetrics
+from stonesoup.measures import Euclidean
+from stonesoup.dataassociator.tracktotrack import TrackToTruth
+from stonesoup.metricgenerator.manager import MultiManager
+
+network_siap = SIAPMetrics(position_measure=Euclidean((0, 2)),
+                           velocity_measure=Euclidean((1, 3)),
+                           generator_name='network_siap',
+                           tracks_key='network_tracks',
+                           truths_key='truths'
+                           )
+
+associator = TrackToTruth(association_threshold=30)
+
+
+# %%
+network_metric_manager = MultiManager([network_siap], associator)
+network_metric_manager.add_data({'network_tracks': top_node.tracks,
+                                 'truths': truths}, overwrite=False)
+network_metrics = network_metric_manager.generate_metrics()
+
+# %%
+network_siap_metrics = network_metrics['network_siap']
+network_siap_averages = {network_siap_metrics.get(metric) for metric in network_siap_metrics
+                        if metric.startswith("SIAP") and not metric.endswith(" at times")}
+
+# %%
+top_node = information_arch.top_level_nodes.pop()
+
+# %%
+information_siap = SIAPMetrics(position_measure=Euclidean((0, 2)),
+                               velocity_measure=Euclidean((1, 3)),
+                               generator_name='information_siap',
+                               tracks_key='information_tracks',
+                               truths_key='truths'
+                               )
+
+associator = TrackToTruth(association_threshold=30)
+
+# %%
+information_metric_manager = MultiManager([information_siap], associator)
+information_metric_manager.add_data({'information_tracks': top_node.tracks,
+                                     'truths': truths}, overwrite=False)
+information_metrics = information_metric_manager.generate_metrics()
+
+# %%
+information_siap_metrics = information_metrics['information_siap']
+information_siap_averages = {information_siap_metrics.get(metric) for
+                             metric in information_siap_metrics if
+                             metric.startswith("SIAP") and not metric.endswith(" at times")}
+
+# %%
+from stonesoup.metricgenerator.metrictables import SIAPDiffTableGenerator
+SIAPDiffTableGenerator([network_siap_averages, information_siap_averages]).compute_metric()
+
+# %%
+# 5 - Remove edges from each architecture and re-run
+# --------------------------------------------------
+# In this section, we take an identical copy of each of the architectures above, and remove an
+# edge. We aim to show the following 2 points:
+#
+# 1) It is possible to remove certain edges from a network architecture without effecting the
+# performance of the network.
+#
+# 2) Removing an edge from an information architecture will likely have an effect on performance.
+#
+# First, we must set up the two architectures, and remove an edge from each. In the network
+# architecture, there are multiple routes between some pairs of nodes. This redundency increases
+# the resiliance of the network when an edge, or node, is taken out of action. In this example,
+# we remove edges connecting repeater node r3, in turn, disabling a route from sensor node s0
+# to fusion node f0. As another route from s0 to f0 exists (via repeater node r4), the
+# performance of the network should not be effected (assuming unlimited bandwidth).
+
+# %%
+# Network and Information arch pair
+network_arch_rm = id_net_archs[2]
+information_arch_rm = id_net_archs[3].information_arch
+
+# %%
+rm = []
+for edge in network_arch_rm.edges:
+    if 'r3' in [node.label for node in edge.nodes]:
+        rm.append(edge)
+
+for edge in rm:
+    network_arch_rm.edges.remove(edge)
+
+# %%
+network_arch_rm.plot()
+
+# %%
+# Now we remove an edge from the information architecture. You could choose pretty much any
+# edge here, but removing the edge between sf0 and f1 is likely to cause the greatest destruction
+# (in the interest of the reader). Removing this edge creates a disconnected graph. The Stone
+# Soup architecture module can deal with this with no issues, but for this example we will now
+# only consider the connected subgraph containing node f1.
+
+
+rm = []
+for edge in information_arch_rm.edges:
+    if 'sf0' in [node.label for node in edge.nodes] and 'f1' in [node.label for node in edge.nodes]:
+        rm.append(edge)
+
+for edge in rm:
+    information_arch_rm.edges.remove(edge)
+
+# %%
+information_arch_rm.plot()
+
+# %%
+# We now run the simulation for both architectures and calculate the same SIAP metrics as we
+# did before for the original architectures.
+
+
+for time in timesteps:
+    network_arch_rm.measure(truths, noise=True)
+    network_arch_rm.propagate(time_increment=1)
+    information_arch_rm.measure(truths, noise=True)
+    information_arch_rm.propagate(time_increment=1)
+
+# %%
+top_node = [node for node in network_arch_rm.all_nodes if node.label == 'f1'][0]
+
+network_rm_siap = SIAPMetrics(position_measure=Euclidean((0, 2)),
+                              velocity_measure=Euclidean((1, 3)),
+                              generator_name='network_rm_siap',
+                              tracks_key='network_rm_tracks',
+                              truths_key='truths'
+                              )
+
+network_rm_metric_manager = MultiManager([network_rm_siap], associator)
+network_rm_metric_manager.add_data({'network_rm_tracks': top_node.tracks,
+                                    'truths': truths}, overwrite=False)
+network_rm_metrics = network_rm_metric_manager.generate_metrics()
+
+network_rm_siap_metrics = network_rm_metrics['network_rm_siap']
+network_rm_siap_averages = {network_rm_siap_metrics.get(metric) for
+                            metric in network_rm_siap_metrics
+                            if metric.startswith("SIAP") and not metric.endswith(" at times")}
+
+# %%
+top_node = [node for node in information_arch_rm.all_nodes if node.label == 'f1'][0]
+
+information_rm_siap = SIAPMetrics(position_measure=Euclidean((0, 2)),
+                                  velocity_measure=Euclidean((1, 3)),
+                                  generator_name='information_rm_siap',
+                                  tracks_key='information_rm_tracks',
+                                  truths_key='truths'
+                                  )
+
+information_rm_metric_manager = MultiManager([information_rm_siap,
+                                  ], associator)  # associator for generating SIAP metrics
+information_rm_metric_manager.add_data({'information_rm_tracks': top_node.tracks,
+                                        'truths': truths}, overwrite=False)
+information_rm_metrics = information_rm_metric_manager.generate_metrics()
+
+information_rm_siap_metrics = information_rm_metrics['information_rm_siap']
+information_rm_siap_averages = {information_rm_siap_metrics.get(metric) for
+                                metric in information_rm_siap_metrics
+                                if metric.startswith("SIAP") and not metric.endswith(" at times")}
+
+# %%
+# Plotting the metrics for the two original architectures, and the metrics for the copies with
+# edges removed, should display the result we predicted at the start of this section.
+
+# %%
+SIAPDiffTableGenerator([network_siap_averages,
+                        information_siap_averages,
+                        network_rm_siap_averages,
+                        information_rm_siap_averages],
+                       ['Network', 'Info', 'Network RM', 'Info RM']).compute_metric()
