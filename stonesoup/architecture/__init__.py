@@ -2,6 +2,7 @@ from abc import abstractmethod
 from operator import attrgetter
 
 import pydot
+from ordered_set import OrderedSet
 
 from ..base import Base, Property
 from .node import Node, SensorNode, RepeaterNode, FusionNode
@@ -385,7 +386,7 @@ class InformationArchitecture(Architecture):
 
         # Get rid of ground truths that have not yet happened
         # (ie GroundTruthState's with timestamp after self.current_time)
-        new_ground_truths = set()
+        new_ground_truths = OrderedSet()
         for ground_truth_path in ground_truths:
             # need an if len(states) == 0 continue condition here?
             new_ground_truths.add(ground_truth_path.available_at_time(self.current_time))
