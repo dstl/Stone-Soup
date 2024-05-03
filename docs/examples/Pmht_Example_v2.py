@@ -1,9 +1,9 @@
 #!/usr/bin/env python
 
 """
-=====================================
-Probabilistic Multi-Hypothesis Tracker v2
-=====================================
+======================================
+Probabilistic Multi-Hypothesis Tracker
+======================================
 """
 
 # %%
@@ -133,7 +133,7 @@ measurement_model = LinearGaussian(
     )
 
 # probability of detection
-detection_probability = 0.9
+detection_probability = 0.5
 
 # clutter will be generated uniformly in this are around the target
 meas_range = np.array([[-1, 1], [-1, 1]])*1000
@@ -196,7 +196,6 @@ init_priors = [GaussianState(StateVector(init_mean), init_cov, timestamp=start_t
 # iterations early, the current setup runs all iterations. The algorithm can maintain and update prior probabilities
 # of data association, affecting performance based on the application.
 
-
 # Number of measurement scans to run over for each batch
 batch_len = 10
 
@@ -225,9 +224,7 @@ pmht = PMHTTracker(
     max_num_iterations=max_num_iterations,
     update_log_pi=update_log_pi)
 
-
-
-# %% Plot ground truth detections against traking estimates.
+# Plot ground truth detections against tracking estimates.
 
 from stonesoup.plotter import AnimatedPlotterly
 
@@ -240,7 +237,6 @@ plotter = AnimatedPlotterly(TimeStamps, tail_length=0.3)
 plotter.plot_tracks(groundtruth, [0, 2])
 plotter.plot_tracks(pmht.tracks, [0, 2])
 plotter.fig
-#plotter.fig.show()
 # %%
 # Key points
 # ----------
