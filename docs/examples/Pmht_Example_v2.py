@@ -224,6 +224,7 @@ pmht = PMHTTracker(
     max_num_iterations=max_num_iterations,
     update_log_pi=update_log_pi)
 
+# %%
 # Plot ground truth detections against tracking estimates.
 
 from stonesoup.plotter import AnimatedPlotterly
