@@ -154,11 +154,17 @@ class MonteCarloTreeSearchSensorManager(SensorManager):
         maximum number of visits."""
 
         visit_list = []
+        reward_list = []
         for Child_ID in nodes[0]['Child_IDs']:
             visit_list.append(nodes[Child_ID]['visits'])
+            reward_list.append(nodes[Child_ID]['reward'])
 
         max_visit_indx = np.argmax(visit_list)
-        return [nodes[0]['Child_IDs'][max_visit_indx]]
+        max_reward_indx = np.argmax(reward_list)
+        max_creward_indx = np.argmax(np.asarray(reward_list)/np.asarray(visit_list))
+        return [nodes[0]['Child_IDs'][max_reward_indx]]
+        # return [nodes[0]['Child_IDs'][max_creward_indx]]
+        # return [nodes[0]['Child_IDs'][max_visit_indx]]
 
     def simulate_action(self, node, parent_node):
         """Simulates the expected reward that would be received by executing
