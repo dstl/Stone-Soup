@@ -14,7 +14,7 @@ from ..smoother.kalman import ExtendedKalmanSmoother
 from ..types.prediction import Prediction
 from ..types.track import Track
 from ..functions import slr_definition
-
+from ..models.measurement.linear import GeneralLinearGaussian
 
 class DynamicallyIteratedUpdater(Updater):
     """
@@ -217,7 +217,7 @@ class IPLFKalmanUpdater(UnscentedKalmanUpdater):
             iterations += 1
 
         print("IPLF update took {} iterations and the KLD value of {}.".format(
-            iterations, *self.measure(prev_post_state, post_state)
+            iterations, self.measure(prev_post_state, post_state)
         ))
 
         return post_state
