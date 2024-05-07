@@ -2,6 +2,7 @@ from abc import ABC
 import copy
 import datetime
 from typing import Mapping, Sequence, Set
+from ordered_set import OrderedSet
 
 import numpy as np
 
@@ -170,6 +171,10 @@ class ExpectedKLDivergence(RewardFunction):
                                                   "Default calculates sum across all targets."
                                                   "Otherwise calculates mean of all targets.")
 
+    return_tracks: bool = Property(default=False, doc="A flag for allowing the predicted track, "
+                                                      "used to calculate the reward, to be "
+                                                      "returned.")
+
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.KLD = KLDivergence()
@@ -237,9 +242,9 @@ class ExpectedKLDivergence(RewardFunction):
             # Assumes one detection per track
 
             detections = self._generate_detections(predicted_tracks, sensor)
-
+            predicted_updates = OrderedSet()
             for predicted_track, detection_set in detections.items():
-
+                predicted_update = tuple()
                 for n, detection in enumerate(detection_set):
 
                     # if detection:
@@ -248,18 +253,22 @@ class ExpectedKLDivergence(RewardFunction):
 
                     # Do the update based on this hypothesis and store covariance matrix
                     update = self.updater.update(hypothesis)
-
+                    predicted_update += (update,)
                     # else:
                     #     update = copy.copy(predicted_track[-1])
 
                     kld += self.KLD(predicted_track[-1], update)
+                predicted_updates.add(predicted_update)
 
             if self.method_sum is False and len(detections) != 0:
 
                 kld /= len(detections)
 
         # Return value of configuration metric
-        return kld
+        if self.return_tracks:
+            return kld, predicted_updates
+        else:
+            return kld
 
     def _generate_detections(self, predicted_tracks, sensor):
 
