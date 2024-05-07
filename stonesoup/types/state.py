@@ -917,6 +917,45 @@ class BernoulliParticleState(ParticleState):
         return result
 
 
+class KernelParticleState(State):
+    """Kernel Particle State type
+
+    This is a kernel particle state object which describes the state as a
+    distribution of particles and kernel covariance.
+    """
+
+    state_vector: StateVectors = Property(doc='State vectors.')
+    weight: np.ndarray = Property(default=None, doc='Weights of particles')
+    parent: 'ParticleState' = Property(default=None, doc='Parent particles')
+    kernel_covar: CovarianceMatrix = Property(default=None,
+                                              doc='Kernel covariance value. Default `None`.')
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        if self.kernel_covar is None:
+            self.kernel_covar = CovarianceMatrix(np.identity(self.state_vector.shape[1])
+                                                 * (1/self.state_vector.shape[1]))
+
+    def __len__(self):
+        return self.state_vector.shape[1]
+
+    @property
+    def ndim(self):
+        """The number of dimensions represented by the state."""
+        return self.state_vector.shape[0]
+
+    @property
+    def mean(self):
+        return self.state_vector @ self.weight
+
+    @property
+    def covar(self):
+        return self.state_vector @ self.kernel_covar @ self.state_vector.T
+
+
+ParticleState.register(KernelParticleState)
+
+
 class EnsembleState(State):
     r"""Ensemble State type
 
