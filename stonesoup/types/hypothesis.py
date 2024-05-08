@@ -1,6 +1,6 @@
 from abc import abstractmethod
 from collections import UserDict
-from typing import Sequence
+from typing import Sequence, Dict
 
 import numpy as np
 
@@ -58,6 +58,7 @@ class SingleHypothesis(Hypothesis):
     measurement: Detection = Property(doc="Detection used for hypothesis and updating")
     measurement_prediction: MeasurementPrediction = Property(
         default=None, doc="Optional track prediction in measurement space")
+    metadata: Dict = Property(default=None, doc="Optional metadata")
 
     def __bool__(self):
         return (not isinstance(self.measurement, MissedDetection)) and \
