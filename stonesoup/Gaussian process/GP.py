@@ -17,16 +17,29 @@ class GaussianProcess:
             return self.kernel_obj.SE_kernel(X1, X2, *args, **kwargs)
         elif self.kernel_type == 'ARD':
             return self.kernel_obj.ARD_kernel(X1, X2, *args, **kwargs)
+        elif self.kernel_type == 'Linear':
+            return self.kernel_obj.linear_kernel(X1, X2, *args, **kwargs)
+        elif self.kernel_type == 'Polynomial':
+            return self.kernel_obj.polynomial_kernel(X1, X2, *args, **kwargs)
+        
+        elif self.kernel_type == 'Matern':
+            return self.kernel_obj.matern_kernel(X1, X2, *args, **kwargs)
+        elif self.kernel_type == 'Periodic':
+            return self.kernel_obj.periodic_kernel(X1, X2, *args, **kwargs)
+        else:
+            raise ValueError("Unknown kernel type")
 
     def posterior(
-        self, X_s, X_train, Y_train, length_scale=1.0, sigma_f=1.0,
+        self, X_s, X_train, Y_train, length_scale=1.0, sigma_f=0.10,
         sigma_y=1e-8
     ):
-        K = self.kernel(X_train, X_train, length_scale, sigma_f)
+
+        K = self.kernel(X_train, X_train, length_scale=length_scale, sigma_f=sigma_f)
+
         K += sigma_y**2 * np.eye(len(X_train))
-        K_s = self.kernel(X_train, X_s, length_scale, sigma_f)
-        K_ss = self.kernel(X_s, X_s, length_scale, sigma_f)
-        K_ss + 1e-8 * np.eye(len(X_s))
+        K_s = self.kernel(X_train, X_s, length_scale=length_scale, sigma_f=sigma_f)
+        K_ss = self.kernel(X_s, X_s, length_scale=length_scale, sigma_f=sigma_f)
+        K_ss + 1e-5 * np.eye(len(X_s))
         K_inv = inv(K)
 
         mu_s = K_s.T.dot(K_inv).dot(Y_train)
@@ -35,18 +48,18 @@ class GaussianProcess:
         return mu_s, cov_s
 
     def distributed_posterior(
-        self, X_s, X_train, Y_train, length_scale=1.0, sigma_f=1.0,
+        self, X_s, X_train, Y_train, length_scale=1.0, sigma_f=0.10,
         sigma_y=1e-8
     ):
         mu_s = [None] * len(X_train)
         cov_s = [None] * len(X_train)
 
         for i in range(len(X_train)):
-            K = self.kernel(X_train[i], X_train[i], length_scale, sigma_f)
+            K = self.kernel(X_train[i], X_train[i], length_scale=length_scale, sigma_f=sigma_f)
             K += sigma_y**2 * np.eye(len(X_train[i]))
             K_s = self.kernel(X_train[i], X_s, length_scale, sigma_f)
             K_ss = self.kernel(X_s, X_s, length_scale, sigma_f)
-            K_ss += 1e-8 * np.eye(len(X_s))
+            K_ss += 1e-2 * np.eye(len(X_s))
             K_inv = inv(K)
             Y_train1 = np.array(Y_train[i]).ravel()
 
@@ -77,8 +90,9 @@ class GaussianProcess:
                     K = self.kernel(
                         X_train[i], X_train[i], length_scale=theta[0],
                         sigma_f=theta[1]
+                        
                     ) + theta[2]**2 * np.eye(len(X_train[i]))
-
+                    K += np.eye(K.shape[0]) * 1e-1
                     L = cholesky(K)
 
                     S1 = solve_triangular(L, Y_train1, lower=True)
@@ -99,6 +113,7 @@ class GaussianProcess:
                     sigma_f=theta[1]
                 )
                 K += theta[2]**2 * np.eye(len(X_train))
+                K += np.eye(K.shape[0]) * 1e-1
                 L = cholesky(K)
 
                 S1 = solve_triangular(L, Y_train1, lower=True)
@@ -112,7 +127,7 @@ class GaussianProcess:
             return nll_stable
 
     def fit(self, X_train, Y_train, flag):
-        return minimize(self.nll_fn(X_train, Y_train, flag), [1, 1, 0.1],
+        return minimize(self.nll_fn(X_train, Y_train, flag), [5, 5, 0.1],
                         bounds=((1e-5, None), (1e-5, None), (1e-5, None)),
                         method='L-BFGS-B')
 
