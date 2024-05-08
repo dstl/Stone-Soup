@@ -157,4 +157,3 @@ class GP_track():
         # Return the additional list of sensor counts
         # along with the original outputs
         return x_data, x_cov, y_data, y_cov, x_s, y_s, t_s
-
