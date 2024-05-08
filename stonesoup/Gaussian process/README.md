@@ -12,3 +12,5 @@ using optimised Gaussian process models. This study advances
 the Stone Soup platform’s capabilities and lays the groundwork
 for future investigations into adaptive GP applications in tracking
 and sensor data analysis
+
+From The University of sheffield team
