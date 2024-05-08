@@ -84,6 +84,9 @@ mfa = [
 ehm = [
     "pyehm",
 ]
+ode = [
+    "torch",
+]
 
 [tool.setuptools]
 include-package-data = false
