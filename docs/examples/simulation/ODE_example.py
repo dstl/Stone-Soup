@@ -18,6 +18,7 @@ Using linearised ODEs from non-linear dynamic models in Stone Soup
 #
 # Specifically, in this example we will show how to use the Van Loan method [1]_
 # to linearise a nearly constant heading transition model [2]_.
+#
 # We can use Stone Soup components to create a linearised model and use standard components to
 # perform the tracking. This method can be used in other context such as space domain (i.e., linearisation of
 # gravitational forces acting on a satellite).
@@ -27,10 +28,12 @@ Using linearised ODEs from non-linear dynamic models in Stone Soup
 # of the target. This model describes the motion of targets on a 2-dimensional Cartesian plane (x-y).
 # The speed is represented as follows :math:`v = \sqrt{\dot{x}^{2} + \dot{y}^{2}}`, with :math:`\dot{x}`
 # which describes the component of the velocity on the x-axis.
+#
 # The constant heading model assumes that the velocity and the heading of the target follow a
 # Random walk, meaning that the absolute acceleration and the turn rate of such model are modelled as
 # white noise components that evolve following independent Brownian motions (noted as :math:`dw_{k}` and
 # :math:`db_{k}` in the following equations).
+#
 # The system is described by this Stochastic Differential Equation (SDE), at a timestamp :math:`k`:
 #
 # .. math::
@@ -40,18 +43,18 @@ Using linearised ODEs from non-linear dynamic models in Stone Soup
 #           d\theta_{k} &= \sigma_{k}db_{k},\\
 #
 # where we note :math:`\sigma` as the uncertainty on the velocity and heading, :math:`dt` (or in discretised form as
-# :math:`\triangle t`) the time interval between :math:`k` and :math:`k-1`.
+# :math:`\Delta t`) the time interval between :math:`k` and :math:`k-1`.
 # The full formulation of the evolution of the model can be found in the paper by Kountouriotis
 # and Maskell [2]_. However, we can still present the time evolution of the system as follows:
 #
-# ..math::
+# .. math::
 #           x_{k|k-1} &= f_{k|k-1}(x_{k-1}, q_{k}) &= \begin{bmatrix}
-#                                                       x_{k-1} + v_{k-1}\cos\theta_{k-1}\triangle t\\
-#                                                       y_{k-1} + v_{k-1}\sin\theta_{k-1}\triangle t\\
+#                                                       x_{k-1} + v_{k-1}\cos\theta_{k-1}\Delta t\\
+#                                                       y_{k-1} + v_{k-1}\sin\theta_{k-1}\Delta t\\
 #                                                       v_{k-1}\\
 #                                                       theta_{k-1}\\
 #                                                      \end{bmatrix} \\
-# and the noise as :math:`\mathcal{Q}_{CH} = diag{0, 0, \sigma^2_{v}\triangle t, \sigma^{2}_{\theta} \triangle t}`.
+# and the noise as :math:`\mathcal{Q}_{CH} = diag\{0, 0, \sigma^2_{v}\Delta t, \sigma^{2}_{\theta} \Delta t\}`.
 # Our implementation uses a 5-dimensional :class:`~.State` with specified the velocity component on the
 # x and y axis.
 #
@@ -65,8 +68,7 @@ Using linearised ODEs from non-linear dynamic models in Stone Soup
 #   1. Create the target trajectory and detections;
 #   2. Create the linearised function;
 #   3. Instantiate the tracker components;
-#   5. Run the tracker using the linearised function and visualise the final tracks;
-#
+#   4. Run the tracker using the linearised function and visualise the final tracks;
 
 # %%
 # General imports
@@ -123,8 +125,8 @@ theta = 0.  # starting heading (degrees)
 # its course.
 # We model the trajectory by using the existing transition model present in Stone Soup, in particular using
 # the transition model :class:`~.KnownTurnRate`. We consider the transition models without any process noise
-# to keep the trajectory as close as possible to the one presented in the paper. We model the process noise
-# on the :math:`\theta` as Randomw walk.
+# to keep the trajectory as close as possible to the one presented in the paper.
+# We model the process noise on the :math:`\theta` as Randomw walk.
 #
 # To generate detections we employ a simple :class:`~.LinearGaussian` measurement model.
 # In this example, we consider a negligible clutter noise.
@@ -394,6 +396,8 @@ plotter.fig
 # model of a target and perform the tracking in a navigation scenario (constant heading).
 # This example shows how a non-linear dynamics can be approached and modelled simply in Stone Soup and
 # how it can be adapted over various applications with limited changes in the linearised class structure.
+
+# sphinx_gallery_thumbnail_number = 2
 
 # %%
 # References
