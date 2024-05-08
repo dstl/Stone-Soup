@@ -19,7 +19,7 @@ class GP_track():
         return start_time
 
     def update(self, Data_train, Time_train, test_t):
-        G = GaussianProcess (kernel_type='SE')
+        G = GaussianProcess(kernel_type='SE')
         Time_test = np.array([test_t]).reshape(-1, 1)
         res = G.fit(Time_train, Data_train, flag='GP')
         l_opt, sigma_f_opt, sigma_no = res.x
@@ -77,13 +77,13 @@ class GP_track():
         y_cov = np.array(y_cov).reshape(-1)
         return x_data, x_cov, y_data, y_cov
 
-
     def tracking_DGP(self, measurements, time_data, x_train, y_train):
         x_data = []
         x_cov = []
         y_data = []
         y_cov = []
-        sensors_count = []  # List to keep track of sensor count at each time point
+        # List to keep track of sensor count at each time point
+        sensors_count = []
         T = len(measurements)
         x_s = []
         y_s = []
@@ -92,58 +92,59 @@ class GP_track():
             time_data_filtered = []
             x_data_filtered = []
             y_data_filtered = []
-            
+
             sensor_counter = 0  # Initialize sensor counter for this time point
-    
+
             for sensor_id in range(len(y_train)):
-                indices_to_keep = np.where(np.array(time_data[sensor_id]) < i+1)[0]
-                
+                indices_to_keep = np.where(
+                    np.array(time_data[sensor_id]) < i+1)[0]
+
                 # Filter the time data for the current sensor
-                time_filtered = np.array(time_data[sensor_id])[indices_to_keep].reshape(-1, 1)
+                time_filtered = np.array(time_data[sensor_id])[
+                    indices_to_keep].reshape(-1, 1)
                 time_data_filtered.append(time_filtered)
-                
+
                 # Filter the x data for the current sensor
-                x_filtered = np.array(x_train[sensor_id])[indices_to_keep].reshape(-1, 1)
-                x_noise = np.random.normal(0, 2.3, x_filtered.shape)  # Replace mu and sigma with your chosen values
+                x_filtered = np.array(x_train[sensor_id])[
+                    indices_to_keep].reshape(-1, 1)
+                # Replace mu and sigma with your chosen values
+                x_noise = np.random.normal(0, 2.3, x_filtered.shape)
                 x_filtered += x_noise
                 x_data_filtered.append(x_filtered)
-                
-                
-                
+
                 # Filter the y data for the current sensor
-                y_filtered = np.array(y_train[sensor_id])[indices_to_keep].reshape(-1, 1)
-                y_noise = np.random.normal(0, 2.3, y_filtered.shape)  # Replace mu and sigma with your chosen values
+                y_filtered = np.array(y_train[sensor_id])[
+                    indices_to_keep].reshape(-1, 1)
+                # Replace mu and sigma with your chosen values
+                y_noise = np.random.normal(0, 2.3, y_filtered.shape)
                 y_filtered += y_noise
                 y_data_filtered.append(y_filtered)
-                
-                
-                # If the current sensor has data for this time point, increment the counter
                 if len(time_filtered) > 0:
                     sensor_counter += 1
-                     
-            # Filter to keep only time points where there are at least 3 data points
-            time_dataF = [data for data in time_data_filtered if len(data) >= 3]
+
+            # Filter to keep only time points where there are at least 3
+            time_dataF = [
+                data for data in time_data_filtered if len(data) >= 3]
             x_trainF = [data for data in x_data_filtered if len(data) >= 3]
             y_trainF = [data for data in y_data_filtered if len(data) >= 3]
-            
+
             mu_x, cov_x = self.update_DGP(x_trainF, time_dataF, X_test_dgp)
             x_data.append(mu_x)
             x_cov.append(cov_x)
-            
+
             mu_y, cov_y = self.update_DGP(y_trainF, time_dataF, X_test_dgp)
             y_data.append(mu_y)
             y_cov.append(cov_y)
-            
-            
+
             # Add the sensor count for this time point to the list
             sensors_count.append(sensor_counter)
-    
+
         # Convert the collected data to arrays and reshape
         x_data = np.array(x_data).reshape(-1)
         x_cov = np.array(x_cov).reshape(-1)
         y_data = np.array(y_data).reshape(-1)
         y_cov = np.array(y_cov).reshape(-1)
-        
+
         x_s = np.vstack(x_trainF)
         y_s = np.vstack(y_trainF)
         t_s = np.vstack(time_dataF)
@@ -151,57 +152,9 @@ class GP_track():
         t_id = t_s[:, 0].argsort()
 
         t_s = t_s[t_id]
-        x_s = x_s[t_id] 
+        x_s = x_s[t_id]
         y_s = y_s[t_id]
-        # Return the additional list of sensor counts along with the original outputs
+        # Return the additional list of sensor counts
+        # along with the original outputs
         return x_data, x_cov, y_data, y_cov, x_s, y_s, t_s
-    
-    
-    
-    def trackingA(self, measurements, window_size,x_trainF):
-        Xm = []
-        Ym = []
-        x_data = []
-        x_cov = []
-        y_data = []
-        y_cov = []
-    
-        for measurement in measurements:
-            Xm.append(measurement.state_vector[0])
-            Ym.append(measurement.state_vector[1])
-    
-        Xm = np.array(Xm).reshape(-1, 1)
-        Ym = np.array(Ym).reshape(-1, 1)
-        T = len(measurements)
-        
-        for i in range(2, len(t_s)):
-            count = sensor_counts[i-3]  # Get the sensor count for the current time
-            
-            SW = self.sliding_window(i, window_size)
-            # print(count)
-            # y_noise = np.random.normal(mu, sigma, y_filtered.shape)  # Replace mu and sigma with your chosen values
-            # y_filtered += y_noise
-            
-            
-            Time_train = np.repeat(np.arange(SW, i).reshape(-1, 1), count, axis=0)  # Repeat time points
-            # print(len(Time_train))
-            # Repeat the X_train data based on the sensor count
-            X_train = np.repeat(Xm[SW:i], count, axis=0)
-            
-            mu_x, cov_x = self.update(X_train, Time_train, i)
-            x_data.append(mu_x)
-            x_cov.append(cov_x)
-            
-            # Repeat the Y_train data based on the sensor count
-            Y_train = np.repeat(Ym[SW:i], count, axis=0)
-            
-            mu_y, cov_y = self.update(Y_train, Time_train, i)
-            y_data.append(mu_y)
-            y_cov.append(cov_y)
-            
-        x_data = np.array(x_data).reshape(-1)
-        x_cov = np.array(x_cov).reshape(-1)
-        y_data = np.array(y_data).reshape(-1)
-        y_cov = np.array(y_cov).reshape(-1)
-        
-        return x_data, x_cov, y_data, y_cov
+

@@ -21,7 +21,6 @@ class GaussianProcess:
             return self.kernel_obj.linear_kernel(X1, X2, *args, **kwargs)
         elif self.kernel_type == 'Polynomial':
             return self.kernel_obj.polynomial_kernel(X1, X2, *args, **kwargs)
-        
         elif self.kernel_type == 'Matern':
             return self.kernel_obj.matern_kernel(X1, X2, *args, **kwargs)
         elif self.kernel_type == 'Periodic':
@@ -34,11 +33,13 @@ class GaussianProcess:
         sigma_y=1e-8
     ):
 
-        K = self.kernel(X_train, X_train, length_scale=length_scale, sigma_f=sigma_f)
-
+        K = self.kernel(
+            X_train, X_train, length_scale=length_scale, sigma_f=sigma_f)
         K += sigma_y**2 * np.eye(len(X_train))
-        K_s = self.kernel(X_train, X_s, length_scale=length_scale, sigma_f=sigma_f)
-        K_ss = self.kernel(X_s, X_s, length_scale=length_scale, sigma_f=sigma_f)
+        K_s = self.kernel(
+            X_train, X_s, length_scale=length_scale, sigma_f=sigma_f)       
+        K_ss = self.kernel(
+            X_s, X_s, length_scale=length_scale, sigma_f=sigma_f)               
         K_ss + 1e-5 * np.eye(len(X_s))
         K_inv = inv(K)
 
@@ -55,7 +56,9 @@ class GaussianProcess:
         cov_s = [None] * len(X_train)
 
         for i in range(len(X_train)):
-            K = self.kernel(X_train[i], X_train[i], length_scale=length_scale, sigma_f=sigma_f)
+            K = self.kernel(
+                X_train[i], X_train[i],
+                length_scale=length_scale, sigma_f=sigma_f)              
             K += sigma_y**2 * np.eye(len(X_train[i]))
             K_s = self.kernel(X_train[i], X_s, length_scale, sigma_f)
             K_ss = self.kernel(X_s, X_s, length_scale, sigma_f)
@@ -89,8 +92,7 @@ class GaussianProcess:
                     Y_train1 = np.array(Y_train[i]).ravel()
                     K = self.kernel(
                         X_train[i], X_train[i], length_scale=theta[0],
-                        sigma_f=theta[1]
-                        
+                        sigma_f=theta[1]                      
                     ) + theta[2]**2 * np.eye(len(X_train[i]))
                     K += np.eye(K.shape[0]) * 1e-1
                     L = cholesky(K)

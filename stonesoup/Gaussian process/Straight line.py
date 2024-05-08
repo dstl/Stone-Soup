@@ -8,7 +8,9 @@ import matplotlib.pyplot as plt
 import numpy as np
 from datetime import datetime, timedelta
 from stonesoup.types.groundtruth import GroundTruthPath, GroundTruthState
-from stonesoup.models.transition.linear import CombinedLinearGaussianTransitionModel, ConstantVelocity
+from stonesoup.models.transition.linear import (
+    CombinedLinearGaussianTransitionModel, ConstantVelocity
+)
 
 # Set the starting time of the simulation
 start_time = datetime.now().replace(microsecond=0)
