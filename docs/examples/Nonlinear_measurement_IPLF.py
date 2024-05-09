@@ -134,6 +134,11 @@ def main():
     truth = GroundTruthPath([GroundTruthState([0], timestamp=timesteps[0])])
 
     num_steps = 20
+    num_steps = 10
+    num_steps = 5
+    num_steps = 3
+    num_steps = 2
+
     for k in range(1, num_steps + 1):
         timesteps.append(start_time + timedelta(seconds=k))  # add next timestep to list of timesteps
         truth.append(GroundTruthState(
@@ -157,7 +162,7 @@ def main():
     measurement_model = MyMeasurementModel(
         ndim_state=1,  # Number of state dimensions (position and velocity in 2D)
         mapping=(0, ),  # Mapping measurement vector index to state index
-        noise_covar=np.array([[5]])
+        noise_covar=np.array([[1]])
     )
 
     measurements = []
@@ -166,39 +171,69 @@ def main():
         measurements.append(Detection(measurement,
                                       timestamp=state.timestamp,
                                       measurement_model=measurement_model))
+    fig, ax = plt.subplots()
+    tr = [state.state_vector.ravel()[0] for state in truth]
+    ms = [state.state_vector.ravel()[0] for state in measurements]
+    ax.plot(tr, label='truth')
+    ax.plot(ms, label='meas')
+    # plt.legend()
 
 
+    predictor = UnscentedKalmanPredictor(transition_model=transition_model, beta=2, kappa=30)
+    predictor_iplf = UnscentedKalmanPredictor(transition_model=transition_model, beta=2, kappa=30)
+    updater_ukf = UnscentedKalmanUpdater(beta=2, kappa=30)
+    updater_iplf = IPLFKalmanUpdater(beta=2, kappa=30, max_iterations=5)
 
-    predictor = UnscentedKalmanPredictor(transition_model)
-    updater_ukf = UnscentedKalmanUpdater()
-    updater_iplf = IPLFKalmanUpdater()
-
-    prior_0 = GaussianState([[0]], np.diag([1.5]), timestamp=start_time)
+    prior_0 = GaussianState([[0]], np.diag([5]), timestamp=start_time)
 
 
 
     # UKF filtering
     prior = prior_0
-    track_ukf = Track()
-    for measurement in measurements:
+    track_ukf = Track([prior])
+    prior = track_ukf[-1]
+    for i, measurement in enumerate(measurements[1:]):
+        if i == 1:
+            print()
         prediction = predictor.predict(prior, timestamp=measurement.timestamp)
         hypothesis = SingleHypothesis(prediction, measurement)  # Group a prediction and measurement
         post = updater_ukf.update(hypothesis)
         track_ukf.append(post)
         prior = track_ukf[-1]
 
+    tr_ukf = [state.state_vector.ravel()[0] for state in track_ukf]
+    ax.plot(tr_ukf, label='ukf')
+
     # IPLF filtering
     prior = prior_0
-    track_iplf = Track()
-    for measurement in measurements:
-        prediction = predictor.predict(prior, timestamp=measurement.timestamp)
+    track_iplf = Track([prior])
+    prior = track_iplf[-1]
+    for i, measurement in enumerate(measurements[1:]):
+        print()
+        prediction = predictor_iplf.predict(prior, timestamp=measurement.timestamp)
         hypothesis = SingleHypothesis(prediction, measurement)  # Group a prediction and measurement
         post = updater_iplf.update(hypothesis)
         track_iplf.append(post)
         prior = track_iplf[-1]
 
+    tr_iplf = [state.state_vector.ravel()[0] for state in track_iplf]
+    ax.plot(tr_iplf, label='iplf')
+    from matplotlib.ticker import MaxNLocator, FuncFormatter, MultipleLocator
+    # plt.gca().xaxis.set_major_locator(MaxNLocator(integer=True))
+    plt.gca().xaxis.set_major_locator(MultipleLocator(1))
+
+    plt.legend()
+
+    for state in track_iplf:
+        if np.any(np.linalg.eigvals(state.covar) < 0):
+            print()
+    covs_iplf = [state.covar for state in track_iplf]
+    covs_ukf = [state.covar for state in track_ukf]
+
     # IPLS (s)moothing
-    from
+    from stonesoup.smoother.kalman import IPLSKalmanSmoother
+    smoother = IPLSKalmanSmoother(transition_model=transition_model, n_iterations=2)
+    track_ipls = smoother.smooth(track_iplf)
 
 
     error_ukf = []
@@ -206,15 +241,18 @@ def main():
     error_ipls = []
     from stonesoup.measures import Euclidean
     mapping = measurement_model.mapping
-    for state_true, state_ukf, state_iplf in zip(truth, track_ukf, track_iplf):
+    for state_true, state_ukf, state_iplf, state_ipls in zip(truth, track_ukf, track_iplf, track_ipls):
         dist_ukf = Euclidean(mapping)(state_true, state_ukf)
         error_ukf.append(dist_ukf)
         dist_iplf = Euclidean(mapping)(state_true, state_iplf)
         error_iplf.append(dist_iplf)
+        dist_ipls = Euclidean(mapping)(state_true, state_ipls)
+        error_ipls.append(dist_ipls)
 
     fig, ax = plt.subplots()
     ax.plot(timesteps, error_ukf, label='ukf')
     ax.plot(timesteps, error_iplf, label='iplf')
+    ax.plot(timesteps, error_ipls, label='ipls')
     ax.set_xlabel('Time stamp')
     ax.set_ylabel('Absolute error (position)')
     plt.legend()
