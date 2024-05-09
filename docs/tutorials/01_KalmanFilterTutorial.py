@@ -118,7 +118,7 @@ start_time = datetime.now().replace(microsecond=0)
 # We note that it can sometimes be useful to fix our random number generator in order to probe a
 # particular example repeatedly.
 
-np.random.seed(1991)
+np.random.seed(19915)
 
 # %%
 # The :class:`~.ConstantVelocity` class creates a one-dimensional constant velocity model with
@@ -347,6 +347,14 @@ for measurement in measurements:
     post = updater.update(hypothesis)
     track.append(post)
     prior = track[-1]
+
+
+from stonesoup.smoother.kalman import KalmanSmoother, UnscentedKalmanSmoother
+
+smoother = KalmanSmoother(transition_model=transition_model)
+track_smoothed = smoother.smooth(track)
+
+print()
 
 # %%
 # Plot the resulting track, including uncertainty ellipses
