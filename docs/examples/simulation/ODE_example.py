@@ -37,26 +37,27 @@ Using linearised ODEs from non-linear dynamic models in Stone Soup
 # The system is described by this Stochastic Differential Equation (SDE), at a timestamp :math:`k`:
 #
 # .. math::
-#           dx_{k} &= v_{k}\cos\theta dt;\\
-#           dy_{k} &= v_{k}\sin\theta dt;\\
-#           dv_{k} &= \sigma_{v}dw_{k};\\
+#           dx_{k} &= s_{k}\cos\theta dt;\\
+#           dy_{k} &= s_{k}\sin\theta dt;\\
+#           ds_{k} &= \sigma_{s}dw_{k};\\
 #           d\theta_{k} &= \sigma_{k}db_{k},\\
 #
-# where we note :math:`\sigma` as the uncertainty on the velocity and heading, :math:`dt` (or in discretised form as
-# :math:`\Delta t`) the time interval between :math:`k` and :math:`k-1`.
+# where we note :math:`\sigma` as the uncertainty on the speed and heading, :math:`dt` (or in
+# discretised form as :math:`\Delta t`) the time interval between :math:`k` and :math:`k-1`.
 # The full formulation of the evolution of the model can be found in the paper by Kountouriotis
 # and Maskell [2]_. However, we can still present the time evolution of the system as follows:
 #
 # .. math::
 #           x_{k|k-1} &= f_{k|k-1}(x_{k-1}, q_{k}) &= \begin{bmatrix}
-#                                                       x_{k-1} + v_{k-1}\cos\theta_{k-1}\Delta t\\
-#                                                       y_{k-1} + v_{k-1}\sin\theta_{k-1}\Delta t\\
-#                                                       v_{k-1}\\
-#                                                       theta_{k-1}\\
+#                                                       x_{k-1} + s_{k-1}\cos\theta_{k-1}\Delta t\\
+#                                                       y_{k-1} + s_{k-1}\sin\theta_{k-1}\Delta t\\
+#                                                       s_{k-1}\\
+#                                                       \theta_{k-1}\\
 #                                                      \end{bmatrix} \\
-# and the noise as :math:`\mathcal{Q}_{CH} = diag\{0, 0, \sigma^2_{v}\Delta t, \sigma^{2}_{\theta} \Delta t\}`.
-# Our implementation uses a 5-dimensional :class:`~.State` with specified the velocity component on the
-# x and y axis.
+# and the noise as :math:`\mathcal{Q}_{CH} =
+# diag\{0, 0, \sigma^2_{s}\Delta t, \sigma^{2}_{\theta} \Delta t\}`.
+# Our implementation uses a 5-dimensional :class:`~.State` which specifies the velocity components
+# in the x and y directions.
 #
 # We linearise the dynamical functions, Ordinary Differential Equations (ODEs), using the automatic
 # differentiation functions over the variables, in this specific case we employ
@@ -211,16 +212,16 @@ plotter.fig
 
 
 # Create the constant heading function
-def constantHeading(state, **kwargs):
+def constant_heading(state, **kwargs):
     """
         Function that describes the constant heading dynamics;
         The states are a bit odd
     """
 
-    (x, vx, v, vy, theta) = state
-    # generate the V component
-    v = torch.sqrt(vx*vx + vy*vy)
-    return (v*torch.cos(theta), 0*v, v*torch.sin(theta), 0.*v, 0.*theta)
+    (x, vx, s, vy, theta) = state
+    # generate the s component
+    s = torch.sqrt(vx*vx + vy*vy)
+    return s * torch.cos(theta), 0 * s, s * torch.sin(theta), 0. * s, 0. * theta
 
 
 # Create the linearisation class
@@ -353,7 +354,7 @@ class LinearisedModel(GaussianTransitionModel, TimeVariantModel):
 
 # Instantiate the transition model
 transition_model = LinearisedModel(
-    differential_equation=constantHeading,
+    differential_equation=constant_heading,
     linear_noise_coeffs=np.array([5, np.radians(0.5)]))
 
 # %%
