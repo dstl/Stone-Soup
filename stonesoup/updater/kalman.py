@@ -115,7 +115,7 @@ class KalmanUpdater(Updater):
         """
         return predicted_state.covar @ measurement_matrix.T
 
-    def _innovation_covariance(self, m_cross_cov, meas_mat, meas_mod, **kwargs):
+    def _innovation_covariance(self, m_cross_cov, meas_mat, meas_mod, measurement_noise, **kwargs):
         """Compute the innovation covariance
 
         Parameters
@@ -126,6 +126,8 @@ class KalmanUpdater(Updater):
             Measurement matrix
         meas_mod : :class:~.MeasurementModel`
             Measurement model
+        measurement_noise : bool
+            Include measurement noise or not
 
         Returns
         -------
@@ -133,7 +135,10 @@ class KalmanUpdater(Updater):
             The innovation covariance
 
         """
-        return meas_mat @ m_cross_cov + meas_mod.covar()
+        innov_covar = meas_mat @ m_cross_cov
+        if measurement_noise:
+            innov_covar += meas_mod.covar(**kwargs)
+        return innov_covar
 
     def _posterior_mean(self, predicted_state, kalman_gain, measurement, measurement_prediction):
         r"""Compute the posterior mean, :math:`\mathbf{x}_{k|k} = \mathbf{x}_{k|k-1} + K_k
@@ -189,7 +194,7 @@ class KalmanUpdater(Updater):
         return post_cov.view(CovarianceMatrix), kalman_gain
 
     @lru_cache()
-    def predict_measurement(self, predicted_state, measurement_model=None,
+    def predict_measurement(self, predicted_state, measurement_model=None, measurement_noise=True,
                             **kwargs):
         r"""Predict the measurement implied by the predicted state mean
 
@@ -200,6 +205,9 @@ class KalmanUpdater(Updater):
         measurement_model : :class:`~.MeasurementModel`
             The measurement model. If omitted, the model in the updater object
             is used
+        measurement_noise : bool
+            Whether to include measurement noise :math:`R` with innovation covariance.
+            Default `True`
         **kwargs : various
             These are passed to :meth:`~.MeasurementModel.function` and
             :meth:`~.MeasurementModel.matrix`
@@ -222,7 +230,8 @@ class KalmanUpdater(Updater):
 
         # The measurement cross covariance and innovation covariance
         meas_cross_cov = self._measurement_cross_covariance(predicted_state, hh)
-        innov_cov = self._innovation_covariance(meas_cross_cov, hh, measurement_model, **kwargs)
+        innov_cov = self._innovation_covariance(
+            meas_cross_cov, hh, measurement_model, measurement_noise, **kwargs)
 
         return MeasurementPrediction.from_state(
             predicted_state, pred_meas, innov_cov, cross_covar=meas_cross_cov)
@@ -331,8 +340,7 @@ class ExtendedKalmanUpdater(KalmanUpdater):
         else:
             if linearisation_point is None:
                 linearisation_point = predicted_state
-            return measurement_model.jacobian(linearisation_point,
-                                              **kwargs)
+            return measurement_model.jacobian(linearisation_point, **kwargs)
 
 
 class UnscentedKalmanUpdater(KalmanUpdater):
@@ -365,7 +373,8 @@ class UnscentedKalmanUpdater(KalmanUpdater):
             "3-Ns")
 
     @lru_cache()
-    def predict_measurement(self, predicted_state, measurement_model=None):
+    def predict_measurement(self, predicted_state, measurement_model=None, measurement_noise=True,
+                            **kwargs):
         """Unscented Kalman Filter measurement prediction step. Uses the
         unscented transform to estimate a Gauss-distributed predicted
         measurement.
@@ -380,6 +389,8 @@ class UnscentedKalmanUpdater(KalmanUpdater):
             dependent on the received measurement (the default is `None`, in
             which case the updater will use the measurement model specified on
             initialisation)
+        measurement_noise : bool
+            Whether to include measurement noise :math:`R` with innovation covariance
 
         Returns
         -------
@@ -394,10 +405,10 @@ class UnscentedKalmanUpdater(KalmanUpdater):
             gauss2sigma(predicted_state,
                         self.alpha, self.beta, self.kappa)
 
-        meas_pred_mean, meas_pred_covar, cross_covar, _, _, _ = \
+        covar_noise = measurement_model.covar(**kwargs) if measurement_noise else None
+        meas_pred_mean, meas_pred_covar, cross_covar, *_ = \
             unscented_transform(sigma_points, mean_weights, covar_weights,
-                                measurement_model.function,
-                                covar_noise=measurement_model.covar())
+                                measurement_model.function, covar_noise=covar_noise)
 
         return MeasurementPrediction.from_state(
             predicted_state, meas_pred_mean, meas_pred_covar, cross_covar=cross_covar)
@@ -451,19 +462,21 @@ class SqrtKalmanUpdater(ExtendedKalmanUpdater):
         """
         return predicted_state.sqrt_covar.T @ measurement_matrix.T
 
-    def _innovation_covariance(self, m_cross_cov, meas_mat, meas_mod):
+    def _innovation_covariance(self, m_cross_cov, meas_mat, meas_mod, measurement_noise, **kwargs):
         """Compute the innovation covariance
 
         Parameters
         ----------
-        m_cross_cov : numpy.array
+        m_cross_cov : numpy.ndarray
             The measurement cross covariance matrix
-        meas_mat : numpy.array
+        meas_mat : numpy.ndarray
             The measurement matrix. Not required in this instance. Ignored.
         meas_mod : :class:`~.MeasurementModel`
             Measurement model. The class attribute :attr:`sqrt_covar` indicates whether this is
             passed in square root form. If it doesn't exist then :attr:`covar` is assumed to exist
             and is used instead.
+        measurement_noise : bool
+            Include measurement noise or not
 
         Returns
         -------
@@ -471,13 +484,16 @@ class SqrtKalmanUpdater(ExtendedKalmanUpdater):
             The innovation covariance
 
         """
-        # If the measurement covariance matrix is square root then square it
-        try:
-            meas_cov = meas_mod.sqrt_covar @ meas_mod.sqrt_covar.T
-        except AttributeError:
-            meas_cov = meas_mod.covar()
+        innov_covar = m_cross_cov.T @ m_cross_cov
+        if measurement_noise:
+            # If the measurement covariance matrix is square root then square it
+            try:
+                meas_cov = meas_mod.sqrt_covar @ meas_mod.sqrt_covar.T
+            except AttributeError:
+                meas_cov = meas_mod.covar(**kwargs)
+            innov_covar += meas_cov
 
-        return m_cross_cov.T @ m_cross_cov + meas_cov
+        return innov_covar
 
     def _posterior_covariance(self, hypothesis):
         """
@@ -645,7 +661,7 @@ class IteratedKalmanUpdater(ExtendedKalmanUpdater):
             cross_cov = self._measurement_cross_covariance(hypothesis.prediction, hh)
             post_state.hypothesis.measurement_prediction.cross_covar = cross_cov
             post_state.hypothesis.measurement_prediction.covar = \
-                self._innovation_covariance(cross_cov, hh, measurement_model)
+                self._innovation_covariance(cross_cov, hh, measurement_model, True)
 
             prev_state = post_state
             post_state = super().update(post_state.hypothesis, **kwargs)

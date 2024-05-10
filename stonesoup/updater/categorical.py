@@ -101,7 +101,8 @@ class HMMUpdater(Updater):
 
         return measurement_model
 
-    def predict_measurement(self, predicted_state, measurement_model, **kwargs):
+    def predict_measurement(self, predicted_state, measurement_model=None, measurement_noise=False,
+                            **kwargs):
         r"""Predict the measurement implied by the predicted state.
 
         Parameters
@@ -110,8 +111,8 @@ class HMMUpdater(Updater):
             The predicted state.
         measurement_model : :class:`~.MeasurementModel`
             The measurement model. If omitted, the model in the updater object is used.
-        measurement : :class:`~.CategoricalState`.
-            The measurement.
+        measurement_noise : bool
+            Whether to include measurement noise. Default `False`
         **kwargs : various
             These are passed to :meth:`~.MeasurementModel.function`.
 
@@ -123,7 +124,7 @@ class HMMUpdater(Updater):
 
         measurement_model = self._check_measurement_model(measurement_model)
 
-        pred_meas = measurement_model.function(predicted_state, **kwargs)
+        pred_meas = measurement_model.function(predicted_state, noise=measurement_noise, **kwargs)
 
         return MeasurementPrediction.from_state(
             predicted_state,

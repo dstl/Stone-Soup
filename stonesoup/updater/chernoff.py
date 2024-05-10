@@ -81,7 +81,8 @@ class ChernoffUpdater(Updater):
         doc="A weighting parameter in the range :math:`(0,1]`")
 
     @lru_cache()
-    def predict_measurement(self, predicted_state, measurement_model=None,  **kwargs):
+    def predict_measurement(self, predicted_state, measurement_model=None, measurement_noise=True,
+                            **kwargs):
         r"""
         This function predicts the measurement of a state in situations where measurements consist
         of a covariance and state vector.
@@ -93,6 +94,9 @@ class ChernoffUpdater(Updater):
         measurement_model : :class:`~.MeasurementModel`
             The measurement model. If omitted, the updater will use the model that was specified
             on initialization.
+        measurement_noise : bool
+            Whether to include measurement noise. Default `True`. Where `False` the
+            predicted state covariance is used directly without omega factor.
 
         Returns
         -------
@@ -102,9 +106,12 @@ class ChernoffUpdater(Updater):
 
         measurement_model = self._check_measurement_model(measurement_model)
 
-        # The innovation covariance uses the noise covariance from the measurement model
-        state_covar_m = measurement_model.noise_covar
-        innov_covar = 1/(1-self.omega)*state_covar_m + 1/self.omega*predicted_state.covar
+        if measurement_noise:
+            # The innovation covariance uses the noise covariance from the measurement model
+            state_covar_m = measurement_model.noise_covar
+            innov_covar = 1/(1-self.omega)*state_covar_m + 1/self.omega*predicted_state.covar
+        else:
+            innov_covar = predicted_state.covar
 
         # The predicted measurement and measurement cross covariance can be taken from
         # the predicted state
