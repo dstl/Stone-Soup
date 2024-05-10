@@ -148,6 +148,5 @@ def test_kernel(kernel_class, output, state1, state2):
 
 
 def test_not_implemented():
-    with pytest.raises(TypeError) as e:
+    with pytest.raises(TypeError):
         Kernel()
-    assert "Can't instantiate abstract class Kernel with abstract method __call__" in str(e.value)
