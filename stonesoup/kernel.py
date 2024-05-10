@@ -74,7 +74,10 @@ class QuadraticKernel(Kernel):
         if state2 is None:
             state_vector2 = state_vector1
         else:
-            state_vector2 = state2.state_vector
+            if isinstance(state2, State):
+                state_vector2 = state2.state_vector
+            else:
+                state_vector2 = state2
         return (state_vector1.T @ state_vector2 /
                 self.ialpha + self.c) ** 2
 
@@ -118,7 +121,10 @@ class QuarticKernel(Kernel):
         if state2 is None:
             state_vector2 = state_vector1
         else:
-            state_vector2 = state2.state_vector
+            if isinstance(state2, State):
+                state_vector2 = state2.state_vector
+            else:
+                state_vector2 = state2
         return (state_vector1.T @ state_vector2 /
                 self.ialpha + self.c) ** 4
 
@@ -164,7 +170,10 @@ class GaussianKernel(Kernel):
         if state2 is None:
             state_vector2 = state_vector1
         else:
-            state_vector2 = state2.state_vector
+            if isinstance(state2, State):
+                state_vector2 = state2.state_vector
+            else:
+                state_vector2 = state2
         diff_tilde_x = (state_vector1.T[:, :, None] - state_vector2.T[:, None, :]) ** 2
         diff_tilde_x_sum = np.sum(diff_tilde_x, axis=0)
 

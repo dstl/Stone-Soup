@@ -79,11 +79,68 @@ proposal = KernelParticleState(state_vector=StateVectors(samples.T),
                           [1.25012279, 0.97265232, 1.00941125, 0.98866757]]),
             prior,
             proposal
+        ),
+        (
+            GaussianKernel(),
+            StateVectors([[0.12615332, 0.12615361, 0.12603986, 0.10961454],
+                          [0.12615522, 0.12615549, 0.12605789, 0.10955370],
+                          [0.12602568, 0.12600645, 0.12583658, 0.10955982],
+                          [0.11624686, 0.11614979, 0.11543241, 0.08696717]]),
+            prior.state_vector,
+            proposal
+        ),
+        (
+            GaussianKernel(),
+            StateVectors([[0.12615332, 0.12615361, 0.12603986, 0.10961454],
+                          [0.12615522, 0.12615549, 0.12605789, 0.10955370],
+                          [0.12602568, 0.12600645, 0.12583658, 0.10955982],
+                          [0.11624686, 0.11614979, 0.11543241, 0.08696717]]),
+            prior,
+            proposal.state_vector
+        ),
+        (
+            QuadraticKernel(),
+            StateVectors([[0.75809725, 1.03096874, 0.98911714, 1.01165201],
+                          [1.24660020, 0.97224740, 1.00961491, 0.98879035],
+                          [0.79646728, 1.02501790, 0.99032626, 1.00779316],
+                          [1.11808890, 0.98623137, 1.00469461, 0.99431764]]),
+            prior.state_vector,
+            proposal
+        ),
+        (
+            QuadraticKernel(),
+            StateVectors([[0.75809725, 1.03096874, 0.98911714, 1.01165201],
+                          [1.24660020, 0.97224740, 1.00961491, 0.98879035],
+                          [0.79646728, 1.02501790, 0.99032626, 1.00779316],
+                          [1.11808890, 0.98623137, 1.00469461, 0.99431764]]),
+            prior,
+            proposal.state_vector
+        ),
+        (
+            QuarticKernel(),
+            StateVectors([[0.57471144, 1.06289653, 0.97835271, 1.02343979],
+                          [1.55401205, 0.94526501, 1.01932226, 0.97770636],
+                          [0.63436013, 1.05066170, 0.98074609, 1.01564705],
+                          [1.25012279, 0.97265232, 1.00941125, 0.98866757]]),
+            prior.state_vector,
+            proposal
+        ),
+        (
+            QuarticKernel(),
+            StateVectors([[0.57471144, 1.06289653, 0.97835271, 1.02343979],
+                          [1.55401205, 0.94526501, 1.01932226, 0.97770636],
+                          [0.63436013, 1.05066170, 0.98074609, 1.01564705],
+                          [1.25012279, 0.97265232, 1.00941125, 0.98866757]]),
+            prior,
+            proposal.state_vector
         )
     ],
     ids=["gaussian", "gaussian_w_prop",
          "quadratic", "quadratic_w_prop",
-         "quartic", "quartic_w_prop"]
+         "quartic", "quartic_w_prop",
+         "gaussian_prior_as_state_vector", "gaussian_proposal_as_state_vector",
+         "quadratic_prior_as_state_vector", "quadratic_proposal_as_state_vector",
+         "quartic_prior_as_state_vector", "quartic_proposal_as_state_vector"]
 )
 def test_kernel(kernel_class, output, state1, state2):
     kernel = kernel_class(state1, state2)

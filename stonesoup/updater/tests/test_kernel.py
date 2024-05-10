@@ -66,7 +66,7 @@ prediction = predictor.predict(prior=prior, proposal=proposal,
          "no_measurement_model",
          ]
 )
-def test_abc(kernel, measurement_model, c, ialpha):
+def test_kernel_updater(kernel, measurement_model, c, ialpha):
     gt_state = GroundTruthState([-0.1, 0.001, 0.7, -0.055], timestamp=new_timestamp)
     mm = Cartesian2DToBearing(
                 ndim_state=4,
