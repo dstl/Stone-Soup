@@ -5,7 +5,6 @@ from scipy.stats import multivariate_normal
 
 from . import Updater
 from ..kernel import QuadraticKernel, Kernel
-from ..models.base import LinearModel
 from ..types.array import StateVectors
 from ..types.prediction import MeasurementPrediction
 from ..types.update import Update
@@ -29,35 +28,6 @@ class AdaptiveKernelKalmanUpdater(Updater):
 
         if self.kernel is None:
             self.kernel = QuadraticKernel()
-
-    def _measurement_matrix(self, predicted_state, measurement_model=None,
-                            **kwargs):
-        r"""Return the (via :meth:`NonLinearModel.jacobian`) measurement matrix
-
-        Parameters
-        ----------
-        predicted_state : :class:`~.State`
-            The predicted state :math:`\mathbf{x}_{k|k-1}`
-        measurement_model : :class:`~.MeasurementModel`
-            The measurement model. If omitted, the model in the updater object
-            is used
-        **kwargs : various
-            Passed to :meth:`~.MeasurementModel.matrix` if linear
-            or :meth:`~.MeasurementModel.jacobian` if not
-
-        Returns
-        -------
-        : :class:`numpy.ndarray`
-            The measurement matrix, :math:`H_k`
-        """
-
-        measurement_model = self._check_measurement_model(measurement_model)
-
-        if isinstance(measurement_model, LinearModel):
-            return measurement_model.matrix(**kwargs)
-        else:
-            return measurement_model.jacobian(predicted_state,
-                                              **kwargs)
 
     @lru_cache()
     def predict_measurement(self, state_prediction, measurement_model=None,
