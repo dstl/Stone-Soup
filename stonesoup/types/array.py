@@ -244,6 +244,10 @@ class CovarianceMatrix(Matrix):
         return array.view(cls)
 
 
+class CovarianceMatrices(np.ndarray):
+    pass
+
+
 class PrecisionMatrix(Matrix):
     """Precision matrix. This is the matrix inverse of a covariance matrix.
 
