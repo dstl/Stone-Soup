@@ -95,14 +95,6 @@ class ConditionalGaussianDriver(GaussianDriver):
         pass
 
     @abstractmethod
-    def _residual_mean(self, e_ft: np.ndarray) -> CovarianceMatrix:
-        pass
-
-    @abstractmethod
-    def _residual_cov(self, e_ft2: np.ndarray) -> CovarianceMatrix:
-        pass
-
-    @abstractmethod
     def _hfunc(self, epochs: np.ndarray) -> np.ndarray:
         """H function"""
         pass
@@ -116,6 +108,24 @@ class ConditionalGaussianDriver(GaussianDriver):
     def _jump_sizes(self, jszies: np.ndarray) -> np.ndarray:
         pass
 
+    @abstractmethod
+    def _first_moment(self) -> np.ndarray:
+        pass
+
+    @abstractmethod
+    def _second_moment(self) -> np.ndarray:
+        pass
+
+    def _residual_mean(self, e_ft: np.ndarray) -> CovarianceMatrix:
+        if self.noise_case == 1:
+            m = e_ft.shape[0]
+            r_mean = np.zeros((m, 1))
+        elif self.noise_case == 2 or self.noise_case == 3:
+            r_mean = e_ft * self.mu_W # (m, 1)
+        else:
+            raise AttributeError("invalid noise case")
+        return self._first_moment() * r_mean # (m, 1)
+    
     def _accept_reject(self, jsizes: np.ndarray) -> np.ndarray:
         probabilities = self._thinning_probabilities(jsizes)
         u = self._rng.uniform(low=0.0, high=1.0, size=probabilities.shape)
@@ -193,7 +203,34 @@ class NormalSigmaMeanDriver(ConditionalGaussianDriver):
     def _jump_sizes(self, jsizes: np.ndarray) -> np.ndarray:
         return jsizes
 
+    def _residual_cov(self, e_ft: np.ndarray) -> CovarianceMatrix:
+        if self.noise_case == 1:
+            m = e_ft.shape[0]
+            r_cov = np.zeros((m, m))
+        elif self.noise_case == 2:
+            r_cov =  e_ft @ e_ft.T * self._second_moment() * (self.mu_W ** 2 + self.sigma_W2)
+        elif self.noise_case == 3:
+            r_cov =  e_ft @ e_ft.T * self._second_moment() * self.sigma_W2
+        else:
+            raise AttributeError("invalid noise case")
+        return r_cov # (m, m)
 
 class NormalVarianceMeanDriver(ConditionalGaussianDriver):
     def _jump_sizes(self, jsizes: np.ndarray) -> np.ndarray:
         return np.sqrt(jsizes)
+    
+    def _centering(self, e_ft: np.ndarray) -> StateVector:
+        m = e_ft.shape[0]
+        return np.zeros((m, 1))
+    
+    def _residual_cov(self, e_ft: np.ndarray) -> CovarianceMatrix:
+        if self.noise_case == 1:
+            m = e_ft.shape[0]
+            r_cov = np.zeros((m, m))
+        elif self.noise_case == 2:
+            r_cov =  e_ft @ e_ft.T * (self._second_moment() * self.mu_W ** 2 + self._first_moment() * self.sigma_W2)
+        elif self.noise_case == 3:
+            r_cov =  e_ft @ e_ft.T * self._first_moment() * self.sigma_W2
+        else:
+            raise AttributeError("invalid noise case")
+        return r_cov # (m, m)
