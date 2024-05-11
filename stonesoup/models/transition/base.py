@@ -196,14 +196,14 @@ class DrivenTransitionModel(TransitionModel):
     
     def mean(self, latents: Latents, time_interval: timedelta, **kwargs) -> StateVector | StateVectors:
         dt = time_interval.total_seconds()
-        mean = 0
+        mean = np.zeros((self.ndim_state, 1))
         if self.g_driver:
             mean += self.g_driver.mean(e_gt_func=self.e_gt, dt=dt)
         if self.cg_driver:
             tmp = self.cg_driver.mean(latents=latents, ft_func=self.ft, e_ft_func=self.e_ft, dt=dt)
-            assert(len(mean) == len(tmp + 1) or len(mean) == len(tmp))
             if isinstance(tmp, StateVectors):
-                mean = mean[None, ...]
+                n_samples = tmp.shape[0]
+                mean = np.tile(mean, (n_samples, 1, 1))
             mean += tmp
         return mean
     
@@ -219,13 +219,14 @@ class DrivenTransitionModel(TransitionModel):
         #     covar += tmp
         # return covar
         dt = time_interval.total_seconds()
-        covar = 0
+        covar = np.zeros((self.ndim_state, self.ndim_state))
         if self.g_driver:
             covar += self.g_driver.covar(e_gt_func=self.e_gt, dt=dt)
         if self.cg_driver:
             tmp = self.cg_driver.covar(latents=latents, ft_func=self.ft, e_ft_func=self.e_ft, dt=dt)
             if isinstance(tmp, CovarianceMatrices):
-                covar = covar[None, ...]
+                n_samples = tmp.shape[0]
+                covar = np.tile(covar, (n_samples, 1, 1))
             covar += tmp
         return covar
 
@@ -274,6 +275,10 @@ class LinearDrivenTransitionModel(DrivenTransitionModel, LinearModel):
 
 class CombinedDrivenTransitionModel(DrivenTransitionModel):
     model_list: Sequence[DrivenTransitionModel] = Property(doc="List of Transition Models.")
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        assert(len(self.model_list) != 0)
 
     @property
     def g_driver(self) -> List[Iterable]:
@@ -357,35 +362,49 @@ class CombinedDrivenTransitionModel(DrivenTransitionModel):
         tmp = [model.e_ft(**kwargs) for model in self.model_list]
         return np.vstack(tmp)
 
-    def ft2(self, **kwargs) -> np.ndarray:
-        tmp = [model.ft2(**kwargs) for model in self.model_list]
-        combined = []
-        for i in range(tmp[0].shape[0]):  # Loop through first axis
-            matrices = []
-            for j in range(len(tmp)):
-                matrices.append(tmp[j][i, ...])
-            combined.append(block_diag(*matrices))
-        return combined
+    # def ft2(self, **kwargs) -> np.ndarray:
+    #     tmp = [model.ft2(**kwargs) for model in self.model_list]
+    #     combined = []
+    #     for i in range(tmp[0].shape[0]):  # Loop through first axis
+    #         matrices = []
+    #         for j in range(len(tmp)):
+    #             matrices.append(tmp[j][i, ...])
+    #         combined.append(block_diag(*matrices))
+    #     return combined
 
-    def e_ft2(self, **kwargs) -> np.ndarray:
-        tmp = [model.e_ft2(**kwargs) for model in self.model_list]
-        return block_diag(*tmp)
+    # def e_ft2(self, **kwargs) -> np.ndarray:
+    #     tmp = [model.e_ft2(**kwargs) for model in self.model_list]
+    #     return block_diag(*tmp)
 
     def e_gt(self, **kwargs) -> np.ndarray:
         tmp = [model.e_gt(**kwargs) for model in self.model_list]
         return np.vstack(tmp)
 
-    def e_gt2(self, **kwargs) -> np.ndarray:
-        tmp = [model.e_gt2(**kwargs) for model in self.model_list]
-        return block_diag(*tmp)
+    # def e_gt2(self, **kwargs) -> np.ndarray:
+    #     tmp = [model.e_gt2(**kwargs) for model in self.model_list]
+    #     return block_diag(*tmp)
 
-    def covar(self, **kwargs):
+    def covar(self, **kwargs) -> CovarianceMatrix | CovarianceMatrices:
         covar_list = [model.covar(**kwargs) for _, model in enumerate(self.model_list)]
-        return block_diag(*covar_list)
+        if len(covar_list[0].shape) == 2:
+            return block_diag(*covar_list).view(CovarianceMatrix)
+        else:
+            N = covar_list[0].shape[0]
+            ret = []
+            for n in range(N):
+                tmp = []
+                for tensor in covar_list: # D
+                    tmp.append(tensor[n])
+                ret.append(block_diag(*tmp))
+            return np.array(ret).view(CovarianceMatrices)
 
-    def mean(self, **kwargs) -> StateVector:
+    def mean(self, **kwargs) -> StateVector | StateVectors:
         mean_list = [model.mean(**kwargs) for _, model in enumerate(self.model_list)]
-        return np.vstack(mean_list)
+        if len(mean_list[0].shape) == 2:
+            return np.vstack(mean_list).view(StateVector)
+        else:
+            return np.concatenate(mean_list, axis=1).view(StateVectors)
+        
 
     def jacobian(self, state, **kwargs) -> np.ndarray:
         temp_state = copy.copy(state)

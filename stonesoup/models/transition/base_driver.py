@@ -23,6 +23,10 @@ class GaussianDriver(Driver):
     def __init__(self, *args, **kwargs) -> None:
         super().__init__(*args, **kwargs)
         self._rng = np.random.default_rng(seed=self.seed)
+        self.mu_W = np.atleast_2d(self.mu_W)
+        self.sigma_W2 = np.atleast_2d(self.sigma_W2)
+        assert(self.mu_W.size == 1)
+        assert(self.sigma_W2.size == 1)
 
     def mean(self, e_gt_func: Callable[..., np.ndarray], dt: float, **kwargs) -> StateVector:
         e_gt = e_gt_func(dt=dt)

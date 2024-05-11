@@ -2,6 +2,8 @@ from .base import LinearDrivenTransitionModel
 from ..base import TimeVariantModel
 from ...base import Property
 from datetime import timedelta
+from scipy.linalg import expm
+from scipy.integrate import quad_vec
 import numpy as np
 
 
@@ -100,3 +102,139 @@ class Langevin(LinearDrivenTransitionModel, TimeVariantModel):
     #     term2 = (np.exp(self.theta * dt) - 1.0) / self.theta * M2
     #     term3 = dt * M3
     #     return term1 + term2 + term3
+
+
+class Singer(LinearDrivenTransitionModel, TimeVariantModel):
+    def __init__(self, theta, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self._theta = theta
+        self.A = np.array([[0.0, 1.0, 0.0], [0.0, 0.0, 1.0], [0.0, 0.0, theta]])
+        self.b = np.array([0.0, 0.0, 0.0]).reshape((3, 1))
+        self.h = np.array([0.0, 0.0, 1.0]).reshape((3, 1))
+        self.g = np.array([0.0, 0.0, 1.0]).reshape((3, 1)) # ACtually should be zero ,but dont care, just dont pass a gaussian driver
+
+    def _integrate(self, func, a, b):
+        res, err = quad_vec(func, a=a, b=b)
+        # print("Integration error:", err)
+        return res
+
+    def _eAdt(self, dt):
+        return expm((self.A * dt))
+
+    def _beta(self, dt):
+        func = lambda u: self._eAdt(dt - u) @ self.g
+        return self._integrate(func=func, a=0, b=dt)
+    
+    def ft_func(self, dt):
+        """
+        Summing terms here in the inner function would be more efficient,
+        as returning a scalar faster than a vector. That being said, the
+        summation is part of the point process simulation and the driver
+        is responsible for it, not the model.
+        """
+
+        def inner(jtimes):
+            return expm((self._eAdt(dt - jtimes.reshape((-1, 1, 1))))) @ self.h
+
+        return inner
+
+    def ft2_func(self, dt):
+        def inner(jtimes):
+            eAdt_h = self.ft_func(dt)(jtimes)
+            outer_products = np.einsum('ijk,ilk->ijl', eAdt_h, eAdt_h)
+            return outer_products
+        return inner
+
+    def E_ft_func(self, dt):
+        def inner():
+            func = lambda u: self._eAdt(dt - u) @ self.h
+            return self._integrate(func=func, a=0, b=dt)
+
+        return inner
+
+    def E_ft2_func(self, dt):
+        def inner():
+            def func(u):
+                tmp = self._eAdt(dt - u) @ self.h
+                return tmp @ tmp.T
+            return self._integrate(func=func, a=0, b=dt)
+    
+        return inner
+
+    def omega_func(self, dt):
+        def inner():
+            def func(u):
+                tmp = self._eAdt(dt - u) @ self.g
+                return tmp @ tmp.T
+            return self._integrate(func=func, a=0, b=dt)
+        
+        return inner
+
+
+class ERV(BaseModel):
+    def __init__(self, eta, rho, p, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self._eta = eta
+        self._rho = rho
+        self._p = p
+        self.A = np.array([[0, 1.0], [-self._eta, -self._rho]])
+        self.b = self._eta * np.array([0.0, self._p]).reshape((2, 1))
+        self.h = np.array([0.0, 1.0]).reshape((2, 1))
+        self.g = np.array([0.0, 1.0]).reshape((2, 1))
+
+    def _integrate(self, func, a, b):
+        res, err = quad_vec(func, a=a, b=b)
+        # print("Integration error:", err)
+        return res
+
+    def _eAdt(self, dt):
+        return expm((self.A * dt))
+
+    def _beta(self, dt):
+        func = lambda u: self._eAdt(dt - u) @ self.g
+        return self._integrate(func=func, a=0, b=dt)
+    
+    def ft_func(self, dt):
+        """
+        Summing terms here in the inner function would be more efficient,
+        as returning a scalar faster than a vector. That being said, the
+        summation is part of the point process simulation and the driver
+        is responsible for it, not the model.
+        """
+
+        def inner(jtimes):
+            return expm((self._eAdt(dt - jtimes.reshape((-1, 1, 1))))) @ self.h
+
+        return inner
+
+    def ft2_func(self, dt):
+        def inner(jtimes):
+            eAdt_h = self.ft_func(dt)(jtimes)
+            outer_products = np.einsum('ijk,ilk->ijl', eAdt_h, eAdt_h)
+            return outer_products
+        return inner
+
+    def E_ft_func(self, dt):
+        def inner():
+            func = lambda u: self._eAdt(dt - u) @ self.h
+            return self._integrate(func=func, a=0, b=dt)
+
+        return inner
+
+    def E_ft2_func(self, dt):
+        def inner():
+            def func(u):
+                tmp = self._eAdt(dt - u) @ self.h
+                return tmp @ tmp.T
+            return self._integrate(func=func, a=0, b=dt)
+    
+        return inner
+
+    def omega_func(self, dt):
+        def inner():
+            def func(u):
+                tmp = self._eAdt(dt - u) @ self.g
+                return tmp @ tmp.T
+            return self._integrate(func=func, a=0, b=dt)
+        
+        return inner
