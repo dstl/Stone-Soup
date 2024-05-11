@@ -1,18 +1,24 @@
+import datetime
+from itertools import chain
 from operator import attrgetter
-from typing import Set
+from typing import MutableSequence, Set
 
+import numpy as np
+import scipy
 from ordered_set import OrderedSet
 
-from ._assignment import multidimensional_deconfliction
-from .base import TwoTrackToTrackAssociator
-from .general import OneToOneAssociator
+from stonesoup.types.state import State, StateMutableSequence
+
 from ..base import Property
-from ..measures import Measure, Euclidean, EuclideanWeighted
+from ..measures import Euclidean, EuclideanWeighted, Measure
 from ..measures.base import TrackMeasure
-from ..types.association import AssociationSet, TimeRangeAssociation, Association
+from ..types.association import Association, AssociationSet, TimeRangeAssociation
 from ..types.groundtruth import GroundTruthPath
 from ..types.time import TimeRange
 from ..types.track import Track
+from ._assignment import multidimensional_deconfliction
+from .base import TwoTrackToTrackAssociator
+from .general import OneToOneAssociator
 
 
 class TrackToTrackCounting(TwoTrackToTrackAssociator):
@@ -440,3 +446,206 @@ class OneToOneTrackAssociator(TwoTrackToTrackAssociator, OneToOneAssociator):
         associated_tracks, _, _ = self.associate(tracks_a, tracks_b)
 
         return associated_tracks
+
+
+class ClearMotAssociator(TwoTrackToTrackAssociator):
+    """TODO
+    """
+
+    association_threshold: float = Property(
+        doc="Threshold distance measure which states must be within for an "
+            "association to be recorded")
+    time_interval: datetime.timedelta = Property(
+        doc="Threshold distance measure which states must be within for an "
+            "association to be recorded")
+    measure: Measure = Property(
+        default=Euclidean(),
+        doc="Distance measure to use. Default :class:`~.measures.Euclidean()`")
+
+    def associate_tracks(self, tracks_set: Set[Track], truth_set: Set[GroundTruthPath]):
+        """Associate Tracks
+
+        Method compares to sets of :class:`~.Track` objects and will determine
+        associations between the two sets.
+
+        Parameters
+        ----------
+        tracks_set : set of :class:`~.Track` objects
+            Tracks to associate to truth
+        truth_set : set of :class:`~.GroundTruthPath` objects
+            Truth to associate to tracks
+
+        Returns
+        -------
+        AssociationSet
+            Contains a set of :class:`~.Association` objects
+        """
+
+        truth_states_by_id = {truth.id: truth.states for truth in truth_set}
+        track_states_by_id = {track.id: track.states for track in tracks_set}
+
+        # Make a list of all the unique timestamps used
+        # Make a sorted list of all the unique timestamps used
+        track_states = self.extract_states(tracks_set)
+        truth_states = self.extract_states(truth_set)
+        timestamps = sorted({
+            state.timestamp
+            for state in chain(track_states, truth_states)})
+        start_time = timestamps[0]
+        end_time = timestamps[-1]
+
+        timesteps = []
+        matches_over_time = []
+        matches_previous = set()
+
+        current_time = start_time
+        while current_time <= end_time:
+
+            truth_ids_at_current_time = [truth_id for (truth_id, truth_states)
+                                         in truth_states_by_id.items()
+                                         if get_state_at_time(truth_states, current_time)]
+            track_ids_at_current_time = [track_id for (track_id, track_states)
+                                         in track_states_by_id.items()
+                                         if get_state_at_time(track_states, current_time)]
+            matches_current = set()
+
+            if matches_previous:
+
+                for (truth_id, track_id) in matches_previous:
+                    truth_states = truth_states_by_id[truth_id]
+                    track_states = track_states_by_id[track_id]
+
+                    truth_state_current = get_state_at_time(truth_states, current_time)
+
+                    if not truth_state_current:
+                        continue
+
+                    track_state_current = get_state_at_time(track_states, current_time)
+                    if not track_state_current:
+                        continue
+
+                    distance = self.measure(track_state_current, truth_state_current)
+
+                    if distance < self.association_threshold:
+                        matches_current.append((truth_id, track_id))
+
+                        truth_ids_at_current_time.remove(truth_id)
+                        track_ids_at_current_time.remove(track_id)
+
+            if not truth_ids_at_current_time or not track_ids_at_current_time:
+                continue
+
+            num_truth_unassigned = len(truth_ids_at_current_time)
+            num_tracks_unassigned = len(track_ids_at_current_time)
+            cost_matrix = np.zeros((num_truth_unassigned, num_tracks_unassigned), dtype=float)
+
+            for i in range(num_truth_unassigned):
+                for j in range(num_tracks_unassigned):
+                    truth_id, track_id = truth_ids_at_current_time[i], track_ids_at_current_time[j]
+
+                    truth_states = truth_states_by_id[truth_id]
+                    track_states = track_states_by_id[track_id]
+                    truth_state_current = get_state_at_time(truth_states, current_time)
+                    track_state_current = get_state_at_time(track_states, current_time)
+                    distance = self.measure(track_state_current, truth_state_current)
+                    cost_matrix[i, j] = distance
+
+            # Munkers / Hungarian Method for the assignment problem
+            row_ind, col_in = scipy.optimize.linear_sum_assignment(cost_matrix)
+
+            for i, j in zip(row_ind, col_in):
+                if cost_matrix[i, j] < self.association_threshold:
+                    matches_current.append((truth_id, track_id))
+
+            # save
+            matches_over_time.append(matches_current)
+            timesteps.append(current_time)
+
+            matches_previous = matches_current
+            current_time += self.time_interval
+
+        truth_by_id = {truth.id: truth for truth in truth_set}
+        track_by_id = {track.id: track for track in tracks_set}
+
+        # --- create associations ---
+        associations = set()
+        for truth_id in truth_states_by_id.keys():
+
+            assigned_track_ids = list()
+
+            for t, match_set in zip(timesteps, matches_over_time):
+
+                track_id_at_t = None
+                for truth_id_in_match, track_id_in_match in match_set:
+                    if truth_id_in_match == truth_id:
+                        track_id_at_t = track_id_in_match
+                        break
+                assigned_track_ids.append(track_id_at_t)
+
+            start_time = None
+            current_track_id = None
+
+            for i, assigned_track_id in enumerate(assigned_track_ids):
+
+                if (not current_track_id) and assigned_track_id:
+                    current_track_id = assigned_track_id
+                    start_time = timesteps[i]
+
+                if assigned_track_id != current_track_id:
+                    associations.append(TimeRangeAssociation(OrderedSet(
+                        (track_by_id[current_track_id], truth_by_id[truth_id])),
+                        TimeRange(start_time, timesteps[i])))
+                    start_time = timesteps[i] if assigned_track_id else None
+                    current_track_id = assigned_track_id
+
+        return AssociationSet(associations)
+
+    @staticmethod
+    def extract_states(object_with_states, return_ids=False):
+        """
+        Extracts a list of states from a list of (or single) objects
+        containing states. This method is defined to handle :class:`~.StateMutableSequence`
+        and :class:`~.State` types.
+
+        Parameters
+        ----------
+        object_with_states: object containing a list of states
+            Method of state extraction depends on the type of the object
+        return_ids: If we should return obj ids as well.
+
+        Returns
+        -------
+        : list of :class:`~.State`
+        """
+
+        state_list = StateMutableSequence()
+        ids = []
+        for i, element in enumerate(list(object_with_states)):
+            if isinstance(element, StateMutableSequence):
+                state_list.extend(element.states)
+                ids.extend([i]*len(element.states))
+            elif isinstance(element, State):
+                state_list.append(element)
+                ids.extend([i])
+            else:
+                raise ValueError(
+                    "{!r} has no state extraction method".format(element))
+        if return_ids:
+            return state_list, ids
+        return state_list
+
+
+def get_state_at_time(states: MutableSequence[State], timestamp: datetime.datetime,
+                      max_error: datetime.timedelta) -> State | None:
+
+    state_timestamps = [state.timestamp for state in states]
+
+    for state_timestamp in state_timestamps:
+        if state_timestamp > timestamp:
+            break
+
+    error = state_timestamp - timestamp
+    if error < max_error:
+        return states[state_timestamps.index(state_timestamp)]
+    else:
+        return None
