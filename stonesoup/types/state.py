@@ -926,7 +926,6 @@ class KernelParticleState(State):
 
     state_vector: StateVectors = Property(doc='State vectors.')
     weight: np.ndarray = Property(default=None, doc='Weights of particles')
-    parent: 'ParticleState' = Property(default=None, doc='Parent particles')
     kernel_covar: CovarianceMatrix = Property(default=None,
                                               doc='Kernel covariance value. Default `None`.')
 
