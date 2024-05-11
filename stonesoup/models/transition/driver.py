@@ -17,33 +17,40 @@ class AlphaStableNSMDriver(NormalSigmaMeanDriver):
 
     def _residual_mean(self, e_ft: np.ndarray) -> CovarianceMatrix:
         if 1 < self.alpha < 2 or self.noise_case == 1:
-            r_mean = np.zeros((self.ndim_state, self.ndim_state))
+            m = e_ft.shape[0]
+            r_mean = np.zeros((m, 1))
         elif self.noise_case == 2 or self.noise_case == 3:
-            r_mean = e_ft @ self.mu_W.T # (m, m)
+            r_mean = e_ft * self.mu_W # (m, 1)
         else:
             raise AttributeError("invalid noise case")
-        return self.alpha / (1. - self.alpha) * np.power(self.c, 1. - 1. / self.alpha) * r_mean # (m, m)
+        return self.alpha / (1. - self.alpha) * np.power(self.c, 1. - 1. / self.alpha) * r_mean # (m, 1)
 
     def _residual_cov(self, e_ft: np.ndarray) -> CovarianceMatrix:
         if self.noise_case == 1:
-            r_sigma = np.zeros((self.ndim_state, self.ndim_state))
+            m = e_ft.shape[0]
+            r_sigma2 = np.zeros((m, m))
         elif self.noise_case == 2:
-            tmp1 = e_ft @ self.mu_W.T 
-            tmp2 = self.sigma_W @ e_ft
-            r_sigma =  tmp1 @ tmp1.T + tmp2.T @ tmp2
+            r_sigma2 =  e_ft @ e_ft.T * (self.mu_W ** 2 + self.sigma_W2)
+        elif self.noise_case == 3:
+            r_sigma2 =  e_ft @ e_ft.T * self.sigma_W2
         else:
             raise AttributeError("invalid noise case")
-        return self.alpha / (2. - self.alpha) * np.power(self.c, 1. - 2. / self.alpha) * r_sigma # (m, m)
+        return self.alpha / (2. - self.alpha) * np.power(self.c, 1. - 2. / self.alpha) * r_sigma2 # (m, m)
     
     def _centering(self, e_ft: np.ndarray) -> StateVector:
         if 1 < self.alpha < 2:
-            term = e_ft @ self.mu_W.T # (m, m)
-            return self.alpha / (1. - self.alpha) * np.power(self.c, 1. - 1. / self.alpha) * term # (m, m)
+            term = e_ft * self.mu_W # (m, 1)
+            return self.alpha / (1. - self.alpha) * np.power(self.c, 1. - 1. / self.alpha) * term # (m, 1)
         elif 0 < self.alpha < 1:
-            return np.zeros((self.ndim_state, self.ndim_state))
+            m = e_ft.shape[0]
+            return np.zeros((m, 1))
         else:
             raise AttributeError("alpha must be 0 < alpha < 2")
 
     def _thinning_probabilities(self, jsizes: np.ndarray) -> np.ndarray:
         # accept all
         return np.ones_like(jsizes) # (n_jumps, n_samples)
+    
+
+class GammaNSMDriver(NormalVarianceMeanDriver):
+    pass

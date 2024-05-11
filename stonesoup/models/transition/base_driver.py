@@ -17,55 +17,38 @@ class GaussianDriver(Driver):
     Base/Abstract class for all Gaussian noise driving processes."""
 
     seed: Optional[int] = Property(default=None, doc="Seed for random number generation")
-    mu_W: np.ndarray = Property(doc="Gaussian mean vector")
-    sigma_W2: np.ndarray = Property(doc="Gaussian diagonal covariance matrix")
+    mu_W: float = Property(doc="Gaussian mean vector")
+    sigma_W2: float = Property(doc="Gaussian diagonal covariance matrix")
 
     def __init__(self, *args, **kwargs) -> None:
         super().__init__(*args, **kwargs)
         self._rng = np.random.default_rng(seed=self.seed)
-        self.mu_W = StateVector(self.mu_W)
-        self.sigma_W2 = CovarianceMatrix(self.sigma_W2)
-        if self.sigma_W2.shape[0] != self.sigma_W2.shape[1]:
-            raise AttributeError("covariance matrix sigma_W2 must be square")
-        if self.mu_W.shape[0] != self.sigma_W2.shape[0]:
-            raise AttributeError("ndim of mu_W must match sigma_W2")
-        if np.any(np.linalg.eigvals(self.sigma_W2) <= 0):
-            raise AttributeError("covariance not positive definite")
-        self.sigma_W = np.linalg.cholesky(self.sigma_W2)
 
-    @property
-    def ndim_state(self) -> int:
-        return self.mu_W.shape[0]
-    
-    def mean(self, e_gt_func: Callable[..., np.ndarray], dt:float, **kwargs) -> StateVector:
+    def mean(self, e_gt_func: Callable[..., np.ndarray], dt: float, **kwargs) -> StateVector:
         e_gt = e_gt_func(dt=dt)
-        return self.mu_W @ e_gt
+        return self.mu_W * e_gt
 
     # def covar(self, e_gt2_func: Callable[..., np.ndarray], dt:float, **kwargs) -> CovarianceMatrix:
     #     e_gt2 = e_gt2_func(dt=dt)
     #     return self.sigma_W2 @ e_gt2
 
-    def covar(self, e_gt_func: Callable[..., np.ndarray], dt:float, **kwargs) -> CovarianceMatrix:
+    def covar(self, e_gt_func: Callable[..., np.ndarray], dt: float, **kwargs) -> CovarianceMatrix:
         e_gt = e_gt_func(dt=dt)
-        return e_gt @ self.sigma_W2 @ e_gt.T
-    
+        return self.sigma_W2 * e_gt @ e_gt.T
+
     def rvs(
-        self,
-        mean: StateVector,
-        covar: CovarianceMatrix,
-        num_samples: int = 1,
-        **kwargs
+        self, mean: StateVector, covar: CovarianceMatrix, num_samples: int = 1, **kwargs
     ) -> Union[StateVector, StateVectors]:
         """
         returns driving noise term
         """
-        print(mean.shape, covar.shape)
         noise = self._rng.multivariate_normal(mean.flatten(), covar, size=num_samples)
         noise = noise.T
         if num_samples == 1:
             return noise.view(StateVector)
         else:
             return noise.view(StateVectors)
+
 
 class Latents:
     def __init__(self, num_samples: int) -> None:
@@ -75,10 +58,10 @@ class Latents:
 
     def exists(self, driver) -> bool:
         return driver in self.store
-    
+
     def add(self, driver: Driver, jsizes: np.ndarray, jtimes: np.ndarray) -> None:
-        assert(jsizes.shape == jtimes.shape)
-        assert(jsizes.shape[1] == self._num_samples)
+        assert jsizes.shape == jtimes.shape
+        assert jsizes.shape[1] == self._num_samples
         data = self.Data(jsizes, jtimes)
         self.store[driver] = data
 
@@ -91,14 +74,15 @@ class Latents:
         assert driver in self.store
         # dimensions of times are (num_samples, n_jumps)
         return self.store[driver].times
-    
+
     @property
     def num_samples(self) -> int:
         return self._num_samples
-    
+
     @num_samples.setter
     def num_samples(self, num_samples) -> None:
         self._num_samples = num_samples
+
 
 class ConditionalGaussianDriver(GaussianDriver):
     c: np.double = Property(doc="Truncation parameter, expected no. jumps per unit time.")
@@ -142,7 +126,7 @@ class ConditionalGaussianDriver(GaussianDriver):
         """Sample latents pairs"""
         epochs = self._rng.exponential(scale=1 / dt, size=(int(self.c * dt), num_samples))
         epochs = epochs.cumsum(axis=0)
-        
+
         # Accept reject sampling
         jsizes = self._hfunc(epochs=epochs)
         jsizes = self._accept_reject(jsizes=jsizes)
@@ -151,54 +135,65 @@ class ConditionalGaussianDriver(GaussianDriver):
         jtimes = self._rng.uniform(low=0.0, high=dt, size=jsizes.shape)
         return jsizes, jtimes
 
-    def mean(self, latents: Latents, ft_func: Callable[..., np.ndarray], e_ft_func: Callable[..., np.ndarray], dt:float,  **kwargs) -> StateVector:
+    def mean(
+        self,
+        latents: Latents,
+        ft_func: Callable[..., np.ndarray],
+        e_ft_func: Callable[..., np.ndarray],
+        dt: float,
+        **kwargs
+    ) -> StateVector:
         """Computes a num_samples of mean vectors"""
-        jtimes = latents.times(driver=self) # (n_jumps, n_samples)
-        jsizes = latents.sizes(driver=self) # (n_jumps, n_samples)
+        jtimes = latents.times(driver=self)  # (n_jumps, n_samples)
+        jsizes = latents.sizes(driver=self)  # (n_jumps, n_samples)
         num_samples = latents.num_samples
-        
-        ft = ft_func(dt=dt, jtimes=jtimes) # (n_jumps, n_samples, m, 1)
-        e_ft = e_ft_func(dt=dt) # (m, 1)
-        series = np.sum(jsizes[..., None, None] * ft, axis=0) # (n_samples, m, 1)
-        m = series @ self.mu_W.T
-        
+
+        ft = ft_func(dt=dt, jtimes=jtimes)  # (n_jumps, n_samples, m, 1)
+        e_ft = e_ft_func(dt=dt)  # (m, 1)
+        series = np.sum(jsizes[..., None, None] * ft, axis=0)  # (n_samples, m, 1)
+        m = series * self.mu_W
+
         residual_mean = self._residual_mean(e_ft=e_ft)[None, ...]
         centering = self._centering(e_ft=e_ft)[None, ...]
 
         mean = m + centering + residual_mean
         if num_samples == 1:
-            print(mean[0].shape)
             return mean[0].view(StateVector)
         else:
             return mean.view(StateVectors)
 
-    def covar(self, latents: Latents, ft_func: Callable[..., np.ndarray], e_ft_func: Callable[..., np.ndarray], dt: float, **kwargs) -> CovarianceMatrix | CovarianceMatrices:
+    def covar(
+        self,
+        latents: Latents,
+        ft_func: Callable[..., np.ndarray],
+        e_ft_func: Callable[..., np.ndarray],
+        dt: float,
+        **kwargs
+    ) -> CovarianceMatrix | CovarianceMatrices:
         """Computes covariance matrix / matrices"""
         jsizes = self._jump_sizes(latents.sizes(driver=self))
         jtimes = latents.times(driver=self)
         num_samples = latents.num_samples
 
         ft = ft_func(dt=dt, jtimes=jtimes)  # (n_jumps, n_samples, m, m)
-        e_ft = e_ft_func(dt=dt) # (m, 1)
-        series = np.sum(jsizes[..., None, None] * ft, axis=0) # (n_samples, m, 1)
-        s = np.einsum("ijk, kl -> ijl", series, self.sigma_W2)  # (n_samples, m, m)
-        s = np.einsum("ijk, ilk -> ijl", s, series)
+        e_ft = e_ft_func(dt=dt)  # (m, 1)
+        series = np.sum(jsizes[..., None, None] * ft, axis=0)  # (n_samples, m, 1)
+        s = self.sigma_W2 * np.einsum("ijk, ilk -> ijl", series, series)  # (n_samples, m, m)
 
         # residual_cov = self._residual_cov(e_ft2=e_ft2)
         residual_cov = self._residual_cov(e_ft=e_ft)
         covar = s + residual_cov
         if num_samples == 1:
-            return covar[0].view(CovarianceMatrix) # (m, m)
+            return covar[0].view(CovarianceMatrix)  # (m, m)
         else:
-            return covar.view(CovarianceMatrices) # (n_samples, m, m)
-
-        
+            return covar.view(CovarianceMatrices)  # (n_samples, m, m)
 
 
 class NormalSigmaMeanDriver(ConditionalGaussianDriver):
     def _jump_sizes(self, jsizes: np.ndarray) -> np.ndarray:
         return jsizes
-        
+
+
 class NormalVarianceMeanDriver(ConditionalGaussianDriver):
     def _jump_sizes(self, jsizes: np.ndarray) -> np.ndarray:
         return np.sqrt(jsizes)
