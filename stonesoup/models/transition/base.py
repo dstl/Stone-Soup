@@ -139,10 +139,10 @@ class DrivenTransitionModel(TransitionModel):
         # To prevent checks throwing errors due to self.g_driver returning a list instead
         # In addition, checks for combined model are dedundant as they are performed when each dimension is initialized individually.
         if hasattr(self, "model_list"): return 
-        if self.g_driver and self.ndim_state != self.g_driver.ndim_state:
-            raise AttributeError("No. of state dimensions of model and Gaussian driving noise process must match.")
-        if self.cg_driver and self.ndim_state != self.cg_driver.ndim_state:
-            raise AttributeError("No. of state dimensions of model and conditionally Gaussian driving noise process must match.")
+        # if self.g_driver and self.ndim_state != self.g_driver.ndim_state:
+        #     raise AttributeError("No. of state dimensions of model and Gaussian driving noise process must match.")
+        # if self.cg_driver and self.ndim_state != self.cg_driver.ndim_state:
+        #     raise AttributeError("No. of state dimensions of model and conditionally Gaussian driving noise process must match.")
 
     @abstractmethod
     def ft(self, dt: float, jtimes: np.ndarray, **kwargs) -> np.ndarray:

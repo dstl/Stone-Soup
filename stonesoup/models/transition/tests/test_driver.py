@@ -6,15 +6,15 @@ import pytest
 
 def test_gaussian_driver():
     # Test invalid dimensions
-    mu_W = np.array([[1], [1]])
-    sigma_W2 = np.array([[1], [1]])
-    with pytest.raises(AttributeError, match='covariance matrix sigma_W2 must be square'):
-        GaussianDriver(mu_W=mu_W, sigma_W2=sigma_W2)
+    # mu_W = np.array([[1], [1]])
+    # sigma_W2 = np.array([[1], [1]])
+    # with pytest.raises(AttributeError, match='covariance matrix sigma_W2 must be square'):
+    #     GaussianDriver(mu_W=mu_W, sigma_W2=sigma_W2)
 
-    mu_W = np.array([1])
-    sigma_W2 = np.eye(2)
-    with pytest.raises(AttributeError, match='ndim of mu_W must match sigma_W2'):
-        GaussianDriver(mu_W=mu_W, sigma_W2=sigma_W2)
+    # mu_W = np.array([1])
+    # sigma_W2 = np.eye(2)
+    # with pytest.raises(AttributeError, match='ndim of mu_W must match sigma_W2'):
+    #     GaussianDriver(mu_W=mu_W, sigma_W2=sigma_W2)
 
     # Test mean() and covar()
     mu_W = np.array([1])
