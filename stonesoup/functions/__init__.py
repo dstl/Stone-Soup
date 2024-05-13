@@ -3,6 +3,7 @@ import copy
 import warnings
 
 import numpy as np
+import pymap3d
 
 from ..types.numeric import Probability
 from ..types.array import StateVector, StateVectors, CovarianceMatrix
@@ -405,6 +406,68 @@ def sphere2cart(rho, phi, theta):
     y = rho * np.sin(phi) * np.cos(theta)
     z = rho * np.sin(theta)
     return (x, y, z)
+
+
+def sphere2GCS(x, y, z):
+    """Convert Cartesian coordinates to Latitude, Longitude and altitude
+        (Geographic Coordinate System), this function makes use of
+        pymap3d function ECEF2Geodetic.
+        ECEF (Earth centric, Earth Fixed Frame) is the usual reference frame
+        when considering the motion on objects on the Earth sphere.
+        The reference ellipsoid is WGS 84.
+
+    Parameters
+    ----------
+     x: float
+        The x coordinate in meters
+    y: float
+        the y coordinate in meters
+    z: float
+        the z coordinate in meters
+
+    Returns
+    -------
+    (degrees, degrees, float)
+        A tuple of the form `(latitude, longitude, altitude)`
+    """
+
+    latitude, longitude, altitude = pymap3d.ecef2geodetic(x, y, z)
+
+    return (latitude, longitude, altitude)
+
+
+def local_sphere2GCS(x_east, y_north, z_up, origin):
+    """Function similar to MATLAB local2latlong.
+        We pass the local x Easting, y Northing and
+        z altitude and a local reference point origin
+        and we compute the latitude, longitude and
+        altitude in the local reference frame.
+
+    Parameters
+    ----------
+    x_east: float
+        The x coordinate in meters
+    y_north: float
+        the y coordinate in meters
+    z_up: float
+        the z coordinate in meters
+    origin : Tuple
+        Local reference point
+    Returns
+    -------
+    (float, float, float)
+        A tuple of the form `(latitude, longitude, altitude)`
+    """
+
+    # pass the reference frame point
+    lat0, lon0, alt0 = origin
+
+    # The reference ellipsoid is WGS-84
+    # we use the pymap3d enu2geodetic to obtain the results
+    latitude, longitude, altitude = pymap3d.enu2geodetic(x_east, y_north, z_up,
+                                                         lat0, lon0, alt0)
+
+    return (latitude, longitude, altitude)
 
 
 def cart2az_el_rg(x, y, z):
