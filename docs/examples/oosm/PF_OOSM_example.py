@@ -328,3 +328,5 @@ plotter.fig
 #
 # .. [#] M. Orton and A. Marrs, 2001, A Bayesian approach to multi-target tracking and data fusion
 #        with out-of-sequence measurements, IEE Target Tracking: Algorithms and Applications.
+
+# sphinx_gallery_thumbnail_path = '_static/sphinx_gallery/OOSM_Particle_Thumb.png'

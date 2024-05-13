@@ -150,6 +150,7 @@ for state in unassociated_states_b:
 # The plot below shows the states. Source A states are shown with crosses and source B states are
 # shown with circles. Associations are shown by matching colours and lines between the states.
 
+# sphinx_gallery_thumbnail_number = 2
 plotter.fig
 
 # %%

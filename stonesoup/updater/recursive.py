@@ -28,7 +28,8 @@ class BayesianRecursiveUpdater(ExtendedKalmanUpdater):
     def _get_meas_cov_scale_factor(cls, n=1, step_no=None):
         return n
 
-    def _innovation_covariance(self, m_cross_cov, meas_mat, meas_mod, scale_factor=1):
+    def _innovation_covariance(self, m_cross_cov, meas_mat, meas_mod, measurement_noise,
+                               scale_factor=1, **kwargs):
         """Compute the innovation covariance
 
         Parameters
@@ -39,6 +40,10 @@ class BayesianRecursiveUpdater(ExtendedKalmanUpdater):
             Measurement matrix
         meas_mod : :class:~.MeasurementModel`
             Measurement model
+        measurement_noise : bool
+            Include measurement noise or not
+        scale_factor : float
+            Scaling factor between 0 and 1. Default 1 (no scaling)
 
         Returns
         -------
@@ -46,7 +51,10 @@ class BayesianRecursiveUpdater(ExtendedKalmanUpdater):
             The innovation covariance
 
         """
-        return meas_mat@m_cross_cov + scale_factor*meas_mod.covar()
+        innov_covar = meas_mat@m_cross_cov
+        if measurement_noise:
+            innov_covar += scale_factor*meas_mod.covar(**kwargs)
+        return innov_covar
 
     def _posterior_covariance(self, hypothesis, scale_factor=1):
         """

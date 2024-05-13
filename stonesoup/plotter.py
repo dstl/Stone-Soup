@@ -1497,7 +1497,7 @@ class Plotterly(_Plotter):
         sensor_xy = np.array([sensor.position[mapping, 0] for sensor in sensors])
         self.fig.add_scatter(x=sensor_xy[:, 0], y=sensor_xy[:, 1], **sensor_kwargs)
 
-    def hide_plot_traces(self, items_to_hide: set):
+    def hide_plot_traces(self, items_to_hide=None):
         """Hide Plot Traces
 
         This function allows plotting items to be invisible as default. Users can toggle the plot
@@ -1505,15 +1505,33 @@ class Plotterly(_Plotter):
 
         Parameters
         ----------
-        items_to_hide : set[str]
+        items_to_hide : Iterable[str]
             The legend label (`legendgroups`) for the plot traces that should be invisible as
-            default
+            default. If left as ``None`` no traces will be shown.
         """
         for fig_data in self.fig.data:
-            if fig_data.legendgroup in items_to_hide:
+            if items_to_hide is None or fig_data.legendgroup in items_to_hide:
                 fig_data.visible = "legendonly"
             else:
                 fig_data.visible = None
+
+    def show_plot_traces(self, items_to_show=None):
+        """Show Plot Traces
+
+        This function allows specific plotting items to be shown as default. All labels not
+        mentioned in `items_to_show` will be invisible and can be manually toggled on.
+
+        Parameters
+        ----------
+        items_to_show : Iterable[str]
+            The legend label (`legendgroups`) for the plot traces that should be shown as
+            default. If left as ``None`` all traces will be shown.
+        """
+        for fig_data in self.fig.data:
+            if items_to_show is None or fig_data.legendgroup in items_to_show:
+                fig_data.visible = None
+            else:
+                fig_data.visible = "legendonly"
 
 
 class PolarPlotterly(_Plotter):
@@ -2610,7 +2628,7 @@ class AnimatedPlotterly(_Plotter):
         name = measurements_label + "<br>(Detections)"
         measurement_kwargs = dict(x=[], y=[], mode='markers',
                                   name=name,
-                                  legendgroup='Detections (Measurements)',
+                                  legendgroup=name,
                                   legendrank=200, showlegend=True,
                                   marker=dict(color="#636EFA"), hoverinfo='none')
         merge(measurement_kwargs, kwargs)
@@ -2622,9 +2640,12 @@ class AnimatedPlotterly(_Plotter):
 
         # change necessary kwargs to initialise clutter trace
         name = measurements_label + "<br>(Clutter)"
-        clutter_kwargs = {"legendgroup": 'Clutter', "legendrank": 300,
-                          "marker": dict(symbol="star-triangle-up", color='#FECB52'),
-                          "name": name, 'showlegend': True}
+        clutter_kwargs = dict(x=[], y=[], mode='markers',
+                              name=name,
+                              legendgroup=name,
+                              legendrank=300, showlegend=True,
+                              marker=dict(symbol="star-triangle-up", color='#FECB52'),
+                              hoverinfo='none')
         merge(clutter_kwargs, kwargs)
 
         self.fig.add_trace(go.Scatter(clutter_kwargs))  # trace for plotting clutter
@@ -2823,10 +2844,10 @@ class AnimatedPlotterly(_Plotter):
             self._resize(data, "tracks")
 
         if uncertainty:  # plot ellipses
-
-            uncertainty_kwargs = dict(x=[], y=[], legendgroup='Uncertainty', fill='toself',
+            name = f'{track_label}<br>Uncertainty'
+            uncertainty_kwargs = dict(x=[], y=[], legendgroup=name, fill='toself',
                                       fillcolor=self.colorway[2],
-                                      opacity=0.2, legendrank=500, name='Track<br>Uncertainty',
+                                      opacity=0.2, legendrank=500, name=name,
                                       hoverinfo='skip',
                                       mode='none', showlegend=True)
             uncertainty_kwargs.update(kwargs)
@@ -2848,10 +2869,10 @@ class AnimatedPlotterly(_Plotter):
         if particle:  # plot particles
 
             # initialise traces. One for legend and one per track
-
+            name = f'{track_label}<br>Particles'
             particle_kwargs = dict(mode='markers', marker=dict(size=2, color=self.colorway[2]),
                                    opacity=0.4,
-                                   hoverinfo='skip', legendgroup='particles', name='particles',
+                                   hoverinfo='skip', legendgroup=name, name=name,
                                    legendrank=520, showlegend=True)
             # apply any keyword arguments
             particle_kwargs.update(kwargs)

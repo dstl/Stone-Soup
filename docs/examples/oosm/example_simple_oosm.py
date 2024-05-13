@@ -287,3 +287,5 @@ plotter.fig
 # .. [#] S. R. Maskell, R. G. Everitt, R. Wright, M. Briers, 2005,
 #        Multi-target out-of-sequence data association: Tracking using
 #        graphical models, Information Fusion.
+
+# sphinx_gallery_thumbnail_path = '_static/sphinx_gallery/OOSM_simple_Thumb.png'

@@ -703,14 +703,14 @@ class KnownTurnRate(KnownTurnRateSandwich):
 
         .. math::
             Q_t & = & \begin{bmatrix}
-                          q_x^2 \frac{dt^3}{3} & q_x^2 \frac{dt^2}{2} &
+                          q_x \frac{dt^3}{3} & q_x \frac{dt^2}{2} &
                           0 & 0 \\
-                          q_x^2 \frac{dt^2}{2} & q_x^2  dt &
+                          q_x \frac{dt^2}{2} & q_x dt &
                           0 & 0 \\
                           0 & 0 &
-                          q_y^2 \frac{dt^3}{3} & q_y^2 \frac{dt^2}{2}\\
+                          q_y \frac{dt^3}{3} & q_y \frac{dt^2}{2}\\
                           0 & 0 &
-                          q_y^2 \frac{dt^2}{2} & q_y^2 dt
+                          q_y \frac{dt^2}{2} & q_y dt
                       \end{bmatrix}
     """
 
