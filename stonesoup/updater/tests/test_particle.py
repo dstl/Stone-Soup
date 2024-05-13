@@ -74,9 +74,13 @@ def test_particle(updater):
                                             for i in particles],
                                             timestamp=timestamp)
 
-    measurement_prediction = updater.predict_measurement(prediction)
-
+    measurement_prediction = updater.predict_measurement(prediction, measurement_noise=False)
     assert np.all(eval_measurement_prediction.state_vector == measurement_prediction.state_vector)
+    assert measurement_prediction.timestamp == timestamp
+
+    # With measurement noise
+    measurement_prediction = updater.predict_measurement(prediction)
+    assert np.all(eval_measurement_prediction.state_vector != measurement_prediction.state_vector)
     assert measurement_prediction.timestamp == timestamp
 
     updated_state = updater.update(SingleHypothesis(
@@ -251,20 +255,19 @@ def test_regularised_particle(transition_model, model_flag):
     eval_measurement_prediction = ParticleMeasurementPrediction(
         StateVectors([prediction.state_vector[0, :]]), timestamp=timestamp)
 
-    measurement_prediction = updater.predict_measurement(prediction)
+    measurement_prediction = updater.predict_measurement(prediction, measurement_noise=False)
 
     assert np.all(eval_measurement_prediction.state_vector == measurement_prediction.state_vector)
     assert measurement_prediction.timestamp == timestamp
 
     updated_state = updater.update(SingleHypothesis(
-        prediction, measurement, measurement_prediction))
+        prediction, measurement, None))
 
     # Don't know what the particles will exactly be due to randomness so check
     # some obvious properties
 
     assert np.all(weight == 1 / 9 for weight in updated_state.weight)
     assert updated_state.timestamp == timestamp
-    assert updated_state.hypothesis.measurement_prediction == measurement_prediction
     assert updated_state.hypothesis.prediction == prediction
     assert updated_state.hypothesis.measurement == measurement
 

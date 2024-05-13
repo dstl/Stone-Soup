@@ -112,16 +112,17 @@ class ParticleUpdater(Updater):
         return predicted_state
 
     @lru_cache()
-    def predict_measurement(self, state_prediction, measurement_model=None,
+    def predict_measurement(self, predicted_state, measurement_model=None, measurement_noise=True,
                             **kwargs):
 
         if measurement_model is None:
             measurement_model = self.measurement_model
 
-        new_state_vector = measurement_model.function(state_prediction, **kwargs)
+        new_state_vector = measurement_model.function(
+            predicted_state, noise=measurement_noise, **kwargs)
 
         return MeasurementPrediction.from_state(
-            state_prediction, state_vector=new_state_vector, timestamp=state_prediction.timestamp)
+            predicted_state, state_vector=new_state_vector, timestamp=predicted_state.timestamp)
 
 
 class GromovFlowParticleUpdater(Updater):
@@ -244,19 +245,18 @@ class GromovFlowKalmanParticleUpdater(GromovFlowParticleUpdater):
             fixed_covar=kalman_update.covar,
             timestamp=particle_update.timestamp)
 
-    def predict_measurement(self, state_prediction, *args, **kwargs):
-        particle_prediction = super().predict_measurement(
-            state_prediction, *args, **kwargs)
+    def predict_measurement(self, predicted_state, *args, **kwargs):
+        particle_prediction = super().predict_measurement(predicted_state, *args, **kwargs)
 
         kalman_prediction = self.kalman_updater.predict_measurement(
             Prediction.from_state(
-                state_prediction, state_prediction.state_vector, state_prediction.covar,
+                predicted_state, predicted_state.state_vector, predicted_state.covar,
                 target_type=GaussianStatePrediction),
             *args, **kwargs)
 
         return ParticleMeasurementPrediction(
             state_vector=particle_prediction.state_vector,
-            weight=state_prediction.weight,
+            weight=predicted_state.weight,
             fixed_covar=kalman_prediction.covar,
             timestamp=particle_prediction.timestamp)
 
