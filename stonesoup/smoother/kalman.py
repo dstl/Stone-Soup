@@ -10,7 +10,7 @@ from ..types.multihypothesis import MultipleHypothesis
 from ..types.prediction import GaussianStatePrediction
 from ..types.update import GaussianStateUpdate
 from ..models.transition.base import TransitionModel
-from ..models.transition.linear import LinearGaussianTransitionModel
+from ..models.transition.linear import LinearGaussianTransitionModel, LinearTransitionModel
 from ..functions import gauss2sigma, unscented_transform
 
 
@@ -306,14 +306,14 @@ class UnscentedKalmanSmoother(KalmanSmoother):
 
         return cross_covar @ np.linalg.inv(prediction.covar)
 
+
 from ..types.track import Track
 from ..updater.kalman import KalmanUpdater, UnscentedKalmanUpdater
 from ..functions import slr_definition
 from ..models.measurement.linear import GeneralLinearGaussian
-from ..predictor.kalman import KalmanPredictor
 from ..types.hypothesis import SingleHypothesis
-# AugmentedUnscentedKalmanPredictor
-# LinearTransitionModel
+from ..predictor.kalman import AugmentedUnscentedKalmanPredictor, AugmentedKalmanPredictor
+
 
 class IPLSKalmanSmoother(UnscentedKalmanSmoother):
     r"""The unscented implementation of the IPLS algorithm."""
@@ -352,6 +352,10 @@ class IPLSKalmanSmoother(UnscentedKalmanSmoother):
 
         """
 
+        # Return the original track if 0 iterations are requested
+        if self.n_iterations == 0:
+            return track
+
         # A filtered track is the input to this smoother.
 
         # measurement_model = track[-1].hypothesis.measurement.measurement_model
@@ -371,17 +375,12 @@ class IPLSKalmanSmoother(UnscentedKalmanSmoother):
                                                          beta=self.beta,
                                                          kappa=self.kappa).smooth(track)
                 smoothed_tracks.append(smoothed_track)
-                # output_pickle_name = 'RODDAS_OD_00_015' + '_' + '00039451_ukf_smooth_ESA_meet.pkl'
-                # pickler = TrackPickling()
-                # pickler.dump_tracks(set([smoothed_tracks[-1]]), output_pickle_name)
                 continue
 
             track_forward = Track(track[0])  # starting the new forward track to be
-            counter = 0
-            for current_state in smoothed_track:
-                counter += 1
-                print(counter)
-                if current_state.timestamp == smoothed_track[0].timestamp:
+            for i, current_state in enumerate(smoothed_track):
+
+                if i == 0:
                     previous_state = track_forward[0]
                     continue
 
@@ -406,20 +405,16 @@ class IPLSKalmanSmoother(UnscentedKalmanSmoother):
                 )
 
                 "Perform linear time update"
-                q_cov_matrix = self.transition_model.covar(
-                    time_interval=current_state.timestamp - previous_state.timestamp, prior=track_forward[-1]
-                )
                 transition_model_linearised = LinearTransitionModel(
                     transition_matrix=f_matrix,
                     bias_value=a_vector,
                     noise_covar=lambda_cov_matrix
                 )
-                prediction_linear = KalmanPredictor(transition_model_linearised).predict(
+                prediction_linear = AugmentedKalmanPredictor(transition_model_linearised).predict(
                     track_forward[-1], timestamp=current_state.timestamp
                 )
 
                 "Perform linear data update"
-                r_cov_matrix = measurement_model.noise_covar
                 measurement_model_linearized = GeneralLinearGaussian(
                     ndim_state=measurement_model.ndim_state,
                     mapping=measurement_model.mapping,
@@ -443,10 +438,5 @@ class IPLSKalmanSmoother(UnscentedKalmanSmoother):
 
             smoothed_track = KalmanSmoother(transition_model=None).smooth(track_forward)  # <- this triggers UKF??
             smoothed_tracks.append(smoothed_track)
-            # output_pickle_name = 'RODDAS_OD_00_015' + '_' + '00039451_ipls_smooth_ESA_meet.pkl'
-            # pickler = TrackPickling()
-            # pickler.dump_tracks(set([smoothed_tracks[-1]]), output_pickle_name)
-            # # pickler.dump_tracks(set([track_forward]), output_pickle_name)
 
-        # breakpoint()
         return smoothed_tracks[-1]
