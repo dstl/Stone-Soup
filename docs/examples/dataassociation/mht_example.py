@@ -16,9 +16,11 @@ General Multi Hypotheses tracking implementation example
 # clutter).
 #
 # MHT, by definition, has several algorithms that fall under this definition, which
-# include Global Nearest Neighbour (GNN, :doc:`check here <../tutorials/06_DataAssociation-MultiTargetTutorial>`),
-# Joint Probabilistic Data association (JPDA, :doc:`tutorial here <../tutorials/08_JPDATutorial>`),
-# Multi-frame assignment (MFA [#]_, see other :doc:`example here <MFA_example>`),
+# include Global Nearest Neighbour (GNN,
+# :doc:`tutorial <../../auto_tutorials/06_DataAssociation-MultiTargetTutorial>`),
+# Joint Probabilistic Data association (JPDA,
+# :doc:`tutorial <../../auto_tutorials/08_JPDATutorial>`),
+# Multi-frame assignment (MFA [#]_, :doc:`example <MFA_example>`),
 # Multi Bernoulli filter and Probabilistic multi hypotheses tracking (PMHT).
 # Some of these algorithms are already implemented the Stone Soup.
 #
@@ -26,6 +28,7 @@ General Multi Hypotheses tracking implementation example
 # hypothesiser using their Stone Soup implementation.
 #
 # This example follows this structure:
+#
 #   1. Create ground truth and detections;
 #   2. Instantiate the tracking components and tracker;
 #   3. Run the tracker and visualise the results.
@@ -60,7 +63,7 @@ initial_covariance = CovarianceMatrix(np.diag([30, 1, 40, 1]))
 # clutter will be generated uniformly in this area around the targets
 clutter_area = np.array([[-1, 1], [-1, 1]])*150
 clutter_rate = 9
-surveillance_area = ((clutter_area[0, 1] - clutter_area[0, 0])*
+surveillance_area = ((clutter_area[0, 1] - clutter_area[0, 0]) *
                      (clutter_area[1, 1] - clutter_area[1, 0]))
 clutter_spatial_density = clutter_rate/surveillance_area
 
@@ -72,11 +75,11 @@ clutter_spatial_density = clutter_rate/surveillance_area
 # the birth rate and the death probability as zero, using only the knowledge of the
 # prior states to generate the tracks so the number of targets is fixed (3 in this case).
 #
-# We can instantiate the transition model of the targets and the measurement model. In this example we employ
-# :class:`~.CartesianToBearingRange` non-linear measurement model.
+# We can instantiate the transition model of the targets and the measurement model.
+# In this example we employ a :class:`~.CartesianToBearingRange` non-linear measurement model.
 # Then, we pass all these details to a :class:`~.MultiTargetGroundTruthSimulator`
 # and use a :class:`~.SimpleDetectionSimulator`
-# to obtain the target ground truth tracks, detections and clutter.
+# to obtain the target ground truth, detections and clutter.
 #
 
 # Create an initial state
