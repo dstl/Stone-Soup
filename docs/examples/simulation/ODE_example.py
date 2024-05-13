@@ -54,6 +54,7 @@ Using linearised ODEs from non-linear dynamic models in Stone Soup
 #                                                       s_{k-1}\\
 #                                                       \theta_{k-1}\\
 #                                                      \end{bmatrix} \\
+#
 # and the noise as :math:`\mathcal{Q}_{CH} =
 # diag\{0, 0, \sigma^2_{s}\Delta t, \sigma^{2}_{\theta} \Delta t\}`.
 # Our implementation uses a 5-dimensional :class:`~.State` which specifies the velocity components
