@@ -519,7 +519,7 @@ class AugmentedUnscentedKalmanPredictor(UnscentedKalmanPredictor):
             "3-Ns")
 
     @predict_lru_cache()
-    def predict(self, prior, timestamp=None, control_input=None, **kwargs):
+    def predict(self, prior, timestamp=None, control_input=None, transition_noise=True, **kwargs):
         r"""The unscented version of the predict step
 
         Parameters
@@ -553,9 +553,7 @@ class AugmentedUnscentedKalmanPredictor(UnscentedKalmanPredictor):
                 prior=prior, time_interval=predict_over_interval, **kwargs) \
             + ctrl_mat @ ctrl_noi @ ctrl_mat.T
 
-        # if 'noise' in kwargs:
-        #     if kwargs['noise'] is False:
-        #         total_noise_covar = None
+        total_noise_covar = total_noise_covar if transition_noise else None
 
         # Get the sigma points from the prior mean and covariance.
         sigma_point_states, mean_weights, covar_weights = gauss2sigma(

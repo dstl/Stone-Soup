@@ -109,6 +109,8 @@ def do_tracking(prior, measurements, predictor, updater):
     for i, measurement in enumerate(measurements):
         prediction = predictor.predict(prior, timestamp=measurement.timestamp)
         hypothesis = SingleHypothesis(prediction, measurement)  # Group a prediction and measurement
+        if i == 2:
+            print()
         post = updater.update(hypothesis)
         track.append(post)
         prior = track[-1]
@@ -157,7 +159,7 @@ def main():
     predictor = UnscentedKalmanPredictor(transition_model=transition_model, beta=beta, kappa=kappa)
     updater_ukf = UnscentedKalmanUpdater(beta=beta, kappa=kappa)
     updater_iplf = IPLFKalmanUpdater(beta=beta, kappa=kappa, max_iterations=5)
-    smoother = IPLSKalmanSmoother(transition_model=transition_model, n_iterations=2, beta=2, kappa=30)
+    smoother = IPLSKalmanSmoother(transition_model=transition_model, n_iterations=10, beta=2, kappa=30)
 
 
     # Do UKF/IPLF/IPLS

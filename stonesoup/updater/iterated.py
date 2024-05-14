@@ -15,6 +15,8 @@ from ..types.prediction import Prediction
 from ..types.track import Track
 from ..functions import slr_definition
 from ..models.measurement.linear import GeneralLinearGaussian
+from functools import partial
+from ..types.state import State
 
 class DynamicallyIteratedUpdater(Updater):
     """
@@ -157,6 +159,13 @@ class IPLFKalmanUpdater(UnscentedKalmanUpdater):
         doc="Number of iterations before while loop is exited and a non-convergence warning is "
             "returned")
 
+    def measurement_prediction_no_noise(self, state, measurement_model):
+        return UnscentedKalmanUpdater(beta=self.beta, kappa=self.kappa).predict_measurement(
+            predicted_state=state,
+            measurement_model=measurement_model,
+            measurement_noise=False
+        )
+
     def update(self, hypothesis, force_symmetry=True, **kwargs):
         r"""The IPLF update method. """
 
@@ -184,21 +193,16 @@ class IPLFKalmanUpdater(UnscentedKalmanUpdater):
                 break
 
             # SLR is wrt to tne approximated posterior in post_state, not the original prior in hypothesis.prediction
-            measurement_prediction = UnscentedKalmanUpdater(beta=self.beta, kappa=self.kappa).predict_measurement(
-                predicted_state=post_state,
-                measurement_model=measurement_model
-            )
-
-            h_matrix, b_vector, omega_cov_matrix = slr_definition(post_state,
-                                                                  measurement_prediction,
-                                                                  force_symmetry=force_symmetry)
+            meas_fun = partial(self.measurement_prediction_no_noise, measurement_model=measurement_model)
+            h_matrix, b_vector, omega_cov_matrix = slr_definition(post_state, meas_fun, force_symmetry=force_symmetry)
+            r_matrix = measurement_model.covar()
 
             measurement_model_linearized = GeneralLinearGaussian(
                 ndim_state=measurement_model.ndim_state,
                 mapping=measurement_model.mapping,
                 meas_matrix=h_matrix,
                 bias_value=b_vector,
-                noise_covar=omega_cov_matrix)
+                noise_covar=omega_cov_matrix+r_matrix)
 
             hypothesis.measurement_prediction = KalmanUpdater().predict_measurement(
                 predicted_state=hypothesis.prediction,

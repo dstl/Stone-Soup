@@ -797,20 +797,24 @@ def sde_euler_maruyama_integration(fun, t_values, state_x0):
         state_x.state_vector = state_x.state_vector + a*delta_t + b@delta_w
     return state_x.state_vector
 
-def slr_definition(state_pdf, prediction, force_symmetry=False):
+def slr_definition(state, fun, force_symmetry=False):
     """ Statistical linear regression (SLR), adapts the definition (9)-(11) as found in
     Á. F. García-Fernández, L. Svensson and S. Särkkä, "Iterated Posterior Linearization Smoother,"
     in IEEE Transactions on Automatic Control, vol. 62, no. 4, pp. 2056-2063, April 2017, doi: 10.1109/TAC.2016.2592681.
+
     """
 
-    # First two moments of the state pdf
-    x_bar = state_pdf.state_vector
-    p_matrix = state_pdf.covar
+    # The prediction variable below is a type of Gaussian prediction that contains information on cross-covariance. This
+    # information is naturally available in measurement predictions, such as in GaussianMeasurementPrediction, but had
+    # to be artificially added for state prediction by introducing the AugmentedGaussianStatePrediction class.
+    prediction = fun(state)
 
-    # The predicted quantities wrt the state pdf (e.g. using sigma points)
+    # First two moments of the state pdf
+    x_bar = state.state_vector
+    p_matrix = state.covar
+
+    # The predicted quantities wrt the state pdf (e.g. using sigma points if UKF predictions are used in 'fun')
     z_bar = prediction.state_vector.astype(float)
-    # next quantity (psi) is naturally available in GaussianMeasurementPrediction for predicted measurements,
-    # but has been introduced to AugmentedGaussianStatePrediction for state predictions
     psi = prediction.cross_covar
     phi = prediction.covar
 
