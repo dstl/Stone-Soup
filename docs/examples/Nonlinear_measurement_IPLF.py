@@ -2,6 +2,7 @@ from abc import ABC
 from typing import Union
 import numpy as np
 import matplotlib.pyplot as plt
+from scipy.stats import multivariate_normal
 
 from datetime import datetime, timedelta
 from stonesoup.base import Property
@@ -124,7 +125,7 @@ def main():
     transition_model = CustomNonlinearTransitionModel(covariance_matrix=np.diag([1, 0]))
     # Prior is set as in paper and the first true state is sampled from it
     prior = GaussianState([5, 0], np.diag([4, np.finfo(float).eps]), timestamp=start_time)
-    sample = np.random.multivariate_normal(prior.state_vector.ravel(), prior.covar, 1)
+    sample = multivariate_normal.rvs(prior.state_vector.ravel(), prior.covar, size=1)
     truth = GroundTruthPath([GroundTruthState(sample, timestamp=prior.timestamp)])
 
     num_steps = 50
