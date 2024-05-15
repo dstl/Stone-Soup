@@ -17,22 +17,23 @@ from stonesoup.predictor.kalman import KalmanPredictor
 from stonesoup.types.update import GaussianStateUpdate
 from stonesoup.updater.kalman import KalmanUpdater
 from stonesoup.smoother.kalman import KalmanSmoother, ExtendedKalmanSmoother, \
-    UnscentedKalmanSmoother
+    UnscentedKalmanSmoother, IPLSKalmanSmoother
 
 
 @pytest.fixture(
     params=[
         KalmanSmoother,  # Standard Kalman
         ExtendedKalmanSmoother,  # Extended Kalman
-        UnscentedKalmanSmoother,  # Unscented Kalman
+        UnscentedKalmanSmoother,
+        IPLSKalmanSmoother,  # Iterated Posterior Linearization Smoother (IPLS)
     ],
-    ids=["standard", "extended", "unscented"]
+    ids=["standard", "extended", "unscented", "ipls"]
 )
 def smoother_class(request):
     return request.param
 
 
-@pytest.mark.parametrize("multi_hypothesis", [False, True],
+@pytest.mark.parametrize("multi_hypothesis", [False, True,],
                          ids=["SingleHypothesis", "MultipleHypothesis"])
 def test_kalman_smoother(smoother_class, multi_hypothesis):
 
@@ -136,3 +137,72 @@ def test_multi_prediction_exception(smoother_class):
     with pytest.raises(
             ValueError, match="Track has MultipleHypothesis updates with multiple predictions"):
         smoother._prediction(track[0])
+
+def IPLSKalmanSmoother():
+
+    # We test IPLSKalmanSmoother separately because we need to pass the measurement model when we smooth.
+
+    # Setup list of Detections
+    start = datetime.now()
+    times = [start + timedelta(seconds=i) for i in range(0, 5)]
+
+    measurements = [
+        np.array([[2.486559674128609]]),
+        np.array([[2.424165626519697]]),
+        np.array([[6.603176662762473]]),
+        np.array([[9.329099124074590]]),
+        np.array([[14.637975326666801]]),
+    ]
+
+    detections = [Detection(m, timestamp=timest) for m, timest in zip(measurements, times)]
+
+    # Setup models.
+    trans_model = ConstantVelocity(noise_diff_coeff=1)
+    meas_model = LinearGaussian(ndim_state=2, mapping=[0], noise_covar=np.array([[0.4]]))
+
+    # Tracking components
+    predictor = KalmanPredictor(transition_model=trans_model)
+    updater = KalmanUpdater(measurement_model=meas_model)
+
+    # Prior
+    cstate = GaussianState(np.ones([2, 1]), np.eye(2), timestamp=start)
+    track = Track()
+
+    for detection in detections:
+        # Predict
+        pred = predictor.predict(cstate, timestamp=detection.timestamp)
+        # form hypothesis
+        hypothesis = SingleHypothesis(pred, detection)
+        # Update
+        cstate = updater.update(hypothesis)
+        # write to track
+        if multi_hypothesis:
+            cstate.hypothesis = MultipleHypothesis([hypothesis])
+        track.append(cstate)
+
+    smoother = IPLSKalmanSmoother(transition_model=trans_model)
+    smoothed_track = smoother.smooth(track)
+    smoothed_state_vectors = [
+        state.state_vector for state in smoothed_track]
+
+    # Verify Values
+    target_smoothed_vectors = [
+        np.array([[1.688813974839928], [1.267196351952188]]),
+        np.array([[3.307200214998506], [2.187167840595264]]),
+        np.array([[6.130402001958210], [3.308896367021604]]),
+        np.array([[9.821303658438408], [4.119557021638030]]),
+        np.array([[14.257730973981149], [4.594862462495096]])
+    ]
+
+    assert np.allclose(smoothed_state_vectors, target_smoothed_vectors)
+
+    # Check that a prediction is smoothable and that no error chucked
+    # Also remove the transition model and use the one provided by the smoother
+    track[1] = GaussianStatePrediction(pred.state_vector, pred.covar, timestamp=pred.timestamp)
+    smoothed_track2 = smoother.smooth(track)
+    assert isinstance(smoothed_track2[1], GaussianStatePrediction)
+
+    # Check appropriate error chucked if not GaussianStatePrediction/Update
+    track[-1] = detections[-1]
+    with pytest.raises(TypeError):
+        smoother._prediction(track[-1])
