@@ -3,12 +3,16 @@ import numpy as np
 from numpy import deg2rad
 from scipy.linalg import cholesky, LinAlgError
 from pytest import approx, raises
+import datetime
 
 from .. import (
     cholesky_eps, jacobian, gm_reduce_single, mod_bearing, mod_elevation, gauss2sigma,
-    rotx, roty, rotz, cart2sphere, cart2angles, pol2cart, sphere2cart, dotproduct, gm_sample)
-from ...types.array import StateVector, StateVectors, Matrix
+    rotx, roty, rotz, cart2sphere, cart2angles, pol2cart, sphere2cart, dotproduct, gm_sample,
+    slr_definition)
+from ...types.array import StateVector, StateVectors, Matrix, CovarianceMatrix
 from ...types.state import State, GaussianState
+from ...types.prediction import GaussianMeasurementPrediction
+from ...types.update import GaussianStateUpdate
 
 
 def test_cholesky_eps():
@@ -344,3 +348,31 @@ def test_gm_sample(means, covars, weights, size):
         assert samples.shape[0] == means[0].shape[0]
     else:
         assert samples.shape[0] == means.shape[0]
+
+
+def test_slr_definition():
+    time1 = datetime.datetime.now()
+
+    posterior_state = GaussianStateUpdate(
+        state_vector = np.array([[7.77342961], [1.]]),
+        covar = CovarianceMatrix([[4.54274216e+00, -8.47168858e-16],
+                                  [-8.47168858e-16, 2.22044604e-16]]),
+        hypothesis = None,
+        timestamp=time1)
+
+    prediction_state = GaussianMeasurementPrediction(
+        state_vector=[[28.7828]],
+        covar=[[812.403]],
+        timestamp = time1,
+        cross_covar=CovarianceMatrix([[ 4.94297048e+01],
+                                      [-9.10320262e-15]]))
+    print(prediction_state)
+    h_matrix, b_vector, omega_cov_matrix = slr_definition(posterior_state,
+                                                          prediction_state,
+                                                          force_symmetry=True)
+    assert np.allclose(h_matrix,
+                       np.array([[10.8810, -2.029e-15]]))
+    assert np.allclose(b_vector,
+                       np.array([[-55.8001]]))
+    assert np.allclose(omega_cov_matrix,
+                       np.array([[274.557]]))
