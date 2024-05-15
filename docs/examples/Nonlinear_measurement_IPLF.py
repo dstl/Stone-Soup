@@ -11,7 +11,6 @@ from stonesoup.models.base import TimeInvariantModel
 from stonesoup.models.transition.nonlinear import GaussianTransitionModel
 from stonesoup.models.measurement.nonlinear import NonLinearGaussianMeasurement
 from stonesoup.predictor.kalman import UnscentedKalmanPredictor
-from stonesoup.smoother.kalman import IPLSKalmanSmoother
 from stonesoup.types.array import CovarianceMatrix
 from stonesoup.types.detection import Detection
 from stonesoup.types.groundtruth import GroundTruthPath, GroundTruthState
@@ -159,14 +158,10 @@ def main():
     predictor = UnscentedKalmanPredictor(transition_model=transition_model, beta=beta, kappa=kappa)
     updater_ukf = UnscentedKalmanUpdater(beta=beta, kappa=kappa)
     updater_iplf = IPLFKalmanUpdater(beta=beta, kappa=kappa, max_iterations=5)
-    smoother = IPLSKalmanSmoother(transition_model=transition_model, n_iterations=10, beta=2, kappa=30)
 
-
-    # Do UKF/IPLF/IPLS
+    # Do UKF/IPLF
     track_ukf = do_tracking(prior, measurements, predictor, updater_ukf)
     track_iplf = do_tracking(prior, measurements, predictor, updater_iplf)
-    track_ipls = smoother.smooth(track_iplf)
-
 
     # Plotting the results
     fig0, ax0 = plt.subplots()
@@ -176,7 +171,6 @@ def main():
     ax0.scatter(timestamps_meas, [state.state_vector.ravel()[0] for state in measurements], label='meas', marker='x')
     ax0.plot(timestamps, [state.state_vector.ravel()[0] for state in track_ukf], label='ukf')
     ax0.plot(timestamps, [state.state_vector.ravel()[0] for state in track_iplf], label='iplf')
-    ax0.plot(timestamps, [state.state_vector.ravel()[0] for state in track_ipls], label='ipls')
     ax0.set_xlabel('Time stamp')
     ax0.set_ylabel('Value')
     plt.legend()
@@ -185,15 +179,12 @@ def main():
     fig1, ax1 = plt.subplots()
     error_ukf = []
     error_iplf = []
-    error_ipls = []
-    for state_true, state_ukf, state_iplf, state_ipls in zip(truth, track_ukf, track_iplf, track_ipls):
+    for state_true, state_ukf, state_iplf in zip(truth, track_ukf, track_iplf):
         error_ukf.append(Euclidean()(state_true, state_ukf))
         error_iplf.append(Euclidean()(state_true, state_iplf))
-        error_ipls.append(Euclidean()(state_true, state_ipls))
 
     ax1.plot(timesteps, error_ukf, label='ukf')
     ax1.plot(timesteps, error_iplf, label='iplf')
-    ax1.plot(timesteps, error_ipls, label='ipls')
     ax1.set_xlabel('Time stamp')
     ax1.set_ylabel('Absolute error (position)')
     plt.legend()

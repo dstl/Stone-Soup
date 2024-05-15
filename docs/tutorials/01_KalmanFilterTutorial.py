@@ -118,7 +118,7 @@ start_time = datetime.now().replace(microsecond=0)
 # We note that it can sometimes be useful to fix our random number generator in order to probe a
 # particular example repeatedly.
 
-np.random.seed(19915)
+np.random.seed(1991)
 
 # %%
 # The :class:`~.ConstantVelocity` class creates a one-dimensional constant velocity model with
