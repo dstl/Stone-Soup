@@ -3,7 +3,8 @@ from pytest import approx
 import numpy as np
 from scipy.stats import multivariate_normal
 
-from ..linear import LinearGaussian
+from ..linear import LinearGaussian, GeneralLinearGaussian
+from ....types.array import CovarianceMatrix, Matrix
 from ....types.state import State
 
 
@@ -106,3 +107,103 @@ def test_lgmodel(H, R, ndim_state, mapping):
     # Check first values produced by seed match
     for _ in range(3):
         assert all(lg1.rvs() == lg2.rvs())
+
+
+@pytest.mark.parametrize(
+    "H, R, B, ndim_state, mapping",
+    [
+        (       # 1D meas, 2D state
+                np.array([[1, 0]]),
+                np.array([[0.1]]),
+                np.array([[1.0]]),
+                2,
+                [0],
+        ),
+        (       # 2D meas, 4D state
+                np.array([[1, 0, 0, 0], [0, 0, 1, 0]]),
+                np.diag([0.1, 0.1]),
+                np.array([[1.0]]),
+                4,
+                [0, 2],
+        ),
+        (       # 4D meas, 2D state
+                np.array([[1, 0], [0, 0], [0, 1], [0, 0]]),
+                np.diag([0.1, 0.1, 0.1, 0.1]),
+                np.array([[1.0]]),
+                2,
+                [0, None, 1, None],
+        ),
+    ],
+    ids=["1D_meas:2D_state", "2D_meas:4D_state", "4D_meas:2D_state"]
+)
+def test_glmodel(H, R, B, ndim_state, mapping):
+    """
+        test for the generalised linear model
+    """
+
+    state_vec = np.array([[n] for n in range(ndim_state)])
+    state = State(state_vec)
+
+    glm = GeneralLinearGaussian(ndim_state=ndim_state,
+                                mapping=mapping,
+                                meas_matrix=H,
+                                bias_value=B,
+                                noise_covar=R)
+
+    # Ensure ```lg.transfer_function()``` returns H
+    assert np.array_equal(H, glm.matrix())
+
+    # Ensure lg.jacobian() returns H
+    assert np.array_equal(H, glm.jacobian(state=state))
+
+    # Ensure ```lg.covar()``` returns R
+    assert np.array_equal(R, glm.covar())
+
+    # Ensure the Bias is returned
+    assert np.array_equal(B, glm.bias())
+
+    # Project a state through the model
+    # (without noise)
+    meas_pred_wo_noise = glm.function(state)
+    assert np.array_equal(meas_pred_wo_noise, H @ state_vec + B)
+
+    # Evaluate the likelihood of the predicted measurement, given the state
+    # (without noise)
+    prob = glm.pdf(State(meas_pred_wo_noise), state)
+    assert approx(prob) == multivariate_normal.pdf(
+        meas_pred_wo_noise.T,
+        mean=np.array(H @ state_vec + B).ravel(),
+        cov=R)
+
+    # Propagate a state vector through the model
+    # (with external noise)
+    noise = glm.rvs()
+    meas_pred_w_enoise = glm.function(state,
+                                      noise=noise)
+    assert np.array_equal(meas_pred_w_enoise,  H @ state_vec + B + noise)
+
+    # Evaluate the likelihood of the predicted state, given the prior
+    # (with noise)
+    prob = glm.pdf(State(meas_pred_w_enoise), state)
+    assert approx(prob) == multivariate_normal.pdf(
+        meas_pred_w_enoise.T,
+        mean=np.array(H @ state_vec + B).ravel(),
+        cov=R)
+
+    # Test random seed give consistent results
+    glm1 = GeneralLinearGaussian(ndim_state=ndim_state,
+                                 mapping=mapping,
+                                 meas_matrix=H,
+                                 bias_value=B,
+                                 noise_covar=R,
+                                 seed=1)
+    glm2 =GeneralLinearGaussian(ndim_state=ndim_state,
+                                 mapping=mapping,
+                                 meas_matrix=H,
+                                 bias_value=B,
+                                 noise_covar=R,
+                                 seed=1)
+
+    # Check first values produced by seed match
+    for _ in range(3):
+        assert all(glm1.rvs() == glm2.rvs())
