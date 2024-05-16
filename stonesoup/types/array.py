@@ -70,7 +70,7 @@ class StateVector(Matrix):
 
     Note that code using the pattern `my_state_vector[1, 0]` will continue to work.
 
-    When slicing would result in return of a invalid shape for a StateVector (i.e. not `(n, 1)`)
+    When slicing would result in return of an invalid shape for a StateVector (i.e. not `(n, 1)`)
     then a :class:`~.Matrix` view will be returned.
 
     .. note ::
@@ -97,7 +97,7 @@ class StateVector(Matrix):
         # If item has two elements, it is a tuple and should be left alone.
         # If item is a slice object, or an ndarray, we would expect a StateVector returned,
         #   so leave it alone.
-        # If item is an int, we would expected a number returned, so we should append 0  to the
+        # If item is an int, we would expect a number returned, so we should append 0  to the
         #   item and extract the first (and only) column
         # Note that an ndarray of ints is an instance of int
         #   i.e. isinstance(np.array([1]), int) == True
@@ -232,7 +232,7 @@ class CovarianceMatrix(Matrix):
     """Covariance matrix wrapper for :class:`numpy.ndarray`.
 
     This class returns a view to a :class:`numpy.ndarray`, but ensures that
-    its initialised at a *NxN* matrix. It's called similar to
+    it is initialised as a *NxN* matrix. It's called similar to
     :func:`numpy.asarray`.
     """
 

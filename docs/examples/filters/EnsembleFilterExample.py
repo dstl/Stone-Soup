@@ -33,7 +33,7 @@ Ensemble Filter Example
 # algorithm from "Ensemble Kalman Filter with Bayesian Recursive Update" by Kristen Michaelson,
 # Andrey A. Popov and Renato Zanetti. Similar to the EnsembleUpdater, but uses a different form
 # of Kalman gain. This alternative form of the EnKF calculates a separate kalman gain for each
-# ensemble member. This alternative Kalman gain calculation involves linearization of the
+# ensemble member. This alternative Kalman gain calculation involves linearisation of the
 # measurement. An additional step is introduced to perform inflation.
 #
 # The :class:`~.RecursiveLinearisedEnsembleUpdater` is an implementation of 'The Bayesian
@@ -129,7 +129,7 @@ plotter.fig
 # Set up predictor and updater
 # ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 # In this EnKF example we must use the :class:`~.EnsemblePredictor`, and choose to use the
-# standard :class:`~.EnsembleUpdater`. Note that we could instanciate any of the other (ensemble)
+# standard :class:`~.EnsembleUpdater`. Note that we could instantiate any of the other (ensemble)
 # updaters mentioned in this example, in place of the :class:`~.EnsembleUpdater`.
 
 

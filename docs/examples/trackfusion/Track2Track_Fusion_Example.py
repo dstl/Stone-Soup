@@ -73,7 +73,7 @@ Multi-Sensor Fusion: Covariance Intersection Using Tracks as Measurements
 #
 # The specifics for implementing the Covariance Intersection Algorithm in several popular
 # multi-target tracking algorithms was expanded upon recently by Clark et al [#]_. The work
-# includes a discussion of Stone Soup and and is used as the basis for this example.
+# includes a discussion of Stone Soup and is used as the basis for this example.
 
 
 # %%
