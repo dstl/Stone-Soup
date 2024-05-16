@@ -456,6 +456,7 @@ class ClearMotAssociator(TwoTrackToTrackAssociator):
         doc="Threshold distance measure which states must be within for an "
             "association to be recorded")
     time_interval: datetime.timedelta = Property(
+        default=datetime.timedelta(seconds=1),
         doc="Threshold distance measure which states must be within for an "
             "association to be recorded")
     measure: Measure = Property(
@@ -527,12 +528,17 @@ class ClearMotAssociator(TwoTrackToTrackAssociator):
                     distance = self.measure(track_state_current, truth_state_current)
 
                     if distance < self.association_threshold:
-                        matches_current.append((truth_id, track_id))
+                        matches_current.add((truth_id, track_id))
 
                         truth_ids_at_current_time.remove(truth_id)
                         track_ids_at_current_time.remove(track_id)
 
             if not truth_ids_at_current_time or not track_ids_at_current_time:
+                matches_over_time.append(matches_current)
+                timesteps.append(current_time)
+
+                matches_previous = matches_current
+                current_time += self.time_interval
                 continue
 
             num_truth_unassigned = len(truth_ids_at_current_time)
@@ -555,7 +561,7 @@ class ClearMotAssociator(TwoTrackToTrackAssociator):
 
             for i, j in zip(row_ind, col_in):
                 if cost_matrix[i, j] < self.association_threshold:
-                    matches_current.append((truth_id, track_id))
+                    matches_current.add((truth_id, track_id))
 
             # save
             matches_over_time.append(matches_current)
@@ -571,7 +577,7 @@ class ClearMotAssociator(TwoTrackToTrackAssociator):
         associations = set()
         for truth_id in truth_states_by_id.keys():
 
-            assigned_track_ids = list()
+            assigned_track_ids_over_time = list()
 
             for t, match_set in zip(timesteps, matches_over_time):
 
@@ -580,12 +586,12 @@ class ClearMotAssociator(TwoTrackToTrackAssociator):
                     if truth_id_in_match == truth_id:
                         track_id_at_t = track_id_in_match
                         break
-                assigned_track_ids.append(track_id_at_t)
+                assigned_track_ids_over_time.append(track_id_at_t)
 
             start_time = None
             current_track_id = None
 
-            for i, assigned_track_id in enumerate(assigned_track_ids):
+            for i, assigned_track_id in enumerate(assigned_track_ids_over_time):
 
                 if (not current_track_id) and assigned_track_id:
                     current_track_id = assigned_track_id
@@ -597,6 +603,13 @@ class ClearMotAssociator(TwoTrackToTrackAssociator):
                         TimeRange(start_time, timesteps[i])))
                     start_time = timesteps[i] if assigned_track_id else None
                     current_track_id = assigned_track_id
+
+                # end of timeseries
+                if i == (len(assigned_track_ids_over_time)-1):
+                    associations.add(TimeRangeAssociation(OrderedSet(
+                        (track_by_id[current_track_id], truth_by_id[truth_id])),
+                        TimeRange(start_time, timesteps[i])))
+                    break
 
         return AssociationSet(associations)
 
@@ -636,12 +649,12 @@ class ClearMotAssociator(TwoTrackToTrackAssociator):
 
 
 def get_state_at_time(states: MutableSequence[State], timestamp: datetime.datetime,
-                      max_error: datetime.timedelta) -> State | None:
+                      max_error: datetime.timedelta = datetime.timedelta(milliseconds=10)) -> State | None:
 
     state_timestamps = [state.timestamp for state in states]
 
     for state_timestamp in state_timestamps:
-        if state_timestamp > timestamp:
+        if state_timestamp >= timestamp:
             break
 
     error = state_timestamp - timestamp
