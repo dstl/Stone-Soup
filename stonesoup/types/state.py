@@ -834,7 +834,7 @@ class MarginalisedParticleState(ParticleState):
         weighted_covar = np.sum(self.weight[np.newaxis, np.newaxis, :] * covariance, axis=len(covariance.shape)-1)
         mu_bar = np.sum(self.weight[np.newaxis, :] * mu, axis=1)
         tmp = mu - mu_bar[:, np.newaxis]
-        weighted_mean = np.sum(self.weight[np.newaxis, np.newaxis, :] * (np.einsum("ik,kj->ijk", tmp, tmp.T)), axis=len(covariance.shape)-1)
+        weighted_mean = np.sum(self.weight[np.newaxis, np.newaxis, :] * (np.einsum("ik,jk->ijk", tmp, tmp)), axis=len(covariance.shape)-1)
         return weighted_mean + weighted_covar 
 
 

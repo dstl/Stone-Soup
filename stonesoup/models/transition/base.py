@@ -1,13 +1,13 @@
 from abc import abstractmethod
 from datetime import timedelta
 import copy
-from typing import Sequence, Iterable, Union, List, Optional
+from typing import Sequence, Iterable, Union, List, Optional, Callable
 
 from scipy.linalg import block_diag
 import numpy as np
 
 from .base_driver import Latents, GaussianDriver, ConditionalGaussianDriver
-from ..base import Model, GaussianModel, LinearModel
+from ..base import Model, GaussianModel, LinearModel, TimeVariantModel
 from ...base import Property
 from ...types.array import StateVector, StateVectors, CovarianceMatrix, CovarianceMatrices
 from ...types.state import State
@@ -130,7 +130,7 @@ class CombinedGaussianTransitionModel(TransitionModel, GaussianModel):
         return block_diag(*covar_list)
 
 
-class DrivenTransitionModel(TransitionModel):
+class DrivenTransitionModel(TransitionModel, TimeVariantModel):
     g_driver: GaussianDriver = Property(default=None, doc="Gaussian noise process.")
     cg_driver: ConditionalGaussianDriver = Property(default=None, doc="Conditional Gaussian noise process.")
 
@@ -194,19 +194,31 @@ class DrivenTransitionModel(TransitionModel):
             latents.add(driver=self.cg_driver, jsizes=jsizes, jtimes=jtimes)
         return latents
     
+    def _g_mean(self, dt: float, **kwargs) -> StateVector:
+        return self.g_driver.mean(e_gt_func=self.e_gt, dt=dt, **kwargs)
+
+    def _cg_mean(self, latents: Latents, dt: float, **kwargs) -> StateVector | StateVectors:
+        return self.cg_driver.mean(latents=latents, ft_func=self.ft, e_ft_func=self.e_ft, dt=dt, **kwargs)
+    
     def mean(self, latents: Latents, time_interval: timedelta, **kwargs) -> StateVector | StateVectors:
         dt = time_interval.total_seconds()
         mean = np.zeros((self.ndim_state, 1))
         if self.g_driver:
-            mean += self.g_driver.mean(e_gt_func=self.e_gt, dt=dt)
+            mean += self._g_mean(dt=dt)
         if self.cg_driver:
-            tmp = self.cg_driver.mean(latents=latents, ft_func=self.ft, e_ft_func=self.e_ft, dt=dt)
+            tmp = self._cg_mean(latents=latents, dt=dt)
             if isinstance(tmp, StateVectors):
                 n_samples = tmp.shape[0]
                 mean = np.tile(mean, (n_samples, 1, 1))
             mean += tmp
         return mean
     
+    def _g_covar(self, dt:float) -> CovarianceMatrix:
+        return self.g_driver.covar(e_gt_func=self.e_gt, dt=dt)
+    
+    def _cg_covar(self, latents:Latents, dt:float) -> CovarianceMatrix | CovarianceMatrices:
+        return self.cg_driver.covar(latents=latents, ft_func=self.ft, e_ft_func=self.e_ft, dt=dt)
+
     def covar(self, latents: Latents, time_interval: timedelta, **kwargs) -> CovarianceMatrix | CovarianceMatrices:
         # dt = time_interval.total_seconds()
         # covar = 0
@@ -221,9 +233,9 @@ class DrivenTransitionModel(TransitionModel):
         dt = time_interval.total_seconds()
         covar = np.zeros((self.ndim_state, self.ndim_state))
         if self.g_driver:
-            covar += self.g_driver.covar(e_gt_func=self.e_gt, dt=dt)
+            covar += self._g_covar(dt=dt)
         if self.cg_driver:
-            tmp = self.cg_driver.covar(latents=latents, ft_func=self.ft, e_ft_func=self.e_ft, dt=dt)
+            tmp = self._cg_covar(latents=latents, dt=dt)
             if isinstance(tmp, CovarianceMatrices):
                 n_samples = tmp.shape[0]
                 covar = np.tile(covar, (n_samples, 1, 1))
@@ -237,17 +249,15 @@ class DrivenTransitionModel(TransitionModel):
         dt = time_interval.total_seconds()
         noise = 0
         if self.g_driver:
-            mean = self.g_driver.mean(e_gt_func=self.e_gt, dt=dt)
-            # covar = self.g_driver.covar(e_gt2_func=self.e_gt2, dt=dt)
-            covar = self.g_driver.covar(e_gt_func=self.e_gt, dt=dt)
+            mean = self._g_mean(dt=dt)
+            covar = self._g_covar(dt=dt)
             noise += self.g_driver.rvs(mean=mean, covar=covar, num_samples=num_samples, **kwargs)
 
         if self.cg_driver:
             if not latents:
                 latents = self.sample_latents(time_interval=time_interval, num_samples=1)
-            mean = self.cg_driver.mean(latents=latents, ft_func=self.ft, e_ft_func=self.e_ft, dt=dt)
-            # covar = self.cg_driver.covar(latents=latents, ft2_func=self.ft2, e_ft2_func=self.e_ft2, dt=dt)
-            covar = self.cg_driver.covar(latents=latents, ft_func=self.ft, e_ft_func=self.e_ft, dt=dt)
+            mean = self._cg_mean(latents=latents, dt=dt)
+            covar = self._cg_covar(latents=latents, dt=dt)
             noise += self.cg_driver.rvs(mean=mean, covar=covar, num_samples=num_samples, **kwargs)
 
         return noise

@@ -551,9 +551,10 @@ class MarginalisedParticlePredictor(ParticlePredictor):
         process_covar = process_covar.T# (M, M, N)
         F = model.matrix(time_interval=time_interval, **kwargs) # (M, M)
         new_state_vector = F @ prior.state_vector + process_mean
-        tmp = np.einsum("jki, lk->jli", prior.covariance, F) # ()
-        new_covariance = np.einsum("kj, jli->kli", F, tmp) + process_covar
-     
+        tmp = np.einsum("jik, li-> jlk", prior.covariance, F) # ()
+        new_covariance = np.einsum("ij, jlk->ilk", F, tmp) + process_covar
+        # print(new_covariance)
+        # raise Exception
         
         # for p in range(num_samples):
         #     epochs = epochs_l[..., p]
