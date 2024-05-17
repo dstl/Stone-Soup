@@ -943,11 +943,11 @@ class KernelParticleState(State):
         """The number of dimensions represented by the state."""
         return self.state_vector.shape[0]
 
-    @property
+    @clearable_cached_property('state_vector', 'weight')
     def mean(self):
         return self.state_vector @ self.weight
 
-    @property
+    @clearable_cached_property('state_vector', 'weight')
     def covar(self):
         return self.state_vector @ self.kernel_covar @ self.state_vector.T
 

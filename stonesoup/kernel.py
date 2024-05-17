@@ -13,9 +13,6 @@ class Kernel(Base):
     A Kernel provides a means to translate state space or measurement space into kernel space.
     """
 
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-
     @abstractmethod
     def __call__(self, state1, state2=None):
         r"""
@@ -33,6 +30,21 @@ class Kernel(Base):
 
         """
         raise NotImplementedError
+
+    @staticmethod
+    def _get_state_vectors(state1, state2):
+        if isinstance(state1, State):
+            state_vector1 = state1.state_vector
+        else:
+            state_vector1 = state1
+        if state2 is None:
+            state_vector2 = state_vector1
+        else:
+            if isinstance(state2, State):
+                state_vector2 = state2.state_vector
+            else:
+                state_vector2 = state2
+        return state_vector1, state_vector2
 
 
 class QuadraticKernel(Kernel):
@@ -67,19 +79,8 @@ class QuadraticKernel(Kernel):
         StateVectors
             Transformed state vector in kernel space.
         """
-        if isinstance(state1, State):
-            state_vector1 = state1.state_vector
-        else:
-            state_vector1 = state1
-        if state2 is None:
-            state_vector2 = state_vector1
-        else:
-            if isinstance(state2, State):
-                state_vector2 = state2.state_vector
-            else:
-                state_vector2 = state2
-        return (state_vector1.T @ state_vector2 /
-                self.ialpha + self.c) ** 2
+        state_vector1, state_vector2 = self._get_state_vectors(state1, state2)
+        return (state_vector1.T@state_vector2/self.ialpha + self.c) ** 2
 
 
 class QuarticKernel(Kernel):
@@ -114,19 +115,8 @@ class QuarticKernel(Kernel):
         StateVectors
             Transformed state in kernel space.
         """
-        if isinstance(state1, State):
-            state_vector1 = state1.state_vector
-        else:
-            state_vector1 = state1
-        if state2 is None:
-            state_vector2 = state_vector1
-        else:
-            if isinstance(state2, State):
-                state_vector2 = state2.state_vector
-            else:
-                state_vector2 = state2
-        return (state_vector1.T @ state_vector2 /
-                self.ialpha + self.c) ** 4
+        state_vector1, state_vector2 = self._get_state_vectors(state1, state2)
+        return (state_vector1.T@state_vector2/self.ialpha + self.c) ** 4
 
 
 class GaussianKernel(Kernel):
@@ -147,9 +137,6 @@ class GaussianKernel(Kernel):
         doc=r"Denoted as :math:`\sigma^2` in the equation above. Determines the width of the "
             r"Gaussian kernel. Range is [1e0, 1e2].")
 
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-
     def __call__(self, state1, state2=None):
         r"""Calculate the Gaussian Kernel transformation for a pair of state vectors
 
@@ -163,21 +150,10 @@ class GaussianKernel(Kernel):
         StateVectors
             Transformed state vector in kernel space.
         """
-        if isinstance(state1, State):
-            state_vector1 = state1.state_vector
-        else:
-            state_vector1 = state1
-        if state2 is None:
-            state_vector2 = state_vector1
-        else:
-            if isinstance(state2, State):
-                state_vector2 = state2.state_vector
-            else:
-                state_vector2 = state2
+        state_vector1, state_vector2 = self._get_state_vectors(state1, state2)
         diff_tilde_x = (state_vector1.T[:, :, None] - state_vector2.T[:, None, :]) ** 2
         diff_tilde_x_sum = np.sum(diff_tilde_x, axis=0)
 
-        k_tilde_x = np.exp(-diff_tilde_x_sum / (2 * self.variance)) / (
-            np.sqrt(2 * np.pi * self.variance))
+        k_tilde_x = np.exp(-diff_tilde_x_sum/(2*self.variance)) / np.sqrt(2*np.pi*self.variance)
 
         return StateVectors(k_tilde_x)

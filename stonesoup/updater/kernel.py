@@ -16,12 +16,12 @@ class AdaptiveKernelKalmanUpdater(Updater):
     """
     kernel: Kernel = Property(
         default=None,
-        doc="Kernel")
+        doc="Kernel. Default is None")
     lambda_updater: float = Property(
         default=1e-3,
         doc="Used to incorporate prior knowledge of the distribution. If the "
             "true distribution is Gaussian, the value of 2 is optimal. "
-            "Default is 2")
+            "Default is 1e-3")
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -77,16 +77,18 @@ class AdaptiveKernelKalmanUpdater(Updater):
 
             # Attach the measurement prediction to the hypothesis
             hypothesis.measurement_prediction = self.predict_measurement(
-                predicted_state, measurement_model=measurement_model, **kwargs)
+                predicted_state, measurement_model=measurement_model,
+                measurement_noise=False, **kwargs)
         G_yy = self.kernel(hypothesis.measurement_prediction)
         g_y = self.kernel(hypothesis.measurement_prediction, hypothesis.measurement)
 
-        Q_AKKF = predicted_state.kernel_covar @ np.linalg.pinv(
-            G_yy @ predicted_state.kernel_covar + self.lambda_updater * np.identity(
-                len(predicted_state)))
-
-        updated_weights = np.atleast_2d(predicted_state.weight).T + Q_AKKF @ (
-                    g_y - np.atleast_2d(G_yy @ predicted_state.weight).T)
+        Q_AKKF = \
+            predicted_state.kernel_covar \
+            @ np.linalg.pinv(G_yy @ predicted_state.kernel_covar
+                             + self.lambda_updater * np.identity(len(predicted_state)))
+        updated_weights = \
+            np.atleast_2d(predicted_state.weight).T \
+            + Q_AKKF @ (g_y - np.atleast_2d(G_yy @ predicted_state.weight).T)
         updated_covariance = \
             predicted_state.kernel_covar - Q_AKKF @ G_yy @ predicted_state.kernel_covar
 

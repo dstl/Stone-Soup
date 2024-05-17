@@ -1,4 +1,5 @@
 import copy
+
 import numpy as np
 
 from ._utils import predict_lru_cache
@@ -15,7 +16,7 @@ class AdaptiveKernelKalmanPredictor(KalmanPredictor):
     """
     kernel: Kernel = Property(
         default=None,
-        doc="Kernel")
+        doc="Kernel. Default is None")
     lambda_predictor: float = Property(
         default=1e-3,
         doc=r":math:`\lambda_{\tilde{K}}`. Regularisation parameter used to stabilise the inverse "
@@ -24,23 +25,21 @@ class AdaptiveKernelKalmanPredictor(KalmanPredictor):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
-        self._time_interval = None
-
         if self.kernel is None:
             self.kernel = QuadraticKernel()
 
     @predict_lru_cache()
-    def predict(self, prior, proposal=None, timestamp=None, **kwargs):
+    def predict(self, prior, timestamp=None, proposal=None, **kwargs):
         r"""The adaptive kernel version of the predict step
 
         Parameters
         ----------
         prior : :class:`~.KernelParticleState`
             Prior state, :math:`\mathbf{x}_{k-1}`
-        proposal : :class:`~.KernelParticleState`
-            Proposal state, :math:`\mathbf{x}_{k-1}`
         timestamp : :class:`datetime.datetime`
             Time to transit to (:math:`k`)
+        proposal : :class:`~.KernelParticleState`
+            Proposal state, :math:`\mathbf{x}_{k-1}`
         **kwargs : various, optional
             These are passed to :meth:`~.TransitionModel.covar`
 
@@ -54,7 +53,7 @@ class AdaptiveKernelKalmanPredictor(KalmanPredictor):
             if isinstance(prior, KernelParticleStateUpdate):
                 proposal = State(state_vector=prior.proposal)
             else:
-                proposal = copy.deepcopy(prior)
+                proposal = copy.copy(prior)
 
         # Get the prediction interval
         predict_over_interval = self._predict_over_interval(prior, timestamp)
@@ -66,13 +65,13 @@ class AdaptiveKernelKalmanPredictor(KalmanPredictor):
         k_tilde_tilde = self.kernel(proposal)
         k_tilde_nontilde = self.kernel(proposal, prior)
 
-        kernel_t = np.linalg.pinv(
-            k_tilde_tilde + self.lambda_predictor * np.identity(len(prior))) @ k_tilde_nontilde
+        I = np.identity(len(prior))  # noqa: E741
+        inv_val = np.linalg.pinv(k_tilde_tilde + self.lambda_predictor * I)
+
+        kernel_t = inv_val @ k_tilde_nontilde
         prediction_weights = kernel_t @ prior.weight
-        v = (np.linalg.pinv(k_tilde_tilde + self.lambda_predictor * np.identity(
-            len(prior))) @ k_tilde_tilde - np.identity(len(prior))) @ \
-            (np.linalg.pinv(k_tilde_tilde + self.lambda_predictor * np.identity(
-                len(prior))) @ k_tilde_tilde - np.identity(len(prior))).T / len(prior)
+        new_val = inv_val @ k_tilde_tilde - I
+        v = new_val@new_val.T / len(prior)
 
         prediction_covariance = kernel_t @ prior.kernel_covar @ kernel_t.T + v
         return Prediction.from_state(prior,
