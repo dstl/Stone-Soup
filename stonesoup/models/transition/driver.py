@@ -19,13 +19,13 @@ class AlphaStableNSMDriver(NormalSigmaMeanDriver):
     def _hfunc(self, epochs: np.ndarray) -> np.ndarray:
         return np.power(epochs, -1.0 / self.alpha)
 
-    def _first_moment(self) -> np.ndarray:
+    def _first_moment(self) -> float:
         return self.alpha / (1. - self.alpha) * np.power(self.c, 1. - 1. / self.alpha)
     
-    def _second_moment(self) -> np.ndarray:
+    def _second_moment(self) -> float:
         return self.alpha / (2. - self.alpha) * np.power(self.c, 1. - 2. / self.alpha)
 
-    def _residual_mean(self, e_ft: np.ndarray) -> CovarianceMatrix:
+    def _residual_mean(self, e_ft: np.ndarray) -> StateVector:
         if 1 < self.alpha < 2:
             m = e_ft.shape[0]
             r_mean = np.zeros((m, 1))
@@ -54,13 +54,32 @@ class GammaNVMDriver(NormalVarianceMeanDriver):
     def _hfunc(self, epochs: np.ndarray) -> np.ndarray:
         return 1. / (self.beta * (np.exp(epochs / self.nu) - 1.))
 
-    def _first_moment(self) -> np.ndarray:
+    def _first_moment(self) -> float:
         truncation = self._hfunc(self.c)
         return (self.nu / self.beta) * incgammal(1., self.beta * truncation)
     
-    def _second_moment(self) -> np.ndarray:
+    def _second_moment(self) -> float:
         truncation = self._hfunc(self.c)
         return (self.nu / self.beta ** 2) * incgammal(2., self.beta * truncation)
 
     def _thinning_probabilities(self, jsizes: np.ndarray) -> np.ndarray:
         return (1. + self.beta * jsizes) * np.exp(-self.beta * jsizes) # (n_jumps, n_samples)
+    
+
+class TemperedStableNVMDriver(NormalVarianceMeanDriver):
+    alpha: float = Property(doc="Alpha parameter")
+    beta: float = Property(doc="Shape parameter")
+
+    def _hfunc(self, epochs: np.ndarray) -> np.ndarray:
+        return np.power(epochs, -1.0 / self.alpha)
+    
+    def _first_moment(self) -> float:
+        truncation = self._hfunc(self.c)
+        return (self.alpha * self.beta ** (self.alpha - 1.)) * incgammal(1. - self.alpha, self.beta * truncation)
+    
+    def _second_moment(self) -> float:
+        truncation = self._hfunc(self.c)
+        return (self.alpha * self.beta ** (self.alpha- 2.)) * incgammal(2. - self.alpha, self.beta * truncation)
+
+    def _thinning_probabilities(self, jsizes: np.ndarray) -> np.ndarray:
+        return np.exp(-self.beta * jsizes) # (n_jumps, n_samples)
