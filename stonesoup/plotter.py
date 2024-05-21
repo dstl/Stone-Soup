@@ -985,8 +985,15 @@ class Plotterly(_Plotter):
         Generated figure to display graphs.
     """
     def __init__(self, dimension=Dimension.TWO, axis_labels=None, **kwargs):
-        if not axis_labels:
-            axis_labels = ["x", "y"]
+        if dimension != Dimension.ONE:
+            if not axis_labels:
+                axis_labels = ["x", "y"]
+        else:
+            if axis_labels:
+                if len(axis_labels) == 1:
+                    axis_labels = ["Time", axis_labels[0]]
+            else:
+                axis_labels = ["Time", "x"]
         if go is None:
             raise RuntimeError("Usage of Plotterly plotter requires installation of `plotly`")
 
