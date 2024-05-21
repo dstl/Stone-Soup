@@ -133,6 +133,10 @@ class CombinedGaussianTransitionModel(TransitionModel, GaussianModel):
 class DrivenTransitionModel(TransitionModel, TimeVariantModel):
     g_driver: GaussianDriver = Property(default=None, doc="Gaussian noise process.")
     cg_driver: ConditionalGaussianDriver = Property(default=None, doc="Conditional Gaussian noise process.")
+    mu_W: float = Property(default=None, doc="Coordinate specific non-Gaussian mean")
+    sigma_W2: float = Property(default=None, doc="Coordinate specific non-Gaussian variance")
+    mu_B: float = Property(default=None, doc="Coordinate specific Gaussian mean")
+    sigma_B2: float = Property(default=None, doc="Coordinate specific Gaussian variance")
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -143,6 +147,24 @@ class DrivenTransitionModel(TransitionModel, TimeVariantModel):
         #     raise AttributeError("No. of state dimensions of model and Gaussian driving noise process must match.")
         # if self.cg_driver and self.ndim_state != self.cg_driver.ndim_state:
         #     raise AttributeError("No. of state dimensions of model and conditionally Gaussian driving noise process must match.")
+        # set parameters
+        if self.cg_driver:
+            mu_W, sigma_W2 = self.cg_driver.set_params(id(self), self.mu_W, self.sigma_W2)
+            self.mu_W = mu_W
+            self.sigma_W2 = sigma_W2
+        else:
+            assert(self.mu_W is None and self.sigma_W2 is None)
+            self.mu_W = np.zeros((1, 1))
+            self.sigma_W2 = np.zeros((1, 1))
+
+        if self.g_driver:
+            mu_B, sigma_B2 = self.g_driver.set_params(id(self), self.mu_B, self.sigma_B2)
+            self.mu_B = mu_B
+            self.sigma_B2 = sigma_B2
+        else:
+            assert(self.mu_B is None and self.sigma_B2 is None)
+            self.mu_B = np.zeros((1, 1))
+            self.sigma_B2 = np.zeros((1, 1))
 
     @abstractmethod
     def ft(self, dt: float, jtimes: np.ndarray, **kwargs) -> np.ndarray:
@@ -195,10 +217,10 @@ class DrivenTransitionModel(TransitionModel, TimeVariantModel):
         return latents
     
     def _g_mean(self, dt: float, **kwargs) -> StateVector:
-        return self.g_driver.mean(e_gt_func=self.e_gt, dt=dt, **kwargs)
+        return self.g_driver.mean(e_gt_func=self.e_gt, dt=dt, model_id=id(self), **kwargs)
 
     def _cg_mean(self, latents: Latents, dt: float, **kwargs) -> StateVector | StateVectors:
-        return self.cg_driver.mean(latents=latents, ft_func=self.ft, e_ft_func=self.e_ft, dt=dt, **kwargs)
+        return self.cg_driver.mean(latents=latents, ft_func=self.ft, e_ft_func=self.e_ft, dt=dt,  model_id=id(self), **kwargs)
     
     def mean(self, latents: Latents, time_interval: timedelta, **kwargs) -> StateVector | StateVectors:
         dt = time_interval.total_seconds()
@@ -213,11 +235,11 @@ class DrivenTransitionModel(TransitionModel, TimeVariantModel):
             mean += tmp
         return mean
     
-    def _g_covar(self, dt:float) -> CovarianceMatrix:
-        return self.g_driver.covar(e_gt_func=self.e_gt, dt=dt)
+    def _g_covar(self, dt:float, **kwargs) -> CovarianceMatrix:
+        return self.g_driver.covar(e_gt_func=self.e_gt, model_id=id(self), dt=dt, **kwargs)
     
-    def _cg_covar(self, latents:Latents, dt:float) -> CovarianceMatrix | CovarianceMatrices:
-        return self.cg_driver.covar(latents=latents, ft_func=self.ft, e_ft_func=self.e_ft, dt=dt)
+    def _cg_covar(self, latents:Latents, dt:float, **kwargs) -> CovarianceMatrix | CovarianceMatrices:
+        return self.cg_driver.covar(latents=latents, ft_func=self.ft, e_ft_func=self.e_ft, dt=dt, model_id=id(self), **kwargs)
 
     def covar(self, latents: Latents, time_interval: timedelta, **kwargs) -> CovarianceMatrix | CovarianceMatrices:
         # dt = time_interval.total_seconds()
@@ -289,6 +311,29 @@ class CombinedDrivenTransitionModel(DrivenTransitionModel):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         assert(len(self.model_list) != 0)
+
+
+    @property
+    def mu_W(self):
+        mu = [m.mu_W[0, 0] for m in self.model_list]
+        return np.atleast_2d(mu)
+    
+    @property
+    def sigma_W2(self):
+        sigma2 = [m.sigma_W2[0, 0] for m in self.model_list]
+        return np.diag(sigma2)
+        
+
+    @property
+    def mu_B(self):
+        mu = [m.mu_B[0, 0] for m in self.model_list]
+        return np.atleast_2d(mu)
+    
+    @property
+    def sigma_B2(self):
+        sigma2 = [m.sigma_B2[0, 0] for m in self.model_list]
+        return np.diag(sigma2)
+    
 
     @property
     def g_driver(self) -> List[Iterable]:
