@@ -1,7 +1,7 @@
 import datetime
 from itertools import chain
 from operator import attrgetter
-from typing import MutableSequence, Set
+from typing import Any, MutableSequence, Set
 
 import numpy as np
 import scipy
@@ -485,102 +485,78 @@ class ClearMotAssociator(TwoTrackToTrackAssociator):
         truth_states_by_id = {truth.id: truth.states for truth in truth_set}
         track_states_by_id = {track.id: track.states for track in tracks_set}
 
-        # Make a list of all the unique timestamps used
         # Make a sorted list of all the unique timestamps used
-        track_states = self.extract_states(tracks_set)
-        truth_states = self.extract_states(truth_set)
-        timestamps = sorted({
-            state.timestamp
-            for state in chain(track_states, truth_states)})
-        start_time = timestamps[0]
-        end_time = timestamps[-1]
+        timestamps = self.determine_unique_timestamps(tracks_set, truth_set)
 
-        timesteps = []
+        # we use this to collect match sets over time
         matches_over_time = []
-        matches_previous = set()
 
-        current_time = start_time
-        while current_time <= end_time:
+        # holds the match set of the previous timestep in (truth_id, track_id) format
+        matches_previous: set[tuple[Any, Any]] = set()
 
-            truth_ids_at_current_time = [truth_id for (truth_id, truth_states)
-                                         in truth_states_by_id.items()
-                                         if get_state_at_time(truth_states, current_time)]
-            track_ids_at_current_time = [track_id for (track_id, track_states)
-                                         in track_states_by_id.items()
-                                         if get_state_at_time(track_states, current_time)]
+        for current_time in timestamps:
+
+            truth_ids_at_current_time, track_ids_at_current_time = \
+                self.get_truth_and_track_ids_at_a_specific_time(truth_states_by_id, track_states_by_id, current_time)
+            
             matches_current = set()
 
             if matches_previous:
 
-                for (truth_id, track_id) in matches_previous:
-                    truth_states = truth_states_by_id[truth_id]
-                    track_states = track_states_by_id[track_id]
+                # we iterate over each match and check if it is still valid (i.e. below the
+                # assication threshold - if true, we keep it, if not we do not maintain the match
+                self.verify_if_previos_matches_are_still_valid(truth_states_by_id,
+                                                               track_states_by_id,
+                                                               matches_previous,
+                                                               current_time,
+                                                               truth_ids_at_current_time,
+                                                               track_ids_at_current_time,
+                                                               matches_current)
 
-                    truth_state_current = get_state_at_time(truth_states, current_time)
-
-                    if not truth_state_current:
-                        continue
-
-                    track_state_current = get_state_at_time(track_states, current_time)
-                    if not track_state_current:
-                        continue
-
-                    distance = self.measure(track_state_current, truth_state_current)
-
-                    if distance < self.association_threshold:
-                        matches_current.add((truth_id, track_id))
-
-                        truth_ids_at_current_time.remove(truth_id)
-                        track_ids_at_current_time.remove(track_id)
-
+            # continue, in case either the truth or tracks are empty, since there is nothing
+            # left anymore to associate
             if not truth_ids_at_current_time or not track_ids_at_current_time:
                 matches_over_time.append(matches_current)
-                timesteps.append(current_time)
-
                 matches_previous = matches_current
-                current_time += self.time_interval
                 continue
+            
+            self.match_unassigned_tracks(truth_states_by_id, track_states_by_id,
+                                         current_time, truth_ids_at_current_time,
+                                         track_ids_at_current_time, matches_current)
 
-            num_truth_unassigned = len(truth_ids_at_current_time)
-            num_tracks_unassigned = len(track_ids_at_current_time)
-            cost_matrix = np.zeros((num_truth_unassigned, num_tracks_unassigned), dtype=float)
-
-            for i in range(num_truth_unassigned):
-                for j in range(num_tracks_unassigned):
-                    truth_id, track_id = truth_ids_at_current_time[i], track_ids_at_current_time[j]
-
-                    truth_states = truth_states_by_id[truth_id]
-                    track_states = track_states_by_id[track_id]
-                    truth_state_current = get_state_at_time(truth_states, current_time)
-                    track_state_current = get_state_at_time(track_states, current_time)
-                    distance = self.measure(track_state_current, truth_state_current)
-                    cost_matrix[i, j] = distance
-
-            # Munkers / Hungarian Method for the assignment problem
-            row_ind, col_in = scipy.optimize.linear_sum_assignment(cost_matrix)
-
-            for i, j in zip(row_ind, col_in):
-                if cost_matrix[i, j] < self.association_threshold:
-                    matches_current.add((truth_id, track_id))
-
-            # save
             matches_over_time.append(matches_current)
-            timesteps.append(current_time)
-
             matches_previous = matches_current
-            current_time += self.time_interval
 
         truth_by_id = {truth.id: truth for truth in truth_set}
         track_by_id = {track.id: track for track in tracks_set}
 
         # --- create associations ---
+        associations = self._create_associations_from_sequence_of_match_sets(truth_states_by_id,
+                                                                            timestamps,
+                                                                            matches_over_time,
+                                                                            truth_by_id,
+                                                                            track_by_id)
+
+        return AssociationSet(associations)
+
+    def get_truth_and_track_ids_at_a_specific_time(self, truth_states_by_id, track_states_by_id, current_time):
+        truth_ids_at_current_time = [truth_id for (truth_id, truth_states)
+                                         in truth_states_by_id.items()
+                                         if get_state_at_time(truth_states, current_time)]
+        track_ids_at_current_time = [track_id for (track_id, track_states)
+                                         in track_states_by_id.items()
+                                         if get_state_at_time(track_states, current_time)]
+                                     
+        return truth_ids_at_current_time,track_ids_at_current_time
+
+    @staticmethod
+    def _create_associations_from_sequence_of_match_sets(truth_states_by_id, timestamps,
+                                                        matches_over_time, truth_by_id, track_by_id) -> set[TimeRangeAssociation]:
         associations = set()
         for truth_id in truth_states_by_id.keys():
-
             assigned_track_ids_over_time = list()
 
-            for t, match_set in zip(timesteps, matches_over_time):
-
+            for t, match_set in zip(timestamps, matches_over_time):
                 track_id_at_t = None
                 for truth_id_in_match, track_id_in_match in match_set:
                     if truth_id_in_match == truth_id:
@@ -592,26 +568,84 @@ class ClearMotAssociator(TwoTrackToTrackAssociator):
             current_track_id = None
 
             for i, assigned_track_id in enumerate(assigned_track_ids_over_time):
-
                 if (not current_track_id) and assigned_track_id:
                     current_track_id = assigned_track_id
-                    start_time = timesteps[i]
+                    start_time = timestamps[i]
 
                 if assigned_track_id != current_track_id:
                     associations.append(TimeRangeAssociation(OrderedSet(
                         (track_by_id[current_track_id], truth_by_id[truth_id])),
-                        TimeRange(start_time, timesteps[i])))
-                    start_time = timesteps[i] if assigned_track_id else None
+                        TimeRange(start_time, timestamps[i])))
+                    start_time = timestamps[i] if assigned_track_id else None
                     current_track_id = assigned_track_id
 
                 # end of timeseries
                 if i == (len(assigned_track_ids_over_time)-1):
                     associations.add(TimeRangeAssociation(OrderedSet(
                         (track_by_id[current_track_id], truth_by_id[truth_id])),
-                        TimeRange(start_time, timesteps[i])))
+                        TimeRange(start_time, timestamps[i])))
                     break
+        return associations
 
-        return AssociationSet(associations)
+    def match_unassigned_tracks(self, truth_states_by_id, track_states_by_id, current_time, truth_ids_at_current_time, track_ids_at_current_time, matches_current):
+        num_truth_unassigned = len(truth_ids_at_current_time)
+        num_tracks_unassigned = len(track_ids_at_current_time)
+        cost_matrix = np.zeros((num_truth_unassigned, num_tracks_unassigned), dtype=float)
+
+        for i in range(num_truth_unassigned):
+            for j in range(num_tracks_unassigned):
+                truth_id, track_id = truth_ids_at_current_time[i], track_ids_at_current_time[j]
+
+                truth_states = truth_states_by_id[truth_id]
+                track_states = track_states_by_id[track_id]
+                truth_state_current = get_state_at_time(truth_states, current_time)
+                track_state_current = get_state_at_time(track_states, current_time)
+                distance = self.measure(track_state_current, truth_state_current)
+                cost_matrix[i, j] = distance
+
+            # Munkers / Hungarian Method for the assignment problem
+        row_ind, col_in = scipy.optimize.linear_sum_assignment(cost_matrix)
+
+        for i, j in zip(row_ind, col_in):
+            if cost_matrix[i, j] < self.association_threshold:
+                matches_current.add((truth_id, track_id))
+
+    def verify_if_previos_matches_are_still_valid(self, truth_states_by_id, track_states_by_id,
+                                                  matches_previous, current_time,
+                                                  truth_ids_at_current_time,
+                                                  track_ids_at_current_time,
+                                                  matches_current):
+        for (truth_id, track_id) in matches_previous:
+            # get
+            truth_states = truth_states_by_id[truth_id]
+            truth_state_current = get_state_at_time(truth_states, current_time)
+
+            if not truth_state_current:
+                continue
+
+            track_states = track_states_by_id[track_id]
+            track_state_current = get_state_at_time(track_states, current_time)
+
+            # if hypothesis is not available anymore
+            if not track_state_current:
+                continue
+
+            distance = self.measure(track_state_current, truth_state_current)
+
+            # if distance is still lower than the threshold, keep the match
+            if distance < self.association_threshold:
+                matches_current.add((truth_id, track_id))
+
+                truth_ids_at_current_time.remove(truth_id)
+                track_ids_at_current_time.remove(track_id)
+
+    def determine_unique_timestamps(self, tracks_set, truth_set) -> list[datetime.datetime]:
+        track_states = self.extract_states(tracks_set)
+        truth_states = self.extract_states(truth_set)
+        timestamps = sorted({
+            state.timestamp
+            for state in chain(track_states, truth_states)})
+        return timestamps
 
     @staticmethod
     def extract_states(object_with_states, return_ids=False):
@@ -648,17 +682,9 @@ class ClearMotAssociator(TwoTrackToTrackAssociator):
         return state_list
 
 
-def get_state_at_time(states: MutableSequence[State], timestamp: datetime.datetime,
-                      max_error: datetime.timedelta = datetime.timedelta(milliseconds=10)) -> State | None:
-
-    state_timestamps = [state.timestamp for state in states]
-
-    for state_timestamp in state_timestamps:
-        if state_timestamp >= timestamp:
-            break
-
-    error = state_timestamp - timestamp
-    if error < max_error:
-        return states[state_timestamps.index(state_timestamp)]
-    else:
+def get_state_at_time(state_sequence: MutableSequence[State],
+                      timestamp: datetime.datetime) -> State | None:
+    try:
+        return state_sequence[timestamp]
+    except IndexError:
         return None
