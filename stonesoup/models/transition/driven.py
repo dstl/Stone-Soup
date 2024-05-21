@@ -128,7 +128,7 @@ class EquilibriumRevertingVelocity(LinearDrivenTransitionModel, TimeVariantModel
         super().__init__(*args, **kwargs)
         # self.control_matrix = self.eta * np.eye(self.ndim)
         # self.control_input = np.array([0.0, self.p]).reshape((2, 1))
-        self.A = np.array([[0, 1.0], [-self.eta, self.theta]])
+        self.A = np.array([[0, 1.0], [-self.eta, -self.theta]])
         self.h = np.array([0.0, 1.0]).reshape((2, 1))
         self.g = np.array([0.0, 1.0]).reshape((2, 1))
         self.b = self.eta * np.array([0.0, self.rho]).reshape((2, 1))
