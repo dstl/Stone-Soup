@@ -214,7 +214,11 @@ class Plotter(_Plotter):
             else:
                 raise NotImplementedError('Unsupported dimension type for truth plotting')
         # Generate legend items
-        truths_handle = Line2D([], [], linestyle=truths_kwargs['linestyle'], color='black')
+        if "color" in kwargs:
+            colour = kwargs["color"]
+        else:
+            colour = "black"
+        truths_handle = Line2D([], [], linestyle=truths_kwargs['linestyle'], color=colour)
         self.legend_dict[truths_label] = truths_handle
         # Generate legend
         artists.append(self.ax.legend(handles=self.legend_dict.values(),
