@@ -11,10 +11,10 @@ from ..types.track import Track
 
 
 class MonteCarloTreeSearchSensorManager(SensorManager):
-    r"""A Monte Carlo Tree Search based sensor management algorithm implementing
-    a simple value estimation.
+    r"""A Monte Carlo tree search based sensor management algorithm implementing
+    simple value estimation.
 
-    Monte Carlo Tree Search works by simultaneously constructing and evaluating a
+    Monte Carlo tree search works by simultaneously constructing and evaluating a
     search tree of states and actions through an iterative process. The process
     consists of 4 stages: Selection, Expansion, Simulation and Backpropagation.
     The purpose of the algorithm is to arrive at the optimal action policy by
@@ -23,11 +23,11 @@ class MonteCarloTreeSearchSensorManager(SensorManager):
 
     Starting from the root node (current state or estimated state) the best child
     node is selected. The most common way, and the way implemented here, is to
-    select this node is according to the upper confidence bound (UCB) for trees.
+    select this node according to the upper confidence bound (UCB) for trees.
     This is given by
 
     .. math::
-        \text{argmath}_{a} \frac{Q(h, a)}{N(h, a)}+c\sqrt{\frac{\log N(h)}{N(h,a)}},
+        \text{argmax}_{a} \frac{Q(h, a)}{N(h, a)}+c\sqrt{\frac{\log N(h)}{N(h,a)}},
 
     where :math:`a` is the action, :math:`h` is the history (for POMDP problems a
     history or belief is commonly used but in MDP problems h would be replaced
@@ -35,9 +35,10 @@ class MonteCarloTreeSearchSensorManager(SensorManager):
     :math:`N(h, a)` is the number of visits or simulations of this node, :math:`N(h)`
     is the number of visits to the parent node and :math:`c` is the exploration factor,
     defined with :attr:`exploration_factor`. The purpose of the UCB is to trade off
-    between exploitation of the most rewarding nodes in the tree and those that have
-    been visited fewer times, as the second term in the above expression will
-    accumulate as the ratio of number of parent visits and child visits increases.
+    between exploitation of the most rewarding nodes in the tree and exploration of
+    those that have been visited fewer times, as the second term in the above
+    expression will accumulate as the ratio of number of parent visits and child
+    visits increases.
 
     Once the best child node has been selected, this becomes a parent node and a
     new child node added according to the available set of unvisited actions. This
@@ -54,15 +55,17 @@ class MonteCarloTreeSearchSensorManager(SensorManager):
     is the :attr:`niterations` attribute, the best child to the root node in the tree
     is determined and returned from the :meth:`choose_actions`. The user can select which
     criteria used to select this best action by defining the :attr:`best_child_policy`.
-    Further detail on this particular implementation can be seen in work by Glover
-    et al [1]_. Further detail on MCTS and its variations can also be seen in [2]_.
+    Further detail on this particular implementation, including the rollout process in
+    :class:`~.MCTSRolloutSensorManager` can be seen in work by Glover et al [1]_.
+    Further detail on MCTS and its variations can also be seen in [2]_.
 
     References
     ----------
     .. [1] Glover, Timothy & Nanavati, Rohit V. & Coombes, Matthew & Liu, Cunjia &
            Chen, Wen-Hua & Perree, Nicola & Hiscocks, Steven. "A Monte Carlo Tree Search
            Framework for Autonomous Source Term Estimation in Stone Soup, 2024 27th
-           International Conference on Information Fusion (FUSION), 1-8, 2024"
+           International Conference on Information Fusion (FUSION), 1-8, 2024. Accepted,
+           awaiting publication"
     .. [2] Kochenderfer, Mykel J. & Wheeler, Tim A. & Wray, Kyle H. "Algorithms for
            decision making", MIT Press, 2022 (https://algorithmsbook.com/)
     """

@@ -207,6 +207,10 @@ class ExpectedKLDivergence(RewardFunction):
         : float
             Kullback-Leibler divergence for given configuration
 
+        : Set[Track] (if defined)
+            Set of tracks that have been predicted and updated in reward
+            calculation if :attr:`return_tracks` is `True`
+
         """
 
         # Reward value
