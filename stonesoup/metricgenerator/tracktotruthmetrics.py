@@ -450,8 +450,9 @@ class SIAPMetrics(MetricGenerator):
         float
             Average rate of track number changes
         """
-        numerator = sum(self.min_num_tracks_needed_to_track(manager, truth) - 1
-                        for truth in ground_truths)
+        numerator = sum(value - 1
+                        for truth in ground_truths
+                        if (value := self.min_num_tracks_needed_to_track(manager, truth)) > 0)
         denominator = sum(self.total_time_tracked(manager, truth)
                           for truth in ground_truths)
 
