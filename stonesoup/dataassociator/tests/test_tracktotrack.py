@@ -70,10 +70,10 @@ def tracks():
         for i in range(10)]))
 
     # 8th first equals the 1st and later follows the 7th
-    tracks.append(Track(id="Track-8", states=[State(state_vector=[[i], [i + 1]],
+    tracks.append(Track(id="Track-8", states=[State(state_vector=[[i], [i]],
                                       timestamp=start_time + datetime.timedelta(seconds=i))
                                 for i in range(0, 5)]
-                        + [State(state_vector=[[i], [10-i+1]],
+                        + [State(state_vector=[[i], [10-i]],
                                  timestamp=start_time + datetime.timedelta(seconds=i))
                            for i in range(5, 10)]))
 
@@ -254,32 +254,37 @@ def test_clear_mot(tracks: List[Track]):
     assert assoc_truth.id == truth_track.id
 
     assert assoc.time_range.start == datetime.datetime(2019, 1, 1, 14, 0, 1)
-    assert assoc.time_range.end == datetime.datetime(2019, 1, 1, 14, 0, 7)
+    assert assoc.time_range.end == datetime.datetime(2019, 1, 1, 14, 0, 6)
 
 
-def test_clear_mot_two_truths(tracks: List[Track]):
+def test_clear_mot_two_truths_crossing(tracks: List[Track]):
 
     associator = ClearMotAssociator(time_interval=datetime.timedelta(
-        seconds=1), measure=Euclidean(mapping=[0, 1]), association_threshold=3.0)
+        seconds=1), measure=Euclidean(mapping=[0, 1]), association_threshold=2.0)
 
     # truths cross each other
     truth_tracks = {tracks[0], tracks[6]}
-    estimated_tracks = {tracks[1], tracks[2], tracks[7]}
+
+    estimated_tracks = {tracks[7], tracks[2], tracks[3]}
 
     association_set = associator.associate_tracks(estimated_tracks, truth_tracks)
 
-    assert len(association_set) == 3
+    # sort by truth-ID
+    associations = sorted(list(association_set.associations),
+                          key=lambda assoc: assoc.objects[1].id)
 
-    assocA = list(association_set.associations)[0]
-    assert set(assocA.objects) == {tracks[7], tracks[0]}
+    assert len(associations) == 2
 
+    assocA = associations[0]
+    assert assocA.objects[0].id == "Track-8"
+    assert assocA.objects[1].id == "Track-1"
     assert assocA.time_range.start == datetime.datetime(2019, 1, 1, 14, 0, 0)
     assert assocA.time_range.end == datetime.datetime(2019, 1, 1, 14, 0, 5)
 
-    assocB = list(association_set.associations)[1]
-    assert set(assocB.objects) == {tracks[7], tracks[6]}
-
-    assert assocB.time_range.start == datetime.datetime(2019, 1, 1, 14, 0, 5)
+    assocB = associations[1]
+    assert assocB.objects[0].id == "Track-8"
+    assert assocB.objects[1].id == "Track-7"
+    assert assocB.time_range.start == datetime.datetime(2019, 1, 1, 14, 0, 6)
     assert assocB.time_range.end == datetime.datetime(2019, 1, 1, 14, 0, 9)
 
 
@@ -294,7 +299,7 @@ def test_clear_mot_measure_dimensions(tracks: List[Track]):
     association_set = associator.associate_tracks({track}, {truth_track})
 
     assert not len(association_set), \
-        "Track 1 and Track 5 should not be associated when looking at all" +\
+        "Track-1 and Track-5 should not be associated when looking at all" +\
         " dimensions of the state vector."
     
     associator = ClearMotAssociator(time_interval=datetime.timedelta(

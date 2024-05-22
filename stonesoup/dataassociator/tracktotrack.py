@@ -463,7 +463,7 @@ class ClearMotAssociator(TwoTrackToTrackAssociator):
         default=Euclidean(),
         doc="Distance measure to use. Default :class:`~.measures.Euclidean()`")
 
-    def associate_tracks(self, tracks_set: Set[Track], truth_set: Set[GroundTruthPath]):
+    def associate_tracks(self, tracks_set: Set[Track], truth_set: Set[GroundTruthPath]) -> AssociationSet:
         """Associate Tracks
 
         Method compares to sets of :class:`~.Track` objects and will determine
@@ -497,7 +497,8 @@ class ClearMotAssociator(TwoTrackToTrackAssociator):
         for current_time in timestamps:
 
             truth_ids_at_current_time, track_ids_at_current_time = \
-                self.get_truth_and_track_ids_at_a_specific_time(truth_states_by_id, track_states_by_id, current_time)
+                self.get_truth_and_track_ids_at_a_specific_time(truth_states_by_id, 
+                                                                track_states_by_id, current_time)
             
             matches_current = set()
 
@@ -527,15 +528,25 @@ class ClearMotAssociator(TwoTrackToTrackAssociator):
             matches_over_time.append(matches_current)
             matches_previous = matches_current
 
-        truth_by_id = {truth.id: truth for truth in truth_set}
-        track_by_id = {track.id: track for track in tracks_set}
+        truth_tracks_by_id = {truth.id: truth for truth in truth_set}
+        estim_tracks_by_id = {track.id: track for track in tracks_set}
 
-        # --- create associations ---
-        associations = self._create_associations_from_sequence_of_match_sets(truth_states_by_id,
-                                                                            timestamps,
-                                                                            matches_over_time,
-                                                                            truth_by_id,
-                                                                            track_by_id)
+        unique_matches = {match for matches_timestamp in matches_over_time for match in matches_timestamp}
+
+        associations = set()
+        for match in unique_matches:
+
+            timesteps_where_match_exists = list()
+            for i, matches_timestamp in enumerate(matches_over_time):
+                if match in matches_timestamp:
+                    timesteps_where_match_exists.append(i)
+
+            # TODO: deal with gaps in associations
+
+            associations.add(TimeRangeAssociation(OrderedSet(
+                    (estim_tracks_by_id[match[0]], truth_tracks_by_id[match[1]])),
+                    TimeRange(timestamps[timesteps_where_match_exists[0]],
+                              timestamps[timesteps_where_match_exists[-1]])))
 
         return AssociationSet(associations)
 
@@ -573,7 +584,7 @@ class ClearMotAssociator(TwoTrackToTrackAssociator):
                     start_time = timestamps[i]
 
                 if assigned_track_id != current_track_id:
-                    associations.append(TimeRangeAssociation(OrderedSet(
+                    associations.add(TimeRangeAssociation(OrderedSet(
                         (track_by_id[current_track_id], truth_by_id[truth_id])),
                         TimeRange(start_time, timestamps[i])))
                     start_time = timestamps[i] if assigned_track_id else None
@@ -581,6 +592,10 @@ class ClearMotAssociator(TwoTrackToTrackAssociator):
 
                 # end of timeseries
                 if i == (len(assigned_track_ids_over_time)-1):
+                    
+                    if current_track_id is None:
+                        continue
+
                     associations.add(TimeRangeAssociation(OrderedSet(
                         (track_by_id[current_track_id], truth_by_id[truth_id])),
                         TimeRange(start_time, timestamps[i])))
@@ -603,19 +618,19 @@ class ClearMotAssociator(TwoTrackToTrackAssociator):
                 distance = self.measure(track_state_current, truth_state_current)
                 cost_matrix[i, j] = distance
 
-            # Munkers / Hungarian Method for the assignment problem
+        # Munkers / Hungarian Method for the assignment problem
         row_ind, col_in = scipy.optimize.linear_sum_assignment(cost_matrix)
 
         for i, j in zip(row_ind, col_in):
             if cost_matrix[i, j] < self.association_threshold:
-                matches_current.add((truth_id, track_id))
+                matches_current.add((track_ids_at_current_time[j], truth_ids_at_current_time[i]))
 
     def verify_if_previos_matches_are_still_valid(self, truth_states_by_id, track_states_by_id,
                                                   matches_previous, current_time,
                                                   truth_ids_at_current_time,
                                                   track_ids_at_current_time,
                                                   matches_current):
-        for (truth_id, track_id) in matches_previous:
+        for (track_id, truth_id) in matches_previous:
             # get
             truth_states = truth_states_by_id[truth_id]
             truth_state_current = get_state_at_time(truth_states, current_time)
@@ -634,10 +649,11 @@ class ClearMotAssociator(TwoTrackToTrackAssociator):
 
             # if distance is still lower than the threshold, keep the match
             if distance < self.association_threshold:
-                matches_current.add((truth_id, track_id))
+                matches_current.add((track_id, truth_id))
 
                 truth_ids_at_current_time.remove(truth_id)
                 track_ids_at_current_time.remove(track_id)
+
 
     def determine_unique_timestamps(self, tracks_set, truth_set) -> list[datetime.datetime]:
         track_states = self.extract_states(tracks_set)
@@ -685,6 +701,6 @@ class ClearMotAssociator(TwoTrackToTrackAssociator):
 def get_state_at_time(state_sequence: MutableSequence[State],
                       timestamp: datetime.datetime) -> State | None:
     try:
-        return state_sequence[timestamp]
+        return Track(state_sequence)[timestamp]
     except IndexError:
         return None
