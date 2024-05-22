@@ -20,14 +20,14 @@ from ..tracktotrack import (
 def tracks():
     start_time = datetime.datetime(2019, 1, 1, 14, 0, 0)
 
-    tracks = [Track(states=[
+    tracks = [Track(id="Track-1", states=[
         State(state_vector=[[i], [i]],
               timestamp=start_time + datetime.timedelta(seconds=i))
         for i in range(10)])]
 
     # 2nd track should be associated with track1 from the second timestamp to
     # the 6th
-    tracks.append(Track(states=[
+    tracks.append(Track(id="Track-2", states=[
         State(state_vector=[[20], [20]],
               timestamp=start_time)]
         + [State(state_vector=[[i + 2], [i + 2]],
@@ -35,25 +35,25 @@ def tracks():
            for i in range(1, 7)]))
 
     # 3rd is at a different time so should not associate with anything
-    tracks.append(Track(states=[
+    tracks.append(Track(id="Track-3", states=[
         State(state_vector=[[i], [i]],
               timestamp=start_time + datetime.timedelta(seconds=i + 20))
         for i in range(10)]))
 
     # 4th is outside the association threshold
-    tracks.append(Track(states=[
+    tracks.append(Track(id="Track-4", states=[
         State(state_vector=[[i + 20], [i + 20]],
               timestamp=start_time + datetime.timedelta(seconds=i))
         for i in range(10)]))
 
     # 5th should match with the first if only the first element of the state_vector is used
-    tracks.append(Track(states=[
+    tracks.append(Track(id="Track-5", states=[
         State(state_vector=[[i], [i+100]],
               timestamp=start_time + datetime.timedelta(seconds=i))
         for i in range(10)]))
 
     # 6th should match with 1st from the 2nd timestamp to the 7th, but continues after this point
-    tracks.append(Track(states=[
+    tracks.append(Track(id="Track-6", states=[
         State(state_vector=[[20], [20]],
               timestamp=start_time)]
         + [State(state_vector=[[i + 2], [i + 2]],
@@ -62,6 +62,20 @@ def tracks():
         + [State(state_vector=[[i + 1000], [i + 1000]],
                  timestamp=start_time + datetime.timedelta(seconds=i))
            for i in range(7, 10)]))
+    
+    # 7th crosses the 1st at the middle
+    tracks.append(Track(id="Track-7", states=[
+        State(state_vector=[[i], [10-i]],
+              timestamp=start_time + datetime.timedelta(seconds=i))
+        for i in range(10)]))
+
+    # 8th first equals the 1st and later follows the 7th
+    tracks.append(Track(id="Track-8", states=[State(state_vector=[[i], [i + 1]],
+                                      timestamp=start_time + datetime.timedelta(seconds=i))
+                                for i in range(0, 5)]
+                        + [State(state_vector=[[i], [10-i+1]],
+                                 timestamp=start_time + datetime.timedelta(seconds=i))
+                           for i in range(5, 10)]))
 
     return tracks
 
@@ -240,4 +254,56 @@ def test_clear_mot(tracks: List[Track]):
     assert assoc_truth.id == truth_track.id
 
     assert assoc.time_range.start == datetime.datetime(2019, 1, 1, 14, 0, 1)
-    assert assoc.time_range.end == datetime.datetime(2019, 1, 1, 14, 0, 9)
+    assert assoc.time_range.end == datetime.datetime(2019, 1, 1, 14, 0, 7)
+
+
+def test_clear_mot_two_truths(tracks: List[Track]):
+
+    associator = ClearMotAssociator(time_interval=datetime.timedelta(
+        seconds=1), measure=Euclidean(mapping=[0, 1]), association_threshold=3.0)
+
+    # truths cross each other
+    truth_tracks = {tracks[0], tracks[6]}
+    estimated_tracks = {tracks[1], tracks[2], tracks[7]}
+
+    association_set = associator.associate_tracks(estimated_tracks, truth_tracks)
+
+    assert len(association_set) == 3
+
+    assocA = list(association_set.associations)[0]
+    assert set(assocA.objects) == {tracks[7], tracks[0]}
+
+    assert assocA.time_range.start == datetime.datetime(2019, 1, 1, 14, 0, 0)
+    assert assocA.time_range.end == datetime.datetime(2019, 1, 1, 14, 0, 5)
+
+    assocB = list(association_set.associations)[1]
+    assert set(assocB.objects) == {tracks[7], tracks[6]}
+
+    assert assocB.time_range.start == datetime.datetime(2019, 1, 1, 14, 0, 5)
+    assert assocB.time_range.end == datetime.datetime(2019, 1, 1, 14, 0, 9)
+
+
+def test_clear_mot_measure_dimensions(tracks: List[Track]):
+
+    track = tracks[0]
+    truth_track = tracks[4]
+
+    associator = ClearMotAssociator(time_interval=datetime.timedelta(
+        seconds=1), measure=Euclidean(mapping=[0, 1]), association_threshold=3.0)
+
+    association_set = associator.associate_tracks({track}, {truth_track})
+
+    assert not len(association_set), \
+        "Track 1 and Track 5 should not be associated when looking at all" +\
+        " dimensions of the state vector."
+    
+    associator = ClearMotAssociator(time_interval=datetime.timedelta(
+        seconds=1), measure=Euclidean(mapping=[0]), association_threshold=3.0)
+    
+    association_set = associator.associate_tracks({track}, {truth_track})
+    
+    assoc = list(association_set.associations)[0]
+    assoc_track = assoc.objects[0]
+    assoc_truth = assoc.objects[1]
+    assert assoc_track.id == track.id
+    assert assoc_truth.id == truth_track.id
