@@ -1,14 +1,22 @@
 name: Documentation link
-on: status
+
+on: [status]
+
+permissions: read-all
+
 jobs:
   circleci_artifacts_redirector_job:
     runs-on: ubuntu-latest
     if: "${{ github.event.context == 'ci/circleci: docs' }}"
+    permissions:
+      statuses: write
     name: Run CircleCI artifacts redirector
     steps:
       - name: GitHub Action step
-        uses: larsoner/circleci-artifacts-redirector-action@0.3.1
+        uses: larsoner/circleci-artifacts-redirector-action@v1
         with:
           repo-token: ${{ secrets.GITHUB_TOKEN }}
+          api-token: ${{ secrets.CIRCLECI_DOCS_LINK }}
           artifact-path: 0/docs/index.html
           circleci-jobs: docs
+          job-title: Check the rendered docs here!
