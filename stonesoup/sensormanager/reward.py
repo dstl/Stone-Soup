@@ -278,7 +278,6 @@ class ExpectedKLDivergence(RewardFunction):
     def _generate_detections(self, predicted_tracks, sensors, timestamp=None):
 
         all_detections = {}
-        detection_set = set()
 
         for sensor in sensors:
             detections = {}
@@ -286,16 +285,16 @@ class ExpectedKLDivergence(RewardFunction):
                 tmp_detection = sensor.measure({State(predicted_track.mean,
                                                       timestamp=predicted_track.timestamp)},
                                                noise=True)
-                detection_set |= tmp_detection
-                if self.data_associator:
-                    tmp_hypotheses = self.data_associator.associate(predicted_tracks,
-                                                                    tmp_detection,
-                                                                    timestamp)
-                    detections.update({predicted_track: {hypothesis.measurement}
-                                      for predicted_track, hypothesis in tmp_hypotheses.items() if
-                                      hypothesis})
-                else:
-                    detections.update({predicted_track: tmp_detection})
+                detections.update({predicted_track: tmp_detection})
+
+            if self.data_associator:
+                tmp_hypotheses = self.data_associator.associate(
+                    predicted_tracks,
+                    {det for dets in detections.values() for det in dets},
+                    timestamp)
+                detections = {predicted_track: {hypothesis.measurement}
+                              for predicted_track, hypothesis in tmp_hypotheses.items()
+                              if hypothesis}
 
             all_detections.update({sensor: detections})
 
