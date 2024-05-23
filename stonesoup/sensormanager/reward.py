@@ -277,28 +277,27 @@ class ExpectedKLDivergence(RewardFunction):
 
     def _generate_detections(self, predicted_tracks, sensors, timestamp=None):
 
-        detections = {}
         all_detections = {}
         detection_set = set()
 
         for sensor in sensors:
+            detections = {}
             for predicted_track in predicted_tracks:
                 tmp_detection = sensor.measure({State(predicted_track.mean,
                                                       timestamp=predicted_track.timestamp)},
                                                noise=True)
                 detection_set |= tmp_detection
-                detections.update({predicted_track: tmp_detection})
-            all_detections.update({sensor: detections})
+                if self.data_associator:
+                    tmp_hypotheses = self.data_associator.associate(predicted_tracks,
+                                                                    tmp_detection,
+                                                                    timestamp)
+                    detections.update({predicted_track: {hypothesis.measurement}
+                                      for predicted_track, hypothesis in tmp_hypotheses.items() if
+                                      hypothesis})
+                else:
+                    detections.update({predicted_track: tmp_detection})
 
-        if sensors and self.data_associator:
-            tmp_hypotheses = self.data_associator.associate(predicted_tracks,
-                                                            detection_set,
-                                                            timestamp)
-            detections = {predicted_track: {measurement}
-                          for predicted_track, measurement in tmp_hypotheses.items() if
-                          isinstance(measurement, TrueDetection)}
-            # When associated, the sensor in the all_detection dict does not matter
-            all_detections = {sensor: detections}
+            all_detections.update({sensor: detections})
 
         return all_detections
 
