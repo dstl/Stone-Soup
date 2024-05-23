@@ -699,3 +699,62 @@ def test_platform_getitem():
     state_after = platform.state
     assert platform[0] is state_before
     assert platform[1] is state_after
+
+
+def test_ground_truth_path():
+    timestamp = datetime.datetime.now()
+    state_before = State(np.array([[2], [1], [2], [1], [0], [1]]), timestamp)
+    cv_model = CombinedLinearGaussianTransitionModel((ConstantVelocity(0),
+                                                      ConstantVelocity(0),
+                                                      ConstantVelocity(0)))
+    platform = MovingPlatform(states=state_before,
+                              transition_model=cv_model,
+                              position_mapping=[0, 2, 4], velocity_mapping=[1, 3, 5])
+
+    platform_ground_truth_path = platform.ground_truth_path
+
+    assert platform.id == platform_ground_truth_path.id
+    assert platform.state is platform_ground_truth_path.state
+
+    # Test the platform states are dynamically linked to the ground truth path state
+    platform.move(timestamp + datetime.timedelta(seconds=1))
+    assert platform.state is platform_ground_truth_path.state
+    assert platform.states is platform_ground_truth_path.states
+
+    assert platform_ground_truth_path is platform.ground_truth_path
+
+
+def test_platform_id():
+    timestamp = datetime.datetime.now()
+    fixed_state = State(np.array([[2], [2], [0]]), timestamp)
+
+    # Test Assignment
+    platform = FixedMovable(states=fixed_state, position_mapping=(0, 1, 2))
+    platform.id = "hello"
+    assert platform.id == "hello"
+
+    # Test Initialisation
+    platform = FixedMovable(id="hello", states=fixed_state, position_mapping=(0, 1, 2))
+    assert platform.id == "hello"
+
+
+@pytest.mark.xfail
+def test_setting_movement_controller_sensors():
+    timestamp = datetime.datetime.now()
+    fixed_state = State(np.array([[2], [2], [0]]),
+                        timestamp)
+    fixed = FixedMovable(states=fixed_state, position_mapping=(0, 1, 2))
+    platform = MovingPlatform(movement_controller=fixed)
+
+    sensor = DummySensor()
+    platform.add_sensor(sensor)
+    assert platform.movement_controller is sensor.movement_controller
+
+    moving_state = State(np.array([[2], [1], [2], [-1], [2], [0]]), timestamp)
+    moving = MovingMovable(states=moving_state, position_mapping=(0, 2, 4), transition_model=None)
+
+    platform.movement_controller = moving
+
+    assert platform.movement_controller is sensor.movement_controller
+
+

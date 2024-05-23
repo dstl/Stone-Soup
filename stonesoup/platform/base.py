@@ -1,8 +1,9 @@
 from typing import MutableSequence
 
-from stonesoup.base import Property, Base
+from stonesoup.base import Property, Base, clearable_cached_property
 from stonesoup.movable import Movable, FixedMovable, MovingMovable, MultiTransitionMovable
 from stonesoup.sensor.sensor import Sensor
+from stonesoup.types.groundtruth import GroundTruthPath
 
 
 class Platform(Base):
@@ -37,6 +38,10 @@ class Platform(Base):
     sensors: MutableSequence[Sensor] = Property(
         default=None, readonly=True,
         doc="A list of N mounted sensors. Defaults to an empty list.")
+
+    # id: str = Property(
+    #     default=None,
+    #     doc="The unique path ID. Default `None` where random UUID is generated.")
 
     _default_movable_class = None  # Will be overridden by subclasses
 
@@ -149,6 +154,18 @@ class Platform(Base):
 
     def __getitem__(self, item):
         return self.movement_controller.__getitem__(item)
+
+    @clearable_cached_property('movement_controller')
+    def ground_truth_path(self) -> GroundTruthPath:
+        return GroundTruthPath(states=self.movement_controller.states)
+
+    @property
+    def id(self):
+        return self.ground_truth_path.id
+
+    @id.setter
+    def id(self, value):
+        self.ground_truth_path.id = value
 
 
 class FixedPlatform(Platform):
