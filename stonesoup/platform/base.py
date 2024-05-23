@@ -1,6 +1,7 @@
+import uuid
 from typing import MutableSequence
 
-from stonesoup.base import Property, Base, clearable_cached_property
+from stonesoup.base import Property, Base, cached_property
 from stonesoup.movable import Movable, FixedMovable, MovingMovable, MultiTransitionMovable
 from stonesoup.sensor.sensor import Sensor
 from stonesoup.types.groundtruth import GroundTruthPath
@@ -39,9 +40,9 @@ class Platform(Base):
         default=None, readonly=True,
         doc="A list of N mounted sensors. Defaults to an empty list.")
 
-    # id: str = Property(
-    #     default=None,
-    #     doc="The unique path ID. Default `None` where random UUID is generated.")
+    id: str = Property(
+        default=None,
+        doc="The unique path ID. Default `None` where random UUID is generated.")
 
     _default_movable_class = None  # Will be overridden by subclasses
 
@@ -84,6 +85,8 @@ class Platform(Base):
             self._property_sensors = []
         for sensor in self.sensors:
             sensor.movement_controller = self.movement_controller
+        if self.id is None:
+            self.id = str(uuid.uuid4())
 
     @staticmethod
     def _tuple_or_none(value):
@@ -155,17 +158,14 @@ class Platform(Base):
     def __getitem__(self, item):
         return self.movement_controller.__getitem__(item)
 
-    @clearable_cached_property('movement_controller')
-    def ground_truth_path(self) -> GroundTruthPath:
-        return GroundTruthPath(states=self.movement_controller.states)
-
     @property
-    def id(self):
-        return self.ground_truth_path.id
-
-    @id.setter
-    def id(self, value):
-        self.ground_truth_path.id = value
+    def ground_truth_path(self) -> GroundTruthPath:
+        """
+        The `states` property for the platform and `ground_truth_path` are dynamically linked
+        `self.ground_truth_path.states` == self.states`. So after `platform.move()` the
+        `ground_truth_path` will contain the new state.
+        """
+        return GroundTruthPath(id=self.id, states=self.movement_controller.states)
 
 
 class FixedPlatform(Platform):
