@@ -755,29 +755,6 @@ def test_platform_initialised_with_id():
     assert platform.id == test_id_str
 
 
-# @pytest.mark.xfail(reason="Changing the id of a platform resets the `ground_truth_path` property. "
-#                           "Changing the id of a platform does not change its ground truth path. "
-#                           "The id of the platform and ground truth path aren't dynamically linked."
-#                    )
-# def test_platform_id_matches_ground_truth():
-#
-#     fixed_state = State(np.array([[2], [2], [0]]), datetime.datetime.now())
-#     platform = FixedPlatform(states=fixed_state, position_mapping=(0, 1, 2))
-#
-#     platform_gtp_before = platform.ground_truth_path
-#     assert platform_gtp_before.id == platform.id
-#
-#     platform.id = test_id_str
-#
-#     assert platform.ground_truth_path.id == platform.id
-#
-#     # These currently fails
-#     assert platform_gtp_before.id == platform.id
-#     assert platform_gtp_before is platform.ground_truth_path
-#
-#     new_platform_gtp = platform.ground_truth_path
-
-
 def test_ground_truth_path_story():
     # Set Up
     timestamp = datetime.datetime.now()
@@ -845,5 +822,3 @@ def test_setting_movement_controller_sensors():
     platform.movement_controller = moving
 
     assert platform.movement_controller is sensor.movement_controller
-
-
