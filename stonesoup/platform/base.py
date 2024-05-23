@@ -1,7 +1,7 @@
 import uuid
 from typing import MutableSequence
 
-from stonesoup.base import Property, Base, cached_property
+from stonesoup.base import Property, Base
 from stonesoup.movable import Movable, FixedMovable, MovingMovable, MultiTransitionMovable
 from stonesoup.sensor.sensor import Sensor
 from stonesoup.types.groundtruth import GroundTruthPath
@@ -42,7 +42,7 @@ class Platform(Base):
 
     id: str = Property(
         default=None,
-        doc="The unique path ID. Default `None` where random UUID is generated.")
+        doc="The unique platform ID. Default `None` where random UUID is generated.")
 
     _default_movable_class = None  # Will be overridden by subclasses
 
@@ -160,10 +160,24 @@ class Platform(Base):
 
     @property
     def ground_truth_path(self) -> GroundTruthPath:
-        """
-        The `states` property for the platform and `ground_truth_path` are dynamically linked
-        `self.ground_truth_path.states` == self.states`. So after `platform.move()` the
-        `ground_truth_path` will contain the new state.
+        """ Produce a :class:`.GroundTruthPath` with the same `id` and `states` as the platform.
+
+        The `states` property for the platform and `ground_truth_path` are dynamically linked:
+        >>> self.ground_truth_path.states is self.states
+        True
+
+        So after `platform.move()` the `ground_truth_path` will contain the new state. However,
+        replacing the `id`, `states` or `movement_controller` variables in either the platform or
+        ground truth path will not be reflected in the other object.
+        >>> platform_gtp = self.ground_truth_path
+        >>> platform_gtp.states = []
+        >>> self.states is not platform_gtp.states
+        True
+
+        `Platform.ground_truth_path` produces a new :class:`.GroundTruthPath` on every instance.
+        It is not an object that is updated
+        >>> self.ground_truth_path.states is not self.ground_truth_path.states
+        True
         """
         return GroundTruthPath(id=self.id, states=self.movement_controller.states)
 
