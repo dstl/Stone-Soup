@@ -12,6 +12,7 @@ from stonesoup.types.angle import Bearing
 from stonesoup.types.array import StateVector
 from stonesoup.platform import MovingPlatform, FixedPlatform, MultiTransitionMovingPlatform
 from ...types.state import State
+from ...types.groundtruth import GroundTruthPath
 
 
 def test_base():
@@ -711,31 +712,119 @@ def test_ground_truth_path():
                               transition_model=cv_model,
                               position_mapping=[0, 2, 4], velocity_mapping=[1, 3, 5])
 
-    platform_ground_truth_path = platform.ground_truth_path
+    platform_gtp: GroundTruthPath = platform.ground_truth_path
 
-    assert platform.id == platform_ground_truth_path.id
-    assert platform.state is platform_ground_truth_path.state
+    # Test the id and states match
+    assert platform.id == platform_gtp.id
+    assert platform.state is platform_gtp.state
 
     # Test the platform states are dynamically linked to the ground truth path state
     platform.move(timestamp + datetime.timedelta(seconds=1))
-    assert platform.state is platform_ground_truth_path.state
-    assert platform.states is platform_ground_truth_path.states
-
-    assert platform_ground_truth_path is platform.ground_truth_path
+    assert platform.state is platform_gtp.state
+    assert platform.states is platform_gtp.states
 
 
-def test_platform_id():
+def test_default_platform_id():
+    fixed_state = State(np.array([[2], [2], [0]]), datetime.datetime.now())
+    platform1 = FixedPlatform(states=fixed_state, position_mapping=(0, 1, 2))
+
+    # Test `id` is string
+    assert isinstance(platform1.id, str)
+
+    # Test string is suitable long to avoid conflict
+    assert len(platform1.id) >= 32
+
+    # Test id isn't replicated
+    platform2 = FixedPlatform(states=fixed_state, position_mapping=(0, 1, 2))
+    assert platform1.id != platform2
+
+
+test_id_str = "hello"
+
+
+def test_platform_id_assignment():
+    fixed_state = State(np.array([[2], [2], [0]]), datetime.datetime.now())
+    fixed_platform = FixedPlatform(states=fixed_state, position_mapping=(0, 1, 2))
+    fixed_platform.id = test_id_str
+    assert fixed_platform.id == test_id_str
+
+
+def test_platform_initialised_with_id():
+    fixed_state = State(np.array([[2], [2], [0]]), datetime.datetime.now())
+    platform = FixedPlatform(id=test_id_str, states=fixed_state, position_mapping=(0, 1, 2))
+    assert platform.id == test_id_str
+
+
+# @pytest.mark.xfail(reason="Changing the id of a platform resets the `ground_truth_path` property. "
+#                           "Changing the id of a platform does not change its ground truth path. "
+#                           "The id of the platform and ground truth path aren't dynamically linked."
+#                    )
+# def test_platform_id_matches_ground_truth():
+#
+#     fixed_state = State(np.array([[2], [2], [0]]), datetime.datetime.now())
+#     platform = FixedPlatform(states=fixed_state, position_mapping=(0, 1, 2))
+#
+#     platform_gtp_before = platform.ground_truth_path
+#     assert platform_gtp_before.id == platform.id
+#
+#     platform.id = test_id_str
+#
+#     assert platform.ground_truth_path.id == platform.id
+#
+#     # These currently fails
+#     assert platform_gtp_before.id == platform.id
+#     assert platform_gtp_before is platform.ground_truth_path
+#
+#     new_platform_gtp = platform.ground_truth_path
+
+
+def test_ground_truth_path_story():
+    # Set Up
     timestamp = datetime.datetime.now()
-    fixed_state = State(np.array([[2], [2], [0]]), timestamp)
+    state_before = State(np.array([[2], [1], [2], [1], [0], [1]]), timestamp)
+    cv_model = CombinedLinearGaussianTransitionModel((ConstantVelocity(0),
+                                                      ConstantVelocity(0),
+                                                      ConstantVelocity(0)))
+    platform = MovingPlatform(states=state_before,
+                              transition_model=cv_model,
+                              position_mapping=[0, 2, 4], velocity_mapping=[1, 3, 5])
 
-    # Test Assignment
-    platform = FixedMovable(states=fixed_state, position_mapping=(0, 1, 2))
-    platform.id = "hello"
-    assert platform.id == "hello"
+    def are_equal(gtp1: GroundTruthPath, gtp2: GroundTruthPath):
+        return gtp1.id == gtp2.id and gtp1.states == gtp2.states
 
-    # Test Initialisation
-    platform = FixedMovable(id="hello", states=fixed_state, position_mapping=(0, 1, 2))
-    assert platform.id == "hello"
+    # `Platform.ground_truth_path` produces a GroundTruthPath with `id` and `states` matching the
+    # platform.
+    platform_gtp = platform.ground_truth_path
+    assert isinstance(platform_gtp, GroundTruthPath)
+
+    # Generally `Platform.ground_truth_path` produces equal objects
+    assert are_equal(platform.ground_truth_path, platform_gtp)
+
+    # This is still true even if the platform moves. This is because they share the same `states`
+    # object
+    platform.move(timestamp + datetime.timedelta(seconds=1))
+    assert are_equal(platform.ground_truth_path, platform_gtp)
+
+    # However they are not the same object
+    assert platform.ground_truth_path is not platform_gtp
+
+    # Therefore changing the `id` will result in a different GroundTruthPath
+    platform.id = test_id_str
+    assert not are_equal(platform.ground_truth_path, platform_gtp)
+
+    # Reset the id. They should now be equal again
+    platform.id = platform_gtp.id
+    assert are_equal(platform.ground_truth_path, platform_gtp)
+
+    # They will remain equal if the `states` property is appended/altered
+    platform_gtp.states.append(State(np.array([[10], [9], [8], [7], [6], [5]]),
+                                     timestamp + datetime.timedelta(seconds=2)))
+    platform.move(timestamp + datetime.timedelta(seconds=3))
+    assert are_equal(platform.ground_truth_path, platform_gtp)
+
+    # However if the `states` property is replaced, they are no longer equal
+    platform_gtp.states = []
+    assert not are_equal(platform.ground_truth_path, platform_gtp)
 
 
 @pytest.mark.xfail
