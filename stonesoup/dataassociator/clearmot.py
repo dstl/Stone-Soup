@@ -1,6 +1,6 @@
 import datetime
 from itertools import chain, pairwise
-from typing import List, MutableSequence, Set, Tuple
+from typing import Dict, List, MutableSequence, Set, Tuple
 
 import numpy as np
 import scipy
@@ -9,7 +9,7 @@ from ordered_set import OrderedSet
 from ..base import Property
 from ..measures import Euclidean, Measure
 from ..types.association import AssociationSet, TimeRangeAssociation
-from ..types.groundtruth import GroundTruthPath
+from ..types.groundtruth import GroundTruthPath, GroundTruthState
 from ..types.state import State, StateMutableSequence
 from ..types.time import TimeRange
 from ..types.track import Track
@@ -17,9 +17,6 @@ from .base import TwoTrackToTrackAssociator
 
 
 class ClearMotAssociator(TwoTrackToTrackAssociator):
-    """
-    3. Adapt docs the class
-    """
 
     association_threshold: float = Property(
         doc="Threshold distance measure which states must be within for an "
@@ -47,6 +44,7 @@ class ClearMotAssociator(TwoTrackToTrackAssociator):
             Contains a set of :class:`~.Association` objects
         """
 
+        # helper look-ups
         truth_states_by_id = {truth.id: truth.states for truth in truth_set}
         track_states_by_id = {track.id: track.states for track in tracks_set}
 
@@ -57,27 +55,21 @@ class ClearMotAssociator(TwoTrackToTrackAssociator):
         matches_over_time = []
 
         # holds the match set of the previous timestep in (truth_id, track_id) format
-        matches_previous: set[tuple[Any, Any]] = set()
+        matches_previous: set[tuple[str, str]] = set()
 
         for current_time in timestamps:
 
             truth_ids_at_current_time, track_ids_at_current_time = \
-                self.get_truth_and_track_ids_at_a_specific_time(truth_states_by_id,
-                                                                track_states_by_id, current_time)
+                self._get_truth_and_track_ids_at_a_specific_time(truth_states_by_id,
+                                                                 track_states_by_id, current_time)
 
-            matches_current = set()
-
-            if matches_previous:
-
-                # we iterate over each match and check if it is still valid (i.e. below the
-                # assication threshold - if true, we keep it, if not we do not maintain the match
-                self.verify_if_previos_matches_are_still_valid(truth_states_by_id,
-                                                               track_states_by_id,
-                                                               matches_previous,
-                                                               current_time,
-                                                               truth_ids_at_current_time,
-                                                               track_ids_at_current_time,
-                                                               matches_current)
+            matches_current = self._verify_if_previos_matches_are_still_valid(truth_states_by_id,
+                                                                              track_states_by_id,
+                                                                              matches_previous,
+                                                                              current_time,
+                                                                              truth_ids_at_current_time,
+                                                                              track_ids_at_current_time,
+                                                                              )
 
             # continue, in case either the truth or tracks are empty, since there is nothing
             # left anymore to associate
@@ -98,7 +90,21 @@ class ClearMotAssociator(TwoTrackToTrackAssociator):
 
         return AssociationSet(associations)
 
-    def _create_associations_from_matches_over_time(self, tracks_set, truth_set, timestamps, matches_over_time):
+    def _get_truth_and_track_ids_at_a_specific_time(self,
+                                                    truth_states_by_id: Dict[str,  MutableSequence[GroundTruthState]],
+                                                    track_states_by_id: Dict[str,  MutableSequence[State]],
+                                                    current_time: datetime.datetime):
+        truth_ids_at_current_time = [truth_id for (truth_id, truth_states)
+                                     in truth_states_by_id.items()
+                                     if get_state_at_time(truth_states, current_time)]
+        track_ids_at_current_time = [track_id for (track_id, track_states)
+                                     in track_states_by_id.items()
+                                     if get_state_at_time(track_states, current_time)]
+
+        return truth_ids_at_current_time, track_ids_at_current_time
+
+    def _create_associations_from_matches_over_time(self, tracks_set, truth_set, timestamps,
+                                                    matches_over_time: List[Set[Tuple[str, str]]]):
         unique_matches = {
             match for matches_timestamp in matches_over_time for match in matches_timestamp}
 
@@ -124,15 +130,49 @@ class ClearMotAssociator(TwoTrackToTrackAssociator):
 
         return associations
 
-    def get_truth_and_track_ids_at_a_specific_time(self, truth_states_by_id, track_states_by_id, current_time):
-        truth_ids_at_current_time = [truth_id for (truth_id, truth_states)
-                                     in truth_states_by_id.items()
-                                     if get_state_at_time(truth_states, current_time)]
-        track_ids_at_current_time = [track_id for (track_id, track_states)
-                                     in track_states_by_id.items()
-                                     if get_state_at_time(track_states, current_time)]
+    def _verify_if_previos_matches_are_still_valid(self,
+                                                   truth_states_by_id: Dict[str,  MutableSequence[GroundTruthState]],
+                                                   track_states_by_id: Dict[str,  MutableSequence[State]],
+                                                   matches_previous: Set[Tuple[str, str]],
+                                                   current_time: datetime.datetime,
+                                                   truth_ids_at_current_time: Set[str],
+                                                   track_ids_at_current_time: Set[str]) -> Set[Tuple[str, str]]:
+        """Checks if matches from the previous timestep are still valid by the measure and threshold.
+        If a match is valid, it is added to `matches_current` set.
+        """
 
-        return truth_ids_at_current_time, track_ids_at_current_time
+        matches_current = set()
+
+        if not matches_previous:
+            return matches_current
+
+        # we iterate over each match and check if it is still valid (i.e. below the
+        # assication threshold - if true, we keep it and add it to current set,
+        # if not we do not maintain the match
+        for (track_id, truth_id) in matches_previous:
+            # get
+            truth_states = truth_states_by_id[truth_id]
+            truth_state_current = get_state_at_time(truth_states, current_time)
+
+            if not truth_state_current:
+                continue
+
+            track_states = track_states_by_id[track_id]
+            track_state_current = get_state_at_time(track_states, current_time)
+
+            # if hypothesis is not available anymore
+            if not track_state_current:
+                continue
+
+            distance = self.measure(track_state_current, truth_state_current)
+
+            # if distance is still lower than the threshold, keep the match
+            if distance < self.association_threshold:
+                matches_current.add((track_id, truth_id))
+
+                truth_ids_at_current_time.remove(truth_id)
+                track_ids_at_current_time.remove(track_id)
+        return matches_current
 
     @staticmethod
     def _create_associations_from_sequence_of_match_sets(truth_states_by_id, timestamps,
@@ -199,35 +239,6 @@ class ClearMotAssociator(TwoTrackToTrackAssociator):
         for i, j in zip(row_ind, col_in):
             if cost_matrix[i, j] < self.association_threshold:
                 matches_current.add((track_ids_at_current_time[j], truth_ids_at_current_time[i]))
-
-    def verify_if_previos_matches_are_still_valid(self, truth_states_by_id, track_states_by_id,
-                                                  matches_previous, current_time,
-                                                  truth_ids_at_current_time,
-                                                  track_ids_at_current_time,
-                                                  matches_current):
-        for (track_id, truth_id) in matches_previous:
-            # get
-            truth_states = truth_states_by_id[truth_id]
-            truth_state_current = get_state_at_time(truth_states, current_time)
-
-            if not truth_state_current:
-                continue
-
-            track_states = track_states_by_id[track_id]
-            track_state_current = get_state_at_time(track_states, current_time)
-
-            # if hypothesis is not available anymore
-            if not track_state_current:
-                continue
-
-            distance = self.measure(track_state_current, truth_state_current)
-
-            # if distance is still lower than the threshold, keep the match
-            if distance < self.association_threshold:
-                matches_current.add((track_id, truth_id))
-
-                truth_ids_at_current_time.remove(truth_id)
-                track_ids_at_current_time.remove(track_id)
 
     def determine_unique_timestamps(self, tracks_set, truth_set) -> list[datetime.datetime]:
         track_states = self.extract_states(tracks_set)
