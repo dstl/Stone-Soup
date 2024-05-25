@@ -1,6 +1,6 @@
 import datetime
-from itertools import chain
-from typing import MutableSequence, Set
+from itertools import chain, pairwise
+from typing import List, MutableSequence, Set, Tuple
 
 import numpy as np
 import scipy
@@ -18,16 +18,10 @@ from .base import TwoTrackToTrackAssociator
 
 class ClearMotAssociator(TwoTrackToTrackAssociator):
     """
-    2. Deal with gaps in matches over time
     3. Adapt docs the class
-    4. Remove self.time_interval
     """
 
     association_threshold: float = Property(
-        doc="Threshold distance measure which states must be within for an "
-            "association to be recorded")
-    time_interval: datetime.timedelta = Property(
-        default=datetime.timedelta(seconds=1),
         doc="Threshold distance measure which states must be within for an "
             "association to be recorded")
     measure: Measure = Property(
@@ -68,9 +62,9 @@ class ClearMotAssociator(TwoTrackToTrackAssociator):
         for current_time in timestamps:
 
             truth_ids_at_current_time, track_ids_at_current_time = \
-                self.get_truth_and_track_ids_at_a_specific_time(truth_states_by_id, 
+                self.get_truth_and_track_ids_at_a_specific_time(truth_states_by_id,
                                                                 track_states_by_id, current_time)
-            
+
             matches_current = set()
 
             if matches_previous:
@@ -91,7 +85,7 @@ class ClearMotAssociator(TwoTrackToTrackAssociator):
                 matches_over_time.append(matches_current)
                 matches_previous = matches_current
                 continue
-            
+
             self.match_unassigned_tracks(truth_states_by_id, track_states_by_id,
                                          current_time, truth_ids_at_current_time,
                                          track_ids_at_current_time, matches_current)
@@ -99,41 +93,50 @@ class ClearMotAssociator(TwoTrackToTrackAssociator):
             matches_over_time.append(matches_current)
             matches_previous = matches_current
 
+        associations = self._create_associations_from_matches_over_time(
+            tracks_set, truth_set, timestamps, matches_over_time)
+
+        return AssociationSet(associations)
+
+    def _create_associations_from_matches_over_time(self, tracks_set, truth_set, timestamps, matches_over_time):
+        unique_matches = {
+            match for matches_timestamp in matches_over_time for match in matches_timestamp}
+
         truth_tracks_by_id = {truth.id: truth for truth in truth_set}
         estim_tracks_by_id = {track.id: track for track in tracks_set}
 
-        unique_matches = {match for matches_timestamp in matches_over_time for match in matches_timestamp}
-
         associations = set()
         for match in unique_matches:
-
             timesteps_where_match_exists = list()
             for i, matches_timestamp in enumerate(matches_over_time):
                 if match in matches_timestamp:
                     timesteps_where_match_exists.append(i)
 
-            # TODO: deal with gaps in associations
+            # deal with temporal gaps in associations
+            time_intervals = get_strictly_monotonously_increasing_intervals(
+                timesteps_where_match_exists)
 
-            associations.add(TimeRangeAssociation(OrderedSet(
+            for (start_idx, end_idx) in time_intervals:
+                associations.add(TimeRangeAssociation(OrderedSet(
                     (estim_tracks_by_id[match[0]], truth_tracks_by_id[match[1]])),
-                    TimeRange(timestamps[timesteps_where_match_exists[0]],
-                              timestamps[timesteps_where_match_exists[-1]])))
+                    TimeRange(timestamps[timesteps_where_match_exists[start_idx]],
+                              timestamps[timesteps_where_match_exists[end_idx-1]])))
 
-        return AssociationSet(associations)
+        return associations
 
     def get_truth_and_track_ids_at_a_specific_time(self, truth_states_by_id, track_states_by_id, current_time):
         truth_ids_at_current_time = [truth_id for (truth_id, truth_states)
-                                         in truth_states_by_id.items()
-                                         if get_state_at_time(truth_states, current_time)]
+                                     in truth_states_by_id.items()
+                                     if get_state_at_time(truth_states, current_time)]
         track_ids_at_current_time = [track_id for (track_id, track_states)
-                                         in track_states_by_id.items()
-                                         if get_state_at_time(track_states, current_time)]
-                                     
+                                     in track_states_by_id.items()
+                                     if get_state_at_time(track_states, current_time)]
+
         return truth_ids_at_current_time, track_ids_at_current_time
 
     @staticmethod
     def _create_associations_from_sequence_of_match_sets(truth_states_by_id, timestamps,
-                                                        matches_over_time, truth_by_id, track_by_id) -> Set[TimeRangeAssociation]:
+                                                         matches_over_time, truth_by_id, track_by_id) -> Set[TimeRangeAssociation]:
         associations = set()
         for truth_id in truth_states_by_id.keys():
             assigned_track_ids_over_time = list()
@@ -163,7 +166,7 @@ class ClearMotAssociator(TwoTrackToTrackAssociator):
 
                 # end of timeseries
                 if i == (len(assigned_track_ids_over_time)-1):
-                    
+
                     if current_track_id is None:
                         continue
 
@@ -174,7 +177,7 @@ class ClearMotAssociator(TwoTrackToTrackAssociator):
         return associations
 
     def match_unassigned_tracks(self, truth_states_by_id, track_states_by_id, current_time, truth_ids_at_current_time,
-                                    track_ids_at_current_time, matches_current: Set):
+                                track_ids_at_current_time, matches_current: Set):
         num_truth_unassigned = len(truth_ids_at_current_time)
         num_tracks_unassigned = len(track_ids_at_current_time)
         cost_matrix = np.zeros((num_truth_unassigned, num_tracks_unassigned), dtype=float)
@@ -226,7 +229,6 @@ class ClearMotAssociator(TwoTrackToTrackAssociator):
                 truth_ids_at_current_time.remove(truth_id)
                 track_ids_at_current_time.remove(track_id)
 
-
     def determine_unique_timestamps(self, tracks_set, truth_set) -> list[datetime.datetime]:
         track_states = self.extract_states(tracks_set)
         truth_states = self.extract_states(truth_set)
@@ -276,3 +278,21 @@ def get_state_at_time(state_sequence: MutableSequence[State],
         return Track(state_sequence)[timestamp]
     except IndexError:
         return None
+
+
+def get_strictly_monotonously_increasing_intervals(arr: MutableSequence[int]) -> List[Tuple[int, int]]:
+    """Return (start <= t < end) index intervals where array elements are increasing by 1.
+
+    Args:
+        timesteps (MutableSequence[int]): array 
+
+    Returns:
+        List[Tuple[int, int]]: intervals with indices, where
+            array elements are increasing monotonically by 1
+    """
+    time_jumps = np.diff(arr) > 1
+    valid_interval_start_indices = np.r_[0, 1+np.where(time_jumps)[0], len(arr)]
+    intervals = []
+    for start_idx, end_idx in pairwise(valid_interval_start_indices):
+        intervals.append((start_idx, end_idx))
+    return intervals

@@ -239,8 +239,7 @@ def test_trackidbased():
 
 def test_clear_mot(tracks: List[Track]):
 
-    associator = ClearMotAssociator(time_interval=datetime.timedelta(
-        seconds=1), measure=Euclidean(mapping=[0, 1]), association_threshold=3.0)
+    associator = ClearMotAssociator(measure=Euclidean(mapping=[0, 1]), association_threshold=3.0)
 
     track = tracks[0]
     truth_track = tracks[1]
@@ -259,8 +258,7 @@ def test_clear_mot(tracks: List[Track]):
 
 def test_clear_mot_two_truths_crossing(tracks: List[Track]):
 
-    associator = ClearMotAssociator(time_interval=datetime.timedelta(
-        seconds=1), measure=Euclidean(mapping=[0, 1]), association_threshold=2.0)
+    associator = ClearMotAssociator(measure=Euclidean(mapping=[0, 1]), association_threshold=2.0)
 
     # truths cross each other
     truth_tracks = {tracks[0], tracks[6]}
@@ -293,8 +291,7 @@ def test_clear_mot_measure_dimensions(tracks: List[Track]):
     track = tracks[0]
     truth_track = tracks[4]
 
-    associator = ClearMotAssociator(time_interval=datetime.timedelta(
-        seconds=1), measure=Euclidean(mapping=[0, 1]), association_threshold=3.0)
+    associator = ClearMotAssociator(measure=Euclidean(mapping=[0, 1]), association_threshold=3.0)
 
     association_set = associator.associate_tracks({track}, {truth_track})
 
@@ -302,8 +299,7 @@ def test_clear_mot_measure_dimensions(tracks: List[Track]):
         "Track-1 and Track-5 should not be associated when looking at all" +\
         " dimensions of the state vector."
     
-    associator = ClearMotAssociator(time_interval=datetime.timedelta(
-        seconds=1), measure=Euclidean(mapping=[0]), association_threshold=3.0)
+    associator = ClearMotAssociator(measure=Euclidean(mapping=[0]), association_threshold=3.0)
     
     association_set = associator.associate_tracks({track}, {truth_track})
     
