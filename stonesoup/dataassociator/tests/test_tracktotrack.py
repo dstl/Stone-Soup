@@ -8,8 +8,8 @@ from ...types.association import Association
 from ...types.groundtruth import GroundTruthPath, GroundTruthState
 from ...types.state import State
 from ...types.track import Track
+from ..clearmot import ClearMotAssociator
 from ..tracktotrack import (
-    ClearMotAssociator,
     TrackIDbased,
     TrackToTrackCounting,
     TrackToTruth,
