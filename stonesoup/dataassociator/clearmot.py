@@ -9,11 +9,13 @@ from ordered_set import OrderedSet
 from ..base import Property
 from ..measures import Euclidean, Measure
 from ..types.association import AssociationSet, TimeRangeAssociation
-from ..types.groundtruth import GroundTruthPath, GroundTruthState
+from ..types.groundtruth import GroundTruthPath
 from ..types.state import State, StateMutableSequence
 from ..types.time import TimeRange
 from ..types.track import Track
 from .base import TwoTrackToTrackAssociator
+
+StatesFromIdLookup = Dict[str, MutableSequence[State]]
 
 
 class ClearMotAssociator(TwoTrackToTrackAssociator):
@@ -65,8 +67,8 @@ class ClearMotAssociator(TwoTrackToTrackAssociator):
         """
 
         # helper look-ups
-        truth_states_by_id = {truth.id: truth.states for truth in truth_set}
-        track_states_by_id = {track.id: track.states for track in tracks_set}
+        truth_states_by_id: StatesFromIdLookup = {truth.id: truth.states for truth in truth_set}
+        track_states_by_id: StatesFromIdLookup = {track.id: track.states for track in tracks_set}
 
         # Make a sorted list of all the unique timestamps used
         timestamps = self.determine_unique_timestamps(tracks_set, truth_set)
@@ -116,8 +118,8 @@ class ClearMotAssociator(TwoTrackToTrackAssociator):
         return AssociationSet(associations)
 
     def _get_truth_and_track_ids_from_timestamp(self,
-                                                truth_states_by_id: Dict[str, MutableSequence[GroundTruthState]],
-                                                track_states_by_id: Dict[str, MutableSequence[State]],
+                                                truth_states_by_id: StatesFromIdLookup,
+                                                track_states_by_id: StatesFromIdLookup,
                                                 timestamp: datetime.datetime):
         truth_ids_at_current_time = [truth_id for (truth_id, truth_states)
                                      in truth_states_by_id.items()
@@ -128,7 +130,9 @@ class ClearMotAssociator(TwoTrackToTrackAssociator):
 
         return truth_ids_at_current_time, track_ids_at_current_time
 
-    def _create_associations_from_matches_over_time(self, tracks_set, truth_set, timestamps,
+    def _create_associations_from_matches_over_time(self, tracks_set: Set[Track],
+                                                    truth_set: Set[GroundTruthPath],
+                                                    timestamps: MutableSequence[datetime.datetime],
                                                     matches_over_time: List[Set[Tuple[str, str]]]):
         unique_matches = {
             match for matches_timestamp in matches_over_time for match in matches_timestamp}
@@ -156,15 +160,15 @@ class ClearMotAssociator(TwoTrackToTrackAssociator):
         return associations
 
     def _initialize_matches_from_previous_timestep(self,
-                                                   truth_states_by_id: Dict[str,  MutableSequence[GroundTruthState]],
-                                                   track_states_by_id: Dict[str,  MutableSequence[State]],
+                                                   truth_states_by_id: StatesFromIdLookup,
+                                                   track_states_by_id: StatesFromIdLookup,
                                                    matches_previous: Set[Tuple[str, str]],
                                                    current_time: datetime.datetime,
                                                    truth_ids_at_current_time: Set[str],
                                                    track_ids_at_current_time: Set[str]) \
             -> Set[Tuple[str, str]]:
-        """Checks if matches from the previous timestep are still valid by the measure and threshold.
-        If a match is valid, it is added to the returned set.
+        """Checks if matches from the previous timestep are still valid by their distance and
+        adds them to the returned set of matches.
         """
 
         matches_current = set()
