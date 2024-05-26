@@ -17,6 +17,24 @@ from .base import TwoTrackToTrackAssociator
 
 
 class ClearMotAssociator(TwoTrackToTrackAssociator):
+    """Track to truth associator used in the CLEAR MOT metrics paper[1].
+
+    Compares two sets of :class:`~.Track`, each formed of a sequence of
+    :class:`~.State` objects and returns an :class:`~.Association` object for
+    each time at which a the two :class:`~.State` within the :class:`~.Track`
+    are assessed to be associated. A track keeps its association with the 
+    truth from previous timestep,even if there is a new track which is closer to the truth. 
+    Unassigned tracks and truths are matched using Munkres algorithm if they
+    are below the specified distance threshold.
+
+    Note
+    ----
+    A track can only be associated with one Truth (one-2-one relationship) at a
+    given time step and vice versa.
+
+    Reference
+        [1] Evaluating Multiple Object Tracking Performance: The CLEAR MOT Metrics, Bernardin et al, 2008
+    """
 
     association_threshold: float = Property(
         doc="Threshold distance measure which states must be within for an "
@@ -60,7 +78,7 @@ class ClearMotAssociator(TwoTrackToTrackAssociator):
         for current_time in timestamps:
 
             truth_ids_at_current_time, track_ids_at_current_time = \
-                self._get_truth_and_track_ids_at_a_specific_time(truth_states_by_id,
+                self._get_truth_and_track_ids_at_a_specific_timestamp(truth_states_by_id,
                                                                  track_states_by_id, current_time)
 
             matches_current = self._verify_if_previos_matches_are_still_valid(truth_states_by_id,
@@ -90,16 +108,16 @@ class ClearMotAssociator(TwoTrackToTrackAssociator):
 
         return AssociationSet(associations)
 
-    def _get_truth_and_track_ids_at_a_specific_time(self,
+    def _get_truth_and_track_ids_at_a_specific_timestamp(self,
                                                     truth_states_by_id: Dict[str,  MutableSequence[GroundTruthState]],
                                                     track_states_by_id: Dict[str,  MutableSequence[State]],
-                                                    current_time: datetime.datetime):
+                                                    timestamp: datetime.datetime):
         truth_ids_at_current_time = [truth_id for (truth_id, truth_states)
                                      in truth_states_by_id.items()
-                                     if get_state_at_time(truth_states, current_time)]
+                                     if get_state_at_time(truth_states, timestamp)]
         track_ids_at_current_time = [track_id for (track_id, track_states)
                                      in track_states_by_id.items()
-                                     if get_state_at_time(track_states, current_time)]
+                                     if get_state_at_time(track_states, timestamp)]
 
         return truth_ids_at_current_time, track_ids_at_current_time
 
