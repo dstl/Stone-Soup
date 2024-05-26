@@ -19,7 +19,7 @@ class GaussianDriver(Driver):
     seed: Optional[int] = Property(default=None, doc="Seed for random number generation")
     mu_W: float = Property(doc="Default Gaussian mean")
     sigma_W2: float = Property(doc="Default Gaussian variance")
-    
+
     def __init__(self, *args, **kwargs) -> None:
         super().__init__(*args, **kwargs)
         self._rng = np.random.default_rng(seed=self.seed)
@@ -28,25 +28,41 @@ class GaussianDriver(Driver):
         self._mu_W_dict: dict[int, float] = {}
         self._sigma_W2_dict: dict[int, float] = {}
         self.set_params(None, self.mu_W, self.sigma_W2)
-        assert self.mu_W.size == 1 # is float
-        assert self.sigma_W2.size == 1 # is float
+        assert self.mu_W.size == 1  # is float
+        assert self.sigma_W2.size == 1  # is float
 
-    def set_params(self, model_id: int, mu_W: Optional[float], sigma_W2: Optional[float]) -> Tuple[float, float]:
+    def set_params(
+        self, model_id: int, mu_W: Optional[float], sigma_W2: Optional[float]
+    ) -> Tuple[float, float]:
         self._mu_W_dict[model_id] = self.mu_W if mu_W is None else np.atleast_2d(mu_W)
-        self._sigma_W2_dict[model_id] = self.sigma_W2 if sigma_W2 is None else np.atleast_2d(sigma_W2)
+        self._sigma_W2_dict[model_id] = (
+            self.sigma_W2 if sigma_W2 is None else np.atleast_2d(sigma_W2)
+        )
         return self._mu_W_dict[model_id], self._sigma_W2_dict[model_id]
 
-    def _mu_W(self, model_id: Optional[int]=None):
+    def _mu_W(self, model_id: Optional[int] = None):
         return self._mu_W_dict[model_id]
 
-    def _sigma_W2(self, model_id: Optional[int]=None):
+    def _sigma_W2(self, model_id: Optional[int] = None):
         return self._sigma_W2_dict[model_id]
-    
-    def mean(self, e_gt_func: Callable[..., np.ndarray], dt: float, model_id: Optional[int]=None, **kwargs) -> StateVector:
+
+    def mean(
+        self,
+        e_gt_func: Callable[..., np.ndarray],
+        dt: float,
+        model_id: Optional[int] = None,
+        **kwargs
+    ) -> StateVector:
         e_gt = e_gt_func(dt=dt)
         return self._mu_W(model_id) * e_gt
 
-    def covar(self, e_gt_func: Callable[..., np.ndarray], dt: float, model_id: Optional[int]=None, **kwargs) -> CovarianceMatrix:
+    def covar(
+        self,
+        e_gt_func: Callable[..., np.ndarray],
+        dt: float,
+        model_id: Optional[int] = None,
+        **kwargs
+    ) -> CovarianceMatrix:
         e_gt = e_gt_func(dt=dt)
         return self._sigma_W2(model_id) * e_gt @ e_gt.T
 
@@ -105,16 +121,19 @@ class Latents:
 class ConditionalGaussianDriver(GaussianDriver):
     c: np.double = Property(doc="Truncation parameter, expected no. jumps per unit time.")
     noise_case: int = Property(
-        default=2, doc="Noise case must be either 1 (Truncated series), 2 (Gaussian residual approximation) or 3 (Partial Gaussian residual approximation), refer to paper for more details."
+        default=2,
+        doc="Noise case must be either 1 (Truncated series), 2 (Gaussian residual approximation) or 3 (Partial Gaussian residual approximation), refer to paper for more details.",
     )
 
     def __init__(self, *args, **kwargs) -> None:
         super().__init__(*args, **kwargs)
         if self.noise_case not in [1, 2, 3]:
-            raise AttributeError("Noise case must be either: (1) Truncated series, (2) Gaussian residual approximation, (3) Partial Gaussian residual approximation")
+            raise AttributeError(
+                "Noise case must be either: (1) Truncated series, (2) Gaussian residual approximation, (3) Partial Gaussian residual approximation"
+            )
 
     @abstractmethod
-    def _centering(self, e_ft: np.ndarray, truncation:float) -> StateVector:
+    def _centering(self, e_ft: np.ndarray, truncation: float) -> StateVector:
         pass
 
     @abstractmethod
@@ -140,10 +159,14 @@ class ConditionalGaussianDriver(GaussianDriver):
         pass
 
     @abstractmethod
-    def _residual_covar(self, e_ft: np.ndarray, truncation:float, model_id: Optional[int]=None) -> CovarianceMatrix:
+    def _residual_covar(
+        self, e_ft: np.ndarray, truncation: float, model_id: Optional[int] = None
+    ) -> CovarianceMatrix:
         pass
 
-    def _residual_mean(self, e_ft: np.ndarray, truncation:float, model_id: Optional[int]=None) -> CovarianceMatrix:
+    def _residual_mean(
+        self, e_ft: np.ndarray, truncation: float, model_id: Optional[int] = None
+    ) -> CovarianceMatrix:
         if self.noise_case == 1:
             m = e_ft.shape[0]
             r_mean = np.zeros((m, 1))
@@ -151,6 +174,7 @@ class ConditionalGaussianDriver(GaussianDriver):
             r_mean = e_ft * self._mu_W(model_id)  # (m, 1)
         else:
             raise AttributeError("invalid noise case")
+        # print(self._first_moment(truncation=truncation), r_mean)
         return self._first_moment(truncation=truncation) * r_mean  # (m, 1)
 
     def _accept_reject(self, jsizes: np.ndarray) -> np.ndarray:
@@ -192,10 +216,12 @@ class ConditionalGaussianDriver(GaussianDriver):
         series = np.sum(jsizes[..., None, None] * ft, axis=0)  # (n_samples, m, 1)
         m = series * self._mu_W(model_id)
 
-        residual_mean = self._residual_mean(e_ft=e_ft, model_id=model_id, truncation=truncation)[None, ...]
+        residual_mean = self._residual_mean(e_ft=e_ft, model_id=model_id, truncation=truncation)[
+            None, ...
+        ]
         # residual_mean = 0
-        centering = self._centering(e_ft=e_ft, model_id=model_id, truncation=truncation)[None, ...]
-
+        centering = dt * self._centering(e_ft=e_ft, model_id=model_id, truncation=truncation)[None, ...]
+        # print(residual_mean, centering)
         mean = m - centering + residual_mean
         if num_samples == 1:
             return mean[0].view(StateVector)
@@ -218,7 +244,7 @@ class ConditionalGaussianDriver(GaussianDriver):
         truncation = self._hfunc(self.c * dt)
 
         ft = ft_func(dt=dt, jtimes=jtimes)  # (n_jumps, n_samples, m, 1)
-        ft2 = np.einsum("ijkl, ijml -> ijkm", ft, ft) # (n_samples, m, m)
+        ft2 = np.einsum("ijkl, ijml -> ijkm", ft, ft)  # (n_samples, m, m)
         series = np.sum(jsizes[..., None, None] * ft2, axis=0)  # (n_samples, m, m)
         # series = np.einsum("ikl, iml -> ikm", series, series) # (n_samples, m, m)
         s = self._sigma_W2(model_id) * series
@@ -234,16 +260,20 @@ class ConditionalGaussianDriver(GaussianDriver):
 
 class NormalSigmaMeanDriver(ConditionalGaussianDriver):
     def _jump_power(self, jsizes: np.ndarray) -> np.ndarray:
-        return jsizes ** 2
+        return jsizes**2
 
-    def _residual_covar(self, e_ft: np.ndarray, truncation: float, model_id: Optional[int]=None) -> CovarianceMatrix:
+    def _residual_covar(
+        self, e_ft: np.ndarray, truncation: float, model_id: Optional[int] = None
+    ) -> CovarianceMatrix:
         mu_W = self._mu_W(model_id)
         sigma_W2 = self._sigma_W2(model_id)
         if self.noise_case == 1:
             m = e_ft.shape[0]
             r_cov = np.zeros((m, m))
         elif self.noise_case == 2:
-            r_cov = e_ft @ e_ft.T * self._second_moment(truncation=truncation) * (mu_W**2 + sigma_W2)
+            r_cov = (
+                e_ft @ e_ft.T * self._second_moment(truncation=truncation) * (mu_W**2 + sigma_W2)
+            )
         elif self.noise_case == 3:
             r_cov = e_ft @ e_ft.T * self._second_moment(truncation=truncation) * sigma_W2
         else:
@@ -256,11 +286,15 @@ class NormalVarianceMeanDriver(ConditionalGaussianDriver):
         # return np.sqrt(jsizes)
         return jsizes
 
-    def _centering(self, e_ft: np.ndarray, truncation: float, model_id: Optional[int]= None) -> StateVector:
+    def _centering(
+        self, e_ft: np.ndarray, truncation: float, model_id: Optional[int] = None
+    ) -> StateVector:
         m = e_ft.shape[0]
         return np.zeros((m, 1))
 
-    def _residual_covar(self, e_ft: np.ndarray, truncation: float, model_id: Optional[int]=None) -> CovarianceMatrix:
+    def _residual_covar(
+        self, e_ft: np.ndarray, truncation: float, model_id: Optional[int] = None
+    ) -> CovarianceMatrix:
         mu_W = self._mu_W(model_id)
         sigma_W2 = self._sigma_W2(model_id)
         if self.noise_case == 1:
@@ -270,7 +304,10 @@ class NormalVarianceMeanDriver(ConditionalGaussianDriver):
             r_cov = (
                 e_ft
                 @ e_ft.T
-                * (self._second_moment(truncation=truncation) * mu_W**2 + self._first_moment(truncation=truncation) * sigma_W2)
+                * (
+                    self._second_moment(truncation=truncation) * mu_W**2
+                    + self._first_moment(truncation=truncation) * sigma_W2
+                )
             )
         elif self.noise_case == 3:
             r_cov = e_ft @ e_ft.T * self._first_moment(truncation=truncation) * sigma_W2
