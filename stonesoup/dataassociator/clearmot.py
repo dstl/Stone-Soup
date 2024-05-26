@@ -192,48 +192,6 @@ class ClearMotAssociator(TwoTrackToTrackAssociator):
                 track_ids_at_current_time.remove(track_id)
         return matches_current
 
-    @staticmethod
-    def _create_associations_from_sequence_of_match_sets(truth_states_by_id, timestamps,
-                                                         matches_over_time, truth_by_id, track_by_id) -> Set[TimeRangeAssociation]:
-        associations = set()
-        for truth_id in truth_states_by_id.keys():
-            assigned_track_ids_over_time = list()
-
-            for t, match_set in zip(timestamps, matches_over_time):
-                track_id_at_t = None
-                for truth_id_in_match, track_id_in_match in match_set:
-                    if truth_id_in_match == truth_id:
-                        track_id_at_t = track_id_in_match
-                        break
-                assigned_track_ids_over_time.append(track_id_at_t)
-
-            start_time = None
-            current_track_id = None
-
-            for i, assigned_track_id in enumerate(assigned_track_ids_over_time):
-                if (not current_track_id) and assigned_track_id:
-                    current_track_id = assigned_track_id
-                    start_time = timestamps[i]
-
-                if assigned_track_id != current_track_id:
-                    associations.add(TimeRangeAssociation(OrderedSet(
-                        (track_by_id[current_track_id], truth_by_id[truth_id])),
-                        TimeRange(start_time, timestamps[i])))
-                    start_time = timestamps[i] if assigned_track_id else None
-                    current_track_id = assigned_track_id
-
-                # end of timeseries
-                if i == (len(assigned_track_ids_over_time)-1):
-
-                    if current_track_id is None:
-                        continue
-
-                    associations.add(TimeRangeAssociation(OrderedSet(
-                        (track_by_id[current_track_id], truth_by_id[truth_id])),
-                        TimeRange(start_time, timestamps[i])))
-                    break
-        return associations
-
     def match_unassigned_tracks(self, truth_states_by_id, track_states_by_id, current_time, truth_ids_at_current_time,
                                 track_ids_at_current_time, matches_current: Set):
         num_truth_unassigned = len(truth_ids_at_current_time)
@@ -258,51 +216,57 @@ class ClearMotAssociator(TwoTrackToTrackAssociator):
             if cost_matrix[i, j] < self.association_threshold:
                 matches_current.add((track_ids_at_current_time[j], truth_ids_at_current_time[i]))
 
-    def determine_unique_timestamps(self, tracks_set, truth_set) -> list[datetime.datetime]:
-        track_states = self.extract_states(tracks_set)
-        truth_states = self.extract_states(truth_set)
+    def determine_unique_timestamps(self, tracks_set: Set[Track], truth_set: Set[GroundTruthPath])\
+            -> list[datetime.datetime]:
+        
+        track_states = extract_states(tracks_set)
+        truth_states = extract_states(truth_set)
         timestamps = sorted({
             state.timestamp
             for state in chain(track_states, truth_states)})
         return timestamps
 
-    @staticmethod
-    def extract_states(object_with_states, return_ids=False):
-        """
-        Extracts a list of states from a list of (or single) objects
-        containing states. This method is defined to handle :class:`~.StateMutableSequence`
-        and :class:`~.State` types.
 
-        Parameters
-        ----------
-        object_with_states: object containing a list of states
-            Method of state extraction depends on the type of the object
-        return_ids: If we should return obj ids as well.
+def extract_states(object_with_states, return_ids=False):
+    """
+    NOTE: copy of stonesoup/metricgenerator/ospametric.py
 
-        Returns
-        -------
-        : list of :class:`~.State`
-        """
+    Extracts a list of states from a list of (or single) objects
+    containing states. This method is defined to handle :class:`~.StateMutableSequence`
+    and :class:`~.State` types.
 
-        state_list = StateMutableSequence()
-        ids = []
-        for i, element in enumerate(list(object_with_states)):
-            if isinstance(element, StateMutableSequence):
-                state_list.extend(element.states)
-                ids.extend([i]*len(element.states))
-            elif isinstance(element, State):
-                state_list.append(element)
-                ids.extend([i])
-            else:
-                raise ValueError(
-                    "{!r} has no state extraction method".format(element))
-        if return_ids:
-            return state_list, ids
-        return state_list
+    Parameters
+    ----------
+    object_with_states: object containing a list of states
+        Method of state extraction depends on the type of the object
+    return_ids: If we should return obj ids as well.
+
+    Returns
+    -------
+    : list of :class:`~.State`
+    """
+
+    state_list = StateMutableSequence()
+    ids = []
+    for i, element in enumerate(list(object_with_states)):
+        if isinstance(element, StateMutableSequence):
+            state_list.extend(element.states)
+            ids.extend([i]*len(element.states))
+        elif isinstance(element, State):
+            state_list.append(element)
+            ids.extend([i])
+        else:
+            raise ValueError(
+                "{!r} has no state extraction method".format(element))
+    if return_ids:
+        return state_list, ids
+    return state_list
 
 
 def get_state_at_time(state_sequence: MutableSequence[State],
                       timestamp: datetime.datetime) -> State | None:
+    """Returns a state instance from a sequence of states for a given timestamp.
+    Returns None if no data available."""
     try:
         return Track(state_sequence)[timestamp]
     except IndexError:
