@@ -17,7 +17,7 @@ from ..tracktotrack import (
 def tracks():
     start_time = datetime.datetime(2019, 1, 1, 14, 0, 0)
 
-    tracks = [Track(id="Track-1", states=[
+    tracks = [Track(states=[
         State(state_vector=[[i], [i]],
               timestamp=start_time + datetime.timedelta(seconds=i))
         for i in range(10)])]
