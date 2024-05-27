@@ -249,7 +249,7 @@ class ClearMotAssociator(TwoTrackToTrackAssociator):
         return matches
 
     def determine_unique_timestamps(self, tracks_set: Set[Track], truth_set: Set[GroundTruthPath])\
-            -> list[datetime.datetime]:
+            -> List[datetime.datetime]:
 
         track_states = extract_states(tracks_set)
         truth_states = extract_states(truth_set)
