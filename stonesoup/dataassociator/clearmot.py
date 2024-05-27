@@ -1,6 +1,8 @@
 import datetime
-from itertools import chain, pairwise
-from typing import Dict, List, MutableSequence, Set, Tuple
+import itertools
+import sys
+from itertools import chain
+from typing import Any, Dict, Generator, Iterable, List, MutableSequence, Set, Tuple
 
 import numpy as np
 import scipy
@@ -310,3 +312,18 @@ def get_strictly_monotonously_increasing_intervals(arr: MutableSequence[int])\
     for start_idx, end_idx in pairwise(valid_interval_start_indices):
         intervals.append((start_idx, end_idx))
     return intervals
+
+
+def pairwise(iterable: Iterable[Any]) -> Generator[Any, None, None]:
+    """pairwise('ABCDEFG') → AB BC CD DE EF FG
+    """
+
+    if sys.version_info >= (3, 10):
+        yield from itertools.pairwise(iterable)
+    else:
+        # Taken from https://docs.python.org/3/library/itertools.html#itertools.pairwise
+        iterator = iter(iterable)
+        a = next(iterator, None)
+        for b in iterator:
+            yield a, b
+            a = b
