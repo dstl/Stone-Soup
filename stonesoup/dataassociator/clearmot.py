@@ -2,7 +2,17 @@ import datetime
 import itertools
 import sys
 from itertools import chain
-from typing import Any, Dict, Generator, Iterable, List, MutableSequence, Set, Tuple
+from typing import (
+    Any,
+    Dict,
+    Generator,
+    Iterable,
+    List,
+    MutableSequence,
+    Optional,
+    Set,
+    Tuple,
+)
 
 import numpy as np
 import scipy
@@ -206,11 +216,11 @@ class ClearMotAssociator(TwoTrackToTrackAssociator):
                 track_ids_at_current_time.remove(track_id)
         return matches_current
 
-    def _match_unassigned_tracks(self, truth_states_by_id,
-                                 track_states_by_id,
+    def _match_unassigned_tracks(self, truth_states_by_id: StatesFromIdLookup,
+                                 track_states_by_id: StatesFromIdLookup,
                                  current_time: datetime.datetime,
-                                 truth_ids_at_current_time,
-                                 track_ids_at_current_time) -> Set[Tuple[str, str]]:
+                                 truth_ids_at_current_time: Set[str],
+                                 track_ids_at_current_time: Set[str]) -> Set[Tuple[str, str]]:
         """Match unassigned tracks using Munkers algorithm and distance threshold.
         """
         num_truth_unassigned = len(truth_ids_at_current_time)
@@ -249,7 +259,7 @@ class ClearMotAssociator(TwoTrackToTrackAssociator):
         return timestamps
 
 
-def extract_states(object_with_states, return_ids=False):
+def extract_states(object_with_states, return_ids=False) -> List[State]:
     """
     NOTE: copy of stonesoup/metricgenerator/ospametric.py
 
@@ -286,7 +296,7 @@ def extract_states(object_with_states, return_ids=False):
 
 
 def get_state_at_time(state_sequence: MutableSequence[State],
-                      timestamp: datetime.datetime) -> State | None:
+                      timestamp: datetime.datetime) -> Optional[State]:
     """Returns a state instance from a sequence of states for a given timestamp.
     Returns None if no data available."""
     try:
