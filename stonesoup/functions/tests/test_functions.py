@@ -365,13 +365,6 @@ def test_slr_definition():
         hypothesis=None,
         timestamp=time1)
 
-    # prediction_state = GaussianMeasurementPrediction(
-    #     state_vector=[[28.7828]],
-    #     covar=[[812.403]],
-    #     timestamp=time1,
-    #     cross_covar=CovarianceMatrix([[4.94297048e+01],
-    #                                   [-9.10320262e-15]]))
-
     h_matrix, b_vector, omega_cov_matrix = slr_definition(posterior_state,
                                                           identity,
                                                           force_symmetry=True)

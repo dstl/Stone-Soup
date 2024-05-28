@@ -6,7 +6,7 @@ import scipy.linalg as la
 from .base import Predictor
 from ._utils import predict_lru_cache
 from ..base import Property
-from ..types.prediction import Prediction, SqrtGaussianStatePrediction
+from ..types.prediction import Prediction, SqrtGaussianStatePrediction, AugmentedGaussianStatePrediction
 from ..models.base import LinearModel
 from ..models.transition import TransitionModel
 from ..models.transition.linear import LinearGaussianTransitionModel
@@ -476,3 +476,105 @@ class SqrtKalmanPredictor(ExtendedKalmanPredictor):
             return np.linalg.cholesky(trans_m@sqrt_prior_cov@sqrt_prior_cov.T@trans_m.T +
                                       sqrt_trans_cov@sqrt_trans_cov.T +
                                       ctrl_mat@sqrt_ctrl_noi@sqrt_ctrl_noi.T@ctrl_mat.T)
+
+class AugmentedKalmanPredictor(KalmanPredictor):
+
+    def _transition_function(self, prior, **kwargs):
+        r"""Applies the linear transition function to a single vector in the
+        absence of a control input, returns a single predicted state.
+
+        Parameters
+        ----------
+        prior : :class:`~.GaussianState`
+            The prior state, :math:`\mathbf{x}_{k-1}`
+
+        **kwargs : various, optional
+            These are passed to :meth:`~.LinearGaussianTransitionModel.matrix`
+
+        Returns
+        -------
+        : :class:`~.State`
+            The predicted state
+
+        """
+        return self.transition_model.matrix(**kwargs) @ prior.state_vector + self.transition_model.bias(**kwargs)
+
+class AugmentedUnscentedKalmanPredictor(UnscentedKalmanPredictor):
+    transition_model: TransitionModel = Property(doc="The transition model to be used.")
+    control_model: ControlModel = Property(
+        default=None,
+        doc="The control model to be used. Default `None` where the predictor "
+            "will create a zero-effect linear :class:`~.ControlModel`.")
+    alpha: float = Property(
+        default=0.5,
+        doc="Primary sigma point spread scaling parameter. Default is 0.5.")
+    beta: float = Property(
+        default=2,
+        doc="Used to incorporate prior knowledge of the distribution. If the "
+            "true distribution is Gaussian, the value of 2 is optimal. "
+            "Default is 2")
+    kappa: float = Property(
+        default=0,
+        doc="Secondary spread scaling parameter. Default is calculated as "
+            "3-Ns")
+
+    @predict_lru_cache()
+    def predict(self, prior, timestamp=None, control_input=None, transition_noise=True, **kwargs):
+        r"""The unscented version of the predict step
+
+        Parameters
+        ----------
+        prior : :class:`~.State`
+            Prior state, :math:`\mathbf{x}_{k-1}`
+        timestamp : :class:`datetime.datetime`
+            Time to transit to (:math:`k`)
+        **kwargs : various, optional
+            These are passed to :meth:`~.TransitionModel.covar`
+
+        Returns
+        -------
+        : :class:`~.GaussianStatePrediction`
+            The predicted state :math:`\mathbf{x}_{k|k-1}` and the predicted
+            state covariance :math:`P_{k|k-1}`
+        """
+
+        # Get the prediction interval
+        predict_over_interval = self._predict_over_interval(prior, timestamp)
+
+        # The covariance on the transition model + the control model
+        # TODO: Note that I'm not sure you can actually do this with the
+        # TODO: covariances, i.e. sum them before calculating
+        # TODO: the sigma points and then just sticking them into the
+        # TODO: unscented transform, and I haven't checked the statistics.
+        ctrl_mat = self.control_model.matrix(time_interval=predict_over_interval, **kwargs)
+        ctrl_noi = self.control_model.covar(**kwargs)
+        total_noise_covar = \
+            self.transition_model.covar(
+                prior=prior, time_interval=predict_over_interval, **kwargs) \
+            + ctrl_mat @ ctrl_noi @ ctrl_mat.T
+
+        total_noise_covar = total_noise_covar if transition_noise else None
+
+        # Get the sigma points from the prior mean and covariance.
+        sigma_point_states, mean_weights, covar_weights = gauss2sigma(
+            prior, self.alpha, self.beta, self.kappa)
+
+        # This ensures that function passed to unscented transform has the
+        # correct time interval
+        transition_and_control_function = partial(
+            self._transition_and_control_function,
+            control_input=control_input,
+            time_interval=predict_over_interval)
+
+        # Put these through the unscented transform, together with the total
+        # covariance to get the parameters of the Gaussian
+        x_pred, p_pred, cross_covar, _, _, _ = unscented_transform(
+            sigma_point_states, mean_weights, covar_weights,
+            transition_and_control_function, covar_noise=total_noise_covar
+        )
+
+        kwargs_new = {'target_type': AugmentedGaussianStatePrediction, 'cross_covar': cross_covar}
+
+        # and return a Gaussian state based on these parameters
+        return Prediction.from_state(prior, x_pred, p_pred, timestamp=timestamp,
+                                     transition_model=self.transition_model, **kwargs_new)

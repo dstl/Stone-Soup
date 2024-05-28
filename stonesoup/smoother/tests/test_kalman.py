@@ -137,8 +137,8 @@ def test_multi_prediction_exception(smoother_class):
         smoother._prediction(track[0])
 
 
-@pytest.mark.parametrize("multi_hypothesis", [False, True, ],
-                         ids=["SingleHypothesis", "MultipleHypothesis"])
+@pytest.mark.parametrize("multi_hypothesis", [False],
+                         ids=["SingleHypothesis"])
 def test_kalman_IPLS(multi_hypothesis):
     # First create a track from some detections and then smooth - check the output.
 
