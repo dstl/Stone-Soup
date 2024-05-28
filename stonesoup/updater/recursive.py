@@ -98,8 +98,6 @@ class BayesianRecursiveUpdater(ExtendedKalmanUpdater):
             post_cov = I_KH @ prior_covar @ I_KH.T \
                 + kalman_gain @ (scale_factor * meas_covar) @ kalman_gain.T
 
-            return post_cov.view(CovarianceMatrix), kalman_gain
-
         else:
             kalman_gain = hypothesis.measurement_prediction.cross_covar @ \
                 np.linalg.inv(hypothesis.measurement_prediction.covar)
@@ -107,7 +105,7 @@ class BayesianRecursiveUpdater(ExtendedKalmanUpdater):
             post_cov = hypothesis.prediction.covar - kalman_gain @ \
                 hypothesis.measurement_prediction.covar @ kalman_gain.T
 
-            return post_cov.view(CovarianceMatrix), kalman_gain
+        return post_cov.view(CovarianceMatrix), kalman_gain
 
     def update(self, hypothesis, **kwargs):
         r"""The Kalman update method. Given a hypothesised association between

@@ -215,8 +215,6 @@ class KalmanUpdater(Updater):
             post_cov = I_KH @ prior_covar @ I_KH.T \
                 + kalman_gain @ meas_covar @ kalman_gain.T
 
-            return post_cov.view(CovarianceMatrix), kalman_gain
-
         else:
             kalman_gain = hypothesis.measurement_prediction.cross_covar @ \
                 np.linalg.inv(hypothesis.measurement_prediction.covar)
@@ -224,7 +222,7 @@ class KalmanUpdater(Updater):
             post_cov = hypothesis.prediction.covar - kalman_gain @ \
                 hypothesis.measurement_prediction.covar @ kalman_gain.T
 
-            return post_cov.view(CovarianceMatrix), kalman_gain
+        return post_cov.view(CovarianceMatrix), kalman_gain
 
     @lru_cache()
     def predict_measurement(self, predicted_state, measurement_model=None, measurement_noise=True,
