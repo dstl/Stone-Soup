@@ -18,67 +18,24 @@ from stonesoup.updater.kalman import (KalmanUpdater,
                                       CubatureKalmanUpdater)
 
 
-@pytest.mark.parametrize(
-    "UpdaterClass, measurement_model, prediction, measurement",
-    [
-        (   # Standard Kalman
-            KalmanUpdater,
-            LinearGaussian(ndim_state=2, mapping=[0],
-                           noise_covar=np.array([[0.04]])),
-            GaussianStatePrediction(np.array([[-6.45], [0.7]]),
-                                    np.array([[4.1123, 0.0013],
-                                              [0.0013, 0.0365]])),
-            Detection(np.array([[-6.23]]))
-        ),
-        (   # Extended Kalman
-            ExtendedKalmanUpdater,
-            LinearGaussian(ndim_state=2, mapping=[0],
-                           noise_covar=np.array([[0.04]])),
-            GaussianStatePrediction(np.array([[-6.45], [0.7]]),
-                                    np.array([[4.1123, 0.0013],
-                                              [0.0013, 0.0365]])),
-            Detection(np.array([[-6.23]]))
-        ),
-        (   # Unscented Kalman
-            UnscentedKalmanUpdater,
-            LinearGaussian(ndim_state=2, mapping=[0],
-                           noise_covar=np.array([[0.04]])),
-            GaussianStatePrediction(np.array([[-6.45], [0.7]]),
-                                    np.array([[4.1123, 0.0013],
-                                              [0.0013, 0.0365]])),
-            Detection(np.array([[-6.23]]))
-        ),
-        (   # Iterated Kalman
-            IteratedKalmanUpdater,
-            LinearGaussian(ndim_state=2, mapping=[0],
-                           noise_covar=np.array([[0.04]])),
-            GaussianStatePrediction(np.array([[-6.45], [0.7]]),
-                                    np.array([[4.1123, 0.0013],
-                                              [0.0013, 0.0365]])),
-            Detection(np.array([[-6.23]]))
-        ),
-        (   # Schmidt Kalman
-            SchmidtKalmanUpdater,
-            LinearGaussian(ndim_state=2, mapping=[0],
-                           noise_covar=np.array([[0.04]])),
-            GaussianStatePrediction(np.array([[-6.45], [0.7]]),
-                                    np.array([[4.1123, 0.0013],
-                                              [0.0013, 0.0365]])),
-            Detection(np.array([[-6.23]]))
-        ),
-        (   # Cubature Kalman
-            CubatureKalmanUpdater,
-            LinearGaussian(ndim_state=2, mapping=[0],
-                           noise_covar=np.array([[0.04]])),
-            GaussianStatePrediction(np.array([[-6.45], [0.7]]),
-                                    np.array([[4.1123, 0.0013],
-                                              [0.0013, 0.0365]])),
-            Detection(np.array([[-6.23]]))
-        ),
-    ],
-    ids=["standard", "extended", "unscented", "iterated", "schmidtkalman", "cubaturekalman"]
-)
-def test_kalman(UpdaterClass, measurement_model, prediction, measurement):
+@pytest.fixture(params=[KalmanUpdater, ExtendedKalmanUpdater, UnscentedKalmanUpdater,
+                        IteratedKalmanUpdater, SchmidtKalmanUpdater, CubatureKalmanUpdater])
+def updater_class(request):
+    return request.param
+
+
+@pytest.fixture(params=[True, False])
+def use_joseph_cov(request):
+    return request.param
+
+
+def test_kalman(updater_class, use_joseph_cov):
+    measurement_model = LinearGaussian(ndim_state=2, mapping=[0],
+                                       noise_covar=np.array([[0.04]]))
+    prediction = GaussianStatePrediction(np.array([[-6.45], [0.7]]),
+                                         np.array([[4.1123, 0.0013],
+                                                   [0.0013, 0.0365]]))
+    measurement = Detection(np.array([[-6.23]]))
 
     # Calculate evaluation variables
     eval_measurement_prediction = GaussianMeasurementPrediction(
@@ -97,7 +54,7 @@ def test_kalman(UpdaterClass, measurement_model, prediction, measurement):
         - kalman_gain@eval_measurement_prediction.covar @ kalman_gain.T)
 
     # Initialise a kalman updater
-    updater = UpdaterClass(measurement_model=measurement_model)
+    updater = updater_class(measurement_model=measurement_model, use_joseph_cov=use_joseph_cov)
 
     # Get and assert measurement prediction without measurement noise
     measurement_prediction = updater.predict_measurement(prediction, measurement_noise=False)
