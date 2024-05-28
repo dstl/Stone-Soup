@@ -348,14 +348,6 @@ for measurement in measurements:
     track.append(post)
     prior = track[-1]
 
-
-from stonesoup.smoother.kalman import KalmanSmoother, UnscentedKalmanSmoother
-
-smoother = KalmanSmoother(transition_model=transition_model)
-track_smoothed = smoother.smooth(track)
-
-print()
-
 # %%
 # Plot the resulting track, including uncertainty ellipses
 
