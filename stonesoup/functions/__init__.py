@@ -820,8 +820,8 @@ def slr_definition(state, fun, force_symmetry=False):
 
     # Statistical linear regression parameters of a function predicted with the quantities above
     H_plus = psi.T @ np.linalg.inv(p_matrix)
-    b_plus = z_bar - H_plus @ x_bar
-    Omega_plus = phi - H_plus @ p_matrix @ H_plus.T
+    b_plus = z_bar - H_plus@x_bar
+    Omega_plus = phi - H_plus@p_matrix@H_plus.T
 
     if force_symmetry:
         Omega_plus = (Omega_plus + Omega_plus.T) / 2

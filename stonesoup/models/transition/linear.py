@@ -137,8 +137,8 @@ class ConstantNthDerivative(LinearGaussianTransitionModel, TimeVariantModel):
         dt = time_interval_sec
         N = self.constant_derivative
         if N == 1:
-            covar = np.array([[dt**3 / 3, dt**2 / 2],
-                              [dt**2 / 2, dt]])
+            covar = np.array([[dt ** 3 / 3, dt ** 2 / 2],
+                              [dt ** 2 / 2, dt]])
         else:
             Fmat = self.matrix(time_interval, **kwargs)
             Q = np.zeros((N + 1, N + 1))
@@ -147,7 +147,7 @@ class ConstantNthDerivative(LinearGaussianTransitionModel, TimeVariantModel):
             covar = np.zeros((N + 1, N + 1))
             for l in range(0, N + 1):  # noqa: E741
                 for k in range(0, N + 1):
-                    covar[l, k] = (igrand[l, k]*dt / (1 + N*2 - l - k))
+                    covar[l, k] = (igrand[l, k] * dt / (1 + N * 2 - l - k))
         covar *= self.noise_diff_coeff
         return CovarianceMatrix(covar)
 
@@ -316,7 +316,7 @@ class NthDerivativeDecay(LinearGaussianTransitionModel, TimeVariantModel):
         for i in range(0, N + 1):
             FCont[i, N] = np.exp(-K * t) * (-1) ** (N - i) / K ** (N - i)
             for n in range(1, N - i + 1):
-                FCont[i, N] -= (-1) ** n * t ** (N - i - n) /\
+                FCont[i, N] -= (-1) ** n * t ** (N - i - n) / \
                                (math.factorial(N - i - n) * K ** n)
             for j in range(i, N):
                 FCont[i, j] = (t ** (j - i)) / math.factorial(j - i)
@@ -490,6 +490,7 @@ class SingerApproximate(Singer):
     @property
     def decay_derivative(self):
         return 2
+
     r"""This is a class implementation of a discrete, time-variant 1D Singer
     Transition Model, with covariance approximation applicable for smaller time
     intervals.
@@ -542,6 +543,7 @@ class SingerApproximate(Singer):
                         \frac{dt^3}{6} & \frac{dt^2}{2} & dt
                         \end{bmatrix}
     """
+
     def covar(self, time_interval, **kwargs):
         """Returns the transition model noise covariance matrix.
 
@@ -562,14 +564,14 @@ class SingerApproximate(Singer):
 
         # Only leading terms get calculated for speed.
         covar = np.array(
-            [[time_interval_sec**5 / 20,
-              time_interval_sec**4 / 8,
-              time_interval_sec**3 / 6],
-             [time_interval_sec**4 / 8,
-              time_interval_sec**3 / 3,
-              time_interval_sec**2 / 2],
-             [time_interval_sec**3 / 6,
-              time_interval_sec**2 / 2,
+            [[time_interval_sec ** 5 / 20,
+              time_interval_sec ** 4 / 8,
+              time_interval_sec ** 3 / 6],
+             [time_interval_sec ** 4 / 8,
+              time_interval_sec ** 3 / 3,
+              time_interval_sec ** 2 / 2],
+             [time_interval_sec ** 3 / 6,
+              time_interval_sec ** 2 / 2,
               time_interval_sec]]
         ) * self.noise_diff_coeff
 
@@ -606,7 +608,7 @@ class KnownTurnRateSandwich(LinearGaussianTransitionModel, TimeVariantModel):
         : :class:`int`
             The number of combined model state dimensions.
         """
-        return sum(model.ndim_state for model in self.model_list)+4
+        return sum(model.ndim_state for model in self.model_list) + 4
 
     def matrix(self, time_interval, **kwargs):
         """Model matrix :math:`F`
@@ -622,15 +624,15 @@ class KnownTurnRateSandwich(LinearGaussianTransitionModel, TimeVariantModel):
         transition_matrices = [
             model.matrix(time_interval) for model in self.model_list]
         sandwich = block_diag(z, *transition_matrices, z)
-        sandwich[0:2, 0:2] = np.array([[1, np.sin(turn_ratedt)/self.turn_rate],
-                                      [0, np.cos(turn_ratedt)]])
+        sandwich[0:2, 0:2] = np.array([[1, np.sin(turn_ratedt) / self.turn_rate],
+                                       [0, np.cos(turn_ratedt)]])
         sandwich[0:2, -2:] = np.array(
-            [[0, (np.cos(turn_ratedt)-1)/self.turn_rate],
+            [[0, (np.cos(turn_ratedt) - 1) / self.turn_rate],
              [0, -np.sin(turn_ratedt)]])
         sandwich[-2:, 0:2] = np.array(
-            [[0, (1-np.cos(turn_ratedt))/self.turn_rate],
+            [[0, (1 - np.cos(turn_ratedt)) / self.turn_rate],
              [0, np.sin(turn_ratedt)]])
-        sandwich[-2:, -2:] = np.array([[1, np.sin(turn_ratedt)/self.turn_rate],
+        sandwich[-2:, -2:] = np.array([[1, np.sin(turn_ratedt) / self.turn_rate],
                                        [0, np.cos(turn_ratedt)]])
         return sandwich
 
@@ -646,10 +648,10 @@ class KnownTurnRateSandwich(LinearGaussianTransitionModel, TimeVariantModel):
         q1, q2 = self.turn_noise_diff_coeffs
         dt = time_interval.total_seconds()
         covar_list = [model.covar(time_interval) for model in self.model_list]
-        ctc1 = np.array([[q1*dt**3/3, q1*dt**2/2],
-                         [q1*dt**2/2, q1*dt]])
-        ctc2 = np.array([[q1*dt**3/3, q1*dt**2/2],
-                         [q1*dt**2/2, q1*dt]])
+        ctc1 = np.array([[q1 * dt ** 3 / 3, q1 * dt ** 2 / 2],
+                         [q1 * dt ** 2 / 2, q1 * dt]])
+        ctc2 = np.array([[q1 * dt ** 3 / 3, q1 * dt ** 2 / 2],
+                         [q1 * dt ** 2 / 2, q1 * dt]])
         return CovarianceMatrix(block_diag(ctc1, *covar_list, ctc2))
 
 

@@ -159,16 +159,7 @@ class IPLFKalmanUpdater(UnscentedKalmanUpdater):
         doc="Number of iterations before while loop is exited and a non-convergence warning is "
             "returned")
 
-    def measurement_prediction_no_noise(self, state, measurement_model):
-        return UnscentedKalmanUpdater(beta=self.beta, kappa=self.kappa).predict_measurement(
-            predicted_state=state,
-            measurement_model=measurement_model,
-            measurement_noise=False
-        )
-
     def update(self, hypothesis, force_symmetry=True, **kwargs):
-        r"""The IPLF update method. """
-
         # Record the starting point (not a posterior here, rather a variable that stores an entry for KLD computation)
         prev_post_state = hypothesis.prediction  # Prior is only on the first step, later updated
 
@@ -193,7 +184,8 @@ class IPLFKalmanUpdater(UnscentedKalmanUpdater):
                 break
 
             # SLR is wrt to tne approximated posterior in post_state, not the original prior in hypothesis.prediction
-            meas_fun = partial(self.measurement_prediction_no_noise, measurement_model=measurement_model)
+            meas_fun = partial(super().predict_measurement, measurement_model=measurement_model,
+                               measurement_noise=False)
             h_matrix, b_vector, omega_cov_matrix = slr_definition(post_state, meas_fun, force_symmetry=force_symmetry)
             r_matrix = measurement_model.covar()
 
@@ -219,9 +211,5 @@ class IPLFKalmanUpdater(UnscentedKalmanUpdater):
 
             # increment counter
             iterations += 1
-
-        print("IPLF update took {} iterations and the KLD value of {}.".format(
-            iterations, self.measure(prev_post_state, post_state)
-        ))
 
         return post_state
