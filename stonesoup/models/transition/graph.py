@@ -1,3 +1,4 @@
+from collections import defaultdict
 from typing import Optional, Union
 
 import numpy as np
@@ -73,7 +74,10 @@ class OptimalPathToDestinationTransitionModel(TransitionModel, TimeVariantModel)
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.random_state = np.random.RandomState(self.seed) if self.seed is not None else None
+        if self.seed is not None:
+            self.random_state = np.random.RandomState(self.seed)
+        else:
+            self.random_state = np.random.mtrand._rand
 
     def function(self, state, noise=False, **kwargs):
 
@@ -97,29 +101,23 @@ class OptimalPathToDestinationTransitionModel(TransitionModel, TimeVariantModel)
             sources = list(np.unique(new_state_vectors[-1, :].astype(int)))
             s_paths = self.graph.shortest_path(sources, self.possible_destinations,
                                                path_type='edge')
-            v_dest = dict()
+            v_dest = defaultdict(set)
             for edge in unique_edges:
                 # Filter paths that contain the edge
                 filtered_paths = filter(lambda x: np.any(x[1] == edge), s_paths.items())
-                v_dest_tmp = {dest for (_, dest), _ in filtered_paths}
-                if len(v_dest_tmp):
-                    try:
-                        v_dest[edge] |= v_dest_tmp
-                    except KeyError:
-                        v_dest[edge] = v_dest_tmp
+                v_dest[edge] |= {dest for (_, dest), _ in filtered_paths}
 
             # Perform destination sampling
             resample_inds = np.flatnonzero(
-                np.random.binomial(1, float(self.destination_resample_probability), num_particles)
+                self.random_state.binomial(1, float(self.destination_resample_probability),
+                                           num_particles)
             )
             for i in resample_inds:
-                try:
-                    v_dest_tmp = list(v_dest[edges[i]])
-                except KeyError:
-                    # If no valid destinations exist for the current edge, keep the current
-                    # destination
-                    continue
-                new_state_vectors[-2, i] = np.random.choice(v_dest_tmp)
+                dests = v_dest[edges[i]]
+                # If no valid destinations exist for the current edge, keep the current
+                # destination
+                if dests:
+                    new_state_vectors[-2, i] = self.random_state.choice(list(dests))
 
         # 3) Process edge change
         # The CV propagation may lead to r's which are either less that zero or more than the
