@@ -27,7 +27,7 @@ class OptimalPathToDestinationMeasurementModel(NonLinearGaussianMeasurement):
         x_k = \left[r_k, \cdots, e_k, d_k, s_k\right]
 
     and :math:`e_k` denotes the edge the target is currently on, :math:`r_k` is the distance
-    travelled along the edge, :m    ath:`d_k` is the destination node, and :math:`s_k` is
+    travelled along the edge, :math:`d_k` is the destination node, and :math:`s_k` is
     the source node. The notation :math:`\cdots` denotes additional state variables that are not
     used in this model (e.g. velocity).
 
