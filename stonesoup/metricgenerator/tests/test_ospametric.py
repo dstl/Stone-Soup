@@ -51,8 +51,7 @@ def test_gospametric_compute_assignments(num_states):
                                                 truth_obj.states)
     neg_cost_matrix = -1.*cost_matrix
     meas_to_truth, truth_to_meas, opt_cost =\
-        generator.compute_assignments(neg_cost_matrix,
-                                      10 * num_states * num_states)
+        generator.compute_assignments(neg_cost_matrix)
 
     assert opt_cost == 0.0
     assert np.array_equal(meas_to_truth, truth_to_meas)
@@ -64,8 +63,7 @@ def test_gospametric_compute_assignments(num_states):
                                                 truth_obj.states)
     neg_cost_matrix = -1.*cost_matrix
     meas_to_truth, truth_to_meas, opt_cost = \
-        generator.compute_assignments(neg_cost_matrix,
-                                      10 * num_states * num_states)
+        generator.compute_assignments(neg_cost_matrix)
 
     assert opt_cost == 0.0
     assert np.array_equal(meas_to_truth, truth_to_meas[:-1])
@@ -78,8 +76,7 @@ def test_gospametric_compute_assignments(num_states):
                                                 truth_obj.states[:-1])
     neg_cost_matrix = -1.*cost_matrix
     meas_to_truth, truth_to_meas, opt_cost = \
-        generator.compute_assignments(neg_cost_matrix,
-                                      10 * num_states * num_states)
+        generator.compute_assignments(neg_cost_matrix)
 
     assert opt_cost == 0.0
     assert np.array_equal(meas_to_truth[:-1], truth_to_meas)
