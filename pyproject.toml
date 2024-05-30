@@ -90,6 +90,10 @@ optuna = [
 ode = [
     "torch",
 ]
+roadnet = [
+    "geopandas",
+    "networkx",
+]
 
 [tool.setuptools]
 include-package-data = false

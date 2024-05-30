@@ -2,9 +2,16 @@ import itertools
 from typing import Sequence
 
 import numpy as np
-import geopandas
-import networkx as nx
-from shapely import LineString
+
+try:
+    import geopandas
+    import networkx as nx
+    from shapely import LineString
+except ImportError as error:
+    raise ImportError(
+        "Usage of the road networks classes requires that the optional package dependencies "
+        "'geopandas' and 'networkx' are installed. This can be achieved by running "
+        "'python -m pip install stonesoup[roadnet]'") from error
 
 
 class RoadNetwork(nx.DiGraph):

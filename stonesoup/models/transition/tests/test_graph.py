@@ -4,10 +4,18 @@ import numpy as np
 import pytest
 from scipy.stats import multivariate_normal as mvn
 
-from stonesoup.models.transition.graph import OptimalPathToDestinationTransitionModel
+try:
+    from stonesoup.models.transition.graph import OptimalPathToDestinationTransitionModel
+    from stonesoup.types.graph import RoadNetwork
+except ImportError:
+    # Catch optional dependencies import error
+    pytest.skip(
+        "Skipping due to missing optional dependencies. Usage of the road network classes requires"
+        "that the optional package dependencies 'geopandas' and 'networkx' are installed.",
+        allow_module_level=True
+    )
 from stonesoup.models.transition.linear import ConstantVelocity
 from stonesoup.types.array import StateVectors
-from stonesoup.types.graph import RoadNetwork
 from stonesoup.types.numeric import Probability
 from stonesoup.types.state import ParticleState
 
@@ -50,15 +58,9 @@ def eval_fixture(request):
                                            [0.09586569, -0.50258062, 2.50743876, -2.1222713,
                                             1.61676025, -0.50404886, 0.85937104, -1.64991066,
                                             -0.30328854, -1.00153735],
-                                           [1., 2., 2., 1.,
-                                            2., 2., 2., 1.,
-                                            1., 1.],
-                                           [3., 2., 3., 2.,
-                                            4., 4., 2., 4.,
-                                            2., 1.],
-                                           [1., 1., 1., 1.,
-                                            1., 1., 1., 1.,
-                                            1., 1.]])
+                                           [1., 2., 2., 1., 2., 2., 2., 1., 1., 1.],
+                                           [3., 2., 3., 2., 4., 4., 2., 4., 2., 1.],
+                                           [1., 1., 1., 1., 1., 1., 1., 1., 1., 1.]])
         eval_lik = np.array([Probability(0.5424396224818488),
                              Probability(0.33984742421943714),
                              Probability(0.013239952300537344),
@@ -76,15 +78,9 @@ def eval_fixture(request):
                                            [0.09586569, -0.50258062, 2.50743876, -2.1222713,
                                             1.61676025, -0.50404886, 0.85937104, -1.64991066,
                                             -0.30328854, -1.00153735],
-                                           [1., 2., 2., 1.,
-                                            2., 2., 2., 1.,
-                                            1., 1.],
-                                           [2., 4., 2., 4.,
-                                            4., 4., 4., 4.,
-                                            4., 2.],
-                                           [1., 1., 1., 1.,
-                                            1., 1., 1., 1.,
-                                            1., 1.]])
+                                           [1., 2., 2., 1., 2., 2., 2., 1., 1., 1.],
+                                           [2., 4., 2., 4., 4., 4., 4., 4., 4., 2.],
+                                           [1., 1., 1., 1., 1., 1., 1., 1., 1., 1.]])
         eval_lik = np.array([Probability(0.5424396224818488),
                              Probability(0.33984742421943714),
                              Probability(0.013239952300537344),
@@ -98,20 +94,14 @@ def eval_fixture(request):
     elif not possible_destinations:
         eval_state_vectors = StateVectors([[0.03944934, 0., 1., 0.,
                                             0.77751235, 0., 0., 0.,
-                                            0.59963901, -1.05445506],
+                                            0.59963901, 0.],
                                            [0.09586569, -0.50258062, 2.50743876, -2.1222713,
                                             1.61676025, -0.50404886, 0.85937104, -1.64991066,
                                             -0.30328854, -1.00153735],
-                                           [1., 2., 2., 1.,
-                                            2., 2., 2., 1.,
-                                            1., 1.],
-                                           [4., 2., 3., 2.,
-                                            4., 4., 2., 3.,
-                                            4., 1.],
-                                           [1., 1., 1., 1.,
-                                            1., 1., 1., 1.,
-                                            1., 1.]])
-        eval_lik = np.array([Probability(0.0),
+                                           [1., 2., 2., 1., 2., 2., 2., 1., 1., 1.],
+                                           [3., 2., 3., 2., 4., 4., 2., 4., 2., 3.],
+                                           [1., 1., 1., 1., 1., 1., 1., 1., 1., 1.]])
+        eval_lik = np.array([Probability(0.5424396224818488),
                              Probability(0.33984742421943714),
                              Probability(0.013239952300537344),
                              Probability(0.0),
@@ -125,18 +115,12 @@ def eval_fixture(request):
         eval_state_vectors = StateVectors([[0.03944934, 0., 1., 0.,
                                             0.77751235, 0., 0., 0.,
                                             0.59963901, 0.],
-                                           [0.09586569, -0.50258062, 2.50743876, -2.1222713,
-                                            1.61676025, -0.50404886, 0.85937104, -1.64991066,
-                                            -0.30328854, -1.00153735],
-                                           [1., 2., 2., 1.,
-                                            2., 2., 2., 1.,
-                                            1., 1.],
-                                           [4., 4., 2., 4.,
-                                            4., 4., 4., 4.,
-                                            4., 2.],
-                                           [1., 1., 1., 1.,
-                                            1., 1., 1., 1.,
-                                            1., 1.]])
+                                           [0.09586569, -0.50258062, 2.50743876,
+                                            -2.1222713, 1.61676025, -0.50404886,
+                                            0.85937104, -1.64991066, -0.30328854, -1.00153735],
+                                           [1., 2., 2., 1., 2., 2., 2., 1., 1., 1.],
+                                           [2., 4., 2., 4., 4., 4., 4., 4., 4., 4.],
+                                           [1., 1., 1., 1., 1., 1., 1., 1., 1., 1.]])
         eval_lik = np.array([Probability(0.0),
                              Probability(0.33984742421943714),
                              Probability(0.013239952300537344),

@@ -2,10 +2,19 @@ import pytest
 import numpy as np
 from scipy.stats import multivariate_normal as mvn
 
-from stonesoup.models.measurement.graph import OptimalPathToDestinationMeasurementModel
+try:
+    from stonesoup.models.measurement.graph import OptimalPathToDestinationMeasurementModel
+    from stonesoup.types.graph import RoadNetwork
+except ImportError:
+    # Catch optional dependencies import error
+    pytest.skip(
+        "Skipping due to missing optional dependencies. Usage of the road network classes requires"
+        "that the optional package dependencies 'geopandas' and 'networkx' are installed.",
+        allow_module_level=True
+    )
+
 from stonesoup.types.array import StateVector
 from stonesoup.types.detection import Detection
-from stonesoup.types.graph import RoadNetwork
 from stonesoup.types.state import State
 
 

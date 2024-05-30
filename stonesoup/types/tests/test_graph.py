@@ -1,7 +1,15 @@
 import numpy as np
 import pytest
 
-from stonesoup.types.graph import RoadNetwork
+try:
+    from stonesoup.types.graph import RoadNetwork
+except ImportError:
+    # Catch optional dependencies import error
+    pytest.skip(
+        "Skipping due to missing optional dependencies. Usage of the road network classes requires"
+        "that the optional package dependencies 'geopandas' and 'networkx' are installed.",
+        allow_module_level=True
+    )
 
 
 # The next two fixtures define a simple network with 4 nodes and 4 edges that looks like:
