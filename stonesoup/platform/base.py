@@ -163,21 +163,18 @@ class Platform(Base):
         """ Produce a :class:`.GroundTruthPath` with the same `id` and `states` as the platform.
 
         The `states` property for the platform and `ground_truth_path` are dynamically linked:
-        >>> self.ground_truth_path.states is self.states
-        True
+        ``self.ground_truth_path.states is self.states``
 
         So after `platform.move()` the `ground_truth_path` will contain the new state. However,
         replacing the `id`, `states` or `movement_controller` variables in either the platform or
         ground truth path will not be reflected in the other object.
-        >>> platform_gtp = self.ground_truth_path
-        >>> platform_gtp.states = []
-        >>> self.states is not platform_gtp.states
-        True
+        ``platform_gtp = self.ground_truth_path``
+        ``platform_gtp.states = []``
+        ``self.states is not platform_gtp.states``
 
         `Platform.ground_truth_path` produces a new :class:`.GroundTruthPath` on every instance.
         It is not an object that is updated
-        >>> self.ground_truth_path.states is not self.ground_truth_path.states
-        True
+        ``self.ground_truth_path.states is not self.ground_truth_path.states``
         """
         return GroundTruthPath(id=self.id, states=self.movement_controller.states)
 
