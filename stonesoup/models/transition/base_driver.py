@@ -192,8 +192,9 @@ class ConditionalGaussianDriver(GaussianDriver):
         # Accept reject sampling
         jsizes = self._hfunc(epochs=epochs)
         jsizes = self._accept_reject(jsizes=jsizes)
-
+        # print(jsizes)
         # Generate jump times
+        # print(jsizes)
         jtimes = self._rng.uniform(low=0.0, high=dt, size=jsizes.shape)
         return jsizes, jtimes
 
