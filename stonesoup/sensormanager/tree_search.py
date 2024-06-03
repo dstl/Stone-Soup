@@ -160,7 +160,7 @@ class MonteCarloTreeSearchSensorManager(SensorManager):
                 nodes[node_indx]['configs'] = configs
 
             # select one of the unsimulated configs
-            config_indx = random.randint(0, len(nodes[node_indx]['configs'])-1)
+            config_indx = np.random.randint(0, len(nodes[node_indx]['configs']))
             nodes[node_indx]['Child_IDs'].append(len(nodes))
             selected_branch.insert(0, len(nodes))
             nodes.append({'Child_IDs': [],
