@@ -120,7 +120,7 @@ class MonteCarloTreeSearchSensorManager(SensorManager):
                   'action_count': 0,
                   'visits': 0,
                   'reward': 0,
-                  'tracks': {Track([track.state]) for track in tracks},
+                  'tracks': {copy.copy(track) for track in tracks},
                   'timestamp': timestamp-self.time_step,
                   'level': 0}]
 
