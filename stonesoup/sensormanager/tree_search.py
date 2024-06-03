@@ -147,7 +147,7 @@ class MonteCarloTreeSearchSensorManager(SensorManager):
                     action_generators = sensor.actions(next_timestamp)
                     # list possible action combinations for the sensor
                     action_choices = list(it.product(*action_generators))
-                    if not len(action_choices) == 1 and not len(action_choices[0]) == 0:
+                    if len(action_choices) != 1 and len(action_choices[0]) != 0:
                         action_count *= len(action_choices)
                     # dictionary of sensors: list(action combinations)
                     all_action_choices[sensor] = action_choices
