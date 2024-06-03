@@ -76,7 +76,6 @@ from datetime import datetime, timedelta
 import random
 
 np.random.seed(1991)
-random.seed(1991)
 
 # %%
 # Generate ground truth
@@ -242,7 +241,9 @@ updater = ParticleUpdater(measurement_model,
 # with increasing future depth, :attr:`rollout_depth` controls the
 # rollout horizon and :attr:`best_child_policy` determines how to select
 # the best child at the end of the MCTS process. Choices include maximum
-# action value, average action value per visit and maximum number of visits.
+# action value (``'max_cumulative_reward'``), average action value per
+# visit (``'max_average_reward'``) and maximum number of visits
+# (``'max_visits'``).
 
 
 from stonesoup.sensormanager.reward import ExpectedKLDivergence
@@ -266,7 +267,7 @@ sensormanagerB = MCTSRolloutSensorManager(sensors={gas_sensorB},
                                           exploration_factor=0.05,
                                           discount_factor=0.9, 
                                           rollout_depth=5,
-                                          best_child_policy=0)
+                                          best_child_policy='max_cumulative_reward')
 
 # %%
 # Create prior distribution

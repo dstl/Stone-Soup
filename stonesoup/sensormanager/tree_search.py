@@ -2,12 +2,21 @@ import copy
 import itertools as it
 from datetime import timedelta
 from typing import Callable
+from enum import Enum
 
 import numpy as np
 
 from .base import SensorManager
 from ..base import Property
 from ..types.track import Track
+
+
+class MCTSBestChildPolicyEnum(Enum):
+    r"""Best child policy Enum class for specifying which policy to use when selecting
+    the best child at the end of the MCTS process."""
+    MAXAREWARD = 'max_average_reward'
+    MAXCREWARD = 'max_cumulative_reward'
+    MAXVISITS = 'max_visits'
 
 
 class MonteCarloTreeSearchSensorManager(SensorManager):
@@ -85,11 +94,18 @@ class MonteCarloTreeSearchSensorManager(SensorManager):
     exploration_factor: float = Property(
         default=1.0, doc="The exploration factor used in the upper confidence bound for trees.")
 
-    best_child_policy: int = Property(
-        default=0, doc="An integer controlling which policy to use when determining the best "
-                       "child at the end of the MCTS process. The choices are 0: maximum reward, "
-                       "1: maximum reward per visit or 2: maximum visit count"
+    best_child_policy: MCTSBestChildPolicyEnum = Property(
+        default=MCTSBestChildPolicyEnum.MAXCREWARD,
+        doc="The policy for selecting the best child. Options are ``'max_average_reward'`` for "
+            "the maximum reward per visit to a node, ``'max_cumulative_reward'`` for the maximum "
+            "total reward after all simulations and ``'max_visits'`` for the node with the "
+            "maximum number of visits. Default is ``'max_cumulative_reward'``."
     )
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        # Ensure birth scheme is a valid BirthSchemeEnum
+        self.best_child_policy = MCTSBestChildPolicyEnum(self.best_child_policy)
 
     def choose_actions(self, tracks, timestamp, nchoose=1, **kwargs):
         """Returns a list of actions that reflect the best child nodes to the
@@ -217,17 +233,14 @@ class MonteCarloTreeSearchSensorManager(SensorManager):
             visit_list.append(nodes[Child_ID]['visits'])
             reward_list.append(nodes[Child_ID]['reward'])
 
-        if self.best_child_policy == 0:
-            max_reward_indx = np.argmax(reward_list)
-            return [nodes[0]['Child_IDs'][max_reward_indx]]
-        elif self.best_child_policy == 1:
-            max_creward_indx = np.argmax(np.asarray(reward_list) / np.asarray(visit_list))
-            return [nodes[0]['Child_IDs'][max_creward_indx]]
-        elif self.best_child_policy == 2:
-            max_visit_indx = np.argmax(visit_list)
-            return [nodes[0]['Child_IDs'][max_visit_indx]]
-        else:
-            raise NotImplementedError('Selected best child policy is not a valid option')
+        if self.best_child_policy == MCTSBestChildPolicyEnum.MAXCREWARD:
+            max_indx = np.argmax(reward_list)
+        elif self.best_child_policy == MCTSBestChildPolicyEnum.MAXAREWARD:
+            max_indx = np.argmax(np.asarray(reward_list) / np.asarray(visit_list))
+        elif self.best_child_policy == MCTSBestChildPolicyEnum.MAXVISITS:
+            max_indx = np.argmax(visit_list)
+
+        return [nodes[0]['Child_IDs'][max_indx]]
 
     def simulate_action(self, node, parent_node):
         """Simulates the expected reward that would be received by executing

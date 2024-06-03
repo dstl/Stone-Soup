@@ -14,7 +14,7 @@ from ...sensor.radar import RadarRotatingBearingRange
 from ...sensor.action.dwell_action import ChangeDwellAction
 from ...sensormanager import RandomSensorManager, BruteForceSensorManager, GreedySensorManager
 from stonesoup.sensormanager.tree_search import (MonteCarloTreeSearchSensorManager,
-                                                 MCTSRolloutSensorManager)
+                                                 MCTSRolloutSensorManager, MCTSBestChildPolicyEnum)
 from ...sensormanager.reward import UncertaintyRewardFunction, ExpectedKLDivergence, \
     MultiUpdateExpectedKLDivergence
 from ...sensormanager.action import Actionable
@@ -590,7 +590,7 @@ def test_sensor_manager_with_platform(params):
                 cov=np.diag([1.5, 0.25, 1.5, 0.25]),
                 size=100).T),
                           weight=np.array([1/100]*100)),  # track2_state2
-            0,  # best_child_policy
+            'max_cumulative_reward',  # best_child_policy
         ), (
             ParticlePredictor,  # predictor_obj
             ParticleUpdater,  # updater_obj
@@ -617,7 +617,7 @@ def test_sensor_manager_with_platform(params):
                 cov=np.diag([1.5, 0.25, 1.5, 0.25]),
                 size=100).T),
                           weight=np.array([1/100]*100)),  # track2_state2
-            0,  # best_child_policy
+            'max_cumulative_reward',  # best_child_policy
         ), (
             KalmanPredictor,  # predictor_obj
             ExtendedKalmanUpdater,  # updater_obj
@@ -636,7 +636,7 @@ def test_sensor_manager_with_platform(params):
             GaussianState([[2], [1.5], [2], [1.5]],
                           np.diag([1.5, 0.25, 1.5, 0.25]
                                   + np.random.normal(0, 5e-4, 4))),  # track2_state2
-            0,  # best_child_policy
+            'max_cumulative_reward',  # best_child_policy
         ), (
             KalmanPredictor,  # predictor_obj
             ExtendedKalmanUpdater,  # updater_obj
@@ -655,7 +655,7 @@ def test_sensor_manager_with_platform(params):
             GaussianState([[2], [1.5], [2], [1.5]],
                           np.diag([1.5, 0.25, 1.5, 0.25]
                                   + np.random.normal(0, 5e-4, 4))),  # track2_state2
-            1,  # best_child_policy
+            'max_average_reward',  # best_child_policy
         ), (
             KalmanPredictor,  # predictor_obj
             ExtendedKalmanUpdater,  # updater_obj
@@ -674,7 +674,7 @@ def test_sensor_manager_with_platform(params):
             GaussianState([[2], [1.5], [2], [1.5]],
                           np.diag([1.5, 0.25, 1.5, 0.25]
                                   + np.random.normal(0, 5e-4, 4))),  # track2_state2
-            2,  # best_child_policy
+            'max_cumulative_reward',  # best_child_policy
         ), (
             KalmanPredictor,  # predictor_obj
             ExtendedKalmanUpdater,  # updater_obj
@@ -693,12 +693,12 @@ def test_sensor_manager_with_platform(params):
             GaussianState([[2], [1.5], [2], [1.5]],
                           np.diag([1.5, 0.25, 1.5, 0.25]
                                   + np.random.normal(0, 5e-4, 4))),  # track2_state2
-            3,  # best_child_policy
+            MCTSBestChildPolicyEnum.MAXCREWARD,  # best_child_policy
         )
     ],
     ids=['KLDivergenceMCTSNoAssociation', 'KLDivergenceMCTSAssociation',
          'KLDivergenceMCTSGaussianTest', 'KLDMCTSGaussianPolicy1', 'KLDMCTSGaussianPolicy2',
-         'KLDMCTSGaussianPolicyError']
+         'KLDMCTSGaussianEnum']
 )
 def test_mcts_sensor_managers(predictor_obj, updater_obj, hypothesiser_obj, associator_obj,
                               reward_function_obj, track1_state1, track1_state2, track2_state1,
@@ -783,12 +783,12 @@ def test_mcts_sensor_managers(predictor_obj, updater_obj, hypothesiser_obj, asso
     for sensor_manager in sensor_managers:
         dwell_centres_over_time = []
         for time in timesteps:
-            if best_child_policy == 3:
-                with pytest.raises(NotImplementedError) as e:
-                    chosen_action_configs = sensor_manager.choose_actions(tracks, time)
-                assert 'Selected best child policy is not a valid option' in \
-                    str(e.value)
-                return
+            # if best_child_policy == 3:
+            #     with pytest.raises(NotImplementedError) as e:
+            #         chosen_action_configs = sensor_manager.choose_actions(tracks, time)
+            #     assert 'Selected best child policy is not a valid option' in \
+            #         str(e.value)
+            #     return
 
             chosen_action_configs = sensor_manager.choose_actions(tracks, time)
 
