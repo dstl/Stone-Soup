@@ -1,12 +1,12 @@
-from typing import Callable
-import random
-import numpy as np
+import copy
 import itertools as it
 from datetime import timedelta
-import copy
+from typing import Callable
 
-from ..base import Property
+import numpy as np
+
 from .base import SensorManager
+from ..base import Property
 from ..types.track import Track
 
 
@@ -90,9 +90,6 @@ class MonteCarloTreeSearchSensorManager(SensorManager):
                        "child at the end of the MCTS process. The choices are 0: maximum reward, "
                        "1: maximum reward per visit or 2: maximum visit count"
     )
-
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
 
     def choose_actions(self, tracks, timestamp, nchoose=1, **kwargs):
         """Returns a list of actions that reflect the best child nodes to the
@@ -256,9 +253,6 @@ class MCTSRolloutSensorManager(MonteCarloTreeSearchSensorManager):
                          "tree to assign an incrementally lower multiplier to future actions "
                          "in the tree.")
 
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-
     def simulate_action(self, node, parent_node):
         """Simulates the expected reward that would be received by executing
         the candidate action."""
@@ -288,7 +282,7 @@ class MCTSRolloutSensorManager(MonteCarloTreeSearchSensorManager):
                 action_generators = sensor.actions(timestamp)
                 # list possible action combinations for the sensor
                 action_choices = list(it.product(*action_generators))
-                if not len(action_choices) == 1 and not len(action_choices[0]) == 0:
+                if len(action_choices) != 1 and len(action_choices[0]) != 0:
                     action_count += len(action_choices)
                 # dictionary of sensors: list(action combinations)
                 all_action_choices[sensor] = action_choices
@@ -297,7 +291,7 @@ class MCTSRolloutSensorManager(MonteCarloTreeSearchSensorManager):
                         for sensor, action in zip(all_action_choices.keys(), actionconfig)}
                        for actionconfig in it.product(*all_action_choices.values())]
 
-            random_config_indx = random.randint(0, action_count-1)
+            random_config_indx = np.random.randint(0, action_count)
             random_config = configs[random_config_indx]
 
             reward, updates_ = self.reward_function(random_config, updates_, timestamp)
