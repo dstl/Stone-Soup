@@ -1193,7 +1193,7 @@ class Plotterly(_Plotter):
 
             if self.dimension == 3:  # update - star-triangle-up not in 3d plotly
                 clutter_kwargs.update(dict(marker=dict(size=4, symbol="diamond",
-                                                           color='#FECB52')))
+                                                       color='#FECB52')))
 
             merge(clutter_kwargs, kwargs)
             if clutter_kwargs['legendgroup'] not in {trace.legendgroup
