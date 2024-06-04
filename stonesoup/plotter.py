@@ -1192,7 +1192,7 @@ class Plotterly(_Plotter):
                 name=name, legendgroup=name, legendrank=210)
 
             if self.dimension == 3:  # update - star-triangle-up not in 3d plotly
-                measurement_kwargs.update(dict(marker=dict(size=4, symbol="diamond",
+                clutter_kwargs.update(dict(marker=dict(size=4, symbol="diamond",
                                                            color='#FECB52')))
 
             merge(clutter_kwargs, kwargs)
