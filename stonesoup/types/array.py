@@ -49,6 +49,25 @@ class Matrix(np.ndarray):
             return self._cast(result)
 
 
+class Tensor(Matrix):
+    """Tensor wrapper for :class:`numpy.ndarray`
+
+    This class returns a view to a :class:`numpy.ndarray` It's called same as
+    to :func:`numpy.asarray`.
+    """
+
+    @classmethod
+    def _cast(cls, val):
+        # This tries to cast the result as either a CovarianceMatrix or Tensor type if applicable.
+        if isinstance(val, np.ndarray):
+            if val.ndim == 3 and val.shape[2] == 1:
+                return val.view(CovarianceMatrix)
+            else:
+                return val.view(Tensor)
+        else:
+            return val
+
+
 class StateVector(Matrix):
     r"""State vector wrapper for :class:`numpy.ndarray`
 
@@ -244,9 +263,84 @@ class CovarianceMatrix(Matrix):
         return array.view(cls)
 
 
-class CovarianceMatrices(np.ndarray):
-    pass
+class CovarianceMatrices(Tensor, StateVectors):
+    """Wrapper for :class:`numpy.ndarray for multiple Covariance Matrices`
 
+    This class returns a view to a :class:`numpy.ndarray` that is in shape
+    (num_dimensions, num_dimensions, num_components), customising some numpy functions to ensure
+    custom types are handled correctly. This can be initialised by a sequence
+    type (list, tuple; not array) that contains :class:`CovarianceMatrix`, otherwise
+    it's called same as :func:`numpy.asarray`.
+    """
+
+    def __new__(cls, covariances, *args, **kwargs):
+        if isinstance(covariances, Sequence) and not isinstance(covariances, np.ndarray):
+            if isinstance(covariances[0], CovarianceMatrix):
+                return np.asarray(covariances).view(cls)
+        array = np.asarray(covariances, *args, **kwargs)
+        if array.shape[2] == 1:
+            return array.view(CovarianceMatrix)
+        return array.view(cls) 
+    
+    def __iter__(self):
+        covariancem_gen = super(CovarianceMatrices, self.T).__iter__()
+        for covariancematrix in covariancem_gen:
+            yield CovarianceMatrix(covariancematrix)
+
+    @classmethod
+    def _cast(cls, val):
+        out = super()._cast(val)
+        if type(out) == Tensor and out.ndim == 3:
+            return out.view(CovarianceMatrices)
+        else:
+            return out
+
+    @staticmethod
+    def _mean(covariance_matrices, axis=None, dtype=None, out=None, keepdims=np._NoValue):
+        if covariance_matrices.dtype != np.object_:
+            # Can just use standard numpy mean if not using custom objects
+            return np.mean(np.asarray(covariance_matrices), axis, dtype, out, keepdims)
+        elif axis == 2 and out is None:
+            covariance_matrices = np.average(covariance_matrices, axis)
+            if dtype:
+                return covariance_matrices.astype(dtype)
+            else:
+                return covariance_matrices
+        else:
+            return NotImplemented
+
+    @staticmethod
+    def _average(covariance_matrices, axis=None, weights=None, returned=False):
+        if covariance_matrices.dtype != np.object_:
+            # Can just use standard numpy averaging if not using custom objects
+            covariance_matrix = np.average(np.asarray(covariance_matrices), axis=axis, weights=weights)
+            # Convert type as may have type of weights
+            covariance_matrix = CovarianceMatrix(covariance_matrix.astype(np.float64, copy=False))
+        elif axis == 1:  # Need to handle special cases of averaging potentially
+            dims = covariance_matrices.shape[0]
+            covariance_matrix= CovarianceMatrix(
+                np.empty((dims, dims, 1), dtype=covariance_matrices.dtype))
+            for dim, row in enumerate(np.asarray(covariance_matrices)):
+                for dim_inner, col in enumerate(row):
+                    type_ = type(col[0])  # Assume all the same type
+                    if hasattr(type_, 'average'):
+                        # Check if type has custom average method
+                        covariance_matrix[dim, dim_inner, 0] = type_.average(col, weights=weights)
+                    else:
+                        # Else use numpy built in, converting to float array
+                        covariance_matrix[dim, dim_inner, 0] = type_(
+                            np.average(np.asarray(col, dtype=np.float64), weights=weights))
+        else:
+            return NotImplemented
+
+        if returned:
+            return covariance_matrix, np.sum(weights)
+        else:
+            return covariance_matrix
+
+    @staticmethod
+    def _cov(*args, **kwargs):
+        return NotImplemented
 
 class PrecisionMatrix(Matrix):
     """Precision matrix. This is the matrix inverse of a covariance matrix.

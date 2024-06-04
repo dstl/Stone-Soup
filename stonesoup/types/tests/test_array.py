@@ -1,7 +1,7 @@
 import numpy as np
 import pytest
 
-from ..array import Matrix, StateVector, StateVectors, CovarianceMatrix, PrecisionMatrix
+from ..array import Matrix, StateVector, StateVectors, CovarianceMatrix, PrecisionMatrix, CovarianceMatrices
 
 
 def test_statevector():
@@ -34,6 +34,7 @@ def test_statevectors():
     assert np.array_equal(svs1, vecs1)
     assert np.array_equal(svs2, vecs1)
     assert svs3.shape != vecs1.shape
+    print(svs1.shape, svs3.shape, vecs1.shape)
 
     for sv in svs2:
         assert isinstance(sv, StateVector)
@@ -203,3 +204,66 @@ def test_array_ops():
     assert type(sv + array) == Mtype  # noqa: E721
     assert type(covar+2.) == Mtype  # noqa: E721
     assert type(covar*2.) == Mtype  # noqa: E721
+
+
+def test_covariancematrices():
+    cov1 = np.array([[1., 0., 0.], [0., 2., 0.], [0., 0., 3.]])
+    cov2 = np.array([[4., 0., 0.], [0., 5., 0.], [0., 0., 6.]])
+
+    cm1 = CovarianceMatrix(cov1)
+    cm2 = CovarianceMatrix(cov2)
+
+    tensor1 = np.concatenate((cov1, cov2), axis=1)
+    cms1 = CovarianceMatrices([cm1, cm2])
+    cms2 = CovarianceMatrices(tensor1)
+    cms3 = CovarianceMatrices([cov1, cov2])  # Creates 3dim array
+    assert np.array_equal(cms1, tensor1)
+    assert np.array_equal(cms2, tensor1)
+    assert cms3.shape != tensor1.shape
+    print(cms1.shape, cms3.shape, tensor1.shape)
+    for cm in cms2:
+        assert isinstance(cm, CovarianceMatrix)
+
+
+def test_statevectors_mean():
+    svs = StateVectors([[1., 2., 3.], [4., 5., 6.]])
+    mean = StateVector([[2., 5.]])
+
+    assert np.allclose(np.average(svs, axis=1), mean)
+    assert np.allclose(np.mean(svs, axis=1, keepdims=True), mean)
+
+
+def test_standard_statevector_indexing():
+    state_vector_array = np.array([[1], [2], [3], [4]])
+    state_vector = StateVector(state_vector_array)
+
+    # test standard indexing
+    assert state_vector[2, 0] == 3
+    assert not isinstance(state_vector[2, 0], StateVector)
+
+    # test Slicing
+    assert state_vector[1:2, 0] == 2
+    assert isinstance(state_vector[1:2, 0], Matrix)  # (n,)
+    assert isinstance(state_vector[1:2, :], StateVector)  # (n, 1)
+    assert np.array_equal(state_vector[:], state_vector)
+    assert isinstance(state_vector[:, 0], Matrix)  # (n,)
+    assert isinstance(state_vector[:, :], StateVector)  # (n, 1)
+    assert np.array_equal(state_vector[0:], state_vector)
+    assert isinstance(state_vector[0:, 0], Matrix)  # (n,)
+    assert isinstance(state_vector[0:, :], StateVector)  # (n, 1)
+
+    # test list indices
+    assert np.array_equal(state_vector[[1, 3]], StateVector([2, 4]))
+    assert isinstance(state_vector[[1, 3], 0], Matrix)
+
+    # test int indexing
+    assert state_vector[2] == 3
+    assert not isinstance(state_vector[2], StateVector)
+
+    # test behaviour of ravel and flatten functions
+    state_vector_ravel = state_vector.ravel()
+    state_vector_flatten = state_vector.flatten()
+    assert isinstance(state_vector_ravel, Matrix)
+    assert isinstance(state_vector_flatten, Matrix)
+    assert state_vector_flatten[0] == 1
+    assert state_vector_ravel[0] == 1
