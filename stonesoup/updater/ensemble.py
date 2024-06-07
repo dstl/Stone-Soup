@@ -108,7 +108,7 @@ class EnsembleUpdater(KalmanUpdater):
         return hypothesis
 
     @lru_cache()
-    def predict_measurement(self, predicted_state, measurement_model=None,
+    def predict_measurement(self, predicted_state, measurement_model=None, measurement_noise=True,
                             **kwargs):
         r"""Predict the measurement implied by the predicted state mean
 
@@ -119,7 +119,8 @@ class EnsembleUpdater(KalmanUpdater):
         measurement_model : :class:`~.MeasurementModel`
             The measurement model. If omitted, the model in the updater object
             is used
-
+        measurement_noise : bool
+            Whether to include measurement noise :math:`R` when generating ensemble. Default `True`
 
         Returns
         -------
@@ -132,10 +133,10 @@ class EnsembleUpdater(KalmanUpdater):
         measurement_model = self._check_measurement_model(measurement_model)
 
         # Propagate each vector through the measurement model.
-        pred_meas_ensemble = measurement_model.function(predicted_state, noise=True)
+        pred_meas_ensemble = measurement_model.function(
+            predicted_state, noise=measurement_noise, **kwargs)
 
-        return MeasurementPrediction.from_state(
-                   predicted_state, pred_meas_ensemble)
+        return MeasurementPrediction.from_state(predicted_state, state_vector=pred_meas_ensemble)
 
     def update(self, hypothesis, **kwargs):
         r"""The Ensemble Kalman update method. The Ensemble Kalman filter

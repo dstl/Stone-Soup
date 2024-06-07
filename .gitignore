@@ -17,4 +17,4 @@ htmlcov/
 .pytest_cache/
 
 #Animation plotting example
-docs/examples/example_animation.gif
+docs/examples/plotting/example_animation.gif

@@ -74,7 +74,7 @@ Categorical
     :show-inheritance:
 
 Composite
------------
+---------
 
 .. automodule:: stonesoup.updater.composite
     :show-inheritance:
@@ -83,4 +83,9 @@ Chernoff
 --------
 
 .. automodule:: stonesoup.updater.chernoff
+
+Probabilistic
+-------------
+
+.. automodule:: stonesoup.updater.probability
     :show-inheritance:

@@ -25,7 +25,7 @@ class HMMHypothesiser(Hypothesiser):
                                       doc="Gate Probability - prob. gate contains true "
                                           "measurement if detected")
 
-    def hypothesise(self, track, detections, timestamp):
+    def hypothesise(self, track, detections, timestamp, **kwargs):
         """ Evaluate and return all track association hypotheses.
 
         For a given track and a set of N available detections, return a MultipleHypothesis object
@@ -70,7 +70,7 @@ class HMMHypothesiser(Hypothesiser):
             measurement_prediction = self.updater.predict_measurement(
                 predicted_state=prediction,
                 measurement_model=detection.measurement_model,
-                noise=False
+                measurement_noise=False
             )
 
             probability = self.measure(measurement_prediction, detection)

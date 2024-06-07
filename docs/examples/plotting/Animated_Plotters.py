@@ -196,12 +196,12 @@ fig.show()
 # to view ground truth, you would need to make a separate plotter that doesn't plot the tracks.
 #
 # However, there are a couple of drawbacks to :class:`~.AnimatedPlotterly`. If you can't extract
-# a list of equally-spaced timesteps from your simulation, :class:`~.AnimatedPlotterly` won't work.
-# It also more computationally expensive than :class:`~.AnimationPlotter`, so struggles to load
-# and render large volumes of data. This can be seen by forcing the animation in Tutorial 4 to
-# display every particle - set the plotter's `tail_length` to 1. Then set both `particle` and
-# `plot_history` to True when plotting tracks. In addition, there is no current functionality
-# to save the animation without using a screen-capturing tool.
+# a list of equally-spaced timesteps from your simulation, :class:`~.AnimatedPlotterly` will
+# raise a warning. It also more computationally expensive than :class:`~.AnimationPlotter`,
+# so struggles to load and render large volumes of data. This can be seen by forcing the
+# animation in Tutorial 4 to display every particle - set the plotter's `tail_length` to 1. Then
+# set both `particle` and `plot_history` to True when plotting tracks. In addition, there is no
+# current functionality to save the animation without using a screen-capturing tool.
 #
 # Finally, :class:`~.AnimatedPlotterly` has a more complex framework than
 # :class:`~.AnimationPlotter`, hence adding custom data is

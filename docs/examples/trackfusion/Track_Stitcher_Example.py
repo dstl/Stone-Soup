@@ -18,7 +18,7 @@ Track Stitching Example
 # producing a set of tracks (right, blue/red).
 
 # %%
-# .. image:: ../_static/track_stitching_basic_example.png
+# .. image:: ../../_static/track_stitching_basic_example.png
 #   :width: 500
 #   :alt: Image showing basic example of track stitching
 

@@ -47,12 +47,12 @@ class Updater(Base):
 
     @abstractmethod
     def predict_measurement(
-            self, state_prediction, measurement_model=None, **kwargs):
+            self, predicted_state, measurement_model=None, measurement_noise=True, **kwargs):
         """Get measurement prediction from state prediction
 
         Parameters
         ----------
-        state_prediction : :class:`~.StatePrediction`
+        predicted_state : :class:`~.StatePrediction`
             The state prediction
         measurement_model: :class:`~.MeasurementModel`, optional
             The measurement model used to generate the measurement prediction.
@@ -60,6 +60,8 @@ class Updater(Base):
             on the received measurement. The default is `None`, in which case
             the updater will use the measurement model specified on
             initialisation
+        measurement_noise : bool
+            Whether to include measurement noise predicted measurement. Default `True`
 
         Returns
         -------

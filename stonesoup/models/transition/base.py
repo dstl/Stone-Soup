@@ -34,6 +34,11 @@ class CombinedGaussianTransitionModel(TransitionModel, GaussianModel):
     """
     model_list: Sequence[GaussianModel] = Property(doc="List of Transition Models.")
 
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        if not isinstance(self.model_list, Sequence):
+            raise TypeError("model_list must be Sequence.")
+
     def function(self, state, noise=False, **kwargs) -> StateVector:
         """Applies each transition model in :py:attr:`~model_list` in turn to the state's
         corresponding state vector components.

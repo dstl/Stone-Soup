@@ -106,23 +106,23 @@ class ParticleUpdater(Updater):
             predicted_state = resampled_state
 
         if self.regulariser is not None and resample_flag:
-            prior = hypothesis.prediction.parent
-            predicted_state = self.regulariser.regularise(prior,
+            predicted_state = self.regulariser.regularise(predicted_state.parent,
                                                           predicted_state)
 
         return predicted_state
 
     @lru_cache()
-    def predict_measurement(self, state_prediction, measurement_model=None,
+    def predict_measurement(self, predicted_state, measurement_model=None, measurement_noise=True,
                             **kwargs):
 
         if measurement_model is None:
             measurement_model = self.measurement_model
 
-        new_state_vector = measurement_model.function(state_prediction, **kwargs)
+        new_state_vector = measurement_model.function(
+            predicted_state, noise=measurement_noise, **kwargs)
 
         return MeasurementPrediction.from_state(
-            state_prediction, state_vector=new_state_vector, timestamp=state_prediction.timestamp)
+            predicted_state, state_vector=new_state_vector, timestamp=predicted_state.timestamp)
 
 
 class GromovFlowParticleUpdater(Updater):
@@ -245,19 +245,18 @@ class GromovFlowKalmanParticleUpdater(GromovFlowParticleUpdater):
             fixed_covar=kalman_update.covar,
             timestamp=particle_update.timestamp)
 
-    def predict_measurement(self, state_prediction, *args, **kwargs):
-        particle_prediction = super().predict_measurement(
-            state_prediction, *args, **kwargs)
+    def predict_measurement(self, predicted_state, *args, **kwargs):
+        particle_prediction = super().predict_measurement(predicted_state, *args, **kwargs)
 
         kalman_prediction = self.kalman_updater.predict_measurement(
             Prediction.from_state(
-                state_prediction, state_prediction.state_vector, state_prediction.covar,
+                predicted_state, predicted_state.state_vector, predicted_state.covar,
                 target_type=GaussianStatePrediction),
             *args, **kwargs)
 
         return ParticleMeasurementPrediction(
             state_vector=particle_prediction.state_vector,
-            weight=state_prediction.weight,
+            weight=predicted_state.weight,
             fixed_covar=kalman_prediction.covar,
             timestamp=particle_prediction.timestamp)
 
@@ -576,11 +575,10 @@ class SMCPHDUpdater(ParticleUpdater):
         """
 
         prediction = hypotheses[0].prediction
-        detections = [hypothesis.measurement for hypothesis in hypotheses if hypothesis]
         num_samples = len(prediction) if self.num_samples is None else self.num_samples
 
         # Calculate w^{n,i} Eq. (20) of [#phd2]
-        log_weights_per_hyp = self.get_log_weights_per_hypothesis(prediction, detections)
+        log_weights_per_hyp = self.get_log_weights_per_hypothesis(hypotheses)
 
         # Update weights Eq. (8) of [phd1]
         # w_k^i = \sum_{z \in Z_k}{w^{n,i}}, where i is the index of z in Z_k
@@ -610,7 +608,24 @@ class SMCPHDUpdater(ParticleUpdater):
 
         return updated_state
 
-    def get_log_weights_per_hypothesis(self, prediction, detections):
+    def get_log_weights_per_hypothesis(self, hypotheses):
+        """Calculate the log particle weights per hypothesis
+
+        Parameters
+        ----------
+        hypotheses : :class:`~.MultipleHypothesis`
+            A container of :class:`~SingleHypothesis` objects. All hypotheses are assumed to have
+            the same prediction (and hence same timestamp).
+
+        Returns
+        -------
+        : :class:`~numpy.ndarray`
+            The log weights per hypothesis, where the first dimension is the number of particles
+            and the second dimension is the number of hypotheses. The first hypothesis (column) is
+            always the missed detection hypothesis.
+        """
+        prediction = hypotheses[0].prediction
+        detections = [hypothesis.measurement for hypothesis in hypotheses if hypothesis]
         num_samples = prediction.state_vector.shape[1]
 
         # Compute g(z|x) matrix as in [#phd1]

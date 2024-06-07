@@ -24,8 +24,6 @@ import re
 sys.path.insert(0, os.path.abspath('.'))
 sys.path.insert(0, os.path.abspath('../../'))
 
-from doc_extensions import gallery_scraper, reset_numpy_random_seed
-from sphinx_gallery.sorting import FileNameSortKey
 import plotly.io as pio
 pio.renderers.default = 'sphinx_gallery'
 
@@ -66,14 +64,15 @@ sphinx_gallery_conf = {
     'examples_dirs': ['../tutorials', '../examples', '../demos'],
     'gallery_dirs': ['auto_tutorials', 'auto_examples', 'auto_demos'],
     'filename_pattern': re.escape(os.sep),
-    'image_scrapers': (gallery_scraper(),),
-    'reset_modules': ('matplotlib', 'seaborn', reset_numpy_random_seed()),
+    'image_scrapers': ('doc_extensions.gallery_scraper',),
+    'reset_modules': ('matplotlib', 'seaborn', 'doc_extensions.reset_numpy_random_seed'),
     'reset_modules_order': 'both',
     'abort_on_example_error': False,
     'reference_url': {'stonesoup': None},
     'remove_config_comments': True,
     'ignore_repr_types': r'matplotlib\.(?:figure|animation|legend)',
-    'within_subsection_order': FileNameSortKey,
+    'nested_sections': False,
+    'within_subsection_order': "FileNameSortKey",
     'matplotlib_animations': True,
     'notebook_images':
         f'https://stonesoup.rtfd.io/en/{os.environ.get("READTHEDOCS_VERSION", "latest")}/',

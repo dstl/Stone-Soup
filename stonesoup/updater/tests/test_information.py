@@ -53,6 +53,10 @@ def test_information(UpdaterClass, measurement_model, prediction, measurement):
     # Does the measurement prediction work?
     assert np.allclose(kupdater.predict_measurement(prediction).state_vector,
                        updater.predict_measurement(info_prediction).state_vector, 0, atol=1.e-14)
+    assert np.allclose(
+        kupdater.predict_measurement(prediction, measurement_noise=False).state_vector,
+        updater.predict_measurement(info_prediction, measurement_noise=False).state_vector,
+        0, atol=1.e-14)
 
     # Do the
     assert np.allclose(kposterior.state_vector,

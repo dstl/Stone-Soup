@@ -64,6 +64,14 @@ def test_ensemble():
     assert np.allclose(updated_state.sqrt_covar @ updated_state.sqrt_covar.T,
                        updated_state.covar)
 
+    measurement_model.noise_covar += 1.  # Increase noise to confirm test
+    updater = EnsembleUpdater(measurement_model)
+    noise_measurement_prediction = updater.predict_measurement(prediction)
+    no_noise_measurement_prediction = updater.predict_measurement(
+        prediction, measurement_noise=False)
+    assert np.sum(np.trace(no_noise_measurement_prediction.covar)) \
+        < np.sum(np.trace(noise_measurement_prediction.covar))
+
 
 def test_sqrt_ensemble():
 
@@ -118,6 +126,14 @@ def test_sqrt_ensemble():
     assert np.allclose(updated_state.sqrt_covar @ updated_state.sqrt_covar.T,
                        updated_state.covar)
 
+    measurement_model.noise_covar += 1.  # Increase noise to confirm test
+    updater = EnsembleUpdater(measurement_model)
+    noise_measurement_prediction = updater.predict_measurement(prediction)
+    no_noise_measurement_prediction = updater.predict_measurement(
+        prediction, measurement_noise=False)
+    assert np.sum(np.trace(no_noise_measurement_prediction.covar)) \
+           < np.sum(np.trace(noise_measurement_prediction.covar))
+
 
 def test_linearised_ensemble_updater():
     # Initialize variables
@@ -171,3 +187,11 @@ def test_linearised_ensemble_updater():
            updated_state.hypothesis.prediction.num_vectors
     assert np.allclose(updated_state.sqrt_covar @ updated_state.sqrt_covar.T,
                        updated_state.covar)
+
+    measurement_model.noise_covar += 1.  # Increase noise to confirm test
+    updater = EnsembleUpdater(measurement_model)
+    noise_measurement_prediction = updater.predict_measurement(prediction)
+    no_noise_measurement_prediction = updater.predict_measurement(
+        prediction, measurement_noise=False)
+    assert np.sum(np.trace(no_noise_measurement_prediction.covar)) \
+           < np.sum(np.trace(noise_measurement_prediction.covar))

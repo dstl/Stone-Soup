@@ -4,12 +4,15 @@ import numpy as np
 import pytest
 from pytest import approx
 
+from ..base import ParticleInitiator
 from ...models.base import LinearModel, ReversibleModel
 from ...models.measurement.linear import LinearGaussian
 from ...models.measurement.nonlinear import CartesianToBearingRange, Cartesian2DToBearing, \
     CombinedReversibleGaussianMeasurementModel
 from ...models.transition.linear import \
     CombinedLinearGaussianTransitionModel, ConstantVelocity
+from ...types.array import StateVectors
+from ...types.track import Track
 from ...updater.kalman import KalmanUpdater, ExtendedKalmanUpdater
 from ...predictor.kalman import KalmanPredictor
 from ...deleter.time import UpdateTimeDeleter
@@ -19,14 +22,14 @@ from ...measures import Mahalanobis
 from ...types.detection import Detection, TrueDetection
 from ...types.hypothesis import SingleHypothesis
 from ...types.prediction import Prediction
-from ...types.state import GaussianState
+from ...types.state import GaussianState, ParticleState
 from ...types.update import ParticleStateUpdate, Update, GaussianMixtureUpdate, \
     ASDGaussianStateUpdate, EnsembleStateUpdate
 from ..simple import (
     SinglePointInitiator, SimpleMeasurementInitiator,
     MultiMeasurementInitiator, GaussianParticleInitiator, GaussianMixtureInitiator,
     ASDGaussianInitiator, EnsembleInitiator,
-    NoHistoryMultiMeasurementInitiator
+    NoHistoryMultiMeasurementInitiator, ParticleGaussianInitiator
 )
 
 
@@ -566,3 +569,41 @@ def test_ensemble_2d(gaussian_initiator):
             assert track.state.hypothesis.measurement is detections[1]
         assert track.timestamp == timestamp
         assert np.allclose(track.covar, np.diag([1, 0]), atol=0.6)
+
+
+@pytest.fixture()
+def dummy_particle_initiator():
+    class DummyParticleInitiator(ParticleInitiator):
+        num_samples = 1000
+
+        def initiate(self, detections, timestamp, **kwargs):
+            tracks = set()
+            for detection in detections:
+                noise = detection.measurement_model.rvs(num_samples=self.num_samples)
+                state_vector = StateVectors(detection.state_vector + noise)
+                weight = np.array([1 / self.num_samples] * self.num_samples)
+                tracks.add(Track([ParticleState(state_vector=state_vector,
+                                                weight=weight,
+                                                timestamp=detection.timestamp)]))
+            return tracks
+
+    return DummyParticleInitiator()
+
+
+def test_particle_gaussian_initiator(dummy_particle_initiator):
+    measurement_model = LinearGaussian(1, [0], np.array([[1]]))
+    timestamp = datetime.datetime.now()
+    detections = [Detection(np.array([[5]]), timestamp, measurement_model=measurement_model),
+                  Detection(np.array([[-5]]), timestamp, measurement_model=measurement_model)]
+
+    initiator = ParticleGaussianInitiator(dummy_particle_initiator)
+
+    tracks = initiator.initiate(detections, timestamp)
+
+    assert len(tracks) == 2
+    for track in tracks:
+        assert isinstance(track.state, GaussianState)
+        assert np.allclose(track.state.mean, detections[0].state_vector, atol=0.5) or \
+               np.allclose(track.state.mean, detections[1].state_vector, atol=0.5)
+        assert np.allclose(track.covar, measurement_model.covar(), atol=0.5)
+        assert track.timestamp == timestamp
