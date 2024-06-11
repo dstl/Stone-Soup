@@ -321,8 +321,8 @@ class JPDAwithLBP(JPDA):
 
             # determine alpha
             if d > 0:
-                alpha = math.log10((1 + w_star * d) / (1 + w_star))
-                alpha = (alpha / math.log10(d))
+                alpha = np.log10((1 + w_star*d) / (1 + w_star))
+                alpha /= np.log10(d)
             else:
                 alpha = 0.0
 
