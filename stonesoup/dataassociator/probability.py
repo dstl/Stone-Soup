@@ -304,15 +304,10 @@ class JPDAwithLBP(JPDA):
                 iteration += 1
 
                 # calculate L-R message
-                for i in range(num_tracks):
-                    for j in range(1, num_measurements + 1):
-                        # calculate s
-                        s = 1
-                        for jj in range (1, num_measurements + 1):
-                            if jj != j:
-                                s += (likelihood_matrix[i][jj] * nu[i][jj - 1])
-                        # calculate mu[i][j]
-                        mu[i][j - 1] = likelihood_matrix[i][j] / s
+                val = likelihood_matrix[:, 1:] * nu
+                # Minus val to remove j = j'
+                s = 1 + np.sum(val, axis=1, keepdims=True) - val
+                mu =  likelihood_matrix[:, 1:] / s
 
                 # save values for convergence check
                 if k == n_iterations:
