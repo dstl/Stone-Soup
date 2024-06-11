@@ -394,4 +394,3 @@ class JPDAwithLBP(JPDA):
             new_hypotheses[track] = MultipleHypothesis(single_measurement_hypotheses, True, 1)
 
         return new_hypotheses
-        return assoc_prob_matrix
