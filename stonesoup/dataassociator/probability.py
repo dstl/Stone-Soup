@@ -287,7 +287,7 @@ class JPDAwithLBP(JPDA):
         d: float = 0.0
 
         # allocate memory
-        nu = np.zeros((num_tracks, num_measurements))
+        nu = np.ones((num_tracks, num_measurements))
         nu_tilde = np.zeros((num_tracks, num_measurements))
         mu = np.zeros((num_tracks, num_measurements))
         assoc_prob_matrix = np.zeros((num_tracks, num_measurements + 1))
