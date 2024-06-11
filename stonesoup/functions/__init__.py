@@ -7,6 +7,43 @@ import numpy as np
 from ..types.numeric import Probability
 from ..types.array import StateVector, StateVectors, CovarianceMatrix
 from ..types.state import State
+import itertools
+from numpy import linalg as LA
+from numpy import matlib as matlib
+
+
+def gridCreation(xp_aux,Pp_aux,sFactor,nx,Npa):
+    gridDim = np.zeros((nx,Npa[0]))
+    gridStep = np.zeros(nx)
+    eigVal,eigVect = LA.eig(Pp_aux) # eigenvalue and eigenvectors for setting up the grid
+    gridBound = np.sqrt(eigVal)*sFactor #Boundaries of grid
+    
+
+    # Ensure the grid steps are in the right order
+    I = np.argsort(np.diag(Pp_aux))
+    I = np.argsort(I)
+    
+    pom = np.sort(gridBound)
+    gridBound = pom[I]
+    
+    Ipom = np.argsort(gridBound)
+    pom2 = eigVect[:, Ipom]
+    eigVect = pom2[:, I]
+    gridDim = []  # Reset gridDim for each cycle
+    gridStep = []  # Reset gridStep for each cycle
+    for ind3 in range(0,nx):  #Creation of propagated grid
+        # gridDim[ind3] = np.linspace(-gridBound[ind3], gridBound[ind3], Npa[ind3]) #New grid with middle in 0
+        # gridStep[ind3] = np.absolute(gridDim[ind3][0] - gridDim[ind3][1]) #Grid step
+        gridDim.append(np.linspace(-gridBound[ind3], gridBound[ind3], Npa[ind3]))  # New grid with middle in 0
+        gridStep.append(np.absolute(gridDim[ind3][0] - gridDim[ind3][1]))  # Grid step
+
+    
+    combvec_predGrid = np.array(list(itertools.product(*gridDim)))
+    predGrid_pom = np.dot(eigVect,combvec_predGrid.T)               
+    size_pom = np.size(predGrid_pom,1)
+    predGrid = predGrid_pom + matlib.repmat(xp_aux,1,size_pom) #Grid rotation by eigenvectors and traslation to the counted unscented mean
+    predGridDelta = gridStep # Grid step size
+    return predGrid,predGridDelta,gridDim,xp_aux,eigVect
 
 
 def tria(matrix):

@@ -19,6 +19,10 @@ class BayesianRecursiveUpdater(ExtendedKalmanUpdater):
     """
     number_steps: int = Property(doc="Number of recursive steps",
                                  default=1)
+    use_joseph_cov: bool = Property(doc="Bool dictating the method of covariance calculation. If "
+                                        "use_joseph_cov is True then the Joseph form of the "
+                                        "covariance equation is used.",
+                                    default=False)
 
     @classmethod
     def _get_meas_cov_scale_factor(cls, n=1, step_no=None):
@@ -80,23 +84,21 @@ class BayesianRecursiveUpdater(ExtendedKalmanUpdater):
             kalman_gain = hypothesis.measurement_prediction.cross_covar @ \
                 np.linalg.inv(hypothesis.measurement_prediction.covar)
 
-            measurement_model = self._check_measurement_model(
-                hypothesis.measurement.measurement_model)
-
             # Calculate measurement matrix/jacobian matrix
-            meas_matrix = self._measurement_matrix(hypothesis.prediction,
-                                                   measurement_model)
+            meas_matrix = self._measurement_matrix(hypothesis.prediction)
 
             # Calculate Prior covariance
             prior_covar = hypothesis.prediction.covar
 
             # Calculate measurement covariance
-            meas_covar = measurement_model.covar()
+            meas_covar = hypothesis.measurement.measurement_model.covar()
 
             # Compute posterior covariance matrix
             I_KH = id_matrix - kalman_gain @ meas_matrix
             post_cov = I_KH @ prior_covar @ I_KH.T \
                 + kalman_gain @ (scale_factor * meas_covar) @ kalman_gain.T
+
+            return post_cov.view(CovarianceMatrix), kalman_gain
 
         else:
             kalman_gain = hypothesis.measurement_prediction.cross_covar @ \
@@ -105,7 +107,7 @@ class BayesianRecursiveUpdater(ExtendedKalmanUpdater):
             post_cov = hypothesis.prediction.covar - kalman_gain @ \
                 hypothesis.measurement_prediction.covar @ kalman_gain.T
 
-        return post_cov.view(CovarianceMatrix), kalman_gain
+            return post_cov.view(CovarianceMatrix), kalman_gain
 
     def update(self, hypothesis, **kwargs):
         r"""The Kalman update method. Given a hypothesised association between
@@ -385,6 +387,10 @@ class VariableStepBayesianRecursiveUpdater(BayesianRecursiveUpdater):
     """
     number_steps: int = Property(doc="Number of recursive steps",
                                  default=1)
+    use_joseph_cov: bool = Property(doc="Bool dictating the method of covariance calculation. If "
+                                        "use_joseph_cov is True then the Joseph form of the "
+                                        "covariance equation is used.",
+                                    default=False)
 
     @classmethod
     def _get_meas_cov_scale_factor(cls, n=1, step_no=None):

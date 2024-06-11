@@ -165,7 +165,44 @@ class CreatableFromState:
             target_type = CreatableFromState.class_mapping[cls][state_type]
 
         return target_type.from_state(state, *args, **kwargs, target_type=target_type)
+  
+   
+class PointMassState(State):
+    
+    state_vector: StateVectors = Property(doc='State vectors.')
+    weight: MutableSequence[Probability] = Property(default=None, doc='Masses of grid points')
+    grid_delta: np.ndarray = Property(default=None, doc='Grid step per dim')
+    grid_dim: np.ndarray = Property(default=None, doc='Grid coordinates per dimension before rotation and translation')
+    center: np.ndarray = Property(default=None, doc='Center of the grid')
+    eigVec: np.ndarray = Property(default=None, doc='Eigenvectors of the grid')
+    Npa: np.ndarray = Property(default=None, doc='Points per dim')
+    
+    
+    def __len__(self):
+        return self.state_vector.shape[1]
 
+    @property
+    def ndim(self):
+        """The number of dimensions represented by the state."""
+        return self.state_vector.shape[0]
+
+    @clearable_cached_property('state_vector')
+    def mean(self):
+        """Sample mean for particles"""
+        return np.hstack(self.state_vector @ self.weight * np.prod(self.grid_delta))
+
+    
+    #@profile
+    def covar(self):  
+        # Measurement update covariance 
+        chip_ = self.state_vector - self.mean[:, np.newaxis]
+        chip_w = chip_ * self.weight.reshape(1, -1, order='C')
+        measVar = (chip_w @ chip_.T) * np.prod(self.grid_delta)  
+        return measVar
+
+State.register(PointMassState)  # noqa: E305
+    
+    
 
 class ASDState(Type):
     """ASD State type
