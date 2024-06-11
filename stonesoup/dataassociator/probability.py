@@ -295,11 +295,6 @@ class JPDAwithLBP(JPDA):
         # determine W_star
         w_star: float = np.max(np.sum(likelihood_matrix[:, 1:], axis=1))
 
-        # initialise
-        for i in range(num_tracks):
-            for j in range(num_measurements):
-                nu[i][j] = 1
-
         # loopy belief propagation
         while iteration == 0 or (alpha * d) / (1 - alpha) >= 0.5 * math.log10(1 + delta):
 
