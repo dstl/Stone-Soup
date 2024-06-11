@@ -1,5 +1,3 @@
-"""Test for updater.kalman module"""
-
 import pytest
 import numpy as np
 
@@ -15,71 +13,8 @@ from stonesoup.updater.kalman import (KalmanUpdater,
                                       SqrtKalmanUpdater,
                                       IteratedKalmanUpdater,
                                       SchmidtKalmanUpdater,
-                                      CubatureKalmanUpdater,
-                                      StochasticIntegrationUpdater)
+                                      CubatureKalmanUpdater)
 
-@pytest.mark.parametrize(
-    "UpdaterClass, measurement_model, prediction, measurement",
-    [
-        (   # Standard Kalman
-            KalmanUpdater,
-            LinearGaussian(ndim_state=2, mapping=[0],
-                           noise_covar=np.array([[0.04]])),
-            GaussianStatePrediction(np.array([[-6.45], [0.7]]),
-                                    np.array([[4.1123, 0.0013],
-                                              [0.0013, 0.0365]])),
-            Detection(np.array([[-6.23]]))
-        ),
-        (   # Extended Kalman
-            ExtendedKalmanUpdater,
-            LinearGaussian(ndim_state=2, mapping=[0],
-                           noise_covar=np.array([[0.04]])),
-            GaussianStatePrediction(np.array([[-6.45], [0.7]]),
-                                    np.array([[4.1123, 0.0013],
-                                              [0.0013, 0.0365]])),
-            Detection(np.array([[-6.23]]))
-        ),
-        (   # Unscented Kalman
-            UnscentedKalmanUpdater,
-            LinearGaussian(ndim_state=2, mapping=[0],
-                           noise_covar=np.array([[0.04]])),
-            GaussianStatePrediction(np.array([[-6.45], [0.7]]),
-                                    np.array([[4.1123, 0.0013],
-                                              [0.0013, 0.0365]])),
-            Detection(np.array([[-6.23]]))
-        ),
-        (   # Iterated Kalman
-            IteratedKalmanUpdater,
-            LinearGaussian(ndim_state=2, mapping=[0],
-                           noise_covar=np.array([[0.04]])),
-            GaussianStatePrediction(np.array([[-6.45], [0.7]]),
-                                    np.array([[4.1123, 0.0013],
-                                              [0.0013, 0.0365]])),
-            Detection(np.array([[-6.23]]))
-        ),
-        (   # Schmidt Kalman
-            SchmidtKalmanUpdater,
-            LinearGaussian(ndim_state=2, mapping=[0],
-                           noise_covar=np.array([[0.04]])),
-            GaussianStatePrediction(np.array([[-6.45], [0.7]]),
-                                    np.array([[4.1123, 0.0013],
-                                              [0.0013, 0.0365]])),
-            Detection(np.array([[-6.23]]))
-        ),
-        (   # Stochastic Integration
-            StochasticIntegrationUpdater,
-            LinearGaussian(ndim_state=2, mapping=[0],
-                           noise_covar=np.array([[0.04]])),
-            GaussianStatePrediction(np.array([[-6.45], [0.7]]),
-                                    np.array([[4.1123, 0.0013],
-                                              [0.0013, 0.0365]])),
-            Detection(np.array([[-6.23]]))
-        )
-    ],
-    ids=["standard", "extended", "unscented", "iterated", "schmidtkalman",
-         "stochasticIntegration"]
-)
-def test_kalman(UpdaterClass, measurement_model, prediction, measurement):
 
 @pytest.fixture(params=[KalmanUpdater, ExtendedKalmanUpdater, UnscentedKalmanUpdater,
                         IteratedKalmanUpdater, SchmidtKalmanUpdater, CubatureKalmanUpdater])
@@ -292,4 +227,3 @@ def test_schmidtkalman():
 
     assert np.allclose(update.mean, sk_update.mean)
     assert np.allclose(update.covar, sk_update.covar)
-

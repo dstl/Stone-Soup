@@ -13,7 +13,8 @@ from ..types.update import Update
 from ..models.base import LinearModel
 from ..models.measurement.linear import LinearGaussian
 from ..models.measurement import MeasurementModel
-from ..functions import gauss2sigma, unscented_transform, cubature_transform, stochasticCubatureRulePoints
+from ..functions import gauss2sigma, unscented_transform, cubature_transform, \
+    stochasticCubatureRulePoints
 from ..measures import Measure, Euclidean
 
 
@@ -861,6 +862,16 @@ class CubatureKalmanUpdater(KalmanUpdater):
             "measurement model is provided in the measurement. If no model "
             "specified on construction, or in the measurement, then error "
             "will be thrown.")
+    alpha: float = Property(
+        default=1.0,
+        doc="Scaling parameter. Default is 1.0. Lower values select points closer to the mean and "
+            "vice versa.")
+
+    @lru_cache()
+    def predict_measurement(self, predicted_state, measurement_model=None, measurement_noise=True,
+                            **kwargs):
+        """Cubature Kalman Filter measurement prediction step. Uses the cubature transform to
+        estimate a Gauss-distributed predicted measurement.
 
         Parameters
         ----------
@@ -872,12 +883,16 @@ class CubatureKalmanUpdater(KalmanUpdater):
             dependent on the received measurement (the default is `None`, in
             which case the updater will use the measurement model specified on
             initialisation)
+        measurement_noise : bool
+            Whether to include measurement noise :math:`R` with innovation covariance.
+            Default `True`
 
         Returns
         -------
         : :class:`~.GaussianMeasurementPrediction`
             The measurement prediction
 
+        """
         measurement_model = self._check_measurement_model(measurement_model)
 
         covar_noise = measurement_model.covar(**kwargs) if measurement_noise else None
@@ -899,6 +914,12 @@ class StochasticIntegrationUpdater(KalmanUpdater):
 
     """
     # Can be non-linear and non-differentiable
+    measurement_model: MeasurementModel = Property(
+        default=None,
+        doc="The measurement model to be used. This need not be defined if a "
+            "measurement model is provided in the measurement. If no model "
+            "specified on construction, or in the measurement, then error "
+            "will be thrown.")
     Nmax: float = Property(
         default=10,
         doc="maximal number of iterations of SIR")
@@ -906,29 +927,34 @@ class StochasticIntegrationUpdater(KalmanUpdater):
         default=5,
         doc="minimal number of iterations of stochastic integration rule (SIR)")
     Eps: float = Property(
-        default=5e-3,
+        default=5e-4,
         doc="allowed threshold for integration error")
     SIorder: float = Property(
         default=3,
         doc="order of SIR (orders 1, 3, 5 are currently supported)")
 
     @lru_cache()
-    def predict_measurement(self, predicted_state, measurement_model=None):
+    def predict_measurement(self, predicted_state, measurement_model=None,
+                            **kwargs):
         """SIF.
 
-    alpha: float = Property(
-        default=1.0,
-        doc="Scaling parameter. Default is 1.0. Lower values select points closer to the mean and "
-            "vice versa.")
+        Parameters
+        ----------
+        predicted_state : :class:`~.GaussianStatePrediction`
+            A predicted state
+        measurement_model : :class:`~.MeasurementModel`, optional
+            The measurement model used to generate the measurement prediction.
+            This should be used in cases where the measurement model is
+            dependent on the received measurement (the default is `None`, in
+            which case the updater will use the measurement model specified on
+            initialisation)
 
-    @lru_cache()
-    def predict_measurement(self, predicted_state, measurement_model=None, measurement_noise=True,
-                            **kwargs):
-        """Cubature Kalman Filter measurement prediction step. Uses the cubature transform to
-        estimate a Gauss-distributed predicted measurement.
-        measurement_noise : bool
-            Whether to include measurement noise :math:`R` with innovation covariance.
-            Default `True`
+        Returns
+        -------
+        : :class:`~.GaussianMeasurementPrediction`
+            The measurement prediction
+
+        """
 
         measurement_model = self._check_measurement_model(measurement_model)
         Sp = np.linalg.cholesky(predicted_state.covar)

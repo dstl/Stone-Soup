@@ -346,6 +346,7 @@ def test_gm_sample(means, covars, weights, size):
     else:
         assert samples.shape[0] == means.shape[0]
 
+
 @pytest.mark.parametrize(
     "mean, covar, alp",
     [
@@ -357,8 +358,6 @@ def test_gm_sample(means, covars, weights, size):
                                                         [0, 0.06, -0.01, 1.1]]), 0.7)
     ]
 )
-
-
 def test_cubature_transform(mean, covar, alp):
 
     instate = GaussianState(mean, covar)
@@ -381,4 +380,3 @@ def test_cubature_transform(mean, covar, alp):
     assert np.allclose(outcovar, instate.covar)
     assert np.allclose(mean, instate.state_vector)
     assert np.allclose(covar, instate.covar)
-
