@@ -293,15 +293,7 @@ class JPDAwithLBP(JPDA):
         assoc_prob_matrix = np.zeros((num_tracks, num_measurements + 1))
 
         # determine W_star
-        w_star: float = 0
-        for i in range(num_tracks):
-            # sum over j > 0
-            sum_total = 0.0
-            for j in range(1, num_measurements + 1):
-                sum_total += likelihood_matrix[i][j]
-            # return maximum over all i values
-            if sum_total > w_star:
-                w_star = sum_total
+        w_star: float = np.max(np.sum(likelihood_matrix[:, 1:], axis=1))
 
         # initialise
         for i in range(num_tracks):
