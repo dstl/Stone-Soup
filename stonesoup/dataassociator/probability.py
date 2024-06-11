@@ -314,15 +314,7 @@ class JPDAwithLBP(JPDA):
                     nu_tilde = nu.copy()
 
                 # calculate R-L messages
-                for j in range(1, num_measurements + 1):
-                    for i in range(num_tracks):
-                        # calculate s
-                        s: float = 1.0
-                        for ii in range(num_tracks):
-                            if ii != i:
-                                s += mu[ii][j - 1]
-                        # update nu
-                        nu[i][j - 1] = 1 / s
+                nu = 1 / (1 + np.sum(mu, axis=0, keepdims=True) - mu)
 
             # check for convergence
             d = 0.0
