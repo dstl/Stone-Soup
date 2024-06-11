@@ -317,3 +317,57 @@ def test_plotterly_wrong_dimension(dim, mapping):
 
     with pytest.raises(TypeError):
         plotter.plot_tracks(track, mapping)
+
+
+@pytest.mark.parametrize("labels", [
+    None, ["Tracks"], ["Ground Truth", "Tracks"],
+    ["Ground Truth", "Measurements<br>(Detections)", "Tracks"]])
+def test_hide_plot(labels):
+    plotter = Plotterly()
+    plotter.plot_ground_truths(truth, [0, 1])
+    plotter.plot_measurements(all_measurements, [0, 1])
+    plotter.plot_tracks(track, [0, 1])
+
+    plotter.hide_plot_traces(labels)
+
+    hidden = 0
+    showing = 0
+
+    for fig_data in plotter.fig.data:
+        if fig_data["visible"] == "legendonly":
+            hidden += 1
+        elif fig_data["visible"] is None:
+            showing += 1
+
+    if labels is None:
+        assert hidden == 3
+    else:
+        assert hidden == len(labels)
+    assert hidden + showing == 3
+
+
+@pytest.mark.parametrize("labels", [
+    None, ["Tracks"], ["Ground Truth", "Tracks"],
+    ["Ground Truth", "Measurements<br>(Detections)", "Tracks"]])
+def test_show_plot(labels):
+    plotter = Plotterly()
+    plotter.plot_ground_truths(truth, [0, 1])
+    plotter.plot_measurements(all_measurements, [0, 1])
+    plotter.plot_tracks(track, [0, 1])
+
+    plotter.show_plot_traces(labels)
+
+    showing = 0
+    hidden = 0
+
+    for fig_data in plotter.fig.data:
+        if fig_data["visible"] == "legendonly":
+            hidden += 1
+        elif fig_data["visible"] is None:
+            showing += 1
+
+    if labels is None:
+        assert showing == 3
+    else:
+        assert showing == len(labels)
+    assert showing + hidden == 3

@@ -76,3 +76,6 @@ def test_alphabeta(measurement_model, prediction, measurement, alpha, beta):
     updater.measurement_model = None
     with pytest.raises(ValueError):
         updater._check_measurement_model(None)
+
+    with pytest.raises(ValueError):
+        updater.predict_measurement(prediction, measurement_noise=True)

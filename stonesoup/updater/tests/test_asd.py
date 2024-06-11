@@ -46,6 +46,18 @@ def test_asdkalman():
     # Initialise a kalman updater
     updater = ASDKalmanUpdater(measurement_model=measurement_model)
 
+    # Get and assert measurement prediction without measurement noise
+    measurement_prediction = updater.predict_measurement(prediction, measurement_noise=False)
+    assert np.allclose(measurement_prediction.mean,
+                       eval_measurement_prediction.mean,
+                       0, atol=1.e-14)
+    assert np.allclose(measurement_prediction.covar,
+                       eval_measurement_prediction.covar - measurement_model.covar(),
+                       0, atol=1.e-14)
+    assert np.allclose(measurement_prediction.cross_covar,
+                       eval_measurement_prediction.cross_covar,
+                       0, atol=1.e-14)
+
     # Get and assert measurement prediction
     measurement_prediction = updater.predict_measurement(prediction)
     assert np.allclose(measurement_prediction.mean,

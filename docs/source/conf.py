@@ -71,6 +71,7 @@ sphinx_gallery_conf = {
     'reference_url': {'stonesoup': None},
     'remove_config_comments': True,
     'ignore_repr_types': r'matplotlib\.(?:figure|animation|legend)',
+    'nested_sections': False,
     'within_subsection_order': "FileNameSortKey",
     'matplotlib_animations': True,
     'notebook_images':

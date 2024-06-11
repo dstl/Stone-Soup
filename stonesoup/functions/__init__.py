@@ -6,6 +6,7 @@ import numpy as np
 
 from ..types.numeric import Probability
 from ..types.array import StateVector, StateVectors, CovarianceMatrix
+from ..types.state import State
 
 
 def tria(matrix):
@@ -70,7 +71,7 @@ def cholesky_eps(A, lower=False):
         return L.T
 
 
-def jacobian(fun, x,  **kwargs):
+def jacobian(fun, x, **kwargs):
     """Compute Jacobian through finite difference calculation
 
     Parameters
@@ -218,7 +219,7 @@ def sigma2gauss(sigma_points, mean_weights, covar_weights, covar_noise=None):
 
     points_diff = sigma_points - mean
 
-    covar = points_diff@(np.diag(covar_weights))@(points_diff.T)
+    covar = points_diff @ np.diag(covar_weights) @ (points_diff.T)
     if covar_noise is not None:
         covar = covar + covar_noise
     return mean.view(StateVector), covar.view(CovarianceMatrix)
@@ -235,7 +236,7 @@ def unscented_transform(sigma_points_states, mean_weights, covar_weights,
 
     Parameters
     ----------
-    sigma_points : :class:`~.StateVectors` of shape `(Ns, 2*Ns+1)`
+    sigma_points_states : :class:`~.StateVectors` of shape `(Ns, 2*Ns+1)`
         An array containing the locations of the sigma points
     mean_weights : :class:`numpy.ndarray` of shape `(2*Ns+1,)`
         An array containing the sigma point mean weights
@@ -335,7 +336,7 @@ def cart2sphere(x, y, z):
 
     rho = np.sqrt(x**2 + y**2 + z**2)
     phi = np.arctan2(y, x)
-    theta = np.arcsin(z/rho)
+    theta = np.arcsin(z / rho)
     return (rho, phi, theta)
 
 
@@ -449,7 +450,7 @@ def az_el_rg2cart(phi, theta, rho):
     """
     x = rho * np.sin(phi)
     y = rho * np.sin(theta)
-    z = rho * np.sqrt(1.0 - np.sin(theta) ** 2 - np.sin(phi) ** 2)
+    z = rho * np.sqrt(1.0 - np.sin(theta)**2 - np.sin(phi)**2)
     return x, y, z
 
 
@@ -590,9 +591,9 @@ def gm_sample(means, covars, size, weights=None):
         means = means.view(StateVectors)
 
     if isinstance(means, StateVectors) and weights is None:
-        weights = np.array([1/means.shape[1]]*means.shape[1])
+        weights = np.array([1 / means.shape[1]] * means.shape[1])
     elif weights is None:
-        weights = np.array([1/len(means)]*len(means))
+        weights = np.array([1 / len(means)] * len(means))
 
     n_samples = np.random.multinomial(size, weights)
     samples = np.vstack([np.random.multivariate_normal(mean.ravel(), covar, sample)
@@ -621,7 +622,7 @@ def gm_reduce_single(means, covars, weights):
         The covariance of the reduced/single Gaussian
     """
     # Normalise weights such that they sum to 1
-    weights = weights/Probability.sum(weights)
+    weights = weights / Probability.sum(weights)
 
     # Cast means as a StateVectors, so this works with ndarray types
     means = means.view(StateVectors)
@@ -671,7 +672,7 @@ def mod_elevation(x):
         Angle in radians in the range math: :math:`-\pi/2` to :math:`+\pi/2`
     """
     x = x % (2*np.pi)  # limit to 2*pi
-    N = x//(np.pi/2)   # Count # of 90 deg multiples
+    N = x // (np.pi / 2)  # Count # of 90 deg multiples
     if N == 1:
         x = np.pi - x
     elif N == 2:
@@ -762,9 +763,9 @@ def dotproduct(a, b):
 
     # Decide whether this is a StateVector or a StateVectors
     if type(a) is StateVector and type(b) is StateVector:
-        return np.sum(a*b)
+        return np.sum(a * b)
     elif type(a) is StateVectors and type(b) is StateVectors:
-        return np.atleast_2d(np.asarray(np.sum(a*b, axis=0)))
+        return np.atleast_2d(np.asarray(np.sum(a * b, axis=0)))
     else:
         raise ValueError("Inputs must be `StateVector` or `StateVectors` and of the same type")
 
@@ -924,3 +925,162 @@ def stochasticCubatureRulePoints(nx, order):
                                    -rho*v, rho*v, -delta*v, +delta*v, -rho*y,
                                    rho*y, -delta*y, delta*y])
     return (SCRSigmaPoints, weights)
+
+
+def gauss2cubature(state, alpha=1.0):
+    r"""Evaluate the cubature points for an input Gaussian state. This is done under the assumption
+    that the input state is :math:`\mathcal{N}(\mathbf{\mu}, \Sigma)` of dimension :math:`n`. We
+    calculate the square root of the covariance (via Cholesky factorization), and find the cubature
+    points, :math:`X`, as,
+
+    .. math::
+
+        \Sigma &= S S^T
+
+        X_i &= S \xi_i + \mathbf{\mu}
+
+    for :math:`i = 1,...,2n`, where :math:`\xi_i = \sqrt{ \alpha n} [\pm \mathbf{1}]_i` and
+    :math:`[\pm \mathbf{1}]_i` are the positive and negative unit vectors in each dimension. We
+    include a scaling parameter :math:`\alpha` to allow the selection of cubature points closer to
+    the mean or more in the tails, as a potentially useful free parameter.
+
+    Parameters
+    ----------
+    state : :class:`~.GaussianState`
+        A Gaussian state with mean and covariance
+    alpha : float, optional
+        scaling parameter allowing the selection of cubature points closer to the mean (lower
+        values) or further from the mean (higher values)
+
+    Returns
+    -------
+     : :class:`~.StateVectors`
+        Cubature points (as a :class:`~.StateVectors` of dimension :math:`n \times 2n`)
+
+    """
+    ndim_state = np.shape(state.state_vector)[0]
+
+    sqrt_covar = np.linalg.cholesky(state.covar)
+    cuba_points = np.sqrt(alpha*ndim_state) * np.hstack((np.identity(ndim_state),
+                                                         -np.identity(ndim_state)))
+
+    if np.issubdtype(cuba_points.dtype, np.integer):
+        cuba_points = cuba_points.astype(float)
+
+    cuba_points = sqrt_covar@cuba_points + state.mean
+
+    return StateVectors(cuba_points)
+
+
+def cubature2gauss(cubature_points, covar_noise=None, alpha=1.0):
+    r"""Get the predicted Gaussian mean and covariance from the cubature points. For dimension
+    :math:`n` there are :math:`m = 2n` cubature points. The mean is,
+
+    .. math::
+
+        \mu = \frac{1}{m} \sum\limits_{i=1}^{m} X_i
+
+    and the covariance
+
+    .. math::
+
+        \Sigma = \frac{1}{\alpha}\left(\frac{1}{m} \sum\limits_{i=1}^{m} X_i X_i^T -
+        \mathbf{\mu}\mathbf{\mu}^T\right) + Q
+
+    where :math:`Q` is an optional additive noise matrix. The scaling parameter :math:`\alpha`
+    allow the for cubature points closer to the mean or more in the tails,
+
+    Parameters
+    ----------
+    cubature_points : :class:`~.StateVectors`
+        Cubature points (as a :class:`~.StateVectors` of dimension :math:`n \times 2n`)
+    covar_noise : :class:`~.CovarianceMatrix` of shape `(Ns, Ns)`, optional
+        Additive noise covariance matrix
+        (default is `None`)
+    alpha : float, optional
+        scaling parameter allowing the nomination of cubature points closer to the mean (lower
+        values) or further from the mean (higher values)
+
+    Returns
+    -------
+     : :class:`~.GaussianState`
+        A Gaussian state with mean and covariance
+
+    """
+
+    m = np.shape(cubature_points)[1]
+    mean = np.average(cubature_points, axis=1)
+    sigma_mult = cubature_points @ cubature_points.T
+    mean_mult = mean @ mean.T
+    covar = (1/alpha)*((1/m)*sigma_mult - mean_mult)
+
+    if covar_noise is not None:
+        covar = covar + covar_noise
+
+    return mean.view(StateVector), covar.view(CovarianceMatrix)
+
+
+def cubature_transform(state, fun, points_noise=None, covar_noise=None, alpha=1.0):
+    r"""Undertakes the cubature transform as described in [#f]_
+
+    Given a Gaussian distribution, calculates the set of cubature points using
+    :meth:`gauss2cubature`, then passes these through the given function and reconstructs the
+    Gaussian using :meth:`cubature2gauss`. Returns the mean, covariance, cross covariance and
+    transformed cubature points. This instance includes a scaling parameter :math:`\alpha`, not
+    included in the reference detailed above, which allows for the selection of cubature points
+    closer to, or further from, tne mean.
+
+    Parameters
+    ----------
+    state : :class:`~.GaussianState`
+        A Gaussian state with mean and covariance
+    fun : function handle
+        A (non-linear) transition function
+        Must be of the form "y = fun(x,w)", where y can be a scalar or \
+        :class:`numpy.ndarray` of shape `(Ns, 1)` or `(Ns,)`
+    covar_noise : :class:`~.CovarianceMatrix` of shape `(Ns, Ns)`, optional
+        Additive noise covariance matrix
+        (default is `None`)
+    points_noise : :class:`numpy.ndarray` of shape `(Ns, 2*Ns+1,)`, optional
+        points to pass into f's second argument
+        (default is `None`)
+    alpha : float, optional
+        scaling parameter allowing the selection of cubature points closer to the mean (lower
+        values) or further from the mean (higher values)
+
+    Returns
+    -------
+    : :class:`~.StateVector` of shape `(Ns, 1)`
+        Transformed mean
+    : :class:`~.CovarianceMatrix` of shape `(Ns, Ns)`
+        Transformed covariance
+    : :class:`~.CovarianceMatrix` of shape `(Ns,Nm)`
+        Calculated cross-covariance matrix
+    : :class:`~.StateVectors` of shape `(Ns, 2*Ns)`
+        An array containing the locations of the transformed cubature points
+
+    References
+    ----------
+    .. [#f] I. Arasaratnam and S. Haykin, “Cubature Kalman Filters,” in IEEE Transactions on
+           Automatic Control, vol. 54, no. 6, pp. 1254-1269, June 2009,
+           doi: 10.1109/TAC.2009.2019800.
+
+    """
+    ndim_state = np.shape(state.state_vector)[0]
+    cubature_points = gauss2cubature(state)
+
+    if points_noise is None:
+        cubature_points_t = StateVectors([fun(State(cub_point)) for cub_point in cubature_points])
+    else:
+        cubature_points_t = StateVectors([
+            fun(State(cub_point), points_noise)
+            for cub_point, point_noise in zip(cubature_points, points_noise)])
+
+    mean, covar = cubature2gauss(cubature_points_t, covar_noise)
+
+    cross_covar = (1/alpha)*((1./(2*ndim_state))*cubature_points@cubature_points_t.T
+                             - np.average(cubature_points, axis=1)@mean.T)
+    cross_covar = cross_covar.view(CovarianceMatrix)
+
+    return mean, covar, cross_covar, cubature_points_t
+

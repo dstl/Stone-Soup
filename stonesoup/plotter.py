@@ -214,7 +214,11 @@ class Plotter(_Plotter):
             else:
                 raise NotImplementedError('Unsupported dimension type for truth plotting')
         # Generate legend items
-        truths_handle = Line2D([], [], linestyle=truths_kwargs['linestyle'], color='black')
+        if "color" in kwargs:
+            colour = kwargs["color"]
+        else:
+            colour = "black"
+        truths_handle = Line2D([], [], linestyle=truths_kwargs['linestyle'], color=colour)
         self.legend_dict[truths_label] = truths_handle
         # Generate legend
         artists.append(self.ax.legend(handles=self.legend_dict.values(),
@@ -981,8 +985,15 @@ class Plotterly(_Plotter):
         Generated figure to display graphs.
     """
     def __init__(self, dimension=Dimension.TWO, axis_labels=None, **kwargs):
-        if not axis_labels:
-            axis_labels = ["x", "y"]
+        if dimension != Dimension.ONE:
+            if not axis_labels:
+                axis_labels = ["x", "y"]
+        else:
+            if axis_labels:
+                if len(axis_labels) == 1:
+                    axis_labels = ["Time", axis_labels[0]]
+            else:
+                axis_labels = ["Time", "x"]
         if go is None:
             raise RuntimeError("Usage of Plotterly plotter requires installation of `plotly`")
 
@@ -1181,8 +1192,8 @@ class Plotterly(_Plotter):
                 name=name, legendgroup=name, legendrank=210)
 
             if self.dimension == 3:  # update - star-triangle-up not in 3d plotly
-                measurement_kwargs.update(dict(marker=dict(size=4, symbol="diamond",
-                                                           color='#FECB52')))
+                clutter_kwargs.update(dict(marker=dict(size=4, symbol="diamond",
+                                                       color='#FECB52')))
 
             merge(clutter_kwargs, kwargs)
             if clutter_kwargs['legendgroup'] not in {trace.legendgroup
@@ -1497,7 +1508,7 @@ class Plotterly(_Plotter):
         sensor_xy = np.array([sensor.position[mapping, 0] for sensor in sensors])
         self.fig.add_scatter(x=sensor_xy[:, 0], y=sensor_xy[:, 1], **sensor_kwargs)
 
-    def hide_plot_traces(self, items_to_hide: set):
+    def hide_plot_traces(self, items_to_hide=None):
         """Hide Plot Traces
 
         This function allows plotting items to be invisible as default. Users can toggle the plot
@@ -1505,15 +1516,33 @@ class Plotterly(_Plotter):
 
         Parameters
         ----------
-        items_to_hide : set[str]
+        items_to_hide : Iterable[str]
             The legend label (`legendgroups`) for the plot traces that should be invisible as
-            default
+            default. If left as ``None`` no traces will be shown.
         """
         for fig_data in self.fig.data:
-            if fig_data.legendgroup in items_to_hide:
+            if items_to_hide is None or fig_data.legendgroup in items_to_hide:
                 fig_data.visible = "legendonly"
             else:
                 fig_data.visible = None
+
+    def show_plot_traces(self, items_to_show=None):
+        """Show Plot Traces
+
+        This function allows specific plotting items to be shown as default. All labels not
+        mentioned in `items_to_show` will be invisible and can be manually toggled on.
+
+        Parameters
+        ----------
+        items_to_show : Iterable[str]
+            The legend label (`legendgroups`) for the plot traces that should be shown as
+            default. If left as ``None`` all traces will be shown.
+        """
+        for fig_data in self.fig.data:
+            if items_to_show is None or fig_data.legendgroup in items_to_show:
+                fig_data.visible = None
+            else:
+                fig_data.visible = "legendonly"
 
 
 class PolarPlotterly(_Plotter):

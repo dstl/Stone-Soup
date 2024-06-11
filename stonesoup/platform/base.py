@@ -1,8 +1,10 @@
+import uuid
 from typing import MutableSequence
 
 from stonesoup.base import Property, Base
 from stonesoup.movable import Movable, FixedMovable, MovingMovable, MultiTransitionMovable
 from stonesoup.sensor.sensor import Sensor
+from stonesoup.types.groundtruth import GroundTruthPath
 
 
 class Platform(Base):
@@ -37,6 +39,10 @@ class Platform(Base):
     sensors: MutableSequence[Sensor] = Property(
         default=None, readonly=True,
         doc="A list of N mounted sensors. Defaults to an empty list.")
+
+    id: str = Property(
+        default=None,
+        doc="The unique platform ID. Default `None` where random UUID is generated.")
 
     _default_movable_class = None  # Will be overridden by subclasses
 
@@ -79,6 +85,8 @@ class Platform(Base):
             self._property_sensors = []
         for sensor in self.sensors:
             sensor.movement_controller = self.movement_controller
+        if self.id is None:
+            self.id = str(uuid.uuid4())
 
     @staticmethod
     def _tuple_or_none(value):
@@ -149,6 +157,26 @@ class Platform(Base):
 
     def __getitem__(self, item):
         return self.movement_controller.__getitem__(item)
+
+    @property
+    def ground_truth_path(self) -> GroundTruthPath:
+        """ Produce a :class:`.GroundTruthPath` with the same `id` and `states` as the platform.
+
+        The `states` property for the platform and `ground_truth_path` are dynamically linked:
+        ``self.ground_truth_path.states is self.states``
+
+        So after `platform.move()` the `ground_truth_path` will contain the new state. However,
+        replacing the `id`, `states` or `movement_controller` variables in either the platform or
+        ground truth path will not be reflected in the other object.
+        ``platform_gtp = self.ground_truth_path``
+        ``platform_gtp.states = []``
+        ``self.states is not platform_gtp.states``
+
+        `Platform.ground_truth_path` produces a new :class:`.GroundTruthPath` on every instance.
+        It is not an object that is updated
+        ``self.ground_truth_path.states is not self.ground_truth_path.states``
+        """
+        return GroundTruthPath(id=self.id, states=self.movement_controller.states)
 
 
 class FixedPlatform(Platform):

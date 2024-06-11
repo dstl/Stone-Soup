@@ -66,19 +66,28 @@ class AlphaBetaUpdater(Updater):
                                                   "the position elements in the state vector.")
 
     @lru_cache()
-    def predict_measurement(self, prediction, measurement_model=None, **kwargs):
+    def predict_measurement(self, prediction, measurement_model=None, measurement_noise=False,
+                            **kwargs):
         """Return the predicted measurement
 
         Parameters
         ----------
         prediction : :class:`~.StatePrediction`
             The state prediction
+        measurement_model : :class:`~.MeasurementModel`
+            The measurement model. If omitted, the model in the updater object
+            is used
+        measurement_noise : bool
+            Whether to include measurement noise, in this case on `False` is valid.
+            Default `False`
 
         Returns
         -------
          : :class:`~.StateVector`
             The predicted measurement
         """
+        if measurement_noise:
+            raise ValueError("measurement noise must be False")
         # This necessary if predict_measurement called on its own
         measurement_model = self._check_measurement_model(measurement_model)
         pred_meas = measurement_model.matrix(**kwargs) @ prediction.state_vector
