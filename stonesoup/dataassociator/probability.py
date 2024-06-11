@@ -317,11 +317,7 @@ class JPDAwithLBP(JPDA):
                 nu = 1 / (1 + np.sum(mu, axis=0, keepdims=True) - mu)
 
             # check for convergence
-            d = 0.0
-            for i in range(num_tracks):
-                for j in range(1, num_measurements + 1):
-                    if d < abs(math.log10(nu[i][j - 1] / nu_tilde[i][j - 1])):
-                        d = abs(math.log10(nu[i][j - 1] / nu_tilde[i][j - 1]))
+            d = np.max(np.abs(np.log10(nu / nu_tilde)))
 
             # determine alpha
             if d > 0:
