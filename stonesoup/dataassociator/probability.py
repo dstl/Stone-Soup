@@ -266,17 +266,15 @@ class JPDAwithLBP(JPDA):
 
         return likelihood_matrix.astype(float)
 
-    """
-    Perform loopy belief propagation (Williams and Lau, 2014) to determine the approximate 
-    marginal association probabilities (of tracks to measurements). This requires:
-    1. likelihood_matrix = single target association weights
-    2. n_iterations = number of iterations between convergence checks
-    3. delta = deviation tolerance(of approximate weights from true weights)
-    """
-
     @staticmethod
     def _loopy_belief_propagation(likelihood_matrix, n_iterations, delta):
-
+        """
+        Perform loopy belief propagation (Williams and Lau, 2014) to determine the approximate 
+        marginal association probabilities (of tracks to measurements). This requires:
+        1. likelihood_matrix = single target association weights
+        2. n_iterations = number of iterations between convergence checks
+        3. delta = deviation tolerance(of approximate weights from true weights)
+        """
         # number of tracks
         num_tracks = len(likelihood_matrix)
 
