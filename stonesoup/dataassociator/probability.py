@@ -332,17 +332,9 @@ class JPDAwithLBP(JPDA):
                 alpha = (1 - 1e-10)
 
         # calculate marginal probabilities (beliefs)
-        for i in range(num_tracks):
-
-            # calculate s
-            s = 1
-            for j in range(1, num_measurements + 1):
-                s += (likelihood_matrix[i][j] * nu[i][j - 1])
-
-            # calculate association probabilities
-            assoc_prob_matrix[i][0] = (1 / s)
-            for j in range(1, num_measurements + 1):
-                assoc_prob_matrix[i][j] = (likelihood_matrix[i][j] * nu[i][j - 1]) / s
+        s = 1 + np.sum(likelihood_matrix[:, 1:] * nu, axis=1, keepdims=True)
+        assoc_prob_matrix[:, :1] = 1 / s
+        assoc_prob_matrix[:, 1:] = (likelihood_matrix[:, 1:] * nu) / s
 
         # return the matrix of marginal association probabilities
         return assoc_prob_matrix.astype(float)
