@@ -1,8 +1,11 @@
 from functools import partial
 
 import numpy as np
+import numpy.matlib as npm
 import scipy.linalg as la
+import copy
 
+from ..types.array import CovarianceMatrix, StateVector, StateVectors
 from .base import Predictor
 from ._utils import predict_lru_cache
 from ..base import Property
@@ -12,12 +15,13 @@ from ..models.transition import TransitionModel
 from ..models.transition.linear import LinearGaussianTransitionModel
 from ..models.control import ControlModel
 from ..models.control.linear import LinearControlModel
-from ..functions import gauss2sigma, unscented_transform, cubature_transform
+from ..functions import gauss2sigma, unscented_transform, cubature_transform, stochasticCubatureRulePoints
+
 
 
 class KalmanPredictor(Predictor):
     r"""A predictor class which forms the basis for the family of Kalman
-    predictors. This class also serves as the (specific) Kalman Filter
+    predictors. This class also servas the (specific) Kalman Filter
     :class:`~.Predictor` class. Here transition and control models must be linear:
 
     .. math::
@@ -492,10 +496,11 @@ class CubatureKalmanPredictor(KalmanPredictor):
         default=None,
         doc="The control model to be used. Default `None` where the predictor "
             "will create a zero-effect linear :class:`~.ControlModel`.")
+
     alpha: float = Property(
-        default=1.0,
-        doc="Scaling parameter. Default is 1.0. Lower values select points closer to the mean and "
-            "vice versa.")
+      default=1.0,
+      doc="Scaling parameter. Default is 1.0. Lower values select points closer to the mean and "
+          "vice versa.")
 
     def _transition_and_control_function(self, prior_state, **kwargs):
         r"""Returns the result of applying the transition and control functions
@@ -539,7 +544,71 @@ class CubatureKalmanPredictor(KalmanPredictor):
             The predicted state :math:`\mathbf{x}_{k|k-1}` and the predicted
             state covariance :math:`P_{k|k-1}`
         """
+        transition_and_control_function = partial(
+            self._transition_and_control_function,
+            control_input=control_input,
+            time_interval=predict_over_interval)
 
+x_pred, p_pred, _, _ = cubature_transform(prior, transition_and_control_function,
+                                                  covar_noise=total_noise_covar, alpha=self.alpha)
+
+        return Prediction.from_state(prior, x_pred, p_pred, timestamp=timestamp,
+                                     transition_model=self.transition_model, prior=prior)
+
+
+class StochasticIntegrationPredictor(KalmanPredictor):
+    """Stochastic Integration Kalman Filter class
+
+    The state prediction of nonlinear models is accomplished by the stochastic
+    integration approximation.
+    
+    Nmax: float = Property(
+        default=10,
+        doc="maximal number of iterations of SIR")
+    Nmin: float = Property(
+        default=5,
+        doc="minimal number of iterations of stochastic integration rule (SIR)")
+    Eps: float = Property(
+        default=5e-3,
+        doc="allowed threshold for integration error")
+    SIorder: float = Property(
+        default=3,
+        doc="order of SIR (orders 1, 3, 5 are currently supported)")
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+
+        self._time_interval = None
+
+    def _transition_and_control_function(self, prior_state, **kwargs):
+        r"""Returns the result of applying the transition and control functions
+        for the unscented transform
+
+        return self.transition_model.function(prior_state, **kwargs) + \
+            self.control_model.function(**kwargs)
+
+    @predict_lru_cache()
+    def predict(self, prior, timestamp=None, control_input=None, **kwargs):
+        r"""The stochastic integration version of the predict step
+            These are passed to :meth:`~.TransitionModel.covar`
+        """
+        nx = np.size(prior.mean, 0)
+        enx = nx
+
+        Sp = np.linalg.cholesky(prior.covar)
+        Ix = np.zeros((nx, 1))
+        Vx = np.zeros((nx, 1))
+        IPx = np.zeros((nx, nx))
+        VPx = np.zeros((nx, nx))
+        # Iteration Count
+        N = 0
+
+        # Get the prediction interval
+        predict_over_interval = self._predict_over_interval(prior, timestamp)
+
+        # This ensures that function passed to unscented transform has the
+        # correct time interval
+        
         # Get the prediction interval
         predict_over_interval = self._predict_over_interval(prior, timestamp)
 
@@ -553,13 +622,90 @@ class CubatureKalmanPredictor(KalmanPredictor):
 
         # This ensures that function passed to transform has the correct time interval and control
         # input
-        transition_and_control_function = partial(
-            self._transition_and_control_function,
-            control_input=control_input,
-            time_interval=predict_over_interval)
+        # - SIR recursion for state predictive moments computation
+        # -- until either max iterations or threshold is reached
+        while N < self.Nmin or np.all([N < self.Nmax,
+                                       np.any([(np.linalg.norm(Vx) > self.Eps),
+                                               ])]):
+            N = N + 1
+            #  -- cubature points and weights computation (for standard normal PDF)
+            [SCRSigmaPoints, w] = stochasticCubatureRulePoints(enx,
+                                                               self.SIorder)
+            # -- points transformation for given filtering mean and covariance
+            #    matrix
+            xpoints = Sp@SCRSigmaPoints + \
+                npm.repmat(prior.mean, 1, np.size(SCRSigmaPoints, 1))
+            # -- points transformation via dynamics  (deterministic part)
+            # Put these points into s State object list
+            sigma_points_states = []
+            for xpoint in xpoints.T:
+                state_copy = copy.copy(prior)
+                state_copy.state_vector = StateVector(xpoint)
+                sigma_points_states.append(state_copy)
 
-        x_pred, p_pred, _, _ = cubature_transform(prior, transition_and_control_function,
-                                                  covar_noise=total_noise_covar, alpha=self.alpha)
+            fpoints = StateVectors([
+                transition_and_control_function(sigma_points_state)
+                for sigma_points_state in sigma_points_states])
+            # Stochastic integration rule for predictive state mean and
+            # covariance matrix
+            SumRx = np.average(fpoints, axis=1, weights=w)
 
-        return Prediction.from_state(prior, x_pred, p_pred, timestamp=timestamp,
-                                     transition_model=self.transition_model, prior=prior)
+            # --- update mean Ix
+            Dx = (SumRx - Ix) / N
+            Ix = Ix + Dx
+            Vx = (N - 2) * Vx / N + Dx ** 2
+
+        xp = Ix
+
+        N = 0
+        # - SIR recursion for state predictive moments computation
+        # -- until max iterations are reached or threshold is reached
+        while N < self.Nmin or np.all([N < self.Nmax,
+                                       np.any([(np.linalg.norm(VPx) >
+                                                self.Eps)])]):
+            N = N + 1
+            #  -- cubature points and weights computation (for standard normal PDF)
+            [SCRSigmaPoints, w] = stochasticCubatureRulePoints(enx,
+                                                               self.SIorder)
+            # -- points transformation for given filtering mean and covariance
+            #    matrix
+            xpoints = Sp @ SCRSigmaPoints + \
+                npm.repmat(prior.mean, 1, np.size(SCRSigmaPoints, 1))
+            # -- points transformation via dynamics  (deterministic part)
+            # Put these points into s State object list
+            sigma_points_states = []
+            for xpoint in xpoints.T:
+                state_copy = copy.copy(prior)
+                state_copy.state_vector = StateVector(xpoint)
+                sigma_points_states.append(state_copy)
+
+            fpoints = StateVectors([
+                transition_and_control_function(sigma_points_state)
+                for sigma_points_state in sigma_points_states])
+            # -- stochastic integration rule for predictive state mean and covariance
+            #    matrix
+
+            fpoints_diff = fpoints - xp
+            SumRPx = fpoints_diff @ np.diag(w) @ fpoints_diff.T
+            # SumRPx=np.multiply(pom,fpoints)@fpoints.T
+
+            # --- update covariance matrix IPx
+            DPx = (SumRPx - IPx) / N
+            IPx = IPx + DPx
+            VPx = (N - 2) * VPx / N + DPx ** 2
+
+        Q = self.transition_model.covar(time_interval=predict_over_interval, **kwargs)
+
+        Pp = IPx
+        Pp = Pp + Q + np.diag(Vx.ravel())
+        Pp = (Pp+Pp.T) / 2
+
+        Pp = Pp.astype(np.float64)
+
+        # and return a Gaussian state based on these parameters
+        return Prediction.from_state(prior, xp.view(StateVector),
+                                     Pp.view(CovarianceMatrix),
+                                     timestamp=timestamp,
+                                     transition_model=self.transition_model,
+                                     prior=prior)
+
