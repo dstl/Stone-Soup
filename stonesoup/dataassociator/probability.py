@@ -276,11 +276,10 @@ class JPDAwithLBP(JPDA):
         3. delta = deviation tolerance(of approximate weights from true weights)
         """
         # number of tracks
-        num_tracks = len(likelihood_matrix)
+        num_tracks = likelihood_matrix.shape[0]
 
         # number of measurements/detections
-        # num_measurements = len(likelihood_matrix[0]) - 1
-        num_measurements = len(likelihood_matrix.transpose()) - 1
+        num_measurements = likelihood_matrix.shape[1] - 1
 
         # initialise
         iteration: int = 0
