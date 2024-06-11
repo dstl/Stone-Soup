@@ -311,9 +311,7 @@ class JPDAwithLBP(JPDA):
 
                 # save values for convergence check
                 if k == n_iterations:
-                    for i in range(num_tracks):
-                        for j in range(1, num_measurements + 1):
-                            nu_tilde[i][j - 1] = nu[i][j - 1]
+                    nu_tilde = nu.copy()
 
                 # calculate R-L messages
                 for j in range(1, num_measurements + 1):
