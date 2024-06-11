@@ -262,10 +262,7 @@ class JPDAwithLBP(JPDA):
 
         # change the normalisation of the likelihood matrix to have the no measurement
         # association hypothesis normalised to unity
-        for i in range(num_tracks):
-            for j in range(1, num_detections + 1):
-                likelihood_matrix[i, j] = likelihood_matrix[i, j] / likelihood_matrix[i, 0]
-            likelihood_matrix[i, 0] = 1.0
+        likelihood_matrix /= likelihood_matrix[:, [0]]
 
         return likelihood_matrix.astype(float)
 
