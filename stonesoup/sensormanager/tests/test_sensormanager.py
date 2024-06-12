@@ -617,7 +617,7 @@ def test_sensor_manager_with_platform(params):
                 cov=np.diag([1.5, 0.25, 1.5, 0.25]),
                 size=100).T),
                           weight=np.array([1/100]*100)),  # track2_state2
-            'max_cumulative_reward',  # best_child_policy
+            'max_visits',  # best_child_policy
         ), (
             KalmanPredictor,  # predictor_obj
             ExtendedKalmanUpdater,  # updater_obj

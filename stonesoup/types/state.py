@@ -1,6 +1,7 @@
 import copy
 import datetime
 import uuid
+import weakref
 from collections import abc
 from numbers import Integral
 from typing import MutableSequence, Any, Optional, Sequence, MutableMapping
@@ -663,15 +664,17 @@ class ParticleState(State):
                 raise ValueError("Either all particles should have"
                                  " parents or none of them should.")
 
-        if self.parent:
-            self.parent.parent = None  # Removed to avoid using significant memory
+        if self.parent and self.parent.parent:  # Create weakref to avoid using significant memory
+            self.parent.parent = weakref.ref(self.parent.parent)
 
         if self.state_vector is not None and not isinstance(self.state_vector, StateVectors):
             self.state_vector = StateVectors(self.state_vector)
 
     def __getitem__(self, item):
         if self.parent is not None:
-            parent = self.parent[item]
+            parent = copy.copy(self.parent)
+            parent.parent = None  # Don't slice parent parent
+            parent = parent[item]
         else:
             parent = None
 
@@ -691,6 +694,13 @@ class ParticleState(State):
                                            log_weight=log_weight,
                                            parent=parent)
         return result
+
+    @parent.getter
+    def parent(self):
+        if isinstance(self._property_parent, weakref.ReferenceType):
+            return self._property_parent()
+        else:
+            return self._property_parent
 
     @classmethod
     def from_state(cls, state: 'State', *args: Any, target_type: Optional[typing.Type] = None,

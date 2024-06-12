@@ -233,9 +233,8 @@ class ExpectedKLDivergence(RewardFunction):
         # Create dictionary of predictions for the tracks in the configuration
         predicted_tracks = set()
         for track in tracks:
-            predicted_track = Track()
+            predicted_track = copy.copy(track)
             if self.predictor:
-                predicted_track = copy.copy(track)
                 predicted_track.append(self.predictor.predict(track[-1],
                                                               timestamp=metric_time))
             else:

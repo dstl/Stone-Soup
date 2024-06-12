@@ -8,7 +8,6 @@ import numpy as np
 
 from .base import SensorManager
 from ..base import Property
-from ..types.track import Track
 
 
 class MCTSBestChildPolicyEnum(Enum):
@@ -133,7 +132,7 @@ class MonteCarloTreeSearchSensorManager(SensorManager):
                   'action_count': 0,
                   'visits': 0,
                   'reward': 0,
-                  'tracks': {copy.copy(track) for track in tracks},
+                  'tracks': copy.deepcopy(tracks),
                   'timestamp': timestamp-self.time_step,
                   'level': 0}]
 
@@ -191,8 +190,7 @@ class MonteCarloTreeSearchSensorManager(SensorManager):
 
             reward, updates = self.simulate_action(nodes[-1], nodes[node_indx])
 
-            for track in updates:
-                nodes[-1]['tracks'].add(Track(track[-1]))
+            nodes[-1]['tracks'] = updates
 
             for sensor, actions in selected_config.items():
                 sensor.add_actions(actions)
