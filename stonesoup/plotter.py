@@ -16,6 +16,7 @@ from matplotlib.colors import to_hex
 from scipy.integrate import quad
 from scipy.optimize import brentq
 from scipy.stats import kde
+
 try:
     from plotly import colors
 except ImportError:
@@ -100,11 +101,11 @@ class _Plotter(ABC):
 
             if isinstance(state, detection.Clutter):
                 # Plot clutter
-                conv_clutter[state] = (*state_vec, )
+                conv_clutter[state] = (*state_vec,)
 
             elif isinstance(state, detection.Detection):
                 # Plot detections
-                conv_detections[state] = (*state_vec, )
+                conv_detections[state] = (*state_vec,)
             else:
                 warnings.warn(f'Unknown type {type(state)}')
                 continue
@@ -395,7 +396,7 @@ class Plotter(_Plotter):
                 # Plot uncertainty ellipses
                 for track in tracks:
                     HH = np.eye(track.ndim)[mapping, :]  # Get position mapping matrix
-                    check = err_freq - 1    # plot the first one
+                    check = err_freq - 1  # plot the first one
                     for state in track:
                         check += 1
                         if check % err_freq:
@@ -443,13 +444,13 @@ class Plotter(_Plotter):
                             z_err = w[2]
 
                             artists.extend(
-                                self.ax.plot3D([xl+x_err, xl-x_err], [yl, yl], [zl, zl],
+                                self.ax.plot3D([xl + x_err, xl - x_err], [yl, yl], [zl, zl],
                                                marker="_", color=tracks_kwargs['color']))
                             artists.extend(
-                                self.ax.plot3D([xl, xl], [yl+y_err, yl-y_err], [zl, zl],
+                                self.ax.plot3D([xl, xl], [yl + y_err, yl - y_err], [zl, zl],
                                                marker="_", color=tracks_kwargs['color']))
                             artists.extend(
-                                self.ax.plot3D([xl, xl], [yl, yl], [zl+z_err, zl-z_err],
+                                self.ax.plot3D([xl, xl], [yl, yl], [zl + z_err, zl - z_err],
                                                marker="_", color=tracks_kwargs['color']))
                         check += 1
 
@@ -557,8 +558,8 @@ class Plotter(_Plotter):
             equal_axes = [0, 0, 0]
             for i in axes:
                 equal_axes[i] = 1
-            lower = ([np.mean([x, y]) for x, y in zip(max_xyz, min_xyz)] - extremes/2) * equal_axes
-            upper = ([np.mean([x, y]) for x, y in zip(max_xyz, min_xyz)] + extremes/2) * equal_axes
+            lower = ([np.mean([x, y]) for x, y in zip(max_xyz, min_xyz)] - extremes / 2) * equal_axes
+            upper = ([np.mean([x, y]) for x, y in zip(max_xyz, min_xyz)] + extremes / 2) * equal_axes
             ghosts = GroundTruthPath(states=[State(state_vector=lower),
                                              State(state_vector=upper)])
 
@@ -651,7 +652,7 @@ class Plotter(_Plotter):
 class _HandlerEllipse(HandlerPatch):
     def create_artists(self, legend, orig_handle,
                        xdescent, ydescent, width, height, fontsize, trans):
-        center = 0.5*width - 0.5*xdescent, 0.5*height - 0.5*ydescent
+        center = 0.5 * width - 0.5 * xdescent, 0.5 * height - 0.5 * ydescent
         p = Ellipse(xy=center, width=width + xdescent,
                     height=height + ydescent)
         self.update_prop(p, orig_handle, legend)
@@ -666,6 +667,7 @@ class MetricPlotter(ABC):
     Legends are automatically generated with each plot.
 
     """
+
     def __init__(self):
         self.fig = None
         self.axes = None
@@ -834,7 +836,7 @@ class MetricPlotter(ABC):
         number_of_subplots = self._count_subplots(metrics_to_plot, True)
 
         # initialise each subplot
-        self.fig, axes = plt.subplots(number_of_subplots, figsize=(10, 6*number_of_subplots))
+        self.fig, axes = plt.subplots(number_of_subplots, figsize=(10, 6 * number_of_subplots))
         self.fig.subplots_adjust(hspace=0.3)
 
         # extract data for each subplot and plot it
@@ -901,7 +903,7 @@ class MetricPlotter(ABC):
         number_of_subplots = self._count_subplots(metrics_to_plot, False)
 
         # initialise each plot
-        self.fig, axes = plt.subplots(number_of_subplots, figsize=(10, 6*number_of_subplots))
+        self.fig, axes = plt.subplots(number_of_subplots, figsize=(10, 6 * number_of_subplots))
         self.fig.subplots_adjust(hspace=0.3)
 
         # extract data for each plot and plot it
@@ -981,6 +983,7 @@ class Plotterly(_Plotter):
     fig: plotly.graph_objects.Figure
         Generated figure to display graphs.
     """
+
     def __init__(self, dimension=Dimension.TWO, axis_labels=None, **kwargs):
         if not axis_labels:
             axis_labels = ["x", "y"]
@@ -1435,10 +1438,10 @@ class Plotterly(_Plotter):
         orient = np.arctan2(v[1, max_ind], v[0, max_ind])
         a = np.sqrt(w[max_ind])
         b = np.sqrt(w[min_ind])
-        m = 1 - (b**2 / a**2)
+        m = 1 - (b ** 2 / a ** 2)
 
         def func(x):
-            return np.sqrt(1 - (m**2 * np.sin(x)**2))
+            return np.sqrt(1 - (m ** 2 * np.sin(x) ** 2))
 
         def func2(z):
             return quad(func, 0, z)[0]
@@ -1448,7 +1451,7 @@ class Plotterly(_Plotter):
         points = []
         for n in range(n_points):
             def func3(x):
-                return n/n_points*c - a*func2(x)
+                return n / n_points * c - a * func2(x)
 
             points.append((brentq(func3, 0, 2 * np.pi, xtol=1e-4)))
 
@@ -2391,13 +2394,11 @@ class AnimatedPlotterly(_Plotter):
         # and not the default values. Issues arise if the initial plotted data is much
         # smaller than the default 0 to 10 values.
         if not self.plotting_function_called:
-
             self.fig.update_xaxes(range=[xmin, xmax])
             self.fig.update_yaxes(range=[ymin, ymax])
 
         # need to check if it's actually necessary to resize or not
         if xmax >= self.fig.layout.xaxis.range[1] or xmin <= self.fig.layout.xaxis.range[0]:
-
             xmax = max(xmax, self.fig.layout.xaxis.range[1])
             xmin = min(xmin, self.fig.layout.xaxis.range[0])
             xrange = xmax - xmin
@@ -2406,7 +2407,6 @@ class AnimatedPlotterly(_Plotter):
             self.fig.update_xaxes(range=[xmin - xrange / 20, xmax + xrange / 20])
 
         if ymax >= self.fig.layout.yaxis.range[1] or ymin <= self.fig.layout.yaxis.range[0]:
-
             ymax = max(ymax, self.fig.layout.yaxis.range[1])
             ymin = min(ymin, self.fig.layout.yaxis.range[0])
             yrange = ymax - ymin
@@ -2535,8 +2535,8 @@ class AnimatedPlotterly(_Plotter):
         self.plotting_function_called = True
 
     def plot_measurements(self, measurements, mapping, measurement_model=None,
-                           resize=True, measurements_label="Measurements",
-                           convert_measurements=True, assoc_prob_color=None, **kwargs):
+                          resize=True, measurements_label="Measurements",
+                          convert_measurements=True, assoc_prob_color=None, **kwargs):
         """Plots measurements
 
         Plots detections and clutter, generating a legend automatically. Detections are plotted as
@@ -2562,6 +2562,11 @@ class AnimatedPlotterly(_Plotter):
         convert_measurements : bool
             Should the measurements be converted from measurement space to state space before
             being plotted. Default is True
+        assoc_prob_color : str, optional
+            Color for association probabilities. This parameter allows customization of the color
+            used to represent association probabilities, which can be useful for visualizing
+            uncertainty or confidence in the measurements. If not provided, the default color is
+            used.
         \\*\\*kwargs: dict
             Additional arguments to be passed to scatter function for detections. Defaults are
             ``marker=dict(color="#636EFA")``.
@@ -2624,7 +2629,6 @@ class AnimatedPlotterly(_Plotter):
                 if assoc_prob_color is not None:
                     combined_data[key]["color"][n] = to_hex(plt.get_cmap('inferno')(assoc_prob_color[key][0][n]))
 
-
         # get number of traces currently in fig
         trace_base = len(self.fig.data)
 
@@ -2648,7 +2652,7 @@ class AnimatedPlotterly(_Plotter):
                                    "marker": dict(symbol="star-triangle-up", color='#FECB52'),
                                    "name": name, 'showlegend': True})
 
-        self.fig.add_trace(go.Scatter(measurement_kwargs)) # trace for plotting clutter
+        self.fig.add_trace(go.Scatter(measurement_kwargs))  # trace for plotting clutter
 
         # add data to frames
         for frame in self.fig.frames:
@@ -2685,7 +2689,7 @@ class AnimatedPlotterly(_Plotter):
                     det_colors = [combined_data[key]["color"][i] for i in np.where(mask[0])[0]]
 
                 if assoc_prob_color is not None:
-                    Color_Dict=dict(
+                    color_dict = dict(
                         color=det_colors,
                         colorscale='inferno',
                         colorbar=dict(
@@ -2702,13 +2706,13 @@ class AnimatedPlotterly(_Plotter):
                         cmax=1
                     )
                 else:
-                    Color_Dict = None
+                    color_dict = None
 
                 data_.append(go.Scatter(
                     x=det_x,
                     y=det_y,
                     meta=det_times,
-                    marker=Color_Dict,
+                    marker=color_dict,
                     hovertemplate=f'{key}' +
                                   '<br>(%{x}, %{y})' +
                                   '<br>Time: %{meta}'
