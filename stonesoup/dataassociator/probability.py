@@ -214,9 +214,8 @@ class JPDAwithLBP(JPDA):
             track: self.hypothesiser.hypothesise(track, detections, timestamp)
             for track in tracks}
 
-        multi_hypotheses = self._compute_multi_hypotheses(tracks, detections, hypotheses, timestamp)
-
-        return multi_hypotheses
+        multi_hypotheses, assoc_prob_list = self._compute_multi_hypotheses(tracks, detections, hypotheses, timestamp)
+        return multi_hypotheses, assoc_prob_list
 
     @staticmethod
     def _calc_likelihood_matrix(tracks, detections, hypotheses):
@@ -402,6 +401,13 @@ class JPDAwithLBP(JPDA):
         assoc_prob_matrix = cls._loopy_belief_propagation(likelihood_matrix, n_iterations, delta)
         # print(assoc_prob_matrix)
 
+
+        # Extract the class names of the detection list elements
+        assoc_prob_matrix_labels = [type(detection).__name__ for detection in detection_list]
+
+        # Combine the association probability matrix with the labels
+        assoc_prob_list = [assoc_prob_matrix, assoc_prob_matrix_labels]
+
         # Calculate MultiMeasurementHypothesis for each Track over all
         # available Detections with probabilities drawn from the association matrix
         new_hypotheses = dict()
@@ -439,5 +445,51 @@ class JPDAwithLBP(JPDA):
 
             new_hypotheses[track] = MultipleHypothesis(single_measurement_hypotheses, True, 1)
 
-        return new_hypotheses
-        return assoc_prob_matrix
+        return new_hypotheses, assoc_prob_list
+
+
+
+def extract_assoc_prob_matrix(assoc_prob_matrix, assoc_prob_matrix_labels):
+    """
+    Extracts the probability association values with their measurement label.
+
+    Parameters:
+    - assoc_prob_matrix: List of 2D numpy arrays with association probabilities.
+    - assoc_prob_matrix_labels: List of label arrays corresponding to the association probabilities.
+
+    Returns:
+    - A dictionary with 'Detection' and 'Clutter' keys, each containing a dictionary with a single key 0
+      and numpy array of the association probabilities.
+    """
+    # Extract the probability association values with their measurement label
+    assoc_prob_matrix = [arr[:, 1:] for arr in assoc_prob_matrix]
+    assoc_prob_matrix_labels = [arrl[:] for arrl in assoc_prob_matrix_labels]
+
+    assoc_prob_matrix = [np.max(arr, axis=0).reshape(1, -1) for arr in assoc_prob_matrix]
+
+    # Initialize the result dictionary
+    assoc_prob_matrix_final = {
+        'Detection': [],
+        'Clutter': []
+    }
+
+    # Process each pair of ndarray and label list
+    for val_ndarray, lab_list in zip(assoc_prob_matrix, assoc_prob_matrix_labels):
+        for i, label in enumerate(lab_list):
+            column_values = val_ndarray[:, i]
+            if label == 'TrueDetection':
+                assoc_prob_matrix_final['Detection'].extend(column_values)
+            elif label == 'Clutter':
+                assoc_prob_matrix_final['Clutter'].extend(column_values)
+
+    # Convert lists to NumPy arrays
+    assoc_prob_matrix_final['Detection'] = np.array(assoc_prob_matrix_final['Detection'])
+    assoc_prob_matrix_final['Clutter'] = np.array(assoc_prob_matrix_final['Clutter'])
+
+    # Convert to dictionary format specified in the problem statement
+    assoc_prob_matrix_final = {
+        'Detection': {0: assoc_prob_matrix_final['Detection']},
+        'Clutter': {0: assoc_prob_matrix_final['Clutter']}
+    }
+
+    return assoc_prob_matrix_final

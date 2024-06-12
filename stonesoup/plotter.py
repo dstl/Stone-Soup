@@ -12,6 +12,7 @@ from matplotlib.legend_handler import HandlerPatch
 from matplotlib.lines import Line2D
 from matplotlib.patches import Ellipse
 from mergedeep import merge
+from matplotlib.colors import to_hex
 from scipy.integrate import quad
 from scipy.optimize import brentq
 from scipy.stats import kde
@@ -1000,7 +1001,6 @@ class Plotterly(_Plotter):
             layout_kwargs.update(dict(scene_aspectmode='data'))  # auto shapes fig to fit data well
 
         merge(layout_kwargs, kwargs)
-
         # Generate plot axes
         self.fig = go.Figure(layout=layout_kwargs)
 
@@ -1056,6 +1056,7 @@ class Plotterly(_Plotter):
             truths_kwargs.update(dict(line=dict(width=8, dash="longdashdot")))
 
         merge(truths_kwargs, kwargs)
+
         add_legend = truths_kwargs['legendgroup'] not in {trace.legendgroup
                                                           for trace in self.fig.data}
 
@@ -1144,6 +1145,7 @@ class Plotterly(_Plotter):
                 measurement_kwargs.update(dict(marker=dict(size=4, color='#636EFA')))
 
             merge(measurement_kwargs, kwargs)
+
             if measurement_kwargs['legendgroup'] not in {trace.legendgroup
                                                          for trace in self.fig.data}:
                 measurement_kwargs['showlegend'] = True
@@ -1185,6 +1187,7 @@ class Plotterly(_Plotter):
                                                            color='#FECB52')))
 
             merge(clutter_kwargs, kwargs)
+
             if clutter_kwargs['legendgroup'] not in {trace.legendgroup
                                                      for trace in self.fig.data}:
                 clutter_kwargs['showlegend'] = True
@@ -1285,6 +1288,7 @@ class Plotterly(_Plotter):
         if self.dimension == 3:  # change visuals to work well in 3d
             track_kwargs.update(dict(line=dict(width=7)), marker=dict(size=4))
         merge(track_kwargs, kwargs)
+
         add_legend = track_kwargs['legendgroup'] not in {trace.legendgroup
                                                          for trace in self.fig.data}
 
@@ -1575,6 +1579,7 @@ class PolarPlotterly(_Plotter):
             mode="markers", legendgroup=label, legendrank=200,
             name=label, thetaunit="radians")
         merge(plotting_kwargs, kwargs)
+
         add_legend = plotting_kwargs['legendgroup'] not in {trace.legendgroup
                                                             for trace in self.fig.data}
 
@@ -1622,6 +1627,7 @@ class PolarPlotterly(_Plotter):
         """
         truths_kwargs = dict(mode="lines", line=dict(dash="dash"), legendrank=100)
         merge(truths_kwargs, kwargs)
+
         angle_mapping = mapping[0]
         if len(mapping) > 1:
             range_mapping = mapping[1]
@@ -1682,6 +1688,7 @@ class PolarPlotterly(_Plotter):
             name = measurements_label + "<br>(Detections)"
             measurement_kwargs = dict(mode='markers', marker=dict(color='#636EFA'), legendrank=200)
             merge(measurement_kwargs, kwargs)
+
             plotting_data = [State(state_vector=plotting_state_vector,
                                    timestamp=det.timestamp)
                              for det, plotting_state_vector in plot_detections.items()]
@@ -1695,6 +1702,7 @@ class PolarPlotterly(_Plotter):
             clutter_kwargs = dict(mode='markers', legendrank=210,
                                   marker=dict(symbol="star-triangle-up", color='#FECB52'))
             merge(clutter_kwargs, kwargs)
+
             plotting_data = [State(state_vector=plotting_state_vector,
                                    timestamp=det.timestamp)
                              for det, plotting_state_vector in plot_clutter.items()]
@@ -1736,6 +1744,7 @@ class PolarPlotterly(_Plotter):
 
         track_kwargs = dict(mode='markers+lines', legendrank=300)
         merge(track_kwargs, kwargs)
+
         angle_mapping = mapping[0]
         if len(mapping) > 1:
             range_mapping = mapping[1]
@@ -2461,7 +2470,7 @@ class AnimatedPlotterly(_Plotter):
         truth_kwargs = dict(x=[], y=[], mode="lines", hoverinfo='none', legendgroup=truths_label,
                             line=dict(dash="dash", color=self.colorway[0]), legendrank=100,
                             name=truths_label, showlegend=True)
-        merge(truth_kwargs, kwargs)
+        truth_kwargs.update(kwargs)
         # legend dummy trace
         self.fig.add_trace(go.Scatter(truth_kwargs))
 
@@ -2470,8 +2479,9 @@ class AnimatedPlotterly(_Plotter):
 
         for n, _ in enumerate(truths):
             # change the colour of each truth and include n in its name
-            merge(truth_kwargs, dict(line=dict(color=self.colorway[n % len(self.colorway)])))
-            merge(truth_kwargs, kwargs)
+            truth_kwargs.update({
+                "line": dict(dash="dash", color=self.colorway[n % len(self.colorway)])})
+            truth_kwargs.update(kwargs)
             self.fig.add_trace(go.Scatter(truth_kwargs))  # add to traces
 
         for frame in self.fig.frames:
@@ -2525,8 +2535,8 @@ class AnimatedPlotterly(_Plotter):
         self.plotting_function_called = True
 
     def plot_measurements(self, measurements, mapping, measurement_model=None,
-                          resize=True, measurements_label="Measurements",
-                          convert_measurements=True, **kwargs):
+                           resize=True, measurements_label="Measurements",
+                           convert_measurements=True, assoc_prob_color=None, **kwargs):
         """Plots measurements
 
         Plots detections and clutter, generating a legend automatically. Detections are plotted as
@@ -2585,12 +2595,21 @@ class AnimatedPlotterly(_Plotter):
         # initialise combined_data
         for key in combined_data.keys():
             length = len(plot_combined[key])
-            combined_data[key].update({
+
+            # Base dictionary to update
+            update_dict = {
                 "x": np.zeros(length),
                 "y": np.zeros(length),
                 "time": np.array([0 for _ in range(length)], dtype=object),
                 "time_str": np.array([0 for _ in range(length)], dtype=object),
-                "type": np.array([0 for _ in range(length)], dtype=object)})
+                "type": np.array([0 for _ in range(length)], dtype=object)
+            }
+
+            if assoc_prob_color is not None:
+                # Add color field if include_color is True
+                update_dict["color"] = [[] for _ in range(length)]
+
+            combined_data[key].update(update_dict)
 
         # and now fill in the data
 
@@ -2602,6 +2621,9 @@ class AnimatedPlotterly(_Plotter):
                 combined_data[key]["time"][n] = det.timestamp
                 combined_data[key]["time_str"][n] = str(det.timestamp)
                 combined_data[key]["type"][n] = type(det).__name__
+                if assoc_prob_color is not None:
+                    combined_data[key]["color"][n] = to_hex(plt.get_cmap('inferno')(assoc_prob_color[key][0][n]))
+
 
         # get number of traces currently in fig
         trace_base = len(self.fig.data)
@@ -2613,7 +2635,7 @@ class AnimatedPlotterly(_Plotter):
                                   legendgroup=name,
                                   legendrank=200, showlegend=True,
                                   marker=dict(color="#636EFA"), hoverinfo='none')
-        merge(measurement_kwargs, kwargs)
+        measurement_kwargs.update(kwargs)
 
         self.fig.add_trace(go.Scatter(measurement_kwargs))  # trace for legend
 
@@ -2622,15 +2644,11 @@ class AnimatedPlotterly(_Plotter):
 
         # change necessary kwargs to initialise clutter trace
         name = measurements_label + "<br>(Clutter)"
-        clutter_kwargs = dict(x=[], y=[], mode='markers',
-                              name=name,
-                              legendgroup=name,
-                              legendrank=300, showlegend=True,
-                              marker=dict(symbol="star-triangle-up", color='#FECB52'),
-                              hoverinfo='none')
-        merge(clutter_kwargs, kwargs)
+        measurement_kwargs.update({"legendgroup": 'Clutter', "legendrank": 300,
+                                   "marker": dict(symbol="star-triangle-up", color='#FECB52'),
+                                   "name": name, 'showlegend': True})
 
-        self.fig.add_trace(go.Scatter(clutter_kwargs))  # trace for plotting clutter
+        self.fig.add_trace(go.Scatter(measurement_kwargs)) # trace for plotting clutter
 
         # add data to frames
         for frame in self.fig.frames:
@@ -2663,13 +2681,39 @@ class AnimatedPlotterly(_Plotter):
                 det_y = combined_data[key]["y"][tuple(mask)]
                 det_y = np.append(det_y, [np.inf])
                 det_times = combined_data[key]["time_str"][tuple(mask)]
+                if assoc_prob_color is not None:
+                    det_colors = [combined_data[key]["color"][i] for i in np.where(mask[0])[0]]
 
-                data_.append(go.Scatter(x=det_x,
-                                        y=det_y,
-                                        meta=det_times,
-                                        hovertemplate=f'{key}' +
-                                                      '<br>(%{x}, %{y})' +
-                                                      '<br>Time: %{meta}'))
+                if assoc_prob_color is not None:
+                    Color_Dict=dict(
+                        color=det_colors,
+                        colorscale='inferno',
+                        colorbar=dict(
+                            title='Association probability',
+                            x=0.5,  # Center the colorbar above the plot
+                            y=1.15,  # Position above the plot
+                            len=1.0,  # Extend the colorbar to the full width of the plot
+                            thickness=20,  # Adjust the thickness of the colorbar
+                            orientation='h',  # Horizontal colorbar
+                            tickvals=[0, 1],  # Ensure it ranges from 0 to 1
+                            ticktext=['0', '1']
+                        ),
+                        cmin=0,
+                        cmax=1
+                    )
+                else:
+                    Color_Dict = None
+
+                data_.append(go.Scatter(
+                    x=det_x,
+                    y=det_y,
+                    meta=det_times,
+                    marker=Color_Dict,
+                    hovertemplate=f'{key}' +
+                                  '<br>(%{x}, %{y})' +
+                                  '<br>Time: %{meta}'
+                ))
+
                 traces_.append(trace_base + j + 1)
 
             frame.data = data_  # update the figure
