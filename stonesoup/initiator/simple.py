@@ -378,7 +378,7 @@ class GaussianMixtureInitiator(GaussianInitiator):
                         timestamp=state.timestamp,
                         tag=[])]
                 track[n] = GaussianMixtureUpdate(
-                    hypothesis=track.hypothesis,
+                    hypothesis=getattr(state, 'hypothesis', None),
                     components=mixture)
 
         return tracks
