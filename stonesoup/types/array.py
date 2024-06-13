@@ -263,7 +263,7 @@ class CovarianceMatrix(Matrix):
         return array.view(cls)
 
 
-class CovarianceMatrices(Tensor, StateVectors):
+class CovarianceMatrices(Tensor):
     """Wrapper for :class:`numpy.ndarray for multiple Covariance Matrices`
 
     This class returns a view to a :class:`numpy.ndarray` that is in shape
@@ -276,9 +276,9 @@ class CovarianceMatrices(Tensor, StateVectors):
     def __new__(cls, covariances, *args, **kwargs):
         if isinstance(covariances, Sequence) and not isinstance(covariances, np.ndarray):
             if isinstance(covariances[0], CovarianceMatrix):
-                return np.asarray(covariances).view(cls)
+                return np.asarray(covariances).T.view(cls)
         array = np.asarray(covariances, *args, **kwargs)
-        if array.shape[2] == 1:
+        if array.shape[0] == 1:
             return array.view(CovarianceMatrix)
         return array.view(cls) 
     

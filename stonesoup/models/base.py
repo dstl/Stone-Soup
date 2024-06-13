@@ -4,6 +4,7 @@ from typing import TYPE_CHECKING, Union, Optional
 import numpy as np
 from scipy.stats import multivariate_normal
 
+from .base_driver import LevyDriver, Latents
 from ..base import Base, Property
 from ..functions import jacobian as compute_jac
 from ..types.array import StateVector, StateVectors, CovarianceMatrix
@@ -343,61 +344,102 @@ class GaussianModel(Model):
     def covar(self, **kwargs) -> CovarianceMatrix:
         """Model covariance"""
 
+
 class ConditionalGaussianModel(GaussianModel):
-    pass
-    def pdf(self, state1: State, state2: State, **kwargs) -> Probability | np.ndarray:
-        import numpy as np
-        import matplotlib.pyplot as plt
-        from scipy.stats import norm
+    """
+    Class to be derived from for Levy models.
+    """
 
-        # Parameters
-        x_min = -10.0
-        x_max = 10.0
-        N = 2**8
+    driver: LevyDriver = Property(doc="Levy process noise driver")
 
-        # Generate k and w
-        k = np.arange(N)
-        w = (0.5 - N / 2 + k) * (2 * np.pi / (x_max - x_min))
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        # TODO: Set driver seed here
 
-        # Characteristic function
-        cffun = lambda w: np.exp(-0.5 * w**2)
+    @abstractmethod
+    def mean(self, num_samples: int = 1) -> StateVector | StateVectors:
+        """Model mean"""
+        pass
 
-        alpha=1
-        nu=2
+    def rvs(self, num_samples: int = 1, random_state=None, latents: Optional[Latents]=None, **kwargs) -> StateVector | StateVectors:
+        covar = self.covar(latents=latents, **kwargs)
+        # If model has None-type covariance or contains None, it does not represent a Gaussian
+        if covar is None or None in covar:
+            raise ValueError("Cannot generate rvs from None-type covariance")
 
-        cffun = lambda w: ( 1 -  (1j * w) / alpha) ** (-nu)
+        mean = self.mean(latents=latents, **kwargs)
+        if mean is None or None in mean:
+            raise ValueError("Cannot generate rvs from None-type mean")
 
-        cf = cffun(w[int(N/2):])
-        cf = np.concatenate([np.conj(cf[::-1]), cf])
+        random_state = random_state if random_state is not None else self.random_state
 
-        # Compute dx, C, and D
-        dx = (x_max - x_min) / N
+        noise = multivariate_normal.rvs(
+            mean, covar, num_samples, random_state=random_state)
 
-        C = (-1+0j) ** ((1 - 1 / N) * (x_min / dx + k)) / (x_max - x_min)
+        noise = np.atleast_2d(noise)
 
-        D = (-1+0j) ** (-2 * (x_min / (x_max - x_min)) * k)
+        if self.ndim > 1:
+            noise = noise.T  # numpy.rvs method squeezes 1-dimensional matrices to integers
 
-        # Compute the PDF
-        pdf = np.real(C * np.fft.fft(D * cf))
+        if num_samples == 1:
+            return noise.view(StateVector)
+        else:
+            return noise.view(StateVectors)
+    
+                   
+    # def pdf(self, state1: State, state2: State, **kwargs) -> Probability | np.ndarray:
+    #     import numpy as np
+    #     import matplotlib.pyplot as plt
+    #     from scipy.stats import norm
 
-        # Compute the CDF
-        cdf = np.cumsum(pdf * dx)
+    #     # Parameters
+    #     x_min = -10.0
+    #     x_max = 10.0
+    #     N = 2**8
 
-        # Generate x values
-        x = x_min + k * dx
+    #     # Generate k and w
+    #     k = np.arange(N)
+    #     w = (0.5 - N / 2 + k) * (2 * np.pi / (x_max - x_min))
 
-        # Plot the PDF
-        plt.figure()
-        plt.plot(x, pdf, label='inverse CF')
-        plt.plot(x, norm.pdf(x), label='scipy')
-        plt.title('PDF')
-        plt.grid()
-        plt.legend()
-        plt.show()
+    #     # Characteristic function
+    #     cffun = lambda w: np.exp(-0.5 * w**2)
 
-        # Plot the CDF
-        # plt.figure()
-        # plt.plot(x, cdf)
-        # plt.title('CDF')
-        # plt.grid()
-        # plt.show()
+    #     alpha=1
+    #     nu=2
+
+    #     cffun = lambda w: ( 1 -  (1j * w) / alpha) ** (-nu)
+
+    #     cf = cffun(w[int(N/2):])
+    #     cf = np.concatenate([np.conj(cf[::-1]), cf])
+
+    #     # Compute dx, C, and D
+    #     dx = (x_max - x_min) / N
+
+    #     C = (-1+0j) ** ((1 - 1 / N) * (x_min / dx + k)) / (x_max - x_min)
+
+    #     D = (-1+0j) ** (-2 * (x_min / (x_max - x_min)) * k)
+
+    #     # Compute the PDF
+    #     pdf = np.real(C * np.fft.fft(D * cf))
+
+    #     # Compute the CDF
+    #     cdf = np.cumsum(pdf * dx)
+
+    #     # Generate x values
+    #     x = x_min + k * dx
+
+    #     # Plot the PDF
+    #     plt.figure()
+    #     plt.plot(x, pdf, label='inverse CF')
+    #     plt.plot(x, norm.pdf(x), label='scipy')
+    #     plt.title('PDF')
+    #     plt.grid()
+    #     plt.legend()
+    #     plt.show()
+
+    #     # Plot the CDF
+    #     # plt.figure()
+    #     # plt.plot(x, cdf)
+    #     # plt.title('CDF')
+    #     # plt.grid()
+    #     # plt.show()
