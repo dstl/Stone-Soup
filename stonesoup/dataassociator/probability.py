@@ -9,7 +9,6 @@ from ..types.multihypothesis import MultipleHypothesis
 from ..types.numeric import Probability
 import itertools
 import numpy as np
-import math
 
 
 class PDA(DataAssociator):
@@ -206,7 +205,7 @@ class JPDAwithLBP(JPDA):
         -------
         : mapping of :class:`stonesoup.types.track.Track` : :class:`stonesoup.types.hypothesis.Hypothesis`
             Mapping of track to Hypothesis
-        """
+        """  # noqa: E501
 
         # Calculate MultipleHypothesis for each Track over all
         # available Detections
@@ -269,7 +268,7 @@ class JPDAwithLBP(JPDA):
     @staticmethod
     def _loopy_belief_propagation(likelihood_matrix, n_iterations, delta):
         """
-        Perform loopy belief propagation (Williams and Lau, 2014) to determine the approximate 
+        Perform loopy belief propagation (Williams and Lau, 2014) to determine the approximate
         marginal association probabilities (of tracks to measurements). This requires:
         1. likelihood_matrix = single target association weights
         2. n_iterations = number of iterations between convergence checks
@@ -307,7 +306,7 @@ class JPDAwithLBP(JPDA):
                 val = likelihood_matrix[:, 1:] * nu
                 # Minus val to remove j = j'
                 s = 1 + np.sum(val, axis=1, keepdims=True) - val
-                mu =  likelihood_matrix[:, 1:] / s
+                mu = likelihood_matrix[:, 1:] / s
 
                 # save values for convergence check
                 if k == n_iterations:
@@ -326,8 +325,8 @@ class JPDAwithLBP(JPDA):
             else:
                 alpha = 0.0
 
-            # if w_star has a very large value, alpha = 1 which causes division by zero in the convergence check
-            # therefore, set alpha to be a nominal value just short of unity
+            # if w_star has a very large value, alpha = 1 which causes division by zero in the
+            # convergence check therefore, set alpha to be a nominal value just short of unity
             if alpha == 1:
                 alpha = (1 - 1e-10)
 
@@ -348,13 +347,11 @@ class JPDAwithLBP(JPDA):
 
         # calculate the single target association weights
         likelihood_matrix = cls._calc_likelihood_matrix(tracks, detections, hypotheses)
-        # print(likelihood_matrix)
 
         # Run Loopy Belief Propagation to determine the marginal association probability matrix
         n_iterations: int = 1
         delta: float = 0.001
         assoc_prob_matrix = cls._loopy_belief_propagation(likelihood_matrix, n_iterations, delta)
-        # print(assoc_prob_matrix)
 
         # Calculate MultiMeasurementHypothesis for each Track over all
         # available Detections with probabilities drawn from the association matrix
