@@ -213,9 +213,10 @@ class JPDAwithLBP(JPDA):
             track: self.hypothesiser.hypothesise(track, detections, timestamp)
             for track in tracks}
 
-        multi_hypotheses = self._compute_multi_hypotheses(tracks, detections, hypotheses, timestamp)
-
-        return multi_hypotheses
+        if not hypotheses or not detections:  # No tracks or no detections
+            return hypotheses
+        else:
+            return self._compute_multi_hypotheses(tracks, detections, hypotheses, timestamp)
 
     @staticmethod
     def _calc_likelihood_matrix(tracks, detections, hypotheses):
