@@ -242,9 +242,6 @@ class JPDAwithLBP(JPDA):
             to the null hypothesis.
         """
 
-        # Ensure tracks and detections are lists (not sets)
-        tracks, detections = list(tracks), list(detections)
-
         # Construct validation and likelihood matrices
         # Both matrices have shape (num_tracks, num_detections + 1), where the first column
         # corresponds to the null hypothesis.
@@ -256,7 +253,7 @@ class JPDAwithLBP(JPDA):
                     likelihood_matrix[i, 0] = hyp.weight
                 else:
                     j = next(d_i for d_i, detection in enumerate(detections)
-                             if hyp.measurement == detection)
+                             if hyp.measurement is detection)
                     likelihood_matrix[i, j + 1] = hyp.weight
 
         # change the normalisation of the likelihood matrix to have the no measurement
@@ -288,7 +285,6 @@ class JPDAwithLBP(JPDA):
         # allocate memory
         nu = np.ones((num_tracks, num_measurements))
         nu_tilde = np.zeros((num_tracks, num_measurements))
-        mu = np.zeros((num_tracks, num_measurements))
         assoc_prob_matrix = np.zeros((num_tracks, num_measurements + 1))
 
         # determine W_star
@@ -346,7 +342,7 @@ class JPDAwithLBP(JPDA):
         detection_list = list(detections)
 
         # calculate the single target association weights
-        likelihood_matrix = cls._calc_likelihood_matrix(tracks, detections, hypotheses)
+        likelihood_matrix = cls._calc_likelihood_matrix(track_list, detection_list, hypotheses)
 
         # Run Loopy Belief Propagation to determine the marginal association probability matrix
         n_iterations: int = 1
@@ -378,7 +374,7 @@ class JPDAwithLBP(JPDA):
 
                 # Get the detection index
                 j = next(d_i + 1 for d_i, detection in enumerate(detection_list)
-                         if hypothesis.measurement == detection)
+                         if hypothesis.measurement is detection)
 
                 pro_detect_assoc = Probability(assoc_prob_matrix[i, j])
                 single_measurement_hypotheses.append(
