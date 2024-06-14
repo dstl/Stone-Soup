@@ -252,7 +252,7 @@ class MonteCarloTreeSearchSensorManager(SensorManager):
 
 
 class MCTSRolloutSensorManager(MonteCarloTreeSearchSensorManager):
-    r"""A Monte Carlo Tree Search bases sensor management algorithm that implements Monte
+    r"""A Monte Carlo Tree Search based sensor management algorithm that implements Monte
     Carlo rollout for more robust action simulation. All other details are consistent
     with :class:`~.MonteCarloTreeSearchSensorManager`"""
 

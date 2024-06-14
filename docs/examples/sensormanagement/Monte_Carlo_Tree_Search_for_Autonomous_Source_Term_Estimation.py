@@ -67,7 +67,7 @@ Monte Carlo Tree Search for Autonomous Source Term Estimation
 # Setup
 # ^^^^^
 # First, some general packages used throughout the example are imported and
-# random number generation is seeded for repeatabiltiy.
+# random number generation is seeded for repeatability.
 #
 
 # General imports and environment setup
@@ -190,7 +190,7 @@ sensor_platformB = FixedPlatform(
 # 
 # Now the :class:`~.ParticlePredictor` and :class:`~.ParticleUpdater` are
 # constructed. The particle predictor will be created with a :class:`~.RandomWalk`
-# motion model with 0 magnitude, meaning that the perdictor will not change
+# motion model with 0 magnitude, meaning that the predictor will not change
 # the estimated source term.
 # 
 # The :class:`~.ParticleUpdater` is created with an effective sample size
@@ -546,7 +546,7 @@ animation.FuncAnimation(plotterB.fig, anim_funcB, interval=250, frames=len(track
 # the MCTS algorithm was able to converge to a better source term
 # estimate and did so in less iterations than the myopic benchmark. Considering
 # non-myopic actions in this scenario allows for more robust handling of
-# unreliable measurements, a common problem is STE that is caused by low
+# unreliable measurements, a common problem in STE that is caused by low
 # quality sensors or turbulent environment conditions.
 
 # %%
