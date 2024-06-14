@@ -1,4 +1,5 @@
 import datetime
+import math
 
 import pytest
 
@@ -88,7 +89,6 @@ class DummyMultiMeasure(multi.MultipleMeasure):
 @pytest.mark.parametrize("mean_measure_input, expected_mean_measure_output",
                          [
                              ([17, 19, -2, 15, 16], 13),
-                             ([], None),
                              ([19, -42, 1.1, 3.14, 9, 7.5, -294.68, 11, 171, 6.3948], -10.85452),
                              ([2.41], 2.41)
                          ])
@@ -99,3 +99,10 @@ def test_mean_measure(mean_measure_input, expected_mean_measure_output):
     observed_output = mean_measure(mean_measure_input, [])
 
     assert observed_output == pytest.approx(expected_mean_measure_output)
+
+
+def test_mean_measure_no_measures():
+    mean_measure = multi.MeanMeasure(measure=DummyMultiMeasure())
+    observed_output = mean_measure([], [])
+
+    assert math.isnan(observed_output)
