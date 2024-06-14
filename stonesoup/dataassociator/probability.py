@@ -185,7 +185,7 @@ class JPDAwithLBP(JPDA):
     Reference
     ----------
     Jason L. Williams and Rosalyn A. Lau, Approximate evaluation of marginal association
-    probabilities with belief propagation, IEEE Transactions on Aeroapce and Electronic Systems,
+    probabilities with belief propagation, IEEE Transactions on Aerospace and Electronic Systems,
     vol 50(4), pp. 2942-2959, 2014.
     """
 
@@ -207,8 +207,7 @@ class JPDAwithLBP(JPDA):
             Mapping of track to Hypothesis
         """  # noqa: E501
 
-        # Calculate MultipleHypothesis for each Track over all
-        # available Detections
+        # Calculate MultipleHypothesis for each Track over all available Detections
         hypotheses = {
             track: self.hypothesiser.hypothesise(track, detections, timestamp)
             for track in tracks}
