@@ -1,15 +1,17 @@
 from abc import abstractmethod
 from typing import TYPE_CHECKING, Union, Optional
-
+from datetime import timedelta
 import numpy as np
 from scipy.stats import multivariate_normal
 
 from .base_driver import LevyDriver, Latents
 from ..base import Base, Property
 from ..functions import jacobian as compute_jac
-from ..types.array import StateVector, StateVectors, CovarianceMatrix
+from ..types.array import StateVector, StateVectors, CovarianceMatrix, CovarianceMatrices
 from ..types.numeric import Probability
 from ..types.state import State
+from scipy.integrate import quad_vec
+from scipy.linalg import expm
 
 if TYPE_CHECKING:
     from ..types.detection import Detection
@@ -345,48 +347,96 @@ class GaussianModel(Model):
         """Model covariance"""
 
 
-class ConditionalGaussianModel(GaussianModel):
+class LevyModel(Model):
     """
     Class to be derived from for Levy models.
+    For now, we consider only conditionally Gaussian ones
     """
-
     driver: LevyDriver = Property(doc="Levy process noise driver")
-
+    mu_W: Optional[float] = Property(default=None, doc="Condtional Gaussian mean")
+    sigma_W2: Optional[float] = Property(default=None, doc="Conditional Gaussian variance")
+    
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        # TODO: Set driver seed here
-
+        
     @abstractmethod
-    def mean(self, num_samples: int = 1) -> StateVector | StateVectors:
-        """Model mean"""
+    def _integrand(self, dt: float, jtimes: np.ndarray) -> np.ndarray:
         pass
 
-    def rvs(self, num_samples: int = 1, random_state=None, latents: Optional[Latents]=None, **kwargs) -> StateVector | StateVectors:
-        covar = self.covar(latents=latents, **kwargs)
-        # If model has None-type covariance or contains None, it does not represent a Gaussian
-        if covar is None or None in covar:
-            raise ValueError("Cannot generate rvs from None-type covariance")
+    def _integrate(self, func: np.ndarray, a: np.ndarray, b: np.ndarray) -> np.ndarray:
+        res, err = quad_vec(func, a=a, b=b)
+        return res
+    
+    def mean(
+        self, latents: Latents, time_interval: timedelta, **kwargs
+    ) -> StateVector | StateVectors:
+        """Model mean"""
+        dt = time_interval.total_seconds()
+        integrand_f = self._integrand
+        func = lambda dt: integrand_f(dt, jtimes=np.zeros((1, 1)))[0, 0, :] # currying
+        integral_f = lambda dt: self._integrate(func, a=0, b=dt)
+        return self.driver.mean(
+            latents=latents,
+            dt=dt,
+            e_ft_func=integral_f,
+            ft_func=integrand_f,
+            mu_W=self.mu_W,
+        )
+
+    def covar(self, latents: Latents, time_interval: timedelta, **kwargs) -> CovarianceMatrix | CovarianceMatrices:
+        """Model covariance"""
+        dt = time_interval.total_seconds()
+        integrand_f = self._integrand
+        func = lambda dt: integrand_f(dt, jtimes=np.zeros((1, 1)))[0, 0, :]
+        integral_f = lambda dt: self._integrate(func, a=0, b=dt)
+        return self.driver.covar(
+            latents=latents,
+            dt=dt,
+            e_ft_func=integral_f,
+            ft_func=integrand_f,
+            mu_W=self.mu_W,
+            sigma_W2=self.sigma_W2,
+        )
+
+    def sample_latents(self, time_interval: timedelta, num_samples: int, random_state: Optional[np.random.RandomState]=None) -> Latents:
+        dt = time_interval.total_seconds()
+        latents = Latents(num_samples=num_samples)
+        jsizes, jtimes = self.driver.sample_latents(dt=dt, num_samples=num_samples, random_state=random_state)
+        latents.add(driver=self.driver, jsizes=jsizes, jtimes=jtimes)
+        return latents
+    
+    def rvs(
+        self,
+        latents: Optional[Latents] = None,
+        num_samples: int = 1,
+        random_state: Optional[np.random.RandomState] = None,
+        **kwargs
+    ) -> Union[StateVector, StateVectors]:
+        noise = 0
+        if not latents:
+            latents = self.sample_latents(num_samples=1, random_state=random_state, **kwargs)
 
         mean = self.mean(latents=latents, **kwargs)
         if mean is None or None in mean:
             raise ValueError("Cannot generate rvs from None-type mean")
+        assert isinstance(mean, StateVector)
 
-        random_state = random_state if random_state is not None else self.random_state
+        covar = self.covar(latents=latents, **kwargs)
+        if covar is None or None in covar:
+            raise ValueError("Cannot generate rvs from None-type covariance")
+        assert isinstance(covar, CovarianceMatrix)
+        
+        noise += self.driver.rvs(
+            mean=mean, covar=covar, random_state=random_state, num_samples=num_samples, **kwargs
+        )
+        return noise
 
-        noise = multivariate_normal.rvs(
-            mean, covar, num_samples, random_state=random_state)
+    def pdf(self, state1: State, state2: State, **kwargs) -> Union[Probability, np.ndarray]:
+        return Probability.from_log_ufunc(self.logpdf(state1, state2, **kwargs))
 
-        noise = np.atleast_2d(noise)
+    def logpdf(self, state1: State, state2: State, **kwargs) -> Union[float, np.ndarray]:
+        return NotImplementedError
 
-        if self.ndim > 1:
-            noise = noise.T  # numpy.rvs method squeezes 1-dimensional matrices to integers
-
-        if num_samples == 1:
-            return noise.view(StateVector)
-        else:
-            return noise.view(StateVectors)
-    
-                   
     # def pdf(self, state1: State, state2: State, **kwargs) -> Probability | np.ndarray:
     #     import numpy as np
     #     import matplotlib.pyplot as plt

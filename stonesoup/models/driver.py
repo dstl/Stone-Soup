@@ -1,10 +1,12 @@
+from datetime import timedelta
 import numpy as np
+from numpy import ndarray
 from scipy.special import gammainc, kv, hankel1
 from scipy.special import gamma as gammafnc
-from stonesoup.types.array import CovarianceMatrix, StateVector
+from stonesoup.types.array import CovarianceMatrix, StateVector, StateVectors, CovarianceMatrices
 from .base_driver import LevyDriver, NormalSigmaMeanDriver, NormalVarianceMeanDriver
 from ..base import Property
-from typing import Optional, Callable
+from typing import Optional, Callable, Tuple
 
 
 def incgammal(s: float, x: float) -> float:  # Helper function
@@ -14,11 +16,14 @@ def incgammal(s: float, x: float) -> float:  # Helper function
 class GaussianDriver(LevyDriver):
     @property
     def c(self):
-        raise AttributeError("No associated truncation parameter with Gaussian driver.")
+        raise NotImplementedError("No associated truncation parameter with Gaussian driver.")
 
     @property
     def noise_case(self):
-        raise AttributeError("No associated noise case with Gaussian driver.")
+        raise NotImplementedError("No associated noise case with Gaussian driver.")
+
+    def sample_latents(self, dt:float, num_samples: int, random_state: np.random.RandomState) -> Tuple[ndarray, ndarray]:
+        return np.zeros((1,1)), np.zeros((1,1))
 
     def _centering(self, *args, **kwargs) -> StateVector:
         raise NotImplementedError
@@ -47,35 +52,46 @@ class GaussianDriver(LevyDriver):
     def characteristic_func(
         self, mu_W: Optional[float] = None, sigma_W2: Optional[float] = None, *args, **kwargs
     ) -> np.ndarray:
-        if mu_W is None:
-            mu_W = self.mu_W
-        if sigma_W2 is None:
-            sigma_W2 = self.sigma_W2
+        mu_W = np.atleast_2d(self.mu_W) if mu_W is None else np.atleast_2d(mu_W)
+        sigma_W2 = np.atleast_2d(self.sigma_W2) if sigma_W2 is None else np.atleast_2d(sigma_W2)     
+
         return lambda w: np.exp(-0.5 * w**2 * sigma_W2 + 1j * w * mu_W)
 
     def mean(
         self,
-        e_gt_func: Callable[..., np.ndarray],
+        e_ft_func: Callable[..., np.ndarray],
         dt: float,
         mu_W: Optional[float] = None,
+        num_samples: int = 1,
         **kwargs
     ) -> StateVector:
-        if mu_W is None:
-            mu_W = self.mu_W
-        e_gt = e_gt_func(dt=dt)
-        return mu_W * e_gt
+        mu_W = np.atleast_2d(self.mu_W) if mu_W is None else np.atleast_2d(mu_W)
+        e_ft = e_ft_func(dt=dt)
+        mean = mu_W * e_ft
+        if num_samples == 1:
+            return mean[0].view(StateVector)
+        else:
+            mean = np.tile(mean, (num_samples, 1, 1))
+            return mean.view(StateVectors)
+
 
     def covar(
         self,
-        e_gt_func: Callable[..., np.ndarray],
+        e_ft_func: Callable[..., np.ndarray],
         dt: float,
         sigma_W2: Optional[float] = None,
+        num_samples: int = 1,
         **kwargs
     ) -> CovarianceMatrix:
-        e_gt = e_gt_func(dt=dt)
-        if sigma_W2 is None:
-            sigma_W2 = self.sigma_W2
-        return sigma_W2 * e_gt @ e_gt.T
+        e_ft = e_ft_func(dt=dt)
+        sigma_W2 = np.atleast_2d(self.sigma_W2) if sigma_W2 is None else np.atleast_2d(sigma_W2)     
+
+        covar = sigma_W2 * np.einsum("ijk, ilk -> ijl", e_ft, e_ft)
+        if num_samples == 1:
+            return covar[0].view(CovarianceMatrix)
+        else:
+            covar = np.tile(covar, (num_samples, 1, 1))
+            return covar.view(CovarianceMatrices)
 
 
 class AlphaStableNSMDriver(NormalSigmaMeanDriver):
