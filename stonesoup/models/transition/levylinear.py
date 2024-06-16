@@ -196,7 +196,7 @@ class LevyNthDerivativeDecay(LinearLevyTransitionModel, TimeVariantModel):
         return super().rvs(latents, num_samples, random_state, **kwargs) * coeff
 
 
-class LevyOrnsteinUhlenbeck(LevyNthDerivativeDecay):
+class LevyLangevin(LevyNthDerivativeDecay):
     r"""This is a class implementation of a discrete, time-variant 1D
     Linear-Levy Ornstein Uhlenbeck Transition Model.
 
