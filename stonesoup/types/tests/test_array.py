@@ -34,7 +34,6 @@ def test_statevectors():
     assert np.array_equal(svs1, vecs1)
     assert np.array_equal(svs2, vecs1)
     assert svs3.shape != vecs1.shape
-    print(svs1.shape, svs3.shape, vecs1.shape)
 
     for sv in svs2:
         assert isinstance(sv, StateVector)
