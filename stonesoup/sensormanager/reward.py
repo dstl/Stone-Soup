@@ -10,6 +10,7 @@ from ..platform import Platform
 from ..sensormanager.action import Actionable
 from ..types.detection import TrueDetection
 from ..base import Base, Property
+from ..predictor.base import Predictor
 from ..predictor.particle import ParticlePredictor
 from ..predictor.kalman import KalmanPredictor
 from ..updater.kalman import ExtendedKalmanUpdater
@@ -18,9 +19,11 @@ from ..types.hypothesis import SingleHypothesis
 from ..sensor.sensor import Sensor
 from ..sensormanager.action import Action
 from ..types.prediction import Prediction
+from ..updater.base import Updater
 from ..updater.particle import ParticleUpdater
 from ..resampler.particle import SystematicResampler
 from ..types.state import State
+from ..dataassociator.base import DataAssociator
 
 
 class RewardFunction(Base, ABC):
@@ -157,28 +160,32 @@ class ExpectedKLDivergence(RewardFunction):
     the action and resulting measurement from that action.
     """
 
-    predictor: ParticlePredictor = Property(default=None,
-                                            doc="Predictor used to predict the track to a "
-                                                "new state. This reward function is only "
-                                                "compatible with :class:`~.ParticlePredictor` "
-                                                "types.")
-    updater: ParticleUpdater = Property(default=None,
-                                        doc="Updater used to update the track to the new state. "
-                                            "This reward function is only compatible with "
-                                            ":class:`~.ParticleUpdater` types.")
-    method_sum: bool = Property(default=True, doc="Determines method of calculating reward."
-                                                  "Default calculates sum across all targets."
-                                                  "Otherwise calculates mean of all targets.")
+    predictor: Predictor = Property(default=None,
+                                    doc="Predictor used to predict the track to a "
+                                        "new state. This reward function is only "
+                                        "compatible with :class:`~.ParticlePredictor` "
+                                        "types.")
+    updater: Updater = Property(default=None,
+                                doc="Updater used to update the track to the new state. "
+                                    "This reward function is only compatible with "
+                                    ":class:`~.ParticleUpdater` types.")
+    method_sum: bool = Property(default=True,
+                                doc="Determines method of calculating reward."
+                                    "Default calculates sum across all targets."
+                                    "Otherwise calculates mean of all targets.")
+    data_associator: DataAssociator = Property(default=None,
+                                               doc="Data associator for associating "
+                                                   "detections to tracks when "
+                                                   "multiple sensors are managed.")
+
+    return_tracks: bool = Property(default=False,
+                                   doc="A flag for allowing the predicted track, "
+                                       "used to calculate the reward, to be "
+                                       "returned.")
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.KLD = KLDivergence()
-        if self.predictor is not None and not isinstance(self.predictor, ParticlePredictor):
-            raise NotImplementedError('Only ParticlePredictor types are currently compatible '
-                                      'with this reward function')
-        if self.updater is not None and not isinstance(self.updater, ParticleUpdater):
-            raise NotImplementedError('Only ParticleUpdater types are currently compatible '
-                                      'with this reward function')
 
     def __call__(self, config: Mapping[Sensor, Sequence[Action]], tracks: Set[Track],
                  metric_time: datetime.datetime, *args, **kwargs):
@@ -199,6 +206,10 @@ class ExpectedKLDivergence(RewardFunction):
         -------
         : float
             Kullback-Leibler divergence for given configuration
+
+        : Set[Track] (if defined)
+            Set of tracks that have been predicted and updated in reward
+            calculation if :attr:`return_tracks` is `True`
 
         """
 
@@ -222,9 +233,8 @@ class ExpectedKLDivergence(RewardFunction):
         # Create dictionary of predictions for the tracks in the configuration
         predicted_tracks = set()
         for track in tracks:
-            predicted_track = Track()
+            predicted_track = copy.copy(track)
             if self.predictor:
-                predicted_track = copy.copy(track)
                 predicted_track.append(self.predictor.predict(track[-1],
                                                               timestamp=metric_time))
             else:
@@ -233,44 +243,61 @@ class ExpectedKLDivergence(RewardFunction):
 
             predicted_tracks.add(predicted_track)
 
-        for sensor in predicted_sensors:
-            # Assumes one detection per track
-
-            detections = self._generate_detections(predicted_tracks, sensor)
+        sensor_detections = self._generate_detections(predicted_tracks,
+                                                      predicted_sensors,
+                                                      timestamp=metric_time)
+        det_count = 0
+        for sensor, detections in sensor_detections.items():
 
             for predicted_track, detection_set in detections.items():
-
+                det_count += len(detection_set)
                 for n, detection in enumerate(detection_set):
 
-                    # if detection:
                     # Generate hypothesis based on prediction/previous update and detection
                     hypothesis = SingleHypothesis(predicted_track, detection)
 
                     # Do the update based on this hypothesis and store covariance matrix
                     update = self.updater.update(hypothesis)
 
-                    # else:
-                    #     update = copy.copy(predicted_track[-1])
-
                     kld += self.KLD(predicted_track[-1], update)
 
-            if self.method_sum is False and len(detections) != 0:
+                    if not isinstance(self, MultiUpdateExpectedKLDivergence):
+                        predicted_track.append(update)
 
-                kld /= len(detections)
+        if self.method_sum is False and det_count != 0:
+
+            kld /= det_count
 
         # Return value of configuration metric
-        return kld
+        if self.return_tracks:
+            return kld, predicted_tracks
+        else:
+            return kld
 
-    def _generate_detections(self, predicted_tracks, sensor):
+    def _generate_detections(self, predicted_tracks, sensors, timestamp=None):
 
-        detections = {}
-        for predicted_track in predicted_tracks:
-            track_detections = set()
-            track_detections.update(sensor.measure({State(predicted_track.mean)}, noise=True))
+        all_detections = {}
 
-            detections.update({predicted_track: track_detections})
+        for sensor in sensors:
+            detections = {}
+            for predicted_track in predicted_tracks:
+                tmp_detection = sensor.measure({State(predicted_track.mean,
+                                                      timestamp=predicted_track.timestamp)},
+                                               noise=True)
+                detections.update({predicted_track: tmp_detection})
 
-        return detections
+            if self.data_associator:
+                tmp_hypotheses = self.data_associator.associate(
+                    predicted_tracks,
+                    {det for dets in detections.values() for det in dets},
+                    timestamp)
+                detections = {predicted_track: {hypothesis.measurement}
+                              for predicted_track, hypothesis in tmp_hypotheses.items()
+                              if hypothesis}
+
+            all_detections.update({sensor: detections})
+
+        return all_detections
 
 
 class MultiUpdateExpectedKLDivergence(ExpectedKLDivergence):
@@ -285,6 +312,16 @@ class MultiUpdateExpectedKLDivergence(ExpectedKLDivergence):
     these measurements and the Kullback-Leibler divergence calculated for each
     of them.
     """
+
+    predictor: ParticlePredictor = Property(default=None,
+                                            doc="Predictor used to predict the track to a "
+                                                "new state. This reward function is only "
+                                                "compatible with :class:`~.ParticlePredictor` "
+                                                "types.")
+    updater: ParticleUpdater = Property(default=None,
+                                        doc="Updater used to update the track to the new state. "
+                                            "This reward function is only compatible with "
+                                            ":class:`~.ParticleUpdater` types.")
 
     updates_per_track: int = Property(default=2,
                                       doc="Number of measurements to generate from each "
@@ -303,21 +340,23 @@ class MultiUpdateExpectedKLDivergence(ExpectedKLDivergence):
             raise ValueError(f'updates_per_track = {self.updates_per_track}. This reward '
                              f'function only accepts >= 2')
 
-    def _generate_detections(self, predicted_tracks, sensor):
+    def _generate_detections(self, predicted_tracks, sensors, timestamp=None):
 
         detections = {}
-
+        all_detections = {}
         resampler = SystematicResampler()
 
-        for predicted_track in predicted_tracks:
+        for sensor in sensors:
+            for predicted_track in predicted_tracks:
 
-            measurement_sources = resampler.resample(predicted_track[-1],
-                                                     nparts=self.updates_per_track)
+                measurement_sources = resampler.resample(predicted_track[-1],
+                                                         nparts=self.updates_per_track)
+                tmp_detections = set()
+                for state in measurement_sources.state_vector:
+                    tmp_detections.update(sensor.measure({State(state, timestamp=timestamp)},
+                                                         noise=True))
 
-            track_detections = set()
-            for state in measurement_sources.state_vector:
-                track_detections.update(sensor.measure({State(state)}, noise=True))
+                detections.update({predicted_track: tmp_detections})
+            all_detections.update({sensor: detections})
 
-            detections.update({predicted_track: track_detections})
-
-        return detections
+        return all_detections
