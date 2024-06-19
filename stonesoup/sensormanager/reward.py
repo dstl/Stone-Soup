@@ -22,7 +22,7 @@ from ..types.prediction import Prediction
 from ..updater.base import Updater
 from ..updater.particle import ParticleUpdater
 from ..resampler.particle import SystematicResampler
-from ..types.state import State
+from ..types.groundtruth import GroundTruthState
 from ..dataassociator.base import DataAssociator
 
 
@@ -71,6 +71,14 @@ class UncertaintyRewardFunction(RewardFunction):
     method_sum: bool = Property(default=True, doc="Determines method of calculating reward."
                                                   "Default calculates sum across all targets."
                                                   "Otherwise calculates mean of all targets.")
+    return_tracks: bool = Property(default=False,
+                                   doc="A flag for allowing the predicted track, "
+                                       "used to calculate the reward, to be "
+                                       "returned.")
+    measurement_noise: bool = Property(default=False,
+                                       doc="Decide whether or not to apply measurement model "
+                                           "noise to the predicted measurements for sensor "
+                                           "management.")
 
     def __call__(self, config: Mapping[Sensor, Sequence[Action]], tracks: Set[Track],
                  metric_time: datetime.datetime, *args, **kwargs):
@@ -116,8 +124,13 @@ class UncertaintyRewardFunction(RewardFunction):
         for sensor in predicted_sensors:
 
             # Assumes one detection per track
-            detections = {detection.groundtruth_path: detection
-                          for detection in sensor.measure(predicted_tracks, noise=False)
+            detections = {predicted_track: detection
+                          for detection in
+                          sensor.measure({GroundTruthState(predicted_track.mean,
+                                                           timestamp=predicted_track.timestamp,
+                                                           metadata=predicted_track.metadata)},
+                                         noise=self.measurement_noise)
+                          for predicted_track in predicted_tracks
                           if isinstance(detection, TrueDetection)}
 
             for predicted_track, detection in detections.items():
@@ -143,7 +156,10 @@ class UncertaintyRewardFunction(RewardFunction):
                 config_metric /= len(detections)
 
         # Return value of configuration metric
-        return config_metric
+        if self.return_tracks:
+            return config_metric, predicted_tracks
+        else:
+            return config_metric
 
 
 class ExpectedKLDivergence(RewardFunction):
@@ -182,6 +198,11 @@ class ExpectedKLDivergence(RewardFunction):
                                    doc="A flag for allowing the predicted track, "
                                        "used to calculate the reward, to be "
                                        "returned.")
+
+    measurement_noise: bool = Property(default=False,
+                                       doc="Decide whether or not to apply measurement model "
+                                           "noise to the predicted measurements for sensor "
+                                           "management.")
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -281,9 +302,11 @@ class ExpectedKLDivergence(RewardFunction):
         for sensor in sensors:
             detections = {}
             for predicted_track in predicted_tracks:
-                tmp_detection = sensor.measure({State(predicted_track.mean,
-                                                      timestamp=predicted_track.timestamp)},
-                                               noise=True)
+                tmp_detection = sensor.measure(
+                    {GroundTruthState(predicted_track.mean,
+                                      timestamp=predicted_track.timestamp,
+                                      metadata=predicted_track.metadata)},
+                    noise=self.measurement_noise)
                 detections.update({predicted_track: tmp_detection})
 
             if self.data_associator:
@@ -327,6 +350,8 @@ class MultiUpdateExpectedKLDivergence(ExpectedKLDivergence):
                                       doc="Number of measurements to generate from each "
                                           "track prediction. This should be > 1.")
 
+    measurement_noise: bool = Property(default=True)
+
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.KLD = KLDivergence()
@@ -353,8 +378,11 @@ class MultiUpdateExpectedKLDivergence(ExpectedKLDivergence):
                                                          nparts=self.updates_per_track)
                 tmp_detections = set()
                 for state in measurement_sources.state_vector:
-                    tmp_detections.update(sensor.measure({State(state, timestamp=timestamp)},
-                                                         noise=True))
+                    tmp_detections.update(
+                        sensor.measure({GroundTruthState(state,
+                                                         timestamp=timestamp,
+                                                         metadata=predicted_track.metadata)},
+                                       noise=self.measurement_noise))
 
                 detections.update({predicted_track: tmp_detections})
             all_detections.update({sensor: detections})

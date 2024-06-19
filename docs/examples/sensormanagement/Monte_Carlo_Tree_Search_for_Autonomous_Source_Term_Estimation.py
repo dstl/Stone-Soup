@@ -73,7 +73,6 @@ Monte Carlo Tree Search for Autonomous Source Term Estimation
 # General imports and environment setup
 import numpy as np
 from datetime import datetime, timedelta
-import random
 
 np.random.seed(1991)
 
@@ -253,13 +252,15 @@ from stonesoup.sensormanager.tree_search import MCTSRolloutSensorManager
 reward_updater = ParticleUpdater(measurement_model=None)
 
 # Myopic benchmark approach
-reward_funcA = ExpectedKLDivergence(updater=reward_updater)
+reward_funcA = ExpectedKLDivergence(updater=reward_updater, measurement_noise=True)
 sensormanagerA = BruteForceSensorManager(sensors={gas_sensorA}, 
                                          platforms={sensor_platformA}, 
                                          reward_function=reward_funcA)
 
 # MCTS with rollout approach
-reward_funcB = ExpectedKLDivergence(updater=reward_updater, return_tracks=True)
+reward_funcB = ExpectedKLDivergence(updater=reward_updater,
+                                    measurement_noise=True,
+                                    return_tracks=True)
 sensormanagerB = MCTSRolloutSensorManager(sensors={gas_sensorB}, 
                                           platforms={sensor_platformB}, 
                                           reward_function=reward_funcB, 

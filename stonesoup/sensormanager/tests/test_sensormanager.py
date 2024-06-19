@@ -694,11 +694,38 @@ def test_sensor_manager_with_platform(params):
                           np.diag([1.5, 0.25, 1.5, 0.25]
                                   + np.random.normal(0, 5e-4, 4))),  # track2_state2
             MCTSBestChildPolicyEnum.MAXCREWARD,  # best_child_policy
+        ), (
+            ParticlePredictor,  # predictor_obj
+            ParticleUpdater,  # updater_obj
+            None,  # hypothesiser
+            None,  # associator
+            UncertaintyRewardFunction,  # reward_function_obj
+            ParticleState(state_vector=StateVectors(np.random.multivariate_normal(
+                mean=np.array([1, 1, 1, 1]),
+                cov=np.diag([1.5, 0.25, 1.5, 0.25]),
+                size=100).T),
+                          weight=np.array([1/100]*100)),  # track1_state1
+            ParticleState(state_vector=StateVectors(np.random.multivariate_normal(
+                mean=np.array([2, 1.5, 2, 1.5]),
+                cov=np.diag([3, 0.5, 3, 0.5]),
+                size=100).T),
+                          weight=np.array([1/100]*100)),  # track1_state2
+            ParticleState(state_vector=StateVectors(np.random.multivariate_normal(
+                mean=np.array([-1, 1, -1, 1]),
+                cov=np.diag([3, 0.5, 3, 0.5]),
+                size=100).T),
+                          weight=np.array([1/100]*100)),  # track2_state1
+            ParticleState(state_vector=StateVectors(np.random.multivariate_normal(
+                mean=np.array([2, 1.5, 2, 1.5]),
+                cov=np.diag([1.5, 0.25, 1.5, 0.25]),
+                size=100).T),
+                          weight=np.array([1/100]*100)),  # track2_state2
+            'max_cumulative_reward',  # best_child_policy
         )
     ],
     ids=['KLDivergenceMCTSNoAssociation', 'KLDivergenceMCTSAssociation',
          'KLDivergenceMCTSGaussianTest', 'KLDMCTSGaussianPolicy1', 'KLDMCTSGaussianPolicy2',
-         'KLDMCTSGaussianEnum']
+         'KLDMCTSGaussianEnum', 'UncertaintyMCTSTest']
 )
 def test_mcts_sensor_managers(predictor_obj, updater_obj, hypothesiser_obj, associator_obj,
                               reward_function_obj, track1_state1, track1_state2, track2_state1,
