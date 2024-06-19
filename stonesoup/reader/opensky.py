@@ -105,7 +105,8 @@ class _OpenSkyNetworkReader(Reader):
                     data['time'], datetime.timezone.utc).replace(tzinfo=None)
                 yield time, states_and_metadata
 
-                while time + self.timestep > datetime.datetime.utcnow():
+                while time + self.timestep > datetime.datetime.now(
+                        datetime.timezone.utc).replace(tzinfo=None):
                     sleep(0.1)
 
 
