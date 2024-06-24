@@ -431,65 +431,41 @@ class LevyModel(Model):
         )
         return noise
 
-    def pdf(self, state1: State, state2: State, **kwargs) -> Union[Probability, np.ndarray]:
-        return Probability.from_log_ufunc(self.logpdf(state1, state2, **kwargs))
+    def condpdf(self, state1: State, state2: State, latents: Optional[Latents] = None, **kwargs) -> Union[Probability, np.ndarray]:
+        r"""Model conditional pdf/likelihood evaluation function"""
+        return Probability.from_log_ufunc(self.logcondpdf(state1, state2, latents=latents, **kwargs))
 
-    def logpdf(self, state1: State, state2: State, **kwargs) -> Union[float, np.ndarray]:
+
+    def logcondpdf(self, state1: State, state2: State, latents: Optional[Latents] = None, **kwargs) -> Union[float, np.ndarray]:
+        r"""Model log conditional pdf/likelihood evaluation function"""
+        if latents is None:
+            raise ValueError("Latents cannot be none.")
+
+        mean = self.mean(latents=latents, **kwargs)
+        if mean is None or None in mean:
+            raise ValueError("Cannot generate pdf from None-type mean")
+        assert isinstance(mean, StateVector)
+
+        covar = self.covar(latents=latents, **kwargs)
+        if covar is None or None in covar:
+            raise ValueError("Cannot generate pdf from None-type covariance")
+        assert isinstance(covar, CovarianceMatrix)
+
+
+        likelihood = np.atleast_1d(
+            multivariate_normal.logpdf((state1.state_vector - self.function(state2, **kwargs)).T,
+                                       mean=mean, cov=covar))
+
+        if len(likelihood) == 1:
+            likelihood = likelihood[0]
+
+        return likelihood
+
+    def logpdf(self, state1: State, state2: State, **kwargs) -> Probability | np.ndarray:
+        r"""Model log pdf/likelihood evaluation function"""
         return NotImplementedError
 
-    # def pdf(self, state1: State, state2: State, **kwargs) -> Probability | np.ndarray:
-    #     import numpy as np
-    #     import matplotlib.pyplot as plt
-    #     from scipy.stats import norm
 
-    #     # Parameters
-    #     x_min = -10.0
-    #     x_max = 10.0
-    #     N = 2**8
-
-    #     # Generate k and w
-    #     k = np.arange(N)
-    #     w = (0.5 - N / 2 + k) * (2 * np.pi / (x_max - x_min))
-
-    #     # Characteristic function
-    #     cffun = lambda w: np.exp(-0.5 * w**2)
-
-    #     alpha=1
-    #     nu=2
-
-    #     cffun = lambda w: ( 1 -  (1j * w) / alpha) ** (-nu)
-
-    #     cf = cffun(w[int(N/2):])
-    #     cf = np.concatenate([np.conj(cf[::-1]), cf])
-
-    #     # Compute dx, C, and D
-    #     dx = (x_max - x_min) / N
-
-    #     C = (-1+0j) ** ((1 - 1 / N) * (x_min / dx + k)) / (x_max - x_min)
-
-    #     D = (-1+0j) ** (-2 * (x_min / (x_max - x_min)) * k)
-
-    #     # Compute the PDF
-    #     pdf = np.real(C * np.fft.fft(D * cf))
-
-    #     # Compute the CDF
-    #     cdf = np.cumsum(pdf * dx)
-
-    #     # Generate x values
-    #     x = x_min + k * dx
-
-    #     # Plot the PDF
-    #     plt.figure()
-    #     plt.plot(x, pdf, label='inverse CF')
-    #     plt.plot(x, norm.pdf(x), label='scipy')
-    #     plt.title('PDF')
-    #     plt.grid()
-    #     plt.legend()
-    #     plt.show()
-
-    #     # Plot the CDF
-    #     # plt.figure()
-    #     # plt.plot(x, cdf)
-    #     # plt.title('CDF')
-    #     # plt.grid()
-    #     # plt.show()
+    def pdf(self, state1: State, state2: State, **kwargs) -> Probability | np.ndarray:
+        r"""Model pdf/likelihood evaluation function"""
+        return Probability.from_log_ufunc(self.logpdf(state1, state2, **kwargs))
