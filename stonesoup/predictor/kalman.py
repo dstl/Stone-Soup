@@ -15,8 +15,8 @@ from ..models.transition import TransitionModel
 from ..models.transition.linear import LinearGaussianTransitionModel
 from ..models.control import ControlModel
 from ..models.control.linear import LinearControlModel
-from ..functions import gauss2sigma, unscented_transform, cubature_transform, stochasticCubatureRulePoints
-
+from ..functions import gauss2sigma, unscented_transform, cubature_transform, \
+    stochasticCubatureRulePoints
 
 
 class KalmanPredictor(Predictor):
@@ -496,11 +496,10 @@ class CubatureKalmanPredictor(KalmanPredictor):
         default=None,
         doc="The control model to be used. Default `None` where the predictor "
             "will create a zero-effect linear :class:`~.ControlModel`.")
-
     alpha: float = Property(
-      default=1.0,
-      doc="Scaling parameter. Default is 1.0. Lower values select points closer to the mean and "
-          "vice versa.")
+        default=1.0,
+        doc="Scaling parameter. Default is 1.0. Lower values select points closer to the mean and "
+            "vice versa.")
 
     def _transition_and_control_function(self, prior_state, **kwargs):
         r"""Returns the result of applying the transition and control functions
@@ -544,12 +543,26 @@ class CubatureKalmanPredictor(KalmanPredictor):
             The predicted state :math:`\mathbf{x}_{k|k-1}` and the predicted
             state covariance :math:`P_{k|k-1}`
         """
+
+        # Get the prediction interval
+        predict_over_interval = self._predict_over_interval(prior, timestamp)
+
+        # The covariance on the transition model + the control model
+        # TODO: See equivalent note to unscented transform.
+        ctrl_mat = self.control_model.matrix(time_interval=predict_over_interval, **kwargs)
+        ctrl_noi = self.control_model.covar(**kwargs)
+        total_noise_covar = \
+            self.transition_model.covar(time_interval=predict_over_interval, **kwargs) \
+            + ctrl_mat@ctrl_noi@ctrl_mat.T
+
+        # This ensures that function passed to transform has the correct time interval and control
+        # input
         transition_and_control_function = partial(
             self._transition_and_control_function,
             control_input=control_input,
             time_interval=predict_over_interval)
 
-x_pred, p_pred, _, _ = cubature_transform(prior, transition_and_control_function,
+        x_pred, p_pred, _, _ = cubature_transform(prior, transition_and_control_function,
                                                   covar_noise=total_noise_covar, alpha=self.alpha)
 
         return Prediction.from_state(prior, x_pred, p_pred, timestamp=timestamp,
@@ -561,7 +574,12 @@ class StochasticIntegrationPredictor(KalmanPredictor):
 
     The state prediction of nonlinear models is accomplished by the stochastic
     integration approximation.
-    
+    """
+    transition_model: TransitionModel = Property(doc="The transition model to be used.")
+    control_model: ControlModel = Property(
+        default=None,
+        doc="The control model to be used. Default `None` where the predictor "
+            "will create a zero-effect linear :class:`~.ControlModel`.")
     Nmax: float = Property(
         default=10,
         doc="maximal number of iterations of SIR")
@@ -584,14 +602,45 @@ class StochasticIntegrationPredictor(KalmanPredictor):
         r"""Returns the result of applying the transition and control functions
         for the unscented transform
 
+        Parameters
+        ----------
+        prior_state_vector : :class:`~.State`
+            Prior state vector
+        **kwargs : various, optional
+            These are passed to :class:`~.TransitionModel.function`
+
+        Returns
+        -------
+        : :class:`numpy.ndarray`
+            The combined, noiseless, effect of applying the transition and
+            control
+        """
+
         return self.transition_model.function(prior_state, **kwargs) + \
             self.control_model.function(**kwargs)
 
     @predict_lru_cache()
     def predict(self, prior, timestamp=None, control_input=None, **kwargs):
         r"""The stochastic integration version of the predict step
+
+        Parameters
+        ----------
+        prior : :class:`~.State`
+            Prior state, :math:`\mathbf{x}_{k-1}`
+        timestamp : :class:`datetime.datetime`
+            Time to transit to (:math:`k`)
+        control_input: :class:`~.State`
+            Control input vector, :math:`\mathbf{u}_k`
+        **kwargs : various, optional
             These are passed to :meth:`~.TransitionModel.covar`
+
+        Returns
+        -------
+        : :class:`~.GaussianStatePrediction`
+            The predicted state :math:`\mathbf{x}_{k|k-1}` and the predicted
+            state covariance :math:`P_{k|k-1}`
         """
+
         nx = np.size(prior.mean, 0)
         enx = nx
 
@@ -608,20 +657,11 @@ class StochasticIntegrationPredictor(KalmanPredictor):
 
         # This ensures that function passed to unscented transform has the
         # correct time interval
-        
-        # Get the prediction interval
-        predict_over_interval = self._predict_over_interval(prior, timestamp)
+        transition_and_control_function = partial(
+            self._transition_and_control_function,
+            control_input=control_input,
+            time_interval=predict_over_interval)
 
-        # The covariance on the transition model + the control model
-        # TODO: See equivalent note to unscented transform.
-        ctrl_mat = self.control_model.matrix(time_interval=predict_over_interval, **kwargs)
-        ctrl_noi = self.control_model.covar(**kwargs)
-        total_noise_covar = \
-            self.transition_model.covar(time_interval=predict_over_interval, **kwargs) \
-            + ctrl_mat@ctrl_noi@ctrl_mat.T
-
-        # This ensures that function passed to transform has the correct time interval and control
-        # input
         # - SIR recursion for state predictive moments computation
         # -- until either max iterations or threshold is reached
         while N < self.Nmin or np.all([N < self.Nmax,
@@ -708,4 +748,3 @@ class StochasticIntegrationPredictor(KalmanPredictor):
                                      timestamp=timestamp,
                                      transition_model=self.transition_model,
                                      prior=prior)
-
