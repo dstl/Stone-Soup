@@ -227,12 +227,11 @@ class GOSPAMetric(MetricGenerator):
         # Index for objects that will be left un-assigned.
         unassigned_idx = -1
 
-        opt_cost = 0.0
         measured_to_truth = np.full((n_measured, ), unassigned_idx)
         truth_to_measured = np.full((m_truth, ), unassigned_idx)
 
         row_ind, col_ind = linear_sum_assignment(-cost_matrix)
-        opt_cost -= cost_matrix[row_ind, col_ind].sum()
+        opt_cost = cost_matrix[row_ind, col_ind].sum()
         truth_to_measured[row_ind] = col_ind
         measured_to_truth[col_ind] = row_ind
 
