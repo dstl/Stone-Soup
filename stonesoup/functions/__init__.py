@@ -1,49 +1,50 @@
 """Mathematical functions used within Stone Soup"""
+
 import copy
+import itertools
 import warnings
 
 import numpy as np
-
-from ..types.numeric import Probability
-from ..types.array import StateVector, StateVectors, CovarianceMatrix
-from ..types.state import State
-import itertools
 from numpy import linalg as LA
 from numpy import matlib as matlib
 
+from ..types.array import CovarianceMatrix, StateVector, StateVectors
+from ..types.numeric import Probability
+from ..types.state import State
 
-def gridCreation(xp_aux,Pp_aux,sFactor,nx,Npa):
-    gridDim = np.zeros((nx,Npa[0]))
+
+def gridCreation(xp_aux, Pp_aux, sFactor, nx, Npa):
+    gridDim = np.zeros((nx, Npa[0]))
     gridStep = np.zeros(nx)
-    eigVal,eigVect = LA.eig(Pp_aux) # eigenvalue and eigenvectors for setting up the grid
-    gridBound = np.sqrt(eigVal)*sFactor #Boundaries of grid
-    
+    eigVal, eigVect = LA.eig(
+        Pp_aux
+    )  # eigenvalue and eigenvectors for setting up the grid
+    gridBound = np.sqrt(eigVal) * sFactor  # Boundaries of grid
 
     # Ensure the grid steps are in the right order
-    I = np.argsort(np.diag(Pp_aux))
-    I = np.argsort(I)
-    
+    sortInd = np.argsort(np.diag(Pp_aux))
+    sortInd = np.argsort(sortInd)
+
     pom = np.sort(gridBound)
-    gridBound = pom[I]
-    
+    gridBound = pom[sortInd]
+
     Ipom = np.argsort(gridBound)
     pom2 = eigVect[:, Ipom]
-    eigVect = pom2[:, I]
+    eigVect = pom2[:, sortInd]
     gridDim = []  # Reset gridDim for each cycle
     gridStep = []  # Reset gridStep for each cycle
-    for ind3 in range(0,nx):  #Creation of propagated grid
-        # gridDim[ind3] = np.linspace(-gridBound[ind3], gridBound[ind3], Npa[ind3]) #New grid with middle in 0
-        # gridStep[ind3] = np.absolute(gridDim[ind3][0] - gridDim[ind3][1]) #Grid step
-        gridDim.append(np.linspace(-gridBound[ind3], gridBound[ind3], Npa[ind3]))  # New grid with middle in 0
+    for ind3 in range(0, nx):  # Creation of propagated grid
+        # New grid with middle in 0
+        gridDim.append(np.linspace(-gridBound[ind3], gridBound[ind3], Npa[ind3]))
         gridStep.append(np.absolute(gridDim[ind3][0] - gridDim[ind3][1]))  # Grid step
 
-    
     combvec_predGrid = np.array(list(itertools.product(*gridDim)))
-    predGrid_pom = np.dot(eigVect,combvec_predGrid.T)               
-    size_pom = np.size(predGrid_pom,1)
-    predGrid = predGrid_pom + matlib.repmat(xp_aux,1,size_pom) #Grid rotation by eigenvectors and traslation to the counted unscented mean
-    predGridDelta = gridStep # Grid step size
-    return predGrid,predGridDelta,gridDim,xp_aux,eigVect
+    predGrid_pom = np.dot(eigVect, combvec_predGrid.T)
+    size_pom = np.size(predGrid_pom, 1)
+    # Grid rotation by eigenvectors and traslation to the counted unscented mean
+    predGrid = predGrid_pom + matlib.repmat(xp_aux, 1, size_pom)
+    predGridDelta = gridStep  # Grid step size
+    return predGrid, predGridDelta, gridDim, xp_aux, eigVect
 
 
 def tria(matrix):
@@ -65,9 +66,7 @@ def tria(matrix):
     _, upper_triangular = np.linalg.qr(matrix.T)
     lower_triangular = upper_triangular.T
 
-    index = [col
-             for col, val in enumerate(np.diag(lower_triangular))
-             if val < 0]
+    index = [col for col, val in enumerate(np.diag(lower_triangular)) if val < 0]
 
     lower_triangular[:, index] *= -1
 
@@ -98,8 +97,8 @@ def cholesky_eps(A, lower=False):
     L = np.zeros(A.shape)
     for i in range(A.shape[0]):
         for j in range(i):
-            L[i, j] = (A[i, j] - L[i, :]@L[j, :].T) / L[j, j]
-        val = A[i, i] - L[i, :]@L[i, :].T
+            L[i, j] = (A[i, j] - L[i, :] @ L[j, :].T) / L[j, j]
+        val = A[i, i] - L[i, :] @ L[i, :].T
         L[i, i] = np.sqrt(val) if val > eps else np.sqrt(eps)
 
     if lower:
@@ -130,13 +129,16 @@ def jacobian(fun, x, **kwargs):
 
     # For numerical reasons the step size needs to large enough. Aim for 1e-8
     # relative to spacing between floating point numbers for each dimension
-    delta = 1e8*np.spacing(x.state_vector.astype(np.float64).ravel())
+    delta = 1e8 * np.spacing(x.state_vector.astype(np.float64).ravel())
     # But at least 1e-8
     # TODO: Is this needed? If not, note special case at zero.
     delta[delta < 1e-8] = 1e-8
 
     x2 = copy.copy(x)  # Create a clone of the input
-    x2.state_vector = np.tile(x.state_vector, ndim+1) + np.eye(ndim, ndim+1)*delta[:, np.newaxis]
+    x2.state_vector = (
+        np.tile(x.state_vector, ndim + 1)
+        + np.eye(ndim, ndim + 1) * delta[:, np.newaxis]
+    )
     x2.state_vector = x2.state_vector.view(StateVectors)
 
     F = fun(x2, **kwargs)
@@ -207,10 +209,12 @@ def gauss2sigma(state, alpha=1.0, beta=2.0, kappa=None):
         sigma_points = sigma_points.astype(float)
 
     # Can't use in place addition/subtraction as casting issues may arise when mixing float/int
-    sigma_points[:, 1:(ndim_state + 1)] = \
-        sigma_points[:, 1:(ndim_state + 1)] + sqrt_sigma*np.sqrt(c)
-    sigma_points[:, (ndim_state + 1):] = \
-        sigma_points[:, (ndim_state + 1):] - sqrt_sigma*np.sqrt(c)
+    sigma_points[:, 1 : (ndim_state + 1)] = sigma_points[
+        :, 1 : (ndim_state + 1)
+    ] + sqrt_sigma * np.sqrt(c)
+    sigma_points[:, (ndim_state + 1) :] = sigma_points[
+        :, (ndim_state + 1) :
+    ] - sqrt_sigma * np.sqrt(c)
 
     # Put these sigma points into s State object list
     sigma_points_states = []
@@ -262,8 +266,14 @@ def sigma2gauss(sigma_points, mean_weights, covar_weights, covar_noise=None):
     return mean.view(StateVector), covar.view(CovarianceMatrix)
 
 
-def unscented_transform(sigma_points_states, mean_weights, covar_weights,
-                        fun, points_noise=None, covar_noise=None):
+def unscented_transform(
+    sigma_points_states,
+    mean_weights,
+    covar_weights,
+    fun,
+    points_noise=None,
+    covar_noise=None,
+):
     """
     Apply the Unscented Transform to a set of sigma points
 
@@ -306,24 +316,33 @@ def unscented_transform(sigma_points_states, mean_weights, covar_weights,
         An array containing the transformed sigma point covariance weights
     """
     # Reconstruct the sigma_points matrix
-    sigma_points = StateVectors([
-        sigma_points_state.state_vector for sigma_points_state in sigma_points_states])
+    sigma_points = StateVectors(
+        [sigma_points_state.state_vector for sigma_points_state in sigma_points_states]
+    )
 
     # Transform points through f
     if points_noise is None:
-        sigma_points_t = StateVectors([
-            fun(sigma_points_state) for sigma_points_state in sigma_points_states])
+        sigma_points_t = StateVectors(
+            [fun(sigma_points_state) for sigma_points_state in sigma_points_states]
+        )
     else:
-        sigma_points_t = StateVectors([
-            fun(sigma_points_state, points_noise)
-            for sigma_points_state, point_noise in zip(sigma_points_states, points_noise.T)])
+        sigma_points_t = StateVectors(
+            [
+                fun(sigma_points_state, points_noise)
+                for sigma_points_state, point_noise in zip(
+                    sigma_points_states, points_noise.T
+                )
+            ]
+        )
 
     # Calculate mean and covariance approximation
     mean, covar = sigma2gauss(sigma_points_t, mean_weights, covar_weights, covar_noise)
 
     # Calculate cross-covariance
     cross_covar = (
-        (sigma_points-sigma_points[:, 0:1]) @ np.diag(covar_weights) @ (sigma_points_t-mean).T
+        (sigma_points - sigma_points[:, 0:1])
+        @ np.diag(covar_weights)
+        @ (sigma_points_t - mean).T
     ).view(CovarianceMatrix)
 
     return mean, covar, cross_covar, sigma_points_t, mean_weights, covar_weights
@@ -487,7 +506,7 @@ def az_el_rg2cart(phi, theta, rho):
     """
     x = rho * np.sin(phi)
     y = rho * np.sin(theta)
-    z = rho * np.sqrt(1.0 - np.sin(theta)**2 - np.sin(phi)**2)
+    z = rho * np.sqrt(1.0 - np.sin(theta) ** 2 - np.sin(phi) ** 2)
     return x, y, z
 
 
@@ -521,9 +540,7 @@ def rotx(theta):
     c, s = np.cos(theta), np.sin(theta)
     zero = np.zeros_like(theta)
     one = np.ones_like(theta)
-    return np.array([[one, zero, zero],
-                     [zero, c, -s],
-                     [zero, s, c]])
+    return np.array([[one, zero, zero], [zero, c, -s], [zero, s, c]])
 
 
 def roty(theta):
@@ -557,9 +574,7 @@ def roty(theta):
     c, s = np.cos(theta), np.sin(theta)
     zero = np.zeros_like(theta)
     one = np.ones_like(theta)
-    return np.array([[c, zero, s],
-                     [zero, one, zero],
-                     [-s, zero, c]])
+    return np.array([[c, zero, s], [zero, one, zero], [-s, zero, c]])
 
 
 def rotz(theta):
@@ -593,9 +608,7 @@ def rotz(theta):
     c, s = np.cos(theta), np.sin(theta)
     zero = np.zeros_like(theta)
     one = np.ones_like(theta)
-    return np.array([[c, -s, zero],
-                     [s, c, zero],
-                     [zero, zero, one]])
+    return np.array([[c, -s, zero], [s, c, zero], [zero, zero, one]])
 
 
 def gm_sample(means, covars, size, weights=None):
@@ -633,8 +646,12 @@ def gm_sample(means, covars, size, weights=None):
         weights = np.array([1 / len(means)] * len(means))
 
     n_samples = np.random.multinomial(size, weights)
-    samples = np.vstack([np.random.multivariate_normal(mean.ravel(), covar, sample)
-                         for (mean, covar, sample) in zip(means, covars, n_samples)]).T
+    samples = np.vstack(
+        [
+            np.random.multivariate_normal(mean.ravel(), covar, sample)
+            for (mean, covar, sample) in zip(means, covars, n_samples)
+        ]
+    ).T
 
     return StateVectors(samples)
 
@@ -669,7 +686,10 @@ def gm_reduce_single(means, covars, weights):
 
     # Calculate covar
     delta_means = means - mean
-    covar = np.sum(covars*weights, axis=2, dtype=np.float64) + weights*delta_means@delta_means.T
+    covar = (
+        np.sum(covars * weights, axis=2, dtype=np.float64)
+        + weights * delta_means @ delta_means.T
+    )
 
     return mean.view(StateVector), covar.view(CovarianceMatrix)
 
@@ -689,7 +709,7 @@ def mod_bearing(x):
         Angle in radians in the range math: :math:`-\pi` to :math:`+\pi`
     """
 
-    x = (x+np.pi) % (2.0*np.pi)-np.pi
+    x = (x + np.pi) % (2.0 * np.pi) - np.pi
 
     return x
 
@@ -708,7 +728,7 @@ def mod_elevation(x):
     float
         Angle in radians in the range math: :math:`-\pi/2` to :math:`+\pi/2`
     """
-    x = x % (2*np.pi)  # limit to 2*pi
+    x = x % (2 * np.pi)  # limit to 2*pi
     N = x // (np.pi / 2)  # Count # of 90 deg multiples
     if N == 1:
         x = np.pi - x
@@ -796,15 +816,19 @@ def dotproduct(a, b):
     """
 
     if np.shape(a) != np.shape(b):
-        raise ValueError("Inputs must be (a collection of) column vectors of the same dimension")
+        raise ValueError(
+            "Inputs must be (a collection of) column vectors of the same dimension"
+        )
 
     # Decide whether this is a StateVector or a StateVectors
-    if type(a) is StateVector and type(b) is StateVector:
+    if isinstance(a, StateVector) and isinstance(b, StateVector):
         return np.sum(a * b)
-    elif type(a) is StateVectors and type(b) is StateVectors:
+    elif isinstance(a, StateVectors) and isinstance(b, StateVectors):
         return np.atleast_2d(np.asarray(np.sum(a * b, axis=0)))
     else:
-        raise ValueError("Inputs must be `StateVector` or `StateVectors` and of the same type")
+        raise ValueError(
+            "Inputs must be `StateVector` or `StateVectors` and of the same type"
+        )
 
 
 def sde_euler_maruyama_integration(fun, t_values, state_x0):
@@ -832,7 +856,7 @@ def sde_euler_maruyama_integration(fun, t_values, state_x0):
         delta_t = next_t - t
         delta_w = np.random.normal(scale=np.sqrt(delta_t), size=(state_x.ndim, 1))
         a, b = fun(state_x, t)
-        state_x.state_vector = state_x.state_vector + a*delta_t + b@delta_w
+        state_x.state_vector = state_x.state_vector + a * delta_t + b @ delta_w
     return state_x.state_vector
 
 
@@ -870,13 +894,14 @@ def gauss2cubature(state, alpha=1.0):
     ndim_state = np.shape(state.state_vector)[0]
 
     sqrt_covar = np.linalg.cholesky(state.covar)
-    cuba_points = np.sqrt(alpha*ndim_state) * np.hstack((np.identity(ndim_state),
-                                                         -np.identity(ndim_state)))
+    cuba_points = np.sqrt(alpha * ndim_state) * np.hstack(
+        (np.identity(ndim_state), -np.identity(ndim_state))
+    )
 
     if np.issubdtype(cuba_points.dtype, np.integer):
         cuba_points = cuba_points.astype(float)
 
-    cuba_points = sqrt_covar@cuba_points + state.mean
+    cuba_points = sqrt_covar @ cuba_points + state.mean
 
     return StateVectors(cuba_points)
 
@@ -921,7 +946,7 @@ def cubature2gauss(cubature_points, covar_noise=None, alpha=1.0):
     mean = np.average(cubature_points, axis=1)
     sigma_mult = cubature_points @ cubature_points.T
     mean_mult = mean @ mean.T
-    covar = (1/alpha)*((1/m)*sigma_mult - mean_mult)
+    covar = (1 / alpha) * ((1 / m) * sigma_mult - mean_mult)
 
     if covar_noise is not None:
         covar = covar + covar_noise
@@ -979,16 +1004,23 @@ def cubature_transform(state, fun, points_noise=None, covar_noise=None, alpha=1.
     cubature_points = gauss2cubature(state)
 
     if points_noise is None:
-        cubature_points_t = StateVectors([fun(State(cub_point)) for cub_point in cubature_points])
+        cubature_points_t = StateVectors(
+            [fun(State(cub_point)) for cub_point in cubature_points]
+        )
     else:
-        cubature_points_t = StateVectors([
-            fun(State(cub_point), points_noise)
-            for cub_point, point_noise in zip(cubature_points, points_noise)])
+        cubature_points_t = StateVectors(
+            [
+                fun(State(cub_point), points_noise)
+                for cub_point, point_noise in zip(cubature_points, points_noise)
+            ]
+        )
 
     mean, covar = cubature2gauss(cubature_points_t, covar_noise)
 
-    cross_covar = (1/alpha)*((1./(2*ndim_state))*cubature_points@cubature_points_t.T
-                             - np.average(cubature_points, axis=1)@mean.T)
+    cross_covar = (1 / alpha) * (
+        (1.0 / (2 * ndim_state)) * cubature_points @ cubature_points_t.T
+        - np.average(cubature_points, axis=1) @ mean.T
+    )
     cross_covar = cross_covar.view(CovarianceMatrix)
 
     return mean, covar, cross_covar, cubature_points_t

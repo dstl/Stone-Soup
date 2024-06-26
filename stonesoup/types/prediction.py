@@ -11,7 +11,7 @@ from .state import (State, GaussianState, EnsembleState,
                     BernoulliParticleState)
 from ..base import Property
 from ..models.transition.base import TransitionModel
-from ..types.state import CreatableFromState, CompositeState
+from ..types.state import CreatableFromState, CompositeState, PointMassState
 
 
 class Prediction(Type, CreatableFromState):
@@ -141,8 +141,20 @@ class ParticleStatePrediction(Prediction, ParticleState):
     This is a simple Particle state prediction object.
     """
 
+class PointMassStatePrediction(Prediction, PointMassState):
+    """ParticleStatePrediction type
+
+    This is a simple Particle state prediction object.
+    """
 
 class ParticleMeasurementPrediction(MeasurementPrediction, ParticleState):
+    """MeasurementStatePrediction type
+
+    This is a simple Particle measurement prediction object.
+    """
+    
+    
+class PointMassMeasurementPrediction(MeasurementPrediction, PointMassState):
     """MeasurementStatePrediction type
 
     This is a simple Particle measurement prediction object.
