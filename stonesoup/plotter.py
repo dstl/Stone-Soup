@@ -1435,8 +1435,13 @@ class Plotterly(_Plotter):
     @staticmethod
     def _generate_ellipse_points(state, mapping, n_points=30):
         """Generate error ellipse points for given state and mapping"""
+        
         HH = np.eye(state.ndim)[mapping, :]  # Get position mapping matrix
+        # print("In ellispe")
+        # print(HH @ state.covar @ HH.T)
+        # print("In ellispe")
         w, v = np.linalg.eig(HH @ state.covar @ HH.T)
+        
         max_ind = np.argmax(w)
         min_ind = np.argmin(w)
         orient = np.arctan2(v[1, max_ind], v[0, max_ind])
