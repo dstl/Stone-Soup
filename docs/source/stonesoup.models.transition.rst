@@ -24,3 +24,9 @@ Categorical
 .. automodule:: stonesoup.models.transition.categorical
     :show-inheritance:
     :inherited-members:
+
+Graph
+-----
+.. automodule:: stonesoup.models.transition.graph
+    :show-inheritance:
+    :inherited-members:
