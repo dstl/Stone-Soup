@@ -1,6 +1,6 @@
 import json
 import sys
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from math import modf
 from queue import Empty, Queue
 from threading import Thread
@@ -83,7 +83,8 @@ class _KafkaReader(Reader):
             )
         elif self.timestamp is True:
             fractional, timestamp = modf(float(data[self.time_field]))
-            time_field_value = datetime.utcfromtimestamp(int(timestamp))
+            time_field_value = datetime.fromtimestamp(
+                int(timestamp), timezone.utc).replace(tzinfo=None)
             time_field_value += timedelta(microseconds=fractional * 1e6)
         else:
             time_field_value = parse(data[self.time_field], ignoretz=True)

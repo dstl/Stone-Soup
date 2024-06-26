@@ -2,6 +2,7 @@ import copy
 import datetime
 import typing
 import uuid
+import weakref
 from collections import abc
 from numbers import Integral
 from typing import Any, MutableMapping, MutableSequence, Optional, Sequence
@@ -744,8 +745,8 @@ class ParticleState(State):
                     " parents or none of them should."
                 )
 
-        if self.parent:
-            self.parent.parent = None  # Removed to avoid using significant memory
+        if self.parent and self.parent.parent:  # Create weakref to avoid using significant memory
+            self.parent.parent = weakref.ref(self.parent.parent)
 
         if self.state_vector is not None and not isinstance(
             self.state_vector, StateVectors
@@ -754,7 +755,9 @@ class ParticleState(State):
 
     def __getitem__(self, item):
         if self.parent is not None:
-            parent = self.parent[item]
+            parent = copy.copy(self.parent)
+            parent.parent = None  # Don't slice parent parent
+            parent = parent[item]
         else:
             parent = None
 
@@ -778,6 +781,13 @@ class ParticleState(State):
                 parent=parent,
             )
         return result
+
+    @parent.getter
+    def parent(self):
+        if isinstance(self._property_parent, weakref.ReferenceType):
+            return self._property_parent()
+        else:
+            return self._property_parent
 
     @classmethod
     def from_state(
@@ -890,7 +900,9 @@ class MultiModelParticleState(ParticleState):
 
     def __getitem__(self, item):
         if self.parent is not None:
-            parent = self.parent[item]
+            parent = copy.copy(self.parent)
+            parent.parent = None  # Don't slice parent parent
+            parent = parent[item]
         else:
             parent = None
 
@@ -940,7 +952,9 @@ class RaoBlackwellisedParticleState(ParticleState):
 
     def __getitem__(self, item):
         if self.parent is not None:
-            parent = self.parent[item]
+            parent = copy.copy(self.parent)
+            parent.parent = None  # Don't slice parent parent
+            parent = parent[item]
         else:
             parent = None
 
@@ -997,7 +1011,9 @@ class BernoulliParticleState(ParticleState):
 
     def __getitem__(self, item):
         if self.parent is not None:
-            parent = self.parent[item]
+            parent = copy.copy(self.parent)
+            parent.parent = None  # Don't slice parent parent
+            parent = parent[item]
         else:
             parent = None
 
