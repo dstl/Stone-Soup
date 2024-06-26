@@ -272,3 +272,8 @@ def test_schmidtkalman():
 
     assert np.allclose(update.mean, sk_update.mean)
     assert np.allclose(update.covar, sk_update.covar)
+    
+    
+if __name__ == "__main__":
+    import pytest
+    pytest.main(['-v', __file__])
