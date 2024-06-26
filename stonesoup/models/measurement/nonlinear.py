@@ -17,7 +17,6 @@ from ...types.array import StateVector, CovarianceMatrix, StateVectors
 from ...types.angle import Bearing, Elevation, Azimuth
 from ..base import LinearModel, GaussianModel, ReversibleModel
 from .base import MeasurementModel
-from ...types.state import State
 
 
 class CombinedReversibleGaussianMeasurementModel(ReversibleModel, GaussianModel, MeasurementModel):
@@ -280,8 +279,6 @@ class CartesianToElevationBearingRange(NonLinearGaussianMeasurement, ReversibleM
         out = super().rvs(num_samples, **kwargs)
         out = np.array([[Elevation(0.)], [Bearing(0.)], [0.]]) + out
         return out
-    
-    
 
 
 class CartesianToBearingRange(NonLinearGaussianMeasurement, ReversibleModel):
@@ -425,7 +422,6 @@ class CartesianToBearingRange(NonLinearGaussianMeasurement, ReversibleModel):
         out = super().rvs(num_samples, **kwargs)
         out = np.array([[Bearing(0)], [0.]]) + out
         return out
-
 
 
 class CartesianToElevationBearing(NonLinearGaussianMeasurement):
