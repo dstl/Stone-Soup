@@ -129,10 +129,8 @@ class PointMassPredictor(Predictor):
                 np.sum(predDensityProb) * np.prod(GridDelta)
             )
 
-
             xOld = F @ np.vstack(prior.mean)
             Ppold = F @ eigVect
-
 
         return PointMassState(
             state_vector=StateVectors(np.squeeze(predGrid)),

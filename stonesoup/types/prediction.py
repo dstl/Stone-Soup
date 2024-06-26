@@ -141,19 +141,21 @@ class ParticleStatePrediction(Prediction, ParticleState):
     This is a simple Particle state prediction object.
     """
 
+
 class PointMassStatePrediction(Prediction, PointMassState):
     """ParticleStatePrediction type
 
     This is a simple Particle state prediction object.
     """
 
+
 class ParticleMeasurementPrediction(MeasurementPrediction, ParticleState):
     """MeasurementStatePrediction type
 
     This is a simple Particle measurement prediction object.
     """
-    
-    
+
+
 class PointMassMeasurementPrediction(MeasurementPrediction, PointMassState):
     """MeasurementStatePrediction type
 
