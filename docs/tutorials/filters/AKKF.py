@@ -209,7 +209,7 @@ transition_model = CombinedLinearGaussianTransitionModel([ConstantVelocity(q_x),
 # %%
 # Create the ground truth path.
 
-truth = GroundTruthPath([GroundTruthState([-0.1, 0.001, 0.7, -0.055], timestamp=start_time)])
+truth = GroundTruthPath([GroundTruthState([-0.3, 0.001, 0.7, -0.055], timestamp=start_time)])
 
 num_steps = 30
 for k in range(1, num_steps):
@@ -308,8 +308,8 @@ for state in truth:
 #   the kernel space.
 
 # %%
-# Initialise a prior 2
-# --------------------
+# Initialise a prior
+# ------------------
 #
 # To begin, we initialise a prior estimate for the tracking problem.
 # This is achieved by :class:`KernelParticleState` that describes the state as a distribution of
@@ -324,6 +324,7 @@ from stonesoup.types.array import StateVectors
 number_particles = 30
 
 # Sample from the prior Gaussian distribution
+np.random.seed(50)
 samples = multivariate_normal.rvs(np.squeeze(truth[0].state_vector),
                                   np.diag([0.1, 0.005, 0.1, 0.01])**2,
                                   size=number_particles)
@@ -377,5 +378,6 @@ plotter.fig
 
 # %%
 
+# sphinx_gallery_thumbnail_number = -1
 plotter.plot_tracks(track, [0, 2], particle=True)
 plotter.fig
