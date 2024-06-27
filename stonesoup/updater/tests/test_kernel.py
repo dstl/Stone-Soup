@@ -108,7 +108,7 @@ def test_kernel_updater(kernel, measurement_model, c, ialpha):
     assert update.hypothesis.measurement.timestamp == gt_state.timestamp
     assert np.allclose(update.state_vector, prediction.state_vector)
     assert np.allclose(update.proposal, StateVectors(new_state_vector.T), atol=1e0)
-    assert np.allclose(update.weight, updated_weights)
+    assert np.allclose(update.weight, updated_weights.ravel())
     assert np.allclose(update.kernel_covar, updated_covariance)
 
 

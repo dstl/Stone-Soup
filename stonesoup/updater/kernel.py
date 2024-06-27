@@ -86,14 +86,13 @@ class AdaptiveKernelKalmanUpdater(Updater):
             predicted_state.kernel_covar \
             @ np.linalg.pinv(G_yy @ predicted_state.kernel_covar
                              + self.lambda_updater * np.identity(len(predicted_state)))
-        updated_weights = \
-            np.atleast_2d(predicted_state.weight).T \
-            + Q_AKKF @ (g_y - np.atleast_2d(G_yy @ predicted_state.weight).T)
+        weights = predicted_state.weight[:, np.newaxis]
+        updated_weights = (weights + Q_AKKF@(g_y - G_yy@weights)).ravel()
         updated_covariance = \
             predicted_state.kernel_covar - Q_AKKF @ G_yy @ predicted_state.kernel_covar
 
         # Proposal Calculation
-        pred_mean = predicted_state.state_vector @ np.squeeze(updated_weights)
+        pred_mean = predicted_state.state_vector @ updated_weights
         pred_covar = np.diag(np.diag(
             predicted_state.state_vector @ updated_covariance @ predicted_state.state_vector.T))
 

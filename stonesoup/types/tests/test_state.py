@@ -863,5 +863,5 @@ def test_kernel_particle_state():
     assert np.array_equal(prior.kernel_covar, prior_w_kernel_covar.kernel_covar)
     assert number_particles == len(prior)
     assert 4 == prior.ndim
-    assert np.array_equal(state_vector @ weights, prior.mean)
+    assert np.array_equal(state_vector @ weights[:, np.newaxis], prior.mean)
     assert np.array_equal(state_vector @ np.diag(weights) @ state_vector.T, prior.covar)

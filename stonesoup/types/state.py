@@ -946,9 +946,9 @@ class KernelParticleState(State):
 
     @clearable_cached_property('state_vector', 'weight')
     def mean(self):
-        return self.state_vector @ self.weight
+        return self.state_vector @ self.weight[:, np.newaxis]
 
-    @clearable_cached_property('state_vector', 'weight')
+    @clearable_cached_property('state_vector', 'kernel_covar')
     def covar(self):
         return self.state_vector @ self.kernel_covar @ self.state_vector.T
 

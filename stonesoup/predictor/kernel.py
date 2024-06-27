@@ -76,7 +76,7 @@ class AdaptiveKernelKalmanPredictor(KalmanPredictor):
         prediction_covariance = kernel_t @ prior.kernel_covar @ kernel_t.T + v
         return Prediction.from_state(prior,
                                      state_vector=new_state_vector,
-                                     weight=np.squeeze(prediction_weights),
+                                     weight=prediction_weights,
                                      kernel_covar=prediction_covariance,
                                      timestamp=timestamp,
                                      transition_model=self.transition_model)
