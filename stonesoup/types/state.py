@@ -925,9 +925,10 @@ class KernelParticleState(State):
     """
 
     state_vector: StateVectors = Property(doc='State vectors.')
-    weight: np.ndarray = Property(default=None, doc='Weights of particles')
+    weight: np.ndarray = Property(default=None, doc='Weights of particles. Defaults to [1/N]*N.')
     kernel_covar: CovarianceMatrix = Property(default=None,
-                                              doc='Kernel covariance value. Default `None`.')
+                                              doc='Kernel covariance value. Default `None`.'
+                                                  'If None, the identity matrix is used.')
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)

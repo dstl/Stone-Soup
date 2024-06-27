@@ -16,7 +16,7 @@ class AdaptiveKernelKalmanPredictor(KalmanPredictor):
     """
     kernel: Kernel = Property(
         default=None,
-        doc="Kernel. Default is None")
+        doc="Kernel. Default is None. If None, the default `QuadraticKernel` is used.")
     lambda_predictor: float = Property(
         default=1e-3,
         doc=r":math:`\lambda_{\tilde{K}}`. Regularisation parameter used to stabilise the inverse "

@@ -16,7 +16,7 @@ class AdaptiveKernelKalmanUpdater(Updater):
     """
     kernel: Kernel = Property(
         default=None,
-        doc="Kernel. Default is None")
+        doc="Kernel. Default is None. If None, the default `QuadraticKernel` is used.")
     lambda_updater: float = Property(
         default=1e-3,
         doc="Used to incorporate prior knowledge of the distribution. If the "
