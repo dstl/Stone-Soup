@@ -8,7 +8,7 @@ from .state import (State, GaussianState, EnsembleState,
                     ParticleState, MultiModelParticleState, RaoBlackwellisedParticleState,
                     SqrtGaussianState, InformationState, TaggedWeightedGaussianState,
                     WeightedGaussianState, CategoricalState, ASDGaussianState,
-                    BernoulliParticleState)
+                    BernoulliParticleState, KernelParticleState)
 from ..base import Property
 from ..models.transition.base import TransitionModel
 from ..types.state import CreatableFromState, CompositeState
@@ -167,6 +167,20 @@ class BernoulliParticleStatePrediction(Prediction, BernoulliParticleState):
     """BernoulliParticleStatePrediction type
 
     This is a simple Bernoulli Particle state prediction object"""
+
+
+class KernelParticleStatePrediction(Prediction, KernelParticleState):
+    """KernelParticleStatePrediction type
+
+    This is a kernel particle state prediction object.
+    """
+
+
+class KernelParticleStateMeasurementPrediction(MeasurementPrediction, KernelParticleState):
+    """KernelParticleStateMeasurementPrediction type
+
+    This is a kernel particle state measurement prediction object.
+    """
 
 
 class EnsembleStatePrediction(Prediction, EnsembleState):

@@ -42,6 +42,7 @@ Algorithm Components
     stonesoup.dataassociator
     stonesoup.deleter
     stonesoup.gater
+    stonesoup.kernel
     stonesoup.hypothesiser
     stonesoup.initiator
     stonesoup.mixturereducer
