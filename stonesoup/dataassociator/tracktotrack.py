@@ -3,16 +3,16 @@ from typing import Set
 
 from ordered_set import OrderedSet
 
-from ._assignment import multidimensional_deconfliction
-from .base import TwoTrackToTrackAssociator
-from .general import OneToOneAssociator
 from ..base import Property
-from ..measures import Measure, Euclidean, EuclideanWeighted
+from ..measures import Euclidean, EuclideanWeighted, Measure
 from ..measures.base import TrackMeasure
-from ..types.association import AssociationSet, TimeRangeAssociation, Association
+from ..types.association import Association, AssociationSet, TimeRangeAssociation
 from ..types.groundtruth import GroundTruthPath
 from ..types.time import TimeRange
 from ..types.track import Track
+from ._assignment import multidimensional_deconfliction
+from .base import TwoTrackToTrackAssociator
+from .general import OneToOneAssociator
 
 
 class TrackToTrackCounting(TwoTrackToTrackAssociator):
