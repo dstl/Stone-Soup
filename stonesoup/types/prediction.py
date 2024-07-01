@@ -1,6 +1,8 @@
 import copy
 import datetime
 from typing import Sequence
+from typing import MutableMapping
+
 
 from .array import CovarianceMatrix
 from .base import Type
@@ -12,6 +14,7 @@ from .state import (State, GaussianState, EnsembleState,
 from ..base import Property
 from ..models.transition.base import TransitionModel
 from ..types.state import CreatableFromState, CompositeState
+from ..models.measurement import MeasurementModel
 
 
 class Prediction(Type, CreatableFromState):
@@ -122,6 +125,34 @@ class GaussianMeasurementPrediction(MeasurementPrediction, GaussianState):
                 and self.cross_covar.shape[1] != self.state_vector.shape[0]:
             raise ValueError("cross_covar should have the same number of "
                              "columns as the number of rows in state_vector")
+
+class AugmentedMeasurementPrediction(Type, CreatableFromState):
+    """ Augmented Prediction type that permits measurement_model and metadata to be included.
+
+    This is the base measurement prediction class. """
+
+    measurement_model: MeasurementModel = Property(
+        default=None,
+        doc="The measurement model used to generate the prediction (the default is ``None``)")
+
+    metadata: MutableMapping = Property(
+        default=None, doc='Dictionary of metadata items for AugmentedMeasurementPrediction.')
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        if self.metadata is None:
+            self.metadata = {}
+
+
+class AugmentedGaussianMeasurementPrediction(AugmentedMeasurementPrediction, GaussianState):
+    """ AugmentedGaussianMeasurementPrediction type
+
+    This is an extended alternative to a GaussianMeasurementPrediction class, which also preserves the model used to
+    generate the prediction, and allows for metadata to be included.
+    """
+
+    cross_covar: CovarianceMatrix = Property(
+        default=None, doc="The state-measurement cross covariance matrix")
 
 
 # Don't need to support Sqrt Covar for MeasurementPrediction
