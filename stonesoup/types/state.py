@@ -217,6 +217,7 @@ class PointMassState(State):
         chip_ = self.state_vector - self.mean[:, np.newaxis]
         chip_w = chip_ * self.weight.reshape(1, -1, order="C")
         measVar = (chip_w @ chip_.T) * np.prod(self.grid_delta)
+        measVar = CovarianceMatrix(measVar)
         return measVar
 
 

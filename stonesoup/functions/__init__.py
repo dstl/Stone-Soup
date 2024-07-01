@@ -26,9 +26,9 @@ def gridCreation(xp_aux, Pp_aux, sFactor, nx, Npa):
     sortInd = np.argsort(sortInd)
 
     pom = np.sort(gridBound)
+    Ipom = np.argsort(gridBound)
     gridBound = pom[sortInd]
 
-    Ipom = np.argsort(gridBound)
     pom2 = eigVect[:, Ipom]
     eigVect = pom2[:, sortInd]
     gridDim = []  # Reset gridDim for each cycle
