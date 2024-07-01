@@ -1,5 +1,6 @@
 import copy
 import warnings
+from typing import Callable
 
 from . import Updater
 from ..base import Property
@@ -11,12 +12,12 @@ from .kalman import KalmanUpdater, ExtendedKalmanUpdater, UnscentedKalmanUpdater
 from ..predictor.kalman import ExtendedKalmanPredictor
 from ..smoother import Smoother
 from ..smoother.kalman import ExtendedKalmanSmoother
-from ..types.prediction import Prediction
+from ..types.prediction import Prediction, AugmentedGaussianMeasurementPrediction
 from ..types.track import Track
 from ..functions import slr_definition
 from ..models.measurement.linear import GeneralLinearGaussian
 from functools import partial
-from ..types.state import State
+
 
 class DynamicallyIteratedUpdater(Updater):
     """
@@ -144,72 +145,101 @@ ExtendedKalmanUpdater.register(DynamicallyIteratedEKFUpdater)
 
 class IPLFKalmanUpdater(UnscentedKalmanUpdater):
     """
-    The update step of the IPLF algorithm.
+    This implements the updater of the Iterated Posterior Linearization FIlter (IPLF) described in [1]. It is obtained
+    by iteratively linearising the measurement function using statistical linear regression (SLR) with respect to the
+    posterior (rather than the prior), to take into account the information provided by the measurement. Nevertheless,
+    on the first iteration linearisation is performed with respect to the prior, so the output is equivalent to that of
+    a standard :class:`~.UnscentedKalmanUpdater`. This class inherits most of the functionality from
+    :class:`~.UnscentedKalmanUpdater`.
+
+    References
+    ----------
+    [1] Á. F. García-Fernández, L. Svensson, M. R. Morelande and S. Särkkä, "Posterior Linearization Filter: Principles
+    and Implementation Using Sigma Points," in IEEE Transactions on Signal Processing, vol. 63, no. 20, pp. 5561-5573,
+    Oct.15, 2015, doi: 10.1109/TSP.2015.2454485.
     """
 
     tolerance: float = Property(
         default=1e-1,
-        doc="The value of the difference in the measure used as a stopping criterion.")
+        doc="The value used as a convergence criterion.")
     measure: Measure = Property(
         default=KLDivergence(),
-        doc="The measure to use to test the iteration stopping criterion. Defaults to the "
-            "GaussianKullbackLeiblerDivergence between current and prior posterior state estimate.")
+        doc="The measure to use to test the convergence. Defaults to the "
+            "GaussianKullbackLeiblerDivergence between previous and current posteriors.")
     max_iterations: int = Property(
         default=5,
-        doc="Number of iterations before while loop is exited and a non-convergence warning is "
-            "returned")
+        doc="The maximum number of iterations. Setting `max_iterations=1` is equivalent to using UKF.")
+    slr_func: Callable = Property(default=slr_definition, doc="Function to compute the SLR parameters.")
 
-    def update(self, hypothesis, force_symmetry=True, **kwargs):
-        # Record the starting point (not a posterior here, rather a variable that stores an entry for KLD computation)
-        prev_post_state = hypothesis.prediction  # Prior is only on the first step, later updated
+    def update(self, hypothesis, keep_linearisation=True, force_symmetric_covariance=True, **kwargs):
 
-        # Get the measurement model out of the measurement if it's there.
-        # If not, use the one native to the updater (which might still be none).
+        # Get the nonlinear measurement model and its parameters
         measurement_model = self._check_measurement_model(hypothesis.measurement.measurement_model)
+        meas_func = partial(self.predict_measurement, measurement_model=measurement_model, measurement_noise=False)
+        ndim_state = measurement_model.ndim_state
+        r_cov_matrix = measurement_model.covar()
 
-        # The first iteration is just the application of the UKF update.
-        updater = UnscentedKalmanUpdater(beta=self.beta, kappa=self.kappa, force_symmetric_covariance=True)
-        hypothesis.measurement_prediction = self.predict_measurement(
-            predicted_state=hypothesis.prediction,
-            measurement_model=measurement_model
-        )  # UKF measurement prediction that relies on Unscented Transform and is required in the update
-        post_state = updater.update(hypothesis, **kwargs)
+        # Initial approximation for the posterior
+        post_state = hypothesis.prediction
 
-        # Now update the measurement prediction mean and loop
-        iterations = 1
-        while self.measure(prev_post_state, post_state) > self.tolerance:
+        for i in range(self.max_iterations):
 
-            if iterations >= self.max_iterations:
-                # warnings.warn("IPLF update reached maximum number of iterations.")
-                break
-
-            # SLR is wrt to tne approximated posterior in post_state, not the original prior in hypothesis.prediction
-            meas_fun = partial(super().predict_measurement, measurement_model=measurement_model,
-                               measurement_noise=False)
-            h_matrix, b_vector, omega_cov_matrix = slr_definition(post_state, meas_fun, force_symmetry=force_symmetry)
-            r_matrix = measurement_model.covar()
-
-            measurement_model_linearized = GeneralLinearGaussian(
-                ndim_state=measurement_model.ndim_state,
-                mapping=measurement_model.mapping,
-                meas_matrix=h_matrix,
-                bias_value=b_vector,
-                noise_covar=omega_cov_matrix+r_matrix)
-
-            hypothesis.measurement_prediction = KalmanUpdater().predict_measurement(
-                predicted_state=hypothesis.prediction,
-                measurement_model=measurement_model_linearized)
-            hypothesis.measurement.measurement_model = measurement_model_linearized
-
+            # Preserve the previous approximation for convergence evaluation
             prev_post_state = post_state
-            # update is computed using the original prior in hypothesis.prediction
-            post_state = KalmanUpdater().update(hypothesis, **kwargs)
-            post_state.hypothesis.measurement.measurement_model = measurement_model
 
-            if force_symmetry:
+            # Compute the parameters of Statistical Linear Regression (SLR)
+            h_matrix, b_vector, omega_cov_matrix \
+                = self.slr_func(post_state, meas_func, force_symmetric_covariance=force_symmetric_covariance)
+            slr_parameters = {
+                'h_matrix': h_matrix,
+                'b_vector': b_vector,
+                'omega_cov_matrix': omega_cov_matrix
+            }
+
+            # Create a linear measurement model using the SLR parameters
+            measurement_model_linear = GeneralLinearGaussian(
+                ndim_state=ndim_state,
+                meas_matrix=slr_parameters['h_matrix'],
+                bias_value=slr_parameters['b_vector'],
+                noise_covar=slr_parameters['omega_cov_matrix']+r_cov_matrix)
+
+            # Predict the measurement using the linearised model
+            measurement_prediction_linear = KalmanUpdater.predict_measurement(
+                self,
+                predicted_state=hypothesis.prediction,
+                measurement_model=measurement_model_linear
+            )
+
+            if keep_linearisation:
+
+                # Store the SLR parameters
+                metadata = {
+                    'slr_parameters': slr_parameters,
+                    'r_cov_matrix': r_cov_matrix,
+                    'iteration': i,
+                    'max_iterations': self.max_iterations,
+                    'tolerance': self.tolerance
+                }
+
+                # Wrap the prediction into a custom class that preserves the linearised model and metadata
+                measurement_prediction_linear = AugmentedGaussianMeasurementPrediction(
+                    state_vector=measurement_prediction_linear.state_vector,
+                    covar=measurement_prediction_linear.covar,
+                    timestamp=measurement_prediction_linear.timestamp,
+                    cross_covar=measurement_prediction_linear.cross_covar,
+                    measurement_model=measurement_model_linear,
+                    metadata=metadata
+                )
+
+            # Perform a linear update using the predicted measurement
+            hypothesis.measurement_prediction = measurement_prediction_linear
+            post_state = KalmanUpdater.update(self, hypothesis, **kwargs)
+
+            if force_symmetric_covariance:
                 post_state.covar = (post_state.covar + post_state.covar.T) / 2
 
-            # increment counter
-            iterations += 1
+            # KLD between the previous and current posteriors to measure convergence
+            if self.measure(prev_post_state, post_state) < self.tolerance:
+                break
 
         return post_state
