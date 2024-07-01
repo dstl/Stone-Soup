@@ -75,19 +75,19 @@ class PointMassUpdater(Updater):
 
         measurement_model = hypothesis.measurement.measurement_model
 
-        R = measurement_model.covar() # Noise
+        R = measurement_model.covar()  # Noise
 
         x = measurement_model.function(
             predicted_state
-        ) # State to measurement space
+        )  # State to measurement space
         pdf_value = multivariate_normal.pdf(
             x.T, np.ravel(hypothesis.measurement.state_vector), R
-        ) # likelihood
+        )  # likelihood
         new_weight = np.ravel(hypothesis.prediction.weight) * np.ravel(pdf_value)
 
         new_weight = new_weight / (
             np.prod(hypothesis.prediction.grid_delta) * sum(new_weight)
-        ) # Normalization
+        )  # Normalization
 
         predicted_state = PointMassState(
             state_vector=hypothesis.prediction.state_vector,
