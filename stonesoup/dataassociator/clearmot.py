@@ -27,6 +27,7 @@ from ..types.track import Track
 from .base import TwoTrackToTrackAssociator
 
 StatesFromTimeIdLookup = Dict[datetime.datetime, Dict[str, State]]
+TrackFromIdLookup = Dict[str, Track]
 
 
 class ClearMotAssociator(TwoTrackToTrackAssociator):
@@ -77,11 +78,68 @@ class ClearMotAssociator(TwoTrackToTrackAssociator):
             Contains a set of :class:`~.Association` objects
         """
 
-        # helper look-ups
-        truth_tracks_by_id = {truth.id: truth for truth in truth_set}
-        estim_tracks_by_id = {track.id: track for track in tracks_set}
+        timestamps, truth_states_by_time_id, track_states_by_time_id, \
+            truth_tracks_by_id, estim_tracks_by_id = \
+            self._prepare_timestamps_and_helpful_lookups(tracks_set, truth_set)
+
+        # we use this to collect match sets over time
+        matches_over_time: List[Set[Tuple[str, str]]] = []
+
+        # holds the match set of the previous timestep in (truth_id, track_id) format
+        matches_previous: Set[Tuple[str, str]] = set()
+
+        for current_time in timestamps:
+
+            truth_ids_at_current_time = OrderedSet(truth_states_by_time_id[current_time])
+            track_ids_at_current_time = OrderedSet(track_states_by_time_id[current_time])
+            truth_states_by_id = truth_states_by_time_id[current_time]
+            track_states_by_id = track_states_by_time_id[current_time]
+
+            matches_current, remaining_truth_ids_at_current_time, \
+                remaining_track_ids_at_current_time = \
+                self._forward_matches_from_previous_timestep(truth_states_by_id,
+                                                             track_states_by_id,
+                                                             matches_previous,
+                                                             truth_ids_at_current_time,
+                                                             track_ids_at_current_time,
+                                                             )
+
+            # in case either the truth or tracks are empty, continue with the next timestep,
+            # since there is nothing left to associate anymore
+            if not remaining_truth_ids_at_current_time or not remaining_track_ids_at_current_time:
+                matches_over_time.append(matches_current)
+                matches_previous = matches_current
+                continue
+
+            matches_from_unassigned = \
+                self._match_unassigned_tracks(truth_states_by_id,
+                                              track_states_by_id,
+                                              remaining_truth_ids_at_current_time,
+                                              remaining_track_ids_at_current_time)
+            matches_current |= matches_from_unassigned
+
+            matches_over_time.append(matches_current)
+            matches_previous = matches_current
+
+        associations = self._create_associations_from_matches_over_time(estim_tracks_by_id,
+                                                                        truth_tracks_by_id,
+                                                                        timestamps,
+                                                                        matches_over_time)
+
+        return AssociationSet(associations)
+
+    def _prepare_timestamps_and_helpful_lookups(self, tracks_set: Set[Track],
+                                                truth_set: Set[Track]) -> \
+        Tuple[List[datetime.datetime], StatesFromTimeIdLookup, StatesFromTimeIdLookup,
+              TrackFromIdLookup, TrackFromIdLookup]:
+        """Helper function to prepare lookups and determine unique timestamps across
+        both truth and tracks.
+        """
 
         timestamps = set()
+
+        truth_tracks_by_id = {truth.id: truth for truth in truth_set}
+        estim_tracks_by_id = {track.id: track for track in tracks_set}
 
         truth_states_by_time_id: StatesFromTimeIdLookup = defaultdict(dict)
         for truth in truth_set:
@@ -97,50 +155,8 @@ class ClearMotAssociator(TwoTrackToTrackAssociator):
 
         # Make a sorted list of all the unique timestamps used
         timestamps = sorted(timestamps)
-
-        # we use this to collect match sets over time
-        matches_over_time = []
-
-        # holds the match set of the previous timestep in (truth_id, track_id) format
-        matches_previous: set[tuple[str, str]] = set()
-
-        for current_time in timestamps:
-
-            truth_ids_at_current_time = OrderedSet(truth_states_by_time_id[current_time])
-            track_ids_at_current_time = OrderedSet(track_states_by_time_id[current_time])
-            truth_states_by_id = truth_states_by_time_id[current_time]
-            track_states_by_id = track_states_by_time_id[current_time]
-
-            matches_current = \
-                self._initialize_matches_from_previous_timestep(truth_states_by_id,
-                                                                track_states_by_id,
-                                                                matches_previous,
-                                                                truth_ids_at_current_time,
-                                                                track_ids_at_current_time,
-                                                                )
-
-            # continue, in case either the truth or tracks are empty, since there is nothing
-            # left anymore to associate
-            if not truth_ids_at_current_time or not track_ids_at_current_time:
-                matches_over_time.append(matches_current)
-                matches_previous = matches_current
-                continue
-
-            matches_from_unassigned = self._match_unassigned_tracks(truth_states_by_id,
-                                                                    track_states_by_id,
-                                                                    truth_ids_at_current_time,
-                                                                    track_ids_at_current_time)
-            matches_current |= matches_from_unassigned
-
-            matches_over_time.append(matches_current)
-            matches_previous = matches_current
-
-        associations = self._create_associations_from_matches_over_time(estim_tracks_by_id,
-                                                                        truth_tracks_by_id,
-                                                                        timestamps,
-                                                                        matches_over_time)
-
-        return AssociationSet(associations)
+        return timestamps, truth_states_by_time_id, track_states_by_time_id, \
+            truth_tracks_by_id, estim_tracks_by_id
 
     def _create_associations_from_matches_over_time(self,
                                                     estim_tracks_by_id: Dict[str, Track],
@@ -169,21 +185,21 @@ class ClearMotAssociator(TwoTrackToTrackAssociator):
 
         return associations
 
-    def _initialize_matches_from_previous_timestep(self,
-                                                   truth_states_by_id: Dict[str, State],
-                                                   track_states_by_id: Dict[str, State],
-                                                   matches_previous: Set[Tuple[str, str]],
-                                                   truth_ids_at_current_time: OrderedSet[str],
-                                                   track_ids_at_current_time: OrderedSet[str]) \
-            -> Set[Tuple[str, str]]:
+    def _forward_matches_from_previous_timestep(self,
+                                                truth_states_by_id: Dict[str, State],
+                                                track_states_by_id: Dict[str, State],
+                                                matches_previous: Set[Tuple[str, str]],
+                                                truth_ids_at_current_time: OrderedSet[str],
+                                                track_ids_at_current_time: OrderedSet[str]) \
+            -> Tuple[Set[Tuple[str, str]], OrderedSet[str], OrderedSet[str]]:
         """Checks if matches from the previous timestep are still valid by their distance and
-        adds them to the returned set of matches.
+        adds them to the returned set of matches. Note that, the variables
         """
 
         matches_current = set()
 
         if not matches_previous:
-            return matches_current
+            return matches_current, truth_ids_at_current_time, track_ids_at_current_time
 
         # we iterate over each match and check if it is still valid (i.e. below the
         # assication threshold - if true, we keep it and add it to current set,
@@ -203,7 +219,7 @@ class ClearMotAssociator(TwoTrackToTrackAssociator):
 
                 truth_ids_at_current_time.remove(truth_id)
                 track_ids_at_current_time.remove(track_id)
-        return matches_current
+        return matches_current, truth_ids_at_current_time, track_ids_at_current_time
 
     def _match_unassigned_tracks(self, truth_states_by_id: Dict[str, State],
                                  track_states_by_id: Dict[str, State],
