@@ -63,6 +63,9 @@ def test_pointmass():
     predictionPMF = pmfPredictor.predict(
         priorPMF, timestamp=start_time + time_difference
     )
+    predictionPMFnoTime = pmfPredictor.predict(
+        priorPMF, timestamp=start_time
+    )
     assert np.allclose(predictionPMF.mean, np.ravel(prediction.mean), atol=1)
     assert np.allclose(predictionPMF.covar(), prediction.covar, atol=2)
     assert np.all(predictionPMF.Npa == Npa)
@@ -73,6 +76,14 @@ def test_pointmass():
     assert np.isclose(
         np.sum(predictionPMF.weight * np.prod(predictionPMF.grid_delta)), 1, atol=1e-1
     )
+    assert np.all(priorPMF.state_vector == predictionPMFnoTime.state_vector)
+    assert np.all(priorPMF.weight == predictionPMFnoTime.weight)
+    assert np.all(priorPMF.grid_delta == predictionPMFnoTime.grid_delta)
+    assert np.all(priorPMF.grid_dim == predictionPMFnoTime.grid_dim)
+    assert np.all(priorPMF.center == predictionPMFnoTime.center)
+    assert np.all(priorPMF.eigVec == predictionPMFnoTime.eigVec)
+    assert np.all(priorPMF.Npa == predictionPMFnoTime.Npa)
+    assert np.all(priorPMF.timestamp == predictionPMFnoTime.timestamp)
 
 
 if __name__ == "__main__":

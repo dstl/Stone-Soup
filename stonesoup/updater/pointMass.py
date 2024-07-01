@@ -53,7 +53,7 @@ class PointMassUpdater(Updater):
 
     # @profile
     def update(self, hypothesis, **kwargs):
-        """Particle Filter update step
+        """Point mass update step
 
         Parameters
         ----------
@@ -73,24 +73,21 @@ class PointMassUpdater(Updater):
             timestamp=hypothesis.prediction.timestamp,
         )
 
-        if hypothesis.measurement.measurement_model is None:
-            measurement_model = self.measurement_model
-        else:
-            measurement_model = hypothesis.measurement.measurement_model
+        measurement_model = hypothesis.measurement.measurement_model
 
-        R = measurement_model.covar()
+        R = measurement_model.covar() # Noise
 
         x = measurement_model.function(
             predicted_state
-        )
+        ) # State to measurement space
         pdf_value = multivariate_normal.pdf(
             x.T, np.ravel(hypothesis.measurement.state_vector), R
-        )
+        ) # likelihood
         new_weight = np.ravel(hypothesis.prediction.weight) * np.ravel(pdf_value)
 
         new_weight = new_weight / (
             np.prod(hypothesis.prediction.grid_delta) * sum(new_weight)
-        )
+        ) # Normalization
 
         predicted_state = PointMassState(
             state_vector=hypothesis.prediction.state_vector,

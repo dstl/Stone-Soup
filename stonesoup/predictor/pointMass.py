@@ -40,15 +40,12 @@ class PointMassPredictor(Predictor):
             The predicted state
         """
         # Compute time_interval
-        try:
-            time_interval = timestamp - prior.timestamp
-        except TypeError:
-            time_interval = None
+        time_interval = timestamp - prior.timestamp
 
         time_difference = timedelta(days=0, hours=0, minutes=0, seconds=0)
         if time_interval == time_difference:
             predGrid = (prior.state_vector,)
-            predDensityProb = prior.weight  # SLOW LINE
+            predDensityProb = prior.weight
             GridDelta = prior.grid_delta
             gridDimOld = prior.grid_dim
             xOld = prior.center
