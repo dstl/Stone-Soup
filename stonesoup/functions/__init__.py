@@ -797,34 +797,58 @@ def sde_euler_maruyama_integration(fun, t_values, state_x0):
         state_x.state_vector = state_x.state_vector + a*delta_t + b@delta_w
     return state_x.state_vector
 
-def slr_definition(state, fun, force_symmetry=False):
-    """ Statistical linear regression (SLR), adapts the definition (9)-(11) as found in
-    Á. F. García-Fernández, L. Svensson and S. Särkkä, "Iterated Posterior Linearization Smoother,"
+def slr_definition(state, pred_func, func=None, force_symmetric_covariance=True):
+    """ Statistical linear regression (SLR) is a method to linearise a nonlinear function, such as that representing
+    dynamics or measurement. The SLR parameters are the linear coefficients that approximate the function in the
+    vicinity of the state pdf. The SLR parameters are obtained by computing the cross-covariance and the covariance of
+    the predicted quantities, based on a set of sigma points as implemented by the prediction function 'fun'. The method
+    presented here adapts the definition (9)-(11) as found in [1].
+
+    References
+    ----------
+    [1] Á. F. García-Fernández, L. Svensson and S. Särkkä, "Iterated Posterior Linearization Smoother,"
     in IEEE Transactions on Automatic Control, vol. 62, no. 4, pp. 2056-2063, April 2017, doi: 10.1109/TAC.2016.2592681.
 
+    Parameters
+    ----------
+    state: :class:`~.State`
+        State object containing the state pdf.
+    pred_func : callable
+        Function that predicts the required statistical quantities.
+    func : callable, optional
+        User-specified function that manipulates the bias vector 'b_plus'.
+    force_symmetry : bool
+        Parameter that enforces symmetry in the covariance matrix 'Omega_plus'.
+
+    Returns
+    -------
+    :class:`~.Matrix`
+        The SLR parameter 'H_plus' representing the linear transformation matrix.
+    :class:`~.StateVector`
+        The SLR parameter 'b_plus' representing the bias vector.
+    :class:`~.CovarianceMatrix`
+        The SLR parameter 'Omega_plus' representing the noise covariance matrix.
     """
 
-    # The prediction variable below is a type of Gaussian prediction that contains information on cross-covariance. This
-    # information is naturally available in measurement predictions, such as in GaussianMeasurementPrediction, but had
-    # to be artificially added for state prediction by introducing the AugmentedGaussianStatePrediction class.
-    prediction = fun(state)
+    # Get the first two moments of the state pdf
+    x_bar = state.state_vector  # mean
+    p_matrix = state.covar  # covariance
 
-    # First two moments of the state pdf
-    x_bar = state.state_vector
-    p_matrix = state.covar
+    # Get the predicted quantities based on a prediction function 'fun' implemented through a set of sigma points
+    prediction = pred_func(state)
+    z_bar = prediction.state_vector.astype(float)  # mean
+    psi = prediction.cross_covar  # cross-covariance
+    phi = prediction.covar  # covariance
 
-    # The predicted quantities wrt the state pdf (e.g. using sigma points if UKF predictions are used in 'fun')
-    z_bar = prediction.state_vector.astype(float)
-    psi = prediction.cross_covar
-    phi = prediction.covar
-
-    # Statistical linear regression parameters of a function predicted with the quantities above
-    H_plus = psi.T @ np.linalg.inv(p_matrix)
+    # Compute the SLR parameters
+    H_plus = psi.T@np.linalg.pinv(p_matrix)
     b_plus = z_bar - H_plus@x_bar
     Omega_plus = phi - H_plus@p_matrix@H_plus.T
 
-    if force_symmetry:
+    if func is not None:
+        b_plus = func(b_plus)
+
+    if force_symmetric_covariance:
         Omega_plus = (Omega_plus + Omega_plus.T) / 2
 
-    # The output is the function's SLR with respect to the state_pdf
-    return H_plus, b_plus, Omega_plus
+    return H_plus, b_plus.view(StateVector), Omega_plus.view(CovarianceMatrix)
