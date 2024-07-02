@@ -1,5 +1,6 @@
 import uuid
 from typing import MutableSequence
+import numpy as np
 
 from stonesoup.base import Property, Base
 from stonesoup.movable import Movable, FixedMovable, MovingMovable, MultiTransitionMovable
@@ -189,3 +190,11 @@ class MovingPlatform(Platform):
 
 class MultiTransitionMovingPlatform(Platform):
     _default_movable_class = MultiTransitionMovable
+
+
+class Obstacle(Platform):
+    """A platform class representing obstacles in the environment that may block the visibility of targets."""
+
+    vertices: np.ndarray = Property(default=None,
+                                    doc="Vertices describing the obstacle shape. Vertices "
+                                        "are assumed to be connected by straight lines")
