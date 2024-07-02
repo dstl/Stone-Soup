@@ -1,6 +1,8 @@
 import uuid
 from collections.abc import MutableSequence
 
+import numpy as np
+
 from ..base import Property, Base
 from ..movable import Movable, FixedMovable, MovingMovable, MultiTransitionMovable
 from ..sensor.sensor import Sensor
@@ -189,3 +191,11 @@ class MovingPlatform(Platform):
 
 class MultiTransitionMovingPlatform(Platform):
     _default_movable_class = MultiTransitionMovable
+
+
+class Obstacle(Platform):
+    """A platform class representing obstacles in the environment that may block the visibility of targets."""
+
+    vertices: np.ndarray = Property(default=None,
+                                    doc="Vertices describing the obstacle shape. Vertices "
+                                        "are assumed to be connected by straight lines")

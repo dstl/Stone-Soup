@@ -396,6 +396,117 @@ class BernoulliParticlePredictor(ParticlePredictor):
 
         return detections
 
+#
+# class VisibilityInformedBernoulliParticlePredictor(BernoulliParticlePredictor):
+#     """A Bernoulli particle filter implementing visibility estimation of particles
+#     for reduced existence probability decay rate in cluttered environments."""
+#
+#     obstacle_transition_likelihood: float = Property(default=0.01,
+#                                                      doc="Transition likelihood of particles that are "
+#                                                          "propagated into obstacles")
+#     obstacle_birth_likelihood: float = Property(default=0.01,
+#                                                 doc="Birth transition likelihood of particles that are ")
+#
+#     def predict(self, prior, timestamp=None, **kwargs):
+#         """Visibility Informed Bernoulli Particle Filter prediction step
+#
+#         Parameters
+#         ----------
+#         prior : :class:`~.BernoulliParticleState`
+#             A prior state object
+#         timestamp : :class:`~.datetime.datetime`
+#             A timestamp signifying when the prediction is performed
+#             (the default is `None`)
+#         Returns
+#         -------
+#         : :class:`~.ParticleStatePrediction`
+#             The predicted state and existence"""
+#
+#         new_particle_state = copy.copy(prior)
+#
+#         nsurv_particles = new_particle_state.state_vector.shape[1]
+#
+#         # Calculate time interval
+#         try:
+#             time_interval = timestamp - new_particle_state.timestamp
+#         except TypeError:
+#             # TypeError: (timestamp or prior.timestamp) is None
+#             time_interval = None
+#
+#         # Sample from birth distribution
+#         detections = self.get_detections(prior)
+#         birth_state = self.birth_sampler.sample(detections)
+#
+#         birth_part = birth_state.state_vector
+#         nbirth_particles = len(birth_state)
+#
+#         # Unite the surviving and birth particle sets in the prior
+#         new_particle_state.state_vector = StateVectors(np.concatenate(
+#             (new_particle_state.state_vector, birth_part), axis=1))
+#         # Extend weights to match length of state_vector
+#         new_log_weight_vector = np.concatenate(
+#             (new_particle_state.log_weight, np.full(nbirth_particles, np.log(1 / nbirth_particles))))
+#         new_particle_state.log_weight = new_log_weight_vector - logsumexp(new_log_weight_vector)
+#
+#         untransitioned_state = Prediction.from_state(
+#             new_particle_state,
+#             parent=prior,
+#         )
+#
+#         # Predict particles using the transition model
+#         transitioned_state_vector = self.transition_model.function(
+#             new_particle_state,
+#             noise=False,
+#             time_interval=time_interval,
+#             **kwargs)
+#         state_noise = self.transition_model.rvs(num_samples=transitioned_state_vector.shape[1], **kwargs)
+#
+#         # Estimate existence
+#         predicted_existence = self.estimate_existence(
+#             new_particle_state.existence_probability)
+#
+#         predicted_log_weights = self.predict_log_weights(
+#             new_particle_state.existence_probability,
+#             predicted_existence, nsurv_particles,
+#             new_particle_state.log_weight)
+#
+#         # Create the prediction output
+#         new_particle_state = Prediction.from_state(
+#             new_particle_state,
+#             state_vector=new_state_vector,
+#             log_weight=predicted_log_weights,
+#             existence_probability=predicted_existence,
+#             parent=untransitioned_state,
+#             timestamp=timestamp,
+#             transition_model=self.transition_model,
+#             prior=prior
+#         )
+#         return new_particle_state
+#
+#     def predict_log_weights(self, transitioned_state_vector, state_noise, prior_existence,
+#                             predicted_existence, surv_part_size, prior_log_weights):
+#
+#         # Weight prediction function currently assumes that the chosen importance density is the
+#         # transition density. This will need to change if implementing a different importance
+#         # density or incorporating visibility information
+#
+#         transition_likelihood = self.transition_model.logpdf(transitioned_state_vector+state_noise,
+#                                                              transitioned_state_vector)
+#
+#         transition_likelihood_mod = transition_likelihood
+#         transition_likelihood_mod[]
+#
+#         surv_weights = np.log((self.survival_probability*prior_existence)/predicted_existence) \
+#             + prior_log_weights[:surv_part_size]
+#
+#         birth_weights = np.log((self.birth_probability*(1-prior_existence))/predicted_existence) \
+#             + prior_log_weights[surv_part_size:]
+#         predicted_log_weights = np.concatenate((surv_weights, birth_weights))
+#
+#         # Normalise weights
+#         predicted_log_weights -= logsumexp(predicted_log_weights)
+#
+#         return predicted_log_weights
 
 class SMCPHDBirthSchemeEnum(Enum):
     """SMC-PHD Birth scheme enumeration"""
