@@ -4,7 +4,6 @@ import numpy as np
 from scipy.stats import multivariate_normal
 
 from ..linear import LinearGaussian, GeneralLinearGaussian
-from ....types.array import CovarianceMatrix, Matrix
 from ....types.state import State
 
 
@@ -196,13 +195,15 @@ def test_glmodel(H, R, B, ndim_state, mapping):
                                  meas_matrix=H,
                                  bias_value=B,
                                  noise_covar=R,
-                                 seed=1)
-    glm2 =GeneralLinearGaussian(ndim_state=ndim_state,
+                                 seed=1
+                                 )
+    glm2 = GeneralLinearGaussian(ndim_state=ndim_state,
                                  mapping=mapping,
                                  meas_matrix=H,
                                  bias_value=B,
                                  noise_covar=R,
-                                 seed=1)
+                                 seed=1
+                                 )
 
     # Check first values produced by seed match
     for _ in range(3):

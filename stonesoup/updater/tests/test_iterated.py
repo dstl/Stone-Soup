@@ -13,7 +13,7 @@ from stonesoup.types.hypothesis import SingleHypothesis
 from stonesoup.types.prediction import GaussianStatePrediction
 from stonesoup.types.state import GaussianState
 from stonesoup.updater.iterated import DynamicallyIteratedUpdater, IPLFKalmanUpdater
-from stonesoup.updater.kalman import ExtendedKalmanUpdater, UnscentedKalmanUpdater
+from stonesoup.updater.kalman import ExtendedKalmanUpdater
 
 
 def test_diekf():
@@ -158,7 +158,6 @@ def test_IPLF():
 
     hypothesis = SingleHypothesis(prediction=prediction, measurement=measurement)
 
-    sub_updater = UnscentedKalmanUpdater(measurement_model)
     sub_predictor = UnscentedKalmanPredictor(transition_model)
 
     updater = IPLFKalmanUpdater()

@@ -145,17 +145,20 @@ ExtendedKalmanUpdater.register(DynamicallyIteratedEKFUpdater)
 
 class IPLFKalmanUpdater(UnscentedKalmanUpdater):
     """
-    This implements the updater of the Iterated Posterior Linearization FIlter (IPLF) described in [1]. It is obtained
-    by iteratively linearising the measurement function using statistical linear regression (SLR) with respect to the
-    posterior (rather than the prior), to take into account the information provided by the measurement. Nevertheless,
-    on the first iteration linearisation is performed with respect to the prior, so the output is equivalent to that of
-    a standard :class:`~.UnscentedKalmanUpdater`. This class inherits most of the functionality from
-    :class:`~.UnscentedKalmanUpdater`.
+    This implements the updater of the Iterated Posterior Linearization FIlter
+    (IPLF) described in [1]. It is obtained by iteratively linearising the
+    measurement function using statistical linear regression (SLR) with respect
+    to the posterior (rather than the prior), to take into account the information
+    provided by the measurement. Nevertheless, on the first iteration linearisation
+    is performed with respect to the prior, so the output is equivalent to that of
+    a standard :class:`~.UnscentedKalmanUpdater`. This class inherits most of the
+    functionality from :class:`~.UnscentedKalmanUpdater`.
 
     References
     ----------
-    [1] Á. F. García-Fernández, L. Svensson, M. R. Morelande and S. Särkkä, "Posterior Linearization Filter: Principles
-    and Implementation Using Sigma Points," in IEEE Transactions on Signal Processing, vol. 63, no. 20, pp. 5561-5573,
+    [1] Á. F. García-Fernández, L. Svensson, M. R. Morelande and S. Särkkä,
+    "Posterior Linearization Filter: Principles and Implementation Using Sigma Points,"
+    in IEEE Transactions on Signal Processing, vol. 63, no. 20, pp. 5561-5573,
     Oct.15, 2015, doi: 10.1109/TSP.2015.2454485.
     """
 
@@ -168,14 +171,20 @@ class IPLFKalmanUpdater(UnscentedKalmanUpdater):
             "GaussianKullbackLeiblerDivergence between previous and current posteriors.")
     max_iterations: int = Property(
         default=5,
-        doc="The maximum number of iterations. Setting `max_iterations=1` is equivalent to using UKF.")
-    slr_func: Callable = Property(default=slr_definition, doc="Function to compute the SLR parameters.")
+        doc="The maximum number of iterations. "
+            "Setting `max_iterations=1` is equivalent to using UKF.")
+    slr_func: Callable = Property(default=slr_definition,
+                                  doc="Function to compute "
+                                      "the SLR parameters.")
 
-    def update(self, hypothesis, keep_linearisation=True, force_symmetric_covariance=True, **kwargs):
+    def update(self, hypothesis, keep_linearisation=True,
+               force_symmetric_covariance=True, **kwargs):
 
         # Get the nonlinear measurement model and its parameters
         measurement_model = self._check_measurement_model(hypothesis.measurement.measurement_model)
-        meas_func = partial(self.predict_measurement, measurement_model=measurement_model, measurement_noise=False)
+        meas_func = partial(self.predict_measurement,
+                            measurement_model=measurement_model,
+                            measurement_noise=False)
         ndim_state = measurement_model.ndim_state
         r_cov_matrix = measurement_model.covar()
 
@@ -189,7 +198,8 @@ class IPLFKalmanUpdater(UnscentedKalmanUpdater):
 
             # Compute the parameters of Statistical Linear Regression (SLR)
             h_matrix, b_vector, omega_cov_matrix \
-                = self.slr_func(post_state, meas_func, force_symmetric_covariance=force_symmetric_covariance)
+                = self.slr_func(post_state, meas_func,
+                                force_symmetric_covariance=force_symmetric_covariance)
             slr_parameters = {
                 'h_matrix': h_matrix,
                 'b_vector': b_vector,
@@ -221,7 +231,8 @@ class IPLFKalmanUpdater(UnscentedKalmanUpdater):
                     'tolerance': self.tolerance
                 }
 
-                # Wrap the prediction into a custom class that preserves the linearised model and metadata
+                # Wrap the prediction into a custom class
+                # that preserves the linearised model and metadata
                 measurement_prediction_linear = AugmentedGaussianMeasurementPrediction(
                     state_vector=measurement_prediction_linear.state_vector,
                     covar=measurement_prediction_linear.covar,

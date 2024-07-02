@@ -84,7 +84,7 @@ class LinearGaussian(MeasurementModel, LinearModel, GaussianModel):
             else:
                 noise = 0
 
-        return self.matrix(**kwargs)@state.state_vector + noise
+        return self.matrix(**kwargs) @ state.state_vector + noise
 
     def covar(self, **kwargs):
         """Returns the measurement model noise covariance matrix.
@@ -98,23 +98,29 @@ class LinearGaussian(MeasurementModel, LinearModel, GaussianModel):
 
         return self.noise_covar
 
+
 class GeneralLinearGaussian(LinearGaussian):
-    """
+    r"""
     An extended implementation of the linear-Gaussian measurement model described by
     .. math::
 
-      y_k = H*x_k + b + v_k,\ \ \ \   v(k)\sim \mathcal{N}(0,R),
+      y_k = H*x_k + b + v_k,\ \ \ \   v_k\sim \mathcal{N}(0,R)
 
-    where :math:`H` is a measurement matrix, :math:`b` is a bias vector and :math:`v_k` is Gaussian distributed.
-    This class permits specification of :math:`H` in two ways: either constructing it internally, using
-    :attr:`~.MeasurementModel.mapping` as in :class:`~.LinearGaussian`, or by explicitly specifying the matrix through
-    :attr:`~.GeneralLinearGaussian.meas_matrix`. When both attributes are provided, the preference is given to
-    :attr:`~.GeneralLinearGaussian.meas_matrix`. Furthermore, unlike :class:`~.LinearGaussian` this implementation
-    permits a certain bias :attr:`~.GeneralLinearGaussian.bias_value` in a measurement model.
+    where :math:`H` is a measurement matrix, :math:`b` is a bias vector and :math:`v_k`
+    is Gaussian distributed. This class permits specification of :math:`H` in two ways:
+    either constructing it internally, using :attr:`~.MeasurementModel.mapping` as in
+    :class:`~.LinearGaussian`, or by explicitly specifying the matrix through
+    :attr:`~.GeneralLinearGaussian.meas_matrix`.
+    When both attributes are provided, the preference is given to
+    :attr:`~.GeneralLinearGaussian.meas_matrix`.
+    Furthermore, unlike :class:`~.LinearGaussian` this implementation permits a certain
+    bias :attr:`~.GeneralLinearGaussian.bias_value` in a measurement model.
     """
 
-    mapping: Sequence[int] = Property(default=None, doc="Mapping between measurement and state dimensions")
-    meas_matrix: Matrix = Property(default=None, doc="Arbitrary measurement matrix")
+    mapping: Sequence[int] = Property(default=None,
+                                      doc="Mapping between measurement and state dimensions")
+    meas_matrix: Matrix = Property(default=None,
+                                   doc="Arbitrary measurement matrix")
     bias_value: StateVector = Property(default=None, doc="Bias value")
 
     def __init__(self, *args, **kwargs):
@@ -147,7 +153,7 @@ class GeneralLinearGaussian(LinearGaussian):
             The number of measurement dimensions.
         """
         if self.meas_matrix is None:
-            return super().ndim_meas  # implemented via len(self.mapping) as in LinearGaussian class
+            return super().ndim_meas  # implemented via len(self.mapping) as in LinearGaussian
 
         return self.meas_matrix.shape[0]
 

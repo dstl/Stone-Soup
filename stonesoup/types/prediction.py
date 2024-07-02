@@ -3,7 +3,6 @@ import datetime
 from typing import Sequence
 from typing import MutableMapping
 
-
 from .array import CovarianceMatrix
 from .base import Type
 from .state import (State, GaussianState, EnsembleState,
@@ -126,6 +125,7 @@ class GaussianMeasurementPrediction(MeasurementPrediction, GaussianState):
             raise ValueError("cross_covar should have the same number of "
                              "columns as the number of rows in state_vector")
 
+
 class AugmentedMeasurementPrediction(Type, CreatableFromState):
     """ Augmented Prediction type that permits measurement_model and metadata to be included.
 
@@ -147,7 +147,8 @@ class AugmentedMeasurementPrediction(Type, CreatableFromState):
 class AugmentedGaussianMeasurementPrediction(AugmentedMeasurementPrediction, GaussianState):
     """ AugmentedGaussianMeasurementPrediction type
 
-    This is an extended alternative to a GaussianMeasurementPrediction class, which also preserves the model used to
+    This is an extended alternative to a GaussianMeasurementPrediction class,
+    which also preserves the model used to
     generate the prediction, and allows for metadata to be included.
     """
 
