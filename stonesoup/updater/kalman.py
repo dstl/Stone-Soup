@@ -70,10 +70,6 @@ class KalmanUpdater(Updater):
         default=False,
         doc="A flag to force the output covariance matrix to be symmetric by way of a simple "
             "geometric combination of the matrix and transpose. Default is False.")
-    use_joseph_cov: bool = Property(
-        default=False,
-        doc="Bool dictating the method of covariance calculation. If use_joseph_cov is True then "
-            "the Joseph form of the covariance equation is used.")
 
     def _measurement_matrix(self, predicted_state=None, measurement_model=None,
                             **kwargs):
@@ -189,38 +185,11 @@ class KalmanUpdater(Updater):
             The Kalman gain, :math:`K = P_{k|k-1} H_k^T S^{-1}`
 
         """
-        if self.use_joseph_cov:
-            # Identity matrix
-            id_matrix = np.identity(hypothesis.prediction.ndim)
+        kalman_gain = hypothesis.measurement_prediction.cross_covar @ \
+            np.linalg.inv(hypothesis.measurement_prediction.covar)
 
-            # Calculate Kalman gain
-            kalman_gain = hypothesis.measurement_prediction.cross_covar @ \
-                np.linalg.inv(hypothesis.measurement_prediction.covar)
-
-            measurement_model = self._check_measurement_model(
-                hypothesis.measurement.measurement_model)
-
-            # Calculate measurement matrix/jacobian matrix
-            meas_matrix = self._measurement_matrix(hypothesis.prediction,
-                                                   measurement_model)
-
-            # Calculate Prior covariance
-            prior_covar = hypothesis.prediction.covar
-
-            # Calculate measurement covariance
-            meas_covar = measurement_model.covar()
-
-            # Compute posterior covariance matrix
-            I_KH = id_matrix - kalman_gain @ meas_matrix
-            post_cov = I_KH @ prior_covar @ I_KH.T \
-                + kalman_gain @ meas_covar @ kalman_gain.T
-
-        else:
-            kalman_gain = hypothesis.measurement_prediction.cross_covar @ \
-                np.linalg.inv(hypothesis.measurement_prediction.covar)
-
-            post_cov = hypothesis.prediction.covar - kalman_gain @ \
-                hypothesis.measurement_prediction.covar @ kalman_gain.T
+        post_cov = hypothesis.prediction.covar - kalman_gain @ \
+            hypothesis.measurement_prediction.covar @ kalman_gain.T
 
         return post_cov.view(CovarianceMatrix), kalman_gain
 
