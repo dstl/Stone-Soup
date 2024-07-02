@@ -1,6 +1,6 @@
 from abc import abstractmethod, ABC
 from collections.abc import Sequence
-from typing import Set, Union, List, TYPE_CHECKING
+from typing import Set, Union, List
 
 import numpy as np
 
@@ -10,10 +10,7 @@ from ..base import Property
 from ..models.clutter.clutter import ClutterModel
 from ..types.detection import TrueDetection, Detection
 from ..types.groundtruth import GroundTruthState
-from ..types.state import ParticleState, State
-
-if TYPE_CHECKING:
-    from ..platform.base import Obstacle
+# from ..platform.base import Obstacle
 
 
 class Sensor(PlatformMountable, Actionable):
@@ -186,11 +183,16 @@ class SensorSuite(Sensor):
         raise NotImplementedError
 
 
+<<<<<<< HEAD
 class VisibilityInformed2DSensor(SimpleSensor):
+=======
+class VisibilityInformed2DSensor(Sensor):
+>>>>>>> 0204ad02 (Initial visibility informed changes)
     """The base class of 2D sensors that evaluate the visibility of
     targets in known cluttered environments.
     """
 
+<<<<<<< HEAD
     obstacles: List['Obstacle']= Property(default=None,
                               doc="list of Obstacle type platforms that represent "
                                   "obstacles in the environment")
@@ -230,3 +232,32 @@ class VisibilityInformed2DSensor(SimpleSensor):
 
         return intersections
 
+=======
+    obstacles: list= Property(default=None,
+                              doc="list of Obstacle type platforms that represent "
+                                  "obstacles in the environment")
+
+    def visibility_check(self, state):
+        """Function for evaluating the visibility of states in the
+        environment based on a 2D line of signt intersection check with obstacles"""
+
+        if not hasattr(self, 'position_mapping'):
+            raise NotImplementedError
+
+        if hasattr(state, 'state_vectors'):
+            position = state.state_vectors[self.position_mapping, :]
+        else:
+            position = state.state_vector[self.position_mapping, :]
+
+        true_measurements = self.measurement_model.function(state, noise=False)
+
+        if hasattr(self, 'max_range'):
+            out_of_range = true_measurements[1,:] > self.max_range
+        else:
+            out_of_range = np.full((1,state.shape[2]), False)
+
+        if hasattr(self, 'fov_angle'):
+            out_of_fov = -self.fov_angle/2 < true_measurements[0, :] < self.fov_angle/2
+        else:
+            out_of_fov = np.full((1, state.shape[2]), False)
+>>>>>>> 0204ad02 (Initial visibility informed changes)
