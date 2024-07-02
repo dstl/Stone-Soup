@@ -23,16 +23,16 @@ class PointMassPredictor(Predictor):
     sFactor: float = Property(default=4, doc="How many sigma to cover by the grid")
 
     # @profile
-    def predict(self, prior, timestamp=None, **kwargs):
-        """Particle Filter prediction step
+    def predict(self, prior, timestamp=1, **kwargs):
+        """Point Mass Filter prediction step
 
         Parameters
         ----------
-        prior : :class:`~.ParticleState`
+        prior : :class:`~.Point mass state`
             A prior state object
         timestamp: :class:`datetime.datetime`, optional
             A timestamp signifying when the prediction is performed
-            (the default is `None`)
+            (the default is `1`)
 
         Returns
         -------

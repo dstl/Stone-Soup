@@ -1,52 +1,19 @@
-from functools import lru_cache
-from typing import Callable
+
 import numpy as np
 from scipy.stats import multivariate_normal
 from stonesoup.types.state import PointMassState
 from ..base import Property
-from ..regulariser import Regulariser
-from ..resampler import Resampler
-from ..types.prediction import (
-    MeasurementPrediction,
-)
 from ..types.update import Update
 from .base import Updater
 
 
 class PointMassUpdater(Updater):
-    """Particle Updater
+    """Point mass Updater
 
-    Perform an update by multiplying particle weights by PDF of measurement
-    model (either :attr:`~.Detection.measurement_model` or
-    :attr:`measurement_model`), and normalising the weights. If provided, a
-    :attr:`resampler` will be used to take a new sample of particles (this is
-    called every time, and it's up to the resampler to decide if resampling is
-    required).
+    Perform an update by multiplying grid points weights by PDF of measurement
+    model
     """
-
-    sFactor: float = Property(default=3, doc="How many sigma to cover by the grid")
-    resampler: Resampler = Property(
-        default=None, doc="Resampler to prevent particle degeneracy"
-    )
-    regulariser: Regulariser = Property(
-        default=None,
-        doc="Regulariser to prevent particle impoverishment. The regulariser "
-        "is normally used after resampling. If a :class:`~.Resampler` is defined, "
-        "then regularisation will only take place if the particles have been "
-        "resampled. If the :class:`~.Resampler` is not defined but a "
-        ":class:`~.Regulariser` is, then regularisation will be conducted under the "
-        "assumption that the user intends for this to occur.",
-    )
-
-    constraint_func: Callable = Property(
-        default=None,
-        doc="Callable, user defined function for applying "
-        "constraints to the states. This is done by setting the weights "
-        "of particles to 0 for particles that are not correctly constrained. "
-        "This function provides indices of the unconstrained particles and "
-        "should accept a :class:`~.ParticleState` object and return an array-like "
-        "object of logical indices. ",
-    )
+    sFactor: float = Property(default=4, doc="How many sigma to cover by the grid")
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -63,7 +30,7 @@ class PointMassUpdater(Updater):
 
         Returns
         -------
-        : :class:`~.ParticleState`
+        : :class:`~.PointMassState`
             The state posterior
         """
 
@@ -101,17 +68,3 @@ class PointMassUpdater(Updater):
         )
 
         return predicted_state
-
-    @lru_cache()
-    def predict_measurement(self, state_prediction, measurement_model=None, **kwargs):
-
-        if measurement_model is None:
-            measurement_model = self.measurement_model
-
-        new_state_vector = measurement_model.function(state_prediction, **kwargs)
-
-        return MeasurementPrediction.from_state(
-            state_prediction,
-            state_vector=new_state_vector,
-            timestamp=state_prediction.timestamp,
-        )

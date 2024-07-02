@@ -14,6 +14,37 @@ from ..types.state import State
 
 
 def gridCreation(xp_aux, Pp_aux, sFactor, nx, Npa):
+    """Grid for point mass filter
+
+    Create a PMF grid based on center, covariance matrix, and sigma probability
+
+    Parameters
+    ==========
+    xp_aux : numpy.ndarray
+        `nx` by `1` center of the grid
+    Pp_aux : numpy.ndarray
+        'nx' by 'nx' covariance matrix
+    sFactor : int
+        Parameter for the size of the grid
+    nx : int
+        Dimension of the grid
+    Npa : numpy.ndarray
+        'nx' by '' number of points per axis of the grid
+
+    Returns
+    =======
+    predGrid : numpy.ndarray
+        'nx' by prod(Npa) predictive grid
+    predGridDelta : list
+        grid step per dimension
+    gridDim : list of numpy.ndarrays
+        grid coordinates per dimension before rotation and translation 
+    xp_aux : numpy.ndarray
+        grid center
+    eigVect : numpy.ndarray
+        eigenvectors describing the rotation of the grid
+        
+    """
     gridDim = np.zeros((nx, Npa[0]))
     gridStep = np.zeros(nx)
     eigVal, eigVect = LA.eig(
