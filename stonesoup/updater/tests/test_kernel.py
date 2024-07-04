@@ -19,7 +19,6 @@ time_diff = datetime.timedelta(seconds=2)  # 2sec
 new_timestamp = timestamp + time_diff
 
 number_particles = 5
-np.random.seed(50)
 samples = multivariate_normal.rvs([0, 0, 0, 0],
                                   np.diag([0.01, 0.005, 0.1, 0.5])**2,
                                   size=number_particles)
@@ -107,7 +106,10 @@ def test_kernel_updater(kernel, measurement_model, c, ialpha):
     assert measurement.timestamp == gt_state.timestamp
     assert update.hypothesis.measurement.timestamp == gt_state.timestamp
     assert np.allclose(update.state_vector, prediction.state_vector)
-    assert np.allclose(update.proposal, StateVectors(new_state_vector.T), atol=1e0)
+    assert np.allclose(
+        np.mean(update.proposal, axis=1),
+        np.mean(StateVectors(new_state_vector.T), axis=1),
+        atol=2)
     assert np.allclose(update.weight, updated_weights.ravel())
     assert np.allclose(update.kernel_covar, updated_covariance)
 

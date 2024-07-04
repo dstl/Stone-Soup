@@ -13,7 +13,6 @@ from ...types.state import KernelParticleState, State
 from ...types.update import KernelParticleStateUpdate
 
 number_particles = 4
-np.random.seed(50)
 timestamp = datetime.datetime.now()
 samples = multivariate_normal.rvs([0, 0, 0, 0],
                                   np.diag([0.01, 0.005, 0.1, 0.5])**2,
