@@ -863,7 +863,6 @@ def test_asd_weighted_gaussian_state():
 def test_kernel_particle_state():
     number_particles = 5
     weights = np.array([1 / number_particles] * number_particles)
-    np.random.seed(50)
 
     samples = multivariate_normal.rvs([0, 0, 0, 0],
                                       np.diag([0.01, 0.005, 0.1, 0.5]) ** 2,
