@@ -42,7 +42,7 @@ from stonesoup.types.groundtruth import GroundTruthPath, GroundTruthState
 
 from typing import Sequence, Collection
 
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from dateutil.parser import parse
 
 
@@ -84,7 +84,8 @@ class _DataFrameReader(Reader):
             time_field_value = datetime.strptime(row[self.time_field], self.time_field_format)
         elif self.timestamp:
             fractional, timestamp = modf(float(row[self.time_field]))
-            time_field_value = datetime.utcfromtimestamp(int(timestamp))
+            time_field_value = datetime.fromtimestamp(
+                int(timestamp), timezone.utc).replace(tzinfo=None)
             time_field_value += timedelta(microseconds=fractional * 1E6)
         else:
             time_field_value = row[self.time_field]

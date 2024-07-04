@@ -82,7 +82,7 @@ class LevyConstantNthDerivative(LinearLevyTransitionModel, TimeVariantModel):
     @property
     def ndim_state(self):
         return self.constant_derivative + 1
-
+    
     def _integrand(self, dt: float, jtimes: np.ndarray) -> np.ndarray:
         delta = dt - jtimes[..., np.newaxis, np.newaxis]
         return expm(self.A * delta) @ self.h
