@@ -38,7 +38,7 @@ jobs:
           command: |
             . venv/bin/activate
             mkdir test-reports
-            pytest --junitxml=test-reports/junit.xml --cov --cov-report=xml:test-reports/coverage.xml stonesoup
+            pytest --junitxml=test-reports/junit.xml --cov --cov-report=xml:test-reports/coverage.xml --slow stonesoup
       - store_test_results:
           path: test-reports/junit.xml
       - store_artifacts:

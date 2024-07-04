@@ -14,8 +14,8 @@ class Matrix(np.ndarray):
         array = np.asarray(*args, **kwargs)
         return array.view(cls)
 
-    def __array_wrap__(self, array):
-        return self._cast(array)
+    def __array_wrap__(self, array, context=None, return_scalar=False):
+        return array[()] if return_scalar else self._cast(array)
 
     @classmethod
     def _cast(cls, val):

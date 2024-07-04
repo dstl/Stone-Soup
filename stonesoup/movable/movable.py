@@ -488,8 +488,8 @@ def _get_angle(vec: StateVector, axis: np.ndarray) -> float:
     Angle : float
         Angle, in radians, between the two vectors
     """
-    vel_norm = vec / np.linalg.norm(vec)
-    axis_norm = axis / np.linalg.norm(axis)
+    vel_norm = (vec / np.linalg.norm(vec)).ravel()
+    axis_norm = (axis / np.linalg.norm(axis)).ravel()
 
     return np.arccos(np.clip(np.dot(axis_norm, vel_norm), -1.0, 1.0))
 

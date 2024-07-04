@@ -83,7 +83,8 @@ class _OpenSkyNetworkReader(Reader):
                     # Must have position (lon, lat, geo-alt)
                     if not all(state[index] for index in (5, 6, 13)):
                         continue
-                    timestamp = datetime.datetime.utcfromtimestamp(state[3])
+                    timestamp = datetime.datetime.fromtimestamp(
+                        state[3], datetime.timezone.utc).replace(tzinfo=None)
                     # Skip old detections
                     if time is not None and timestamp <= time:
                         continue
@@ -100,10 +101,12 @@ class _OpenSkyNetworkReader(Reader):
                             'source': self.sources[state[16]],
                         }
                     ))
-                time = datetime.datetime.utcfromtimestamp(data['time'])
+                time = datetime.datetime.fromtimestamp(
+                    data['time'], datetime.timezone.utc).replace(tzinfo=None)
                 yield time, states_and_metadata
 
-                while time + self.timestep > datetime.datetime.utcnow():
+                while time + self.timestep > datetime.datetime.now(
+                        datetime.timezone.utc).replace(tzinfo=None):
                     sleep(0.1)
 
 

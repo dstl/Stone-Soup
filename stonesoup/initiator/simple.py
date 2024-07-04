@@ -369,16 +369,17 @@ class GaussianMixtureInitiator(GaussianInitiator):
         tracks = self.initiator.initiate(detections, timestamp, **kwargs)
 
         for track in tracks:
-            mixture = [
-                TaggedWeightedGaussianState(
-                    state_vector=track.state_vector,
-                    covar=track.covar,
-                    weight=Probability(1),
-                    timestamp=track.timestamp,
-                    tag=[])]
-            track[-1] = GaussianMixtureUpdate(
-                hypothesis=track.hypothesis,
-                components=mixture)
+            for n, state in enumerate(track):
+                mixture = [
+                    TaggedWeightedGaussianState(
+                        state_vector=state.state_vector,
+                        covar=state.covar,
+                        weight=Probability(1),
+                        timestamp=state.timestamp,
+                        tag=[])]
+                track[n] = GaussianMixtureUpdate(
+                    hypothesis=getattr(state, 'hypothesis', None),
+                    components=mixture)
 
         return tracks
 

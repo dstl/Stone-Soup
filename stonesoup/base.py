@@ -226,24 +226,25 @@ class BaseRepr(Repr):
         self.maxstring = 500
         self.maxlong = 40
         self.maxother = 50000
+        self.fillvalue = '...'
+        self.indent = None
 
     def repr_list(self, obj, level):
         if len(obj) > self.maxlist:
             max_len = round(self.maxlist/2)
             first = ',\n '.join(self.repr1(x, level - 1) for x in obj[:max_len])
             last = ',\n '.join(self.repr1(x, level - 1) for x in obj[-max_len:])
-            return f'[{first},\n ...\n ...\n ...\n {last}]'
+            return f'[{first},\n {self.fillvalue}\n {self.fillvalue}\n {self.fillvalue}\n {last}]'
         else:
             return '[{}]'.format(',\n '.join(self.repr1(x, level - 1) for x in obj))
 
-    @classmethod
-    def whitespace_remove(cls, maxlen_whitespace, val):
+    def whitespace_remove(self, maxlen_whitespace, val):
         """Remove excess whitespace, replacing with ellipses"""
         large_whitespace = ' ' * (maxlen_whitespace+1)
         fixed_whitespace = ' ' * maxlen_whitespace
         while (excess := val.find(large_whitespace)) != -1:   # Find the excess whitespace, if any
             line_end = ''.join(val[excess:].partition('\n')[1:])
-            val = ''.join([val[0:excess], fixed_whitespace, '...', line_end])
+            val = ''.join([val[0:excess], fixed_whitespace, self.fillvalue, line_end])
         return val
 
 
@@ -439,7 +440,8 @@ class Base(metaclass=BaseMeta):
             raise TypeError(f'got an unexpected keyword argument {next(iter(kwargs))!r}')
 
     def __repr__(self):
-        whitespace = ' ' * 4  # Indents every line
+        # Indents every line
+        whitespace = ' ' * 4 if Base._repr.indent is None else Base._repr.indent
         max_len_whitespace = 80  # Ensures whitespace doesn't get rid of space on RHS too much
         max_out = 50000  # Keeps total length from being too excessive
         params = []
@@ -452,5 +454,6 @@ class Base(metaclass=BaseMeta):
             params.append(f'{whitespace}{name}={value}')
         value = "{}(\n{})".format(type(self).__name__, ",\n".join(params))
         rep = Base._repr.whitespace_remove(max_len_whitespace, value)
-        truncate = '\n...\n...  (truncated due to length)\n...'
+        fillvalue = Base._repr.fillvalue
+        truncate = f'\n{fillvalue}\n{fillvalue}  (truncated due to length)\n{fillvalue}'
         return ''.join([rep[:max_out], truncate]) if len(rep) > max_out else rep
