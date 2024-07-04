@@ -4,13 +4,14 @@ import datetime
 import numpy as np
 import pytest
 import scipy.linalg
+from scipy.stats import multivariate_normal
 
 from ..angle import Bearing
 from ..array import StateVector, StateVectors, CovarianceMatrix
 from ..groundtruth import GroundTruthState
 from ..numeric import Probability
 from ..particle import Particle
-from ..state import CreatableFromState
+from ..state import CreatableFromState, KernelParticleState
 from ..state import State, GaussianState, ParticleState, EnsembleState, \
     StateMutableSequence, WeightedGaussianState, SqrtGaussianState, CategoricalState, \
     CompositeState, InformationState, ASDState, ASDGaussianState, ASDWeightedGaussianState, \
@@ -857,3 +858,28 @@ def test_asd_weighted_gaussian_state():
     a = ASDWeightedGaussianState(
         mean, multi_covar=covar, weight=weight, timestamps=[timestamp])
     assert a.weight == weight
+
+
+def test_kernel_particle_state():
+    number_particles = 5
+    weights = np.array([1 / number_particles] * number_particles)
+    np.random.seed(50)
+
+    samples = multivariate_normal.rvs([0, 0, 0, 0],
+                                      np.diag([0.01, 0.005, 0.1, 0.5]) ** 2,
+                                      size=number_particles)
+    state_vector = StateVectors(samples.T)
+    prior = KernelParticleState(state_vector=state_vector,
+                                weight=weights,
+                                )
+    prior_w_kernel_covar = KernelParticleState(
+        state_vector=state_vector,
+        weight=weights,
+        kernel_covar=CovarianceMatrix(np.diag(weights)))
+
+    assert np.array_equal(prior.weight, weights)
+    assert np.array_equal(prior.kernel_covar, prior_w_kernel_covar.kernel_covar)
+    assert number_particles == len(prior)
+    assert 4 == prior.ndim
+    assert np.array_equal(state_vector @ weights[:, np.newaxis], prior.mean)
+    assert np.array_equal(state_vector @ np.diag(weights) @ state_vector.T, prior.covar)
