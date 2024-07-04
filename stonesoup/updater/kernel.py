@@ -12,11 +12,14 @@ from ..base import Property
 
 
 class AdaptiveKernelKalmanUpdater(Updater):
-    """Adaptive kernel Kalman updater class
+    """The adaptive kernel Kalman updater uses the predictions from the predictor to generate the
+     measurement particles and update the posterior kernel weight vector and covariance matrix.
+     Additionally, the updater generates new proposal particles at every step to refine the state
+     estimate.
     """
     kernel: Kernel = Property(
         default=None,
-        doc="Kernel. Default is None. If None, the default `QuadraticKernel` is used.")
+        doc="Default is None. If None, the default :class:`QuadraticKernel` is used.")
     lambda_updater: float = Property(
         default=1e-3,
         doc="Used to incorporate prior knowledge of the distribution. If the "

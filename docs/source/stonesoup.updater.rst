@@ -19,6 +19,12 @@ Particle
 .. automodule:: stonesoup.updater.particle
     :show-inheritance:
 
+Kernel
+------
+
+.. automodule:: stonesoup.updater.kernel
+    :show-inheritance:
+
 Ensemble
 --------
 
