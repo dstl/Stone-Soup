@@ -157,7 +157,7 @@ class LevyNthDerivativeDecay(LinearLevyTransitionModel, TimeVariantModel):
         super().__init__(*args, **kwargs)
         self.A = self._init_A()
         self.h = self._init_h()
-
+    
     def _integrand(self, dt: float, jtimes: np.ndarray) -> np.ndarray:
         delta = dt - jtimes[..., np.newaxis, np.newaxis]
         return expm(self.A * delta) @ self.h

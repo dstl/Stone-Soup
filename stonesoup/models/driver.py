@@ -158,13 +158,13 @@ class GammaNVMDriver(NormalVarianceMeanDriver):
         return (1.0 + self.beta * jsizes) * np.exp(-self.beta * jsizes)  # (n_jumps, n_samples)
 
     def _residual_covar(
-        self, e_ft: np.ndarray, truncation: float, model_id: int | None = None
+        self, e_ft: np.ndarray, truncation: float,  mu_W: float, sigma_W2: float
     ) -> CovarianceMatrix:
         m = e_ft.shape[0]
         return np.zeros((m, m))
 
     def _residual_mean(
-        self, e_ft: np.ndarray, truncation: float, model_id: int | None = None
+        self, e_ft: np.ndarray, truncation: float,  mu_W: float,
     ) -> CovarianceMatrix:
         m = e_ft.shape[0]
         return np.zeros((m, 1))

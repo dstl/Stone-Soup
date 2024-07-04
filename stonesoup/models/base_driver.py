@@ -263,7 +263,7 @@ class NormalVarianceMeanDriver(LevyDriver):
         return jsizes
 
     def _centering(
-        self, e_ft: np.ndarray, truncation: float, model_id: Optional[int] = None
+        self, e_ft: np.ndarray, truncation: float, mu_W: float
     ) -> StateVector:
         m = e_ft.shape[0]
         return np.zeros((m, 1))
