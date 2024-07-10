@@ -2,7 +2,7 @@ import heapq
 import warnings
 from abc import abstractmethod
 from datetime import datetime
-from typing import List, Sequence, Optional
+from typing import List, Sequence
 
 from .base import BaseMeasure
 from .state import Measure
@@ -120,10 +120,10 @@ class MeanMeasure(BaseMeasure):
     """
     measure: MultipleMeasure = Property()
 
-    def __call__(self, *args, **kwargs) -> Optional[float]:
+    def __call__(self, *args, **kwargs) -> float:
         measures: List[float] = self.measure(*args, **kwargs)
 
         if len(measures) == 0:
-            return None
+            return float('nan')
         else:
             return sum(measures)/len(measures)
