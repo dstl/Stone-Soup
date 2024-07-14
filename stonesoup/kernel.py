@@ -1,4 +1,5 @@
 from abc import abstractmethod
+from typing import Sequence
 
 import numpy as np
 
@@ -45,6 +46,30 @@ class Kernel(Base):
             else:
                 state_vector2 = state2
         return state_vector1, state_vector2
+
+
+class AdditiveKernel(Kernel):
+    """Additive kernel
+
+    Elementwise addition of corresponding kernel state values. Similar to an OR operation.
+    """
+
+    kernel_list: Sequence[Kernel] = Property(doc="List os kernels")
+
+    def __call__(self, state1, state2=None):
+        return np.sum([kernel(state1, state2) for kernel in self.kernel_list], axis=0)
+
+
+class MultiplicativeKernel(Kernel):
+    """Multiplicative kernel
+
+    Elementwise multiplication of corresponding kernel state values. Similar to an AND operation.
+    """
+
+    kernel_list: Sequence[Kernel] = Property(doc="List os kernels")
+
+    def __call__(self, state1, state2=None):
+        return np.prod([kernel(state1, state2) for kernel in self.kernel_list], axis=0)
 
 
 class PolynomialKernel(Kernel):
