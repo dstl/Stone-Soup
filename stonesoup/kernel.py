@@ -16,17 +16,17 @@ class Kernel(Base):
     @abstractmethod
     def __call__(self, state1, state2=None):
         r"""
-        Compute the kernel state of a pair of :class:`~.State` objects
+        Compute the kernel state of a pair of :class:`~.StateVectors` objects
 
         Parameters
         ----------
-        state1 : :class:`~.State`
-        state2 : :class:`~.State`
+        state1 : :class:`~.StateVectors`
+        state2 : :class:`~.StateVectors`
 
         Returns
         -------
         StateVectors
-            kernel state of a pair of input :class:`~.State` objects
+            kernel state of a pair of input :class:`~.StateVectors` objects
 
         """
         raise NotImplementedError
@@ -51,7 +51,7 @@ class QuadraticKernel(Kernel):
     r"""Quadratic Kernel type
 
     This kernel returns the quadratic kernel state vector from a pair of
-    :class:`~.KernelParticleState` state vectors.
+    :class:`~.StateVectors` state vectors.
 
     The Quadratic kernel of state vectors :math:`\mathbf{x}` and
     :math:`\mathbf{x}'` is defined as:
@@ -71,8 +71,8 @@ class QuadraticKernel(Kernel):
 
         Parameters
         ----------
-        state1 : :class:`~.KernelParticleState`
-        state2 : :class:`~.KernelParticleState`
+        state1 : :class:`~.StateVectors`
+        state2 : :class:`~.StateVectors`
 
         Returns
         -------
@@ -87,7 +87,7 @@ class QuarticKernel(Kernel):
     r"""Quartic Kernel
 
     This kernel returns the quartic kernel state from a pair of
-    :class:`~.KernelParticleState` objects.
+    :class:`~.StateVectors` objects.
 
     The Quartic kernel of state vectors :math:`\mathbf{x}` and
     :math:`\mathbf{x}'` is defined as:
@@ -107,8 +107,8 @@ class QuarticKernel(Kernel):
 
         Parameters
         ----------
-        state1 : :class:`~.KernelParticleState`
-        state2 : :class:`~.KernelParticleState`
+        state1 : :class:`~.StateVectors`
+        state2 : :class:`~.StateVectors`
 
         Returns
         -------
@@ -123,7 +123,7 @@ class GaussianKernel(Kernel):
     r"""Gaussian Kernel
 
     This kernel returns the Gaussian kernel state vector from a pair of
-    :class:`~.KernelParticleState` state vectors.
+    :class:`~.StateVectors` objects.
 
     The Gaussian kernel of state vectors :math:`\mathbf{x}` and
     :math:`\mathbf{x}'` is defined as:
@@ -142,8 +142,8 @@ class GaussianKernel(Kernel):
 
         Parameters
         ----------
-        state1 : :class:`~.KernelParticleState`
-        state2 : :class:`~.KernelParticleState`
+        state1 : :class:`~.StateVectors`
+        state2 : :class:`~.StateVectors`
 
         Returns
         -------
