@@ -5,7 +5,9 @@ from scipy.stats import multivariate_normal
 
 from ..types.array import StateVectors
 from ..types.state import KernelParticleState
-from ..kernel import Kernel, QuadraticKernel, QuarticKernel, GaussianKernel
+from ..kernel import (Kernel, MultiplicativeKernel, AdditiveKernel,
+                      PolynomialKernel, LinearKernel, QuadraticKernel, QuarticKernel,
+                      GaussianKernel)
 
 number_particles = 4
 rng = np.random.RandomState(50)
@@ -152,3 +154,58 @@ def test_kernel(kernel_class, output, state1, state2):
 def test_not_implemented():
     with pytest.raises(TypeError):
         Kernel()
+
+
+@pytest.mark.parametrize(
+    "power",
+    [1, 2, 3, 4, 5],
+    ids=["1", "2", "3", "4", "5"]
+)
+def test_multiplicative_kernel(power):
+    linear_kernel = LinearKernel()
+    linear_kernel_list = [linear_kernel] * power
+    multiplicative_kernel = MultiplicativeKernel(kernel_list=linear_kernel_list)
+    polynomial_kernel = PolynomialKernel(power=power, c=0, ialpha=1)
+    state1 = StateVectors([[1, 1, 1], [2, 2, 2], [3, 3, 3], [4, 4, 4]])
+    state2 = StateVectors([[2, 2, 2], [3, 3, 3], [4, 4, 4], [5, 5, 5]])
+    linear_covar = linear_kernel(state1, state2)**power
+    multiplicative_covar = multiplicative_kernel(state1, state2)
+    polynomial_covar = polynomial_kernel(state1, state2)
+
+    assert np.allclose(linear_covar, multiplicative_covar)
+    assert np.allclose(multiplicative_covar, polynomial_covar)
+    assert np.allclose(linear_covar, polynomial_covar)
+
+    if power == 2:
+        quadratic_kernel = QuadraticKernel(c=0, ialpha=1)
+        quadratic_covar = quadratic_kernel(state1, state2)
+
+        assert np.allclose(linear_covar, quadratic_covar)
+        assert np.allclose(multiplicative_covar, quadratic_covar)
+        assert np.allclose(polynomial_covar, quadratic_covar)
+
+    if power == 4:
+        quartic_kernel = QuarticKernel(c=0, ialpha=1)
+        quartic_covar = quartic_kernel(state1, state2)
+
+        assert np.allclose(linear_covar, quartic_covar)
+        assert np.allclose(multiplicative_covar, quartic_covar)
+        assert np.allclose(polynomial_covar, quartic_covar)
+
+
+@pytest.mark.parametrize(
+    "kernel_class",
+    [LinearKernel,
+     QuadraticKernel,
+     QuarticKernel,
+     GaussianKernel],
+    ids=["Linear", "Quadratic", "Quartic", "Gaussian"]
+)
+def test_additive_kernel(kernel_class):
+    kernel = kernel_class()
+    kernel_list = [kernel] * 2
+    additive_kernel = AdditiveKernel(kernel_list=kernel_list)
+    state1 = StateVectors([[1, 1, 1], [2, 2, 2], [3, 3, 3], [4, 4, 4]])
+    state2 = StateVectors([[2, 2, 2], [3, 3, 3], [4, 4, 4], [5, 5, 5]])
+    linear_covar = kernel(state1, state2)
+    assert np.allclose(linear_covar + linear_covar, additive_kernel(state1, state2))
