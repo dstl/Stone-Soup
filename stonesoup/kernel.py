@@ -72,6 +72,36 @@ class PolynomialKernel(Kernel):
         return (state_vector1.T @ state_vector2 / self.ialpha + self.c) ** self.power
 
 
+class LinearKernel(PolynomialKernel):
+    r"""Linear Kernel
+
+   This kernel returns the linear kernel state vector from a pair of :class:`~.StateVectors`
+   objects.
+
+   The linear kernel of state vectors :math:`\mathbf{x}` and :math:`\mathbf{x}^\prime` is
+   defined as:
+
+   .. math::
+        \mathtt{k}\left(\mathbf{x}, \mathbf{x}^\prime\right) =
+        \mathbf{x}, \mathbf{x}^\prime \rangle
+
+    The linear kernel can capture the first-order moments of a distribution, such as the mean
+    and covariance.
+   """
+
+    @property
+    def power(self):
+        return 1
+
+    @property
+    def c(self):
+        return 0
+
+    @property
+    def ialpha(self):
+        return 1
+    
+
 class QuadraticKernel(PolynomialKernel):
     r"""Quadratic Kernel type
 
@@ -82,8 +112,8 @@ class QuadraticKernel(PolynomialKernel):
     defined as:
 
     .. math::
-         \mathtt{k}\left(\mathbf{x}, \mathbf{x}'\right) =
-         \left(\alpha \langle \mathbf{x}, \mathbf{x}' \rangle + c\right)^2
+         \mathtt{k}\left(\mathbf{x}, \mathbf{x}^\prime\right) =
+         \left(\alpha \langle \mathbf{x}, \mathbf{x}^\prime \rangle + c\right)^2
     """
     @property
     def power(self):
