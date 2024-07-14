@@ -100,7 +100,7 @@ class LinearKernel(PolynomialKernel):
     @property
     def ialpha(self):
         return 1
-    
+
 
 class QuadraticKernel(PolynomialKernel):
     r"""Quadratic Kernel type
@@ -108,12 +108,16 @@ class QuadraticKernel(PolynomialKernel):
     This kernel returns the quadratic kernel state vector from a pair of :class:`~.StateVectors`
     objects.
 
-    The Quadratic kernel of state vectors :math:`\mathbf{x}` and :math:`\mathbf{x}^\prime` is
+    The quadratic kernel of state vectors :math:`\mathbf{x}` and :math:`\mathbf{x}^\prime` is
     defined as:
 
     .. math::
          \mathtt{k}\left(\mathbf{x}, \mathbf{x}^\prime\right) =
          \left(\alpha \langle \mathbf{x}, \mathbf{x}^\prime \rangle + c\right)^2
+
+    The quadratic kernel can capture the second-order moments of a distribution, such as the
+    covariance and correlations between pairs of variables.
+    The quadratic kernel is appropriate when the data is nonlinear but still relatively simple.
     """
     @property
     def power(self):
@@ -125,12 +129,16 @@ class QuarticKernel(PolynomialKernel):
 
     This kernel returns the quartic kernel state from a pair of :class:`~.StateVectors` objects.
 
-    The Quartic kernel of state vectors :math:`\mathbf{x}` and :math:`\mathbf{x}^prime` is defined
+    The quartic kernel of state vectors :math:`\mathbf{x}` and :math:`\mathbf{x}^prime` is defined
     as:
 
     .. math::
-         \mathtt{k}(\mathbf{x}, \mathbf{x}') =
-         \left(\alpha \langle \mathbf{x}, \mathbf{x}' \rangle + c\right)^4
+         \mathtt{k}(\mathbf{x}, \mathbf{x}^\prime) =
+         \left(\alpha \langle \mathbf{x}, \mathbf{x}^\prime \rangle + c\right)^4
+
+    The quartic kernel can capture higher-order moments beyond the mean and covariance, such as
+    skewness and kurtosis.
+    THe quartic kernel can be used when the data is highly nonlinear and complex.
     """
     @property
     def power(self):
