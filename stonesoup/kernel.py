@@ -70,78 +70,41 @@ class PolynomialKernel(Kernel):
     def __call__(self, state1, state2=None):
         state_vector1, state_vector2 = self._get_state_vectors(state1, state2)
         return (state_vector1.T @ state_vector2 / self.ialpha + self.c) ** self.power
-    
 
-class QuadraticKernel(Kernel):
+
+class QuadraticKernel(PolynomialKernel):
     r"""Quadratic Kernel type
 
-    This kernel returns the quadratic kernel state vector from a pair of
-    :class:`~.StateVectors` state vectors.
+    This kernel returns the quadratic kernel state vector from a pair of :class:`~.StateVectors`
+    objects.
 
-    The Quadratic kernel of state vectors :math:`\mathbf{x}` and
-    :math:`\mathbf{x}'` is defined as:
+    The Quadratic kernel of state vectors :math:`\mathbf{x}` and :math:`\mathbf{x}^\prime` is
+    defined as:
 
     .. math::
          \mathtt{k}\left(\mathbf{x}, \mathbf{x}'\right) =
          \left(\alpha \langle \mathbf{x}, \mathbf{x}' \rangle + c\right)^2
     """
-    c: float = Property(
-        default=1,
-        doc="Free parameter trading off the influence of higher-order versus lower-order "
-            "terms in the polynomial. Default is 1.")
-    ialpha: float = Property(default=1e1, doc="Slope. Range is [1e0, 1e4].")
-
-    def __call__(self, state1, state2=None):
-        r"""Calculate the Quadratic Kernel transformation for a pair of state vectors
-
-        Parameters
-        ----------
-        state1 : :class:`~.StateVectors`
-        state2 : :class:`~.StateVectors`
-
-        Returns
-        -------
-        StateVectors
-            Transformed state vector in kernel space.
-        """
-        state_vector1, state_vector2 = self._get_state_vectors(state1, state2)
-        return (state_vector1.T@state_vector2/self.ialpha + self.c) ** 2
+    @property
+    def power(self):
+        return 2
 
 
-class QuarticKernel(Kernel):
+class QuarticKernel(PolynomialKernel):
     r"""Quartic Kernel
 
-    This kernel returns the quartic kernel state from a pair of
-    :class:`~.StateVectors` objects.
+    This kernel returns the quartic kernel state from a pair of :class:`~.StateVectors` objects.
 
-    The Quartic kernel of state vectors :math:`\mathbf{x}` and
-    :math:`\mathbf{x}'` is defined as:
+    The Quartic kernel of state vectors :math:`\mathbf{x}` and :math:`\mathbf{x}^prime` is defined
+    as:
 
     .. math::
          \mathtt{k}(\mathbf{x}, \mathbf{x}') =
          \left(\alpha \langle \mathbf{x}, \mathbf{x}' \rangle + c\right)^4
     """
-    c: float = Property(
-        default=1,
-        doc="Free parameter trading off the influence of higher-order versus lower-order "
-            "terms in the polynomial. Default is 1.")
-    ialpha: float = Property(default=1e1, doc="Slope. Range is [1e0, 1e4].")
-
-    def __call__(self, state1, state2=None):
-        r"""Calculate the Quartic Kernel transformation for a pair of state vectors
-
-        Parameters
-        ----------
-        state1 : :class:`~.StateVectors`
-        state2 : :class:`~.StateVectors`
-
-        Returns
-        -------
-        StateVectors
-            Transformed state in kernel space.
-        """
-        state_vector1, state_vector2 = self._get_state_vectors(state1, state2)
-        return (state_vector1.T@state_vector2/self.ialpha + self.c) ** 4
+    @property
+    def power(self):
+        return 4
 
 
 class GaussianKernel(Kernel):
