@@ -47,6 +47,31 @@ class Kernel(Base):
         return state_vector1, state_vector2
 
 
+class PolynomialKernel(Kernel):
+    r"""Polynomial Kernel
+
+    This kernel returns the polynomial kernel of order :math:`p` state from a pair of
+    :class:`.StateVectors` objects.
+
+    The polynomial kernel of state vectors :math:`\mathbf{x}` and :math:`\mathbf{x}^\prime` is
+    defined as:
+
+    .. math::
+        \mathtt{k}(\mathbf{x}, \mathbf{x}^\prime) =
+        \left(\alpha \left\langle \mathbf{x}, \mathbf{x}^\prime \right\rangle + c \right) ^ p
+    """
+
+    power: int = Property(doc="The polynomial power :math:`p`.")
+    c: float = Property(default=1,
+                        doc="Free parameter trading off the influence of higher-order versus "
+                            "lower-order terms in the polynomial. Default is 1.")
+    ialpha: float = Property(default=1e1, doc="Slope. Range is [1e0, 1e4]. Default is 1e1.")
+
+    def __call__(self, state1, state2=None):
+        state_vector1, state_vector2 = self._get_state_vectors(state1, state2)
+        return (state_vector1.T @ state_vector2 / self.ialpha + self.c) ** self.power
+    
+
 class QuadraticKernel(Kernel):
     r"""Quadratic Kernel type
 
