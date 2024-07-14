@@ -54,7 +54,7 @@ class AdditiveKernel(Kernel):
     Elementwise addition of corresponding kernel state values. Similar to an OR operation.
     """
 
-    kernel_list: Sequence[Kernel] = Property(doc="List os kernels")
+    kernel_list: Sequence[Kernel] = Property(doc="List of kernels")
 
     def __call__(self, state1, state2=None):
         return np.sum([kernel(state1, state2) for kernel in self.kernel_list], axis=0)
@@ -66,7 +66,7 @@ class MultiplicativeKernel(Kernel):
     Elementwise multiplication of corresponding kernel state values. Similar to an AND operation.
     """
 
-    kernel_list: Sequence[Kernel] = Property(doc="List os kernels")
+    kernel_list: Sequence[Kernel] = Property(doc="List of kernels")
 
     def __call__(self, state1, state2=None):
         return np.prod([kernel(state1, state2) for kernel in self.kernel_list], axis=0)
@@ -108,14 +108,15 @@ class LinearKernel(PolynomialKernel):
 
    .. math::
         \mathtt{k}\left(\mathbf{x}, \mathbf{x}^\prime\right) =
-        \mathbf{x}, \mathbf{x}^\prime \rangle
+        \mathbf{x}^T\mathbf{x}^\prime
 
-    The linear kernel can capture the first-order moments of a distribution, such as the mean
-    and covariance.
+   The linear kernel can capture the first-order moments of a distribution, such as the mean
+   and covariance.
    """
 
     @property
     def power(self):
+        r"""The linear polynomial power, :math:`p=1`"""
         return 1
 
     @property
@@ -146,6 +147,7 @@ class QuadraticKernel(PolynomialKernel):
     """
     @property
     def power(self):
+        r"""The quadratic polynomial power, :math:`p=2`"""
         return 2
 
 
@@ -154,7 +156,7 @@ class QuarticKernel(PolynomialKernel):
 
     This kernel returns the quartic kernel state from a pair of :class:`~.StateVectors` objects.
 
-    The quartic kernel of state vectors :math:`\mathbf{x}` and :math:`\mathbf{x}^prime` is defined
+    The quartic kernel of state vectors :math:`\mathbf{x}` and :math:`\mathbf{x}^\prime` is defined
     as:
 
     .. math::
@@ -167,6 +169,7 @@ class QuarticKernel(PolynomialKernel):
     """
     @property
     def power(self):
+        r"""The quartic polynomial power, :math:`p=4`"""
         return 4
 
 
