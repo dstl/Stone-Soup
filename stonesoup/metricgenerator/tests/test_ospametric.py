@@ -401,10 +401,11 @@ def test_gospametric_speed():
 
     track_states = np.vstack(
         (
-            gt_states[:num_true_positives] + np.random.normal(0, track_position_sigma, (num_true_positives, num_timesteps, 2)),
-            5*gt_states[:num_false_positives] + np.random.normal(0, track_position_sigma, (num_false_positives, num_timesteps, 2))
+            gt_states[:num_true_positives],
+            5*gt_states[:num_false_positives]
         )
     )
+    track_states += np.random.normal(0, track_position_sigma, track_states.shape)
 
     time = datetime.datetime.now()
     # Multiple tracks and truths present at two timesteps
@@ -420,13 +421,13 @@ def test_gospametric_speed():
     }
     truths = {
         GroundTruthPath(
-        states=[
-            State(
-                state_vector=gt_states[gt_idx, state_idx],
-                timestamp=time + datetime.timedelta(ts[state_idx])
-            )
-            for state_idx in range(gt_states.shape[1])
-        ])
+            states=[
+                State(
+                    state_vector=gt_states[gt_idx, state_idx],
+                    timestamp=time + datetime.timedelta(ts[state_idx])
+                )
+                for state_idx in range(gt_states.shape[1])
+            ])
         for gt_idx in range(gt_states.shape[0])
     }
 

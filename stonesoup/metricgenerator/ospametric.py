@@ -161,21 +161,23 @@ class GOSPAMetric(MetricGenerator):
         exist for in the parameters. metric.value contains a list of metrics
         for the GOSPA metric at each timestamp
         """
-        all_meas_points = np.array(measured_states)
-        all_meas_ids = np.array(measured_state_ids)
-        all_meas_timestamps = np.fromiter((state.timestamp for state in measured_states), dtype='datetime64[us]')
+        all_meas_timestamps = np.fromiter(
+            (state.timestamp for state in measured_states),
+            dtype='datetime64[us]'
+        )
         meas_order = np.argsort(all_meas_timestamps)
-        all_meas_points = all_meas_points[meas_order]
-        all_meas_ids = all_meas_ids[meas_order]
         all_meas_timestamps = all_meas_timestamps[meas_order]
+        all_meas_points = np.array(measured_states)[meas_order]
+        all_meas_ids = np.array(measured_state_ids)[meas_order]
 
-        all_truth_points = np.array(truth_states)
-        all_truth_ids = np.array(truth_state_ids)
-        all_truth_timestamps = np.fromiter((state.timestamp for state in truth_states), dtype='datetime64[us]')
+        all_truth_timestamps = np.fromiter(
+            (state.timestamp for state in truth_states),
+            dtype='datetime64[us]'
+        )
         truth_order = np.argsort(all_truth_timestamps)
-        all_truth_points = all_truth_points[truth_order]
-        all_truth_ids = all_truth_ids[truth_order]
         all_truth_timestamps = all_truth_timestamps[truth_order]
+        all_truth_points = np.array(truth_states)[truth_order]
+        all_truth_ids = np.array(truth_state_ids)[truth_order]
 
         truth_iter = iter(groupby(range(len(all_truth_ids)), all_truth_timestamps.__getitem__))
         meas_iter = iter(groupby(range(len(all_meas_ids)), all_meas_timestamps.__getitem__))
@@ -207,7 +209,10 @@ class GOSPAMetric(MetricGenerator):
             truth_points = all_truth_points[truth_idxs]
             truth_ids = all_truth_ids[truth_idxs]
 
-            metric, truth_to_measured_assignment = self.compute_gospa_metric(meas_points, truth_points)
+            metric, truth_to_measured_assignment = self.compute_gospa_metric(
+                meas_points,
+                truth_points
+            )
             truth_mapping = {
                 truth_id: meas_ids[meas_id] if meas_id != -1 else None
                 for truth_id, meas_id in zip(truth_ids, truth_to_measured_assignment)}
@@ -218,7 +223,6 @@ class GOSPAMetric(MetricGenerator):
                                                 metric.value['switching']**self.alpha,
                                                 1.0/self.alpha)
             gospa_metrics.append(metric)
-            tmax = timestamp
 
         # If only one timestamp is present then return a SingleTimeMetric
         if len(gospa_metrics) == 1:
@@ -227,7 +231,10 @@ class GOSPAMetric(MetricGenerator):
             return TimeRangeMetric(
                 title='GOSPA Metrics',
                 value=gospa_metrics,
-                time_range=TimeRange(min(all_truth_timestamps[0], all_meas_timestamps[0]), max(all_truth_timestamps[-1], all_meas_timestamps[-1])),
+                time_range=TimeRange(
+                    start=min(all_truth_timestamps[0], all_meas_timestamps[0]),
+                    end=max(all_truth_timestamps[-1], all_meas_timestamps[-1])
+                ),
                 generator=self)
 
     def compute_assignments(self, cost_matrix):
