@@ -168,23 +168,42 @@ class GOSPAMetric(MetricGenerator):
             state.timestamp
             for state in chain(measured_states, truth_states)})
 
+        all_meas_points = np.array(measured_states)
+        all_meas_ids = np.array(measured_state_ids)
+        all_meas_timestamps = np.fromiter((state.timestamp for state in measured_states), dtype='datetime64[us]')
+
+        all_truth_points = np.array(truth_states)
+        all_truth_ids = np.array(truth_state_ids)
+        all_truth_timestamps = np.fromiter((state.timestamp for state in truth_states), dtype='datetime64[us]')
+
         switching_metric = _SwitchingLoss(self.switching_penalty, self.p)
         gospa_metrics = []
+        import time
         for timestamp in timestamps:
-            meas_mask = [state.timestamp == timestamp for state in measured_states]
+            begin = time.time()
+            begin_ = time.time()
+            meas_mask = all_meas_timestamps == timestamp
+            end_ = time.time()
+            print(f'mask took {(end_ - begin_) * 1e3:.2f}ms')
             # np.array doesn't work for ParticleState
-            meas_points = np.empty(len(measured_states), dtype="O")
-            meas_points[:] = measured_states
-            meas_points = meas_points[meas_mask]
+            begin_ = time.time()
+            meas_points = all_meas_points[meas_mask]
+            meas_ids = all_meas_ids[meas_mask]
+            end_ = time.time()
+            print(f'first took {(end_ - begin_) * 1e3:.2f}ms')
 
-            meas_ids = np.array(measured_state_ids)[meas_mask]
+            begin_ = time.time()
+            truth_mask = all_truth_timestamps == timestamp
+            end_ = time.time()
+            print(f'truth mask took {(end_ - begin_) * 1e3:.2f}ms')
 
-            truth_mask = [state.timestamp == timestamp for state in truth_states]
-            truth_points = np.array(truth_states)[truth_mask]
-            truth_ids = np.array(truth_state_ids)[truth_mask]
+            begin_ = time.time()
+            truth_points = all_truth_points[truth_mask]
+            truth_ids = all_truth_ids[truth_mask]
+            end_ = time.time()
+            print(f'second took {(end_ - begin_) * 1e3:.2f}ms')
 
-            metric, truth_to_measured_assignment = self.compute_gospa_metric(
-                    meas_points, truth_points)
+            metric, truth_to_measured_assignment = self.compute_gospa_metric(meas_points, truth_points)
             truth_mapping = {
                 truth_id: meas_ids[meas_id] if meas_id != -1 else None
                 for truth_id, meas_id in zip(truth_ids, truth_to_measured_assignment)}
@@ -195,6 +214,8 @@ class GOSPAMetric(MetricGenerator):
                                                 metric.value['switching']**self.alpha,
                                                 1.0/self.alpha)
             gospa_metrics.append(metric)
+            end = time.time()
+            print(f'iter took {(end - begin) * 1e3:.2f}ms')
 
         # If only one timestamp is present then return a SingleTimeMetric
         if len(timestamps) == 1:
