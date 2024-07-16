@@ -182,8 +182,8 @@ class GOSPAMetric(MetricGenerator):
         truth_iter = iter(groupby(range(len(all_truth_ids)), all_truth_timestamps.__getitem__))
         meas_iter = iter(groupby(range(len(all_meas_ids)), all_meas_timestamps.__getitem__))
 
-        next_truth = next(truth_iter)
-        next_meas = next(meas_iter)
+        next_truth = next(truth_iter, None)
+        next_meas = next(meas_iter, None)
 
         switching_metric = _SwitchingLoss(self.switching_penalty, self.p)
         gospa_metrics = []
@@ -228,13 +228,13 @@ class GOSPAMetric(MetricGenerator):
         if len(gospa_metrics) == 1:
             return gospa_metrics[0]
         else:
+            start_time = np.concatenate((all_truth_timestamps[:1], all_meas_timestamps[:1])).min()
+            end_time = np.concatenate((all_truth_timestamps[-1:], all_meas_timestamps[-1:])).max()
+
             return TimeRangeMetric(
                 title='GOSPA Metrics',
                 value=gospa_metrics,
-                time_range=TimeRange(
-                    start=min(all_truth_timestamps[0], all_meas_timestamps[0]),
-                    end=max(all_truth_timestamps[-1], all_meas_timestamps[-1])
-                ),
+                time_range=TimeRange(start=start_time, end=end_time),
                 generator=self)
 
     def compute_assignments(self, cost_matrix):
