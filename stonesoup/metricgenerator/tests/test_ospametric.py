@@ -367,6 +367,46 @@ def test_switching_gospametric_computemetric():
     assert third_association.generator == generator
 
 
+def test_gospametric_single_timestep():
+    """Test GOSPA on dataset with only a single time step."""
+    max_penalty = 2
+    switching_penalty = 3
+    p = 2
+    generator = GOSPAMetric(
+        c=max_penalty,
+        p=p,
+        switching_penalty=switching_penalty
+    )
+
+    time = datetime.datetime.now()
+    times = [time.now()]
+    tracks = {Track(states=[State(state_vector=[[i]], timestamp=time) for i, time
+                            in zip([1, 2, 2], times)]),
+              Track(states=[State(state_vector=[[i]], timestamp=time) for i, time
+                            in zip([2, 1, 1], times)]),
+              Track(states=[State(state_vector=[[i]], timestamp=time) for i, time
+                            in zip([3, 100, 3], times)])}
+
+    truths = {GroundTruthPath(states=[State(state_vector=[[i]], timestamp=time)
+                                      for i, time in zip([1, 1, 1], times)]),
+              GroundTruthPath(states=[State(state_vector=[[i]], timestamp=time)
+                                      for i, time in zip([2, 2, 2], times)]),
+              GroundTruthPath(states=[State(state_vector=[[i]], timestamp=time)
+                                      for i, time in zip([3, 3, 3], times)])}
+
+    manager = MultiManager([generator])
+    manager.add_data({'groundtruth_paths': truths, 'tracks': tracks})
+    main_metric = generator.compute_metric(manager)
+
+    assert main_metric.value['distance'] == 0
+    assert main_metric.value['localisation'] == 0
+    assert main_metric.value['missed'] == 0
+    assert main_metric.value['false'] == 0
+    assert main_metric.value['switching'] == 0
+    assert main_metric.timestamp == times[0]
+    assert main_metric.generator == generator
+
+
 def test_gospametric_speed():
     """Test GOSPA compute speed."""
     generator = GOSPAMetric(
