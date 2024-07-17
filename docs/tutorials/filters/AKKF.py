@@ -108,10 +108,22 @@ Kernel methods: the adaptive kernel Kalman filter
 # k_{\mathbf{y}}(\mathbf{y}^{\{M\}}, \mathbf{y}) \right]^{\rm{T}}`.
 # The kernel weight vector :math:`\mathbf{w}` is the solution to a set of linear equations in the
 # RKHS. Unlike the particle filter, there are no non-negativity or normalisation constraints.
+#
+# .. image:: ../../_static/KME.png
+#   :width: 800
+#   :alt: Illustration of Kernel Mean Embedding from data space to kernel feature space
+#
+# This figure represents the KME of the conditional distribution :math:`p(X|\mathbf{Y})` is
+# embedded as a point in kernel feature space as
+# :math:`\mu_{X|y} = \int_{\mathcal{X}}\phi_x(x) d P(x|y)`.
+# Given the training data sampled from :math:`P(X, Y)`, the empirical KME of :math:`P(X|y)` is
+# approximated as a linear operation in RKHS, i.e.,
+# :math:`\hat{\mu}_{X|y}=\hat{C}_{X|Y}\phi_y(y)=\Phi\mathbf{w}`.
 
 # %%
 # AKKF based on KME
 # ^^^^^^^^^^^^^^^^^
+#
 # The AKKF draws inspiration from the concepts of KME and Kalman Filter to address tracking
 # problems in nonlinear systems. Unlike the particle filter, the AKKF approximates the posterior
 # PDF using particles and weights, but not in the state space.
