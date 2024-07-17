@@ -188,9 +188,49 @@ Kernel methods: the adaptive kernel Kalman filter
 # The transition matrix :math:`\Gamma_{k}` represents the change of sample representation, and
 # :math:`{V}_{k}` represents the finite matrix representation of the transition residual matrix.
 #
+# Updater uses prediction
+# """""""""""""""""""""""
+#
+# :math:`{\color{green}\blacksquare}` In the measurement space, the measurement particles are
+# generated according to the measurement model as:
+#
+#  .. math::
+#      \mathbf{y}_k^{\{i\}} =  \mathtt{h}\left({\mathbf{x}}_{k}^{\{i\}},
+#      \mathbf{v}_{k}^{\{i\}} \right).
+#
+# :math:`{\color{orange}\blacksquare}` In the RKHS, :math:`{\mathbf{y}}_{k}^{\{i=1:M_{\text{A}}\}}`
+# are mapped as feature mappings :math:`\Upsilon_k`. The posterior kernel weight vector and
+# covariance matrix are updated as:
+#
+# .. math::
+#    \mathbf{w}^{+}_{k} &= \mathbf{w}^{-}_{k} +
+#    Q_k\left(\mathbf{g}_{\mathbf{yy}_k} - G_\mathbf{yy}\mathbf{w}^{-}_{k}\right)\\
+#    S_k^{+} &= S_k^{-} - Q_k G_\mathbf{yy}S_k^{-}
+#
+#
+# Here, :math:`G_\mathbf{yy} = \Upsilon^\mathrm{T}_k\Upsilon_k`,
+# :math:`\mathbf{g}_{\mathbf{yy}_k}=\Upsilon_k^\mathrm{T}\phi_\mathbf{y}(\mathbf{y}_k)`
+# represents the kernel vector of the measurement at time :math:`k`, :math:`Q_k` is the kernel
+# Kalman gain operator.
+#
+# Proposal generated in updater
+# """""""""""""""""""""""""""""
+#
+# :math:`{\color{blue}\blacksquare}` The AKKF replaces :math:`X_{k} = \mathbf{x}_k^{\{i=1:M\}}`
+# with new weighted proposal particles :math:`\tilde{X}_{k} = \tilde{\mathbf{x}}_k^{\{i=1:M\}}`,
+# where
+#
+# .. math::
+#     \tilde{\mathbf{x}}_k^{\{i=1:M_{\text{A}}\}} &\sim
+#     \mathcal{N}\left(\mathbb{E}\left(X_{k}\right), \mathrm{Cov}\left(X_{k}\right)\right)\\
+#     \mathbb{E}\left(X_{k}\right) &= X_{k}\mathbf{w}^{+}_{k}\\
+#     \mathrm{Cov}\left(X_{k}\right) &= X_{k}S^{+}_{k} X_{k}^{\rm{T}}.
+#
 # .. image:: ../../_static/AKKf_flow_diagram.png
 #   :width: 800
 #   :alt: Flow diagram of the AKKF
+#
+# Figure 2: Flow diagram of the AKKF
 
 # %%
 # Nearly-constant velocity & Bearing-only  Tracking (BOT) example
