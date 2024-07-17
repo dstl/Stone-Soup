@@ -80,7 +80,7 @@ Kernel methods: the adaptive kernel Kalman filter
 # :math:`\Upsilon := \left[\phi_{\mathbf{y}}(\mathbf{y}^{\{1\}}),\dots,
 # \phi_{\mathbf{y}}(\mathbf{y}^{\{M\}})\right]`.
 # The estimate of the conditional embedding operator :math:`\hat{\mathcal{C}}_{X|Y}` is obtained
-# as a linear regression in the RKHS, as illustrated in Fig. 1.
+# as a linear regression in the RKHS, as illustrated in figure 1.
 # Then, the empirical KME of the conditional distribution, i.e.,
 # :math:`p(\mathbf{x}\mid\mathbf{y})\xrightarrow{\text{KME}} \hat{\mu}_{X|\mathbf{y}}`,
 # is calculated by a linear algebra operation as:
@@ -113,8 +113,8 @@ Kernel methods: the adaptive kernel Kalman filter
 #   :width: 800
 #   :alt: Illustration of Kernel Mean Embedding from data space to kernel feature space
 #
-# This figure represents the KME of the conditional distribution :math:`p(X|\mathbf{Y})` is
-# embedded as a point in kernel feature space as
+# Figure 1: This figure represents the KME of the conditional distribution :math:`p(X|\mathbf{Y})`
+# is embedded as a point in kernel feature space as
 # :math:`\mu_{X|y} = \int_{\mathcal{X}}\phi_x(x) d P(x|y)`.
 # Given the training data sampled from :math:`P(X, Y)`, the empirical KME of :math:`P(X|y)` is
 # approximated as a linear operation in RKHS, i.e.,
@@ -157,7 +157,7 @@ Kernel methods: the adaptive kernel Kalman filter
 # Implement the AKKF
 # ^^^^^^^^^^^^^^^^^^
 #
-# The AKKF consists of three modules, as depicted in Fig. 2: a predictor that utilises both prior
+# The AKKF consists of three modules, as depicted in figure 2: a predictor that utilises both prior
 # and proposal information at time :math:`k-1` to update the prior state particles and predict the
 # kernel weight mean and covariance at time :math:`k`, an updater that employs the predicted
 # values to update the kernel weight and covariance, and an updater that generates the proposal
@@ -226,7 +226,7 @@ Kernel methods: the adaptive kernel Kalman filter
 #     \mathbb{E}\left(X_{k}\right) &= X_{k}\mathbf{w}^{+}_{k}\\
 #     \mathrm{Cov}\left(X_{k}\right) &= X_{k}S^{+}_{k} X_{k}^{\rm{T}}.
 #
-# .. image:: ../../_static/AKKf_flow_diagram.png
+# .. image:: ../../_static/AKKF_flow_diagram.png
 #   :width: 800
 #   :alt: Flow diagram of the AKKF
 #
