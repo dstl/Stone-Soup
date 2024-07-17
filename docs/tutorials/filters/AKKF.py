@@ -187,6 +187,10 @@ Kernel methods: the adaptive kernel Kalman filter
 # mean vector and covariance matrix at time :math:`k-1`, respectively.
 # The transition matrix :math:`\Gamma_{k}` represents the change of sample representation, and
 # :math:`{V}_{k}` represents the finite matrix representation of the transition residual matrix.
+#
+# .. image:: ../../_static/AKKf_flow_diagram.png
+#   :width: 800
+#   :alt: Flow diagram of the AKKF
 
 # %%
 # Nearly-constant velocity & Bearing-only  Tracking (BOT) example
