@@ -86,7 +86,7 @@ def test_gospametric_compute_assignments(num_states):
 
 
 def test_gospametric_cost_matrix():
-    """Test GOSPA cost matrix. Also indirectly checks compute distance."""
+    """Test GOSPA cost matrix. Also, indirectly checks compute distance."""
     num_states = 5
     generator = GOSPAMetric(
         c=10.0,
@@ -165,7 +165,7 @@ def test_gospametric_computemetric():
     assert first_association.title == "GOSPA Metric"
     assert first_association.timestamp == time
     assert first_association.generator == generator
-    # In the following, distance is divided by the cardinality of
+    # In the following, distance is divided by the cardinality
     # of the set since GOSPA is not normalized.
     assert first_association.value['distance'] / 5. == 0.5
     second_association = [

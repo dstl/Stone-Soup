@@ -201,7 +201,7 @@ class TrackToTruth(TwoTrackToTrackAssociator):
 
     Compares two sets of :class:`~.Track`, each formed of a sequence of
     :class:`~.State` objects and returns an :class:`~.Association` object for
-    each time at which a the two :class:`~.State` within the :class:`~.Track`
+    each time at which two :class:`~.State` objects within the :class:`~.Track`
     are assessed to be associated. Tracks are considered to be associated with
     the Truth if the true :class:`~.State` is the closest to the track and
     within the specified distance for a specified number of time steps.
@@ -313,7 +313,7 @@ class TrackToTruth(TwoTrackToTrackAssociator):
                         n_potential_successes = 1
                         potential_start_timestep = track_state.timestamp
 
-                    # Otherwise increse the number of times
+                    # Otherwise increase the number of times
                     # this truth appears in a row
                     else:
                         n_potential_successes += 1
@@ -382,9 +382,9 @@ class TrackToTruth(TwoTrackToTrackAssociator):
 class TrackIDbased(TwoTrackToTrackAssociator):
     """Track ID based associator
 
-        Compares set of :class:`~.Track` objects to set of :class:`~.GroundTruth` objects,
+        Compares a set of :class:`~.Track` objects to a set of :class:`~.GroundTruth` objects,
         each formed of a sequence of :class:`~.State` objects and returns an
-        :class:`~.Association` object for each time at which a the two :class:`~.State`
+        :class:`~.Association` object for each time at which two :class:`~.State` objects
         within the :class:`~.Track` and :class:`~.GroundTruthPath` are assessed to be associated.
         Tracks are considered to be associated with the Ground Truth if the ID of the Track
         is the same as the ID of the Ground Truth.
