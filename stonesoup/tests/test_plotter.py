@@ -209,7 +209,7 @@ def test_plot_complex_uncertainty():
             covar=[[10, -1], [1, 10]])
     ])
     with pytest.warns(UserWarning, match="Can not plot uncertainty for all states due to complex "
-                                         "eignevalues or eigenvectors"):
+                                         "eigenvalues or eigenvectors"):
 
         plotter.plot_tracks(track, mapping=[0, 1], uncertainty=True)
 
