@@ -466,7 +466,7 @@ def test_gospametric_no_gts():
     )
     dummy_cost = (generator.c ** generator.p) / generator.alpha
 
-    np.random.seed(42)
+    rng = np.random.RandomState(42)
 
     num_gt = 10
     num_timesteps = int(1e2)
@@ -487,7 +487,7 @@ def test_gospametric_no_gts():
         )
     ).T
 
-    track_states = gt_states + np.random.normal(0, track_position_sigma, gt_states.shape)
+    track_states = gt_states + rng.normal(0, track_position_sigma, gt_states.shape)
 
     time = datetime.datetime.now()
     tracks = {
@@ -521,7 +521,7 @@ def test_gospametric_occasional_no_tracks():
     )
     dummy_cost = (generator.c ** generator.p) / generator.alpha
 
-    np.random.seed(42)
+    rng = np.random.RandomState(42)
 
     num_gt = 10
     num_timesteps = int(1e2)
@@ -542,7 +542,7 @@ def test_gospametric_occasional_no_tracks():
         )
     ).T
 
-    track_states = gt_states + np.random.normal(0, track_position_sigma, gt_states.shape)
+    track_states = gt_states + rng.normal(0, track_position_sigma, gt_states.shape)
 
     time = datetime.datetime.now()
     tracks = {
@@ -587,7 +587,7 @@ def test_gospametric_occasional_no_gts():
     )
     dummy_cost = (generator.c ** generator.p) / generator.alpha
 
-    np.random.seed(42)
+    rng = np.random.RandomState(42)
 
     num_gt = 10
     num_timesteps = int(1e2)
@@ -608,7 +608,7 @@ def test_gospametric_occasional_no_gts():
         )
     ).T
 
-    track_states = gt_states + np.random.normal(0, track_position_sigma, gt_states.shape)
+    track_states = gt_states + rng.normal(0, track_position_sigma, gt_states.shape)
 
     time = datetime.datetime.now()
     tracks = {
@@ -654,7 +654,7 @@ def test_gospametric_speed():
     )
     dummy_cost = (generator.c ** generator.p) / generator.alpha
 
-    np.random.seed(42)
+    rng = np.random.RandomState(42)
 
     num_gt = 10
     num_missed = 3
@@ -684,7 +684,7 @@ def test_gospametric_speed():
             5*gt_states[:num_false_positives]
         )
     )
-    track_states += np.random.normal(0, track_position_sigma, track_states.shape)
+    track_states += rng.normal(0, track_position_sigma, track_states.shape)
 
     time = datetime.datetime.now()
     tracks = {

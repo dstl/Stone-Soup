@@ -23,7 +23,7 @@ class ParticleSampler(Sampler):
     ndim_state: int = Property(
         doc="Number of dimensions in each sample.")
 
-    def sample(self, params=None, timestamp=None):
+    def sample(self, params=None, timestamp=None, **kwargs):
         """Samples from the desired distribution and returns as a :class:`~.ParticleState`
 
         Parameters
