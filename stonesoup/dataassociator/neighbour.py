@@ -203,7 +203,7 @@ class GNNWith2DAssignment(DataAssociator):
             hypothesis_matrix[i] = row
 
         # Determine type of hypothesis used, probability or distance
-        # Probability is maximise problem, distance is minimise problem
+        # Probability is a maximise problem, distance is a minimise problem
         # Mixed hypotheses cannot be computed at this time
         hypothesis_types = {
             isinstance(hypothesis, ProbabilityHypothesis)

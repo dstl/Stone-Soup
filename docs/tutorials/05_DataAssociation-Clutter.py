@@ -31,7 +31,7 @@
 #
 # .. image:: ../_static/20170705_2x2associationexamples.png
 #   :width: 300
-#   :alt: Exahustive enumeration of associations of 2 targets to 2 measurements
+#   :alt: Exhaustive enumeration of associations of 2 targets to 2 measurements
 #
 # .. image:: ../_static/800px-20170607_associations.png
 #   :width: 300

@@ -331,7 +331,7 @@ for received_colour in received_colours_scheme:
     print(received_colour, "matched with: \t", standard_colour)
 
 # %%
-# Magneta shouldn't be match with Orange. We need a better measure.
+# Magenta shouldn't be match with Orange. We need a better measure.
 
 
 # %%

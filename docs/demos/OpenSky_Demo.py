@@ -235,7 +235,7 @@ len(tracks)
 # %%
 # Plotting
 # ------------------
-# We will be using the Folium plotting library so we can visualize our tracks on a two-dimensional
+# We will be using the Folium plotting library, so we can visualize our tracks on a two-dimensional
 # leaflet map. These Folium markers will show where our stationary sensors are located. Since our
 # FOV angles are 360 degrees, we can easily use a fixed circle to display our radar's coverage.
 

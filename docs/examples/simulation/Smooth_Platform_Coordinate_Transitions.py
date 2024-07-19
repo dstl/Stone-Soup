@@ -27,7 +27,7 @@ Creating Smooth Transitions Between Coordinates
 # allows it to arrive before-hand, whereby it stops at the destination until the designated time
 # (using the :class:`~.Point2PointStop` custom transition model).
 #
-# The method chooses the least change in bearing (:math:`b`). Therefore altering its turn-rate
+# The method chooses the least change in bearing (:math:`b`). Therefore, altering its turn-rate
 # (:math:`w`) such that it turns left if its target destination is to its left
 # (:math:`b\in [0, 180) \Rightarrow w > 0`), and right if its destination is to the right
 # (:math:`b\in (-180, 0) \Rightarrow w < 0`).
