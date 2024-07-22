@@ -7,7 +7,7 @@ from pytest import approx, raises
 from .. import (
     cholesky_eps, jacobian, gm_reduce_single, mod_bearing, mod_elevation, gauss2sigma,
     rotx, roty, rotz, cart2sphere, cart2angles, pol2cart, sphere2cart, dotproduct, gm_sample,
-    gauss2cubature, cubature2gauss, cubature_transform)
+    gauss2cubature, cubature2gauss, cubature_transform, stochasticCubatureRulePoints)
 from ...types.array import StateVector, StateVectors, Matrix, CovarianceMatrix
 from ...types.state import State, GaussianState
 
@@ -381,4 +381,35 @@ def test_cubature_transform(mean, covar, alp):
     assert np.allclose(outcovar, instate.covar)
     assert np.allclose(mean, instate.state_vector)
     assert np.allclose(covar, instate.covar)
+@pytest.mark.parametrize(
+    "points, order",
+    [
+        (25, 1),
+        (25, 3),
+        (25, 5)
+    ]
+)
+
+
+def test_stochastic_integration():
+    
+    #Test 1
+    order = 1
+    nx = 20
+    a, b = stochasticCubatureRulePoints(order, nx)
+    # Assert some condition which indicates proper functioning
+    assert np.allclose(a, b)
+    # Test 2
+    order = 3
+    nx = 10
+    a, b = stochasticCubatureRulePoints(order, nx)
+    # Assert some condition which indicates proper functioning
+    assert np.allclose(a, b)
+    # Test 3
+    order = 5
+    nx = 10
+    a, b = stochasticCubatureRulePoints(order, nx)
+    assert np.allclose(a, b)
+    # Assert some condition which indicates proper functioning
+    assert np.allclose(a, b)
 
