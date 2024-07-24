@@ -275,7 +275,7 @@ class TrackToTruth(TwoTrackToTrackAssociator):
 
             for track_state in Track.last_timestamp_generator(track):
 
-                min_dist = None
+                min_dist = self.association_threshold
                 min_truth = None
 
                 for truth in truth_set:
@@ -290,11 +290,7 @@ class TrackToTruth(TwoTrackToTrackAssociator):
                         continue
 
                     distance = self.measure(track_state, truth_state)
-                    if min_dist and distance < min_dist:
-                        min_dist = distance
-                        min_truth = truth
-                    elif not min_dist \
-                            and distance < self.association_threshold:
+                    if distance < min_dist:
                         min_dist = distance
                         min_truth = truth
 
