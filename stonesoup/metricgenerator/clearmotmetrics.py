@@ -2,19 +2,23 @@ from typing import List, Set, Tuple
 
 import numpy as np
 
-from stonesoup.measures.state import Measure
-from stonesoup.types.track import Track
-
 from ..base import Property
+from ..measures.state import Measure
 from ..types.association import AssociationSet, TimeRangeAssociation
 from ..types.metric import Metric, TimeRangeMetric
 from ..types.time import CompoundTimeRange, TimeRange
+from ..types.track import Track
 from .base import MetricGenerator
 from .manager import MultiManager
 
 
 class ClearMotMetrics(MetricGenerator):
-    """TODO"""
+    """TODO
+    
+    Reference
+        [1] Evaluating Multiple Object Tracking Performance: The CLEAR MOT Metrics,
+            Bernardin et al, 2008
+    """
     tracks_key: str = Property(doc='Key to access set of tracks added to MetricManager',
                                default='tracks')
     truths_key: str = Property(doc="Key to access set of ground truths added to MetricManager. "
