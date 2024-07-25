@@ -4,7 +4,13 @@ import numpy as np
 import pytest
 
 from ...metricgenerator.manager import MultiManager
-from ...types.association import TimeRangeAssociation, AssociationSet
+from ...models.measurement.linear import LinearGaussian
+from ...models.transition.linear import (
+    CombinedLinearGaussianTransitionModel,
+    ConstantVelocity,
+)
+from ...types.array import CovarianceMatrix, StateVector
+from ...types.association import AssociationSet, TimeRangeAssociation
 from ...types.detection import Detection
 from ...types.groundtruth import GroundTruthPath, GroundTruthState
 from ...types.hypothesis import SingleDistanceHypothesis
@@ -12,9 +18,6 @@ from ...types.prediction import GaussianStatePrediction
 from ...types.time import TimeRange
 from ...types.track import Track
 from ...types.update import GaussianStateUpdate
-from ...types.array import CovarianceMatrix, StateVector
-from ...models.transition.linear import CombinedLinearGaussianTransitionModel, ConstantVelocity
-from ...models.measurement.linear import LinearGaussian
 
 
 @pytest.fixture()
@@ -26,6 +29,7 @@ def trial_timestamps():
 @pytest.fixture()
 def trial_truths(trial_timestamps):
     return [
+        # object moving from (x=0, y=0) to (x=3, y=3) with (vx=1, vy=1)
         GroundTruthPath([
             GroundTruthState(np.array([[0, 1, 0, 1]]), timestamp=trial_timestamps[0],
                              metadata={"colour": "red"}),
@@ -36,6 +40,7 @@ def trial_truths(trial_timestamps):
             GroundTruthState(np.array([[3, 1, 3, 1]]), timestamp=trial_timestamps[3],
                              metadata={"colour": "red"})
         ]),
+        # object moving from (x=-2, y=-2) to (x=2, y=2) with (vx=1, vy=1)
         GroundTruthPath([
             GroundTruthState(np.array([[-2, 1, -2, 1]]), timestamp=trial_timestamps[0],
                              metadata={"colour": "green"}),
@@ -46,6 +51,7 @@ def trial_truths(trial_timestamps):
             GroundTruthState(np.array([[2, 1, 2, 1]]), timestamp=trial_timestamps[3],
                              metadata={"colour": "green"})
         ]),
+        # object moving from (x=--1, y=1) to (x=3, y=3) with (vx=1, vy=0)
         GroundTruthPath([
             GroundTruthState(np.array([[-1, 1, 1, 0]]), timestamp=trial_timestamps[0],
                              metadata={"colour": "blue"}),
