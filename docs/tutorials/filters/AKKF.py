@@ -80,7 +80,7 @@ Kernel methods: the adaptive kernel Kalman filter
 # :math:`\Upsilon := \left[\phi_{\mathbf{y}}(\mathbf{y}^{\{1\}}),\dots,
 # \phi_{\mathbf{y}}(\mathbf{y}^{\{M\}})\right]`.
 # The estimate of the conditional embedding operator :math:`\hat{\mathcal{C}}_{X|Y}` is obtained
-# as a linear regression in the RKHS, as illustrated in Fig. 1.
+# as a linear regression in the RKHS, as illustrated in figure 1.
 # Then, the empirical KME of the conditional distribution, i.e.,
 # :math:`p(\mathbf{x}\mid\mathbf{y})\xrightarrow{\text{KME}} \hat{\mu}_{X|\mathbf{y}}`,
 # is calculated by a linear algebra operation as:
@@ -108,10 +108,22 @@ Kernel methods: the adaptive kernel Kalman filter
 # k_{\mathbf{y}}(\mathbf{y}^{\{M\}}, \mathbf{y}) \right]^{\rm{T}}`.
 # The kernel weight vector :math:`\mathbf{w}` is the solution to a set of linear equations in the
 # RKHS. Unlike the particle filter, there are no non-negativity or normalisation constraints.
+#
+# .. image:: ../../_static/KME.png
+#   :width: 800
+#   :alt: Illustration of Kernel Mean Embedding from data space to kernel feature space
+#
+# Figure 1: This figure represents the KME of the conditional distribution :math:`p(X|\mathbf{Y})`
+# is embedded as a point in kernel feature space as
+# :math:`\mu_{X|y} = \int_{\mathcal{X}}\phi_x(x) d P(x|y)`.
+# Given the training data sampled from :math:`P(X, Y)`, the empirical KME of :math:`P(X|y)` is
+# approximated as a linear operation in RKHS, i.e.,
+# :math:`\hat{\mu}_{X|y}=\hat{C}_{X|Y}\phi_y(y)=\Phi\mathbf{w}`.
 
 # %%
 # AKKF based on KME
 # ^^^^^^^^^^^^^^^^^
+#
 # The AKKF draws inspiration from the concepts of KME and Kalman Filter to address tracking
 # problems in nonlinear systems. Unlike the particle filter, the AKKF approximates the posterior
 # PDF using particles and weights, but not in the state space.
@@ -145,7 +157,7 @@ Kernel methods: the adaptive kernel Kalman filter
 # Implement the AKKF
 # ^^^^^^^^^^^^^^^^^^
 #
-# The AKKF consists of three modules, as depicted in Fig. 2: a predictor that utilises both prior
+# The AKKF consists of three modules, as depicted in figure 2: a predictor that utilises both prior
 # and proposal information at time :math:`k-1` to update the prior state particles and predict the
 # kernel weight mean and covariance at time :math:`k`, an updater that employs the predicted
 # values to update the kernel weight and covariance, and an updater that generates the proposal
@@ -175,6 +187,50 @@ Kernel methods: the adaptive kernel Kalman filter
 # mean vector and covariance matrix at time :math:`k-1`, respectively.
 # The transition matrix :math:`\Gamma_{k}` represents the change of sample representation, and
 # :math:`{V}_{k}` represents the finite matrix representation of the transition residual matrix.
+#
+# Updater uses prediction
+# """""""""""""""""""""""
+#
+# :math:`{\color{green}\blacksquare}` In the measurement space, the measurement particles are
+# generated according to the measurement model as:
+#
+#  .. math::
+#      \mathbf{y}_k^{\{i\}} =  \mathtt{h}\left({\mathbf{x}}_{k}^{\{i\}},
+#      \mathbf{v}_{k}^{\{i\}} \right).
+#
+# :math:`{\color{orange}\blacksquare}` In the RKHS, :math:`{\mathbf{y}}_{k}^{\{i=1:M_{\text{A}}\}}`
+# are mapped as feature mappings :math:`\Upsilon_k`. The posterior kernel weight vector and
+# covariance matrix are updated as:
+#
+# .. math::
+#    \mathbf{w}^{+}_{k} &= \mathbf{w}^{-}_{k} +
+#    Q_k\left(\mathbf{g}_{\mathbf{yy}_k} - G_\mathbf{yy}\mathbf{w}^{-}_{k}\right)\\
+#    S_k^{+} &= S_k^{-} - Q_k G_\mathbf{yy}S_k^{-}
+#
+#
+# Here, :math:`G_\mathbf{yy} = \Upsilon^\mathrm{T}_k\Upsilon_k`,
+# :math:`\mathbf{g}_{\mathbf{yy}_k}=\Upsilon_k^\mathrm{T}\phi_\mathbf{y}(\mathbf{y}_k)`
+# represents the kernel vector of the measurement at time :math:`k`, :math:`Q_k` is the kernel
+# Kalman gain operator.
+#
+# Proposal generated in updater
+# """""""""""""""""""""""""""""
+#
+# :math:`{\color{blue}\blacksquare}` The AKKF replaces :math:`X_{k} = \mathbf{x}_k^{\{i=1:M\}}`
+# with new weighted proposal particles :math:`\tilde{X}_{k} = \tilde{\mathbf{x}}_k^{\{i=1:M\}}`,
+# where
+#
+# .. math::
+#     \tilde{\mathbf{x}}_k^{\{i=1:M_{\text{A}}\}} &\sim
+#     \mathcal{N}\left(\mathbb{E}\left(X_{k}\right), \mathrm{Cov}\left(X_{k}\right)\right)\\
+#     \mathbb{E}\left(X_{k}\right) &= X_{k}\mathbf{w}^{+}_{k}\\
+#     \mathrm{Cov}\left(X_{k}\right) &= X_{k}S^{+}_{k} X_{k}^{\rm{T}}.
+#
+# .. image:: ../../_static/AKKF_flow_diagram.png
+#   :width: 800
+#   :alt: Flow diagram of the AKKF
+#
+# Figure 2: Flow diagram of the AKKF
 
 # %%
 # Nearly-constant velocity & Bearing-only  Tracking (BOT) example
