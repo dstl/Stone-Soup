@@ -40,7 +40,11 @@ def test_clearmot_simple(trial_truths, trial_tracks, trial_timestamps):
     assert motp == pytest.approx(expected_avg_pos_accuracy)
 
     mota = metrics[1].value
-    assert mota == pytest.approx(1.0)
+
+    # because the track is associated with the complete extent of the truth,
+    # i.e. there are no false positves or misses
+    expected_mota = 1.0
+    assert mota == pytest.approx(expected_mota)
 
 
 def test_clearmot(trial_manager, trial_truths, trial_tracks, trial_associations):
