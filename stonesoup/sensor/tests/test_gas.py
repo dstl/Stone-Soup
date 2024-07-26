@@ -1,6 +1,8 @@
-import numpy as np
 from datetime import datetime
+
+import numpy as np
 import pytest
+from scipy.stats import norm
 
 from ..gas import GasIntensitySensor
 from ...types.groundtruth import GroundTruthState
@@ -92,14 +94,17 @@ def test_gas(position, missed_detection_probability, sensing_threshold, min_nois
     assert np.equal(measurement.state_vector, eval_meas)
 
     # Generate noisy measurement
-    np.random.seed(1990)
-    measurement = sensor.measure({source_truth}, noise=True, random_state=1990)
+    rng = np.random.RandomState()
+    rng_state = rng.get_state()
+    measurement = sensor.measure({source_truth}, noise=True, random_state=rng)
     measurement = next(iter(measurement))
 
-    rng = np.random.RandomState(1990)
-    np.random.seed(1990)
-    eval_meas += eval_meas * sensor.standard_deviation_percentage * rng.normal()
+    rng.set_state(rng_state)
+    noise = norm.rvs(loc=np.zeros(eval_meas.shape[0]),
+                     scale=np.ravel(eval_meas*sensor.standard_deviation_percentage),
+                     random_state=rng)
+    eval_meas += noise
     eval_meas[eval_meas < sensor.sensing_threshold] = 0
-    eval_meas[:, np.random.uniform() < sensor.missed_detection_probability] = 0
+    eval_meas[:, rng.uniform() > (1 - sensor.missed_detection_probability)] = 0
 
     assert np.equal(measurement.state_vector, eval_meas)

@@ -116,8 +116,9 @@ def test_isotropic_plume(state, mapping, translation_offset):
     actual_conc = isoplume_h(unmapped_state, translation_offset)
     assert np.all(np.isclose(expected_conc, actual_conc))
 
+    rng = np.random.RandomState(1990)
     # Test noise
-    expected_conc = model.function(state, noise=True, random_state=1990)
+    expected_conc = model.function(state, noise=True, random_state=rng)
 
     rng = np.random.RandomState(1990)
     actual_conc += actual_conc * standard_deviation_percentage * rng.normal(size=nparts)

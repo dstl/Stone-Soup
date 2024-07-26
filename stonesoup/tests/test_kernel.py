@@ -8,16 +8,18 @@ from ..types.state import KernelParticleState
 from ..kernel import Kernel, QuadraticKernel, QuarticKernel, GaussianKernel
 
 number_particles = 4
-np.random.seed(50)
+rng = np.random.RandomState(50)
 samples = multivariate_normal.rvs([0, 0, 0, 0],
                                   np.diag([0.01, 0.005, 0.1, 0.5])**2,
-                                  size=number_particles)
+                                  size=number_particles,
+                                  random_state=rng)
 prior = KernelParticleState(state_vector=StateVectors(samples.T),
                             weight=np.array([1/number_particles]*number_particles),
                             )
 samples = multivariate_normal.rvs([0, 0, 0, 0],
                                   np.diag([0.01, 0.005, 0.1, 0.5])**2,
-                                  size=number_particles)
+                                  size=number_particles,
+                                  random_state=rng)
 proposal = KernelParticleState(state_vector=StateVectors(samples.T),
                                weight=np.array([1/number_particles]*number_particles),
                                )
