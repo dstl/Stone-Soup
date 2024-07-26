@@ -1,0 +1,3 @@
+[submodule "dstl-mast"]
+	path = dstl-mast
+	url = git@github.com:decisionLabLtd/dstl-mast.git
