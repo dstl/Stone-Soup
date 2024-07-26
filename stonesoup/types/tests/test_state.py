@@ -6,6 +6,7 @@ import numpy as np
 import pytest
 import scipy.linalg
 from numpy.linalg import inv
+from scipy.stats import multivariate_normal
 
 from ...base import Property
 from ...functions import gridCreation
@@ -14,6 +15,7 @@ from ..array import CovarianceMatrix, StateVector, StateVectors
 from ..groundtruth import GroundTruthState
 from ..numeric import Probability
 from ..particle import Particle
+
 from ..state import (
     ASDGaussianState,
     ASDState,
@@ -25,6 +27,7 @@ from ..state import (
     EnsembleState,
     GaussianState,
     InformationState,
+    KernelParticleState,
     MultiModelParticleState,
     ParticleState,
     PointMassState,
@@ -1042,3 +1045,27 @@ def test_pointmassstate():
     assert np.allclose(priorPMF.covar(), varX0, 0, 1e-1)
     assert priorPMF.ndim == nx
     assert priorPMF.__len__() == N
+
+    
+def test_kernel_particle_state():
+    number_particles = 5
+    weights = np.array([1 / number_particles] * number_particles)
+
+    samples = multivariate_normal.rvs([0, 0, 0, 0],
+                                      np.diag([0.01, 0.005, 0.1, 0.5]) ** 2,
+                                      size=number_particles)
+    state_vector = StateVectors(samples.T)
+    prior = KernelParticleState(state_vector=state_vector,
+                                weight=weights,
+                                )
+    prior_w_kernel_covar = KernelParticleState(
+        state_vector=state_vector,
+        weight=weights,
+        kernel_covar=CovarianceMatrix(np.diag(weights)))
+
+    assert np.array_equal(prior.weight, weights)
+    assert np.array_equal(prior.kernel_covar, prior_w_kernel_covar.kernel_covar)
+    assert number_particles == len(prior)
+    assert 4 == prior.ndim
+    assert np.array_equal(state_vector @ weights[:, np.newaxis], prior.mean)
+

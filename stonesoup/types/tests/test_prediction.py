@@ -2,6 +2,7 @@ import datetime
 
 import numpy as np
 import pytest
+from scipy.stats import multivariate_normal
 
 from ..prediction import (
     Prediction, MeasurementPrediction,
@@ -9,7 +10,7 @@ from ..prediction import (
     GaussianStatePrediction, GaussianMeasurementPrediction,
     SqrtGaussianStatePrediction, TaggedWeightedGaussianStatePrediction,
     ParticleStatePrediction, ParticleMeasurementPrediction,
-    ASDGaussianStatePrediction, ASDGaussianMeasurementPrediction)
+    ASDGaussianStatePrediction, ASDGaussianMeasurementPrediction, KernelParticleStatePrediction)
 from ..state import (
     State, GaussianState, SqrtGaussianState, TaggedWeightedGaussianState, ParticleState)
 from ..track import Track
@@ -248,3 +249,24 @@ def test_asdgaussianmeasurementprediction():
     assert np.array_equal(cross_covar, measurement_prediction.cross_covar)
     assert measurement_prediction.ndim == mean.shape[0]
     assert measurement_prediction.timestamp == timestamp
+
+
+def test_kernel_particle_state_prediction():
+    number_particles = 4
+    np.random.seed(50)
+    samples = multivariate_normal.rvs([0, 0, 0, 0],
+                                      np.diag([0.01, 0.005, 0.1, 0.5]) ** 2,
+                                      size=number_particles)
+
+    state_vector = StateVectors(samples.T)
+    weights = np.array([1 / number_particles] * number_particles)
+    timestamp = datetime.datetime.now()
+
+    prediction = KernelParticleStatePrediction(state_vector=state_vector,
+                                               weight=weights,
+                                               timestamp=timestamp)
+
+    assert np.array_equal(state_vector, prediction.state_vector)
+    assert np.array_equal(weights, prediction.weight)
+    assert np.array_equal(np.diag(weights), prediction.kernel_covar)
+    assert timestamp == prediction.timestamp

@@ -128,7 +128,7 @@ class EuclideanWeighted(Measure):
         Returns
         -------
         dist : float
-            Weighted euclidean distance between two input
+            Weighted Euclidean distance between two input
             :class:`~.State` objects
 
         """

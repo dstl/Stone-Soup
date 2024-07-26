@@ -86,7 +86,7 @@ def test_gospametric_compute_assignments(num_states):
 
 
 def test_gospametric_cost_matrix():
-    """Test GOSPA cost matrix. Also indirectly checks compute distance."""
+    """Test GOSPA cost matrix. Also, indirectly checks compute distance."""
     num_states = 5
     generator = GOSPAMetric(
         c=10.0,
@@ -165,7 +165,7 @@ def test_gospametric_computemetric():
     assert first_association.title == "GOSPA Metric"
     assert first_association.timestamp == time
     assert first_association.generator == generator
-    # In the following, distance is divided by the cardinality of
+    # In the following, distance is divided by the cardinality
     # of the set since GOSPA is not normalized.
     assert first_association.value['distance'] / 5. == 0.5
     second_association = [
@@ -365,6 +365,360 @@ def test_switching_gospametric_computemetric():
     assert abs(third_association.value['switching'] - 0.5**(1/p)*switching_penalty) < 1e-9
     assert third_association.timestamp == times[2]
     assert third_association.generator == generator
+
+
+def test_gospametric_single_timestep():
+    """Test GOSPA on dataset with only a single time step."""
+    max_penalty = 2
+    switching_penalty = 3
+    p = 2
+    generator = GOSPAMetric(
+        c=max_penalty,
+        p=p,
+        switching_penalty=switching_penalty
+    )
+
+    time = datetime.datetime.now()
+    times = [time.now()]
+    tracks = {Track(states=[State(state_vector=[[i]], timestamp=time) for i, time
+                            in zip([1, 2, 2], times)]),
+              Track(states=[State(state_vector=[[i]], timestamp=time) for i, time
+                            in zip([2, 1, 1], times)]),
+              Track(states=[State(state_vector=[[i]], timestamp=time) for i, time
+                            in zip([3, 100, 3], times)])}
+
+    truths = {GroundTruthPath(states=[State(state_vector=[[i]], timestamp=time)
+                                      for i, time in zip([1, 1, 1], times)]),
+              GroundTruthPath(states=[State(state_vector=[[i]], timestamp=time)
+                                      for i, time in zip([2, 2, 2], times)]),
+              GroundTruthPath(states=[State(state_vector=[[i]], timestamp=time)
+                                      for i, time in zip([3, 3, 3], times)])}
+
+    manager = MultiManager([generator])
+    manager.add_data({'groundtruth_paths': truths, 'tracks': tracks})
+    main_metric = generator.compute_metric(manager)
+
+    assert main_metric.value['distance'] == 0
+    assert main_metric.value['localisation'] == 0
+    assert main_metric.value['missed'] == 0
+    assert main_metric.value['false'] == 0
+    assert main_metric.value['switching'] == 0
+    assert main_metric.timestamp == times[0]
+    assert main_metric.generator == generator
+
+
+def test_gospametric_no_tracks():
+    """Test GOSPA in the case of no tracks."""
+    generator = GOSPAMetric(
+        c=10,
+        p=1
+    )
+    dummy_cost = (generator.c ** generator.p) / generator.alpha
+
+    num_gt = 10
+    num_timesteps = int(1e2)
+
+    gt_distance = 30
+    gt_speed = 10
+
+    r = gt_distance*num_gt/(2*np.pi)
+    w = gt_speed/(2*np.pi*r)
+
+    ts = np.arange(num_timesteps, dtype=float)
+    gt_offsets = 2*np.pi*np.linspace(0, 1, num_gt + 1)[:-1]
+    gt_states = r*np.stack(
+        (
+            np.cos(w*ts[:, None] + gt_offsets[None, :]),
+            np.sin(w*ts[:, None] + gt_offsets[None, :])
+        )
+    ).T
+
+    time = datetime.datetime.now()
+    tracks = {}
+    truths = {
+        GroundTruthPath(
+            states=[
+                State(
+                    state_vector=gt_states[gt_idx, state_idx],
+                    timestamp=time + datetime.timedelta(ts[state_idx])
+                )
+                for state_idx in range(gt_states.shape[1])
+            ])
+        for gt_idx in range(gt_states.shape[0])
+    }
+
+    manager = MultiManager([generator])
+    manager.add_data({'groundtruth_paths': truths, 'tracks': tracks})
+    main_metric = generator.compute_metric(manager)
+
+    gospa_num_missed = np.fromiter((i.value['missed'] for i in main_metric.value), dtype=float)
+    gospa_num_false = np.fromiter((i.value['false'] for i in main_metric.value), dtype=float)
+
+    assert ((gospa_num_missed//dummy_cost) == num_gt).all()
+    assert ((gospa_num_false//dummy_cost) == 0).all()
+
+
+def test_gospametric_no_gts():
+    """Test GOSPA of no ground truths."""
+    generator = GOSPAMetric(
+        c=10,
+        p=1
+    )
+    dummy_cost = (generator.c ** generator.p) / generator.alpha
+
+    np.random.seed(42)
+
+    num_gt = 10
+    num_timesteps = int(1e2)
+
+    gt_distance = 30
+    gt_speed = 10
+    track_position_sigma = 1
+
+    r = gt_distance*num_gt/(2*np.pi)
+    w = gt_speed/(2*np.pi*r)
+
+    ts = np.arange(num_timesteps, dtype=float)
+    gt_offsets = 2*np.pi*np.linspace(0, 1, num_gt + 1)[:-1]
+    gt_states = r*np.stack(
+        (
+            np.cos(w*ts[:, None] + gt_offsets[None, :]),
+            np.sin(w*ts[:, None] + gt_offsets[None, :])
+        )
+    ).T
+
+    track_states = gt_states + np.random.normal(0, track_position_sigma, gt_states.shape)
+
+    time = datetime.datetime.now()
+    tracks = {
+        Track(states=[
+            State(
+                state_vector=track_states[track_idx, state_idx],
+                timestamp=time + datetime.timedelta(ts[state_idx])
+            )
+            for state_idx in range(track_states.shape[1])
+        ])
+        for track_idx in range(track_states.shape[0])
+    }
+    truths = {}
+
+    manager = MultiManager([generator])
+    manager.add_data({'groundtruth_paths': truths, 'tracks': tracks})
+    main_metric = generator.compute_metric(manager)
+
+    gospa_num_missed = np.fromiter((i.value['missed'] for i in main_metric.value), dtype=float)
+    gospa_num_false = np.fromiter((i.value['false'] for i in main_metric.value), dtype=float)
+
+    assert ((gospa_num_missed//dummy_cost) == 0).all()
+    assert ((gospa_num_false//dummy_cost) == num_gt).all()
+
+
+def test_gospametric_occasional_no_tracks():
+    """Test GOSPA for instances where some timesteps observe no tracks."""
+    generator = GOSPAMetric(
+        c=10,
+        p=1
+    )
+    dummy_cost = (generator.c ** generator.p) / generator.alpha
+
+    np.random.seed(42)
+
+    num_gt = 10
+    num_timesteps = int(1e2)
+
+    gt_distance = 30
+    gt_speed = 10
+    track_position_sigma = 1
+
+    r = gt_distance*num_gt/(2*np.pi)
+    w = gt_speed/(2*np.pi*r)
+
+    ts = np.arange(num_timesteps, dtype=float)
+    gt_offsets = 2*np.pi*np.linspace(0, 1, num_gt + 1)[:-1]
+    gt_states = r*np.stack(
+        (
+            np.cos(w*ts[:, None] + gt_offsets[None, :]),
+            np.sin(w*ts[:, None] + gt_offsets[None, :])
+        )
+    ).T
+
+    track_states = gt_states + np.random.normal(0, track_position_sigma, gt_states.shape)
+
+    time = datetime.datetime.now()
+    tracks = {
+        Track(states=[
+            State(
+                state_vector=track_states[track_idx, state_idx],
+                timestamp=time + datetime.timedelta(ts[state_idx])
+            )
+            for state_idx in range(track_states.shape[1]) if state_idx % 2 != 0
+        ])
+        for track_idx in range(track_states.shape[0])
+    }
+    truths = {
+        GroundTruthPath(
+            states=[
+                State(
+                    state_vector=gt_states[gt_idx, state_idx],
+                    timestamp=time + datetime.timedelta(ts[state_idx])
+                )
+                for state_idx in range(gt_states.shape[1])
+            ])
+        for gt_idx in range(gt_states.shape[0])
+    }
+
+    manager = MultiManager([generator])
+    manager.add_data({'groundtruth_paths': truths, 'tracks': tracks})
+    main_metric = generator.compute_metric(manager)
+
+    gospa_num_missed = np.fromiter((i.value['missed'] for i in main_metric.value), dtype=float)
+    gospa_num_false = np.fromiter((i.value['false'] for i in main_metric.value), dtype=float)
+
+    assert ((gospa_num_missed[::2]//dummy_cost) == num_gt).all()
+    assert ((gospa_num_missed[1::2]//dummy_cost) == 0).all()
+    assert ((gospa_num_false//dummy_cost) == 0).all()
+
+
+def test_gospametric_occasional_no_gts():
+    """Test GOSPA for instances where some timesteps observe no ground truths."""
+    generator = GOSPAMetric(
+        c=10,
+        p=1
+    )
+    dummy_cost = (generator.c ** generator.p) / generator.alpha
+
+    np.random.seed(42)
+
+    num_gt = 10
+    num_timesteps = int(1e2)
+
+    gt_distance = 30
+    gt_speed = 10
+    track_position_sigma = 1
+
+    r = gt_distance*num_gt/(2*np.pi)
+    w = gt_speed/(2*np.pi*r)
+
+    ts = np.arange(num_timesteps, dtype=float)
+    gt_offsets = 2*np.pi*np.linspace(0, 1, num_gt + 1)[:-1]
+    gt_states = r*np.stack(
+        (
+            np.cos(w*ts[:, None] + gt_offsets[None, :]),
+            np.sin(w*ts[:, None] + gt_offsets[None, :])
+        )
+    ).T
+
+    track_states = gt_states + np.random.normal(0, track_position_sigma, gt_states.shape)
+
+    time = datetime.datetime.now()
+    tracks = {
+        Track(states=[
+            State(
+                state_vector=track_states[track_idx, state_idx],
+                timestamp=time + datetime.timedelta(ts[state_idx])
+            )
+            for state_idx in range(track_states.shape[1])
+        ])
+        for track_idx in range(track_states.shape[0])
+    }
+    truths = {
+        GroundTruthPath(
+            states=[
+                State(
+                    state_vector=gt_states[gt_idx, state_idx],
+                    timestamp=time + datetime.timedelta(ts[state_idx])
+                )
+                for state_idx in range(gt_states.shape[1]) if state_idx % 2 != 0
+            ])
+        for gt_idx in range(gt_states.shape[0])
+    }
+
+    manager = MultiManager([generator])
+    manager.add_data({'groundtruth_paths': truths, 'tracks': tracks})
+    main_metric = generator.compute_metric(manager)
+
+    gospa_num_missed = np.fromiter((i.value['missed'] for i in main_metric.value), dtype=float)
+    gospa_num_false = np.fromiter((i.value['false'] for i in main_metric.value), dtype=float)
+    gospa_distance = np.fromiter((i.value['distance'] for i in main_metric.value), dtype=float)
+
+    assert ((gospa_num_missed//dummy_cost) == 0).all()
+    assert ((gospa_num_false[::2]//dummy_cost) == num_gt).all()
+    assert ((gospa_distance[::2]//dummy_cost) == num_gt).all()
+
+
+def test_gospametric_speed():
+    """Test GOSPA compute speed."""
+    generator = GOSPAMetric(
+        c=10,
+        p=1
+    )
+    dummy_cost = (generator.c ** generator.p) / generator.alpha
+
+    np.random.seed(42)
+
+    num_gt = 10
+    num_missed = 3
+    num_false_positives = 2
+    num_true_positives = num_gt - num_missed
+    num_timesteps = int(1e3)
+
+    gt_distance = 30
+    gt_speed = 10
+    track_position_sigma = 1
+
+    r = gt_distance*num_gt/(2*np.pi)
+    w = gt_speed/(2*np.pi*r)
+
+    ts = np.arange(num_timesteps, dtype=float)
+    gt_offsets = 2*np.pi*np.linspace(0, 1, num_gt + 1)[:-1]
+    gt_states = r*np.stack(
+        (
+            np.cos(w*ts[:, None] + gt_offsets[None, :]),
+            np.sin(w*ts[:, None] + gt_offsets[None, :])
+        )
+    ).T
+
+    track_states = np.vstack(
+        (
+            gt_states[:num_true_positives],
+            5*gt_states[:num_false_positives]
+        )
+    )
+    track_states += np.random.normal(0, track_position_sigma, track_states.shape)
+
+    time = datetime.datetime.now()
+    tracks = {
+        Track(states=[
+            State(
+                state_vector=track_states[track_idx, state_idx],
+                timestamp=time + datetime.timedelta(ts[state_idx])
+            )
+            for state_idx in range(track_states.shape[1])
+        ])
+        for track_idx in range(track_states.shape[0])
+    }
+    truths = {
+        GroundTruthPath(
+            states=[
+                State(
+                    state_vector=gt_states[gt_idx, state_idx],
+                    timestamp=time + datetime.timedelta(ts[state_idx])
+                )
+                for state_idx in range(gt_states.shape[1])
+            ])
+        for gt_idx in range(gt_states.shape[0])
+    }
+
+    manager = MultiManager([generator])
+    manager.add_data({'groundtruth_paths': truths, 'tracks': tracks})
+    main_metric = generator.compute_metric(manager)
+
+    gospa_num_missed = np.fromiter((i.value['missed'] for i in main_metric.value), dtype=float)
+    gospa_num_false = np.fromiter((i.value['false'] for i in main_metric.value), dtype=float)
+
+    assert main_metric.title == "GOSPA Metrics"
+    assert ((gospa_num_missed//dummy_cost) == num_missed).all()
+    assert ((gospa_num_false//dummy_cost) == num_false_positives).all()
 
 
 @pytest.mark.parametrize(

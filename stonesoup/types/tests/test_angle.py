@@ -78,7 +78,7 @@ class TestAngle:
         assert approx(float(b1)/2) == b1/2
         assert approx(b_div) == float(b1)/b2
 
-    def test_comaparision(self, class_, func):
+    def test_comparison(self, class_, func):
         b1 = class_(deg2rad(30))
         b2 = class_(deg2rad(10))
         assert b1 == b1

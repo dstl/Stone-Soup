@@ -31,6 +31,12 @@ Track-to-track Association
 .. automodule:: stonesoup.dataassociator.tracktotrack
     :show-inheritance:
 
+CLEAR MOT Association
+---------------------
+
+.. automodule:: stonesoup.dataassociator.clearmot
+    :show-inheritance:
+
 Trees
 --------------------------
 

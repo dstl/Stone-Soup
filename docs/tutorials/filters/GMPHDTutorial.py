@@ -607,8 +607,8 @@ x, y = np.meshgrid(xx, yy)
 zarray = np.zeros((100, 100, number_steps))
 
 # Create the matplotlib figure and axes. Here we will have two axes being animated in sync.
-# `axL` will be the a 3D axis showing the Gaussian mixture
-# `axR` will be be a 2D axis showing the ground truth, detections, and updated tracks at
+# `axL` will be a 3D axis showing the Gaussian mixture
+# `axR` will be a 2D axis showing the ground truth, detections, and updated tracks at
 # each time step.
 fig = plt.figure(figsize=(16, 8))
 axL = fig.add_subplot(121, projection='3d')
