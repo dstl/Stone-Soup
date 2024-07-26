@@ -3,3 +3,5 @@
 kaleido
 # Additional requirement for EHM example [To fix the failing tests]
 pyehm
+# Additional requirement for ODE example
+torch
