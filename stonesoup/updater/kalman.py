@@ -934,7 +934,6 @@ class StochasticIntegrationUpdater(KalmanUpdater):
         doc="order of SIR (orders 1, 3, 5 are currently supported)")
 
     @lru_cache()
-
     def predict_measurement(self, predicted_state, measurement_model=None, measurement_noise=True,
                             **kwargs):
         """SIF.

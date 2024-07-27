@@ -13,7 +13,8 @@ from stonesoup.updater.kalman import (KalmanUpdater,
                                       SqrtKalmanUpdater,
                                       IteratedKalmanUpdater,
                                       SchmidtKalmanUpdater,
-                                      CubatureKalmanUpdater)
+                                      CubatureKalmanUpdater,
+                                      StochasticIntegrationUpdater)
 
 
 @pytest.fixture(params=[KalmanUpdater, ExtendedKalmanUpdater, UnscentedKalmanUpdater,
