@@ -7,7 +7,7 @@ from pytest import approx, raises
 from .. import (
     cholesky_eps, jacobian, gm_reduce_single, mod_bearing, mod_elevation, gauss2sigma,
     rotx, roty, rotz, cart2sphere, cart2angles, pol2cart, sphere2cart, dotproduct, gm_sample,
-    gauss2cubature, cubature2gauss, cubature_transform)
+    gauss2cubature, cubature2gauss, cubature_transform, stochasticCubatureRulePoints)
 from ...types.array import StateVector, StateVectors, Matrix, CovarianceMatrix
 from ...types.state import State, GaussianState
 
@@ -346,6 +346,7 @@ def test_gm_sample(means, covars, weights, size):
     else:
         assert samples.shape[0] == means.shape[0]
 
+
 @pytest.mark.parametrize(
     "mean, covar, alp",
     [
@@ -357,8 +358,6 @@ def test_gm_sample(means, covars, weights, size):
                                                         [0, 0.06, -0.01, 1.1]]), 0.7)
     ]
 )
-
-
 def test_cubature_transform(mean, covar, alp):
 
     instate = GaussianState(mean, covar)
@@ -382,3 +381,28 @@ def test_cubature_transform(mean, covar, alp):
     assert np.allclose(mean, instate.state_vector)
     assert np.allclose(covar, instate.covar)
 
+
+@pytest.mark.parametrize(
+    "order, nx",
+    [
+        (3, 3),
+        (5, 4),
+        (1, 2)
+    ]
+)
+def test_stochastic_integration(order, nx):
+    points, weights = stochasticCubatureRulePoints(nx, order)
+    # Mean
+    assert np.allclose(np.average(points, weights=weights, axis=1),
+                       0, atol=1e-5)
+    # Weights
+    assert np.isclose(np.sum(weights), 1, atol=1e-5)
+    if order != 1:  # For order 1 it does not make sense to check variance of points
+        # Covariance
+        var = ((weights * points) @ points.T)
+        # Check if diagonal elements are close to 1
+        diagonal_elements = np.diag(var)
+        assert np.allclose(diagonal_elements, 1, atol=1e-5)
+        # Check if off-diagonal elements are close to 0
+        off_diagonal_elements = var[~np.eye(nx, dtype=bool)]
+        assert np.allclose(off_diagonal_elements, 0, atol=1e-5)

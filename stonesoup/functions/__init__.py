@@ -1083,4 +1083,3 @@ def cubature_transform(state, fun, points_noise=None, covar_noise=None, alpha=1.
     cross_covar = cross_covar.view(CovarianceMatrix)
 
     return mean, covar, cross_covar, cubature_points_t
-
