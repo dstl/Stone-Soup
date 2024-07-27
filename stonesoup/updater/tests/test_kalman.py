@@ -17,7 +17,8 @@ from stonesoup.updater.kalman import (KalmanUpdater,
 
 
 @pytest.fixture(params=[KalmanUpdater, ExtendedKalmanUpdater, UnscentedKalmanUpdater,
-                        IteratedKalmanUpdater, SchmidtKalmanUpdater, CubatureKalmanUpdater])
+                        IteratedKalmanUpdater, SchmidtKalmanUpdater, CubatureKalmanUpdater,
+                        StochasticIntegrationUpdater])
 def updater_class(request):
     return request.param
 

@@ -13,8 +13,8 @@ from ..types.update import Update
 from ..models.base import LinearModel
 from ..models.measurement.linear import LinearGaussian
 from ..models.measurement import MeasurementModel
-from ..functions import gauss2sigma, unscented_transform, cubature_transform, \
-    stochasticCubatureRulePoints
+from ..functions import (gauss2sigma, unscented_transform, cubature_transform,
+                         stochasticCubatureRulePoints)
 from ..measures import Measure, Euclidean
 
 
@@ -934,7 +934,8 @@ class StochasticIntegrationUpdater(KalmanUpdater):
         doc="order of SIR (orders 1, 3, 5 are currently supported)")
 
     @lru_cache()
-    def predict_measurement(self, predicted_state, measurement_model=None,
+
+    def predict_measurement(self, predicted_state, measurement_model=None, measurement_noise=True,
                             **kwargs):
         """SIF.
 
@@ -1046,12 +1047,14 @@ class StochasticIntegrationUpdater(KalmanUpdater):
             VPxz = (N - 2) * VPxz / N + DPxz ** 2
 
         Pzp = IPz
-        Pzp = Pzp + measurement_model.covar() + np.diag(Vz.ravel())
-        Pzp = Pzp.astype(np.float64)
+        if measurement_noise:
+            Pzp = Pzp + measurement_model.covar() + np.diag(Vz.ravel())
+        else:
+            Pzp = Pzp + np.diag(Vz.ravel())
+            Pzp = Pzp.astype(np.float64)
+            Pxzp = IPxz
 
-        Pxzp = IPxz
-
-        cross_covar = Pxzp.view(CovarianceMatrix)
+            cross_covar = Pxzp.view(CovarianceMatrix)
         return MeasurementPrediction.from_state(
             predicted_state, zp.view(StateVector), Pzp.view(CovarianceMatrix),
             cross_covar=cross_covar)

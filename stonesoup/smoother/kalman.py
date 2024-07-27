@@ -308,7 +308,7 @@ class UnscentedKalmanSmoother(KalmanSmoother):
         return cross_covar @ np.linalg.inv(prediction.covar)
 
 
-class SIFKalmanSmoother(KalmanSmoother):
+class StochasticIntegrationSmoother(KalmanSmoother):
     r"""
     The stochastic integration version of the Kalman filter.
     As with the parent version of the Kalman smoother,
