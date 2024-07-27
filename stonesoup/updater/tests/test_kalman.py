@@ -1,5 +1,3 @@
-"""Test for updater.kalman module"""
-
 import pytest
 import numpy as np
 
@@ -15,8 +13,7 @@ from stonesoup.updater.kalman import (KalmanUpdater,
                                       SqrtKalmanUpdater,
                                       IteratedKalmanUpdater,
                                       SchmidtKalmanUpdater,
-                                      CubatureKalmanUpdater,
-                                      StochasticIntegrationUpdater)
+                                      CubatureKalmanUpdater)
 
 
 @pytest.fixture(params=[KalmanUpdater, ExtendedKalmanUpdater, UnscentedKalmanUpdater,
