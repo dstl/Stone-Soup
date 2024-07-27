@@ -13,7 +13,8 @@ from ..types.update import Update
 from ..models.base import LinearModel
 from ..models.measurement.linear import LinearGaussian
 from ..models.measurement import MeasurementModel
-from ..functions import gauss2sigma, unscented_transform, cubature_transform, stochasticCubatureRulePoints
+from ..functions import (gauss2sigma, unscented_transform, cubature_transform,
+                         stochasticCubatureRulePoints)
 from ..measures import Measure, Euclidean
 
 
@@ -1046,14 +1047,13 @@ class StochasticIntegrationUpdater(KalmanUpdater):
 
         Pzp = IPz
         if measurement_noise:
-           	Pzp = Pzp + measurement_model.covar() + np.diag(Vz.ravel())
+            Pzp = Pzp + measurement_model.covar() + np.diag(Vz.ravel())
         else:
-           	Pzp = Pzp + np.diag(Vz.ravel())
-        Pzp = Pzp.astype(np.float64)
+            Pzp = Pzp + np.diag(Vz.ravel())
+            Pzp = Pzp.astype(np.float64)
+            Pxzp = IPxz
 
-        Pxzp = IPxz
-
-        cross_covar = Pxzp.view(CovarianceMatrix)
+            cross_covar = Pxzp.view(CovarianceMatrix)
         return MeasurementPrediction.from_state(
             predicted_state, zp.view(StateVector), Pzp.view(CovarianceMatrix),
             cross_covar=cross_covar)

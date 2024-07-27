@@ -113,6 +113,7 @@ def test_kalman(updater_class, use_joseph_cov):
     assert np.array_equal(posterior.hypothesis.measurement, measurement)
     assert posterior.timestamp == prediction.timestamp
 
+
 def test_sqrt_kalman():
     measurement_model = LinearGaussian(ndim_state=2, mapping=[0],
                                        noise_covar=np.array([[0.04]]))
@@ -230,4 +231,3 @@ def test_schmidtkalman():
 
     assert np.allclose(update.mean, sk_update.mean)
     assert np.allclose(update.covar, sk_update.covar)
-

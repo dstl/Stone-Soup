@@ -346,6 +346,7 @@ def test_gm_sample(means, covars, weights, size):
     else:
         assert samples.shape[0] == means.shape[0]
 
+
 @pytest.mark.parametrize(
     "mean, covar, alp",
     [
@@ -357,8 +358,6 @@ def test_gm_sample(means, covars, weights, size):
                                                         [0, 0.06, -0.01, 1.1]]), 0.7)
     ]
 )
-
-
 def test_cubature_transform(mean, covar, alp):
 
     instate = GaussianState(mean, covar)
@@ -381,35 +380,29 @@ def test_cubature_transform(mean, covar, alp):
     assert np.allclose(outcovar, instate.covar)
     assert np.allclose(mean, instate.state_vector)
     assert np.allclose(covar, instate.covar)
+
+
 @pytest.mark.parametrize(
-    "points, order",
+    "order, nx",
     [
-        (25, 1),
-        (25, 3),
-        (25, 5)
+        (3, 3),
+        (5, 4),
+        (1, 2)
     ]
 )
-
-
-def test_stochastic_integration():
-    
-    #Test 1
-    order = 1
-    nx = 20
-    a, b = stochasticCubatureRulePoints(order, nx)
-    # Assert some condition which indicates proper functioning
-    assert np.allclose(a, b)
-    # Test 2
-    order = 3
-    nx = 10
-    a, b = stochasticCubatureRulePoints(order, nx)
-    # Assert some condition which indicates proper functioning
-    assert np.allclose(a, b)
-    # Test 3
-    order = 5
-    nx = 10
-    a, b = stochasticCubatureRulePoints(order, nx)
-    assert np.allclose(a, b)
-    # Assert some condition which indicates proper functioning
-    assert np.allclose(a, b)
-
+def test_stochastic_integration(order, nx):
+    points, weights = stochasticCubatureRulePoints(nx, order)
+    # Mean
+    assert np.allclose(np.average(points, weights=weights, axis=1),
+                       0, atol=1e-5)
+    # Weights
+    assert np.isclose(np.sum(weights), 1, atol=1e-5)
+    if order != 1:  # For order 1 it does not make sense to check variance of points
+        # Covariance
+        var = ((weights * points) @ points.T)
+        # Check if diagonal elements are close to 1
+        diagonal_elements = np.diag(var)
+        assert np.allclose(diagonal_elements, 1, atol=1e-5)
+        # Check if off-diagonal elements are close to 0
+        off_diagonal_elements = var[~np.eye(nx, dtype=bool)]
+        assert np.allclose(off_diagonal_elements, 0, atol=1e-5)
