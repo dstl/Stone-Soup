@@ -156,21 +156,17 @@ class ClearMotMetrics(MetricGenerator):
 
                 matches_prev = matches_at_time_lookup[timestamps[i-1]]
 
-                num_miss_matches_current = self._compute_miss_matches_from_match_sets(
+                num_miss_matches_current = self._compute_number_of_miss_matches_from_match_sets(
                     matches_prev, matches_current)
 
                 num_miss_matches += num_miss_matches_current
 
         number_of_gt_states = self.compute_total_number_of_gt_states(manager)
 
-        print(num_misses)
-        print(num_false_positives)
-        print(num_miss_matches)
-        print(number_of_gt_states)
         return 1 - (num_misses + num_false_positives + num_miss_matches)/number_of_gt_states
 
-    def _compute_miss_matches_from_match_sets(self, matches_prev: MatchSetAtTimestamp,
-                                              matches_current: MatchSetAtTimestamp):
+    def _compute_number_of_miss_matches_from_match_sets(self, matches_prev: MatchSetAtTimestamp,
+                                                        matches_current: MatchSetAtTimestamp) -> int:
         num_miss_matches_current = 0
 
         matched_truth_ids_prev = {match[0] for match in matches_prev}
