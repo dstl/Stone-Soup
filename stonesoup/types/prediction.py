@@ -2,13 +2,13 @@ import copy
 import datetime
 from typing import Sequence
 
-from .array import CovarianceMatrix
+from .array import CovarianceMatrix, CovarianceMatrices
 from .base import Type
 from .state import (State, GaussianState, EnsembleState,
                     ParticleState, MultiModelParticleState, RaoBlackwellisedParticleState,
                     SqrtGaussianState, InformationState, TaggedWeightedGaussianState,
                     WeightedGaussianState, CategoricalState, ASDGaussianState,
-                    BernoulliParticleState, KernelParticleState)
+                    BernoulliParticleState, MarginalisedParticleState, KernelParticleState)
 from ..base import Property
 from ..models.transition.base import TransitionModel
 from ..types.state import CreatableFromState, CompositeState
@@ -230,5 +230,26 @@ class CompositeMeasurementPrediction(MeasurementPrediction, CompositeState):
         doc="Sequence of sub-measurement-predictions comprising the composite measurement "
             "prediction. All sub-measurement-predictions must have matching timestamp.")
 
+
+
+class MarginalisedParticleStatePrediction(Prediction, MarginalisedParticleState):
+    """RBStateUpdate type
+
+    This is a simple RBParticle state update object.
+    """
+    pass
+
+
+class MarginalisedParticleMeasurementPrediction(MeasurementPrediction, MarginalisedParticleState):
+    cross_covar: CovarianceMatrices = Property(
+    default=None, doc="The state-measurement cross covariance matrix")
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        if self.cross_covar is not None \
+                and self.cross_covar.shape[1] != self.state_vector.shape[0]:
+            raise ValueError("cross_covar should have the same number of "
+                             "columns as the number of rows in state_vector")
+        
 
 MeasurementPrediction.register(CompositeState)  # noqa: E305
