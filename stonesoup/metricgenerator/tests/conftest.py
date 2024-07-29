@@ -20,10 +20,15 @@ from ...types.track import Track
 from ...types.update import GaussianStateUpdate
 
 
+@pytest.fixture
+def time_period() -> timedelta:
+    return timedelta(seconds=1)
+
+
 @pytest.fixture()
-def trial_timestamps():
+def trial_timestamps(time_period: timedelta):
     now = datetime.now()
-    return [now + timedelta(seconds=i) for i in range(4)]
+    return [now + i*time_period for i in range(4)]
 
 
 @pytest.fixture()

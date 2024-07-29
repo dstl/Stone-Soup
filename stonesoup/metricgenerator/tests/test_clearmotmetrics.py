@@ -1,5 +1,4 @@
 
-from datetime import timedelta
 
 import numpy as np
 import pytest
@@ -51,8 +50,7 @@ def test_clearmot_simple(trial_truths, trial_tracks, trial_timestamps):
 
 
 def test_clearmot_with_false_positives(trial_truths, trial_tracks, trial_timestamps):
-    """We test the most obvious scenario, where we have a single truth track and 
-    a single estimated track. They are both associated for the full time extent of the experiment.
+    """TODO
     """
     trial_manager = MultiManager()
     trial_manager.add_data({'groundtruth_paths': trial_truths[:1],
@@ -88,9 +86,8 @@ def test_clearmot_with_false_positives(trial_truths, trial_tracks, trial_timesta
     assert mota == pytest.approx(expected_mota)
 
 
-def test_clearmot_with_miss_matches_and_false_positives(trial_truths, trial_tracks, trial_timestamps):
-    """We test the most obvious scenario, where we have a single truth track and 
-    a single estimated track. They are both associated for the full time extent of the experiment.
+def test_clearmot_with_false_positives_and_miss_matches(trial_truths, trial_tracks, trial_timestamps, time_period):
+    """TODO
     """
     trial_manager = MultiManager()
 
@@ -103,7 +100,7 @@ def test_clearmot_with_miss_matches_and_false_positives(trial_truths, trial_trac
 
     trial_associations = AssociationSet({
         TimeRangeAssociation(objects={trial_truths[0], track_part_a},
-                             time_range=TimeRange(trial_timestamps[0], cut_timestamp - timedelta(seconds=1))),
+                             time_range=TimeRange(trial_timestamps[0], cut_timestamp - time_period)),
         TimeRangeAssociation(objects={trial_truths[0], track_part_b},
                              time_range=TimeRange(cut_timestamp, trial_timestamps[-1])),
     })
