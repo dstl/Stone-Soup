@@ -37,10 +37,7 @@ class ClearMotMetrics(MetricGenerator):
     def compute_metric(self, manager: MultiManager, **kwargs) -> List[Metric]:
 
         timestamps = manager.list_timestamps(generator=self)
-        tracks = self._get_data(manager, self.tracks_key)
-        ground_truths = self._get_data(manager, self.truths_key)
 
-        # TODO: CODE HERE
         motp_score = self.compute_motp(manager)
 
         mota_score = self.compute_mota(manager)
