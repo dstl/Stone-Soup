@@ -74,10 +74,10 @@ class ClearMotMetrics(MetricGenerator):
         truths_set = manager.states_sets[self.truths_key]
         tracks_set = manager.states_sets[self.tracks_key]
 
-        truth_states_by_time_and_id: StatesFromTimeIdLookup = _create_state_from_time_and_id_lookup(
-            truths_set)
-        track_states_by_time_and_id: StatesFromTimeIdLookup = _create_state_from_time_and_id_lookup(
-            tracks_set)
+        truth_states_by_time_and_id: StatesFromTimeIdLookup = \
+            _create_state_from_time_and_id_lookup(truths_set)
+        track_states_by_time_and_id: StatesFromTimeIdLookup = \
+            _create_state_from_time_and_id_lookup(tracks_set)
 
         # used for the MOTP (avg-distance over matches)
         error_sum = 0.0
@@ -97,7 +97,8 @@ class ClearMotMetrics(MetricGenerator):
 
             # adapt the variables for MOTP calculation
             error_sum_in_timestep = self._compute_sum_of_distances_at_timestep(
-                truth_states_by_time_and_id, track_states_by_time_and_id, timestamp, matches_current)
+                truth_states_by_time_and_id, track_states_by_time_and_id, timestamp,
+                matches_current)
             error_sum += error_sum_in_timestep
             num_associated_truth_timestamps += len(matches_current)
 
@@ -120,14 +121,19 @@ class ClearMotMetrics(MetricGenerator):
                     matches_prev, matches_current)
                 num_miss_matches += num_miss_matches_current
 
-        motp = (error_sum / num_associated_truth_timestamps) if num_associated_truth_timestamps > 0 else float("inf")
+        motp = (error_sum / num_associated_truth_timestamps) \
+            if num_associated_truth_timestamps > 0 else float("inf")
 
         number_of_gt_states = self._compute_total_number_of_gt_states(manager)
         mota = 1 - (num_misses + num_false_positives + num_miss_matches) / number_of_gt_states
 
         return motp, mota
 
-    def _compute_sum_of_distances_at_timestep(self, truth_states_by_time_id, track_states_by_time_id, timestamp, matches_current):
+    def _compute_sum_of_distances_at_timestep(self,
+                                              truth_states_by_time_id: StatesFromTimeIdLookup,
+                                              track_states_by_time_id: StatesFromTimeIdLookup,
+                                              timestamp: datetime.datetime,
+                                              matches_current: MatchSetAtTimestamp):
         error_sum_in_timestep = 0.0
         for match in matches_current:
             truth_id = match[0]
@@ -212,7 +218,8 @@ class ClearMotMetrics(MetricGenerator):
         return truth, track
 
 
-def _create_state_from_time_and_id_lookup(tracks_set: Set[Union[Track, GroundTruthPath]]) -> StatesFromTimeIdLookup:
+def _create_state_from_time_and_id_lookup(tracks_set: Set[Union[Track, GroundTruthPath]]) \
+        -> StatesFromTimeIdLookup:
     track_states_by_time_id: StatesFromTimeIdLookup = defaultdict(dict)
     for track in tracks_set:
         for state in track.last_timestamp_generator():
