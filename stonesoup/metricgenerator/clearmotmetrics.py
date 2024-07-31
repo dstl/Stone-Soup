@@ -53,7 +53,7 @@ class ClearMotMetrics(MetricGenerator):
 
         timestamps = manager.list_timestamps(generator=self)
 
-        motp_score, mota_score = self._compute_metrics(manager)
+        motp_score, mota_score = self._compute_mota_and_motp(manager)
 
         time_range = TimeRange(min(timestamps), max(timestamps))
 
@@ -67,67 +67,78 @@ class ClearMotMetrics(MetricGenerator):
                                generator=self)
         return [motp, mota]
 
-    def _compute_metrics(self, manager: MultiManager) -> Tuple[float, float]:
-        unique_timestamps = sorted(manager.list_timestamps(generator=self))
+    def _compute_mota_and_motp(self, manager: MultiManager) -> Tuple[float, float]:
 
         matches_at_time_lookup = self._create_matches_at_time_lookup(manager)
 
         truths_set = manager.states_sets[self.truths_key]
         tracks_set = manager.states_sets[self.tracks_key]
 
-        truth_states_by_time_id: StatesFromTimeIdLookup = _create_state_from_time_and_id_lookup(
+        truth_states_by_time_and_id: StatesFromTimeIdLookup = _create_state_from_time_and_id_lookup(
             truths_set)
-        track_states_by_time_id: StatesFromTimeIdLookup = _create_state_from_time_and_id_lookup(
+        track_states_by_time_and_id: StatesFromTimeIdLookup = _create_state_from_time_and_id_lookup(
             tracks_set)
 
-        truth_ids_at_time = create_ids_at_time_lookup(truths_set)
-        track_ids_at_time = create_ids_at_time_lookup(tracks_set)
-
+        # used for the MOTP (avg-distance over matches)
         error_sum = 0.0
         num_associated_truth_timestamps = 0
 
+        # used for the MOTA (1 - number-FPs, ID-changes etc.)
         num_misses, num_false_positives, num_miss_matches = 0, 0, 0
 
+        unique_timestamps = sorted(manager.list_timestamps(generator=self))
+
         for i, timestamp in enumerate(unique_timestamps):
+
             matches_current = matches_at_time_lookup[timestamp]
+
             matched_truth_ids_curr = {match[0] for match in matches_current}
             matched_tracks_at_timestamp = {match[1] for match in matches_current}
 
+            # adapt the variables for MOTP calculation
+            error_sum_in_timestep = self._compute_sum_of_distances_at_timestep(
+                truth_states_by_time_and_id, track_states_by_time_and_id, timestamp, matches_current)
+            error_sum += error_sum_in_timestep
             num_associated_truth_timestamps += len(matches_current)
 
-            for match in matches_current:
-                truth_id = match[0]
-                track_id = match[1]
-
-                truth_state_at_t = truth_states_by_time_id[timestamp][truth_id]
-                track_state_at_t = track_states_by_time_id[timestamp][track_id]
-
-                error = self.distance_measure(truth_state_at_t, track_state_at_t)
-                error_sum += error
-
-            truths_ids_at_timestamp = truth_ids_at_time[timestamp]
-            tracks_ids_at_timestamp = track_ids_at_time[timestamp]
+            truths_ids_at_timestamp = truth_states_by_time_and_id[timestamp].keys()
+            tracks_ids_at_timestamp = track_states_by_time_and_id[timestamp].keys()
 
             unmatched_truth_ids = list(filter(lambda x: x not in matched_truth_ids_curr,
                                               truths_ids_at_timestamp))
-            num_misses += len(unmatched_truth_ids)
-
             unmatched_track_ids = list(filter(lambda x: x not in matched_tracks_at_timestamp,
                                               tracks_ids_at_timestamp))
+
+            # update counter variables used for MOTA
+            num_misses += len(unmatched_truth_ids)
             num_false_positives += len(unmatched_track_ids)
 
             if i > 0:
+                # for number of mis-matches (i.e. track ID changes for a single truth track)
                 matches_prev = matches_at_time_lookup[unique_timestamps[i - 1]]
                 num_miss_matches_current = self._compute_number_of_miss_matches_from_match_sets(
                     matches_prev, matches_current)
                 num_miss_matches += num_miss_matches_current
 
-        number_of_gt_states = self._compute_total_number_of_gt_states(manager)
-
         motp = (error_sum / num_associated_truth_timestamps) if num_associated_truth_timestamps > 0 else float("inf")
+
+        number_of_gt_states = self._compute_total_number_of_gt_states(manager)
         mota = 1 - (num_misses + num_false_positives + num_miss_matches) / number_of_gt_states
 
         return motp, mota
+
+    def _compute_sum_of_distances_at_timestep(self, truth_states_by_time_id, track_states_by_time_id, timestamp, matches_current):
+        error_sum_in_timestep = 0.0
+        for match in matches_current:
+            truth_id = match[0]
+            track_id = match[1]
+
+            truth_state_at_t = truth_states_by_time_id[timestamp][truth_id]
+            track_state_at_t = track_states_by_time_id[timestamp][track_id]
+
+            error = self.distance_measure(truth_state_at_t, track_state_at_t)
+            error_sum_in_timestep += error
+        return error_sum_in_timestep
 
     def _compute_total_number_of_gt_states(self, manager: MultiManager) -> int:
         truth_state_set: Set[Track] = manager.states_sets[self.truths_key]
@@ -201,6 +212,14 @@ class ClearMotMetrics(MetricGenerator):
         return truth, track
 
 
+def _create_state_from_time_and_id_lookup(tracks_set: Set[Union[Track, GroundTruthPath]]) -> StatesFromTimeIdLookup:
+    track_states_by_time_id: StatesFromTimeIdLookup = defaultdict(dict)
+    for track in tracks_set:
+        for state in track.last_timestamp_generator():
+            track_states_by_time_id[state.timestamp][track.id] = state
+    return track_states_by_time_id
+
+
 def create_ids_at_time_lookup(tracks_set: Set[Union[Track, GroundTruthPath]]) \
         -> Dict[datetime.datetime, Set[str]]:
 
@@ -210,11 +229,3 @@ def create_ids_at_time_lookup(tracks_set: Set[Union[Track, GroundTruthPath]]) \
             track_ids_by_time[state.timestamp].add(track.id)
 
     return track_ids_by_time
-
-
-def _create_state_from_time_and_id_lookup(tracks_set: Set[Track]) -> StatesFromTimeIdLookup:
-    track_states_by_time_id: StatesFromTimeIdLookup = defaultdict(dict)
-    for track in tracks_set:
-        for state in track.last_timestamp_generator():
-            track_states_by_time_id[state.timestamp][track.id] = state
-    return track_states_by_time_id
