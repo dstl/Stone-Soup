@@ -18,7 +18,6 @@ def test_clearmot_simple(trial_truths, trial_tracks, trial_timestamps):
     trial_manager.add_data({'groundtruth_paths': trial_truths[:1],
                             'tracks': trial_tracks[:1]})
 
-    # we test the mo
     trial_associations = AssociationSet({
         # association for full time range (4 timesteps)
         TimeRangeAssociation(objects={trial_truths[0], trial_tracks[0]},
