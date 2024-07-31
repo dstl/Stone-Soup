@@ -32,11 +32,10 @@ def test_clearmot_simple(trial_truths, trial_tracks, trial_timestamps):
     clearmot_generator = ClearMotMetrics(distance_measure=position_measure)
 
     trial_manager.generators = [clearmot_generator]
+    metrics = clearmot_generator.compute_metric(trial_manager)
 
     dx = dy = 0.1
     expected_avg_pos_accuracy = np.sqrt(dx ** 2 + dy ** 2)
-
-    metrics = clearmot_generator.compute_metric(trial_manager)
 
     motp = metrics[0].value
     assert motp == pytest.approx(expected_avg_pos_accuracy)
@@ -50,7 +49,8 @@ def test_clearmot_simple(trial_truths, trial_tracks, trial_timestamps):
 
 
 def test_clearmot_with_false_positives(trial_truths, trial_tracks, trial_timestamps):
-    """TODO
+    """Test with a single truth track and two hypothesis tracks, where the second track is
+    not assigned, i.e. causing false positives over its lifetime
     """
     trial_manager = MultiManager()
     trial_manager.add_data({'groundtruth_paths': trial_truths[:1],
@@ -69,10 +69,10 @@ def test_clearmot_with_false_positives(trial_truths, trial_tracks, trial_timesta
 
     trial_manager.generators = [clearmot_generator]
 
+    metrics = clearmot_generator.compute_metric(trial_manager)
+
     dx = dy = 0.1
     expected_avg_pos_accuracy = np.sqrt(dx ** 2 + dy ** 2)
-
-    metrics = clearmot_generator.compute_metric(trial_manager)
 
     motp = metrics[0].value
     assert motp == pytest.approx(expected_avg_pos_accuracy)
@@ -88,7 +88,10 @@ def test_clearmot_with_false_positives(trial_truths, trial_tracks, trial_timesta
 
 def test_clearmot_with_false_positives_and_miss_matches(trial_truths, trial_tracks,
                                                         trial_timestamps, time_period):
-    """TODO
+    """Test with a single truth track and 3 hypothesis tracks, where:
+    - the first and second track are assigned to the truth track, but have different IDs over
+        different periods of time, caussing an ID-mismatch
+    - the third track is track is not assigned, i.e. causing false positives over its lifetime
     """
     trial_manager = MultiManager()
 
@@ -113,10 +116,10 @@ def test_clearmot_with_false_positives_and_miss_matches(trial_truths, trial_trac
 
     trial_manager.generators = [clearmot_generator]
 
+    metrics = clearmot_generator.compute_metric(trial_manager)
+
     dx = dy = 0.1
     expected_avg_pos_accuracy = np.sqrt(dx ** 2 + dy ** 2)
-
-    metrics = clearmot_generator.compute_metric(trial_manager)
 
     motp = metrics[0].value
     assert motp == pytest.approx(expected_avg_pos_accuracy)
