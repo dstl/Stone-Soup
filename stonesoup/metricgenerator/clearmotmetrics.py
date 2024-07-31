@@ -53,9 +53,7 @@ class ClearMotMetrics(MetricGenerator):
 
         timestamps = manager.list_timestamps(generator=self)
 
-        motp_score = self._compute_motp(manager)
-
-        mota_score = self._compute_mota(manager)
+        motp_score, mota_score = self._compute_metrics(manager)
 
         time_range = TimeRange(min(timestamps), max(timestamps))
 
@@ -69,8 +67,7 @@ class ClearMotMetrics(MetricGenerator):
                                generator=self)
         return [motp, mota]
 
-    def _compute_motp(self, manager: MultiManager) -> float:
-
+    def _compute_metrics(self, manager: MultiManager) -> Tuple[float, float]:
         unique_timestamps = sorted(manager.list_timestamps(generator=self))
 
         matches_at_time_lookup = self._create_matches_at_time_lookup(manager)
@@ -80,19 +77,25 @@ class ClearMotMetrics(MetricGenerator):
 
         truth_states_by_time_id: StatesFromTimeIdLookup = _create_state_from_time_and_id_lookup(
             truths_set)
-
         track_states_by_time_id: StatesFromTimeIdLookup = _create_state_from_time_and_id_lookup(
             tracks_set)
+
+        truth_ids_at_time = create_ids_at_time_lookup(truths_set)
+        track_ids_at_time = create_ids_at_time_lookup(tracks_set)
 
         error_sum = 0.0
         num_associated_truth_timestamps = 0
 
-        for timestamp in unique_timestamps:
-            matches = matches_at_time_lookup[timestamp]
+        num_misses, num_false_positives, num_miss_matches = 0, 0, 0
 
-            num_associated_truth_timestamps += len(matches)
+        for i, timestamp in enumerate(unique_timestamps):
+            matches_current = matches_at_time_lookup[timestamp]
+            matched_truth_ids_curr = {match[0] for match in matches_current}
+            matched_tracks_at_timestamp = {match[1] for match in matches_current}
 
-            for match in matches:
+            num_associated_truth_timestamps += len(matches_current)
+
+            for match in matches_current:
                 truth_id = match[0]
                 track_id = match[1]
 
@@ -102,33 +105,8 @@ class ClearMotMetrics(MetricGenerator):
                 error = self.distance_measure(truth_state_at_t, track_state_at_t)
                 error_sum += error
 
-        if num_associated_truth_timestamps > 0:
-            return error_sum / num_associated_truth_timestamps
-        else:
-            return float("inf")
-
-    def _compute_mota(self, manager: MultiManager):
-
-        unique_timestamps = manager.list_timestamps(generator=self)
-
-        truth_state_set = manager.states_sets[self.truths_key]
-        tracks_state_set = manager.states_sets[self.tracks_key]
-
-        truth_ids_at_time = create_ids_at_time_lookup(truth_state_set)
-        track_ids_at_time = create_ids_at_time_lookup(tracks_state_set)
-
-        matches_at_time_lookup = self._create_matches_at_time_lookup(manager)
-
-        num_misses, num_false_positives, num_miss_matches = 0, 0, 0
-
-        for i, timestamp in enumerate(unique_timestamps):
-
             truths_ids_at_timestamp = truth_ids_at_time[timestamp]
             tracks_ids_at_timestamp = track_ids_at_time[timestamp]
-
-            matches_current = matches_at_time_lookup[timestamp]
-            matched_truth_ids_curr = {match[0] for match in matches_current}
-            matched_tracks_at_timestamp = {match[1] for match in matches_current}
 
             unmatched_truth_ids = list(filter(lambda x: x not in matched_truth_ids_curr,
                                               truths_ids_at_timestamp))
@@ -139,17 +117,17 @@ class ClearMotMetrics(MetricGenerator):
             num_false_positives += len(unmatched_track_ids)
 
             if i > 0:
-
-                matches_prev = matches_at_time_lookup[unique_timestamps[i-1]]
-
+                matches_prev = matches_at_time_lookup[unique_timestamps[i - 1]]
                 num_miss_matches_current = self._compute_number_of_miss_matches_from_match_sets(
                     matches_prev, matches_current)
-
                 num_miss_matches += num_miss_matches_current
 
         number_of_gt_states = self._compute_total_number_of_gt_states(manager)
 
-        return 1 - (num_misses + num_false_positives + num_miss_matches)/number_of_gt_states
+        motp = (error_sum / num_associated_truth_timestamps) if num_associated_truth_timestamps > 0 else float("inf")
+        mota = 1 - (num_misses + num_false_positives + num_miss_matches) / number_of_gt_states
+
+        return motp, mota
 
     def _compute_total_number_of_gt_states(self, manager: MultiManager) -> int:
         truth_state_set: Set[Track] = manager.states_sets[self.truths_key]
