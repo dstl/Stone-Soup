@@ -53,7 +53,7 @@ class ClearMotMetrics(MetricGenerator):
 
         timestamps = manager.list_timestamps(generator=self)
 
-        motp_score = self._compute_motp_v2(manager)
+        motp_score = self._compute_motp(manager)
 
         mota_score = self._compute_mota(manager)
 
@@ -78,15 +78,11 @@ class ClearMotMetrics(MetricGenerator):
         truths_set = manager.states_sets[self.truths_key]
         tracks_set = manager.states_sets[self.tracks_key]
 
-        truth_states_by_time_id: StatesFromTimeIdLookup = defaultdict(dict)
-        for truth in truths_set:
-            for state in truth.last_timestamp_generator():
-                truth_states_by_time_id[state.timestamp][truth.id] = state
+        truth_states_by_time_id: StatesFromTimeIdLookup = _create_state_from_time_and_id_lookup(
+            truths_set)
 
-        track_states_by_time_id: StatesFromTimeIdLookup = defaultdict(dict)
-        for track in tracks_set:
-            for state in track.last_timestamp_generator():
-                track_states_by_time_id[state.timestamp][track.id] = state
+        track_states_by_time_id: StatesFromTimeIdLookup = _create_state_from_time_and_id_lookup(
+            tracks_set)
 
         error_sum = 0.0
         num_associated_truth_timestamps = 0
@@ -126,8 +122,6 @@ class ClearMotMetrics(MetricGenerator):
         num_misses, num_false_positives, num_miss_matches = 0, 0, 0
 
         for i, timestamp in enumerate(unique_timestamps):
-
-            print(f"i={i}")
 
             truths_ids_at_timestamp = truth_ids_at_time[timestamp]
             tracks_ids_at_timestamp = track_ids_at_time[timestamp]
@@ -238,3 +232,11 @@ def create_ids_at_time_lookup(tracks_set: Set[Union[Track, GroundTruthPath]]) \
             track_ids_by_time[state.timestamp].add(track.id)
 
     return track_ids_by_time
+
+
+def _create_state_from_time_and_id_lookup(tracks_set: Set[Track]) -> StatesFromTimeIdLookup:
+    track_states_by_time_id: StatesFromTimeIdLookup = defaultdict(dict)
+    for track in tracks_set:
+        for state in track.last_timestamp_generator():
+            track_states_by_time_id[state.timestamp][track.id] = state
+    return track_states_by_time_id
