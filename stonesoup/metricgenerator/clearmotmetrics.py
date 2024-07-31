@@ -2,19 +2,18 @@ import datetime
 from collections import defaultdict
 from typing import Dict, List, Set, Tuple, Union
 
-import numpy as np
-
 from ..base import Property
 from ..measures.state import Measure
-from ..types.association import AssociationSet, TimeRangeAssociation
 from ..types.groundtruth import GroundTruthPath
 from ..types.metric import Metric, TimeRangeMetric
-from ..types.time import CompoundTimeRange, TimeRange
+from ..types.state import State
+from ..types.time import TimeRange
 from ..types.track import Track
 from .base import MetricGenerator
 from .manager import MultiManager
 
 MatchSetAtTimestamp = Set[Tuple[str, str]]
+StatesFromTimeIdLookup = Dict[datetime.datetime, Dict[str, State]]
 
 
 class ClearMotMetrics(MetricGenerator):
@@ -54,9 +53,9 @@ class ClearMotMetrics(MetricGenerator):
 
         timestamps = manager.list_timestamps(generator=self)
 
-        motp_score = self.compute_motp(manager)
+        motp_score = self._compute_motp_v2(manager)
 
-        mota_score = self.compute_mota(manager)
+        mota_score = self._compute_mota(manager)
 
         time_range = TimeRange(min(timestamps), max(timestamps))
 
@@ -70,70 +69,51 @@ class ClearMotMetrics(MetricGenerator):
                                generator=self)
         return [motp, mota]
 
-    def compute_motp(self, manager: MultiManager) -> float:
+    def _compute_motp(self, manager: MultiManager) -> float:
 
-        associations: AssociationSet = manager.association_set
+        unique_timestamps = sorted(manager.list_timestamps(generator=self))
 
-        timestamps = sorted(manager.list_timestamps(generator=self))
+        matches_at_time_lookup = self._create_matches_at_time_lookup(manager)
 
-        timestamps_as_numpy_array = np.array(timestamps)
+        truths_set = manager.states_sets[self.truths_key]
+        tracks_set = manager.states_sets[self.tracks_key]
 
-        associations: Set[TimeRangeAssociation] = manager.association_set.associations
+        truth_states_by_time_id: StatesFromTimeIdLookup = defaultdict(dict)
+        for truth in truths_set:
+            for state in truth.last_timestamp_generator():
+                truth_states_by_time_id[state.timestamp][truth.id] = state
+
+        track_states_by_time_id: StatesFromTimeIdLookup = defaultdict(dict)
+        for track in tracks_set:
+            for state in track.last_timestamp_generator():
+                track_states_by_time_id[state.timestamp][track.id] = state
 
         error_sum = 0.0
         num_associated_truth_timestamps = 0
-        for association in associations:
 
-            truth, track = self.truth_track_from_association(association)
+        for timestamp in unique_timestamps:
+            matches = matches_at_time_lookup[timestamp]
 
-            time_range = association.time_range
+            num_associated_truth_timestamps += len(matches)
 
-            if isinstance(time_range, CompoundTimeRange):
-                time_ranges = time_range.time_ranges
-            else:
-                time_ranges = [time_range,]
+            for match in matches:
+                truth_id = match[0]
+                track_id = match[1]
 
-            mask = np.zeros(len(timestamps_as_numpy_array), dtype=bool)
-            for time_range in time_ranges:
-                mask = mask | ((timestamps_as_numpy_array >= time_range.start_timestamp)
-                               & (timestamps_as_numpy_array <= time_range.end_timestamp))
+                truth_state_at_t = truth_states_by_time_id[timestamp][truth_id]
+                track_state_at_t = track_states_by_time_id[timestamp][track_id]
 
-            timestamps_for_association = timestamps_as_numpy_array[mask]
-
-            num_associated_truth_timestamps += len(timestamps_for_association)
-            for t in timestamps_for_association:
-                truth_state_at_t = truth[t]
-                track_state_at_t = track[t]
                 error = self.distance_measure(truth_state_at_t, track_state_at_t)
                 error_sum += error
+
         if num_associated_truth_timestamps > 0:
             return error_sum / num_associated_truth_timestamps
         else:
             return float("inf")
 
-    def compute_total_number_of_gt_states(self, manager: MultiManager) -> int:
-        truth_state_set: Set[Track] = manager.states_sets[self.truths_key]
-        total_number_of_gt_states = sum(len(truth_track) for truth_track in truth_state_set)
-        return total_number_of_gt_states
+    def _compute_mota(self, manager: MultiManager):
 
-    def create_matches_at_time_lookup(self, manager: MultiManager) -> Dict[datetime.datetime, MatchSetAtTimestamp]:
-        timestamps = manager.list_timestamps(generator=self)
-
-        matches_by_timestamp = defaultdict(set)
-
-        for i, timestamp in enumerate(timestamps):
-
-            associations = manager.association_set.associations_at_timestamp(timestamp)
-
-            for association in associations:
-                truth, track = self.truth_track_from_association(association)
-                match_truth_track = (truth.id, track.id)
-                matches_by_timestamp[timestamp].add(match_truth_track)
-        return matches_by_timestamp
-
-    def compute_mota(self, manager: MultiManager):
-
-        timestamps = manager.list_timestamps(generator=self)
+        unique_timestamps = manager.list_timestamps(generator=self)
 
         truth_state_set = manager.states_sets[self.truths_key]
         tracks_state_set = manager.states_sets[self.tracks_key]
@@ -141,15 +121,14 @@ class ClearMotMetrics(MetricGenerator):
         truth_ids_at_time = create_ids_at_time_lookup(truth_state_set)
         track_ids_at_time = create_ids_at_time_lookup(tracks_state_set)
 
-        matches_at_time_lookup = self.create_matches_at_time_lookup(manager)
+        matches_at_time_lookup = self._create_matches_at_time_lookup(manager)
 
         num_misses, num_false_positives, num_miss_matches = 0, 0, 0
 
-        for i, timestamp in enumerate(timestamps):
+        for i, timestamp in enumerate(unique_timestamps):
 
             print(f"i={i}")
 
-            # TODO: add lookup here!
             truths_ids_at_timestamp = truth_ids_at_time[timestamp]
             tracks_ids_at_timestamp = track_ids_at_time[timestamp]
 
@@ -167,19 +146,41 @@ class ClearMotMetrics(MetricGenerator):
 
             if i > 0:
 
-                matches_prev = matches_at_time_lookup[timestamps[i-1]]
+                matches_prev = matches_at_time_lookup[unique_timestamps[i-1]]
 
                 num_miss_matches_current = self._compute_number_of_miss_matches_from_match_sets(
                     matches_prev, matches_current)
 
                 num_miss_matches += num_miss_matches_current
 
-        number_of_gt_states = self.compute_total_number_of_gt_states(manager)
+        number_of_gt_states = self._compute_total_number_of_gt_states(manager)
 
         return 1 - (num_misses + num_false_positives + num_miss_matches)/number_of_gt_states
 
+    def _compute_total_number_of_gt_states(self, manager: MultiManager) -> int:
+        truth_state_set: Set[Track] = manager.states_sets[self.truths_key]
+        total_number_of_gt_states = sum(len(truth_track) for truth_track in truth_state_set)
+        return total_number_of_gt_states
+
+    def _create_matches_at_time_lookup(self, manager: MultiManager) \
+            -> Dict[datetime.datetime, MatchSetAtTimestamp]:
+        timestamps = manager.list_timestamps(generator=self)
+
+        matches_by_timestamp = defaultdict(set)
+
+        for i, timestamp in enumerate(timestamps):
+
+            associations = manager.association_set.associations_at_timestamp(timestamp)
+
+            for association in associations:
+                truth, track = self.truth_track_from_association(association)
+                match_truth_track = (truth.id, track.id)
+                matches_by_timestamp[timestamp].add(match_truth_track)
+        return matches_by_timestamp
+
     def _compute_number_of_miss_matches_from_match_sets(self, matches_prev: MatchSetAtTimestamp,
-                                                        matches_current: MatchSetAtTimestamp) -> int:
+                                                        matches_current: MatchSetAtTimestamp)\
+            -> int:
         num_miss_matches_current = 0
 
         matched_truth_ids_prev = {match[0] for match in matches_prev}
