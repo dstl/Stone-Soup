@@ -18,8 +18,12 @@ MatchSetAtTimestamp = Set[Tuple[str, str]]
 
 
 class ClearMotMetrics(MetricGenerator):
-    """TODO
-    
+    """CLEAR MOT Metrics
+
+    Computes multi-object tracking (MOT) metrics designed for the classification of events,
+    activities, and relationships (CLEAR) evaluation workshops. The implementation provided here
+    is derived from [1] and focuses on providing the MOTP and MOTP scores.
+
     Reference
         [1] Evaluating Multiple Object Tracking Performance: The CLEAR MOT Metrics,
             Bernardin et al, 2008
@@ -35,6 +39,18 @@ class ClearMotMetrics(MetricGenerator):
         doc="Distance measure used in calculating position accuracy scores.")
 
     def compute_metric(self, manager: MultiManager, **kwargs) -> List[Metric]:
+        """Compute MOTP and MOTA metrics for a given time-period covered by truths and the tracks.
+
+        Parameters
+        ----------
+        manager : MetricManager
+            containing the data to be used to create the metric(s)
+
+        Returns
+        -------
+        : list of :class:`~.Metric` objects
+            Generated metrics
+        """
 
         timestamps = manager.list_timestamps(generator=self)
 
