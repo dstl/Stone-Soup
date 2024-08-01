@@ -1,0 +1,19 @@
+img.logo {
+    height: 100px !important;
+}
+.anim-state label {
+    display: inline-block;
+}
+.sphx-glr-thumbcontainer .figure {
+    width: 250px !important;
+}
+.sphx-glr-thumbcontainer img {
+    max-height: 250px !important;
+    max-width: 250px !important;
+}
+.sphx-glr-thumbcontainer a.internal {
+    padding: 70% 10px 0 !important;
+}
+.sphx-glr-thumbnails{
+    grid-template-columns: repeat(auto-fill, minmax(270px, 1fr));
+}
