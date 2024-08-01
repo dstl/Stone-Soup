@@ -1,0 +1,134 @@
+
+# This is the transition model,
+# it is responsible for determining how targets move from timestep to
+# timestep within StoneSoup. The model list containts 1D models for
+# determining how objects move along each axis (x,y) over time. These
+# are either ConstantVelocity models, or Constant Accelaration models.
+transition_model: !stonesoup.models.transition.linear.CombinedLinearGaussianTransitionModel
+- model_list:
+  - !stonesoup.models.transition.linear.ConstantVelocity
+    - noise_diff_coeff: 0.0
+  - !stonesoup.models.transition.linear.ConstantVelocity
+    - noise_diff_coeff: 0.0
+turn_model: !stonesoup.models.transition.linear.KnownTurnRate
+- turn_noise_diff_coeffs:
+  - 0.0
+  - 0.0
+- turn_rate: 1.5707963267948966
+
+# These are the targets that the sensor manager will be responsible for
+# tracking. Each target is represented by a GroundTruthPath, which consisits of a list of
+# GroundTruthStates. The GroundTruthState is a representation of a targets position and direction.
+# They consist of a StateVector, with the stucture of [xposition, xdirection,
+# yposition, ydirection] The GroundTruthPath is a representation of the path of a particular
+# target between states and timesteps.
+targets:
+- !stonesoup.types.groundtruth.GroundTruthPath
+  - states:
+    - !stonesoup.types.groundtruth.GroundTruthState
+      - state_vector: !stonesoup.types.array.StateVector
+        - [0]
+        - [0]
+        - [-1]
+        - [-1]
+      - metadata:
+          type: known
+  - id: 7ee3db3d-6225-4b4e-8863-e2a5247d66f0
+- !stonesoup.types.groundtruth.GroundTruthPath
+  - states:
+    - !stonesoup.types.groundtruth.GroundTruthState
+      - state_vector: !stonesoup.types.array.StateVector
+        - [1]
+        - [1]
+        - [0]
+        - [-1]
+      - metadata:
+          type: known
+  - id: 8cdd5e36-f64e-44ad-a9c7-8d7e323b4ac7
+- !stonesoup.types.groundtruth.GroundTruthPath
+  - states:
+    - !stonesoup.types.groundtruth.GroundTruthState
+      - state_vector: !stonesoup.types.array.StateVector
+        - [-1.0]
+        - [1.0]
+        - [-1.0]
+        - [-0.5]
+      - metadata:
+          type: known
+  - id: 9d1d7fac-1475-494f-a3cc-dae64a121cf6
+
+# The sensor manager is responsible for controlling the platforms
+# and their sensors. Moving platforms have movement_controllers that can use to move the
+# platform. They consist of a states list that has the position and directional values for
+# each dimension. They have the format [x_position, x_direction, y_position, y_direction]
+# with additional pairs depending on the dimensions the platform is opeating in. The
+# velocity mappng and position mapping, specify which index values in states represents
+# what values. Finally, there is the transition model, which much like the one for targets,
+# is used for describing how the platform moves through each dimension.
+# Consititing of the same COnstantVelocity or ConstantAcceleration objects.
+# The MovingPlatform also has the sensors attached to it in a tupe value.
+# A common sensor being the RadarRotatingBearingRange sensor, which has its
+# own parameters for defining its properties. Note: fov_angle should be in radians NOT degrees.
+
+
+# Note: The maximum number of sensors is currently fixed at 5.
+sensor_manager:
+  max_sensors_per_platform: 5
+  platform: !stonesoup.platform.base.MovingPlatform
+  - movement_controller: &id002 !stonesoup.movable.movable.MovingMovable
+    - states:
+      - !stonesoup.types.state.State
+        - state_vector: !stonesoup.types.array.StateVector
+          - [0]
+          - [1]
+          - [1]
+          - [1]
+    - position_mapping: &id001
+      - 0
+      - 2
+    - transition_model: !stonesoup.models.transition.linear.CombinedLinearGaussianTransitionModel
+      - model_list:
+        - !stonesoup.models.transition.linear.ConstantVelocity
+          - noise_diff_coeff: 0
+        - !stonesoup.models.transition.linear.ConstantVelocity
+          - noise_diff_coeff: 0
+    - velocity_mapping:
+      - 1
+      - 3
+  - sensors:
+    - !stonesoup.sensor.radar.radar.RadarRotatingBearingRange
+      - position_mapping: *id001
+      - noise_covar: !numpy.ndarray
+        - [0.0, 0.0]
+        - [0.0, 0.0]
+      - dwell_centre: !stonesoup.types.array.StateVector
+        - [0]
+      - rpm: 60
+      - fov_angle: 3.141592653589793
+      - rotation_offset: !stonesoup.types.array.StateVector
+        - [0]
+        - [0]
+        - [0]
+      - mounting_offset: !stonesoup.types.array.StateVector
+        - [0]
+        - [0]
+      - movement_controller: *id002
+      - max_range: 50
+      - resolution: 0.017453292519943295
+
+# These are the no of unknown targets present in the scenario.
+unknown_targets: 2
+
+# These are the no of episode threshold
+episode_threshold: 400
+
+# This is the range of the scenario dimensions, format [x,y].
+# Note that the [0,0] will always be the centre of the scenario.
+# This means the [400,400] represents ranges -200 to -200 in both
+# dimensions.
+scenario_dimensions:
+- 500
+- 500
+
+# This is the maximum velocity that any object can travel.
+velocity_limit: 10

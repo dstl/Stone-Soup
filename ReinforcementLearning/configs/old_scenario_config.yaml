@@ -1,0 +1,102 @@
+time_max: 120
+transition_model:
+  transition_model_type: CombinedLinearGaussianTransitionModel
+  properties:
+    property_type: ConstantVelocity
+    property_values:
+    - 0.005
+    - 0.005
+targets:
+  target_1:
+    location:
+    - 0
+    - -1
+    direction:
+    - 0
+    - -1
+  target_2:
+    location:
+    - 1
+    - 0
+    direction:
+    - 1
+    - -1
+  target_3:
+    location:
+    - -1
+    - -1
+    direction:
+    - 1
+    - -0.5
+sensor_manager:
+  platforms:
+    plaform_1:
+      platform_type: MovingPlatform
+      location:
+      - -1
+      - -1
+      direction:
+      - 1
+      - -0.5
+      transition_model:
+        transition_model_type: CombinedLinearGaussianTransitionModel
+        properties:
+          property_type: ConstantVelocity
+          property_values:
+          - 0
+          - 0
+      sensors:
+        sensor_1:
+          sensor_type: RadarRotatingBearingRange
+          properties:
+            noise_covar:
+            - 0
+            - -1
+            - 1
+            - 0
+            fov_angle:
+            - 0.0174533
+            dwell_centre:
+            - 0
+            max_range:
+            - np.inf
+            rpm:
+            - 60
+            position_mapping:
+            - - 0
+              - 2
+            mounting_offset:
+            - - 0
+              - 0
+            rotation_offset:
+            - - 0
+              - 0
+metrics_manager:
+  metrics:
+    metric_1:
+      metric_type: BasicMetrics
+      generator_name: RL_Sensor_Mgr
+    metric_2:
+      metric_type: OSPAMetric
+      generator_name: RL_Sensor_Mgr
+    metric_3:
+      metric_type: SIAPMetrics
+      generator_name: RL_Sensor_Mgr
+    metric_4:
+      metric_type: SumofCovarianceNormsMetric
+      generator_name: RL_Sensor_Mgr
+    metric_5:
+      metric_type: BasicMetrics
+      generator_name: BF_Sensor_Mgr
+    metric_6:
+      metric_type: OSPAMetric
+      generator_name: BF_Sensor_Mgr
+    metric_7:
+      metric_type: SIAPMetrics
+      generator_name: BF_Sensor_Mgr
+    metric_8:
+      metric_type: SumofCovarianceNormsMetric
+      generator_name: BF_Sensor_Mgr
+  associator:
+    associator_type: TrackToTruth
+    association_threshold: 30
