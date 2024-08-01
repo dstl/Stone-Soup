@@ -27,7 +27,7 @@ The RL plugin provided by MAST can be accessed within the dstl-mast folder by im
 $ from stonesoup.plugins.RL.environment.gym import StoneSoupEnv
 $ from stonesoup.plugins.RL.scripts.train import main
 ```
-
+Note this must be run from within dstl-mast.
 
 ## Integration guide <a id="integration-guide"></a>
 
