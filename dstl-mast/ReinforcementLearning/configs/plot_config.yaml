@@ -1,0 +1,5778 @@
+
+# Collection of equally-spaced timesteps.
+# Each animation frame is a timestep.
+timestamps:
+- &id001 2024-06-18 11:33:40.395924
+- &id002 2024-06-18 11:33:41.395924
+- &id004 2024-06-18 11:33:42.395924
+- &id005 2024-06-18 11:33:43.395924
+- &id006 2024-06-18 11:33:44.395924
+- &id007 2024-06-18 11:33:45.395924
+- &id008 2024-06-18 11:33:46.395924
+- &id009 2024-06-18 11:33:47.395924
+- &id010 2024-06-18 11:33:48.395924
+- &id011 2024-06-18 11:33:49.395924
+- &id012 2024-06-18 11:33:50.395924
+- &id013 2024-06-18 11:33:51.395924
+- &id014 2024-06-18 11:33:52.395924
+- &id015 2024-06-18 11:33:53.395924
+- &id016 2024-06-18 11:33:54.395924
+- &id017 2024-06-18 11:33:55.395924
+- &id018 2024-06-18 11:33:56.395924
+- &id019 2024-06-18 11:33:57.395924
+- &id020 2024-06-18 11:33:58.395924
+- &id021 2024-06-18 11:33:59.395924
+- &id022 2024-06-18 11:34:00.395924
+- &id023 2024-06-18 11:34:01.395924
+- &id024 2024-06-18 11:34:02.395924
+- &id025 2024-06-18 11:34:03.395924
+- &id026 2024-06-18 11:34:04.395924
+- &id027 2024-06-18 11:34:05.395924
+- &id028 2024-06-18 11:34:06.395924
+- &id029 2024-06-18 11:34:07.395924
+- &id030 2024-06-18 11:34:08.395924
+- &id031 2024-06-18 11:34:09.395924
+
+# This is the collection of all target GroundTruthPaths
+# at each timestep. This can usually be stored as a list of GroundTruthPaths
+targets:
+- !stonesoup.types.groundtruth.GroundTruthPath
+  - states:
+    - !stonesoup.types.groundtruth.GroundTruthState
+      - state_vector: !stonesoup.types.array.StateVector
+        - [0.4475944861315968]
+        - [0.22968563101735096]
+        - [0.3604854621780472]
+        - [0.5788246616316579]
+      - timestamp: *id001
+      - metadata: &id003
+          type: known
+    - !stonesoup.types.groundtruth.GroundTruthState
+      - state_vector: !stonesoup.types.array.StateVector
+        - [0.6772801171489478]
+        - [0.22968563101735096]
+        - [0.9393101238097051]
+        - [0.5788246616316579]
+      - timestamp: *id002
+      - metadata: *id003
+    - !stonesoup.types.groundtruth.GroundTruthState
+      - state_vector: !stonesoup.types.array.StateVector
+        - [0.9069657481662987]
+        - [0.22968563101735096]
+        - [1.518134785441363]
+        - [0.5788246616316579]
+      - timestamp: *id004
+      - metadata: *id003
+    - !stonesoup.types.groundtruth.GroundTruthState
+      - state_vector: !stonesoup.types.array.StateVector
+        - [1.1366513791836497]
+        - [0.22968563101735096]
+        - [2.096959447073021]
+        - [0.5788246616316579]
+      - timestamp: *id005
+      - metadata: *id003
+    - !stonesoup.types.groundtruth.GroundTruthState
+      - state_vector: !stonesoup.types.array.StateVector
+        - [1.3663370102010006]
+        - [0.22968563101735096]
+        - [2.6757841087046788]
+        - [0.5788246616316579]
+      - timestamp: *id006
+      - metadata: *id003
+    - !stonesoup.types.groundtruth.GroundTruthState
+      - state_vector: !stonesoup.types.array.StateVector
+        - [1.5960226412183516]
+        - [0.22968563101735096]
+        - [3.2546087703363367]
+        - [0.5788246616316579]
+      - timestamp: *id007
+      - metadata: *id003
+    - !stonesoup.types.groundtruth.GroundTruthState
+      - state_vector: !stonesoup.types.array.StateVector
+        - [1.8257082722357025]
+        - [0.22968563101735096]
+        - [3.8334334319679946]
+        - [0.5788246616316579]
+      - timestamp: *id008
+      - metadata: *id003
+    - !stonesoup.types.groundtruth.GroundTruthState
+      - state_vector: !stonesoup.types.array.StateVector
+        - [2.0553939032530533]
+        - [0.22968563101735096]
+        - [4.412258093599652]
+        - [0.5788246616316579]
+      - timestamp: *id009
+      - metadata: *id003
+    - !stonesoup.types.groundtruth.GroundTruthState
+      - state_vector: !stonesoup.types.array.StateVector
+        - [2.2850795342704044]
+        - [0.22968563101735096]
+        - [4.99108275523131]
+        - [0.5788246616316579]
+      - timestamp: *id010
+      - metadata: *id003
+    - !stonesoup.types.groundtruth.GroundTruthState
+      - state_vector: !stonesoup.types.array.StateVector
+        - [2.5147651652877556]
+        - [0.22968563101735096]
+        - [5.569907416862968]
+        - [0.5788246616316579]
+      - timestamp: *id011
+      - metadata: *id003
+    - !stonesoup.types.groundtruth.GroundTruthState
+      - state_vector: !stonesoup.types.array.StateVector
+        - [2.744450796305107]
+        - [0.22968563101735096]
+        - [6.148732078494626]
+        - [0.5788246616316579]
+      - timestamp: *id012
+      - metadata: *id003
+    - !stonesoup.types.groundtruth.GroundTruthState
+      - state_vector: !stonesoup.types.array.StateVector
+        - [2.974136427322458]
+        - [0.22968563101735096]
+        - [6.727556740126284]
+        - [0.5788246616316579]
+      - timestamp: *id013
+      - metadata: *id003
+    - !stonesoup.types.groundtruth.GroundTruthState
+      - state_vector: !stonesoup.types.array.StateVector
+        - [3.203822058339809]
+        - [0.22968563101735096]
+        - [7.306381401757942]
+        - [0.5788246616316579]
+      - timestamp: *id014
+      - metadata: *id003
+    - !stonesoup.types.groundtruth.GroundTruthState
+      - state_vector: !stonesoup.types.array.StateVector
+        - [3.4335076893571603]
+        - [0.22968563101735096]
+        - [7.8852060633895995]
+        - [0.5788246616316579]
+      - timestamp: *id015
+      - metadata: *id003
+    - !stonesoup.types.groundtruth.GroundTruthState
+      - state_vector: !stonesoup.types.array.StateVector
+        - [3.6631933203745115]
+        - [0.22968563101735096]
+        - [8.464030725021257]
+        - [0.5788246616316579]
+      - timestamp: *id016
+      - metadata: *id003
+    - !stonesoup.types.groundtruth.GroundTruthState
+      - state_vector: !stonesoup.types.array.StateVector
+        - [3.8928789513918627]
+        - [0.22968563101735096]
+        - [9.042855386652914]
+        - [0.5788246616316579]
+      - timestamp: *id017
+      - metadata: *id003
+    - !stonesoup.types.groundtruth.GroundTruthState
+      - state_vector: !stonesoup.types.array.StateVector
+        - [4.122564582409214]
+        - [0.22968563101735096]
+        - [9.62168004828457]
+        - [0.5788246616316579]
+      - timestamp: *id018
+      - metadata: *id003
+    - !stonesoup.types.groundtruth.GroundTruthState
+      - state_vector: !stonesoup.types.array.StateVector
+        - [4.352250213426565]
+        - [0.22968563101735096]
+        - [10.200504709916228]
+        - [0.5788246616316579]
+      - timestamp: *id019
+      - metadata: *id003
+    - !stonesoup.types.groundtruth.GroundTruthState
+      - state_vector: !stonesoup.types.array.StateVector
+        - [4.581935844443916]
+        - [0.22968563101735096]
+        - [10.779329371547885]
+        - [0.5788246616316579]
+      - timestamp: *id020
+      - metadata: *id003
+    - !stonesoup.types.groundtruth.GroundTruthState
+      - state_vector: !stonesoup.types.array.StateVector
+        - [4.811621475461267]
+        - [0.22968563101735096]
+        - [11.358154033179542]
+        - [0.5788246616316579]
+      - timestamp: *id021
+      - metadata: *id003
+    - !stonesoup.types.groundtruth.GroundTruthState
+      - state_vector: !stonesoup.types.array.StateVector
+        - [5.041307106478619]
+        - [0.22968563101735096]
+        - [11.936978694811199]
+        - [0.5788246616316579]
+      - timestamp: *id022
+      - metadata: *id003
+    - !stonesoup.types.groundtruth.GroundTruthState
+      - state_vector: !stonesoup.types.array.StateVector
+        - [5.27099273749597]
+        - [0.22968563101735096]
+        - [12.515803356442856]
+        - [0.5788246616316579]
+      - timestamp: *id023
+      - metadata: *id003
+    - !stonesoup.types.groundtruth.GroundTruthState
+      - state_vector: !stonesoup.types.array.StateVector
+        - [5.500678368513321]
+        - [0.22968563101735096]
+        - [13.094628018074513]
+        - [0.5788246616316579]
+      - timestamp: *id024
+      - metadata: *id003
+    - !stonesoup.types.groundtruth.GroundTruthState
+      - state_vector: !stonesoup.types.array.StateVector
+        - [5.730363999530672]
+        - [0.22968563101735096]
+        - [13.67345267970617]
+        - [0.5788246616316579]
+      - timestamp: *id025
+      - metadata: *id003
+    - !stonesoup.types.groundtruth.GroundTruthState
+      - state_vector: !stonesoup.types.array.StateVector
+        - [5.960049630548023]
+        - [0.22968563101735096]
+        - [14.252277341337827]
+        - [0.5788246616316579]
+      - timestamp: *id026
+      - metadata: *id003
+    - !stonesoup.types.groundtruth.GroundTruthState
+      - state_vector: !stonesoup.types.array.StateVector
+        - [6.1897352615653745]
+        - [0.22968563101735096]
+        - [14.831102002969484]
+        - [0.5788246616316579]
+      - timestamp: *id027
+      - metadata: *id003
+    - !stonesoup.types.groundtruth.GroundTruthState
+      - state_vector: !stonesoup.types.array.StateVector
+        - [6.419420892582726]
+        - [0.22968563101735096]
+        - [15.40992666460114]
+        - [0.5788246616316579]
+      - timestamp: *id028
+      - metadata: *id003
+    - !stonesoup.types.groundtruth.GroundTruthState
+      - state_vector: !stonesoup.types.array.StateVector
+        - [6.649106523600077]
+        - [0.22968563101735096]
+        - [15.988751326232798]
+        - [0.5788246616316579]
+      - timestamp: *id029
+      - metadata: *id003
+    - !stonesoup.types.groundtruth.GroundTruthState
+      - state_vector: !stonesoup.types.array.StateVector
+        - [6.878792154617428]
+        - [0.22968563101735096]
+        - [16.567575987864455]
+        - [0.5788246616316579]
+      - timestamp: *id030
+      - metadata: *id003
+    - !stonesoup.types.groundtruth.GroundTruthState
+      - state_vector: !stonesoup.types.array.StateVector
+        - [7.108477785634779]
+        - [0.22968563101735096]
+        - [17.146400649496112]
+        - [0.5788246616316579]
+      - timestamp: *id031
+      - metadata: *id003
+    - !stonesoup.types.groundtruth.GroundTruthState
+      - state_vector: !stonesoup.types.array.StateVector
+        - [7.33816341665213]
+        - [0.22968563101735096]
+        - [17.72522531112777]
+        - [0.5788246616316579]
+      - timestamp: &id033 2024-06-18 11:34:10.395924
+      - metadata: *id003
+  - id: 9bb81323-5fc2-4c42-89b9-88b7b312bfaf
+- !stonesoup.types.groundtruth.GroundTruthPath
+  - states:
+    - !stonesoup.types.groundtruth.GroundTruthState
+      - state_vector: !stonesoup.types.array.StateVector
+        - [0.43588896151626244]
+        - [0.4571543258262929]
+        - [0.027315385833902694]
+        - [0.9915507175297908]
+      - timestamp: *id001
+      - metadata: &id032
+          type: known
+    - !stonesoup.types.groundtruth.GroundTruthState
+      - state_vector: !stonesoup.types.array.StateVector
+        - [0.8930432873425553]
+        - [0.4571543258262929]
+        - [1.0188661033636937]
+        - [0.9915507175297908]
+      - timestamp: *id002
+      - metadata: *id032
+    - !stonesoup.types.groundtruth.GroundTruthState
+      - state_vector: !stonesoup.types.array.StateVector
+        - [1.3501976131688482]
+        - [0.4571543258262929]
+        - [2.0104168208934845]
+        - [0.9915507175297908]
+      - timestamp: *id004
+      - metadata: *id032
+    - !stonesoup.types.groundtruth.GroundTruthState
+      - state_vector: !stonesoup.types.array.StateVector
+        - [1.8073519389951411]
+        - [0.4571543258262929]
+        - [3.0019675384232754]
+        - [0.9915507175297908]
+      - timestamp: *id005
+      - metadata: *id032
+    - !stonesoup.types.groundtruth.GroundTruthState
+      - state_vector: !stonesoup.types.array.StateVector
+        - [2.264506264821434]
+        - [0.4571543258262929]
+        - [3.993518255953066]
+        - [0.9915507175297908]
+      - timestamp: *id006
+      - metadata: *id032
+    - !stonesoup.types.groundtruth.GroundTruthState
+      - state_vector: !stonesoup.types.array.StateVector
+        - [2.721660590647727]
+        - [0.4571543258262929]
+        - [4.985068973482857]
+        - [0.9915507175297908]
+      - timestamp: *id007
+      - metadata: *id032
+    - !stonesoup.types.groundtruth.GroundTruthState
+      - state_vector: !stonesoup.types.array.StateVector
+        - [3.1788149164740203]
+        - [0.4571543258262929]
+        - [5.9766196910126475]
+        - [0.9915507175297908]
+      - timestamp: *id008
+      - metadata: *id032
+    - !stonesoup.types.groundtruth.GroundTruthState
+      - state_vector: !stonesoup.types.array.StateVector
+        - [3.6359692423003134]
+        - [0.4571543258262929]
+        - [6.968170408542438]
+        - [0.9915507175297908]
+      - timestamp: *id009
+      - metadata: *id032
+    - !stonesoup.types.groundtruth.GroundTruthState
+      - state_vector: !stonesoup.types.array.StateVector
+        - [4.0931235681266065]
+        - [0.4571543258262929]
+        - [7.959721126072228]
+        - [0.9915507175297908]
+      - timestamp: *id010
+      - metadata: *id032
+    - !stonesoup.types.groundtruth.GroundTruthState
+      - state_vector: !stonesoup.types.array.StateVector
+        - [4.5502778939529]
+        - [0.4571543258262929]
+        - [8.951271843602019]
+        - [0.9915507175297908]
+      - timestamp: *id011
+      - metadata: *id032
+    - !stonesoup.types.groundtruth.GroundTruthState
+      - state_vector: !stonesoup.types.array.StateVector
+        - [5.007432219779193]
+        - [0.4571543258262929]
+        - [9.942822561131809]
+        - [0.9915507175297908]
+      - timestamp: *id012
+      - metadata: *id032
+    - !stonesoup.types.groundtruth.GroundTruthState
+      - state_vector: !stonesoup.types.array.StateVector
+        - [5.464586545605486]
+        - [0.4571543258262929]
+        - [10.9343732786616]
+        - [0.9915507175297908]
+      - timestamp: *id013
+      - metadata: *id032
+    - !stonesoup.types.groundtruth.GroundTruthState
+      - state_vector: !stonesoup.types.array.StateVector
+        - [5.921740871431779]
+        - [0.4571543258262929]
+        - [11.92592399619139]
+        - [0.9915507175297908]
+      - timestamp: *id014
+      - metadata: *id032
+    - !stonesoup.types.groundtruth.GroundTruthState
+      - state_vector: !stonesoup.types.array.StateVector
+        - [6.378895197258072]
+        - [0.4571543258262929]
+        - [12.91747471372118]
+        - [0.9915507175297908]
+      - timestamp: *id015
+      - metadata: *id032
+    - !stonesoup.types.groundtruth.GroundTruthState
+      - state_vector: !stonesoup.types.array.StateVector
+        - [6.836049523084365]
+        - [0.4571543258262929]
+        - [13.90902543125097]
+        - [0.9915507175297908]
+      - timestamp: *id016
+      - metadata: *id032
+    - !stonesoup.types.groundtruth.GroundTruthState
+      - state_vector: !stonesoup.types.array.StateVector
+        - [7.293203848910658]
+        - [0.4571543258262929]
+        - [14.900576148780761]
+        - [0.9915507175297908]
+      - timestamp: *id017
+      - metadata: *id032
+    - !stonesoup.types.groundtruth.GroundTruthState
+      - state_vector: !stonesoup.types.array.StateVector
+        - [7.750358174736951]
+        - [0.4571543258262929]
+        - [15.892126866310551]
+        - [0.9915507175297908]
+      - timestamp: *id018
+      - metadata: *id032
+    - !stonesoup.types.groundtruth.GroundTruthState
+      - state_vector: !stonesoup.types.array.StateVector
+        - [8.207512500563244]
+        - [0.4571543258262929]
+        - [16.883677583840342]
+        - [0.9915507175297908]
+      - timestamp: *id019
+      - metadata: *id032
+    - !stonesoup.types.groundtruth.GroundTruthState
+      - state_vector: !stonesoup.types.array.StateVector
+        - [8.664666826389537]
+        - [0.4571543258262929]
+        - [17.875228301370132]
+        - [0.9915507175297908]
+      - timestamp: *id020
+      - metadata: *id032
+    - !stonesoup.types.groundtruth.GroundTruthState
+      - state_vector: !stonesoup.types.array.StateVector
+        - [9.12182115221583]
+        - [0.4571543258262929]
+        - [18.866779018899923]
+        - [0.9915507175297908]
+      - timestamp: *id021
+      - metadata: *id032
+    - !stonesoup.types.groundtruth.GroundTruthState
+      - state_vector: !stonesoup.types.array.StateVector
+        - [9.578975478042123]
+        - [0.4571543258262929]
+        - [19.858329736429713]
+        - [0.9915507175297908]
+      - timestamp: *id022
+      - metadata: *id032
+    - !stonesoup.types.groundtruth.GroundTruthState
+      - state_vector: !stonesoup.types.array.StateVector
+        - [10.036129803868416]
+        - [0.4571543258262929]
+        - [20.849880453959504]
+        - [0.9915507175297908]
+      - timestamp: *id023
+      - metadata: *id032
+    - !stonesoup.types.groundtruth.GroundTruthState
+      - state_vector: !stonesoup.types.array.StateVector
+        - [10.49328412969471]
+        - [0.4571543258262929]
+        - [21.841431171489294]
+        - [0.9915507175297908]
+      - timestamp: *id024
+      - metadata: *id032
+    - !stonesoup.types.groundtruth.GroundTruthState
+      - state_vector: !stonesoup.types.array.StateVector
+        - [10.950438455521002]
+        - [0.4571543258262929]
+        - [22.832981889019084]
+        - [0.9915507175297908]
+      - timestamp: *id025
+      - metadata: *id032
+    - !stonesoup.types.groundtruth.GroundTruthState
+      - state_vector: !stonesoup.types.array.StateVector
+        - [11.407592781347295]
+        - [0.4571543258262929]
+        - [23.824532606548875]
+        - [0.9915507175297908]
+      - timestamp: *id026
+      - metadata: *id032
+    - !stonesoup.types.groundtruth.GroundTruthState
+      - state_vector: !stonesoup.types.array.StateVector
+        - [11.864747107173589]
+        - [0.4571543258262929]
+        - [24.816083324078665]
+        - [0.9915507175297908]
+      - timestamp: *id027
+      - metadata: *id032
+    - !stonesoup.types.groundtruth.GroundTruthState
+      - state_vector: !stonesoup.types.array.StateVector
+        - [12.321901432999882]
+        - [0.4571543258262929]
+        - [25.807634041608456]
+        - [0.9915507175297908]
+      - timestamp: *id028
+      - metadata: *id032
+    - !stonesoup.types.groundtruth.GroundTruthState
+      - state_vector: !stonesoup.types.array.StateVector
+        - [12.779055758826175]
+        - [0.4571543258262929]
+        - [26.799184759138246]
+        - [0.9915507175297908]
+      - timestamp: *id029
+      - metadata: *id032
+    - !stonesoup.types.groundtruth.GroundTruthState
+      - state_vector: !stonesoup.types.array.StateVector
+        - [13.236210084652468]
+        - [0.4571543258262929]
+        - [27.790735476668036]
+        - [0.9915507175297908]
+      - timestamp: *id030
+      - metadata: *id032
+    - !stonesoup.types.groundtruth.GroundTruthState
+      - state_vector: !stonesoup.types.array.StateVector
+        - [13.693364410478761]
+        - [0.4571543258262929]
+        - [28.782286194197827]
+        - [0.9915507175297908]
+      - timestamp: *id031
+      - metadata: *id032
+    - !stonesoup.types.groundtruth.GroundTruthState
+      - state_vector: !stonesoup.types.array.StateVector
+        - [14.150518736305054]
+        - [0.4571543258262929]
+        - [29.773836911727617]
+        - [0.9915507175297908]
+      - timestamp: *id033
+      - metadata: *id032
+  - id: f36ba540-d131-452d-81db-f97910e82a48
+- !stonesoup.types.groundtruth.GroundTruthPath
+  - states:
+    - !stonesoup.types.groundtruth.GroundTruthState
+      - state_vector: !stonesoup.types.array.StateVector
+        - [0.7095439262374427]
+        - [0.5559991951318639]
+        - [0.12111195369854977]
+        - [0.0072759792819583335]
+      - timestamp: *id001
+      - metadata: &id034
+          type: known
+    - !stonesoup.types.groundtruth.GroundTruthState
+      - state_vector: !stonesoup.types.array.StateVector
+        - [1.2655431213693067]
+        - [0.5559991951318639]
+        - [0.1283879329805081]
+        - [0.0072759792819583335]
+      - timestamp: *id002
+      - metadata: *id034
+    - !stonesoup.types.groundtruth.GroundTruthState
+      - state_vector: !stonesoup.types.array.StateVector
+        - [1.8215423165011706]
+        - [0.5559991951318639]
+        - [0.13566391226246644]
+        - [0.0072759792819583335]
+      - timestamp: *id004
+      - metadata: *id034
+    - !stonesoup.types.groundtruth.GroundTruthState
+      - state_vector: !stonesoup.types.array.StateVector
+        - [2.3775415116330345]
+        - [0.5559991951318639]
+        - [0.14293989154442477]
+        - [0.0072759792819583335]
+      - timestamp: *id005
+      - metadata: *id034
+    - !stonesoup.types.groundtruth.GroundTruthState
+      - state_vector: !stonesoup.types.array.StateVector
+        - [2.9335407067648984]
+        - [0.5559991951318639]
+        - [0.1502158708263831]
+        - [0.0072759792819583335]
+      - timestamp: *id006
+      - metadata: *id034
+    - !stonesoup.types.groundtruth.GroundTruthState
+      - state_vector: !stonesoup.types.array.StateVector
+        - [3.4895399018967623]
+        - [0.5559991951318639]
+        - [0.15749185010834144]
+        - [0.0072759792819583335]
+      - timestamp: *id007
+      - metadata: *id034
+    - !stonesoup.types.groundtruth.GroundTruthState
+      - state_vector: !stonesoup.types.array.StateVector
+        - [4.045539097028627]
+        - [0.5559991951318639]
+        - [0.16476782939029977]
+        - [0.0072759792819583335]
+      - timestamp: *id008
+      - metadata: *id034
+    - !stonesoup.types.groundtruth.GroundTruthState
+      - state_vector: !stonesoup.types.array.StateVector
+        - [4.601538292160491]
+        - [0.5559991951318639]
+        - [0.1720438086722581]
+        - [0.0072759792819583335]
+      - timestamp: *id009
+      - metadata: *id034
+    - !stonesoup.types.groundtruth.GroundTruthState
+      - state_vector: !stonesoup.types.array.StateVector
+        - [5.157537487292355]
+        - [0.5559991951318639]
+        - [0.17931978795421644]
+        - [0.0072759792819583335]
+      - timestamp: *id010
+      - metadata: *id034
+    - !stonesoup.types.groundtruth.GroundTruthState
+      - state_vector: !stonesoup.types.array.StateVector
+        - [5.71353668242422]
+        - [0.5559991951318639]
+        - [0.18659576723617477]
+        - [0.0072759792819583335]
+      - timestamp: *id011
+      - metadata: *id034
+    - !stonesoup.types.groundtruth.GroundTruthState
+      - state_vector: !stonesoup.types.array.StateVector
+        - [6.269535877556084]
+        - [0.5559991951318639]
+        - [0.1938717465181331]
+        - [0.0072759792819583335]
+      - timestamp: *id012
+      - metadata: *id034
+    - !stonesoup.types.groundtruth.GroundTruthState
+      - state_vector: !stonesoup.types.array.StateVector
+        - [6.8255350726879485]
+        - [0.5559991951318639]
+        - [0.20114772580009144]
+        - [0.0072759792819583335]
+      - timestamp: *id013
+      - metadata: *id034
+    - !stonesoup.types.groundtruth.GroundTruthState
+      - state_vector: !stonesoup.types.array.StateVector
+        - [7.381534267819813]
+        - [0.5559991951318639]
+        - [0.20842370508204977]
+        - [0.0072759792819583335]
+      - timestamp: *id014
+      - metadata: *id034
+    - !stonesoup.types.groundtruth.GroundTruthState
+      - state_vector: !stonesoup.types.array.StateVector
+        - [7.937533462951677]
+        - [0.5559991951318639]
+        - [0.2156996843640081]
+        - [0.0072759792819583335]
+      - timestamp: *id015
+      - metadata: *id034
+    - !stonesoup.types.groundtruth.GroundTruthState
+      - state_vector: !stonesoup.types.array.StateVector
+        - [8.493532658083542]
+        - [0.5559991951318639]
+        - [0.22297566364596644]
+        - [0.0072759792819583335]
+      - timestamp: *id016
+      - metadata: *id034
+    - !stonesoup.types.groundtruth.GroundTruthState
+      - state_vector: !stonesoup.types.array.StateVector
+        - [9.049531853215406]
+        - [0.5559991951318639]
+        - [0.23025164292792477]
+        - [0.0072759792819583335]
+      - timestamp: *id017
+      - metadata: *id034
+    - !stonesoup.types.groundtruth.GroundTruthState
+      - state_vector: !stonesoup.types.array.StateVector
+        - [9.60553104834727]
+        - [0.5559991951318639]
+        - [0.2375276222098831]
+        - [0.0072759792819583335]
+      - timestamp: *id018
+      - metadata: *id034
+    - !stonesoup.types.groundtruth.GroundTruthState
+      - state_vector: !stonesoup.types.array.StateVector
+        - [10.161530243479135]
+        - [0.5559991951318639]
+        - [0.24480360149184144]
+        - [0.0072759792819583335]
+      - timestamp: *id019
+      - metadata: *id034
+    - !stonesoup.types.groundtruth.GroundTruthState
+      - state_vector: !stonesoup.types.array.StateVector
+        - [10.717529438610999]
+        - [0.5559991951318639]
+        - [0.25207958077379977]
+        - [0.0072759792819583335]
+      - timestamp: *id020
+      - metadata: *id034
+    - !stonesoup.types.groundtruth.GroundTruthState
+      - state_vector: !stonesoup.types.array.StateVector
+        - [11.273528633742863]
+        - [0.5559991951318639]
+        - [0.2593555600557581]
+        - [0.0072759792819583335]
+      - timestamp: *id021
+      - metadata: *id034
+    - !stonesoup.types.groundtruth.GroundTruthState
+      - state_vector: !stonesoup.types.array.StateVector
+        - [11.829527828874728]
+        - [0.5559991951318639]
+        - [0.26663153933771644]
+        - [0.0072759792819583335]
+      - timestamp: *id022
+      - metadata: *id034
+    - !stonesoup.types.groundtruth.GroundTruthState
+      - state_vector: !stonesoup.types.array.StateVector
+        - [12.385527024006592]
+        - [0.5559991951318639]
+        - [0.2739075186196748]
+        - [0.0072759792819583335]
+      - timestamp: *id023
+      - metadata: *id034
+    - !stonesoup.types.groundtruth.GroundTruthState
+      - state_vector: !stonesoup.types.array.StateVector
+        - [12.941526219138456]
+        - [0.5559991951318639]
+        - [0.2811834979016331]
+        - [0.0072759792819583335]
+      - timestamp: *id024
+      - metadata: *id034
+    - !stonesoup.types.groundtruth.GroundTruthState
+      - state_vector: !stonesoup.types.array.StateVector
+        - [13.49752541427032]
+        - [0.5559991951318639]
+        - [0.28845947718359144]
+        - [0.0072759792819583335]
+      - timestamp: *id025
+      - metadata: *id034
+    - !stonesoup.types.groundtruth.GroundTruthState
+      - state_vector: !stonesoup.types.array.StateVector
+        - [14.053524609402185]
+        - [0.5559991951318639]
+        - [0.2957354564655498]
+        - [0.0072759792819583335]
+      - timestamp: *id026
+      - metadata: *id034
+    - !stonesoup.types.groundtruth.GroundTruthState
+      - state_vector: !stonesoup.types.array.StateVector
+        - [14.60952380453405]
+        - [0.5559991951318639]
+        - [0.3030114357475081]
+        - [0.0072759792819583335]
+      - timestamp: *id027
+      - metadata: *id034
+    - !stonesoup.types.groundtruth.GroundTruthState
+      - state_vector: !stonesoup.types.array.StateVector
+        - [15.165522999665914]
+        - [0.5559991951318639]
+        - [0.31028741502946644]
+        - [0.0072759792819583335]
+      - timestamp: *id028
+      - metadata: *id034
+    - !stonesoup.types.groundtruth.GroundTruthState
+      - state_vector: !stonesoup.types.array.StateVector
+        - [15.721522194797778]
+        - [0.5559991951318639]
+        - [0.3175633943114248]
+        - [0.0072759792819583335]
+      - timestamp: *id029
+      - metadata: *id034
+    - !stonesoup.types.groundtruth.GroundTruthState
+      - state_vector: !stonesoup.types.array.StateVector
+        - [16.277521389929642]
+        - [0.5559991951318639]
+        - [0.3248393735933831]
+        - [0.0072759792819583335]
+      - timestamp: *id030
+      - metadata: *id034
+    - !stonesoup.types.groundtruth.GroundTruthState
+      - state_vector: !stonesoup.types.array.StateVector
+        - [16.833520585061507]
+        - [0.5559991951318639]
+        - [0.33211535287534144]
+        - [0.0072759792819583335]
+      - timestamp: *id031
+      - metadata: *id034
+    - !stonesoup.types.groundtruth.GroundTruthState
+      - state_vector: !stonesoup.types.array.StateVector
+        - [17.38951978019337]
+        - [0.5559991951318639]
+        - [0.3393913321572998]
+        - [0.0072759792819583335]
+      - timestamp: *id033
+      - metadata: *id034
+  - id: 8a486342-ff84-4c93-aa86-2cb8d36cd7c3
+n_targets: 5
+
+# Collection of type Tracks. Track id should be specified
+# for each track
+sensors:
+- !stonesoup.sensor.radar.radar.RadarRotatingBearingRange
+  - position_mapping: &id035
+    - 0
+    - 2
+  - noise_covar: !numpy.ndarray
+    - [0, 0]
+    - [0, 0]
+  - dwell_centre: !stonesoup.types.array.StateVector
+    - [0]
+  - rpm:
+    - 60
+  - fov_angle: 1.5707963267948966
+  - rotation_offset: !stonesoup.types.array.StateVector
+    - [0]
+    - [0]
+    - [0]
+  - mounting_offset: !stonesoup.types.array.StateVector
+    - [0]
+    - [0]
+  - movement_controller: !stonesoup.movable.movable.MovingMovable
+    - states: &id191
+      - !stonesoup.types.state.State
+        - state_vector: !stonesoup.types.array.StateVector
+          - [0.023017219778825426]
+          - [0.4509027798731453]
+          - [0.954466080541885]
+          - [0.31319806177599996]
+        - timestamp: *id001
+      - !stonesoup.types.state.State
+        - state_vector: !stonesoup.types.array.StateVector
+          - [0.023027219778825426]
+          - [1e-05]
+          - [0.9544760805418849]
+          - [1e-05]
+        - timestamp: *id002
+      - !stonesoup.types.state.State
+        - state_vector: !stonesoup.types.array.StateVector
+          - [1.0230272197788255]
+          - [1.0]
+          - [-0.04552391945811507]
+          - [-1.0]
+        - timestamp: *id004
+      - !stonesoup.types.state.State
+        - state_vector: !stonesoup.types.array.StateVector
+          - [2.0230272197788253]
+          - [1.0]
+          - [0.9544760805418849]
+          - [1.0]
+        - timestamp: *id005
+      - !stonesoup.types.state.State
+        - state_vector: !stonesoup.types.array.StateVector
+          - [3.0230272197788253]
+          - [1.0]
+          - [1.9544760805418848]
+          - [1.0]
+        - timestamp: *id006
+      - !stonesoup.types.state.State
+        - state_vector: !stonesoup.types.array.StateVector
+          - [2.0230272197788253]
+          - [-1.0]
+          - [2.954476080541885]
+          - [1.0]
+        - timestamp: *id007
+      - !stonesoup.types.state.State
+        - state_vector: !stonesoup.types.array.StateVector
+          - [2.0230272197788253]
+          - [0.0]
+          - [1.9544760805418848]
+          - [-1.0]
+        - timestamp: *id008
+      - !stonesoup.types.state.State
+        - state_vector: !stonesoup.types.array.StateVector
+          - [2.0230272197788253]
+          - [0.0]
+          - [2.954476080541885]
+          - [1.0]
+        - timestamp: *id009
+      - !stonesoup.types.state.State
+        - state_vector: !stonesoup.types.array.StateVector
+          - [1.0230272197788253]
+          - [-1.0]
+          - [2.954476080541885]
+          - [0.0]
+        - timestamp: *id010
+      - !stonesoup.types.state.State
+        - state_vector: !stonesoup.types.array.StateVector
+          - [2.0230272197788253]
+          - [1.0]
+          - [3.954476080541885]
+          - [1.0]
+        - timestamp: *id011
+      - !stonesoup.types.state.State
+        - state_vector: !stonesoup.types.array.StateVector
+          - [2.0230372197788253]
+          - [1e-05]
+          - [3.954486080541885]
+          - [1e-05]
+        - timestamp: *id012
+      - !stonesoup.types.state.State
+        - state_vector: !stonesoup.types.array.StateVector
+          - [2.0230372197788253]
+          - [0.0]
+          - [4.954486080541885]
+          - [1.0]
+        - timestamp: *id013
+      - !stonesoup.types.state.State
+        - state_vector: !stonesoup.types.array.StateVector
+          - [3.0230372197788253]
+          - [1.0]
+          - [3.9544860805418853]
+          - [-1.0]
+        - timestamp: *id014
+      - !stonesoup.types.state.State
+        - state_vector: !stonesoup.types.array.StateVector
+          - [2.0230372197788253]
+          - [-1.0]
+          - [3.9544860805418853]
+          - [0.0]
+        - timestamp: *id015
+      - !stonesoup.types.state.State
+        - state_vector: !stonesoup.types.array.StateVector
+          - [2.0230372197788253]
+          - [0.0]
+          - [4.954486080541885]
+          - [1.0]
+        - timestamp: *id016
+      - !stonesoup.types.state.State
+        - state_vector: !stonesoup.types.array.StateVector
+          - [1.0230372197788253]
+          - [-1.0]
+          - [3.9544860805418853]
+          - [-1.0]
+        - timestamp: *id017
+      - !stonesoup.types.state.State
+        - state_vector: !stonesoup.types.array.StateVector
+          - [0.023037219778825335]
+          - [-1.0]
+          - [4.954486080541885]
+          - [1.0]
+        - timestamp: *id018
+      - !stonesoup.types.state.State
+        - state_vector: !stonesoup.types.array.StateVector
+          - [-0.9769627802211747]
+          - [-1.0]
+          - [4.954486080541885]
+          - [0.0]
+        - timestamp: *id019
+      - !stonesoup.types.state.State
+        - state_vector: !stonesoup.types.array.StateVector
+          - [-0.9769527802211747]
+          - [1e-05]
+          - [4.954496080541885]
+          - [1e-05]
+        - timestamp: *id020
+      - !stonesoup.types.state.State
+        - state_vector: !stonesoup.types.array.StateVector
+          - [0.02304721977882529]
+          - [1.0]
+          - [3.954496080541885]
+          - [-1.0]
+        - timestamp: *id021
+      - !stonesoup.types.state.State
+        - state_vector: !stonesoup.types.array.StateVector
+          - [-0.9769527802211747]
+          - [-1.0]
+          - [3.954496080541885]
+          - [0.0]
+        - timestamp: *id022
+      - !stonesoup.types.state.State
+        - state_vector: !stonesoup.types.array.StateVector
+          - [0.02304721977882529]
+          - [1.0]
+          - [3.954496080541885]
+          - [0.0]
+        - timestamp: *id023
+      - !stonesoup.types.state.State
+        - state_vector: !stonesoup.types.array.StateVector
+          - [0.02304721977882529]
+          - [0.0]
+          - [2.954496080541885]
+          - [-1.0]
+        - timestamp: *id024
+      - !stonesoup.types.state.State
+        - state_vector: !stonesoup.types.array.StateVector
+          - [1.0230472197788254]
+          - [1.0]
+          - [2.954496080541885]
+          - [0.0]
+        - timestamp: *id025
+      - !stonesoup.types.state.State
+        - state_vector: !stonesoup.types.array.StateVector
+          - [2.0230472197788254]
+          - [1.0]
+          - [3.954496080541885]
+          - [1.0]
+        - timestamp: *id026
+      - !stonesoup.types.state.State
+        - state_vector: !stonesoup.types.array.StateVector
+          - [3.0230472197788254]
+          - [1.0]
+          - [2.954496080541885]
+          - [-1.0]
+        - timestamp: *id027
+      - !stonesoup.types.state.State
+        - state_vector: !stonesoup.types.array.StateVector
+          - [4.023047219778825]
+          - [1.0]
+          - [3.954496080541885]
+          - [1.0]
+        - timestamp: *id028
+      - !stonesoup.types.state.State
+        - state_vector: !stonesoup.types.array.StateVector
+          - [4.023047219778825]
+          - [0.0]
+          - [4.954496080541885]
+          - [1.0]
+        - timestamp: *id029
+      - !stonesoup.types.state.State
+        - state_vector: !stonesoup.types.array.StateVector
+          - [5.023047219778825]
+          - [1.0]
+          - [3.954496080541885]
+          - [-1.0]
+        - timestamp: *id030
+      - !stonesoup.types.state.State
+        - state_vector: !stonesoup.types.array.StateVector
+          - [6.023047219778825]
+          - [1.0]
+          - [2.954496080541885]
+          - [-1.0]
+        - timestamp: *id031
+      - !stonesoup.types.state.State
+        - state_vector: !stonesoup.types.array.StateVector
+          - [5.023047219778825]
+          - [-1.0]
+          - [1.954496080541885]
+          - [-1.0]
+        - timestamp: *id033
+    - position_mapping: *id035
+    - transition_model: !stonesoup.models.transition.linear.CombinedLinearGaussianTransitionModel
+      - model_list:
+        - !stonesoup.models.transition.linear.ConstantVelocity
+          - noise_diff_coeff: 0
+        - !stonesoup.models.transition.linear.ConstantVelocity
+          - noise_diff_coeff: 0
+    - velocity_mapping:
+      - 1
+      - 3
+  - max_range: 1000
+  - resolution: 0.017453292519943295
+
+# Collection of type Tracks. Track id should be specified
+# for each track
+tracks:
+- !stonesoup.types.track.Track
+  - states:
+    - !stonesoup.types.state.State
+      - state_vector: &id036 !stonesoup.types.array.StateVector
+        - [.inf]
+        - [.inf]
+        - [.inf]
+        - [.inf]
+      - timestamp: 2024-06-18 11:33:41.395924
+    - !stonesoup.types.state.State
+      - state_vector: *id036
+      - timestamp: 2024-06-18 11:33:40.395924
+    - !stonesoup.types.state.State
+      - state_vector: *id036
+      - timestamp: 2024-06-18 11:33:39.395924
+    - !stonesoup.types.state.State
+      - state_vector: &id041 !stonesoup.types.array.StateVector
+        - [.inf]
+        - [.inf]
+        - [.inf]
+        - [.inf]
+      - timestamp: 2024-06-18 11:33:38.395924
+    - !stonesoup.types.state.State
+      - state_vector: &id042 !stonesoup.types.array.StateVector
+        - [.inf]
+        - [.inf]
+        - [.inf]
+        - [.inf]
+      - timestamp: 2024-06-18 11:33:37.395924
+  - id: 5
+- !stonesoup.types.track.Track
+  - states:
+    - !stonesoup.types.state.State
+      - state_vector: &id037 !stonesoup.types.array.StateVector
+        - [.inf]
+        - [.inf]
+        - [.inf]
+        - [.inf]
+      - timestamp: 2024-06-18 11:33:41.395924
+    - !stonesoup.types.state.State
+      - state_vector: *id037
+      - timestamp: 2024-06-18 11:33:40.395924
+    - !stonesoup.types.state.State
+      - state_vector: *id037
+      - timestamp: 2024-06-18 11:33:39.395924
+    - !stonesoup.types.state.State
+      - state_vector: &id043 !stonesoup.types.array.StateVector
+        - [.inf]
+        - [.inf]
+        - [.inf]
+        - [.inf]
+      - timestamp: 2024-06-18 11:33:38.395924
+    - !stonesoup.types.state.State
+      - state_vector: &id044 !stonesoup.types.array.StateVector
+        - [0.8930432873425553]
+        - [0.4571543258262929]
+        - [1.0188661033636937]
+        - [0.9915507175297908]
+      - timestamp: 2024-06-18 11:33:37.395924
+  - id: 5
+- !stonesoup.types.track.Track
+  - states:
+    - !stonesoup.types.state.State
+      - state_vector: &id038 !stonesoup.types.array.StateVector
+        - [.inf]
+        - [.inf]
+        - [.inf]
+        - [.inf]
+      - timestamp: 2024-06-18 11:33:41.395924
+    - !stonesoup.types.state.State
+      - state_vector: *id038
+      - timestamp: 2024-06-18 11:33:40.395924
+    - !stonesoup.types.state.State
+      - state_vector: *id038
+      - timestamp: 2024-06-18 11:33:39.395924
+    - !stonesoup.types.state.State
+      - state_vector: &id045 !stonesoup.types.array.StateVector
+        - [.inf]
+        - [.inf]
+        - [.inf]
+        - [.inf]
+      - timestamp: 2024-06-18 11:33:38.395924
+    - !stonesoup.types.state.State
+      - state_vector: &id046 !stonesoup.types.array.StateVector
+        - [.inf]
+        - [.inf]
+        - [.inf]
+        - [.inf]
+      - timestamp: 2024-06-18 11:33:37.395924
+  - id: 5
+- !stonesoup.types.track.Track
+  - states:
+    - !stonesoup.types.state.State
+      - state_vector: &id039 !stonesoup.types.array.StateVector
+        - [.inf]
+        - [.inf]
+        - [.inf]
+        - [.inf]
+      - timestamp: 2024-06-18 11:33:41.395924
+    - !stonesoup.types.state.State
+      - state_vector: *id039
+      - timestamp: 2024-06-18 11:33:40.395924
+    - !stonesoup.types.state.State
+      - state_vector: *id039
+      - timestamp: 2024-06-18 11:33:39.395924
+    - !stonesoup.types.state.State
+      - state_vector: &id047 !stonesoup.types.array.StateVector
+        - [0.7297339875822114]
+        - [0.6160113160677414]
+        - [0.8921422902735687]
+        - [0.1139032056248388]
+      - timestamp: 2024-06-18 11:33:38.395924
+    - !stonesoup.types.state.State
+      - state_vector: &id048 !stonesoup.types.array.StateVector
+        - [1.3457453036499527]
+        - [0.6160113160677414]
+        - [1.0060454958984075]
+        - [0.1139032056248388]
+      - timestamp: 2024-06-18 11:33:37.395924
+  - id: 5
+- !stonesoup.types.track.Track
+  - states:
+    - !stonesoup.types.state.State
+      - state_vector: &id040 !stonesoup.types.array.StateVector
+        - [.inf]
+        - [.inf]
+        - [.inf]
+        - [.inf]
+      - timestamp: 2024-06-18 11:33:41.395924
+    - !stonesoup.types.state.State
+      - state_vector: *id040
+      - timestamp: 2024-06-18 11:33:40.395924
+    - !stonesoup.types.state.State
+      - state_vector: *id040
+      - timestamp: 2024-06-18 11:33:39.395924
+    - !stonesoup.types.state.State
+      - state_vector: &id049 !stonesoup.types.array.StateVector
+        - [.inf]
+        - [.inf]
+        - [.inf]
+        - [.inf]
+      - timestamp: 2024-06-18 11:33:38.395924
+    - !stonesoup.types.state.State
+      - state_vector: &id050 !stonesoup.types.array.StateVector
+        - [.inf]
+        - [.inf]
+        - [.inf]
+        - [.inf]
+      - timestamp: 2024-06-18 11:33:37.395924
+  - id: 5
+- !stonesoup.types.track.Track
+  - states:
+    - !stonesoup.types.state.State
+      - state_vector: *id036
+      - timestamp: 2024-06-18 11:33:42.395924
+    - !stonesoup.types.state.State
+      - state_vector: *id036
+      - timestamp: 2024-06-18 11:33:41.395924
+    - !stonesoup.types.state.State
+      - state_vector: *id041
+      - timestamp: 2024-06-18 11:33:40.395924
+    - !stonesoup.types.state.State
+      - state_vector: *id042
+      - timestamp: 2024-06-18 11:33:39.395924
+    - !stonesoup.types.state.State
+      - state_vector: &id051 !stonesoup.types.array.StateVector
+        - [.inf]
+        - [.inf]
+        - [.inf]
+        - [.inf]
+      - timestamp: 2024-06-18 11:33:38.395924
+  - id: 5
+- !stonesoup.types.track.Track
+  - states:
+    - !stonesoup.types.state.State
+      - state_vector: *id037
+      - timestamp: 2024-06-18 11:33:42.395924
+    - !stonesoup.types.state.State
+      - state_vector: *id037
+      - timestamp: 2024-06-18 11:33:41.395924
+    - !stonesoup.types.state.State
+      - state_vector: *id043
+      - timestamp: 2024-06-18 11:33:40.395924
+    - !stonesoup.types.state.State
+      - state_vector: *id044
+      - timestamp: 2024-06-18 11:33:39.395924
+    - !stonesoup.types.state.State
+      - state_vector: &id052 !stonesoup.types.array.StateVector
+        - [.inf]
+        - [.inf]
+        - [.inf]
+        - [.inf]
+      - timestamp: 2024-06-18 11:33:38.395924
+  - id: 5
+- !stonesoup.types.track.Track
+  - states:
+    - !stonesoup.types.state.State
+      - state_vector: *id038
+      - timestamp: 2024-06-18 11:33:42.395924
+    - !stonesoup.types.state.State
+      - state_vector: *id038
+      - timestamp: 2024-06-18 11:33:41.395924
+    - !stonesoup.types.state.State
+      - state_vector: *id045
+      - timestamp: 2024-06-18 11:33:40.395924
+    - !stonesoup.types.state.State
+      - state_vector: *id046
+      - timestamp: 2024-06-18 11:33:39.395924
+    - !stonesoup.types.state.State
+      - state_vector: &id053 !stonesoup.types.array.StateVector
+        - [.inf]
+        - [.inf]
+        - [.inf]
+        - [.inf]
+      - timestamp: 2024-06-18 11:33:38.395924
+  - id: 5
+- !stonesoup.types.track.Track
+  - states:
+    - !stonesoup.types.state.State
+      - state_vector: *id039
+      - timestamp: 2024-06-18 11:33:42.395924
+    - !stonesoup.types.state.State
+      - state_vector: *id039
+      - timestamp: 2024-06-18 11:33:41.395924
+    - !stonesoup.types.state.State
+      - state_vector: *id047
+      - timestamp: 2024-06-18 11:33:40.395924
+    - !stonesoup.types.state.State
+      - state_vector: *id048
+      - timestamp: 2024-06-18 11:33:39.395924
+    - !stonesoup.types.state.State
+      - state_vector: &id054 !stonesoup.types.array.StateVector
+        - [.inf]
+        - [.inf]
+        - [.inf]
+        - [.inf]
+      - timestamp: 2024-06-18 11:33:38.395924
+  - id: 5
+- !stonesoup.types.track.Track
+  - states:
+    - !stonesoup.types.state.State
+      - state_vector: *id040
+      - timestamp: 2024-06-18 11:33:42.395924
+    - !stonesoup.types.state.State
+      - state_vector: *id040
+      - timestamp: 2024-06-18 11:33:41.395924
+    - !stonesoup.types.state.State
+      - state_vector: *id049
+      - timestamp: 2024-06-18 11:33:40.395924
+    - !stonesoup.types.state.State
+      - state_vector: *id050
+      - timestamp: 2024-06-18 11:33:39.395924
+    - !stonesoup.types.state.State
+      - state_vector: &id055 !stonesoup.types.array.StateVector
+        - [.inf]
+        - [.inf]
+        - [.inf]
+        - [.inf]
+      - timestamp: 2024-06-18 11:33:38.395924
+  - id: 5
+- !stonesoup.types.track.Track
+  - states:
+    - !stonesoup.types.state.State
+      - state_vector: *id036
+      - timestamp: 2024-06-18 11:33:43.395924
+    - !stonesoup.types.state.State
+      - state_vector: *id041
+      - timestamp: 2024-06-18 11:33:42.395924
+    - !stonesoup.types.state.State
+      - state_vector: *id042
+      - timestamp: 2024-06-18 11:33:41.395924
+    - !stonesoup.types.state.State
+      - state_vector: *id051
+      - timestamp: 2024-06-18 11:33:40.395924
+    - !stonesoup.types.state.State
+      - state_vector: &id056 !stonesoup.types.array.StateVector
+        - [.inf]
+        - [.inf]
+        - [.inf]
+        - [.inf]
+      - timestamp: 2024-06-18 11:33:39.395924
+  - id: 5
+- !stonesoup.types.track.Track
+  - states:
+    - !stonesoup.types.state.State
+      - state_vector: *id037
+      - timestamp: 2024-06-18 11:33:43.395924
+    - !stonesoup.types.state.State
+      - state_vector: *id043
+      - timestamp: 2024-06-18 11:33:42.395924
+    - !stonesoup.types.state.State
+      - state_vector: *id044
+      - timestamp: 2024-06-18 11:33:41.395924
+    - !stonesoup.types.state.State
+      - state_vector: *id052
+      - timestamp: 2024-06-18 11:33:40.395924
+    - !stonesoup.types.state.State
+      - state_vector: &id057 !stonesoup.types.array.StateVector
+        - [.inf]
+        - [.inf]
+        - [.inf]
+        - [.inf]
+      - timestamp: 2024-06-18 11:33:39.395924
+  - id: 5
+- !stonesoup.types.track.Track
+  - states:
+    - !stonesoup.types.state.State
+      - state_vector: *id038
+      - timestamp: 2024-06-18 11:33:43.395924
+    - !stonesoup.types.state.State
+      - state_vector: *id045
+      - timestamp: 2024-06-18 11:33:42.395924
+    - !stonesoup.types.state.State
+      - state_vector: *id046
+      - timestamp: 2024-06-18 11:33:41.395924
+    - !stonesoup.types.state.State
+      - state_vector: *id053
+      - timestamp: 2024-06-18 11:33:40.395924
+    - !stonesoup.types.state.State
+      - state_vector: &id058 !stonesoup.types.array.StateVector
+        - [.inf]
+        - [.inf]
+        - [.inf]
+        - [.inf]
+      - timestamp: 2024-06-18 11:33:39.395924
+  - id: 5
+- !stonesoup.types.track.Track
+  - states:
+    - !stonesoup.types.state.State
+      - state_vector: *id039
+      - timestamp: 2024-06-18 11:33:43.395924
+    - !stonesoup.types.state.State
+      - state_vector: *id047
+      - timestamp: 2024-06-18 11:33:42.395924
+    - !stonesoup.types.state.State
+      - state_vector: *id048
+      - timestamp: 2024-06-18 11:33:41.395924
+    - !stonesoup.types.state.State
+      - state_vector: *id054
+      - timestamp: 2024-06-18 11:33:40.395924
+    - !stonesoup.types.state.State
+      - state_vector: &id059 !stonesoup.types.array.StateVector
+        - [2.5777679357854355]
+        - [0.6160113160677414]
+        - [1.2338519071480851]
+        - [0.1139032056248388]
+      - timestamp: 2024-06-18 11:33:39.395924
+  - id: 5
+- !stonesoup.types.track.Track
+  - states:
+    - !stonesoup.types.state.State
+      - state_vector: *id040
+      - timestamp: 2024-06-18 11:33:43.395924
+    - !stonesoup.types.state.State
+      - state_vector: *id049
+      - timestamp: 2024-06-18 11:33:42.395924
+    - !stonesoup.types.state.State
+      - state_vector: *id050
+      - timestamp: 2024-06-18 11:33:41.395924
+    - !stonesoup.types.state.State
+      - state_vector: *id055
+      - timestamp: 2024-06-18 11:33:40.395924
+    - !stonesoup.types.state.State
+      - state_vector: &id060 !stonesoup.types.array.StateVector
+        - [.inf]
+        - [.inf]
+        - [.inf]
+        - [.inf]
+      - timestamp: 2024-06-18 11:33:39.395924
+  - id: 5
+- !stonesoup.types.track.Track
+  - states:
+    - !stonesoup.types.state.State
+      - state_vector: *id041
+      - timestamp: 2024-06-18 11:33:44.395924
+    - !stonesoup.types.state.State
+      - state_vector: *id042
+      - timestamp: 2024-06-18 11:33:43.395924
+    - !stonesoup.types.state.State
+      - state_vector: *id051
+      - timestamp: 2024-06-18 11:33:42.395924
+    - !stonesoup.types.state.State
+      - state_vector: *id056
+      - timestamp: 2024-06-18 11:33:41.395924
+    - !stonesoup.types.state.State
+      - state_vector: &id061 !stonesoup.types.array.StateVector
+        - [.inf]
+        - [.inf]
+        - [.inf]
+        - [.inf]
+      - timestamp: 2024-06-18 11:33:40.395924
+  - id: 5
+- !stonesoup.types.track.Track
+  - states:
+    - !stonesoup.types.state.State
+      - state_vector: *id043
+      - timestamp: 2024-06-18 11:33:44.395924
+    - !stonesoup.types.state.State
+      - state_vector: *id044
+      - timestamp: 2024-06-18 11:33:43.395924
+    - !stonesoup.types.state.State
+      - state_vector: *id052
+      - timestamp: 2024-06-18 11:33:42.395924
+    - !stonesoup.types.state.State
+      - state_vector: *id057
+      - timestamp: 2024-06-18 11:33:41.395924
+    - !stonesoup.types.state.State
+      - state_vector: &id062 !stonesoup.types.array.StateVector
+        - [.inf]
+        - [.inf]
+        - [.inf]
+        - [.inf]
+      - timestamp: 2024-06-18 11:33:40.395924
+  - id: 5
+- !stonesoup.types.track.Track
+  - states:
+    - !stonesoup.types.state.State
+      - state_vector: *id045
+      - timestamp: 2024-06-18 11:33:44.395924
+    - !stonesoup.types.state.State
+      - state_vector: *id046
+      - timestamp: 2024-06-18 11:33:43.395924
+    - !stonesoup.types.state.State
+      - state_vector: *id053
+      - timestamp: 2024-06-18 11:33:42.395924
+    - !stonesoup.types.state.State
+      - state_vector: *id058
+      - timestamp: 2024-06-18 11:33:41.395924
+    - !stonesoup.types.state.State
+      - state_vector: &id063 !stonesoup.types.array.StateVector
+        - [.inf]
+        - [.inf]
+        - [.inf]
+        - [.inf]
+      - timestamp: 2024-06-18 11:33:40.395924
+  - id: 5
+- !stonesoup.types.track.Track
+  - states:
+    - !stonesoup.types.state.State
+      - state_vector: *id047
+      - timestamp: 2024-06-18 11:33:44.395924
+    - !stonesoup.types.state.State
+      - state_vector: *id048
+      - timestamp: 2024-06-18 11:33:43.395924
+    - !stonesoup.types.state.State
+      - state_vector: *id054
+      - timestamp: 2024-06-18 11:33:42.395924
+    - !stonesoup.types.state.State
+      - state_vector: *id059
+      - timestamp: 2024-06-18 11:33:41.395924
+    - !stonesoup.types.state.State
+      - state_vector: &id064 !stonesoup.types.array.StateVector
+        - [.inf]
+        - [.inf]
+        - [.inf]
+        - [.inf]
+      - timestamp: 2024-06-18 11:33:40.395924
+  - id: 5
+- !stonesoup.types.track.Track
+  - states:
+    - !stonesoup.types.state.State
+      - state_vector: *id049
+      - timestamp: 2024-06-18 11:33:44.395924
+    - !stonesoup.types.state.State
+      - state_vector: *id050
+      - timestamp: 2024-06-18 11:33:43.395924
+    - !stonesoup.types.state.State
+      - state_vector: *id055
+      - timestamp: 2024-06-18 11:33:42.395924
+    - !stonesoup.types.state.State
+      - state_vector: *id060
+      - timestamp: 2024-06-18 11:33:41.395924
+    - !stonesoup.types.state.State
+      - state_vector: &id065 !stonesoup.types.array.StateVector
+        - [.inf]
+        - [.inf]
+        - [.inf]
+        - [.inf]
+      - timestamp: 2024-06-18 11:33:40.395924
+  - id: 5
+- !stonesoup.types.track.Track
+  - states:
+    - !stonesoup.types.state.State
+      - state_vector: *id042
+      - timestamp: 2024-06-18 11:33:45.395924
+    - !stonesoup.types.state.State
+      - state_vector: *id051
+      - timestamp: 2024-06-18 11:33:44.395924
+    - !stonesoup.types.state.State
+      - state_vector: *id056
+      - timestamp: 2024-06-18 11:33:43.395924
+    - !stonesoup.types.state.State
+      - state_vector: *id061
+      - timestamp: 2024-06-18 11:33:42.395924
+    - !stonesoup.types.state.State
+      - state_vector: &id066 !stonesoup.types.array.StateVector
+        - [1.5960226412183516]
+        - [0.22968563101735096]
+        - [3.2546087703363367]
+        - [0.5788246616316579]
+      - timestamp: 2024-06-18 11:33:41.395924
+  - id: 5
+- !stonesoup.types.track.Track
+  - states:
+    - !stonesoup.types.state.State
+      - state_vector: *id044
+      - timestamp: 2024-06-18 11:33:45.395924
+    - !stonesoup.types.state.State
+      - state_vector: *id052
+      - timestamp: 2024-06-18 11:33:44.395924
+    - !stonesoup.types.state.State
+      - state_vector: *id057
+      - timestamp: 2024-06-18 11:33:43.395924
+    - !stonesoup.types.state.State
+      - state_vector: *id062
+      - timestamp: 2024-06-18 11:33:42.395924
+    - !stonesoup.types.state.State
+      - state_vector: &id067 !stonesoup.types.array.StateVector
+        - [.inf]
+        - [.inf]
+        - [.inf]
+        - [.inf]
+      - timestamp: 2024-06-18 11:33:41.395924
+  - id: 5
+- !stonesoup.types.track.Track
+  - states:
+    - !stonesoup.types.state.State
+      - state_vector: *id046
+      - timestamp: 2024-06-18 11:33:45.395924
+    - !stonesoup.types.state.State
+      - state_vector: *id053
+      - timestamp: 2024-06-18 11:33:44.395924
+    - !stonesoup.types.state.State
+      - state_vector: *id058
+      - timestamp: 2024-06-18 11:33:43.395924
+    - !stonesoup.types.state.State
+      - state_vector: *id063
+      - timestamp: 2024-06-18 11:33:42.395924
+    - !stonesoup.types.state.State
+      - state_vector: &id068 !stonesoup.types.array.StateVector
+        - [.inf]
+        - [.inf]
+        - [.inf]
+        - [.inf]
+      - timestamp: 2024-06-18 11:33:41.395924
+  - id: 5
+- !stonesoup.types.track.Track
+  - states:
+    - !stonesoup.types.state.State
+      - state_vector: *id048
+      - timestamp: 2024-06-18 11:33:45.395924
+    - !stonesoup.types.state.State
+      - state_vector: *id054
+      - timestamp: 2024-06-18 11:33:44.395924
+    - !stonesoup.types.state.State
+      - state_vector: *id059
+      - timestamp: 2024-06-18 11:33:43.395924
+    - !stonesoup.types.state.State
+      - state_vector: *id064
+      - timestamp: 2024-06-18 11:33:42.395924
+    - !stonesoup.types.state.State
+      - state_vector: &id069 !stonesoup.types.array.StateVector
+        - [.inf]
+        - [.inf]
+        - [.inf]
+        - [.inf]
+      - timestamp: 2024-06-18 11:33:41.395924
+  - id: 5
+- !stonesoup.types.track.Track
+  - states:
+    - !stonesoup.types.state.State
+      - state_vector: *id050
+      - timestamp: 2024-06-18 11:33:45.395924
+    - !stonesoup.types.state.State
+      - state_vector: *id055
+      - timestamp: 2024-06-18 11:33:44.395924
+    - !stonesoup.types.state.State
+      - state_vector: *id060
+      - timestamp: 2024-06-18 11:33:43.395924
+    - !stonesoup.types.state.State
+      - state_vector: *id065
+      - timestamp: 2024-06-18 11:33:42.395924
+    - !stonesoup.types.state.State
+      - state_vector: &id070 !stonesoup.types.array.StateVector
+        - [.inf]
+        - [.inf]
+        - [.inf]
+        - [.inf]
+      - timestamp: 2024-06-18 11:33:41.395924
+  - id: 5
+- !stonesoup.types.track.Track
+  - states:
+    - !stonesoup.types.state.State
+      - state_vector: *id051
+      - timestamp: 2024-06-18 11:33:46.395924
+    - !stonesoup.types.state.State
+      - state_vector: *id056
+      - timestamp: 2024-06-18 11:33:45.395924
+    - !stonesoup.types.state.State
+      - state_vector: *id061
+      - timestamp: 2024-06-18 11:33:44.395924
+    - !stonesoup.types.state.State
+      - state_vector: *id066
+      - timestamp: 2024-06-18 11:33:43.395924
+    - !stonesoup.types.state.State
+      - state_vector: &id071 !stonesoup.types.array.StateVector
+        - [.inf]
+        - [.inf]
+        - [.inf]
+        - [.inf]
+      - timestamp: 2024-06-18 11:33:42.395924
+  - id: 5
+- !stonesoup.types.track.Track
+  - states:
+    - !stonesoup.types.state.State
+      - state_vector: *id052
+      - timestamp: 2024-06-18 11:33:46.395924
+    - !stonesoup.types.state.State
+      - state_vector: *id057
+      - timestamp: 2024-06-18 11:33:45.395924
+    - !stonesoup.types.state.State
+      - state_vector: *id062
+      - timestamp: 2024-06-18 11:33:44.395924
+    - !stonesoup.types.state.State
+      - state_vector: *id067
+      - timestamp: 2024-06-18 11:33:43.395924
+    - !stonesoup.types.state.State
+      - state_vector: &id072 !stonesoup.types.array.StateVector
+        - [.inf]
+        - [.inf]
+        - [.inf]
+        - [.inf]
+      - timestamp: 2024-06-18 11:33:42.395924
+  - id: 5
+- !stonesoup.types.track.Track
+  - states:
+    - !stonesoup.types.state.State
+      - state_vector: *id053
+      - timestamp: 2024-06-18 11:33:46.395924
+    - !stonesoup.types.state.State
+      - state_vector: *id058
+      - timestamp: 2024-06-18 11:33:45.395924
+    - !stonesoup.types.state.State
+      - state_vector: *id063
+      - timestamp: 2024-06-18 11:33:44.395924
+    - !stonesoup.types.state.State
+      - state_vector: *id068
+      - timestamp: 2024-06-18 11:33:43.395924
+    - !stonesoup.types.state.State
+      - state_vector: &id073 !stonesoup.types.array.StateVector
+        - [.inf]
+        - [.inf]
+        - [.inf]
+        - [.inf]
+      - timestamp: 2024-06-18 11:33:42.395924
+  - id: 5
+- !stonesoup.types.track.Track
+  - states:
+    - !stonesoup.types.state.State
+      - state_vector: *id054
+      - timestamp: 2024-06-18 11:33:46.395924
+    - !stonesoup.types.state.State
+      - state_vector: *id059
+      - timestamp: 2024-06-18 11:33:45.395924
+    - !stonesoup.types.state.State
+      - state_vector: *id064
+      - timestamp: 2024-06-18 11:33:44.395924
+    - !stonesoup.types.state.State
+      - state_vector: *id069
+      - timestamp: 2024-06-18 11:33:43.395924
+    - !stonesoup.types.state.State
+      - state_vector: &id074 !stonesoup.types.array.StateVector
+        - [.inf]
+        - [.inf]
+        - [.inf]
+        - [.inf]
+      - timestamp: 2024-06-18 11:33:42.395924
+  - id: 5
+- !stonesoup.types.track.Track
+  - states:
+    - !stonesoup.types.state.State
+      - state_vector: *id055
+      - timestamp: 2024-06-18 11:33:46.395924
+    - !stonesoup.types.state.State
+      - state_vector: *id060
+      - timestamp: 2024-06-18 11:33:45.395924
+    - !stonesoup.types.state.State
+      - state_vector: *id065
+      - timestamp: 2024-06-18 11:33:44.395924
+    - !stonesoup.types.state.State
+      - state_vector: *id070
+      - timestamp: 2024-06-18 11:33:43.395924
+    - !stonesoup.types.state.State
+      - state_vector: &id075 !stonesoup.types.array.StateVector
+        - [.inf]
+        - [.inf]
+        - [.inf]
+        - [.inf]
+      - timestamp: 2024-06-18 11:33:42.395924
+  - id: 5
+- !stonesoup.types.track.Track
+  - states:
+    - !stonesoup.types.state.State
+      - state_vector: *id056
+      - timestamp: 2024-06-18 11:33:47.395924
+    - !stonesoup.types.state.State
+      - state_vector: *id061
+      - timestamp: 2024-06-18 11:33:46.395924
+    - !stonesoup.types.state.State
+      - state_vector: *id066
+      - timestamp: 2024-06-18 11:33:45.395924
+    - !stonesoup.types.state.State
+      - state_vector: *id071
+      - timestamp: 2024-06-18 11:33:44.395924
+    - !stonesoup.types.state.State
+      - state_vector: &id076 !stonesoup.types.array.StateVector
+        - [2.0553939032530533]
+        - [0.22968563101735096]
+        - [4.412258093599652]
+        - [0.5788246616316579]
+      - timestamp: 2024-06-18 11:33:43.395924
+  - id: 5
+- !stonesoup.types.track.Track
+  - states:
+    - !stonesoup.types.state.State
+      - state_vector: *id057
+      - timestamp: 2024-06-18 11:33:47.395924
+    - !stonesoup.types.state.State
+      - state_vector: *id062
+      - timestamp: 2024-06-18 11:33:46.395924
+    - !stonesoup.types.state.State
+      - state_vector: *id067
+      - timestamp: 2024-06-18 11:33:45.395924
+    - !stonesoup.types.state.State
+      - state_vector: *id072
+      - timestamp: 2024-06-18 11:33:44.395924
+    - !stonesoup.types.state.State
+      - state_vector: &id077 !stonesoup.types.array.StateVector
+        - [3.635969242300314]
+        - [0.4571543258262931]
+        - [6.968170408542437]
+        - [0.9915507175297906]
+      - timestamp: 2024-06-18 11:33:43.395924
+  - id: 5
+- !stonesoup.types.track.Track
+  - states:
+    - !stonesoup.types.state.State
+      - state_vector: *id058
+      - timestamp: 2024-06-18 11:33:47.395924
+    - !stonesoup.types.state.State
+      - state_vector: *id063
+      - timestamp: 2024-06-18 11:33:46.395924
+    - !stonesoup.types.state.State
+      - state_vector: *id068
+      - timestamp: 2024-06-18 11:33:45.395924
+    - !stonesoup.types.state.State
+      - state_vector: *id073
+      - timestamp: 2024-06-18 11:33:44.395924
+    - !stonesoup.types.state.State
+      - state_vector: &id078 !stonesoup.types.array.StateVector
+        - [.inf]
+        - [.inf]
+        - [.inf]
+        - [.inf]
+      - timestamp: 2024-06-18 11:33:43.395924
+  - id: 5
+- !stonesoup.types.track.Track
+  - states:
+    - !stonesoup.types.state.State
+      - state_vector: *id059
+      - timestamp: 2024-06-18 11:33:47.395924
+    - !stonesoup.types.state.State
+      - state_vector: *id064
+      - timestamp: 2024-06-18 11:33:46.395924
+    - !stonesoup.types.state.State
+      - state_vector: *id069
+      - timestamp: 2024-06-18 11:33:45.395924
+    - !stonesoup.types.state.State
+      - state_vector: *id074
+      - timestamp: 2024-06-18 11:33:44.395924
+    - !stonesoup.types.state.State
+      - state_vector: &id079 !stonesoup.types.array.StateVector
+        - [.inf]
+        - [.inf]
+        - [.inf]
+        - [.inf]
+      - timestamp: 2024-06-18 11:33:43.395924
+  - id: 5
+- !stonesoup.types.track.Track
+  - states:
+    - !stonesoup.types.state.State
+      - state_vector: *id060
+      - timestamp: 2024-06-18 11:33:47.395924
+    - !stonesoup.types.state.State
+      - state_vector: *id065
+      - timestamp: 2024-06-18 11:33:46.395924
+    - !stonesoup.types.state.State
+      - state_vector: *id070
+      - timestamp: 2024-06-18 11:33:45.395924
+    - !stonesoup.types.state.State
+      - state_vector: *id075
+      - timestamp: 2024-06-18 11:33:44.395924
+    - !stonesoup.types.state.State
+      - state_vector: &id080 !stonesoup.types.array.StateVector
+        - [.inf]
+        - [.inf]
+        - [.inf]
+        - [.inf]
+      - timestamp: 2024-06-18 11:33:43.395924
+  - id: 5
+- !stonesoup.types.track.Track
+  - states:
+    - !stonesoup.types.state.State
+      - state_vector: *id061
+      - timestamp: 2024-06-18 11:33:48.395924
+    - !stonesoup.types.state.State
+      - state_vector: *id066
+      - timestamp: 2024-06-18 11:33:47.395924
+    - !stonesoup.types.state.State
+      - state_vector: *id071
+      - timestamp: 2024-06-18 11:33:46.395924
+    - !stonesoup.types.state.State
+      - state_vector: *id076
+      - timestamp: 2024-06-18 11:33:45.395924
+    - !stonesoup.types.state.State
+      - state_vector: &id081 !stonesoup.types.array.StateVector
+        - [.inf]
+        - [.inf]
+        - [.inf]
+        - [.inf]
+      - timestamp: 2024-06-18 11:33:44.395924
+  - id: 5
+- !stonesoup.types.track.Track
+  - states:
+    - !stonesoup.types.state.State
+      - state_vector: *id062
+      - timestamp: 2024-06-18 11:33:48.395924
+    - !stonesoup.types.state.State
+      - state_vector: *id067
+      - timestamp: 2024-06-18 11:33:47.395924
+    - !stonesoup.types.state.State
+      - state_vector: *id072
+      - timestamp: 2024-06-18 11:33:46.395924
+    - !stonesoup.types.state.State
+      - state_vector: *id077
+      - timestamp: 2024-06-18 11:33:45.395924
+    - !stonesoup.types.state.State
+      - state_vector: &id082 !stonesoup.types.array.StateVector
+        - [.inf]
+        - [.inf]
+        - [.inf]
+        - [.inf]
+      - timestamp: 2024-06-18 11:33:44.395924
+  - id: 5
+- !stonesoup.types.track.Track
+  - states:
+    - !stonesoup.types.state.State
+      - state_vector: *id063
+      - timestamp: 2024-06-18 11:33:48.395924
+    - !stonesoup.types.state.State
+      - state_vector: *id068
+      - timestamp: 2024-06-18 11:33:47.395924
+    - !stonesoup.types.state.State
+      - state_vector: *id073
+      - timestamp: 2024-06-18 11:33:46.395924
+    - !stonesoup.types.state.State
+      - state_vector: *id078
+      - timestamp: 2024-06-18 11:33:45.395924
+    - !stonesoup.types.state.State
+      - state_vector: &id083 !stonesoup.types.array.StateVector
+        - [.inf]
+        - [.inf]
+        - [.inf]
+        - [.inf]
+      - timestamp: 2024-06-18 11:33:44.395924
+  - id: 5
+- !stonesoup.types.track.Track
+  - states:
+    - !stonesoup.types.state.State
+      - state_vector: *id064
+      - timestamp: 2024-06-18 11:33:48.395924
+    - !stonesoup.types.state.State
+      - state_vector: *id069
+      - timestamp: 2024-06-18 11:33:47.395924
+    - !stonesoup.types.state.State
+      - state_vector: *id074
+      - timestamp: 2024-06-18 11:33:46.395924
+    - !stonesoup.types.state.State
+      - state_vector: *id079
+      - timestamp: 2024-06-18 11:33:45.395924
+    - !stonesoup.types.state.State
+      - state_vector: &id084 !stonesoup.types.array.StateVector
+        - [.inf]
+        - [.inf]
+        - [.inf]
+        - [.inf]
+      - timestamp: 2024-06-18 11:33:44.395924
+  - id: 5
+- !stonesoup.types.track.Track
+  - states:
+    - !stonesoup.types.state.State
+      - state_vector: *id065
+      - timestamp: 2024-06-18 11:33:48.395924
+    - !stonesoup.types.state.State
+      - state_vector: *id070
+      - timestamp: 2024-06-18 11:33:47.395924
+    - !stonesoup.types.state.State
+      - state_vector: *id075
+      - timestamp: 2024-06-18 11:33:46.395924
+    - !stonesoup.types.state.State
+      - state_vector: *id080
+      - timestamp: 2024-06-18 11:33:45.395924
+    - !stonesoup.types.state.State
+      - state_vector: &id085 !stonesoup.types.array.StateVector
+        - [.inf]
+        - [.inf]
+        - [.inf]
+        - [.inf]
+      - timestamp: 2024-06-18 11:33:44.395924
+  - id: 5
+- !stonesoup.types.track.Track
+  - states:
+    - !stonesoup.types.state.State
+      - state_vector: *id066
+      - timestamp: 2024-06-18 11:33:49.395924
+    - !stonesoup.types.state.State
+      - state_vector: *id071
+      - timestamp: 2024-06-18 11:33:48.395924
+    - !stonesoup.types.state.State
+      - state_vector: *id076
+      - timestamp: 2024-06-18 11:33:47.395924
+    - !stonesoup.types.state.State
+      - state_vector: *id081
+      - timestamp: 2024-06-18 11:33:46.395924
+    - !stonesoup.types.state.State
+      - state_vector: &id086 !stonesoup.types.array.StateVector
+        - [2.514765165287756]
+        - [0.2296856310173514]
+        - [5.569907416862968]
+        - [0.5788246616316578]
+      - timestamp: 2024-06-18 11:33:45.395924
+  - id: 5
+- !stonesoup.types.track.Track
+  - states:
+    - !stonesoup.types.state.State
+      - state_vector: *id067
+      - timestamp: 2024-06-18 11:33:49.395924
+    - !stonesoup.types.state.State
+      - state_vector: *id072
+      - timestamp: 2024-06-18 11:33:48.395924
+    - !stonesoup.types.state.State
+      - state_vector: *id077
+      - timestamp: 2024-06-18 11:33:47.395924
+    - !stonesoup.types.state.State
+      - state_vector: *id082
+      - timestamp: 2024-06-18 11:33:46.395924
+    - !stonesoup.types.state.State
+      - state_vector: &id087 !stonesoup.types.array.StateVector
+        - [4.5502778939529005]
+        - [0.4571543258262929]
+        - [8.951271843602019]
+        - [0.9915507175297902]
+      - timestamp: 2024-06-18 11:33:45.395924
+  - id: 5
+- !stonesoup.types.track.Track
+  - states:
+    - !stonesoup.types.state.State
+      - state_vector: *id068
+      - timestamp: 2024-06-18 11:33:49.395924
+    - !stonesoup.types.state.State
+      - state_vector: *id073
+      - timestamp: 2024-06-18 11:33:48.395924
+    - !stonesoup.types.state.State
+      - state_vector: *id078
+      - timestamp: 2024-06-18 11:33:47.395924
+    - !stonesoup.types.state.State
+      - state_vector: *id083
+      - timestamp: 2024-06-18 11:33:46.395924
+    - !stonesoup.types.state.State
+      - state_vector: &id088 !stonesoup.types.array.StateVector
+        - [.inf]
+        - [.inf]
+        - [.inf]
+        - [.inf]
+      - timestamp: 2024-06-18 11:33:45.395924
+  - id: 5
+- !stonesoup.types.track.Track
+  - states:
+    - !stonesoup.types.state.State
+      - state_vector: *id069
+      - timestamp: 2024-06-18 11:33:49.395924
+    - !stonesoup.types.state.State
+      - state_vector: *id074
+      - timestamp: 2024-06-18 11:33:48.395924
+    - !stonesoup.types.state.State
+      - state_vector: *id079
+      - timestamp: 2024-06-18 11:33:47.395924
+    - !stonesoup.types.state.State
+      - state_vector: *id084
+      - timestamp: 2024-06-18 11:33:46.395924
+    - !stonesoup.types.state.State
+      - state_vector: &id089 !stonesoup.types.array.StateVector
+        - [.inf]
+        - [.inf]
+        - [.inf]
+        - [.inf]
+      - timestamp: 2024-06-18 11:33:45.395924
+  - id: 5
+- !stonesoup.types.track.Track
+  - states:
+    - !stonesoup.types.state.State
+      - state_vector: *id070
+      - timestamp: 2024-06-18 11:33:49.395924
+    - !stonesoup.types.state.State
+      - state_vector: *id075
+      - timestamp: 2024-06-18 11:33:48.395924
+    - !stonesoup.types.state.State
+      - state_vector: *id080
+      - timestamp: 2024-06-18 11:33:47.395924
+    - !stonesoup.types.state.State
+      - state_vector: *id085
+      - timestamp: 2024-06-18 11:33:46.395924
+    - !stonesoup.types.state.State
+      - state_vector: &id090 !stonesoup.types.array.StateVector
+        - [.inf]
+        - [.inf]
+        - [.inf]
+        - [.inf]
+      - timestamp: 2024-06-18 11:33:45.395924
+  - id: 5
+- !stonesoup.types.track.Track
+  - states:
+    - !stonesoup.types.state.State
+      - state_vector: *id071
+      - timestamp: 2024-06-18 11:33:50.395924
+    - !stonesoup.types.state.State
+      - state_vector: *id076
+      - timestamp: 2024-06-18 11:33:49.395924
+    - !stonesoup.types.state.State
+      - state_vector: *id081
+      - timestamp: 2024-06-18 11:33:48.395924
+    - !stonesoup.types.state.State
+      - state_vector: *id086
+      - timestamp: 2024-06-18 11:33:47.395924
+    - !stonesoup.types.state.State
+      - state_vector: &id091 !stonesoup.types.array.StateVector
+        - [2.744450796305107]
+        - [0.22968563101735026]
+        - [6.148732078494626]
+        - [0.5788246616316581]
+      - timestamp: 2024-06-18 11:33:46.395924
+  - id: 5
+- !stonesoup.types.track.Track
+  - states:
+    - !stonesoup.types.state.State
+      - state_vector: *id072
+      - timestamp: 2024-06-18 11:33:50.395924
+    - !stonesoup.types.state.State
+      - state_vector: *id077
+      - timestamp: 2024-06-18 11:33:49.395924
+    - !stonesoup.types.state.State
+      - state_vector: *id082
+      - timestamp: 2024-06-18 11:33:48.395924
+    - !stonesoup.types.state.State
+      - state_vector: *id087
+      - timestamp: 2024-06-18 11:33:47.395924
+    - !stonesoup.types.state.State
+      - state_vector: &id092 !stonesoup.types.array.StateVector
+        - [5.007432219779194]
+        - [0.4571543258262929]
+        - [9.942822561131809]
+        - [0.9915507175297902]
+      - timestamp: 2024-06-18 11:33:46.395924
+  - id: 5
+- !stonesoup.types.track.Track
+  - states:
+    - !stonesoup.types.state.State
+      - state_vector: *id073
+      - timestamp: 2024-06-18 11:33:50.395924
+    - !stonesoup.types.state.State
+      - state_vector: *id078
+      - timestamp: 2024-06-18 11:33:49.395924
+    - !stonesoup.types.state.State
+      - state_vector: *id083
+      - timestamp: 2024-06-18 11:33:48.395924
+    - !stonesoup.types.state.State
+      - state_vector: *id088
+      - timestamp: 2024-06-18 11:33:47.395924
+    - !stonesoup.types.state.State
+      - state_vector: &id093 !stonesoup.types.array.StateVector
+        - [.inf]
+        - [.inf]
+        - [.inf]
+        - [.inf]
+      - timestamp: 2024-06-18 11:33:46.395924
+  - id: 5
+- !stonesoup.types.track.Track
+  - states:
+    - !stonesoup.types.state.State
+      - state_vector: *id074
+      - timestamp: 2024-06-18 11:33:50.395924
+    - !stonesoup.types.state.State
+      - state_vector: *id079
+      - timestamp: 2024-06-18 11:33:49.395924
+    - !stonesoup.types.state.State
+      - state_vector: *id084
+      - timestamp: 2024-06-18 11:33:48.395924
+    - !stonesoup.types.state.State
+      - state_vector: *id089
+      - timestamp: 2024-06-18 11:33:47.395924
+    - !stonesoup.types.state.State
+      - state_vector: &id094 !stonesoup.types.array.StateVector
+        - [.inf]
+        - [.inf]
+        - [.inf]
+        - [.inf]
+      - timestamp: 2024-06-18 11:33:46.395924
+  - id: 5
+- !stonesoup.types.track.Track
+  - states:
+    - !stonesoup.types.state.State
+      - state_vector: *id075
+      - timestamp: 2024-06-18 11:33:50.395924
+    - !stonesoup.types.state.State
+      - state_vector: *id080
+      - timestamp: 2024-06-18 11:33:49.395924
+    - !stonesoup.types.state.State
+      - state_vector: *id085
+      - timestamp: 2024-06-18 11:33:48.395924
+    - !stonesoup.types.state.State
+      - state_vector: *id090
+      - timestamp: 2024-06-18 11:33:47.395924
+    - !stonesoup.types.state.State
+      - state_vector: &id095 !stonesoup.types.array.StateVector
+        - [.inf]
+        - [.inf]
+        - [.inf]
+        - [.inf]
+      - timestamp: 2024-06-18 11:33:46.395924
+  - id: 5
+- !stonesoup.types.track.Track
+  - states:
+    - !stonesoup.types.state.State
+      - state_vector: *id076
+      - timestamp: 2024-06-18 11:33:51.395924
+    - !stonesoup.types.state.State
+      - state_vector: *id081
+      - timestamp: 2024-06-18 11:33:50.395924
+    - !stonesoup.types.state.State
+      - state_vector: *id086
+      - timestamp: 2024-06-18 11:33:49.395924
+    - !stonesoup.types.state.State
+      - state_vector: *id091
+      - timestamp: 2024-06-18 11:33:48.395924
+    - !stonesoup.types.state.State
+      - state_vector: &id096 !stonesoup.types.array.StateVector
+        - [2.974136427322457]
+        - [0.22968563101735054]
+        - [6.727556740126284]
+        - [0.5788246616316586]
+      - timestamp: 2024-06-18 11:33:47.395924
+  - id: 5
+- !stonesoup.types.track.Track
+  - states:
+    - !stonesoup.types.state.State
+      - state_vector: *id077
+      - timestamp: 2024-06-18 11:33:51.395924
+    - !stonesoup.types.state.State
+      - state_vector: *id082
+      - timestamp: 2024-06-18 11:33:50.395924
+    - !stonesoup.types.state.State
+      - state_vector: *id087
+      - timestamp: 2024-06-18 11:33:49.395924
+    - !stonesoup.types.state.State
+      - state_vector: *id092
+      - timestamp: 2024-06-18 11:33:48.395924
+    - !stonesoup.types.state.State
+      - state_vector: &id097 !stonesoup.types.array.StateVector
+        - [5.464586545605487]
+        - [0.45715432582629234]
+        - [10.9343732786616]
+        - [0.9915507175297892]
+      - timestamp: 2024-06-18 11:33:47.395924
+  - id: 5
+- !stonesoup.types.track.Track
+  - states:
+    - !stonesoup.types.state.State
+      - state_vector: *id078
+      - timestamp: 2024-06-18 11:33:51.395924
+    - !stonesoup.types.state.State
+      - state_vector: *id083
+      - timestamp: 2024-06-18 11:33:50.395924
+    - !stonesoup.types.state.State
+      - state_vector: *id088
+      - timestamp: 2024-06-18 11:33:49.395924
+    - !stonesoup.types.state.State
+      - state_vector: *id093
+      - timestamp: 2024-06-18 11:33:48.395924
+    - !stonesoup.types.state.State
+      - state_vector: &id098 !stonesoup.types.array.StateVector
+        - [.inf]
+        - [.inf]
+        - [.inf]
+        - [.inf]
+      - timestamp: 2024-06-18 11:33:47.395924
+  - id: 5
+- !stonesoup.types.track.Track
+  - states:
+    - !stonesoup.types.state.State
+      - state_vector: *id079
+      - timestamp: 2024-06-18 11:33:51.395924
+    - !stonesoup.types.state.State
+      - state_vector: *id084
+      - timestamp: 2024-06-18 11:33:50.395924
+    - !stonesoup.types.state.State
+      - state_vector: *id089
+      - timestamp: 2024-06-18 11:33:49.395924
+    - !stonesoup.types.state.State
+      - state_vector: *id094
+      - timestamp: 2024-06-18 11:33:48.395924
+    - !stonesoup.types.state.State
+      - state_vector: &id099 !stonesoup.types.array.StateVector
+        - [.inf]
+        - [.inf]
+        - [.inf]
+        - [.inf]
+      - timestamp: 2024-06-18 11:33:47.395924
+  - id: 5
+- !stonesoup.types.track.Track
+  - states:
+    - !stonesoup.types.state.State
+      - state_vector: *id080
+      - timestamp: 2024-06-18 11:33:51.395924
+    - !stonesoup.types.state.State
+      - state_vector: *id085
+      - timestamp: 2024-06-18 11:33:50.395924
+    - !stonesoup.types.state.State
+      - state_vector: *id090
+      - timestamp: 2024-06-18 11:33:49.395924
+    - !stonesoup.types.state.State
+      - state_vector: *id095
+      - timestamp: 2024-06-18 11:33:48.395924
+    - !stonesoup.types.state.State
+      - state_vector: &id100 !stonesoup.types.array.StateVector
+        - [.inf]
+        - [.inf]
+        - [.inf]
+        - [.inf]
+      - timestamp: 2024-06-18 11:33:47.395924
+  - id: 5
+- !stonesoup.types.track.Track
+  - states:
+    - !stonesoup.types.state.State
+      - state_vector: *id081
+      - timestamp: 2024-06-18 11:33:52.395924
+    - !stonesoup.types.state.State
+      - state_vector: *id086
+      - timestamp: 2024-06-18 11:33:51.395924
+    - !stonesoup.types.state.State
+      - state_vector: *id091
+      - timestamp: 2024-06-18 11:33:50.395924
+    - !stonesoup.types.state.State
+      - state_vector: *id096
+      - timestamp: 2024-06-18 11:33:49.395924
+    - !stonesoup.types.state.State
+      - state_vector: &id101 !stonesoup.types.array.StateVector
+        - [.inf]
+        - [.inf]
+        - [.inf]
+        - [.inf]
+      - timestamp: 2024-06-18 11:33:48.395924
+  - id: 5
+- !stonesoup.types.track.Track
+  - states:
+    - !stonesoup.types.state.State
+      - state_vector: *id082
+      - timestamp: 2024-06-18 11:33:52.395924
+    - !stonesoup.types.state.State
+      - state_vector: *id087
+      - timestamp: 2024-06-18 11:33:51.395924
+    - !stonesoup.types.state.State
+      - state_vector: *id092
+      - timestamp: 2024-06-18 11:33:50.395924
+    - !stonesoup.types.state.State
+      - state_vector: *id097
+      - timestamp: 2024-06-18 11:33:49.395924
+    - !stonesoup.types.state.State
+      - state_vector: &id102 !stonesoup.types.array.StateVector
+        - [.inf]
+        - [.inf]
+        - [.inf]
+        - [.inf]
+      - timestamp: 2024-06-18 11:33:48.395924
+  - id: 5
+- !stonesoup.types.track.Track
+  - states:
+    - !stonesoup.types.state.State
+      - state_vector: *id083
+      - timestamp: 2024-06-18 11:33:52.395924
+    - !stonesoup.types.state.State
+      - state_vector: *id088
+      - timestamp: 2024-06-18 11:33:51.395924
+    - !stonesoup.types.state.State
+      - state_vector: *id093
+      - timestamp: 2024-06-18 11:33:50.395924
+    - !stonesoup.types.state.State
+      - state_vector: *id098
+      - timestamp: 2024-06-18 11:33:49.395924
+    - !stonesoup.types.state.State
+      - state_vector: &id103 !stonesoup.types.array.StateVector
+        - [7.381534267819811]
+        - [0.555999195131864]
+        - [0.2084237050820486]
+        - [0.007275979281958237]
+      - timestamp: 2024-06-18 11:33:48.395924
+  - id: 5
+- !stonesoup.types.track.Track
+  - states:
+    - !stonesoup.types.state.State
+      - state_vector: *id084
+      - timestamp: 2024-06-18 11:33:52.395924
+    - !stonesoup.types.state.State
+      - state_vector: *id089
+      - timestamp: 2024-06-18 11:33:51.395924
+    - !stonesoup.types.state.State
+      - state_vector: *id094
+      - timestamp: 2024-06-18 11:33:50.395924
+    - !stonesoup.types.state.State
+      - state_vector: *id099
+      - timestamp: 2024-06-18 11:33:49.395924
+    - !stonesoup.types.state.State
+      - state_vector: &id104 !stonesoup.types.array.StateVector
+        - [8.121869780395105]
+        - [0.6160113160677408]
+        - [2.2589807577716328]
+        - [0.11390320562483858]
+      - timestamp: 2024-06-18 11:33:48.395924
+  - id: 5
+- !stonesoup.types.track.Track
+  - states:
+    - !stonesoup.types.state.State
+      - state_vector: *id085
+      - timestamp: 2024-06-18 11:33:52.395924
+    - !stonesoup.types.state.State
+      - state_vector: *id090
+      - timestamp: 2024-06-18 11:33:51.395924
+    - !stonesoup.types.state.State
+      - state_vector: *id095
+      - timestamp: 2024-06-18 11:33:50.395924
+    - !stonesoup.types.state.State
+      - state_vector: *id100
+      - timestamp: 2024-06-18 11:33:49.395924
+    - !stonesoup.types.state.State
+      - state_vector: &id105 !stonesoup.types.array.StateVector
+        - [.inf]
+        - [.inf]
+        - [.inf]
+        - [.inf]
+      - timestamp: 2024-06-18 11:33:48.395924
+  - id: 5
+- !stonesoup.types.track.Track
+  - states:
+    - !stonesoup.types.state.State
+      - state_vector: *id086
+      - timestamp: 2024-06-18 11:33:53.395924
+    - !stonesoup.types.state.State
+      - state_vector: *id091
+      - timestamp: 2024-06-18 11:33:52.395924
+    - !stonesoup.types.state.State
+      - state_vector: *id096
+      - timestamp: 2024-06-18 11:33:51.395924
+    - !stonesoup.types.state.State
+      - state_vector: *id101
+      - timestamp: 2024-06-18 11:33:50.395924
+    - !stonesoup.types.state.State
+      - state_vector: &id106 !stonesoup.types.array.StateVector
+        - [.inf]
+        - [.inf]
+        - [.inf]
+        - [.inf]
+      - timestamp: 2024-06-18 11:33:49.395924
+  - id: 5
+- !stonesoup.types.track.Track
+  - states:
+    - !stonesoup.types.state.State
+      - state_vector: *id087
+      - timestamp: 2024-06-18 11:33:53.395924
+    - !stonesoup.types.state.State
+      - state_vector: *id092
+      - timestamp: 2024-06-18 11:33:52.395924
+    - !stonesoup.types.state.State
+      - state_vector: *id097
+      - timestamp: 2024-06-18 11:33:51.395924
+    - !stonesoup.types.state.State
+      - state_vector: *id102
+      - timestamp: 2024-06-18 11:33:50.395924
+    - !stonesoup.types.state.State
+      - state_vector: &id107 !stonesoup.types.array.StateVector
+        - [.inf]
+        - [.inf]
+        - [.inf]
+        - [.inf]
+      - timestamp: 2024-06-18 11:33:49.395924
+  - id: 5
+- !stonesoup.types.track.Track
+  - states:
+    - !stonesoup.types.state.State
+      - state_vector: *id088
+      - timestamp: 2024-06-18 11:33:53.395924
+    - !stonesoup.types.state.State
+      - state_vector: *id093
+      - timestamp: 2024-06-18 11:33:52.395924
+    - !stonesoup.types.state.State
+      - state_vector: *id098
+      - timestamp: 2024-06-18 11:33:51.395924
+    - !stonesoup.types.state.State
+      - state_vector: *id103
+      - timestamp: 2024-06-18 11:33:50.395924
+    - !stonesoup.types.state.State
+      - state_vector: &id108 !stonesoup.types.array.StateVector
+        - [.inf]
+        - [.inf]
+        - [.inf]
+        - [.inf]
+      - timestamp: 2024-06-18 11:33:49.395924
+  - id: 5
+- !stonesoup.types.track.Track
+  - states:
+    - !stonesoup.types.state.State
+      - state_vector: *id089
+      - timestamp: 2024-06-18 11:33:53.395924
+    - !stonesoup.types.state.State
+      - state_vector: *id094
+      - timestamp: 2024-06-18 11:33:52.395924
+    - !stonesoup.types.state.State
+      - state_vector: *id099
+      - timestamp: 2024-06-18 11:33:51.395924
+    - !stonesoup.types.state.State
+      - state_vector: *id104
+      - timestamp: 2024-06-18 11:33:50.395924
+    - !stonesoup.types.state.State
+      - state_vector: &id109 !stonesoup.types.array.StateVector
+        - [.inf]
+        - [.inf]
+        - [.inf]
+        - [.inf]
+      - timestamp: 2024-06-18 11:33:49.395924
+  - id: 5
+- !stonesoup.types.track.Track
+  - states:
+    - !stonesoup.types.state.State
+      - state_vector: *id090
+      - timestamp: 2024-06-18 11:33:53.395924
+    - !stonesoup.types.state.State
+      - state_vector: *id095
+      - timestamp: 2024-06-18 11:33:52.395924
+    - !stonesoup.types.state.State
+      - state_vector: *id100
+      - timestamp: 2024-06-18 11:33:51.395924
+    - !stonesoup.types.state.State
+      - state_vector: *id105
+      - timestamp: 2024-06-18 11:33:50.395924
+    - !stonesoup.types.state.State
+      - state_vector: &id110 !stonesoup.types.array.StateVector
+        - [.inf]
+        - [.inf]
+        - [.inf]
+        - [.inf]
+      - timestamp: 2024-06-18 11:33:49.395924
+  - id: 5
+- !stonesoup.types.track.Track
+  - states:
+    - !stonesoup.types.state.State
+      - state_vector: *id091
+      - timestamp: 2024-06-18 11:33:54.395924
+    - !stonesoup.types.state.State
+      - state_vector: *id096
+      - timestamp: 2024-06-18 11:33:53.395924
+    - !stonesoup.types.state.State
+      - state_vector: *id101
+      - timestamp: 2024-06-18 11:33:52.395924
+    - !stonesoup.types.state.State
+      - state_vector: *id106
+      - timestamp: 2024-06-18 11:33:51.395924
+    - !stonesoup.types.state.State
+      - state_vector: &id111 !stonesoup.types.array.StateVector
+        - [3.663193320374511]
+        - [0.22968563101735154]
+        - [8.464030725021257]
+        - [0.578824661631657]
+      - timestamp: 2024-06-18 11:33:50.395924
+  - id: 5
+- !stonesoup.types.track.Track
+  - states:
+    - !stonesoup.types.state.State
+      - state_vector: *id092
+      - timestamp: 2024-06-18 11:33:54.395924
+    - !stonesoup.types.state.State
+      - state_vector: *id097
+      - timestamp: 2024-06-18 11:33:53.395924
+    - !stonesoup.types.state.State
+      - state_vector: *id102
+      - timestamp: 2024-06-18 11:33:52.395924
+    - !stonesoup.types.state.State
+      - state_vector: *id107
+      - timestamp: 2024-06-18 11:33:51.395924
+    - !stonesoup.types.state.State
+      - state_vector: &id112 !stonesoup.types.array.StateVector
+        - [6.836049523084365]
+        - [0.45715432582629273]
+        - [13.909025431250969]
+        - [0.99155071752979]
+      - timestamp: 2024-06-18 11:33:50.395924
+  - id: 5
+- !stonesoup.types.track.Track
+  - states:
+    - !stonesoup.types.state.State
+      - state_vector: *id093
+      - timestamp: 2024-06-18 11:33:54.395924
+    - !stonesoup.types.state.State
+      - state_vector: *id098
+      - timestamp: 2024-06-18 11:33:53.395924
+    - !stonesoup.types.state.State
+      - state_vector: *id103
+      - timestamp: 2024-06-18 11:33:52.395924
+    - !stonesoup.types.state.State
+      - state_vector: *id108
+      - timestamp: 2024-06-18 11:33:51.395924
+    - !stonesoup.types.state.State
+      - state_vector: &id113 !stonesoup.types.array.StateVector
+        - [.inf]
+        - [.inf]
+        - [.inf]
+        - [.inf]
+      - timestamp: 2024-06-18 11:33:50.395924
+  - id: 5
+- !stonesoup.types.track.Track
+  - states:
+    - !stonesoup.types.state.State
+      - state_vector: *id094
+      - timestamp: 2024-06-18 11:33:54.395924
+    - !stonesoup.types.state.State
+      - state_vector: *id099
+      - timestamp: 2024-06-18 11:33:53.395924
+    - !stonesoup.types.state.State
+      - state_vector: *id104
+      - timestamp: 2024-06-18 11:33:52.395924
+    - !stonesoup.types.state.State
+      - state_vector: *id109
+      - timestamp: 2024-06-18 11:33:51.395924
+    - !stonesoup.types.state.State
+      - state_vector: &id114 !stonesoup.types.array.StateVector
+        - [.inf]
+        - [.inf]
+        - [.inf]
+        - [.inf]
+      - timestamp: 2024-06-18 11:33:50.395924
+  - id: 5
+- !stonesoup.types.track.Track
+  - states:
+    - !stonesoup.types.state.State
+      - state_vector: *id095
+      - timestamp: 2024-06-18 11:33:54.395924
+    - !stonesoup.types.state.State
+      - state_vector: *id100
+      - timestamp: 2024-06-18 11:33:53.395924
+    - !stonesoup.types.state.State
+      - state_vector: *id105
+      - timestamp: 2024-06-18 11:33:52.395924
+    - !stonesoup.types.state.State
+      - state_vector: *id110
+      - timestamp: 2024-06-18 11:33:51.395924
+    - !stonesoup.types.state.State
+      - state_vector: &id115 !stonesoup.types.array.StateVector
+        - [.inf]
+        - [.inf]
+        - [.inf]
+        - [.inf]
+      - timestamp: 2024-06-18 11:33:50.395924
+  - id: 5
+- !stonesoup.types.track.Track
+  - states:
+    - !stonesoup.types.state.State
+      - state_vector: *id096
+      - timestamp: 2024-06-18 11:33:55.395924
+    - !stonesoup.types.state.State
+      - state_vector: *id101
+      - timestamp: 2024-06-18 11:33:54.395924
+    - !stonesoup.types.state.State
+      - state_vector: *id106
+      - timestamp: 2024-06-18 11:33:53.395924
+    - !stonesoup.types.state.State
+      - state_vector: *id111
+      - timestamp: 2024-06-18 11:33:52.395924
+    - !stonesoup.types.state.State
+      - state_vector: &id116 !stonesoup.types.array.StateVector
+        - [.inf]
+        - [.inf]
+        - [.inf]
+        - [.inf]
+      - timestamp: 2024-06-18 11:33:51.395924
+  - id: 5
+- !stonesoup.types.track.Track
+  - states:
+    - !stonesoup.types.state.State
+      - state_vector: *id097
+      - timestamp: 2024-06-18 11:33:55.395924
+    - !stonesoup.types.state.State
+      - state_vector: *id102
+      - timestamp: 2024-06-18 11:33:54.395924
+    - !stonesoup.types.state.State
+      - state_vector: *id107
+      - timestamp: 2024-06-18 11:33:53.395924
+    - !stonesoup.types.state.State
+      - state_vector: *id112
+      - timestamp: 2024-06-18 11:33:52.395924
+    - !stonesoup.types.state.State
+      - state_vector: &id117 !stonesoup.types.array.StateVector
+        - [.inf]
+        - [.inf]
+        - [.inf]
+        - [.inf]
+      - timestamp: 2024-06-18 11:33:51.395924
+  - id: 5
+- !stonesoup.types.track.Track
+  - states:
+    - !stonesoup.types.state.State
+      - state_vector: *id098
+      - timestamp: 2024-06-18 11:33:55.395924
+    - !stonesoup.types.state.State
+      - state_vector: *id103
+      - timestamp: 2024-06-18 11:33:54.395924
+    - !stonesoup.types.state.State
+      - state_vector: *id108
+      - timestamp: 2024-06-18 11:33:53.395924
+    - !stonesoup.types.state.State
+      - state_vector: *id113
+      - timestamp: 2024-06-18 11:33:52.395924
+    - !stonesoup.types.state.State
+      - state_vector: &id118 !stonesoup.types.array.StateVector
+        - [.inf]
+        - [.inf]
+        - [.inf]
+        - [.inf]
+      - timestamp: 2024-06-18 11:33:51.395924
+  - id: 5
+- !stonesoup.types.track.Track
+  - states:
+    - !stonesoup.types.state.State
+      - state_vector: *id099
+      - timestamp: 2024-06-18 11:33:55.395924
+    - !stonesoup.types.state.State
+      - state_vector: *id104
+      - timestamp: 2024-06-18 11:33:54.395924
+    - !stonesoup.types.state.State
+      - state_vector: *id109
+      - timestamp: 2024-06-18 11:33:53.395924
+    - !stonesoup.types.state.State
+      - state_vector: *id114
+      - timestamp: 2024-06-18 11:33:52.395924
+    - !stonesoup.types.state.State
+      - state_vector: &id119 !stonesoup.types.array.StateVector
+        - [.inf]
+        - [.inf]
+        - [.inf]
+        - [.inf]
+      - timestamp: 2024-06-18 11:33:51.395924
+  - id: 5
+- !stonesoup.types.track.Track
+  - states:
+    - !stonesoup.types.state.State
+      - state_vector: *id100
+      - timestamp: 2024-06-18 11:33:55.395924
+    - !stonesoup.types.state.State
+      - state_vector: *id105
+      - timestamp: 2024-06-18 11:33:54.395924
+    - !stonesoup.types.state.State
+      - state_vector: *id110
+      - timestamp: 2024-06-18 11:33:53.395924
+    - !stonesoup.types.state.State
+      - state_vector: *id115
+      - timestamp: 2024-06-18 11:33:52.395924
+    - !stonesoup.types.state.State
+      - state_vector: &id120 !stonesoup.types.array.StateVector
+        - [0.4368470427547143]
+        - [0.015909432521462596]
+        - [0.4117093426352121]
+        - [0.0022035417977424032]
+      - timestamp: 2024-06-18 11:33:51.395924
+  - id: 5
+- !stonesoup.types.track.Track
+  - states:
+    - !stonesoup.types.state.State
+      - state_vector: *id101
+      - timestamp: 2024-06-18 11:33:56.395924
+    - !stonesoup.types.state.State
+      - state_vector: *id106
+      - timestamp: 2024-06-18 11:33:55.395924
+    - !stonesoup.types.state.State
+      - state_vector: *id111
+      - timestamp: 2024-06-18 11:33:54.395924
+    - !stonesoup.types.state.State
+      - state_vector: *id116
+      - timestamp: 2024-06-18 11:33:53.395924
+    - !stonesoup.types.state.State
+      - state_vector: &id121 !stonesoup.types.array.StateVector
+        - [.inf]
+        - [.inf]
+        - [.inf]
+        - [.inf]
+      - timestamp: 2024-06-18 11:33:52.395924
+  - id: 5
+- !stonesoup.types.track.Track
+  - states:
+    - !stonesoup.types.state.State
+      - state_vector: *id102
+      - timestamp: 2024-06-18 11:33:56.395924
+    - !stonesoup.types.state.State
+      - state_vector: *id107
+      - timestamp: 2024-06-18 11:33:55.395924
+    - !stonesoup.types.state.State
+      - state_vector: *id112
+      - timestamp: 2024-06-18 11:33:54.395924
+    - !stonesoup.types.state.State
+      - state_vector: *id117
+      - timestamp: 2024-06-18 11:33:53.395924
+    - !stonesoup.types.state.State
+      - state_vector: &id122 !stonesoup.types.array.StateVector
+        - [.inf]
+        - [.inf]
+        - [.inf]
+        - [.inf]
+      - timestamp: 2024-06-18 11:33:52.395924
+  - id: 5
+- !stonesoup.types.track.Track
+  - states:
+    - !stonesoup.types.state.State
+      - state_vector: *id103
+      - timestamp: 2024-06-18 11:33:56.395924
+    - !stonesoup.types.state.State
+      - state_vector: *id108
+      - timestamp: 2024-06-18 11:33:55.395924
+    - !stonesoup.types.state.State
+      - state_vector: *id113
+      - timestamp: 2024-06-18 11:33:54.395924
+    - !stonesoup.types.state.State
+      - state_vector: *id118
+      - timestamp: 2024-06-18 11:33:53.395924
+    - !stonesoup.types.state.State
+      - state_vector: &id123 !stonesoup.types.array.StateVector
+        - [.inf]
+        - [.inf]
+        - [.inf]
+        - [.inf]
+      - timestamp: 2024-06-18 11:33:52.395924
+  - id: 5
+- !stonesoup.types.track.Track
+  - states:
+    - !stonesoup.types.state.State
+      - state_vector: *id104
+      - timestamp: 2024-06-18 11:33:56.395924
+    - !stonesoup.types.state.State
+      - state_vector: *id109
+      - timestamp: 2024-06-18 11:33:55.395924
+    - !stonesoup.types.state.State
+      - state_vector: *id114
+      - timestamp: 2024-06-18 11:33:54.395924
+    - !stonesoup.types.state.State
+      - state_vector: *id119
+      - timestamp: 2024-06-18 11:33:53.395924
+    - !stonesoup.types.state.State
+      - state_vector: &id124 !stonesoup.types.array.StateVector
+        - [.inf]
+        - [.inf]
+        - [.inf]
+        - [.inf]
+      - timestamp: 2024-06-18 11:33:52.395924
+  - id: 5
+- !stonesoup.types.track.Track
+  - states:
+    - !stonesoup.types.state.State
+      - state_vector: *id105
+      - timestamp: 2024-06-18 11:33:56.395924
+    - !stonesoup.types.state.State
+      - state_vector: *id110
+      - timestamp: 2024-06-18 11:33:55.395924
+    - !stonesoup.types.state.State
+      - state_vector: *id115
+      - timestamp: 2024-06-18 11:33:54.395924
+    - !stonesoup.types.state.State
+      - state_vector: *id120
+      - timestamp: 2024-06-18 11:33:53.395924
+    - !stonesoup.types.state.State
+      - state_vector: &id125 !stonesoup.types.array.StateVector
+        - [.inf]
+        - [.inf]
+        - [.inf]
+        - [.inf]
+      - timestamp: 2024-06-18 11:33:52.395924
+  - id: 5
+- !stonesoup.types.track.Track
+  - states:
+    - !stonesoup.types.state.State
+      - state_vector: *id106
+      - timestamp: 2024-06-18 11:33:57.395924
+    - !stonesoup.types.state.State
+      - state_vector: *id111
+      - timestamp: 2024-06-18 11:33:56.395924
+    - !stonesoup.types.state.State
+      - state_vector: *id116
+      - timestamp: 2024-06-18 11:33:55.395924
+    - !stonesoup.types.state.State
+      - state_vector: *id121
+      - timestamp: 2024-06-18 11:33:54.395924
+    - !stonesoup.types.state.State
+      - state_vector: &id126 !stonesoup.types.array.StateVector
+        - [.inf]
+        - [.inf]
+        - [.inf]
+        - [.inf]
+      - timestamp: 2024-06-18 11:33:53.395924
+  - id: 5
+- !stonesoup.types.track.Track
+  - states:
+    - !stonesoup.types.state.State
+      - state_vector: *id107
+      - timestamp: 2024-06-18 11:33:57.395924
+    - !stonesoup.types.state.State
+      - state_vector: *id112
+      - timestamp: 2024-06-18 11:33:56.395924
+    - !stonesoup.types.state.State
+      - state_vector: *id117
+      - timestamp: 2024-06-18 11:33:55.395924
+    - !stonesoup.types.state.State
+      - state_vector: *id122
+      - timestamp: 2024-06-18 11:33:54.395924
+    - !stonesoup.types.state.State
+      - state_vector: &id127 !stonesoup.types.array.StateVector
+        - [.inf]
+        - [.inf]
+        - [.inf]
+        - [.inf]
+      - timestamp: 2024-06-18 11:33:53.395924
+  - id: 5
+- !stonesoup.types.track.Track
+  - states:
+    - !stonesoup.types.state.State
+      - state_vector: *id108
+      - timestamp: 2024-06-18 11:33:57.395924
+    - !stonesoup.types.state.State
+      - state_vector: *id113
+      - timestamp: 2024-06-18 11:33:56.395924
+    - !stonesoup.types.state.State
+      - state_vector: *id118
+      - timestamp: 2024-06-18 11:33:55.395924
+    - !stonesoup.types.state.State
+      - state_vector: *id123
+      - timestamp: 2024-06-18 11:33:54.395924
+    - !stonesoup.types.state.State
+      - state_vector: &id128 !stonesoup.types.array.StateVector
+        - [.inf]
+        - [.inf]
+        - [.inf]
+        - [.inf]
+      - timestamp: 2024-06-18 11:33:53.395924
+  - id: 5
+- !stonesoup.types.track.Track
+  - states:
+    - !stonesoup.types.state.State
+      - state_vector: *id109
+      - timestamp: 2024-06-18 11:33:57.395924
+    - !stonesoup.types.state.State
+      - state_vector: *id114
+      - timestamp: 2024-06-18 11:33:56.395924
+    - !stonesoup.types.state.State
+      - state_vector: *id119
+      - timestamp: 2024-06-18 11:33:55.395924
+    - !stonesoup.types.state.State
+      - state_vector: *id124
+      - timestamp: 2024-06-18 11:33:54.395924
+    - !stonesoup.types.state.State
+      - state_vector: &id129 !stonesoup.types.array.StateVector
+        - [.inf]
+        - [.inf]
+        - [.inf]
+        - [.inf]
+      - timestamp: 2024-06-18 11:33:53.395924
+  - id: 5
+- !stonesoup.types.track.Track
+  - states:
+    - !stonesoup.types.state.State
+      - state_vector: *id110
+      - timestamp: 2024-06-18 11:33:57.395924
+    - !stonesoup.types.state.State
+      - state_vector: *id115
+      - timestamp: 2024-06-18 11:33:56.395924
+    - !stonesoup.types.state.State
+      - state_vector: *id120
+      - timestamp: 2024-06-18 11:33:55.395924
+    - !stonesoup.types.state.State
+      - state_vector: *id125
+      - timestamp: 2024-06-18 11:33:54.395924
+    - !stonesoup.types.state.State
+      - state_vector: &id130 !stonesoup.types.array.StateVector
+        - [.inf]
+        - [.inf]
+        - [.inf]
+        - [.inf]
+      - timestamp: 2024-06-18 11:33:53.395924
+  - id: 5
+- !stonesoup.types.track.Track
+  - states:
+    - !stonesoup.types.state.State
+      - state_vector: *id111
+      - timestamp: 2024-06-18 11:33:58.395924
+    - !stonesoup.types.state.State
+      - state_vector: *id116
+      - timestamp: 2024-06-18 11:33:57.395924
+    - !stonesoup.types.state.State
+      - state_vector: *id121
+      - timestamp: 2024-06-18 11:33:56.395924
+    - !stonesoup.types.state.State
+      - state_vector: *id126
+      - timestamp: 2024-06-18 11:33:55.395924
+    - !stonesoup.types.state.State
+      - state_vector: &id131 !stonesoup.types.array.StateVector
+        - [4.581935844443914]
+        - [0.22968563101735073]
+        - [10.779329371547883]
+        - [0.5788246616316561]
+      - timestamp: 2024-06-18 11:33:54.395924
+  - id: 5
+- !stonesoup.types.track.Track
+  - states:
+    - !stonesoup.types.state.State
+      - state_vector: *id112
+      - timestamp: 2024-06-18 11:33:58.395924
+    - !stonesoup.types.state.State
+      - state_vector: *id117
+      - timestamp: 2024-06-18 11:33:57.395924
+    - !stonesoup.types.state.State
+      - state_vector: *id122
+      - timestamp: 2024-06-18 11:33:56.395924
+    - !stonesoup.types.state.State
+      - state_vector: *id127
+      - timestamp: 2024-06-18 11:33:55.395924
+    - !stonesoup.types.state.State
+      - state_vector: &id132 !stonesoup.types.array.StateVector
+        - [8.664666826389537]
+        - [0.45715432582629273]
+        - [17.87522830137013]
+        - [0.99155071752979]
+      - timestamp: 2024-06-18 11:33:54.395924
+  - id: 5
+- !stonesoup.types.track.Track
+  - states:
+    - !stonesoup.types.state.State
+      - state_vector: *id113
+      - timestamp: 2024-06-18 11:33:58.395924
+    - !stonesoup.types.state.State
+      - state_vector: *id118
+      - timestamp: 2024-06-18 11:33:57.395924
+    - !stonesoup.types.state.State
+      - state_vector: *id123
+      - timestamp: 2024-06-18 11:33:56.395924
+    - !stonesoup.types.state.State
+      - state_vector: *id128
+      - timestamp: 2024-06-18 11:33:55.395924
+    - !stonesoup.types.state.State
+      - state_vector: &id133 !stonesoup.types.array.StateVector
+        - [.inf]
+        - [.inf]
+        - [.inf]
+        - [.inf]
+      - timestamp: 2024-06-18 11:33:54.395924
+  - id: 5
+- !stonesoup.types.track.Track
+  - states:
+    - !stonesoup.types.state.State
+      - state_vector: *id114
+      - timestamp: 2024-06-18 11:33:58.395924
+    - !stonesoup.types.state.State
+      - state_vector: *id119
+      - timestamp: 2024-06-18 11:33:57.395924
+    - !stonesoup.types.state.State
+      - state_vector: *id124
+      - timestamp: 2024-06-18 11:33:56.395924
+    - !stonesoup.types.state.State
+      - state_vector: *id129
+      - timestamp: 2024-06-18 11:33:55.395924
+    - !stonesoup.types.state.State
+      - state_vector: &id134 !stonesoup.types.array.StateVector
+        - [.inf]
+        - [.inf]
+        - [.inf]
+        - [.inf]
+      - timestamp: 2024-06-18 11:33:54.395924
+  - id: 5
+- !stonesoup.types.track.Track
+  - states:
+    - !stonesoup.types.state.State
+      - state_vector: *id115
+      - timestamp: 2024-06-18 11:33:58.395924
+    - !stonesoup.types.state.State
+      - state_vector: *id120
+      - timestamp: 2024-06-18 11:33:57.395924
+    - !stonesoup.types.state.State
+      - state_vector: *id125
+      - timestamp: 2024-06-18 11:33:56.395924
+    - !stonesoup.types.state.State
+      - state_vector: *id130
+      - timestamp: 2024-06-18 11:33:55.395924
+    - !stonesoup.types.state.State
+      - state_vector: &id135 !stonesoup.types.array.StateVector
+        - [.inf]
+        - [.inf]
+        - [.inf]
+        - [.inf]
+      - timestamp: 2024-06-18 11:33:54.395924
+  - id: 5
+- !stonesoup.types.track.Track
+  - states:
+    - !stonesoup.types.state.State
+      - state_vector: *id116
+      - timestamp: 2024-06-18 11:33:59.395924
+    - !stonesoup.types.state.State
+      - state_vector: *id121
+      - timestamp: 2024-06-18 11:33:58.395924
+    - !stonesoup.types.state.State
+      - state_vector: *id126
+      - timestamp: 2024-06-18 11:33:57.395924
+    - !stonesoup.types.state.State
+      - state_vector: *id131
+      - timestamp: 2024-06-18 11:33:56.395924
+    - !stonesoup.types.state.State
+      - state_vector: &id136 !stonesoup.types.array.StateVector
+        - [.inf]
+        - [.inf]
+        - [.inf]
+        - [.inf]
+      - timestamp: 2024-06-18 11:33:55.395924
+  - id: 5
+- !stonesoup.types.track.Track
+  - states:
+    - !stonesoup.types.state.State
+      - state_vector: *id117
+      - timestamp: 2024-06-18 11:33:59.395924
+    - !stonesoup.types.state.State
+      - state_vector: *id122
+      - timestamp: 2024-06-18 11:33:58.395924
+    - !stonesoup.types.state.State
+      - state_vector: *id127
+      - timestamp: 2024-06-18 11:33:57.395924
+    - !stonesoup.types.state.State
+      - state_vector: *id132
+      - timestamp: 2024-06-18 11:33:56.395924
+    - !stonesoup.types.state.State
+      - state_vector: &id137 !stonesoup.types.array.StateVector
+        - [.inf]
+        - [.inf]
+        - [.inf]
+        - [.inf]
+      - timestamp: 2024-06-18 11:33:55.395924
+  - id: 5
+- !stonesoup.types.track.Track
+  - states:
+    - !stonesoup.types.state.State
+      - state_vector: *id118
+      - timestamp: 2024-06-18 11:33:59.395924
+    - !stonesoup.types.state.State
+      - state_vector: *id123
+      - timestamp: 2024-06-18 11:33:58.395924
+    - !stonesoup.types.state.State
+      - state_vector: *id128
+      - timestamp: 2024-06-18 11:33:57.395924
+    - !stonesoup.types.state.State
+      - state_vector: *id133
+      - timestamp: 2024-06-18 11:33:56.395924
+    - !stonesoup.types.state.State
+      - state_vector: &id138 !stonesoup.types.array.StateVector
+        - [11.273528633742863]
+        - [0.5559991951318646]
+        - [0.2593555600557607]
+        - [0.00727597928195896]
+      - timestamp: 2024-06-18 11:33:55.395924
+  - id: 5
+- !stonesoup.types.track.Track
+  - states:
+    - !stonesoup.types.state.State
+      - state_vector: *id119
+      - timestamp: 2024-06-18 11:33:59.395924
+    - !stonesoup.types.state.State
+      - state_vector: *id124
+      - timestamp: 2024-06-18 11:33:58.395924
+    - !stonesoup.types.state.State
+      - state_vector: *id129
+      - timestamp: 2024-06-18 11:33:57.395924
+    - !stonesoup.types.state.State
+      - state_vector: *id134
+      - timestamp: 2024-06-18 11:33:56.395924
+    - !stonesoup.types.state.State
+      - state_vector: &id139 !stonesoup.types.array.StateVector
+        - [12.433948992869297]
+        - [0.6160113160677421]
+        - [3.0563031971455024]
+        - [0.11390320562483848]
+      - timestamp: 2024-06-18 11:33:55.395924
+  - id: 5
+- !stonesoup.types.track.Track
+  - states:
+    - !stonesoup.types.state.State
+      - state_vector: *id120
+      - timestamp: 2024-06-18 11:33:59.395924
+    - !stonesoup.types.state.State
+      - state_vector: *id125
+      - timestamp: 2024-06-18 11:33:58.395924
+    - !stonesoup.types.state.State
+      - state_vector: *id130
+      - timestamp: 2024-06-18 11:33:57.395924
+    - !stonesoup.types.state.State
+      - state_vector: *id135
+      - timestamp: 2024-06-18 11:33:56.395924
+    - !stonesoup.types.state.State
+      - state_vector: &id140 !stonesoup.types.array.StateVector
+        - [0.5004847728405647]
+        - [0.015909432521462596]
+        - [0.4205235098261817]
+        - [0.0022035417977424032]
+      - timestamp: 2024-06-18 11:33:55.395924
+  - id: 5
+- !stonesoup.types.track.Track
+  - states:
+    - !stonesoup.types.state.State
+      - state_vector: *id121
+      - timestamp: 2024-06-18 11:34:00.395924
+    - !stonesoup.types.state.State
+      - state_vector: *id126
+      - timestamp: 2024-06-18 11:33:59.395924
+    - !stonesoup.types.state.State
+      - state_vector: *id131
+      - timestamp: 2024-06-18 11:33:58.395924
+    - !stonesoup.types.state.State
+      - state_vector: *id136
+      - timestamp: 2024-06-18 11:33:57.395924
+    - !stonesoup.types.state.State
+      - state_vector: &id141 !stonesoup.types.array.StateVector
+        - [.inf]
+        - [.inf]
+        - [.inf]
+        - [.inf]
+      - timestamp: 2024-06-18 11:33:56.395924
+  - id: 5
+- !stonesoup.types.track.Track
+  - states:
+    - !stonesoup.types.state.State
+      - state_vector: *id122
+      - timestamp: 2024-06-18 11:34:00.395924
+    - !stonesoup.types.state.State
+      - state_vector: *id127
+      - timestamp: 2024-06-18 11:33:59.395924
+    - !stonesoup.types.state.State
+      - state_vector: *id132
+      - timestamp: 2024-06-18 11:33:58.395924
+    - !stonesoup.types.state.State
+      - state_vector: *id137
+      - timestamp: 2024-06-18 11:33:57.395924
+    - !stonesoup.types.state.State
+      - state_vector: &id142 !stonesoup.types.array.StateVector
+        - [.inf]
+        - [.inf]
+        - [.inf]
+        - [.inf]
+      - timestamp: 2024-06-18 11:33:56.395924
+  - id: 5
+- !stonesoup.types.track.Track
+  - states:
+    - !stonesoup.types.state.State
+      - state_vector: *id123
+      - timestamp: 2024-06-18 11:34:00.395924
+    - !stonesoup.types.state.State
+      - state_vector: *id128
+      - timestamp: 2024-06-18 11:33:59.395924
+    - !stonesoup.types.state.State
+      - state_vector: *id133
+      - timestamp: 2024-06-18 11:33:58.395924
+    - !stonesoup.types.state.State
+      - state_vector: *id138
+      - timestamp: 2024-06-18 11:33:57.395924
+    - !stonesoup.types.state.State
+      - state_vector: &id143 !stonesoup.types.array.StateVector
+        - [.inf]
+        - [.inf]
+        - [.inf]
+        - [.inf]
+      - timestamp: 2024-06-18 11:33:56.395924
+  - id: 5
+- !stonesoup.types.track.Track
+  - states:
+    - !stonesoup.types.state.State
+      - state_vector: *id124
+      - timestamp: 2024-06-18 11:34:00.395924
+    - !stonesoup.types.state.State
+      - state_vector: *id129
+      - timestamp: 2024-06-18 11:33:59.395924
+    - !stonesoup.types.state.State
+      - state_vector: *id134
+      - timestamp: 2024-06-18 11:33:58.395924
+    - !stonesoup.types.state.State
+      - state_vector: *id139
+      - timestamp: 2024-06-18 11:33:57.395924
+    - !stonesoup.types.state.State
+      - state_vector: &id144 !stonesoup.types.array.StateVector
+        - [.inf]
+        - [.inf]
+        - [.inf]
+        - [.inf]
+      - timestamp: 2024-06-18 11:33:56.395924
+  - id: 5
+- !stonesoup.types.track.Track
+  - states:
+    - !stonesoup.types.state.State
+      - state_vector: *id125
+      - timestamp: 2024-06-18 11:34:00.395924
+    - !stonesoup.types.state.State
+      - state_vector: *id130
+      - timestamp: 2024-06-18 11:33:59.395924
+    - !stonesoup.types.state.State
+      - state_vector: *id135
+      - timestamp: 2024-06-18 11:33:58.395924
+    - !stonesoup.types.state.State
+      - state_vector: *id140
+      - timestamp: 2024-06-18 11:33:57.395924
+    - !stonesoup.types.state.State
+      - state_vector: &id145 !stonesoup.types.array.StateVector
+        - [.inf]
+        - [.inf]
+        - [.inf]
+        - [.inf]
+      - timestamp: 2024-06-18 11:33:56.395924
+  - id: 5
+- !stonesoup.types.track.Track
+  - states:
+    - !stonesoup.types.state.State
+      - state_vector: *id126
+      - timestamp: 2024-06-18 11:34:01.395924
+    - !stonesoup.types.state.State
+      - state_vector: *id131
+      - timestamp: 2024-06-18 11:34:00.395924
+    - !stonesoup.types.state.State
+      - state_vector: *id136
+      - timestamp: 2024-06-18 11:33:59.395924
+    - !stonesoup.types.state.State
+      - state_vector: *id141
+      - timestamp: 2024-06-18 11:33:58.395924
+    - !stonesoup.types.state.State
+      - state_vector: &id146 !stonesoup.types.array.StateVector
+        - [.inf]
+        - [.inf]
+        - [.inf]
+        - [.inf]
+      - timestamp: 2024-06-18 11:33:57.395924
+  - id: 5
+- !stonesoup.types.track.Track
+  - states:
+    - !stonesoup.types.state.State
+      - state_vector: *id127
+      - timestamp: 2024-06-18 11:34:01.395924
+    - !stonesoup.types.state.State
+      - state_vector: *id132
+      - timestamp: 2024-06-18 11:34:00.395924
+    - !stonesoup.types.state.State
+      - state_vector: *id137
+      - timestamp: 2024-06-18 11:33:59.395924
+    - !stonesoup.types.state.State
+      - state_vector: *id142
+      - timestamp: 2024-06-18 11:33:58.395924
+    - !stonesoup.types.state.State
+      - state_vector: &id147 !stonesoup.types.array.StateVector
+        - [.inf]
+        - [.inf]
+        - [.inf]
+        - [.inf]
+      - timestamp: 2024-06-18 11:33:57.395924
+  - id: 5
+- !stonesoup.types.track.Track
+  - states:
+    - !stonesoup.types.state.State
+      - state_vector: *id128
+      - timestamp: 2024-06-18 11:34:01.395924
+    - !stonesoup.types.state.State
+      - state_vector: *id133
+      - timestamp: 2024-06-18 11:34:00.395924
+    - !stonesoup.types.state.State
+      - state_vector: *id138
+      - timestamp: 2024-06-18 11:33:59.395924
+    - !stonesoup.types.state.State
+      - state_vector: *id143
+      - timestamp: 2024-06-18 11:33:58.395924
+    - !stonesoup.types.state.State
+      - state_vector: &id148 !stonesoup.types.array.StateVector
+        - [12.385527024006592]
+        - [0.5559991951318646]
+        - [0.27390751861967866]
+        - [0.00727597928195896]
+      - timestamp: 2024-06-18 11:33:57.395924
+  - id: 5
+- !stonesoup.types.track.Track
+  - states:
+    - !stonesoup.types.state.State
+      - state_vector: *id129
+      - timestamp: 2024-06-18 11:34:01.395924
+    - !stonesoup.types.state.State
+      - state_vector: *id134
+      - timestamp: 2024-06-18 11:34:00.395924
+    - !stonesoup.types.state.State
+      - state_vector: *id139
+      - timestamp: 2024-06-18 11:33:59.395924
+    - !stonesoup.types.state.State
+      - state_vector: *id144
+      - timestamp: 2024-06-18 11:33:58.395924
+    - !stonesoup.types.state.State
+      - state_vector: &id149 !stonesoup.types.array.StateVector
+        - [13.665971625004778]
+        - [0.6160113160677401]
+        - [3.2841096083951795]
+        - [0.11390320562483858]
+      - timestamp: 2024-06-18 11:33:57.395924
+  - id: 5
+- !stonesoup.types.track.Track
+  - states:
+    - !stonesoup.types.state.State
+      - state_vector: *id130
+      - timestamp: 2024-06-18 11:34:01.395924
+    - !stonesoup.types.state.State
+      - state_vector: *id135
+      - timestamp: 2024-06-18 11:34:00.395924
+    - !stonesoup.types.state.State
+      - state_vector: *id140
+      - timestamp: 2024-06-18 11:33:59.395924
+    - !stonesoup.types.state.State
+      - state_vector: *id145
+      - timestamp: 2024-06-18 11:33:58.395924
+    - !stonesoup.types.state.State
+      - state_vector: &id150 !stonesoup.types.array.StateVector
+        - [.inf]
+        - [.inf]
+        - [.inf]
+        - [.inf]
+      - timestamp: 2024-06-18 11:33:57.395924
+  - id: 5
+- !stonesoup.types.track.Track
+  - states:
+    - !stonesoup.types.state.State
+      - state_vector: *id131
+      - timestamp: 2024-06-18 11:34:02.395924
+    - !stonesoup.types.state.State
+      - state_vector: *id136
+      - timestamp: 2024-06-18 11:34:01.395924
+    - !stonesoup.types.state.State
+      - state_vector: *id141
+      - timestamp: 2024-06-18 11:34:00.395924
+    - !stonesoup.types.state.State
+      - state_vector: *id146
+      - timestamp: 2024-06-18 11:33:59.395924
+    - !stonesoup.types.state.State
+      - state_vector: &id151 !stonesoup.types.array.StateVector
+        - [.inf]
+        - [.inf]
+        - [.inf]
+        - [.inf]
+      - timestamp: 2024-06-18 11:33:58.395924
+  - id: 5
+- !stonesoup.types.track.Track
+  - states:
+    - !stonesoup.types.state.State
+      - state_vector: *id132
+      - timestamp: 2024-06-18 11:34:02.395924
+    - !stonesoup.types.state.State
+      - state_vector: *id137
+      - timestamp: 2024-06-18 11:34:01.395924
+    - !stonesoup.types.state.State
+      - state_vector: *id142
+      - timestamp: 2024-06-18 11:34:00.395924
+    - !stonesoup.types.state.State
+      - state_vector: *id147
+      - timestamp: 2024-06-18 11:33:59.395924
+    - !stonesoup.types.state.State
+      - state_vector: &id152 !stonesoup.types.array.StateVector
+        - [.inf]
+        - [.inf]
+        - [.inf]
+        - [.inf]
+      - timestamp: 2024-06-18 11:33:58.395924
+  - id: 5
+- !stonesoup.types.track.Track
+  - states:
+    - !stonesoup.types.state.State
+      - state_vector: *id133
+      - timestamp: 2024-06-18 11:34:02.395924
+    - !stonesoup.types.state.State
+      - state_vector: *id138
+      - timestamp: 2024-06-18 11:34:01.395924
+    - !stonesoup.types.state.State
+      - state_vector: *id143
+      - timestamp: 2024-06-18 11:34:00.395924
+    - !stonesoup.types.state.State
+      - state_vector: *id148
+      - timestamp: 2024-06-18 11:33:59.395924
+    - !stonesoup.types.state.State
+      - state_vector: &id153 !stonesoup.types.array.StateVector
+        - [.inf]
+        - [.inf]
+        - [.inf]
+        - [.inf]
+      - timestamp: 2024-06-18 11:33:58.395924
+  - id: 5
+- !stonesoup.types.track.Track
+  - states:
+    - !stonesoup.types.state.State
+      - state_vector: *id134
+      - timestamp: 2024-06-18 11:34:02.395924
+    - !stonesoup.types.state.State
+      - state_vector: *id139
+      - timestamp: 2024-06-18 11:34:01.395924
+    - !stonesoup.types.state.State
+      - state_vector: *id144
+      - timestamp: 2024-06-18 11:34:00.395924
+    - !stonesoup.types.state.State
+      - state_vector: *id149
+      - timestamp: 2024-06-18 11:33:59.395924
+    - !stonesoup.types.state.State
+      - state_vector: &id154 !stonesoup.types.array.StateVector
+        - [.inf]
+        - [.inf]
+        - [.inf]
+        - [.inf]
+      - timestamp: 2024-06-18 11:33:58.395924
+  - id: 5
+- !stonesoup.types.track.Track
+  - states:
+    - !stonesoup.types.state.State
+      - state_vector: *id135
+      - timestamp: 2024-06-18 11:34:02.395924
+    - !stonesoup.types.state.State
+      - state_vector: *id140
+      - timestamp: 2024-06-18 11:34:01.395924
+    - !stonesoup.types.state.State
+      - state_vector: *id145
+      - timestamp: 2024-06-18 11:34:00.395924
+    - !stonesoup.types.state.State
+      - state_vector: *id150
+      - timestamp: 2024-06-18 11:33:59.395924
+    - !stonesoup.types.state.State
+      - state_vector: &id155 !stonesoup.types.array.StateVector
+        - [0.5482130704049525]
+        - [0.015909432521462596]
+        - [0.4271341352194089]
+        - [0.0022035417977424032]
+      - timestamp: 2024-06-18 11:33:58.395924
+  - id: 5
+- !stonesoup.types.track.Track
+  - states:
+    - !stonesoup.types.state.State
+      - state_vector: *id136
+      - timestamp: 2024-06-18 11:34:03.395924
+    - !stonesoup.types.state.State
+      - state_vector: *id141
+      - timestamp: 2024-06-18 11:34:02.395924
+    - !stonesoup.types.state.State
+      - state_vector: *id146
+      - timestamp: 2024-06-18 11:34:01.395924
+    - !stonesoup.types.state.State
+      - state_vector: *id151
+      - timestamp: 2024-06-18 11:34:00.395924
+    - !stonesoup.types.state.State
+      - state_vector: &id156 !stonesoup.types.array.StateVector
+        - [.inf]
+        - [.inf]
+        - [.inf]
+        - [.inf]
+      - timestamp: 2024-06-18 11:33:59.395924
+  - id: 5
+- !stonesoup.types.track.Track
+  - states:
+    - !stonesoup.types.state.State
+      - state_vector: *id137
+      - timestamp: 2024-06-18 11:34:03.395924
+    - !stonesoup.types.state.State
+      - state_vector: *id142
+      - timestamp: 2024-06-18 11:34:02.395924
+    - !stonesoup.types.state.State
+      - state_vector: *id147
+      - timestamp: 2024-06-18 11:34:01.395924
+    - !stonesoup.types.state.State
+      - state_vector: *id152
+      - timestamp: 2024-06-18 11:34:00.395924
+    - !stonesoup.types.state.State
+      - state_vector: &id157 !stonesoup.types.array.StateVector
+        - [.inf]
+        - [.inf]
+        - [.inf]
+        - [.inf]
+      - timestamp: 2024-06-18 11:33:59.395924
+  - id: 5
+- !stonesoup.types.track.Track
+  - states:
+    - !stonesoup.types.state.State
+      - state_vector: *id138
+      - timestamp: 2024-06-18 11:34:03.395924
+    - !stonesoup.types.state.State
+      - state_vector: *id143
+      - timestamp: 2024-06-18 11:34:02.395924
+    - !stonesoup.types.state.State
+      - state_vector: *id148
+      - timestamp: 2024-06-18 11:34:01.395924
+    - !stonesoup.types.state.State
+      - state_vector: *id153
+      - timestamp: 2024-06-18 11:34:00.395924
+    - !stonesoup.types.state.State
+      - state_vector: &id158 !stonesoup.types.array.StateVector
+        - [13.49752541427032]
+        - [0.5559991951318649]
+        - [0.2884594771835907]
+        - [0.007275979281955243]
+      - timestamp: 2024-06-18 11:33:59.395924
+  - id: 5
+- !stonesoup.types.track.Track
+  - states:
+    - !stonesoup.types.state.State
+      - state_vector: *id139
+      - timestamp: 2024-06-18 11:34:03.395924
+    - !stonesoup.types.state.State
+      - state_vector: *id144
+      - timestamp: 2024-06-18 11:34:02.395924
+    - !stonesoup.types.state.State
+      - state_vector: *id149
+      - timestamp: 2024-06-18 11:34:01.395924
+    - !stonesoup.types.state.State
+      - state_vector: *id154
+      - timestamp: 2024-06-18 11:34:00.395924
+    - !stonesoup.types.state.State
+      - state_vector: &id159 !stonesoup.types.array.StateVector
+        - [14.897994257140258]
+        - [0.6160113160677401]
+        - [3.5119160196448567]
+        - [0.11390320562483858]
+      - timestamp: 2024-06-18 11:33:59.395924
+  - id: 5
+- !stonesoup.types.track.Track
+  - states:
+    - !stonesoup.types.state.State
+      - state_vector: *id140
+      - timestamp: 2024-06-18 11:34:03.395924
+    - !stonesoup.types.state.State
+      - state_vector: *id145
+      - timestamp: 2024-06-18 11:34:02.395924
+    - !stonesoup.types.state.State
+      - state_vector: *id150
+      - timestamp: 2024-06-18 11:34:01.395924
+    - !stonesoup.types.state.State
+      - state_vector: *id155
+      - timestamp: 2024-06-18 11:34:00.395924
+    - !stonesoup.types.state.State
+      - state_vector: &id160 !stonesoup.types.array.StateVector
+        - [.inf]
+        - [.inf]
+        - [.inf]
+        - [.inf]
+      - timestamp: 2024-06-18 11:33:59.395924
+  - id: 5
+- !stonesoup.types.track.Track
+  - states:
+    - !stonesoup.types.state.State
+      - state_vector: *id141
+      - timestamp: 2024-06-18 11:34:04.395924
+    - !stonesoup.types.state.State
+      - state_vector: *id146
+      - timestamp: 2024-06-18 11:34:03.395924
+    - !stonesoup.types.state.State
+      - state_vector: *id151
+      - timestamp: 2024-06-18 11:34:02.395924
+    - !stonesoup.types.state.State
+      - state_vector: *id156
+      - timestamp: 2024-06-18 11:34:01.395924
+    - !stonesoup.types.state.State
+      - state_vector: &id161 !stonesoup.types.array.StateVector
+        - [5.960049630548022]
+        - [0.22968563101735143]
+        - [14.252277341337829]
+        - [0.5788246616316579]
+      - timestamp: 2024-06-18 11:34:00.395924
+  - id: 5
+- !stonesoup.types.track.Track
+  - states:
+    - !stonesoup.types.state.State
+      - state_vector: *id142
+      - timestamp: 2024-06-18 11:34:04.395924
+    - !stonesoup.types.state.State
+      - state_vector: *id147
+      - timestamp: 2024-06-18 11:34:03.395924
+    - !stonesoup.types.state.State
+      - state_vector: *id152
+      - timestamp: 2024-06-18 11:34:02.395924
+    - !stonesoup.types.state.State
+      - state_vector: *id157
+      - timestamp: 2024-06-18 11:34:01.395924
+    - !stonesoup.types.state.State
+      - state_vector: &id162 !stonesoup.types.array.StateVector
+        - [11.407592781347295]
+        - [0.45715432582629306]
+        - [23.82453260654887]
+        - [0.9915507175297906]
+      - timestamp: 2024-06-18 11:34:00.395924
+  - id: 5
+- !stonesoup.types.track.Track
+  - states:
+    - !stonesoup.types.state.State
+      - state_vector: *id143
+      - timestamp: 2024-06-18 11:34:04.395924
+    - !stonesoup.types.state.State
+      - state_vector: *id148
+      - timestamp: 2024-06-18 11:34:03.395924
+    - !stonesoup.types.state.State
+      - state_vector: *id153
+      - timestamp: 2024-06-18 11:34:02.395924
+    - !stonesoup.types.state.State
+      - state_vector: *id158
+      - timestamp: 2024-06-18 11:34:01.395924
+    - !stonesoup.types.state.State
+      - state_vector: &id163 !stonesoup.types.array.StateVector
+        - [.inf]
+        - [.inf]
+        - [.inf]
+        - [.inf]
+      - timestamp: 2024-06-18 11:34:00.395924
+  - id: 5
+- !stonesoup.types.track.Track
+  - states:
+    - !stonesoup.types.state.State
+      - state_vector: *id144
+      - timestamp: 2024-06-18 11:34:04.395924
+    - !stonesoup.types.state.State
+      - state_vector: *id149
+      - timestamp: 2024-06-18 11:34:03.395924
+    - !stonesoup.types.state.State
+      - state_vector: *id154
+      - timestamp: 2024-06-18 11:34:02.395924
+    - !stonesoup.types.state.State
+      - state_vector: *id159
+      - timestamp: 2024-06-18 11:34:01.395924
+    - !stonesoup.types.state.State
+      - state_vector: &id164 !stonesoup.types.array.StateVector
+        - [.inf]
+        - [.inf]
+        - [.inf]
+        - [.inf]
+      - timestamp: 2024-06-18 11:34:00.395924
+  - id: 5
+- !stonesoup.types.track.Track
+  - states:
+    - !stonesoup.types.state.State
+      - state_vector: *id145
+      - timestamp: 2024-06-18 11:34:04.395924
+    - !stonesoup.types.state.State
+      - state_vector: *id150
+      - timestamp: 2024-06-18 11:34:03.395924
+    - !stonesoup.types.state.State
+      - state_vector: *id155
+      - timestamp: 2024-06-18 11:34:02.395924
+    - !stonesoup.types.state.State
+      - state_vector: *id160
+      - timestamp: 2024-06-18 11:34:01.395924
+    - !stonesoup.types.state.State
+      - state_vector: &id165 !stonesoup.types.array.StateVector
+        - [.inf]
+        - [.inf]
+        - [.inf]
+        - [.inf]
+      - timestamp: 2024-06-18 11:34:00.395924
+  - id: 5
+- !stonesoup.types.track.Track
+  - states:
+    - !stonesoup.types.state.State
+      - state_vector: *id146
+      - timestamp: 2024-06-18 11:34:05.395924
+    - !stonesoup.types.state.State
+      - state_vector: *id151
+      - timestamp: 2024-06-18 11:34:04.395924
+    - !stonesoup.types.state.State
+      - state_vector: *id156
+      - timestamp: 2024-06-18 11:34:03.395924
+    - !stonesoup.types.state.State
+      - state_vector: *id161
+      - timestamp: 2024-06-18 11:34:02.395924
+    - !stonesoup.types.state.State
+      - state_vector: &id166 !stonesoup.types.array.StateVector
+        - [.inf]
+        - [.inf]
+        - [.inf]
+        - [.inf]
+      - timestamp: 2024-06-18 11:34:01.395924
+  - id: 5
+- !stonesoup.types.track.Track
+  - states:
+    - !stonesoup.types.state.State
+      - state_vector: *id147
+      - timestamp: 2024-06-18 11:34:05.395924
+    - !stonesoup.types.state.State
+      - state_vector: *id152
+      - timestamp: 2024-06-18 11:34:04.395924
+    - !stonesoup.types.state.State
+      - state_vector: *id157
+      - timestamp: 2024-06-18 11:34:03.395924
+    - !stonesoup.types.state.State
+      - state_vector: *id162
+      - timestamp: 2024-06-18 11:34:02.395924
+    - !stonesoup.types.state.State
+      - state_vector: &id167 !stonesoup.types.array.StateVector
+        - [.inf]
+        - [.inf]
+        - [.inf]
+        - [.inf]
+      - timestamp: 2024-06-18 11:34:01.395924
+  - id: 5
+- !stonesoup.types.track.Track
+  - states:
+    - !stonesoup.types.state.State
+      - state_vector: *id148
+      - timestamp: 2024-06-18 11:34:05.395924
+    - !stonesoup.types.state.State
+      - state_vector: *id153
+      - timestamp: 2024-06-18 11:34:04.395924
+    - !stonesoup.types.state.State
+      - state_vector: *id158
+      - timestamp: 2024-06-18 11:34:03.395924
+    - !stonesoup.types.state.State
+      - state_vector: *id163
+      - timestamp: 2024-06-18 11:34:02.395924
+    - !stonesoup.types.state.State
+      - state_vector: &id168 !stonesoup.types.array.StateVector
+        - [14.609523804534051]
+        - [0.5559991951318646]
+        - [0.3030114357475068]
+        - [0.007275979281958754]
+      - timestamp: 2024-06-18 11:34:01.395924
+  - id: 5
+- !stonesoup.types.track.Track
+  - states:
+    - !stonesoup.types.state.State
+      - state_vector: *id149
+      - timestamp: 2024-06-18 11:34:05.395924
+    - !stonesoup.types.state.State
+      - state_vector: *id154
+      - timestamp: 2024-06-18 11:34:04.395924
+    - !stonesoup.types.state.State
+      - state_vector: *id159
+      - timestamp: 2024-06-18 11:34:03.395924
+    - !stonesoup.types.state.State
+      - state_vector: *id164
+      - timestamp: 2024-06-18 11:34:02.395924
+    - !stonesoup.types.state.State
+      - state_vector: &id169 !stonesoup.types.array.StateVector
+        - [.inf]
+        - [.inf]
+        - [.inf]
+        - [.inf]
+      - timestamp: 2024-06-18 11:34:01.395924
+  - id: 5
+- !stonesoup.types.track.Track
+  - states:
+    - !stonesoup.types.state.State
+      - state_vector: *id150
+      - timestamp: 2024-06-18 11:34:05.395924
+    - !stonesoup.types.state.State
+      - state_vector: *id155
+      - timestamp: 2024-06-18 11:34:04.395924
+    - !stonesoup.types.state.State
+      - state_vector: *id160
+      - timestamp: 2024-06-18 11:34:03.395924
+    - !stonesoup.types.state.State
+      - state_vector: *id165
+      - timestamp: 2024-06-18 11:34:02.395924
+    - !stonesoup.types.state.State
+      - state_vector: &id170 !stonesoup.types.array.StateVector
+        - [.inf]
+        - [.inf]
+        - [.inf]
+        - [.inf]
+      - timestamp: 2024-06-18 11:34:01.395924
+  - id: 5
+- !stonesoup.types.track.Track
+  - states:
+    - !stonesoup.types.state.State
+      - state_vector: *id151
+      - timestamp: 2024-06-18 11:34:06.395924
+    - !stonesoup.types.state.State
+      - state_vector: *id156
+      - timestamp: 2024-06-18 11:34:05.395924
+    - !stonesoup.types.state.State
+      - state_vector: *id161
+      - timestamp: 2024-06-18 11:34:04.395924
+    - !stonesoup.types.state.State
+      - state_vector: *id166
+      - timestamp: 2024-06-18 11:34:03.395924
+    - !stonesoup.types.state.State
+      - state_vector: &id171 !stonesoup.types.array.StateVector
+        - [6.419420892582726]
+        - [0.22968563101735123]
+        - [15.409926664601143]
+        - [0.5788246616316569]
+      - timestamp: 2024-06-18 11:34:02.395924
+  - id: 5
+- !stonesoup.types.track.Track
+  - states:
+    - !stonesoup.types.state.State
+      - state_vector: *id152
+      - timestamp: 2024-06-18 11:34:06.395924
+    - !stonesoup.types.state.State
+      - state_vector: *id157
+      - timestamp: 2024-06-18 11:34:05.395924
+    - !stonesoup.types.state.State
+      - state_vector: *id162
+      - timestamp: 2024-06-18 11:34:04.395924
+    - !stonesoup.types.state.State
+      - state_vector: *id167
+      - timestamp: 2024-06-18 11:34:03.395924
+    - !stonesoup.types.state.State
+      - state_vector: &id172 !stonesoup.types.array.StateVector
+        - [12.321901432999885]
+        - [0.4571543258262952]
+        - [25.807634041608463]
+        - [0.9915507175297963]
+      - timestamp: 2024-06-18 11:34:02.395924
+  - id: 5
+- !stonesoup.types.track.Track
+  - states:
+    - !stonesoup.types.state.State
+      - state_vector: *id153
+      - timestamp: 2024-06-18 11:34:06.395924
+    - !stonesoup.types.state.State
+      - state_vector: *id158
+      - timestamp: 2024-06-18 11:34:05.395924
+    - !stonesoup.types.state.State
+      - state_vector: *id163
+      - timestamp: 2024-06-18 11:34:04.395924
+    - !stonesoup.types.state.State
+      - state_vector: *id168
+      - timestamp: 2024-06-18 11:34:03.395924
+    - !stonesoup.types.state.State
+      - state_vector: &id173 !stonesoup.types.array.StateVector
+        - [.inf]
+        - [.inf]
+        - [.inf]
+        - [.inf]
+      - timestamp: 2024-06-18 11:34:02.395924
+  - id: 5
+- !stonesoup.types.track.Track
+  - states:
+    - !stonesoup.types.state.State
+      - state_vector: *id154
+      - timestamp: 2024-06-18 11:34:06.395924
+    - !stonesoup.types.state.State
+      - state_vector: *id159
+      - timestamp: 2024-06-18 11:34:05.395924
+    - !stonesoup.types.state.State
+      - state_vector: *id164
+      - timestamp: 2024-06-18 11:34:04.395924
+    - !stonesoup.types.state.State
+      - state_vector: *id169
+      - timestamp: 2024-06-18 11:34:03.395924
+    - !stonesoup.types.state.State
+      - state_vector: &id174 !stonesoup.types.array.StateVector
+        - [.inf]
+        - [.inf]
+        - [.inf]
+        - [.inf]
+      - timestamp: 2024-06-18 11:34:02.395924
+  - id: 5
+- !stonesoup.types.track.Track
+  - states:
+    - !stonesoup.types.state.State
+      - state_vector: *id155
+      - timestamp: 2024-06-18 11:34:06.395924
+    - !stonesoup.types.state.State
+      - state_vector: *id160
+      - timestamp: 2024-06-18 11:34:05.395924
+    - !stonesoup.types.state.State
+      - state_vector: *id165
+      - timestamp: 2024-06-18 11:34:04.395924
+    - !stonesoup.types.state.State
+      - state_vector: *id170
+      - timestamp: 2024-06-18 11:34:03.395924
+    - !stonesoup.types.state.State
+      - state_vector: &id175 !stonesoup.types.array.StateVector
+        - [.inf]
+        - [.inf]
+        - [.inf]
+        - [.inf]
+      - timestamp: 2024-06-18 11:34:02.395924
+  - id: 5
+- !stonesoup.types.track.Track
+  - states:
+    - !stonesoup.types.state.State
+      - state_vector: *id156
+      - timestamp: 2024-06-18 11:34:07.395924
+    - !stonesoup.types.state.State
+      - state_vector: *id161
+      - timestamp: 2024-06-18 11:34:06.395924
+    - !stonesoup.types.state.State
+      - state_vector: *id166
+      - timestamp: 2024-06-18 11:34:05.395924
+    - !stonesoup.types.state.State
+      - state_vector: *id171
+      - timestamp: 2024-06-18 11:34:04.395924
+    - !stonesoup.types.state.State
+      - state_vector: &id176 !stonesoup.types.array.StateVector
+        - [6.649106523600077]
+        - [0.22968563101735076]
+        - [15.988751326232798]
+        - [0.5788246616316549]
+      - timestamp: 2024-06-18 11:34:03.395924
+  - id: 5
+- !stonesoup.types.track.Track
+  - states:
+    - !stonesoup.types.state.State
+      - state_vector: *id157
+      - timestamp: 2024-06-18 11:34:07.395924
+    - !stonesoup.types.state.State
+      - state_vector: *id162
+      - timestamp: 2024-06-18 11:34:06.395924
+    - !stonesoup.types.state.State
+      - state_vector: *id167
+      - timestamp: 2024-06-18 11:34:05.395924
+    - !stonesoup.types.state.State
+      - state_vector: *id172
+      - timestamp: 2024-06-18 11:34:04.395924
+    - !stonesoup.types.state.State
+      - state_vector: &id177 !stonesoup.types.array.StateVector
+        - [12.779055758826175]
+        - [0.457154325826289]
+        - [26.799184759138246]
+        - [0.9915507175297807]
+      - timestamp: 2024-06-18 11:34:03.395924
+  - id: 5
+- !stonesoup.types.track.Track
+  - states:
+    - !stonesoup.types.state.State
+      - state_vector: *id158
+      - timestamp: 2024-06-18 11:34:07.395924
+    - !stonesoup.types.state.State
+      - state_vector: *id163
+      - timestamp: 2024-06-18 11:34:06.395924
+    - !stonesoup.types.state.State
+      - state_vector: *id168
+      - timestamp: 2024-06-18 11:34:05.395924
+    - !stonesoup.types.state.State
+      - state_vector: *id173
+      - timestamp: 2024-06-18 11:34:04.395924
+    - !stonesoup.types.state.State
+      - state_vector: &id178 !stonesoup.types.array.StateVector
+        - [.inf]
+        - [.inf]
+        - [.inf]
+        - [.inf]
+      - timestamp: 2024-06-18 11:34:03.395924
+  - id: 5
+- !stonesoup.types.track.Track
+  - states:
+    - !stonesoup.types.state.State
+      - state_vector: *id159
+      - timestamp: 2024-06-18 11:34:07.395924
+    - !stonesoup.types.state.State
+      - state_vector: *id164
+      - timestamp: 2024-06-18 11:34:06.395924
+    - !stonesoup.types.state.State
+      - state_vector: *id169
+      - timestamp: 2024-06-18 11:34:05.395924
+    - !stonesoup.types.state.State
+      - state_vector: *id174
+      - timestamp: 2024-06-18 11:34:04.395924
+    - !stonesoup.types.state.State
+      - state_vector: &id179 !stonesoup.types.array.StateVector
+        - [.inf]
+        - [.inf]
+        - [.inf]
+        - [.inf]
+      - timestamp: 2024-06-18 11:34:03.395924
+  - id: 5
+- !stonesoup.types.track.Track
+  - states:
+    - !stonesoup.types.state.State
+      - state_vector: *id160
+      - timestamp: 2024-06-18 11:34:07.395924
+    - !stonesoup.types.state.State
+      - state_vector: *id165
+      - timestamp: 2024-06-18 11:34:06.395924
+    - !stonesoup.types.state.State
+      - state_vector: *id170
+      - timestamp: 2024-06-18 11:34:05.395924
+    - !stonesoup.types.state.State
+      - state_vector: *id175
+      - timestamp: 2024-06-18 11:34:04.395924
+    - !stonesoup.types.state.State
+      - state_vector: &id180 !stonesoup.types.array.StateVector
+        - [.inf]
+        - [.inf]
+        - [.inf]
+        - [.inf]
+      - timestamp: 2024-06-18 11:34:03.395924
+  - id: 5
+- !stonesoup.types.track.Track
+  - states:
+    - !stonesoup.types.state.State
+      - state_vector: *id161
+      - timestamp: 2024-06-18 11:34:08.395924
+    - !stonesoup.types.state.State
+      - state_vector: *id166
+      - timestamp: 2024-06-18 11:34:07.395924
+    - !stonesoup.types.state.State
+      - state_vector: *id171
+      - timestamp: 2024-06-18 11:34:06.395924
+    - !stonesoup.types.state.State
+      - state_vector: *id176
+      - timestamp: 2024-06-18 11:34:05.395924
+    - !stonesoup.types.state.State
+      - state_vector: &id181 !stonesoup.types.array.StateVector
+        - [.inf]
+        - [.inf]
+        - [.inf]
+        - [.inf]
+      - timestamp: 2024-06-18 11:34:04.395924
+  - id: 5
+- !stonesoup.types.track.Track
+  - states:
+    - !stonesoup.types.state.State
+      - state_vector: *id162
+      - timestamp: 2024-06-18 11:34:08.395924
+    - !stonesoup.types.state.State
+      - state_vector: *id167
+      - timestamp: 2024-06-18 11:34:07.395924
+    - !stonesoup.types.state.State
+      - state_vector: *id172
+      - timestamp: 2024-06-18 11:34:06.395924
+    - !stonesoup.types.state.State
+      - state_vector: *id177
+      - timestamp: 2024-06-18 11:34:05.395924
+    - !stonesoup.types.state.State
+      - state_vector: &id182 !stonesoup.types.array.StateVector
+        - [.inf]
+        - [.inf]
+        - [.inf]
+        - [.inf]
+      - timestamp: 2024-06-18 11:34:04.395924
+  - id: 5
+- !stonesoup.types.track.Track
+  - states:
+    - !stonesoup.types.state.State
+      - state_vector: *id163
+      - timestamp: 2024-06-18 11:34:08.395924
+    - !stonesoup.types.state.State
+      - state_vector: *id168
+      - timestamp: 2024-06-18 11:34:07.395924
+    - !stonesoup.types.state.State
+      - state_vector: *id173
+      - timestamp: 2024-06-18 11:34:06.395924
+    - !stonesoup.types.state.State
+      - state_vector: *id178
+      - timestamp: 2024-06-18 11:34:05.395924
+    - !stonesoup.types.state.State
+      - state_vector: &id183 !stonesoup.types.array.StateVector
+        - [16.277521389929642]
+        - [0.5559991951318631]
+        - [0.32483937359338416]
+        - [0.007275979281959233]
+      - timestamp: 2024-06-18 11:34:04.395924
+  - id: 5
+- !stonesoup.types.track.Track
+  - states:
+    - !stonesoup.types.state.State
+      - state_vector: *id164
+      - timestamp: 2024-06-18 11:34:08.395924
+    - !stonesoup.types.state.State
+      - state_vector: *id169
+      - timestamp: 2024-06-18 11:34:07.395924
+    - !stonesoup.types.state.State
+      - state_vector: *id174
+      - timestamp: 2024-06-18 11:34:06.395924
+    - !stonesoup.types.state.State
+      - state_vector: *id179
+      - timestamp: 2024-06-18 11:34:05.395924
+    - !stonesoup.types.state.State
+      - state_vector: &id184 !stonesoup.types.array.StateVector
+        - [.inf]
+        - [.inf]
+        - [.inf]
+        - [.inf]
+      - timestamp: 2024-06-18 11:34:04.395924
+  - id: 5
+- !stonesoup.types.track.Track
+  - states:
+    - !stonesoup.types.state.State
+      - state_vector: *id165
+      - timestamp: 2024-06-18 11:34:08.395924
+    - !stonesoup.types.state.State
+      - state_vector: *id170
+      - timestamp: 2024-06-18 11:34:07.395924
+    - !stonesoup.types.state.State
+      - state_vector: *id175
+      - timestamp: 2024-06-18 11:34:06.395924
+    - !stonesoup.types.state.State
+      - state_vector: *id180
+      - timestamp: 2024-06-18 11:34:05.395924
+    - !stonesoup.types.state.State
+      - state_vector: &id185 !stonesoup.types.array.StateVector
+        - [.inf]
+        - [.inf]
+        - [.inf]
+        - [.inf]
+      - timestamp: 2024-06-18 11:34:04.395924
+  - id: 5
+- !stonesoup.types.track.Track
+  - states:
+    - !stonesoup.types.state.State
+      - state_vector: *id166
+      - timestamp: 2024-06-18 11:34:09.395924
+    - !stonesoup.types.state.State
+      - state_vector: *id171
+      - timestamp: 2024-06-18 11:34:08.395924
+    - !stonesoup.types.state.State
+      - state_vector: *id176
+      - timestamp: 2024-06-18 11:34:07.395924
+    - !stonesoup.types.state.State
+      - state_vector: *id181
+      - timestamp: 2024-06-18 11:34:06.395924
+    - !stonesoup.types.state.State
+      - state_vector: &id186 !stonesoup.types.array.StateVector
+        - [.inf]
+        - [.inf]
+        - [.inf]
+        - [.inf]
+      - timestamp: 2024-06-18 11:34:05.395924
+  - id: 5
+- !stonesoup.types.track.Track
+  - states:
+    - !stonesoup.types.state.State
+      - state_vector: *id167
+      - timestamp: 2024-06-18 11:34:09.395924
+    - !stonesoup.types.state.State
+      - state_vector: *id172
+      - timestamp: 2024-06-18 11:34:08.395924
+    - !stonesoup.types.state.State
+      - state_vector: *id177
+      - timestamp: 2024-06-18 11:34:07.395924
+    - !stonesoup.types.state.State
+      - state_vector: *id182
+      - timestamp: 2024-06-18 11:34:06.395924
+    - !stonesoup.types.state.State
+      - state_vector: &id187 !stonesoup.types.array.StateVector
+        - [.inf]
+        - [.inf]
+        - [.inf]
+        - [.inf]
+      - timestamp: 2024-06-18 11:34:05.395924
+  - id: 5
+- !stonesoup.types.track.Track
+  - states:
+    - !stonesoup.types.state.State
+      - state_vector: *id168
+      - timestamp: 2024-06-18 11:34:09.395924
+    - !stonesoup.types.state.State
+      - state_vector: *id173
+      - timestamp: 2024-06-18 11:34:08.395924
+    - !stonesoup.types.state.State
+      - state_vector: *id178
+      - timestamp: 2024-06-18 11:34:07.395924
+    - !stonesoup.types.state.State
+      - state_vector: *id183
+      - timestamp: 2024-06-18 11:34:06.395924
+    - !stonesoup.types.state.State
+      - state_vector: &id188 !stonesoup.types.array.StateVector
+        - [16.833520585061507]
+        - [0.5559991951318631]
+        - [0.3321153528753434]
+        - [0.007275979281959233]
+      - timestamp: 2024-06-18 11:34:05.395924
+  - id: 5
+- !stonesoup.types.track.Track
+  - states:
+    - !stonesoup.types.state.State
+      - state_vector: *id169
+      - timestamp: 2024-06-18 11:34:09.395924
+    - !stonesoup.types.state.State
+      - state_vector: *id174
+      - timestamp: 2024-06-18 11:34:08.395924
+    - !stonesoup.types.state.State
+      - state_vector: *id179
+      - timestamp: 2024-06-18 11:34:07.395924
+    - !stonesoup.types.state.State
+      - state_vector: *id184
+      - timestamp: 2024-06-18 11:34:06.395924
+    - !stonesoup.types.state.State
+      - state_vector: &id189 !stonesoup.types.array.StateVector
+        - [.inf]
+        - [.inf]
+        - [.inf]
+        - [.inf]
+      - timestamp: 2024-06-18 11:34:05.395924
+  - id: 5
+- !stonesoup.types.track.Track
+  - states:
+    - !stonesoup.types.state.State
+      - state_vector: *id170
+      - timestamp: 2024-06-18 11:34:09.395924
+    - !stonesoup.types.state.State
+      - state_vector: *id175
+      - timestamp: 2024-06-18 11:34:08.395924
+    - !stonesoup.types.state.State
+      - state_vector: *id180
+      - timestamp: 2024-06-18 11:34:07.395924
+    - !stonesoup.types.state.State
+      - state_vector: *id185
+      - timestamp: 2024-06-18 11:34:06.395924
+    - !stonesoup.types.state.State
+      - state_vector: &id190 !stonesoup.types.array.StateVector
+        - [.inf]
+        - [.inf]
+        - [.inf]
+        - [.inf]
+      - timestamp: 2024-06-18 11:34:05.395924
+  - id: 5
+- !stonesoup.types.track.Track
+  - states:
+    - !stonesoup.types.state.State
+      - state_vector: *id171
+      - timestamp: 2024-06-18 11:34:10.395924
+    - !stonesoup.types.state.State
+      - state_vector: *id176
+      - timestamp: 2024-06-18 11:34:09.395924
+    - !stonesoup.types.state.State
+      - state_vector: *id181
+      - timestamp: 2024-06-18 11:34:08.395924
+    - !stonesoup.types.state.State
+      - state_vector: *id186
+      - timestamp: 2024-06-18 11:34:07.395924
+    - !stonesoup.types.state.State
+      - state_vector: !stonesoup.types.array.StateVector
+        - [.inf]
+        - [.inf]
+        - [.inf]
+        - [.inf]
+      - timestamp: 2024-06-18 11:34:06.395924
+  - id: 5
+- !stonesoup.types.track.Track
+  - states:
+    - !stonesoup.types.state.State
+      - state_vector: *id172
+      - timestamp: 2024-06-18 11:34:10.395924
+    - !stonesoup.types.state.State
+      - state_vector: *id177
+      - timestamp: 2024-06-18 11:34:09.395924
+    - !stonesoup.types.state.State
+      - state_vector: *id182
+      - timestamp: 2024-06-18 11:34:08.395924
+    - !stonesoup.types.state.State
+      - state_vector: *id187
+      - timestamp: 2024-06-18 11:34:07.395924
+    - !stonesoup.types.state.State
+      - state_vector: !stonesoup.types.array.StateVector
+        - [.inf]
+        - [.inf]
+        - [.inf]
+        - [.inf]
+      - timestamp: 2024-06-18 11:34:06.395924
+  - id: 5
+- !stonesoup.types.track.Track
+  - states:
+    - !stonesoup.types.state.State
+      - state_vector: *id173
+      - timestamp: 2024-06-18 11:34:10.395924
+    - !stonesoup.types.state.State
+      - state_vector: *id178
+      - timestamp: 2024-06-18 11:34:09.395924
+    - !stonesoup.types.state.State
+      - state_vector: *id183
+      - timestamp: 2024-06-18 11:34:08.395924
+    - !stonesoup.types.state.State
+      - state_vector: *id188
+      - timestamp: 2024-06-18 11:34:07.395924
+    - !stonesoup.types.state.State
+      - state_vector: !stonesoup.types.array.StateVector
+        - [.inf]
+        - [.inf]
+        - [.inf]
+        - [.inf]
+      - timestamp: 2024-06-18 11:34:06.395924
+  - id: 5
+- !stonesoup.types.track.Track
+  - states:
+    - !stonesoup.types.state.State
+      - state_vector: *id174
+      - timestamp: 2024-06-18 11:34:10.395924
+    - !stonesoup.types.state.State
+      - state_vector: *id179
+      - timestamp: 2024-06-18 11:34:09.395924
+    - !stonesoup.types.state.State
+      - state_vector: *id184
+      - timestamp: 2024-06-18 11:34:08.395924
+    - !stonesoup.types.state.State
+      - state_vector: *id189
+      - timestamp: 2024-06-18 11:34:07.395924
+    - !stonesoup.types.state.State
+      - state_vector: !stonesoup.types.array.StateVector
+        - [.inf]
+        - [.inf]
+        - [.inf]
+        - [.inf]
+      - timestamp: 2024-06-18 11:34:06.395924
+  - id: 5
+- !stonesoup.types.track.Track
+  - states:
+    - !stonesoup.types.state.State
+      - state_vector: *id175
+      - timestamp: 2024-06-18 11:34:10.395924
+    - !stonesoup.types.state.State
+      - state_vector: *id180
+      - timestamp: 2024-06-18 11:34:09.395924
+    - !stonesoup.types.state.State
+      - state_vector: *id185
+      - timestamp: 2024-06-18 11:34:08.395924
+    - !stonesoup.types.state.State
+      - state_vector: *id190
+      - timestamp: 2024-06-18 11:34:07.395924
+    - !stonesoup.types.state.State
+      - state_vector: !stonesoup.types.array.StateVector
+        - [0.6754885305766533]
+        - [0.015909432521462596]
+        - [0.44476246960134813]
+        - [0.0022035417977424032]
+      - timestamp: 2024-06-18 11:34:06.395924
+  - id: 5
+platform_states: *id191
+detections: []
+measurement_list:
+- - &id192
+    - !stonesoup.types.detection.Detection
+      - state_vector: !stonesoup.types.array.StateVector
+        - [!stonesoup.types.angle.Bearing 0.17274237923921731]
+        - [0.5219315487636865]
+      - timestamp: *id007
+      - measurement_model: !stonesoup.models.measurement.nonlinear.CartesianToBearingRange
+        - ndim_state: 2
+        - mapping: *id035
+        - noise_covar: !stonesoup.types.array.CovarianceMatrix
+          - [0, 0]
+          - [0, 0]
+        - rotation_offset: !stonesoup.types.array.StateVector
+          - [0.0]
+          - [0.0]
+          - [2.356194490192345]
+        - translation_offset: !stonesoup.types.array.StateVector
+          - [2.0230272197788253]
+          - [2.954476080541885]
+      - metadata: {}
+    - !stonesoup.types.detection.Detection
+      - state_vector: !stonesoup.types.array.StateVector
+        - [!stonesoup.types.angle.Bearing -0.022199043662919582]
+        - [1.4581412825216482]
+      - timestamp: *id009
+      - measurement_model: !stonesoup.models.measurement.nonlinear.CartesianToBearingRange
+        - ndim_state: 2
+        - mapping: *id035
+        - noise_covar: !stonesoup.types.array.CovarianceMatrix
+          - [0, 0]
+          - [0, 0]
+        - rotation_offset: !stonesoup.types.array.StateVector
+          - [0.0]
+          - [0.0]
+          - [1.5707963267948966]
+        - translation_offset: !stonesoup.types.array.StateVector
+          - [2.0230272197788253]
+          - [2.954476080541885]
+      - metadata: {}
+    - !stonesoup.types.detection.Detection
+      - state_vector: !stonesoup.types.array.StateVector
+        - [!stonesoup.types.angle.Bearing 0.48990920968597074]
+        - [1.6886161817954557]
+      - timestamp: *id011
+      - measurement_model: !stonesoup.models.measurement.nonlinear.CartesianToBearingRange
+        - ndim_state: 2
+        - mapping: *id035
+        - noise_covar: !stonesoup.types.array.CovarianceMatrix
+          - [0, 0]
+          - [0, 0]
+        - rotation_offset: !stonesoup.types.array.StateVector
+          - [0.0]
+          - [0.0]
+          - [0.7853981633974483]
+        - translation_offset: !stonesoup.types.array.StateVector
+          - [2.0230272197788253]
+          - [3.954476080541885]
+      - metadata: {}
+    - !stonesoup.types.detection.Detection
+      - state_vector: !stonesoup.types.array.StateVector
+        - [!stonesoup.types.angle.Bearing 0.46775556039013466]
+        - [2.309795022924775]
+      - timestamp: *id012
+      - measurement_model: !stonesoup.models.measurement.nonlinear.CartesianToBearingRange
+        - ndim_state: 2
+        - mapping: *id035
+        - noise_covar: !stonesoup.types.array.CovarianceMatrix
+          - [0, 0]
+          - [0, 0]
+        - rotation_offset: !stonesoup.types.array.StateVector
+          - [0.0]
+          - [0.0]
+          - [0.7853981633974483]
+        - translation_offset: !stonesoup.types.array.StateVector
+          - [2.0230372197788253]
+          - [3.954486080541885]
+      - metadata: {}
+    - !stonesoup.types.detection.Detection
+      - state_vector: !stonesoup.types.array.StateVector
+        - [!stonesoup.types.angle.Bearing -0.49235238634964773]
+        - [2.0120559799541313]
+      - timestamp: *id013
+      - measurement_model: !stonesoup.models.measurement.nonlinear.CartesianToBearingRange
+        - ndim_state: 2
+        - mapping: *id035
+        - noise_covar: !stonesoup.types.array.CovarianceMatrix
+          - [0, 0]
+          - [0, 0]
+        - rotation_offset: !stonesoup.types.array.StateVector
+          - [0.0]
+          - [0.0]
+          - [1.5707963267948966]
+        - translation_offset: !stonesoup.types.array.StateVector
+          - [2.0230372197788253]
+          - [4.954486080541885]
+      - metadata: {}
+    - !stonesoup.types.detection.Detection
+      - state_vector: !stonesoup.types.array.StateVector
+        - [!stonesoup.types.angle.Bearing -0.4371812245720297]
+        - [3.873888956322197]
+      - timestamp: *id016
+      - measurement_model: !stonesoup.models.measurement.nonlinear.CartesianToBearingRange
+        - ndim_state: 2
+        - mapping: *id035
+        - noise_covar: !stonesoup.types.array.CovarianceMatrix
+          - [0, 0]
+          - [0, 0]
+        - rotation_offset: !stonesoup.types.array.StateVector
+          - [0.0]
+          - [0.0]
+          - [1.5707963267948966]
+        - translation_offset: !stonesoup.types.array.StateVector
+          - [2.0230372197788253]
+          - [4.954486080541885]
+      - metadata: {}
+    - !stonesoup.types.detection.Detection
+      - state_vector: !stonesoup.types.array.StateVector
+        - [!stonesoup.types.angle.Bearing 0.02335758920700126]
+        - [8.051703273807519]
+      - timestamp: *id020
+      - measurement_model: !stonesoup.models.measurement.nonlinear.CartesianToBearingRange
+        - ndim_state: 2
+        - mapping: *id035
+        - noise_covar: !stonesoup.types.array.CovarianceMatrix
+          - [0, 0]
+          - [0, 0]
+        - rotation_offset: !stonesoup.types.array.StateVector
+          - [0.0]
+          - [0.0]
+          - [0.7853981633974483]
+        - translation_offset: !stonesoup.types.array.StateVector
+          - [-0.9769527802211747]
+          - [4.954496080541885]
+      - metadata: {}
+    - !stonesoup.types.detection.Detection
+      - state_vector: !stonesoup.types.array.StateVector
+        - [!stonesoup.types.angle.Bearing 0.4202292933300136]
+        - [11.024712553060173]
+      - timestamp: *id026
+      - measurement_model: !stonesoup.models.measurement.nonlinear.CartesianToBearingRange
+        - ndim_state: 2
+        - mapping: *id035
+        - noise_covar: !stonesoup.types.array.CovarianceMatrix
+          - [0, 0]
+          - [0, 0]
+        - rotation_offset: !stonesoup.types.array.StateVector
+          - [0.0]
+          - [0.0]
+          - [0.7853981633974483]
+        - translation_offset: !stonesoup.types.array.StateVector
+          - [2.0230472197788254]
+          - [3.954496080541885]
+      - metadata: {}
+    - !stonesoup.types.detection.Detection
+      - state_vector: !stonesoup.types.array.StateVector
+        - [!stonesoup.types.angle.Bearing 0.5791808671157561]
+        - [11.703396799472701]
+      - timestamp: *id028
+      - measurement_model: !stonesoup.models.measurement.nonlinear.CartesianToBearingRange
+        - ndim_state: 2
+        - mapping: *id035
+        - noise_covar: !stonesoup.types.array.CovarianceMatrix
+          - [0, 0]
+          - [0, 0]
+        - rotation_offset: !stonesoup.types.array.StateVector
+          - [0.0]
+          - [0.0]
+          - [0.7853981633974483]
+        - translation_offset: !stonesoup.types.array.StateVector
+          - [4.023047219778825]
+          - [3.954496080541885]
+      - metadata: {}
+    - !stonesoup.types.detection.Detection
+      - state_vector: !stonesoup.types.array.StateVector
+        - [!stonesoup.types.angle.Bearing -0.23364503554798421]
+        - [11.342441372748794]
+      - timestamp: *id029
+      - measurement_model: !stonesoup.models.measurement.nonlinear.CartesianToBearingRange
+        - ndim_state: 2
+        - mapping: *id035
+        - noise_covar: !stonesoup.types.array.CovarianceMatrix
+          - [0, 0]
+          - [0, 0]
+        - rotation_offset: !stonesoup.types.array.StateVector
+          - [0.0]
+          - [0.0]
+          - [1.5707963267948966]
+        - translation_offset: !stonesoup.types.array.StateVector
+          - [4.023047219778825]
+          - [4.954496080541885]
+      - metadata: {}
+  - &id193
+    - !stonesoup.types.detection.Detection
+      - state_vector: !stonesoup.types.array.StateVector
+        - [!stonesoup.types.angle.Bearing -0.7115226976663669]
+        - [0.8723955713195992]
+      - timestamp: *id002
+      - measurement_model: !stonesoup.models.measurement.nonlinear.CartesianToBearingRange
+        - ndim_state: 2
+        - mapping: *id035
+        - noise_covar: !stonesoup.types.array.CovarianceMatrix
+          - [0, 0]
+          - [0, 0]
+        - rotation_offset: !stonesoup.types.array.StateVector
+          - [0.0]
+          - [0.0]
+          - [0.7853981633974483]
+        - translation_offset: !stonesoup.types.array.StateVector
+          - [0.023027219778825426]
+          - [0.9544760805418849]
+      - metadata: {}
+    - !stonesoup.types.detection.Detection
+      - state_vector: !stonesoup.types.array.StateVector
+        - [!stonesoup.types.angle.Bearing -0.38210854311244713]
+        - [4.325658808394337]
+      - timestamp: *id009
+      - measurement_model: !stonesoup.models.measurement.nonlinear.CartesianToBearingRange
+        - ndim_state: 2
+        - mapping: *id035
+        - noise_covar: !stonesoup.types.array.CovarianceMatrix
+          - [0, 0]
+          - [0, 0]
+        - rotation_offset: !stonesoup.types.array.StateVector
+          - [0.0]
+          - [0.0]
+          - [1.5707963267948966]
+        - translation_offset: !stonesoup.types.array.StateVector
+          - [2.0230272197788253]
+          - [2.954476080541885]
+      - metadata: {}
+    - !stonesoup.types.detection.Detection
+      - state_vector: !stonesoup.types.array.StateVector
+        - [!stonesoup.types.angle.Bearing 0.3171418247440112]
+        - [5.599550327289595]
+      - timestamp: *id011
+      - measurement_model: !stonesoup.models.measurement.nonlinear.CartesianToBearingRange
+        - ndim_state: 2
+        - mapping: *id035
+        - noise_covar: !stonesoup.types.array.CovarianceMatrix
+          - [0, 0]
+          - [0, 0]
+        - rotation_offset: !stonesoup.types.array.StateVector
+          - [0.0]
+          - [0.0]
+          - [0.7853981633974483]
+        - translation_offset: !stonesoup.types.array.StateVector
+          - [2.0230272197788253]
+          - [3.954476080541885]
+      - metadata: {}
+    - !stonesoup.types.detection.Detection
+      - state_vector: !stonesoup.types.array.StateVector
+        - [!stonesoup.types.angle.Bearing 0.32305704331297624]
+        - [6.690798705744427]
+      - timestamp: *id012
+      - measurement_model: !stonesoup.models.measurement.nonlinear.CartesianToBearingRange
+        - ndim_state: 2
+        - mapping: *id035
+        - noise_covar: !stonesoup.types.array.CovarianceMatrix
+          - [0, 0]
+          - [0, 0]
+        - rotation_offset: !stonesoup.types.array.StateVector
+          - [0.0]
+          - [0.0]
+          - [0.7853981633974483]
+        - translation_offset: !stonesoup.types.array.StateVector
+          - [2.0230372197788253]
+          - [3.954486080541885]
+      - metadata: {}
+    - !stonesoup.types.detection.Detection
+      - state_vector: !stonesoup.types.array.StateVector
+        - [!stonesoup.types.angle.Bearing -0.5222255693723334]
+        - [6.899515393441338]
+      - timestamp: *id013
+      - measurement_model: !stonesoup.models.measurement.nonlinear.CartesianToBearingRange
+        - ndim_state: 2
+        - mapping: *id035
+        - noise_covar: !stonesoup.types.array.CovarianceMatrix
+          - [0, 0]
+          - [0, 0]
+        - rotation_offset: !stonesoup.types.array.StateVector
+          - [0.0]
+          - [0.0]
+          - [1.5707963267948966]
+        - translation_offset: !stonesoup.types.array.StateVector
+          - [2.0230372197788253]
+          - [4.954486080541885]
+      - metadata: {}
+    - !stonesoup.types.detection.Detection
+      - state_vector: !stonesoup.types.array.StateVector
+        - [!stonesoup.types.angle.Bearing -0.49319109964860885]
+        - [10.166064253936621]
+      - timestamp: *id016
+      - measurement_model: !stonesoup.models.measurement.nonlinear.CartesianToBearingRange
+        - ndim_state: 2
+        - mapping: *id035
+        - noise_covar: !stonesoup.types.array.CovarianceMatrix
+          - [0, 0]
+          - [0, 0]
+        - rotation_offset: !stonesoup.types.array.StateVector
+          - [0.0]
+          - [0.0]
+          - [1.5707963267948966]
+        - translation_offset: !stonesoup.types.array.StateVector
+          - [2.0230372197788253]
+          - [4.954486080541885]
+      - metadata: {}
+    - !stonesoup.types.detection.Detection
+      - state_vector: !stonesoup.types.array.StateVector
+        - [!stonesoup.types.angle.Bearing 0.14432508118834164]
+        - [16.12160506156038]
+      - timestamp: *id020
+      - measurement_model: !stonesoup.models.measurement.nonlinear.CartesianToBearingRange
+        - ndim_state: 2
+        - mapping: *id035
+        - noise_covar: !stonesoup.types.array.CovarianceMatrix
+          - [0, 0]
+          - [0, 0]
+        - rotation_offset: !stonesoup.types.array.StateVector
+          - [0.0]
+          - [0.0]
+          - [0.7853981633974483]
+        - translation_offset: !stonesoup.types.array.StateVector
+          - [-0.9769527802211747]
+          - [4.954496080541885]
+      - metadata: {}
+    - !stonesoup.types.detection.Detection
+      - state_vector: !stonesoup.types.array.StateVector
+        - [!stonesoup.types.angle.Bearing 0.3441580797319328]
+        - [21.97471380796588]
+      - timestamp: *id026
+      - measurement_model: !stonesoup.models.measurement.nonlinear.CartesianToBearingRange
+        - ndim_state: 2
+        - mapping: *id035
+        - noise_covar: !stonesoup.types.array.CovarianceMatrix
+          - [0, 0]
+          - [0, 0]
+        - rotation_offset: !stonesoup.types.array.StateVector
+          - [0.0]
+          - [0.0]
+          - [0.7853981633974483]
+        - translation_offset: !stonesoup.types.array.StateVector
+          - [2.0230472197788254]
+          - [3.954496080541885]
+      - metadata: {}
+    - !stonesoup.types.detection.Detection
+      - state_vector: !stonesoup.types.array.StateVector
+        - [!stonesoup.types.angle.Bearing 0.4224646246952277]
+        - [23.375855492317406]
+      - timestamp: *id028
+      - measurement_model: !stonesoup.models.measurement.nonlinear.CartesianToBearingRange
+        - ndim_state: 2
+        - mapping: *id035
+        - noise_covar: !stonesoup.types.array.CovarianceMatrix
+          - [0, 0]
+          - [0, 0]
+        - rotation_offset: !stonesoup.types.array.StateVector
+          - [0.0]
+          - [0.0]
+          - [0.7853981633974483]
+        - translation_offset: !stonesoup.types.array.StateVector
+          - [4.023047219778825]
+          - [3.954496080541885]
+      - metadata: {}
+    - !stonesoup.types.detection.Detection
+      - state_vector: !stonesoup.types.array.StateVector
+        - [!stonesoup.types.angle.Bearing -0.3812217674399023]
+        - [23.534190213403694]
+      - timestamp: *id029
+      - measurement_model: !stonesoup.models.measurement.nonlinear.CartesianToBearingRange
+        - ndim_state: 2
+        - mapping: *id035
+        - noise_covar: !stonesoup.types.array.CovarianceMatrix
+          - [0, 0]
+          - [0, 0]
+        - rotation_offset: !stonesoup.types.array.StateVector
+          - [0.0]
+          - [0.0]
+          - [1.5707963267948966]
+        - translation_offset: !stonesoup.types.array.StateVector
+          - [4.023047219778825]
+          - [4.954496080541885]
+      - metadata: {}
+  - &id194
+    - !stonesoup.types.detection.Detection
+      - state_vector: !stonesoup.types.array.StateVector
+        - [!stonesoup.types.angle.Bearing 0.07542333704601223]
+        - [5.747127964350349]
+      - timestamp: *id014
+      - measurement_model: !stonesoup.models.measurement.nonlinear.CartesianToBearingRange
+        - ndim_state: 2
+        - mapping: *id035
+        - noise_covar: !stonesoup.types.array.CovarianceMatrix
+          - [0, 0]
+          - [0, 0]
+        - rotation_offset: !stonesoup.types.array.StateVector
+          - [0.0]
+          - [0.0]
+          - [-0.7853981633974483]
+        - translation_offset: !stonesoup.types.array.StateVector
+          - [3.0230372197788253]
+          - [3.9544860805418853]
+      - metadata: {}
+    - !stonesoup.types.detection.Detection
+      - state_vector: !stonesoup.types.array.StateVector
+        - [!stonesoup.types.angle.Bearing 0.4680554551251759]
+        - [11.841764881641957]
+      - timestamp: *id021
+      - measurement_model: !stonesoup.models.measurement.nonlinear.CartesianToBearingRange
+        - ndim_state: 2
+        - mapping: *id035
+        - noise_covar: !stonesoup.types.array.CovarianceMatrix
+          - [0, 0]
+          - [0, 0]
+        - rotation_offset: !stonesoup.types.array.StateVector
+          - [0.0]
+          - [0.0]
+          - [-0.7853981633974483]
+        - translation_offset: !stonesoup.types.array.StateVector
+          - [0.02304721977882529]
+          - [3.954496080541885]
+      - metadata: {}
+    - !stonesoup.types.detection.Detection
+      - state_vector: !stonesoup.types.array.StateVector
+        - [!stonesoup.types.angle.Bearing -0.28936604993502835]
+        - [12.8987456394834]
+      - timestamp: *id023
+      - measurement_model: !stonesoup.models.measurement.nonlinear.CartesianToBearingRange
+        - ndim_state: 2
+        - mapping: *id035
+        - noise_covar: !stonesoup.types.array.CovarianceMatrix
+          - [0, 0]
+          - [0, 0]
+        - rotation_offset: !stonesoup.types.array.StateVector
+          - [0.0]
+          - [0.0]
+          - [0.0]
+        - translation_offset: !stonesoup.types.array.StateVector
+          - [0.02304721977882529]
+          - [3.954496080541885]
+      - metadata: {}
+    - !stonesoup.types.detection.Detection
+      - state_vector: !stonesoup.types.array.StateVector
+        - [!stonesoup.types.angle.Bearing -0.21055171204976553]
+        - [12.75618898399087]
+      - timestamp: *id025
+      - measurement_model: !stonesoup.models.measurement.nonlinear.CartesianToBearingRange
+        - ndim_state: 2
+        - mapping: *id035
+        - noise_covar: !stonesoup.types.array.CovarianceMatrix
+          - [0, 0]
+          - [0, 0]
+        - rotation_offset: !stonesoup.types.array.StateVector
+          - [0.0]
+          - [0.0]
+          - [0.0]
+        - translation_offset: !stonesoup.types.array.StateVector
+          - [1.0230472197788254]
+          - [2.954496080541885]
+      - metadata: {}
+    - !stonesoup.types.detection.Detection
+      - state_vector: !stonesoup.types.array.StateVector
+        - [!stonesoup.types.angle.Bearing 0.5604288746762456]
+        - [11.885992195465276]
+      - timestamp: *id027
+      - measurement_model: !stonesoup.models.measurement.nonlinear.CartesianToBearingRange
+        - ndim_state: 2
+        - mapping: *id035
+        - noise_covar: !stonesoup.types.array.CovarianceMatrix
+          - [0, 0]
+          - [0, 0]
+        - rotation_offset: !stonesoup.types.array.StateVector
+          - [0.0]
+          - [0.0]
+          - [-0.7853981633974483]
+        - translation_offset: !stonesoup.types.array.StateVector
+          - [3.0230472197788254]
+          - [2.954496080541885]
+      - metadata: {}
+    - !stonesoup.types.detection.Detection
+      - state_vector: !stonesoup.types.array.StateVector
+        - [!stonesoup.types.angle.Bearing 0.47342194203486]
+        - [11.825294780972193]
+      - timestamp: *id030
+      - measurement_model: !stonesoup.models.measurement.nonlinear.CartesianToBearingRange
+        - ndim_state: 2
+        - mapping: *id035
+        - noise_covar: !stonesoup.types.array.CovarianceMatrix
+          - [0, 0]
+          - [0, 0]
+        - rotation_offset: !stonesoup.types.array.StateVector
+          - [0.0]
+          - [0.0]
+          - [-0.7853981633974483]
+        - translation_offset: !stonesoup.types.array.StateVector
+          - [5.023047219778825]
+          - [3.954496080541885]
+      - metadata: {}
+    - !stonesoup.types.detection.Detection
+      - state_vector: !stonesoup.types.array.StateVector
+        - [!stonesoup.types.angle.Bearing 0.5474172173718337]
+        - [11.123992766193405]
+      - timestamp: *id031
+      - measurement_model: !stonesoup.models.measurement.nonlinear.CartesianToBearingRange
+        - ndim_state: 2
+        - mapping: *id035
+        - noise_covar: !stonesoup.types.array.CovarianceMatrix
+          - [0, 0]
+          - [0, 0]
+        - rotation_offset: !stonesoup.types.array.StateVector
+          - [0.0]
+          - [0.0]
+          - [-0.7853981633974483]
+        - translation_offset: !stonesoup.types.array.StateVector
+          - [6.023047219778825]
+          - [2.954496080541885]
+      - metadata: {}
+  - &id195
+    - !stonesoup.types.detection.Detection
+      - state_vector: !stonesoup.types.array.StateVector
+        - [!stonesoup.types.angle.Bearing -0.6950543207916655]
+        - [0.7094595441093692]
+      - timestamp: *id001
+      - measurement_model: !stonesoup.models.measurement.nonlinear.CartesianToBearingRange
+        - ndim_state: 2
+        - mapping: *id035
+        - noise_covar: !stonesoup.types.array.CovarianceMatrix
+          - [0, 0]
+          - [0, 0]
+        - rotation_offset: !stonesoup.types.array.StateVector
+          - [0.0]
+          - [0.0]
+          - [0.6070940840878134]
+        - translation_offset: !stonesoup.types.array.StateVector
+          - [0.023017219778825426]
+          - [0.954466080541885]
+      - metadata: {}
+    - !stonesoup.types.detection.Detection
+      - state_vector: !stonesoup.types.array.StateVector
+        - [!stonesoup.types.angle.Bearing -0.7464304416209488]
+        - [1.3237229823493735]
+      - timestamp: *id002
+      - measurement_model: !stonesoup.models.measurement.nonlinear.CartesianToBearingRange
+        - ndim_state: 2
+        - mapping: *id035
+        - noise_covar: !stonesoup.types.array.CovarianceMatrix
+          - [0, 0]
+          - [0, 0]
+        - rotation_offset: !stonesoup.types.array.StateVector
+          - [0.0]
+          - [0.0]
+          - [0.7853981633974483]
+        - translation_offset: !stonesoup.types.array.StateVector
+          - [0.023027219778825426]
+          - [0.9544760805418849]
+      - metadata: {}
+    - !stonesoup.types.detection.Detection
+      - state_vector: !stonesoup.types.array.StateVector
+        - [!stonesoup.types.angle.Bearing -0.3188626218677375]
+        - [0.6211184383734105]
+      - timestamp: *id005
+      - measurement_model: !stonesoup.models.measurement.nonlinear.CartesianToBearingRange
+        - ndim_state: 2
+        - mapping: *id035
+        - noise_covar: !stonesoup.types.array.CovarianceMatrix
+          - [0, 0]
+          - [0, 0]
+        - rotation_offset: !stonesoup.types.array.StateVector
+          - [0.0]
+          - [0.0]
+          - [0.7853981633974483]
+        - translation_offset: !stonesoup.types.array.StateVector
+          - [2.0230272197788253]
+          - [0.9544760805418849]
+      - metadata: {}
+    - !stonesoup.types.detection.Detection
+      - state_vector: !stonesoup.types.array.StateVector
+        - [!stonesoup.types.angle.Bearing 0.4643724552796775]
+        - [5.373344561885366]
+      - timestamp: *id014
+      - measurement_model: !stonesoup.models.measurement.nonlinear.CartesianToBearingRange
+        - ndim_state: 2
+        - mapping: *id035
+        - noise_covar: !stonesoup.types.array.CovarianceMatrix
+          - [0, 0]
+          - [0, 0]
+        - rotation_offset: !stonesoup.types.array.StateVector
+          - [0.0]
+          - [0.0]
+          - [-0.7853981633974483]
+        - translation_offset: !stonesoup.types.array.StateVector
+          - [3.0230372197788253]
+          - [3.9544860805418853]
+      - metadata: {}
+    - !stonesoup.types.detection.Detection
+      - state_vector: !stonesoup.types.array.StateVector
+        - [!stonesoup.types.angle.Bearing 0.7131528355744425]
+        - [12.443361012085283]
+      - timestamp: *id021
+      - measurement_model: !stonesoup.models.measurement.nonlinear.CartesianToBearingRange
+        - ndim_state: 2
+        - mapping: *id035
+        - noise_covar: !stonesoup.types.array.CovarianceMatrix
+          - [0, 0]
+          - [0, 0]
+        - rotation_offset: !stonesoup.types.array.StateVector
+          - [0.0]
+          - [0.0]
+          - [-0.7853981633974483]
+        - translation_offset: !stonesoup.types.array.StateVector
+          - [0.02304721977882529]
+          - [3.954496080541885]
+      - metadata: {}
+    - !stonesoup.types.detection.Detection
+      - state_vector: !stonesoup.types.array.StateVector
+        - [!stonesoup.types.angle.Bearing -0.04909854169485994]
+        - [13.659385211229209]
+      - timestamp: *id023
+      - measurement_model: !stonesoup.models.measurement.nonlinear.CartesianToBearingRange
+        - ndim_state: 2
+        - mapping: *id035
+        - noise_covar: !stonesoup.types.array.CovarianceMatrix
+          - [0, 0]
+          - [0, 0]
+        - rotation_offset: !stonesoup.types.array.StateVector
+          - [0.0]
+          - [0.0]
+          - [0.0]
+        - translation_offset: !stonesoup.types.array.StateVector
+          - [0.02304721977882529]
+          - [3.954496080541885]
+      - metadata: {}
+    - !stonesoup.types.detection.Detection
+      - state_vector: !stonesoup.types.array.StateVector
+        - [!stonesoup.types.angle.Bearing 0.0401529704281498]
+        - [13.886139574341545]
+      - timestamp: *id025
+      - measurement_model: !stonesoup.models.measurement.nonlinear.CartesianToBearingRange
+        - ndim_state: 2
+        - mapping: *id035
+        - noise_covar: !stonesoup.types.array.CovarianceMatrix
+          - [0, 0]
+          - [0, 0]
+        - rotation_offset: !stonesoup.types.array.StateVector
+          - [0.0]
+          - [0.0]
+          - [0.0]
+        - translation_offset: !stonesoup.types.array.StateVector
+          - [1.0230472197788254]
+          - [2.954496080541885]
+      - metadata: {}
+  - &id196
+    - !stonesoup.types.detection.Detection
+      - state_vector: !stonesoup.types.array.StateVector
+        - [!stonesoup.types.angle.Bearing 0.6214231269354493]
+        - [3.590944992379055]
+      - timestamp: *id017
+      - measurement_model: !stonesoup.models.measurement.nonlinear.CartesianToBearingRange
+        - ndim_state: 2
+        - mapping: *id035
+        - noise_covar: !stonesoup.types.array.CovarianceMatrix
+          - [0, 0]
+          - [0, 0]
+        - rotation_offset: !stonesoup.types.array.StateVector
+          - [0.0]
+          - [0.0]
+          - [-2.356194490192345]
+        - translation_offset: !stonesoup.types.array.StateVector
+          - [1.0230372197788253]
+          - [3.9544860805418853]
+      - metadata: {}
+    - !stonesoup.types.detection.Detection
+      - state_vector: !stonesoup.types.array.StateVector
+        - [!stonesoup.types.angle.Bearing -0.6511118216684784]
+        - [3.5660775016318054]
+      - timestamp: *id021
+      - measurement_model: !stonesoup.models.measurement.nonlinear.CartesianToBearingRange
+        - ndim_state: 2
+        - mapping: *id035
+        - noise_covar: !stonesoup.types.array.CovarianceMatrix
+          - [0, 0]
+          - [0, 0]
+        - rotation_offset: !stonesoup.types.array.StateVector
+          - [0.0]
+          - [0.0]
+          - [-0.7853981633974483]
+        - translation_offset: !stonesoup.types.array.StateVector
+          - [0.02304721977882529]
+          - [3.954496080541885]
+      - metadata: {}
+    - !stonesoup.types.detection.Detection
+      - state_vector: !stonesoup.types.array.StateVector
+        - [!stonesoup.types.angle.Bearing 0.20487661543129487]
+        - [2.5813480147643935]
+      - timestamp: *id024
+      - measurement_model: !stonesoup.models.measurement.nonlinear.CartesianToBearingRange
+        - ndim_state: 2
+        - mapping: *id035
+        - noise_covar: !stonesoup.types.array.CovarianceMatrix
+          - [0, 0]
+          - [0, 0]
+        - rotation_offset: !stonesoup.types.array.StateVector
+          - [0.0]
+          - [0.0]
+          - [-1.5707963267948966]
+        - translation_offset: !stonesoup.types.array.StateVector
+          - [0.02304721977882529]
+          - [2.954496080541885]
+      - metadata: {}
+    - !stonesoup.types.detection.Detection
+      - state_vector: !stonesoup.types.array.StateVector
+        - [!stonesoup.types.angle.Bearing -0.4511663282150753]
+        - [4.60223447165188]
+      - timestamp: *id033
+      - measurement_model: !stonesoup.models.measurement.nonlinear.CartesianToBearingRange
+        - ndim_state: 2
+        - mapping: *id035
+        - noise_covar: !stonesoup.types.array.CovarianceMatrix
+          - [0, 0]
+          - [0, 0]
+        - rotation_offset: !stonesoup.types.array.StateVector
+          - [0.0]
+          - [0.0]
+          - [-2.356194490192345]
+        - translation_offset: !stonesoup.types.array.StateVector
+          - [5.023047219778825]
+          - [1.954496080541885]
+      - metadata: {}
+- - *id192
+  - *id193
+  - *id194
+  - *id195
+  - *id196
+- - *id192
+  - *id193
+  - *id194
+  - *id195
+  - *id196
+- - *id192
+  - *id193
+  - *id194
+  - *id195
+  - *id196
+- - *id192
+  - *id193
+  - *id194
+  - *id195
+  - *id196
+- - *id192
+  - *id193
+  - *id194
+  - *id195
+  - *id196
+- - *id192
+  - *id193
+  - *id194
+  - *id195
+  - *id196
+- - *id192
+  - *id193
+  - *id194
+  - *id195
+  - *id196
+- - *id192
+  - *id193
+  - *id194
+  - *id195
+  - *id196
+- - *id192
+  - *id193
+  - *id194
+  - *id195
+  - *id196
+- - *id192
+  - *id193
+  - *id194
+  - *id195
+  - *id196
+- - *id192
+  - *id193
+  - *id194
+  - *id195
+  - *id196
+- - *id192
+  - *id193
+  - *id194
+  - *id195
+  - *id196
+- - *id192
+  - *id193
+  - *id194
+  - *id195
+  - *id196
+- - *id192
+  - *id193
+  - *id194
+  - *id195
+  - *id196
+- - *id192
+  - *id193
+  - *id194
+  - *id195
+  - *id196
+- - *id192
+  - *id193
+  - *id194
+  - *id195
+  - *id196
+- - *id192
+  - *id193
+  - *id194
+  - *id195
+  - *id196
+- - *id192
+  - *id193
+  - *id194
+  - *id195
+  - *id196
+- - *id192
+  - *id193
+  - *id194
+  - *id195
+  - *id196
+- - *id192
+  - *id193
+  - *id194
+  - *id195
+  - *id196
+- - *id192
+  - *id193
+  - *id194
+  - *id195
+  - *id196
+- - *id192
+  - *id193
+  - *id194
+  - *id195
+  - *id196
+- - *id192
+  - *id193
+  - *id194
+  - *id195
+  - *id196
+- - *id192
+  - *id193
+  - *id194
+  - *id195
+  - *id196
+- - *id192
+  - *id193
+  - *id194
+  - *id195
+  - *id196
+- - *id192
+  - *id193
+  - *id194
+  - *id195
+  - *id196
+- - *id192
+  - *id193
+  - *id194
+  - *id195
+  - *id196
+- - *id192
+  - *id193
+  - *id194
+  - *id195
+  - *id196
+- - *id192
+  - *id193
+  - *id194
+  - *id195
+  - *id196
+unknown_targets:
+- !stonesoup.types.groundtruth.GroundTruthPath
+  - states:
+    - !stonesoup.types.groundtruth.GroundTruthState
+      - state_vector: !stonesoup.types.array.StateVector
+        - [0.7297339875822114]
+        - [0.6160113160677414]
+        - [0.8921422902735687]
+        - [0.1139032056248388]
+      - timestamp: *id001
+      - metadata: &id197
+          type: unknown
+    - !stonesoup.types.groundtruth.GroundTruthState
+      - state_vector: !stonesoup.types.array.StateVector
+        - [1.3457453036499527]
+        - [0.6160113160677414]
+        - [1.0060454958984075]
+        - [0.1139032056248388]
+      - timestamp: *id002
+      - metadata: *id197
+    - !stonesoup.types.groundtruth.GroundTruthState
+      - state_vector: !stonesoup.types.array.StateVector
+        - [1.961756619717694]
+        - [0.6160113160677414]
+        - [1.1199487015232463]
+        - [0.1139032056248388]
+      - timestamp: *id004
+      - metadata: *id197
+    - !stonesoup.types.groundtruth.GroundTruthState
+      - state_vector: !stonesoup.types.array.StateVector
+        - [2.5777679357854355]
+        - [0.6160113160677414]
+        - [1.2338519071480851]
+        - [0.1139032056248388]
+      - timestamp: *id005
+      - metadata: *id197
+    - !stonesoup.types.groundtruth.GroundTruthState
+      - state_vector: !stonesoup.types.array.StateVector
+        - [3.1937792518531767]
+        - [0.6160113160677414]
+        - [1.347755112772924]
+        - [0.1139032056248388]
+      - timestamp: *id006
+      - metadata: *id197
+    - !stonesoup.types.groundtruth.GroundTruthState
+      - state_vector: !stonesoup.types.array.StateVector
+        - [3.809790567920918]
+        - [0.6160113160677414]
+        - [1.4616583183977627]
+        - [0.1139032056248388]
+      - timestamp: *id007
+      - metadata: *id197
+    - !stonesoup.types.groundtruth.GroundTruthState
+      - state_vector: !stonesoup.types.array.StateVector
+        - [4.425801883988659]
+        - [0.6160113160677414]
+        - [1.5755615240226015]
+        - [0.1139032056248388]
+      - timestamp: *id008
+      - metadata: *id197
+    - !stonesoup.types.groundtruth.GroundTruthState
+      - state_vector: !stonesoup.types.array.StateVector
+        - [5.0418132000564]
+        - [0.6160113160677414]
+        - [1.6894647296474403]
+        - [0.1139032056248388]
+      - timestamp: *id009
+      - metadata: *id197
+    - !stonesoup.types.groundtruth.GroundTruthState
+      - state_vector: !stonesoup.types.array.StateVector
+        - [5.657824516124141]
+        - [0.6160113160677414]
+        - [1.8033679352722791]
+        - [0.1139032056248388]
+      - timestamp: *id010
+      - metadata: *id197
+    - !stonesoup.types.groundtruth.GroundTruthState
+      - state_vector: !stonesoup.types.array.StateVector
+        - [6.273835832191883]
+        - [0.6160113160677414]
+        - [1.917271140897118]
+        - [0.1139032056248388]
+      - timestamp: *id011
+      - metadata: *id197
+    - !stonesoup.types.groundtruth.GroundTruthState
+      - state_vector: !stonesoup.types.array.StateVector
+        - [6.889847148259624]
+        - [0.6160113160677414]
+        - [2.031174346521957]
+        - [0.1139032056248388]
+      - timestamp: *id012
+      - metadata: *id197
+    - !stonesoup.types.groundtruth.GroundTruthState
+      - state_vector: !stonesoup.types.array.StateVector
+        - [7.505858464327365]
+        - [0.6160113160677414]
+        - [2.1450775521467955]
+        - [0.1139032056248388]
+      - timestamp: *id013
+      - metadata: *id197
+    - !stonesoup.types.groundtruth.GroundTruthState
+      - state_vector: !stonesoup.types.array.StateVector
+        - [8.121869780395107]
+        - [0.6160113160677414]
+        - [2.258980757771634]
+        - [0.1139032056248388]
+      - timestamp: *id014
+      - metadata: *id197
+    - !stonesoup.types.groundtruth.GroundTruthState
+      - state_vector: !stonesoup.types.array.StateVector
+        - [8.737881096462848]
+        - [0.6160113160677414]
+        - [2.3728839633964727]
+        - [0.1139032056248388]
+      - timestamp: *id015
+      - metadata: *id197
+    - !stonesoup.types.groundtruth.GroundTruthState
+      - state_vector: !stonesoup.types.array.StateVector
+        - [9.35389241253059]
+        - [0.6160113160677414]
+        - [2.4867871690213113]
+        - [0.1139032056248388]
+      - timestamp: *id016
+      - metadata: *id197
+    - !stonesoup.types.groundtruth.GroundTruthState
+      - state_vector: !stonesoup.types.array.StateVector
+        - [9.96990372859833]
+        - [0.6160113160677414]
+        - [2.60069037464615]
+        - [0.1139032056248388]
+      - timestamp: *id017
+      - metadata: *id197
+    - !stonesoup.types.groundtruth.GroundTruthState
+      - state_vector: !stonesoup.types.array.StateVector
+        - [10.585915044666072]
+        - [0.6160113160677414]
+        - [2.7145935802709884]
+        - [0.1139032056248388]
+      - timestamp: *id018
+      - metadata: *id197
+    - !stonesoup.types.groundtruth.GroundTruthState
+      - state_vector: !stonesoup.types.array.StateVector
+        - [11.201926360733813]
+        - [0.6160113160677414]
+        - [2.828496785895827]
+        - [0.1139032056248388]
+      - timestamp: *id019
+      - metadata: *id197
+    - !stonesoup.types.groundtruth.GroundTruthState
+      - state_vector: !stonesoup.types.array.StateVector
+        - [11.817937676801554]
+        - [0.6160113160677414]
+        - [2.9423999915206656]
+        - [0.1139032056248388]
+      - timestamp: *id020
+      - metadata: *id197
+    - !stonesoup.types.groundtruth.GroundTruthState
+      - state_vector: !stonesoup.types.array.StateVector
+        - [12.433948992869295]
+        - [0.6160113160677414]
+        - [3.056303197145504]
+        - [0.1139032056248388]
+      - timestamp: *id021
+      - metadata: *id197
+    - !stonesoup.types.groundtruth.GroundTruthState
+      - state_vector: !stonesoup.types.array.StateVector
+        - [13.049960308937036]
+        - [0.6160113160677414]
+        - [3.1702064027703427]
+        - [0.1139032056248388]
+      - timestamp: *id022
+      - metadata: *id197
+    - !stonesoup.types.groundtruth.GroundTruthState
+      - state_vector: !stonesoup.types.array.StateVector
+        - [13.665971625004778]
+        - [0.6160113160677414]
+        - [3.2841096083951813]
+        - [0.1139032056248388]
+      - timestamp: *id023
+      - metadata: *id197
+    - !stonesoup.types.groundtruth.GroundTruthState
+      - state_vector: !stonesoup.types.array.StateVector
+        - [14.281982941072519]
+        - [0.6160113160677414]
+        - [3.39801281402002]
+        - [0.1139032056248388]
+      - timestamp: *id024
+      - metadata: *id197
+    - !stonesoup.types.groundtruth.GroundTruthState
+      - state_vector: !stonesoup.types.array.StateVector
+        - [14.89799425714026]
+        - [0.6160113160677414]
+        - [3.5119160196448584]
+        - [0.1139032056248388]
+      - timestamp: *id025
+      - metadata: *id197
+    - !stonesoup.types.groundtruth.GroundTruthState
+      - state_vector: !stonesoup.types.array.StateVector
+        - [15.514005573208001]
+        - [0.6160113160677414]
+        - [3.625819225269697]
+        - [0.1139032056248388]
+      - timestamp: *id026
+      - metadata: *id197
+    - !stonesoup.types.groundtruth.GroundTruthState
+      - state_vector: !stonesoup.types.array.StateVector
+        - [16.130016889275744]
+        - [0.6160113160677414]
+        - [3.7397224308945356]
+        - [0.1139032056248388]
+      - timestamp: *id027
+      - metadata: *id197
+    - !stonesoup.types.groundtruth.GroundTruthState
+      - state_vector: !stonesoup.types.array.StateVector
+        - [16.746028205343485]
+        - [0.6160113160677414]
+        - [3.853625636519374]
+        - [0.1139032056248388]
+      - timestamp: *id028
+      - metadata: *id197
+    - !stonesoup.types.groundtruth.GroundTruthState
+      - state_vector: !stonesoup.types.array.StateVector
+        - [17.362039521411226]
+        - [0.6160113160677414]
+        - [3.9675288421442128]
+        - [0.1139032056248388]
+      - timestamp: *id029
+      - metadata: *id197
+    - !stonesoup.types.groundtruth.GroundTruthState
+      - state_vector: !stonesoup.types.array.StateVector
+        - [17.978050837478968]
+        - [0.6160113160677414]
+        - [4.081432047769051]
+        - [0.1139032056248388]
+      - timestamp: *id030
+      - metadata: *id197
+    - !stonesoup.types.groundtruth.GroundTruthState
+      - state_vector: !stonesoup.types.array.StateVector
+        - [18.59406215354671]
+        - [0.6160113160677414]
+        - [4.19533525339389]
+        - [0.1139032056248388]
+      - timestamp: *id031
+      - metadata: *id197
+    - !stonesoup.types.groundtruth.GroundTruthState
+      - state_vector: !stonesoup.types.array.StateVector
+        - [19.21007346961445]
+        - [0.6160113160677414]
+        - [4.3092384590187285]
+        - [0.1139032056248388]
+      - timestamp: *id033
+      - metadata: *id197
+  - id: af0b2c7b-615a-4546-9250-b66277a1c7fc
+- !stonesoup.types.groundtruth.GroundTruthPath
+  - states:
+    - !stonesoup.types.groundtruth.GroundTruthState
+      - state_vector: !stonesoup.types.array.StateVector
+        - [0.19820555493277536]
+        - [0.015909432521462596]
+        - [0.37865621566907604]
+        - [0.0022035417977424032]
+      - timestamp: *id001
+      - metadata: &id198
+          type: unknown
+    - !stonesoup.types.groundtruth.GroundTruthState
+      - state_vector: !stonesoup.types.array.StateVector
+        - [0.21411498745423796]
+        - [0.015909432521462596]
+        - [0.38085975746681844]
+        - [0.0022035417977424032]
+      - timestamp: *id002
+      - metadata: *id198
+    - !stonesoup.types.groundtruth.GroundTruthState
+      - state_vector: !stonesoup.types.array.StateVector
+        - [0.23002441997570056]
+        - [0.015909432521462596]
+        - [0.38306329926456084]
+        - [0.0022035417977424032]
+      - timestamp: *id004
+      - metadata: *id198
+    - !stonesoup.types.groundtruth.GroundTruthState
+      - state_vector: !stonesoup.types.array.StateVector
+        - [0.24593385249716315]
+        - [0.015909432521462596]
+        - [0.38526684106230324]
+        - [0.0022035417977424032]
+      - timestamp: *id005
+      - metadata: *id198
+    - !stonesoup.types.groundtruth.GroundTruthState
+      - state_vector: !stonesoup.types.array.StateVector
+        - [0.26184328501862575]
+        - [0.015909432521462596]
+        - [0.38747038286004565]
+        - [0.0022035417977424032]
+      - timestamp: *id006
+      - metadata: *id198
+    - !stonesoup.types.groundtruth.GroundTruthState
+      - state_vector: !stonesoup.types.array.StateVector
+        - [0.27775271754008835]
+        - [0.015909432521462596]
+        - [0.38967392465778805]
+        - [0.0022035417977424032]
+      - timestamp: *id007
+      - metadata: *id198
+    - !stonesoup.types.groundtruth.GroundTruthState
+      - state_vector: !stonesoup.types.array.StateVector
+        - [0.29366215006155094]
+        - [0.015909432521462596]
+        - [0.39187746645553045]
+        - [0.0022035417977424032]
+      - timestamp: *id008
+      - metadata: *id198
+    - !stonesoup.types.groundtruth.GroundTruthState
+      - state_vector: !stonesoup.types.array.StateVector
+        - [0.30957158258301354]
+        - [0.015909432521462596]
+        - [0.39408100825327286]
+        - [0.0022035417977424032]
+      - timestamp: *id009
+      - metadata: *id198
+    - !stonesoup.types.groundtruth.GroundTruthState
+      - state_vector: !stonesoup.types.array.StateVector
+        - [0.32548101510447613]
+        - [0.015909432521462596]
+        - [0.39628455005101526]
+        - [0.0022035417977424032]
+      - timestamp: *id010
+      - metadata: *id198
+    - !stonesoup.types.groundtruth.GroundTruthState
+      - state_vector: !stonesoup.types.array.StateVector
+        - [0.34139044762593873]
+        - [0.015909432521462596]
+        - [0.39848809184875766]
+        - [0.0022035417977424032]
+      - timestamp: *id011
+      - metadata: *id198
+    - !stonesoup.types.groundtruth.GroundTruthState
+      - state_vector: !stonesoup.types.array.StateVector
+        - [0.3572998801474013]
+        - [0.015909432521462596]
+        - [0.40069163364650007]
+        - [0.0022035417977424032]
+      - timestamp: *id012
+      - metadata: *id198
+    - !stonesoup.types.groundtruth.GroundTruthState
+      - state_vector: !stonesoup.types.array.StateVector
+        - [0.3732093126688639]
+        - [0.015909432521462596]
+        - [0.40289517544424247]
+        - [0.0022035417977424032]
+      - timestamp: *id013
+      - metadata: *id198
+    - !stonesoup.types.groundtruth.GroundTruthState
+      - state_vector: !stonesoup.types.array.StateVector
+        - [0.3891187451903265]
+        - [0.015909432521462596]
+        - [0.4050987172419849]
+        - [0.0022035417977424032]
+      - timestamp: *id014
+      - metadata: *id198
+    - !stonesoup.types.groundtruth.GroundTruthState
+      - state_vector: !stonesoup.types.array.StateVector
+        - [0.4050281777117891]
+        - [0.015909432521462596]
+        - [0.4073022590397273]
+        - [0.0022035417977424032]
+      - timestamp: *id015
+      - metadata: *id198
+    - !stonesoup.types.groundtruth.GroundTruthState
+      - state_vector: !stonesoup.types.array.StateVector
+        - [0.4209376102332517]
+        - [0.015909432521462596]
+        - [0.4095058008374697]
+        - [0.0022035417977424032]
+      - timestamp: *id016
+      - metadata: *id198
+    - !stonesoup.types.groundtruth.GroundTruthState
+      - state_vector: !stonesoup.types.array.StateVector
+        - [0.4368470427547143]
+        - [0.015909432521462596]
+        - [0.4117093426352121]
+        - [0.0022035417977424032]
+      - timestamp: *id017
+      - metadata: *id198
+    - !stonesoup.types.groundtruth.GroundTruthState
+      - state_vector: !stonesoup.types.array.StateVector
+        - [0.4527564752761769]
+        - [0.015909432521462596]
+        - [0.4139128844329545]
+        - [0.0022035417977424032]
+      - timestamp: *id018
+      - metadata: *id198
+    - !stonesoup.types.groundtruth.GroundTruthState
+      - state_vector: !stonesoup.types.array.StateVector
+        - [0.4686659077976395]
+        - [0.015909432521462596]
+        - [0.4161164262306969]
+        - [0.0022035417977424032]
+      - timestamp: *id019
+      - metadata: *id198
+    - !stonesoup.types.groundtruth.GroundTruthState
+      - state_vector: !stonesoup.types.array.StateVector
+        - [0.4845753403191021]
+        - [0.015909432521462596]
+        - [0.4183199680284393]
+        - [0.0022035417977424032]
+      - timestamp: *id020
+      - metadata: *id198
+    - !stonesoup.types.groundtruth.GroundTruthState
+      - state_vector: !stonesoup.types.array.StateVector
+        - [0.5004847728405647]
+        - [0.015909432521462596]
+        - [0.4205235098261817]
+        - [0.0022035417977424032]
+      - timestamp: *id021
+      - metadata: *id198
+    - !stonesoup.types.groundtruth.GroundTruthState
+      - state_vector: !stonesoup.types.array.StateVector
+        - [0.5163942053620273]
+        - [0.015909432521462596]
+        - [0.4227270516239241]
+        - [0.0022035417977424032]
+      - timestamp: *id022
+      - metadata: *id198
+    - !stonesoup.types.groundtruth.GroundTruthState
+      - state_vector: !stonesoup.types.array.StateVector
+        - [0.5323036378834899]
+        - [0.015909432521462596]
+        - [0.4249305934216665]
+        - [0.0022035417977424032]
+      - timestamp: *id023
+      - metadata: *id198
+    - !stonesoup.types.groundtruth.GroundTruthState
+      - state_vector: !stonesoup.types.array.StateVector
+        - [0.5482130704049525]
+        - [0.015909432521462596]
+        - [0.4271341352194089]
+        - [0.0022035417977424032]
+      - timestamp: *id024
+      - metadata: *id198
+    - !stonesoup.types.groundtruth.GroundTruthState
+      - state_vector: !stonesoup.types.array.StateVector
+        - [0.5641225029264151]
+        - [0.015909432521462596]
+        - [0.4293376770171513]
+        - [0.0022035417977424032]
+      - timestamp: *id025
+      - metadata: *id198
+    - !stonesoup.types.groundtruth.GroundTruthState
+      - state_vector: !stonesoup.types.array.StateVector
+        - [0.5800319354478777]
+        - [0.015909432521462596]
+        - [0.4315412188148937]
+        - [0.0022035417977424032]
+      - timestamp: *id026
+      - metadata: *id198
+    - !stonesoup.types.groundtruth.GroundTruthState
+      - state_vector: !stonesoup.types.array.StateVector
+        - [0.5959413679693403]
+        - [0.015909432521462596]
+        - [0.4337447606126361]
+        - [0.0022035417977424032]
+      - timestamp: *id027
+      - metadata: *id198
+    - !stonesoup.types.groundtruth.GroundTruthState
+      - state_vector: !stonesoup.types.array.StateVector
+        - [0.6118508004908029]
+        - [0.015909432521462596]
+        - [0.4359483024103785]
+        - [0.0022035417977424032]
+      - timestamp: *id028
+      - metadata: *id198
+    - !stonesoup.types.groundtruth.GroundTruthState
+      - state_vector: !stonesoup.types.array.StateVector
+        - [0.6277602330122655]
+        - [0.015909432521462596]
+        - [0.4381518442081209]
+        - [0.0022035417977424032]
+      - timestamp: *id029
+      - metadata: *id198
+    - !stonesoup.types.groundtruth.GroundTruthState
+      - state_vector: !stonesoup.types.array.StateVector
+        - [0.6436696655337281]
+        - [0.015909432521462596]
+        - [0.4403553860058633]
+        - [0.0022035417977424032]
+      - timestamp: *id030
+      - metadata: *id198
+    - !stonesoup.types.groundtruth.GroundTruthState
+      - state_vector: !stonesoup.types.array.StateVector
+        - [0.6595790980551907]
+        - [0.015909432521462596]
+        - [0.44255892780360573]
+        - [0.0022035417977424032]
+      - timestamp: *id031
+      - metadata: *id198
+    - !stonesoup.types.groundtruth.GroundTruthState
+      - state_vector: !stonesoup.types.array.StateVector
+        - [0.6754885305766533]
+        - [0.015909432521462596]
+        - [0.44476246960134813]
+        - [0.0022035417977424032]
+      - timestamp: *id033
+      - metadata: *id198
+  - id: d3876692-0ced-44ff-b719-fa4b7dea3399
+scenario_dimensions:
+- 1000
+- 1000
+
+# This is the maximum velocity that any object can travel.
