@@ -20,6 +20,14 @@ $ cd StoneSoup
 $ pip install -e .
 ```
 
+## Using the RL plugin
+
+The RL plugin provided by MAST can be accessed within the dstl-mast folder by import items from the stone soup plugins, for example:
+```sh
+$ from stonesoup.plugins.RL.environment.gym import StoneSoupEnv
+$ from stonesoup.plugins.RL.scripts.train import main
+```
+
 
 ## Integration guide <a id="integration-guide"></a>
 
