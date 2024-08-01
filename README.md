@@ -1,11 +1,5 @@
 # dstl-mast
 
-To use MAST, change directory to the submodule:
-
-```sh
-$ cd dstl-mast
-```
-
 Then follow the installation instructions. You can then run code from dstl-mast.
 
 ## Install instructions  <a id="install-instructions"></a>
@@ -22,12 +16,12 @@ $ pip install -e .
 
 ## Using the RL plugin
 
-The RL plugin provided by MAST can be accessed within the dstl-mast folder by import items from the stone soup plugins, for example:
+The RL plugin provided by MAST can be accessed within the root folder of the repo by importing items from the stone soup plugins, for example:
 ```sh
 $ from stonesoup.plugins.RL.environment.gym import StoneSoupEnv
 $ from stonesoup.plugins.RL.scripts.train import main
 ```
-Note this must be run from within dstl-mast.
+
 
 ## Integration guide <a id="integration-guide"></a>
 

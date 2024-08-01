@@ -1,4 +1,0 @@
-Plotter
-========
-
-.. automodule:: stonesoup.plotter

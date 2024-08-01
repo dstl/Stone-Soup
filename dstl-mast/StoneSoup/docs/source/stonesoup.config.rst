@@ -1,5 +1,0 @@
-Configuration
-=============
-
-.. automodule:: stonesoup.config
-

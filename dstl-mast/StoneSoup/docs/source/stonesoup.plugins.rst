@@ -1,5 +1,0 @@
-Plugins
-=======
-
-.. automodule:: stonesoup.plugins
-

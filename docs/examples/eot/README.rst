@@ -1,2 +1,0 @@
-Extended Object Tracking
-------------------------
