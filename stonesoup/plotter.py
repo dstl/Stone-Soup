@@ -285,7 +285,11 @@ class Plotter(_Plotter):
             measurements_handle = Line2D([], [], linestyle='', **measurement_kwargs)
 
             # Generate legend items for measurements
-            self.legend_dict[measurements_label] = measurements_handle
+            if plot_clutter:
+                name = measurements_label + "<br>(Detections)"
+            else:
+                name = measurements_label
+            self.legend_dict[name] = measurements_handle
 
         if plot_clutter:
             clutter_kwargs = kwargs.copy()
@@ -293,10 +297,10 @@ class Plotter(_Plotter):
             clutter_array = np.array(list(plot_clutter.values()))
             artists.append(self.ax.scatter(*clutter_array.T, **clutter_kwargs))
             clutter_handle = Line2D([], [], linestyle='', **clutter_kwargs)
-            clutter_label = "Clutter"
 
             # Generate legend items for clutter
-            self.legend_dict[clutter_label] = clutter_handle
+            name = measurements_label + "<br>(Clutter)"
+            self.legend_dict[name] = clutter_handle
 
         # Generate legend
         artists.append(self.ax.legend(handles=self.legend_dict.values(),
@@ -1146,7 +1150,10 @@ class Plotterly(_Plotter):
                                                                 convert_measurements)
 
         if plot_detections:
-            name = measurements_label + "<br>(Detections)"
+            if plot_clutter:
+                name = measurements_label + "<br>(Detections)"
+            else:
+                name = measurements_label
             measurement_kwargs = dict(
                 mode='markers', marker=dict(color='#636EFA'),
                 name=name, legendgroup=name, legendrank=200)
@@ -1708,7 +1715,10 @@ class PolarPlotterly(_Plotter):
             range_mapping = None
 
         if plot_detections:
-            name = measurements_label + "<br>(Detections)"
+            if plot_clutter:
+                name = measurements_label + "<br>(Detections)"
+            else:
+                name = measurements_label
             measurement_kwargs = dict(mode='markers', marker=dict(color='#636EFA'), legendrank=200)
             merge(measurement_kwargs, kwargs)
             plotting_data = [State(state_vector=plotting_state_vector,
@@ -1957,7 +1967,7 @@ class AnimationPlotter(_Plotter):
             ))
 
     def plot_measurements(self, measurements, mapping, measurement_model=None,
-                          measurements_label="", convert_measurements=True, **kwargs):
+                          measurements_label="Measurements", convert_measurements=True, **kwargs):
         """Plots measurements
 
         Plots detections and clutter, generating a legend automatically. Detections are plotted as
@@ -1977,7 +1987,7 @@ class AnimationPlotter(_Plotter):
             User-defined measurement model to be used in finding measurement state inverses if
             they cannot be found from the measurements themselves.
         measurements_label: str
-            Label for measurements. Default will be "Detections" or "Clutter"
+            Label for measurements. Default is "Detections".
         convert_measurements: bool
             Should the measurements be converted from measurement space to state space before
             being plotted. Default is True
@@ -2002,17 +2012,18 @@ class AnimationPlotter(_Plotter):
                                                                 measurement_model,
                                                                 convert_measurements)
 
-        if measurements_label != "":
-            measurements_label = measurements_label + " "
-
         if plot_detections:
+            if plot_clutter:
+                name = measurements_label + "<br>(Detections)"
+            else:
+                name = measurements_label
             detection_kwargs = dict(linestyle='', marker='o', color='b')
             detection_kwargs.update(kwargs)
             self.plotting_data.append(_AnimationPlotterDataClass(
                 plotting_data=[State(state_vector=plotting_state_vector,
                                      timestamp=detection.timestamp)
                                for detection, plotting_state_vector in plot_detections.items()],
-                plotting_label=measurements_label + "Detections",
+                plotting_label=name,
                 plotting_keyword_arguments=detection_kwargs
             ))
 
@@ -2023,7 +2034,7 @@ class AnimationPlotter(_Plotter):
                 plotting_data=[State(state_vector=plotting_state_vector,
                                      timestamp=detection.timestamp)
                                for detection, plotting_state_vector in plot_clutter.items()],
-                plotting_label=measurements_label + "Clutter",
+                plotting_label=measurements_label + "<br>(Clutter)",
                 plotting_keyword_arguments=clutter_kwargs
             ))
 
@@ -2636,7 +2647,10 @@ class AnimatedPlotterly(_Plotter):
         trace_base = len(self.fig.data)
 
         # initialise detections
-        name = measurements_label + "<br>(Detections)"
+        if plot_clutter:
+            name = measurements_label + "<br>(Detections)"
+        else:
+            name = measurements_label
         measurement_kwargs = dict(x=[], y=[], mode='markers',
                                   name=name,
                                   legendgroup=name,
