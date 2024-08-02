@@ -321,7 +321,7 @@ def test_plotterly_wrong_dimension(dim, mapping):
 
 @pytest.mark.parametrize("labels", [
     None, ["Tracks"], ["Ground Truth", "Tracks"],
-    ["Ground Truth", "Measurements<br>(Detections)", "Tracks"]])
+    ["Ground Truth", "Measurements", "Tracks"]])
 def test_hide_plot(labels):
     plotter = Plotterly()
     plotter.plot_ground_truths(truth, [0, 1])
@@ -348,7 +348,7 @@ def test_hide_plot(labels):
 
 @pytest.mark.parametrize("labels", [
     None, ["Tracks"], ["Ground Truth", "Tracks"],
-    ["Ground Truth", "Measurements<br>(Detections)", "Tracks"]])
+    ["Ground Truth", "Measurements", "Tracks"]])
 def test_show_plot(labels):
     plotter = Plotterly()
     plotter.plot_ground_truths(truth, [0, 1])
