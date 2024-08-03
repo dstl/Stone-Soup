@@ -21,7 +21,12 @@ class ClearMotMetrics(MetricGenerator):
 
     Computes multi-object tracking (MOT) metrics designed for the classification of events,
     activities, and relationships (CLEAR) evaluation workshops. The implementation provided here
-    is derived from [1] and focuses on providing the MOTP and MOTP scores.
+    is derived from [1] and focuses on providing the MOTP (precision) and MOTA (accuracy) scores:
+
+    - MOTP: average distance between all associated truth and track states. The target score is 0.
+    - MOTA: 1 - ratio of the number of misses, false positives, and mismatches (ID-switches)
+        relative to the total number of truth states. The target score is 1. This score can become 
+        negative with a higher number of errors.
 
     Reference
         [1] Evaluating Multiple Object Tracking Performance: The CLEAR MOT Metrics,
@@ -35,7 +40,7 @@ class ClearMotMetrics(MetricGenerator):
                                default='groundtruth_paths')
 
     distance_measure: Measure = Property(
-        doc="Distance measure used in calculating position accuracy scores.")
+        doc="Distance measure used in calculating the MOTP score.")
 
     def compute_metric(self, manager: MultiManager, **kwargs) -> List[Metric]:
         """Compute MOTP and MOTA metrics for a given time-period covered by truths and the tracks.
