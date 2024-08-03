@@ -86,11 +86,11 @@ class ClearMotMetrics(MetricGenerator):
         track_states_by_time_and_id: StatesFromTimeIdLookup = \
             _create_state_from_time_and_id_lookup(tracks_set)
 
-        # used for the MOTP (avg-distance over matches)
+        # used for the MOTP (avg-distance over truth-track associations)
         error_sum = 0.0
         num_associated_truth_timestamps = 0
 
-        # used for the MOTA (1 - number-FPs, ID-changes etc.)
+        # used for the MOTA (1 - number-FPs, ID-changes etc. / number-GT-states)
         num_misses, num_false_positives, num_miss_matches = 0, 0, 0
 
         unique_timestamps = sorted(manager.list_timestamps(generator=self))
@@ -102,7 +102,7 @@ class ClearMotMetrics(MetricGenerator):
             matched_truth_ids_curr = {match[0] for match in matches_current}
             matched_tracks_at_timestamp = {match[1] for match in matches_current}
 
-            # adapt the variables for MOTP calculation
+            # update the variables for MOTP calculation
             error_sum_in_timestep = self._compute_sum_of_distances_at_timestep(
                 truth_states_by_time_and_id, track_states_by_time_and_id, timestamp,
                 matches_current)
