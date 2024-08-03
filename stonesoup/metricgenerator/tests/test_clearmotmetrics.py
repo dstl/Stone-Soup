@@ -7,7 +7,7 @@ from ...types.association import AssociationSet, TimeRangeAssociation
 from ...types.metric import TimeRangeMetric
 from ...types.time import TimeRange
 from ...types.track import Track
-from ..clearmotmetrics import ClearMotMetrics
+from ..clearmotmetrics import AssociationSetNotValid, ClearMotMetrics
 
 
 def test_clearmot_simple(trial_truths, trial_tracks, trial_timestamps):
@@ -31,6 +31,8 @@ def test_clearmot_simple(trial_truths, trial_tracks, trial_timestamps):
     trial_manager.generators = [clearmot_generator]
     metrics = clearmot_generator.compute_metric(trial_manager)
 
+    _check_metric_interface(trial_manager, clearmot_generator, metrics)
+
     dx = dy = 0.1
     expected_avg_pos_accuracy = np.sqrt(dx ** 2 + dy ** 2)
 
@@ -43,6 +45,25 @@ def test_clearmot_simple(trial_truths, trial_tracks, trial_timestamps):
     # i.e. there are no false positves or misses
     expected_mota = 1.0
     assert mota == pytest.approx(expected_mota)
+
+
+def _check_metric_interface(trial_manager, clearmot_generator, metrics):
+    expected_titles = ["MOTP", "MOTA"]
+
+    # make sure that the titles are correct
+    returned_metric_titles = [metric.title for metric in metrics]
+    assert len(expected_titles) == len(returned_metric_titles)
+    assert set(expected_titles) == set(returned_metric_titles)
+
+    timestamps = trial_manager.list_timestamps(clearmot_generator)
+
+    for metric in metrics:
+        assert isinstance(metric, TimeRangeMetric)
+        assert metric.time_range.start == timestamps[0]
+        assert metric.time_range.end == timestamps[-1]
+        assert metric.generator == clearmot_generator
+
+        assert isinstance(metric.value, (float, float))
 
 
 def test_clearmot_with_false_positives(trial_truths, trial_tracks, trial_timestamps):
@@ -132,27 +153,14 @@ def test_clearmot_with_false_positives_and_miss_matches(trial_truths, trial_trac
     assert mota == pytest.approx(expected_mota)
 
 
-def test_clearmot_interface(trial_manager, trial_truths, trial_tracks, trial_associations):
+def test_clearmot_match_check(trial_manager):
+    """Since there are multiple tracks assigned with the truth at the second timestep,
+    and CLEAR MOT does not support that, we raise an exception. This test checks that.
+    """
     position_measure = Euclidean((0, 2))
     clearmot_generator = ClearMotMetrics(distance_measure=position_measure)
 
     trial_manager.generators = [clearmot_generator]
 
-    # Test compute_metric
-    metrics = clearmot_generator.compute_metric(trial_manager)
-    expected_titles = ["MOTP", "MOTA"]
-
-    # make sure that the titles are correct
-    returned_metric_titles = [metric.title for metric in metrics]
-    assert len(expected_titles) == len(returned_metric_titles)
-    assert set(expected_titles) == set(returned_metric_titles)
-
-    timestamps = trial_manager.list_timestamps(clearmot_generator)
-
-    for metric in metrics:
-        assert isinstance(metric, TimeRangeMetric)
-        assert metric.time_range.start == timestamps[0]
-        assert metric.time_range.end == timestamps[-1]
-        assert metric.generator == clearmot_generator
-
-        assert isinstance(metric.value, (float, int))
+    with pytest.raises(AssociationSetNotValid):
+        _ = clearmot_generator.compute_metric(trial_manager)

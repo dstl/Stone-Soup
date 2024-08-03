@@ -12,7 +12,7 @@ from ..types.track import Track
 from .base import MetricGenerator
 from .manager import MultiManager
 
-MatchSetAtTimestamp = Set[Tuple[str, str]]
+MatchSetAtTimestamp = Set[Tuple[str, str]]  # tuples of (truth, track)
 StatesFromTimeIdLookup = Dict[datetime.datetime, Dict[str, State]]
 
 
@@ -70,6 +70,8 @@ class ClearMotMetrics(MetricGenerator):
     def _compute_mota_and_motp(self, manager: MultiManager) -> Tuple[float, float]:
 
         matches_at_time_lookup = self._create_matches_at_time_lookup(manager)
+
+        check_matches_for_metric_calculation(matches_at_time_lookup)
 
         truths_set = manager.states_sets[self.truths_key]
         tracks_set = manager.states_sets[self.tracks_key]
@@ -133,7 +135,7 @@ class ClearMotMetrics(MetricGenerator):
                                               truth_states_by_time_id: StatesFromTimeIdLookup,
                                               track_states_by_time_id: StatesFromTimeIdLookup,
                                               timestamp: datetime.datetime,
-                                              matches_current: MatchSetAtTimestamp):
+                                              matches_current: MatchSetAtTimestamp) -> float:
         error_sum_in_timestep = 0.0
         for match in matches_current:
             truth_id = match[0]
@@ -167,7 +169,8 @@ class ClearMotMetrics(MetricGenerator):
                 matches_by_timestamp[timestamp].add(match_truth_track)
         return matches_by_timestamp
 
-    def _compute_number_of_miss_matches_from_match_sets(self, matches_prev: MatchSetAtTimestamp,
+    def _compute_number_of_miss_matches_from_match_sets(self,
+                                                        matches_prev: MatchSetAtTimestamp,
                                                         matches_current: MatchSetAtTimestamp)\
             -> int:
         num_miss_matches_current = 0
@@ -181,14 +184,6 @@ class ClearMotMetrics(MetricGenerator):
                 filter(lambda match: match[0] == truth_id, matches_prev))
             cur_matches_with_truth_id = list(
                 filter(lambda match: match[0] == truth_id, matches_current))
-
-            # if len(prev_matches_with_truth_id) > 1:
-            #     warnings.warn("More than one track per truth is not supported!")
-            #     continue
-
-            # if len(cur_matches_with_truth_id) > 1:
-            #     warnings.warn("More than one track per truth is not supported!")
-            #     continue
 
             matched_track_id_prev = prev_matches_with_truth_id[0][1]
             matched_track_id_curr = cur_matches_with_truth_id[0][1]
@@ -236,3 +231,37 @@ def create_ids_at_time_lookup(tracks_set: Set[Union[Track, GroundTruthPath]]) \
             track_ids_by_time[state.timestamp].add(track.id)
 
     return track_ids_by_time
+
+
+class AssociationSetNotValid(Exception):
+    pass
+
+
+def check_matches_for_metric_calculation(matches_by_timestamp:
+                                         Dict[datetime.datetime, MatchSetAtTimestamp]):
+    """Checks the matches prior to computing CLEAR MOT metrics. If this function returns
+    without raising an exception, it is checked that a single track is associated with one truth
+    (one-2-one relationship) at a given timestep and vice versa.
+
+    Parameters
+    ----------
+    matches_by_timestamp: Dict[datetime.datetime, MatchSetAtTimestamp]
+        Dictionary which returns a set of (truth, track) matches for a given timestamp.
+
+    Raises
+    ------
+    AssociationSetNotValid
+    """
+
+    for t, matches in matches_by_timestamp.items():
+        truth_ids = [m[0] for m in matches]
+        if len(truth_ids) > len(set(truth_ids)):
+            raise AssociationSetNotValid(f"Multiple tracks are assigned with "
+                                         f"the same truth track at time {t}!"
+                                         " Resolve this ambiguity in order to continue.")
+
+        track_ids = [m[1] for m in matches]
+        if len(track_ids) > len(set(track_ids)):
+            raise AssociationSetNotValid(f"A single track is assigned with "
+                                         f"multiple truth tracks at time {t}!"
+                                         " Resolve this ambiguity in order to continue.")

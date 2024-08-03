@@ -27,7 +27,7 @@ def time_period() -> timedelta:
 
 @pytest.fixture()
 def trial_timestamps(time_period: timedelta):
-    now = datetime.now()
+    now = datetime(2024, 1, 1, 0, 0, 0)
     return [now + i*time_period for i in range(4)]
 
 
