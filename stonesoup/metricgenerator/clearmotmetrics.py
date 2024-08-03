@@ -222,17 +222,6 @@ def _create_state_from_time_and_id_lookup(tracks_set: Set[Union[Track, GroundTru
     return track_states_by_time_id
 
 
-def create_ids_at_time_lookup(tracks_set: Set[Union[Track, GroundTruthPath]]) \
-        -> Dict[datetime.datetime, Set[str]]:
-
-    track_ids_by_time = defaultdict(set)
-    for track in tracks_set:
-        for state in track.last_timestamp_generator():
-            track_ids_by_time[state.timestamp].add(track.id)
-
-    return track_ids_by_time
-
-
 class AssociationSetNotValid(Exception):
     pass
 
