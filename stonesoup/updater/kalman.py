@@ -1029,9 +1029,8 @@ class StochasticIntegrationUpdater(KalmanUpdater):
             # Matrix and predictive state and measurement covariance matrix
 
             hpoints_diff = hpoints - zp
-            SumRPz = hpoints_diff @ np.diag(w) @ (hpoints_diff.T)
-            SumRPxz = ((xpoints - xpoints[:, 0:1]) @ np.diag(w) @
-                       (hpoints_diff).T)
+            SumRPz = hpoints_diff @ np.diag(w) @ hpoints_diff.T
+            SumRPxz = (xpoints - xpoints[:, 0:1]) @ np.diag(w) @ hpoints_diff.T
 
             # Update covariance matrix IPz
             DPz = (SumRPz - IPz) / N
