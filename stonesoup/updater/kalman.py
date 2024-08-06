@@ -1008,10 +1008,9 @@ class StochasticIntegrationUpdater(KalmanUpdater):
         zp = Iz
 
         N = 0
-        while N < self.Nmin or np.all([N < self.Nmax,
-                                      np.any([(np.linalg.norm(VPz) > self.Eps),
-                                       (np.linalg.norm(VPxz) > self.Eps)])]):
-            N = N + 1
+        while N < self.Nmin or (N < self.Nmax and (np.linalg.norm(VPz) > self.Eps
+                                                   or np.linalg.norm(VPxz) > self.Eps)):
+            N += 1
             # -- cubature points and weights computation (for standard normal PDF)
             [SCRSigmaPoints, w] = stochasticCubatureRulePoints(nx,
                                                                self.SIorder)
