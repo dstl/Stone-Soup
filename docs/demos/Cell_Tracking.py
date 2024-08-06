@@ -298,7 +298,7 @@ def objective(trial):
     return long_tracks, total_tracks
 
 # %%
-# Once the objective function has been define, a study can be created. The directions argument
+# Once the objective function has been defined, a study can be created. The directions argument
 # specifies whether the metrics being outputted by the objective function should be maximized or
 # minimized. Also, in optimizing the study n_trials must be specified, which is the number of
 # trials to be run in the study. Each trial is a full run of the tracking algorithm using
