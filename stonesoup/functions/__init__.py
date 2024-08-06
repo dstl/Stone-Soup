@@ -1,11 +1,13 @@
 """Mathematical functions used within Stone Soup"""
+
 import copy
 import warnings
 
 import numpy as np
+from scipy.stats import ortho_group
 
+from ..types.array import CovarianceMatrix, StateVector, StateVectors
 from ..types.numeric import Probability
-from ..types.array import StateVector, StateVectors, CovarianceMatrix
 from ..types.state import State
 
 
@@ -28,9 +30,7 @@ def tria(matrix):
     _, upper_triangular = np.linalg.qr(matrix.T)
     lower_triangular = upper_triangular.T
 
-    index = [col
-             for col, val in enumerate(np.diag(lower_triangular))
-             if val < 0]
+    index = [col for col, val in enumerate(np.diag(lower_triangular)) if val < 0]
 
     lower_triangular[:, index] *= -1
 
@@ -61,8 +61,8 @@ def cholesky_eps(A, lower=False):
     L = np.zeros(A.shape)
     for i in range(A.shape[0]):
         for j in range(i):
-            L[i, j] = (A[i, j] - L[i, :]@L[j, :].T) / L[j, j]
-        val = A[i, i] - L[i, :]@L[i, :].T
+            L[i, j] = (A[i, j] - L[i, :] @ L[j, :].T) / L[j, j]
+        val = A[i, i] - L[i, :] @ L[i, :].T
         L[i, i] = np.sqrt(val) if val > eps else np.sqrt(eps)
 
     if lower:
@@ -93,13 +93,16 @@ def jacobian(fun, x, **kwargs):
 
     # For numerical reasons the step size needs to large enough. Aim for 1e-8
     # relative to spacing between floating point numbers for each dimension
-    delta = 1e8*np.spacing(x.state_vector.astype(np.float64).ravel())
+    delta = 1e8 * np.spacing(x.state_vector.astype(np.float64).ravel())
     # But at least 1e-8
     # TODO: Is this needed? If not, note special case at zero.
     delta[delta < 1e-8] = 1e-8
 
     x2 = copy.copy(x)  # Create a clone of the input
-    x2.state_vector = np.tile(x.state_vector, ndim+1) + np.eye(ndim, ndim+1)*delta[:, np.newaxis]
+    x2.state_vector = (
+        np.tile(x.state_vector, ndim + 1)
+        + np.eye(ndim, ndim + 1) * delta[:, np.newaxis]
+    )
     x2.state_vector = x2.state_vector.view(StateVectors)
 
     F = fun(x2, **kwargs)
@@ -170,10 +173,12 @@ def gauss2sigma(state, alpha=1.0, beta=2.0, kappa=None):
         sigma_points = sigma_points.astype(float)
 
     # Can't use in place addition/subtraction as casting issues may arise when mixing float/int
-    sigma_points[:, 1:(ndim_state + 1)] = \
-        sigma_points[:, 1:(ndim_state + 1)] + sqrt_sigma*np.sqrt(c)
-    sigma_points[:, (ndim_state + 1):] = \
-        sigma_points[:, (ndim_state + 1):] - sqrt_sigma*np.sqrt(c)
+    sigma_points[:, 1 : (ndim_state + 1)] = sigma_points[
+        :, 1 : (ndim_state + 1)
+    ] + sqrt_sigma * np.sqrt(c)
+    sigma_points[:, (ndim_state + 1) :] = sigma_points[
+        :, (ndim_state + 1) :
+    ] - sqrt_sigma * np.sqrt(c)
 
     # Put these sigma points into s State object list
     sigma_points_states = []
@@ -225,8 +230,14 @@ def sigma2gauss(sigma_points, mean_weights, covar_weights, covar_noise=None):
     return mean.view(StateVector), covar.view(CovarianceMatrix)
 
 
-def unscented_transform(sigma_points_states, mean_weights, covar_weights,
-                        fun, points_noise=None, covar_noise=None):
+def unscented_transform(
+    sigma_points_states,
+    mean_weights,
+    covar_weights,
+    fun,
+    points_noise=None,
+    covar_noise=None,
+):
     """
     Apply the Unscented Transform to a set of sigma points
 
@@ -269,24 +280,33 @@ def unscented_transform(sigma_points_states, mean_weights, covar_weights,
         An array containing the transformed sigma point covariance weights
     """
     # Reconstruct the sigma_points matrix
-    sigma_points = StateVectors([
-        sigma_points_state.state_vector for sigma_points_state in sigma_points_states])
+    sigma_points = StateVectors(
+        [sigma_points_state.state_vector for sigma_points_state in sigma_points_states]
+    )
 
     # Transform points through f
     if points_noise is None:
-        sigma_points_t = StateVectors([
-            fun(sigma_points_state) for sigma_points_state in sigma_points_states])
+        sigma_points_t = StateVectors(
+            [fun(sigma_points_state) for sigma_points_state in sigma_points_states]
+        )
     else:
-        sigma_points_t = StateVectors([
-            fun(sigma_points_state, points_noise)
-            for sigma_points_state, point_noise in zip(sigma_points_states, points_noise.T)])
+        sigma_points_t = StateVectors(
+            [
+                fun(sigma_points_state, points_noise)
+                for sigma_points_state, point_noise in zip(
+                    sigma_points_states, points_noise.T
+                )
+            ]
+        )
 
     # Calculate mean and covariance approximation
     mean, covar = sigma2gauss(sigma_points_t, mean_weights, covar_weights, covar_noise)
 
     # Calculate cross-covariance
     cross_covar = (
-        (sigma_points-sigma_points[:, 0:1]) @ np.diag(covar_weights) @ (sigma_points_t-mean).T
+        (sigma_points - sigma_points[:, 0:1])
+        @ np.diag(covar_weights)
+        @ (sigma_points_t - mean).T
     ).view(CovarianceMatrix)
 
     return mean, covar, cross_covar, sigma_points_t, mean_weights, covar_weights
@@ -450,7 +470,7 @@ def az_el_rg2cart(phi, theta, rho):
     """
     x = rho * np.sin(phi)
     y = rho * np.sin(theta)
-    z = rho * np.sqrt(1.0 - np.sin(theta)**2 - np.sin(phi)**2)
+    z = rho * np.sqrt(1.0 - np.sin(theta) ** 2 - np.sin(phi) ** 2)
     return x, y, z
 
 
@@ -484,9 +504,7 @@ def rotx(theta):
     c, s = np.cos(theta), np.sin(theta)
     zero = np.zeros_like(theta)
     one = np.ones_like(theta)
-    return np.array([[one, zero, zero],
-                     [zero, c, -s],
-                     [zero, s, c]])
+    return np.array([[one, zero, zero], [zero, c, -s], [zero, s, c]])
 
 
 def roty(theta):
@@ -520,9 +538,7 @@ def roty(theta):
     c, s = np.cos(theta), np.sin(theta)
     zero = np.zeros_like(theta)
     one = np.ones_like(theta)
-    return np.array([[c, zero, s],
-                     [zero, one, zero],
-                     [-s, zero, c]])
+    return np.array([[c, zero, s], [zero, one, zero], [-s, zero, c]])
 
 
 def rotz(theta):
@@ -556,9 +572,7 @@ def rotz(theta):
     c, s = np.cos(theta), np.sin(theta)
     zero = np.zeros_like(theta)
     one = np.ones_like(theta)
-    return np.array([[c, -s, zero],
-                     [s, c, zero],
-                     [zero, zero, one]])
+    return np.array([[c, -s, zero], [s, c, zero], [zero, zero, one]])
 
 
 def gm_sample(means, covars, size, weights=None):
@@ -596,8 +610,12 @@ def gm_sample(means, covars, size, weights=None):
         weights = np.array([1 / len(means)] * len(means))
 
     n_samples = np.random.multinomial(size, weights)
-    samples = np.vstack([np.random.multivariate_normal(mean.ravel(), covar, sample)
-                         for (mean, covar, sample) in zip(means, covars, n_samples)]).T
+    samples = np.vstack(
+        [
+            np.random.multivariate_normal(mean.ravel(), covar, sample)
+            for (mean, covar, sample) in zip(means, covars, n_samples)
+        ]
+    ).T
 
     return StateVectors(samples)
 
@@ -632,7 +650,10 @@ def gm_reduce_single(means, covars, weights):
 
     # Calculate covar
     delta_means = means - mean
-    covar = np.sum(covars*weights, axis=2, dtype=np.float64) + weights*delta_means@delta_means.T
+    covar = (
+        np.sum(covars * weights, axis=2, dtype=np.float64)
+        + weights * delta_means @ delta_means.T
+    )
 
     return mean.view(StateVector), covar.view(CovarianceMatrix)
 
@@ -652,7 +673,7 @@ def mod_bearing(x):
         Angle in radians in the range math: :math:`-\pi` to :math:`+\pi`
     """
 
-    x = (x+np.pi) % (2.0*np.pi)-np.pi
+    x = (x + np.pi) % (2.0 * np.pi) - np.pi
 
     return x
 
@@ -671,7 +692,7 @@ def mod_elevation(x):
     float
         Angle in radians in the range math: :math:`-\pi/2` to :math:`+\pi/2`
     """
-    x = x % (2*np.pi)  # limit to 2*pi
+    x = x % (2 * np.pi)  # limit to 2*pi
     N = x // (np.pi / 2)  # Count # of 90 deg multiples
     if N == 1:
         x = np.pi - x
@@ -759,7 +780,9 @@ def dotproduct(a, b):
     """
 
     if np.shape(a) != np.shape(b):
-        raise ValueError("Inputs must be (a collection of) column vectors of the same dimension")
+        raise ValueError(
+            "Inputs must be (a collection of) column vectors of the same dimension"
+        )
 
     # Decide whether this is a StateVector or a StateVectors
     if type(a) is StateVector and type(b) is StateVector:
@@ -767,7 +790,9 @@ def dotproduct(a, b):
     elif type(a) is StateVectors and type(b) is StateVectors:
         return np.atleast_2d(np.asarray(np.sum(a * b, axis=0)))
     else:
-        raise ValueError("Inputs must be `StateVector` or `StateVectors` and of the same type")
+        raise ValueError(
+            "Inputs must be `StateVector` or `StateVectors` and of the same type"
+        )
 
 
 def sde_euler_maruyama_integration(fun, t_values, state_x0):
@@ -795,54 +820,8 @@ def sde_euler_maruyama_integration(fun, t_values, state_x0):
         delta_t = next_t - t
         delta_w = np.random.normal(scale=np.sqrt(delta_t), size=(state_x.ndim, 1))
         a, b = fun(state_x, t)
-        state_x.state_vector = state_x.state_vector + a*delta_t + b@delta_w
+        state_x.state_vector = state_x.state_vector + a * delta_t + b @ delta_w
     return state_x.state_vector
-
-
-def RandOrthMat(n, tol=1e-6):
-    """Random orthogonal real matrix
-
-    M = RANDORTHMAT(n)
-    generates a random n x n orthogonal real matrix.
-    M = RANDORTHMAT(n,tol)
-    explicitly specifies a thresh value that measures linear dependence
-    of a newly formed column with the existing columns. Defaults to 1e-6.
-
-    In this version the generated matrix distribution *is* uniform over the
-    manifold O(n) w.r.t. the induced R^(n^2) Lebesgue measure,at a slight
-    computational overhead (randn + normalization, as opposed to rand ).
-
-    (c) Ofek Shilon , 2006.
-
-    Parameters
-    ==========
-    n integer
-        matrix size
-
-    Returns
-    =======
-    numpy.ndarray n x n
-       Random orthogonal real matrix
-    """
-
-    M = np.zeros((n, n))
-
-    # Gram-schmidt on random column vectors
-    vi = np.random.randn(n, 1)
-    # the n-dimensional normal distribution has spherical symmetry, which implies
-    # that after normalization the drawn vectors would be uniformly distributed on the
-    # n-dimensional unit sphere.
-    M[:, 0] = (vi * 1 / (np.linalg.norm(vi))).T
-
-    for i in range(1, n):
-        nrm = 0
-        while nrm < tol:
-            vi = np.random.randn(n, 1)
-            vi = vi - M[:, 0:i] @ (M[:, 0:i].T @ vi)
-            nrm = np.linalg.norm(vi)
-        M[:, i] = (vi / nrm).T
-
-    return (M)
 
 
 def stochasticCubatureRulePoints(nx, order):
@@ -864,17 +843,17 @@ def stochasticCubatureRulePoints(nx, order):
     if order == 1:
         X = np.random.randn(nx, 1)
         SCRSigmaPoints = np.concatenate((X, -X), axis=1)
-        weights = (np.array([0.5, 0.5]))
-    if order == 3:
-        CRSigmaPoints = np.concatenate((np.zeros((nx, 1)),
-                                        np.eye(nx), -np.eye(nx)), axis=1)
+        weights = np.array([0.5, 0.5])
+    elif order == 3:
+        CRSigmaPoints = np.concatenate(
+            (np.zeros((nx, 1)), np.eye(nx), -np.eye(nx)), axis=1
+        )
         rho = np.sqrt(np.random.chisquare(nx + 2))
-        Q = RandOrthMat(nx)
+        Q = ortho_group.rvs(nx)
         SCRSigmaPoints = Q * rho @ CRSigmaPoints
-        weights = np.insert(0.5 * np.ones(2 * nx) / rho ** 2, 0,
-                            (1 - nx / rho ** 2))
+        weights = np.insert(0.5 * np.ones(2 * nx) / rho**2, 0, (1 - nx / rho**2))
 
-    if order == 5:
+    elif order == 5:
         # generating random values
         r = np.sqrt(np.random.chisquare(2 * nx + 7))
 
@@ -884,46 +863,62 @@ def stochasticCubatureRulePoints(nx, order):
         delta = r * np.cos(np.arcsin(q) / 2)
 
         # calculating weights
-        c1up = nx + 2 - delta ** 2
-        c1do = rho ** 2 * (rho ** 2 - delta ** 2)
-        c2up = nx + 2 - rho ** 2
-        c2do = delta ** 2 * (delta ** 2 - rho ** 2)
+        c1up = nx + 2 - delta**2
+        c1do = rho**2 * (rho**2 - delta**2)
+        c2up = nx + 2 - rho**2
+        c2do = delta**2 * (delta**2 - rho**2)
         cdo = 2 * (nx + 1) ** 2 * (nx + 2)
-        c3 = (7 - nx) * nx ** 2
+        c3 = (7 - nx) * nx**2
         c4 = 4 * (nx - 1) ** 2
         coef1 = c1up * c3 / cdo / c1do
         coef2 = c2up * c3 / cdo / c2do
         coef3 = c1up * c4 / cdo / c1do
         coef4 = c2up * c4 / cdo / c2do
 
-        pom = np.concatenate((np.ones(2 * nx + 2) * coef1,
-                              np.ones(2 * nx + 2) * coef2,
-                              np.ones(nx * (nx + 1)) * coef3,
-                              np.ones(nx * (nx + 1)) * coef4),
-                             axis=0)
-        weights = np.insert(pom, 0,
-                            (1 - nx * (rho ** 2 + delta ** 2 - nx - 2) /
-                             (rho ** 2 * delta ** 2)))
+        pom = np.concatenate(
+            (
+                np.ones(2 * nx + 2) * coef1,
+                np.ones(2 * nx + 2) * coef2,
+                np.ones(nx * (nx + 1)) * coef3,
+                np.ones(nx * (nx + 1)) * coef4,
+            ),
+            axis=0,
+        )
+        weights = np.insert(
+            pom, 0, (1 - nx * (rho**2 + delta**2 - nx - 2) / (rho**2 * delta**2))
+        )
 
         # Calculating sigma points
-        Q = RandOrthMat(nx)
+        Q = ortho_group.rvs(nx)
         v = np.zeros((nx, nx + 1))
         for i in range(0, nx):
-            v[i, i] = np.sqrt((nx + 1)*(nx - i) / nx / (nx - i + 1))
+            v[i, i] = np.sqrt((nx + 1) * (nx - i) / nx / (nx - i + 1))
             for j in range(i + 1, nx + 1):
                 v[i, j] = -np.sqrt((nx + 1) / ((nx - i) * nx * (nx - i + 1)))
         v = Q @ v
-        y = np.zeros((nx, int(nx*(nx + 1) / 2)))
+        y = np.zeros((nx, int(nx * (nx + 1) / 2)))
         cnt = -1
         for j in range(0, nx + 1):
             for i in range(0, j):
                 cnt = cnt + 1
-                y[:, cnt] = (v[:, j] + v[:, i]) / np.linalg.norm(
-                    v[:, j] + v[:, i], 2)
+                y[:, cnt] = (v[:, j] + v[:, i]) / np.linalg.norm(v[:, j] + v[:, i], 2)
 
-        SCRSigmaPoints = np.block([np.zeros((nx, 1)),
-                                   -rho*v, rho*v, -delta*v, +delta*v, -rho*y,
-                                   rho*y, -delta*y, delta*y])
+        SCRSigmaPoints = np.block(
+            [
+                np.zeros((nx, 1)),
+                -rho * v,
+                rho * v,
+                -delta * v,
+                +delta * v,
+                -rho * y,
+                rho * y,
+                -delta * y,
+                delta * y,
+            ]
+        )
+    else:
+        raise ValueError("This order of SIF is not supported")
+
     return (SCRSigmaPoints, weights)
 
 
@@ -961,13 +956,14 @@ def gauss2cubature(state, alpha=1.0):
     ndim_state = np.shape(state.state_vector)[0]
 
     sqrt_covar = np.linalg.cholesky(state.covar)
-    cuba_points = np.sqrt(alpha*ndim_state) * np.hstack((np.identity(ndim_state),
-                                                         -np.identity(ndim_state)))
+    cuba_points = np.sqrt(alpha * ndim_state) * np.hstack(
+        (np.identity(ndim_state), -np.identity(ndim_state))
+    )
 
     if np.issubdtype(cuba_points.dtype, np.integer):
         cuba_points = cuba_points.astype(float)
 
-    cuba_points = sqrt_covar@cuba_points + state.mean
+    cuba_points = sqrt_covar @ cuba_points + state.mean
 
     return StateVectors(cuba_points)
 
@@ -1012,7 +1008,7 @@ def cubature2gauss(cubature_points, covar_noise=None, alpha=1.0):
     mean = np.average(cubature_points, axis=1)
     sigma_mult = cubature_points @ cubature_points.T
     mean_mult = mean @ mean.T
-    covar = (1/alpha)*((1/m)*sigma_mult - mean_mult)
+    covar = (1 / alpha) * ((1 / m) * sigma_mult - mean_mult)
 
     if covar_noise is not None:
         covar = covar + covar_noise
@@ -1070,16 +1066,23 @@ def cubature_transform(state, fun, points_noise=None, covar_noise=None, alpha=1.
     cubature_points = gauss2cubature(state)
 
     if points_noise is None:
-        cubature_points_t = StateVectors([fun(State(cub_point)) for cub_point in cubature_points])
+        cubature_points_t = StateVectors(
+            [fun(State(cub_point)) for cub_point in cubature_points]
+        )
     else:
-        cubature_points_t = StateVectors([
-            fun(State(cub_point), points_noise)
-            for cub_point, point_noise in zip(cubature_points, points_noise)])
+        cubature_points_t = StateVectors(
+            [
+                fun(State(cub_point), points_noise)
+                for cub_point, point_noise in zip(cubature_points, points_noise)
+            ]
+        )
 
     mean, covar = cubature2gauss(cubature_points_t, covar_noise)
 
-    cross_covar = (1/alpha)*((1./(2*ndim_state))*cubature_points@cubature_points_t.T
-                             - np.average(cubature_points, axis=1)@mean.T)
+    cross_covar = (1 / alpha) * (
+        (1.0 / (2 * ndim_state)) * cubature_points @ cubature_points_t.T
+        - np.average(cubature_points, axis=1) @ mean.T
+    )
     cross_covar = cross_covar.view(CovarianceMatrix)
 
     return mean, covar, cross_covar, cubature_points_t
