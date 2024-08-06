@@ -1012,12 +1012,10 @@ class StochasticIntegrationUpdater(KalmanUpdater):
                                                    or np.linalg.norm(VPxz) > self.Eps)):
             N += 1
             # -- cubature points and weights computation (for standard normal PDF)
-            [SCRSigmaPoints, w] = stochasticCubatureRulePoints(nx,
-                                                               self.SIorder)
+            SCRSigmaPoints, w = stochasticCubatureRulePoints(nx,  self.SIorder)
             # -- points transformation for given filtering mean and covariance
             #    matrix
-            xpoints = Sp@SCRSigmaPoints + \
-                np.matlib.repmat(epMean, 1, np.size(SCRSigmaPoints, 1))
+            xpoints = Sp@SCRSigmaPoints + epMean
             # Points transformation via measurement equation (deterministic part)
             sigma_points_states = []
             for xpoint in xpoints.T:
