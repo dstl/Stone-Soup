@@ -1035,12 +1035,12 @@ class StochasticIntegrationUpdater(KalmanUpdater):
 
             # Update covariance matrix IPz
             DPz = (SumRPz - IPz) / N
-            IPz = IPz + DPz
-            VPz = (N - 2) * VPz / N + DPz ** 2
+            IPz += DPz
+            VPz = (N - 2)*VPz/N + DPz**2
             # Update cross-covariance matrix IPxz
             DPxz = (SumRPxz - IPxz) / N
-            IPxz = IPxz + DPxz
-            VPxz = (N - 2) * VPxz / N + DPxz ** 2
+            IPxz += DPxz
+            VPxz = (N - 2)*VPxz/N + DPxz**2
 
         Pzp = IPz
         if measurement_noise:
