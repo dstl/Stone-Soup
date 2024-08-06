@@ -214,7 +214,7 @@ for step, (time, current_tracks) in enumerate(tracker, 1):
 # 3) Define metric(s) for optimisation. These are meant to be representative of the quality of the tracks, such that maximising or minimising these metrics will improve the tracking algorithm. The objective function returns the metric(s) defined for optimisation. In this case, these are the number of long tracks, defined as the number of tracks spanning at least 90% of the frames, and the total number of tracks. These are standardised to account for the difference in size of the two values, so that the multi-objective optimisation isn't weighted towards the metric that is the larger value (total number of tracks). Single-objective optimisation is also possible in Optuna, and indeed is the more widely used optimisation method. However, as there is no group truth for this problem, multi-objective optimisation was preferred in this case.
 #
 # While only integer values are changed in this demonstration, Optuna
-# can also be used to vary a range of other types of variables. See [here](https://optuna.readthedocs.io/en/stable/reference/generated/optuna.trial.Trial.html)
+# can also be used to vary a range of other types of variables. See `here <https://optuna.readthedocs.io/en/stable/reference/generated/optuna.trial.Trial.html>`__
 # for more information.
 #
 # Also, it is important to note that the default optimisation approach that Optuna uses is Bayesian
