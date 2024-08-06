@@ -673,8 +673,7 @@ class StochasticIntegrationPredictor(KalmanPredictor):
                                                                self.SIorder)
             # -- points transformation for given filtering mean and covariance
             #    matrix
-            xpoints = Sp@SCRSigmaPoints + \
-                npm.repmat(prior.mean, 1, np.size(SCRSigmaPoints, 1))
+            xpoints = Sp@SCRSigmaPoints + prior.mean
             # -- points transformation via dynamics  (deterministic part)
             # Put these points into s State object list
             sigma_points_states = []
