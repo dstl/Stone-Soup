@@ -206,7 +206,7 @@ for step, (time, current_tracks) in enumerate(tracker, 1):
 # %%
 # Optimizer
 # ---------
-# Next, we implement the Optuna optimizer on the StoneSoup algorithm. To do this, we first have to
+# Next, we implement the Optuna optimizer on the Stone Soup algorithm. To do this, we first have to
 # define an objective function. This is done through the following steps:
 #
 # 1) Set the parameters to vary the values of. In this example all of the the parameters being changed are integers so the suggest_int function is used. The numbers passed in as arguments of the function are the minimum and maximum values that the parameter can take (inclusive).
