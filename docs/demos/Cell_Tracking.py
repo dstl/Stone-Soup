@@ -13,7 +13,7 @@ Tracking cell data from intracellular infection assays
 # from frame based population data increases the utility of the data set. It
 # allows for the characteristics of individual cells to be monitored throughout
 # the time course, providing an additional dimension to the data set for
-# analyses. This demo shows how StoneSoup can be utilised for tracking of the
+# analyses. This demo shows how Stone Soup can be utilised for tracking of the
 # cells. A number of packages in Python are available to generate morphological
 # metrics from the segmented datasets.
 #
