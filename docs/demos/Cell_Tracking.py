@@ -8,7 +8,7 @@ Tracking cell data from intracellular infection assays
 # Introduction
 # ------------
 # Tracking cellular movement within biological imagery is a complex task. In
-# this demo we are using StoneSoup to track cells in confocal transmitted light
+# this demo we are using Stone Soup to track cells in confocal transmitted light
 # imagery. Utilising tracking to be able to analyse single cell data over time
 # from frame based population data increases the utility of the data set. It
 # allows for the characteristics of individual cells to be monitored throughout
