@@ -1034,7 +1034,7 @@ class StochasticIntegrationUpdater(KalmanUpdater):
 
             # Update covariance matrix IPz
             DPz = (SumRPz - IPz) / N
-            IPz += DPz
+            IPz += DPz.reshape(np.shape(IPz))
             VPz = (N - 2)*VPz/N + DPz**2
             # Update cross-covariance matrix IPxz
             DPxz = (SumRPxz - IPxz) / N
@@ -1043,13 +1043,14 @@ class StochasticIntegrationUpdater(KalmanUpdater):
 
         Pzp = IPz
         if measurement_noise:
-            Pzp = Pzp + measurement_model.covar() + np.diag(Vz.ravel())
+           	Pzp = Pzp + measurement_model.covar() + np.diag(Vz.ravel())
         else:
-            Pzp = Pzp + np.diag(Vz.ravel())
-            Pzp = Pzp.astype(np.float64)
-            Pxzp = IPxz
+           	Pzp = Pzp + np.diag(Vz.ravel())
+        Pzp = Pzp.astype(np.float64)
 
-            cross_covar = Pxzp.view(CovarianceMatrix)
+        Pxzp = IPxz
+
+        cross_covar = Pxzp.view(CovarianceMatrix)
         return MeasurementPrediction.from_state(
             predicted_state, zp.view(StateVector), Pzp.view(CovarianceMatrix),
             cross_covar=cross_covar)
