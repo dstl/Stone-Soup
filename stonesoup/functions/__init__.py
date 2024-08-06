@@ -828,7 +828,7 @@ def RandOrthMat(n, tol=1e-6):
     M = np.zeros((n, n))
 
     # Gram-schmidt on random column vectors
-    vi = np.random.rand(n, 1)
+    vi = np.random.randn(n, 1)
     # the n-dimensional normal distribution has spherical symmetry, which implies
     # that after normalization the drawn vectors would be uniformly distributed on the
     # n-dimensional unit sphere.
@@ -837,7 +837,7 @@ def RandOrthMat(n, tol=1e-6):
     for i in range(1, n):
         nrm = 0
         while nrm < tol:
-            vi = np.random.rand(n, 1)
+            vi = np.random.randn(n, 1)
             vi = vi - M[:, 0:i] @ (M[:, 0:i].T @ vi)
             nrm = np.linalg.norm(vi)
         M[:, i] = (vi / nrm).T
