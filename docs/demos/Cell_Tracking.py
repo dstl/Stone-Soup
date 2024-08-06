@@ -119,14 +119,14 @@ error_intensity = 5
 # %%
 # Using these estimated parameters, we run the algorithm.
 #
-# - **Detector** - Since the segmented cell data is in a simple CSV format CSVDetectionReader is used to make the detector. The column names of the state vector fields are included as a list, and the column name of the time field is also specified.
-# - **Transition Model** - A combine linear Gaussian transition model is used. The position, split into x and y coordinates, and area are assumed to change according to a RandomWalk. The intensity, or spread of infection within the cells, is assumed to change with ConstantVelocity.
-# - **Measurement Model** - A linear Gaussian measurement model is used. The state vector has five dimensions - one each for the x position, y position and area and two for the intensity.
-# - **Predictor and Updater** - The tracker is made using a Kalman filter, with the KalmanPredictor and KalmanUpdater classes being used for the predictor and updater respectively.
-# - **Hypothesiser** - The DistanceHypothesiser is used to generate the hypothesis pairs of detections and predicted measurements. This uses the Mahalanobis distance as the measure of the quality of these pairs. 
+# - **Detector** - Since the segmented cell data is in a simple CSV format :class:`~.CSVDetectionReader` is used to make the detector. The column names of the state vector fields are included as a list, and the column name of the time field is also specified.
+# - **Transition Model** - A :class:`~.CombinedLinearGaussianTransitionModel` is used. The position, split into x and y coordinates, and area are assumed to change according to a :class:'~.RandomWalk`. The intensity, or spread of infection within the cells, is assumed to change with :class:`~.ConstantVelocity`.
+# - **Measurement Model** - A :class:`~.LinearGaussian` measurement model is used. The state vector has five dimensions - one each for the x position, y position and area and two for the intensity.
+# - **Predictor and Updater** - The tracker is made using a Kalman filter, with the :class:`~.KalmanPredictor` and :class:`~.KalmanUpdater` classes being used for the predictor and updater respectively.
+# - **Hypothesiser** - The :class:`~.DistanceHypothesiser` is used to generate the hypothesis pairs of detections and predicted measurements. This uses the :class:`~.Mahalanobis` distance as the measure of the quality of these pairs. 
 # - **Data Associator** - The Global Nearest Neighbour algorithm is used as the data associator to pick the best hypothesis pair.
-# - **Deleter** - An UpdateTimeStepsDeleter is used to delete tracks that have not been seen in the last 5 frames.
-# - **Initiator** - A MultiMeasurementInitiator is used to add tracks that have been seen in the last 4 frames. Within this there is a deleter set to 3, so the potential tracks are deleted if they are not seen in the last 3 frames.
+# - **Deleter** - An :class:`~.UpdateTimeStepsDeleter` is used to delete tracks that have not been seen in the last 5 frames.
+# - **Initiator** - A :class:`~.MultiMeasurementInitiator` is used to add tracks that have been seen in the last 4 frames. Within this there is a deleter set to 3, so the potential tracks are deleted if they are not seen in the last 3 frames.
 detector = CSVDetectionReader(f'{csv_subset}',
                               state_vector_fields=("centroid_X", "centroid_Y", "median_intensity", "area"),
                               time_field="Timepoint",
