@@ -1008,9 +1008,6 @@ class EnsembleState(State):
     @clearable_cached_property('state_vector')
     def covar(self):
         """Sample covariance matrix for ensemble"""
-        print(type(self.state_vector))
-        print(self.ndim)
-        print(self.num_vectors)
         return np.cov(self.state_vector)
 
     @clearable_cached_property('state_vector')

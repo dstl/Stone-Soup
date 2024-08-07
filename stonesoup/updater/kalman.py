@@ -1,4 +1,3 @@
-import copy
 import warnings
 from functools import lru_cache
 
@@ -7,12 +6,12 @@ import scipy.linalg as la
 
 from ..base import Property
 from ..functions import (cubature_transform, gauss2sigma,
-                         stochasticCubatureRulePoints, unscented_transform)
+                         unscented_transform, cubPointsAndTransfer)
 from ..measures import Euclidean, Measure
 from ..models.base import LinearModel
 from ..models.measurement import MeasurementModel
 from ..models.measurement.linear import LinearGaussian
-from ..types.array import CovarianceMatrix, StateVector, StateVectors
+from ..types.array import CovarianceMatrix, StateVector
 from ..types.prediction import MeasurementPrediction
 from ..types.update import Update
 from .base import Updater
@@ -1048,71 +1047,35 @@ class StochasticIntegrationUpdater(KalmanUpdater):
         N = 0
         # SIR recursion for measurement predictive moments computation
         # until either number of iterations is reached or threshold is reached
-        while N < self.Nmin or np.all(
-            [N < self.Nmax, np.any([(np.linalg.norm(Vz) > self.Eps)])]
-        ):
-            N = N + 1
+        while N < self.Nmin or np.all([N < self.Nmax, np.any([(np.linalg.norm(Vz) > self.Eps)])]):
+            N += 1
+            
             # -- cubature points and weights computation (for standard normal PDF)
-            [SCRSigmaPoints, w] = stochasticCubatureRulePoints(nx, self.SIorder)
+            # -- points transformation for given filtering mean and covariance matrix
+            xpoints, w, hpoints = cubPointsAndTransfer(nx, self.SIorder, Sp, epMean, measurement_model.function, predicted_state)
 
-            # -- points transformation for given filtering mean and covariance
-            #    matrix
-            # Use np.tile to replicate the mean vector
-            epMeanTiled = np.tile(epMean, (1, np.size(SCRSigmaPoints, 1)))
-            # Matrix multiplication and addition
-            xpoints = Sp @ SCRSigmaPoints + epMeanTiled
-
-            # -- points transformation via measurement equation (deterministic part)
-            sigma_points_states = []
-            for xpoint in xpoints.T:
-                state_copy = copy.copy(predicted_state)
-                state_copy.state_vector = StateVector(xpoint)
-                sigma_points_states.append(state_copy)
-
-            hpoints = StateVectors(
-                [
-                    measurement_model.function(sigma_points_state)
-                    for sigma_points_state in sigma_points_states
-                ]
-            )
             # -- stochastic integration rule for predictive measurement mean and covariance
             #    matrix and predictive state and measurement covariance matrix
             SumRz = np.average(hpoints, axis=1, weights=w)
 
             # --- update mean Iz
             Dz = (SumRz - Iz) / N
-            Iz = Iz + Dz
-            Vz = (N - 2) * Vz / N + Dz**2
+            Iz += Dz.astype(np.float64)
+            Vz = (N - 2) * Vz / N + Dz ** 2
 
         # - measurement predictive moments
         zp = Iz
 
         N = 0
-        while N < self.Nmin or (
-            N < self.Nmax
-            and (np.linalg.norm(VPz) > self.Eps or np.linalg.norm(VPxz) > self.Eps)
-        ):
+        while N < self.Nmin or (N < self.Nmax and (np.linalg.norm(VPz) > self.Eps or np.linalg.norm(VPxz) > self.Eps)):
             N += 1
+            
             # -- cubature points and weights computation (for standard normal PDF)
-            SCRSigmaPoints, w = stochasticCubatureRulePoints(nx, self.SIorder)
-            # -- points transformation for given filtering mean and covariance
-            #    matrix
-            xpoints = Sp @ SCRSigmaPoints + epMean
-            # Points transformation via measurement equation (deterministic part)
-            sigma_points_states = []
-            for xpoint in xpoints.T:
-                state_copy = copy.copy(predicted_state)
-                state_copy.state_vector = StateVector(xpoint)
-                sigma_points_states.append(state_copy)
-            hpoints = StateVectors(
-                [
-                    measurement_model.function(sigma_points_state)
-                    for sigma_points_state in sigma_points_states
-                ]
-            )
+            # -- points transformation for given filtering mean and covariance matrix
+            xpoints, w, hpoints = cubPointsAndTransfer(nx, self.SIorder, Sp, epMean, measurement_model.function, predicted_state)
+
             # Stochastic integration rule for predictive measurement mean and covariance
             # Matrix and predictive state and measurement covariance matrix
-
             hpoints_diff = hpoints - zp
             SumRPz = hpoints_diff @ np.diag(w) @ hpoints_diff.T
             SumRPxz = (xpoints - xpoints[:, 0:1]) @ np.diag(w) @ hpoints_diff.T
@@ -1124,7 +1087,7 @@ class StochasticIntegrationUpdater(KalmanUpdater):
             # Update cross-covariance matrix IPxz
             DPxz = (SumRPxz - IPxz) / N
             IPxz += DPxz
-            VPxz = (N - 2) * VPxz / N + DPxz**2
+            VPxz = (N - 2) * VPxz / N + DPxz ** 2
 
         Pzp = IPz
         if measurement_noise:

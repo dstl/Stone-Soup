@@ -1086,3 +1086,54 @@ def cubature_transform(state, fun, points_noise=None, covar_noise=None, alpha=1.
     cross_covar = cross_covar.view(CovarianceMatrix)
 
     return mean, covar, cross_covar, cubature_points_t
+
+
+def cubPointsAndTransfer(nx, order, sqrtCov, mean, transFunct, state):
+    r""" Calculates cubature points for stochastic integration filter and 
+    puts them through given function (measurement/dynamics)
+    
+    Parameters
+    ==========
+    nx : integer
+        dimension
+    order : integer
+        order of SIF rule
+    sqrtCov : array of float 64 [nx x nx]
+        square root of covariance
+    mean : array of int 64 [nx x 1]
+        mean
+    transFunct : function
+        function to transfer state vectors
+    state : state
+        whole state
+
+    Returns
+    =======
+    points : numpy.ndarray nx x number of points (based on order and dim)
+        cubature points
+    w : numpy.ndarray number of points x 
+        weights
+    trsfPoints : numpy.ndarray nx x number of points (based on order and dim)
+        cubature transformed points
+    """
+    
+    # -- cubature points and weights computation (for standard normal PDF)
+    SCRSigmaPoints, w = stochasticCubatureRulePoints(nx, order)
+
+    # -- points transformation for given filtering mean and covariance matrix
+    points = sqrtCov @ SCRSigmaPoints + mean
+
+    # -- points transformation through the function
+    sigma_points_states = []
+    for point in points.T:
+        state_copy = copy.copy(state)
+        state_copy.state_vector = StateVector(point)
+        sigma_points_states.append(state_copy)
+        trsfPoints = StateVectors(
+            [
+                transFunct(sigma_points_state)
+                for sigma_points_state in sigma_points_states
+            ]
+        )
+    
+    return points, w, trsfPoints

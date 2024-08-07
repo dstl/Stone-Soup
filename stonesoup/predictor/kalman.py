@@ -1,4 +1,3 @@
-import copy
 from functools import partial
 
 import numpy as np
@@ -6,13 +5,13 @@ import scipy.linalg as la
 
 from ..base import Property
 from ..functions import (cubature_transform, gauss2sigma,
-                         stochasticCubatureRulePoints, unscented_transform)
+                         unscented_transform, cubPointsAndTransfer)
 from ..models.base import LinearModel
 from ..models.control import ControlModel
 from ..models.control.linear import LinearControlModel
 from ..models.transition import TransitionModel
 from ..models.transition.linear import LinearGaussianTransitionModel
-from ..types.array import CovarianceMatrix, StateVector, StateVectors
+from ..types.array import CovarianceMatrix, StateVector
 from ..types.prediction import Prediction, SqrtGaussianStatePrediction
 from ._utils import predict_lru_cache
 from .base import Predictor
@@ -660,7 +659,7 @@ class StochasticIntegrationPredictor(KalmanPredictor):
     )
     Eps: float = Property(default=5e-3, doc="allowed threshold for integration error")
     SIorder: float = Property(
-        default=3, doc="order of SIR (orders 1, 3, 5 are currently supported)"
+        default=5, doc="order of SIR (orders 1, 3, 5 are currently supported)"
     )
 
     def __init__(self, *args, **kwargs):
@@ -736,91 +735,47 @@ class StochasticIntegrationPredictor(KalmanPredictor):
 
         # - SIR recursion for state predictive moments computation
         # -- until either max iterations or threshold is reached
-        while N < self.Nmin or np.all(
-            [
-                N < self.Nmax,
-                np.any(
-                    [
-                        (np.linalg.norm(Vx) > self.Eps),
-                    ]
-                ),
-            ]
-        ):
-            N = N + 1
-            #  -- cubature points and weights computation (for standard normal PDF)
-            [SCRSigmaPoints, w] = stochasticCubatureRulePoints(enx, self.SIorder)
-            # -- points transformation for given filtering mean and covariance
-            #    matrix
-            xpoints = Sp @ SCRSigmaPoints + prior.mean
-            # -- points transformation via dynamics  (deterministic part)
-            # Put these points into s State object list
-            sigma_points_states = []
-            for xpoint in xpoints.T:
-                state_copy = copy.copy(prior)
-                state_copy.state_vector = StateVector(xpoint)
-                sigma_points_states.append(state_copy)
-
-            fpoints = StateVectors(
-                [
-                    transition_and_control_function(sigma_points_state)
-                    for sigma_points_state in sigma_points_states
-                ]
-            )
+        while N < self.Nmin or np.all([N < self.Nmax,np.any([(np.linalg.norm(Vx) > self.Eps),]),]):
+            N += 1        
+            
+            # -- cubature points and weights computation (for standard normal PDF)
+            # -- points transformation for given filtering mean and covariance matrix
+            xpoints, w, fpoints = cubPointsAndTransfer(nx, self.SIorder, Sp, prior.mean, transition_and_control_function, prior)
+            
             # Stochastic integration rule for predictive state mean and
             # covariance matrix
             SumRx = np.average(fpoints, axis=1, weights=w)
 
             # --- update mean Ix
             Dx = (SumRx - Ix) / N
-            Ix = Ix + Dx
-            Vx = (N - 2) * Vx / N + Dx**2
+            Ix += Dx
+            Vx = (N - 2) * Vx / N + Dx ** 2
 
         xp = Ix
 
         N = 0
         # - SIR recursion for state predictive moments computation
         # -- until max iterations are reached or threshold is reached
-        while N < self.Nmin or np.all(
-            [N < self.Nmax, np.any([(np.linalg.norm(VPx) > self.Eps)])]
-        ):
-            N = N + 1
-            #  -- cubature points and weights computation (for standard normal PDF)
-            [SCRSigmaPoints, w] = stochasticCubatureRulePoints(enx, self.SIorder)
-
-            # Use np.tile to replicate the mean vector
-            mean_replicated = np.tile(prior.mean, (1, np.size(SCRSigmaPoints, 1)))
-            # Matrix multiplication and addition
-            xpoints = Sp @ SCRSigmaPoints + mean_replicated
-
-            # -- points transformation via dynamics  (deterministic part)
-            # Put these points into s State object list
-            sigma_points_states = []
-            for xpoint in xpoints.T:
-                state_copy = copy.copy(prior)
-                state_copy.state_vector = StateVector(xpoint)
-                sigma_points_states.append(state_copy)
-
-            fpoints = StateVectors(
-                [
-                    transition_and_control_function(sigma_points_state)
-                    for sigma_points_state in sigma_points_states
-                ]
-            )
+        while N < self.Nmin or np.all([N < self.Nmax, np.any([(np.linalg.norm(VPx) > self.Eps)])]):
+            N += 1
+            
+            # -- cubature points and weights computation (for standard normal PDF)
+            # -- points transformation for given filtering mean and covariance matrix
+            xpoints, w, fpoints = cubPointsAndTransfer(nx, self.SIorder, Sp, prior.mean, transition_and_control_function, prior)
+            
             # -- stochastic integration rule for predictive state mean and covariance
             #    matrix
-
             fpoints_diff = fpoints - xp
             SumRPx = fpoints_diff @ np.diag(w) @ fpoints_diff.T
 
             # --- update covariance matrix IPx
             DPx = (SumRPx - IPx) / N
-            IPx = IPx + DPx
-            VPx = (N - 2) * VPx / N + DPx**2
+            IPx += DPx
+            VPx = (N - 2) * VPx / N + DPx ** 2
 
         Q = self.transition_model.covar(time_interval=predict_over_interval, **kwargs)
 
-        Pp = IPx
-        Pp = Pp + Q + np.diag(Vx.ravel())
+        Pp = IPx + Q + np.diag(Vx.ravel())
         Pp = (Pp + Pp.T) / 2
 
         Pp = Pp.astype(np.float64)

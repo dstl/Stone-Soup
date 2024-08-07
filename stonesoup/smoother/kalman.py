@@ -4,12 +4,10 @@ from functools import partial
 import numpy as np
 
 from ..base import Property
-from ..functions import (gauss2sigma, stochasticCubatureRulePoints,
-                         unscented_transform)
+from ..functions import (gauss2sigma, unscented_transform, cubPointsAndTransfer)
 from ..models.base import LinearModel
 from ..models.transition.base import TransitionModel
 from ..models.transition.linear import LinearGaussianTransitionModel
-from ..types.array import StateVector, StateVectors
 from ..types.multihypothesis import MultipleHypothesis
 from ..types.prediction import GaussianStatePrediction
 from ..types.update import GaussianStateUpdate
@@ -344,7 +342,7 @@ class StochasticIntegrationSmoother(KalmanSmoother):
     )
     Eps: float = Property(default=5e-3, doc="allowed threshold for integration error")
     SIorder: float = Property(
-        default=3, doc="order of SIR (orders 1, 3, 5 are currently supported)"
+        default=5, doc="order of SIR (orders 1, 3, 5 are currently supported)"
     )
 
     def _smooth_gain(self, state, prediction, time_interval, **kwargs):
@@ -386,37 +384,18 @@ class StochasticIntegrationSmoother(KalmanSmoother):
         # - SIR recursion for measurement predictive moments computation
         # -- until either required number of iterations is reached or threshold is reached
         while N < self.Nmin or all([N < self.Nmax, (np.linalg.norm(VPxx) > self.Eps)]):
+            
             N += 1
-
+            
             # -- cubature points and weights computation (for standard normal PDF)
-            SCRSigmaPoints, w = stochasticCubatureRulePoints(nx, self.SIorder)
-
             # -- points transformation for given filtering mean and covariance matrix
-            # Use np.tile to replicate the mean vector
-            efMeanTiled = np.tile(efMean, (1, np.size(SCRSigmaPoints, 1)))
-            # Matrix multiplication and addition
-            xpoints = Sf @ SCRSigmaPoints + efMeanTiled
-
-            # -- points transformation via measurement equation (deterministic part)
-            # fpoints = ffunct(xpoints, wMean, Time)
-
-            sigma_points_states = []
-            for xpoint in xpoints.T:
-                state_copy = copy.copy(prediction)
-                state_copy.state_vector = StateVector(xpoint)
-                sigma_points_states.append(state_copy)
-            fpoints = StateVectors(
-                [
-                    transition_function(sigma_points_state)
-                    for sigma_points_state in sigma_points_states
-                ]
-            )
+            xpoints, w, fpoints = cubPointsAndTransfer(nx, self.SIorder, Sf, efMean, transition_function, prediction)
 
             # Stochastic integration rule for predictive measurement
             # mean and covariance matrix
             fpoints_diff = fpoints - predMean
             xpoints_diff = xpoints - filtMean
-            SumRPxx = xpoints_diff @ (fpoints_diff * np.matlib.repmat(w, nx, 1)).T
+            SumRPxx = xpoints_diff @ (fpoints_diff * np.tile(w,(nx,1))).T
 
             # --- update cross-covariance matrix IPxx
             DPxx = (SumRPxx - IPxx) / N
