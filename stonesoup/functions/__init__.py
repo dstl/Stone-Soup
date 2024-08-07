@@ -173,12 +173,10 @@ def gauss2sigma(state, alpha=1.0, beta=2.0, kappa=None):
         sigma_points = sigma_points.astype(float)
 
     # Can't use in place addition/subtraction as casting issues may arise when mixing float/int
-    sigma_points[:, 1 : (ndim_state + 1)] = sigma_points[
-        :, 1 : (ndim_state + 1)
-    ] + sqrt_sigma * np.sqrt(c)
-    sigma_points[:, (ndim_state + 1) :] = sigma_points[
-        :, (ndim_state + 1) :
-    ] - sqrt_sigma * np.sqrt(c)
+    sigma_points[:, 1:(ndim_state + 1)] = \
+        sigma_points[:, 1:(ndim_state + 1)] + sqrt_sigma*np.sqrt(c)
+    sigma_points[:, (ndim_state + 1):] = \
+        sigma_points[:, (ndim_state + 1):] - sqrt_sigma*np.sqrt(c)
 
     # Put these sigma points into s State object list
     sigma_points_states = []
@@ -890,7 +888,7 @@ def stochasticCubatureRulePoints(nx, order):
 
         # Calculating sigma points
         Q = ortho_group.rvs(nx)
-        v = np.zeros((nx, nx + 1))    
+        v = np.zeros((nx, nx + 1))
         i_vals, j_vals = np.triu_indices(nx + 1, k=1)
         v[i_vals, i_vals] = np.sqrt((nx+1) * (nx-i_vals) / (nx * (nx-i_vals+1)))
         v[i_vals, j_vals] = -np.sqrt((nx+1) / ((nx-i_vals) * nx * (nx-i_vals+1)))
@@ -898,8 +896,6 @@ def stochasticCubatureRulePoints(nx, order):
         i_vals, j_vals = np.tril_indices(nx + 1, k=-1)
         comb_v = v[:, i_vals] + v[:, j_vals]
         y = comb_v / np.linalg.norm(comb_v, axis=0)
-
-                
 
         SCRSigmaPoints = np.block(
             [
@@ -1006,7 +1002,7 @@ def cubature2gauss(cubature_points, covar_noise=None, alpha=1.0):
     mean = np.average(cubature_points, axis=1)
     sigma_mult = cubature_points @ cubature_points.T
     mean_mult = mean @ mean.T
-    covar = (1 / alpha) * ((1 / m) * sigma_mult - mean_mult)
+    covar = (1/alpha)*((1/m)*sigma_mult - mean_mult)
 
     if covar_noise is not None:
         covar = covar + covar_noise
@@ -1064,32 +1060,25 @@ def cubature_transform(state, fun, points_noise=None, covar_noise=None, alpha=1.
     cubature_points = gauss2cubature(state)
 
     if points_noise is None:
-        cubature_points_t = StateVectors(
-            [fun(State(cub_point)) for cub_point in cubature_points]
-        )
+        cubature_points_t = StateVectors([fun(State(cub_point)) for cub_point in cubature_points])
     else:
-        cubature_points_t = StateVectors(
-            [
-                fun(State(cub_point), points_noise)
-                for cub_point, point_noise in zip(cubature_points, points_noise)
-            ]
-        )
+        cubature_points_t = StateVectors([
+            fun(State(cub_point), points_noise)
+            for cub_point, point_noise in zip(cubature_points, points_noise)])
 
     mean, covar = cubature2gauss(cubature_points_t, covar_noise)
 
-    cross_covar = (1 / alpha) * (
-        (1.0 / (2 * ndim_state)) * cubature_points @ cubature_points_t.T
-        - np.average(cubature_points, axis=1) @ mean.T
-    )
+    cross_covar = (1/alpha)*((1./(2*ndim_state))*cubature_points@cubature_points_t.T
+                             - np.average(cubature_points, axis=1)@mean.T)
     cross_covar = cross_covar.view(CovarianceMatrix)
 
     return mean, covar, cross_covar, cubature_points_t
 
 
 def cubPointsAndTransfer(nx, order, sqrtCov, mean, transFunct, state):
-    r""" Calculates cubature points for stochastic integration filter and 
+    r""" Calculates cubature points for stochastic integration filter and
     puts them through given function (measurement/dynamics)
-    
+
     Parameters
     ==========
     nx : integer
@@ -1109,12 +1098,12 @@ def cubPointsAndTransfer(nx, order, sqrtCov, mean, transFunct, state):
     =======
     points : numpy.ndarray nx x number of points (based on order and dim)
         cubature points
-    w : numpy.ndarray number of points x 
+    w : numpy.ndarray number of points x
         weights
     trsfPoints : numpy.ndarray nx x number of points (based on order and dim)
         cubature transformed points
     """
-    
+
     # -- cubature points and weights computation (for standard normal PDF)
     SCRSigmaPoints, w = stochasticCubatureRulePoints(nx, order)
 
@@ -1133,5 +1122,5 @@ def cubPointsAndTransfer(nx, order, sqrtCov, mean, transFunct, state):
                 for sigma_points_state in sigma_points_states
             ]
         )
-    
+
     return points, w, trsfPoints

@@ -712,7 +712,6 @@ class StochasticIntegrationPredictor(KalmanPredictor):
         """
 
         nx = np.size(prior.mean, 0)
-        enx = nx
 
         Sp = np.linalg.cholesky(prior.covar)
         Ix = np.zeros((nx, 1))
@@ -735,13 +734,17 @@ class StochasticIntegrationPredictor(KalmanPredictor):
 
         # - SIR recursion for state predictive moments computation
         # -- until either max iterations or threshold is reached
-        while N < self.Nmin or np.all([N < self.Nmax,np.any([(np.linalg.norm(Vx) > self.Eps),]),]):
-            N += 1        
-            
+        while N < self.Nmin or np.all([N < self.Nmax,
+                                       np.any([(np.linalg.norm(Vx) > self.Eps),]),]):
+            N += 1
+
             # -- cubature points and weights computation (for standard normal PDF)
             # -- points transformation for given filtering mean and covariance matrix
-            xpoints, w, fpoints = cubPointsAndTransfer(nx, self.SIorder, Sp, prior.mean, transition_and_control_function, prior)
-            
+            xpoints, w, fpoints = cubPointsAndTransfer(nx, self.SIorder, Sp,
+                                                       prior.mean,
+                                                       transition_and_control_function,
+                                                       prior)
+
             # Stochastic integration rule for predictive state mean and
             # covariance matrix
             SumRx = np.average(fpoints, axis=1, weights=w)
@@ -758,11 +761,14 @@ class StochasticIntegrationPredictor(KalmanPredictor):
         # -- until max iterations are reached or threshold is reached
         while N < self.Nmin or np.all([N < self.Nmax, np.any([(np.linalg.norm(VPx) > self.Eps)])]):
             N += 1
-            
+
             # -- cubature points and weights computation (for standard normal PDF)
             # -- points transformation for given filtering mean and covariance matrix
-            xpoints, w, fpoints = cubPointsAndTransfer(nx, self.SIorder, Sp, prior.mean, transition_and_control_function, prior)
-            
+            xpoints, w, fpoints = cubPointsAndTransfer(nx, self.SIorder, Sp,
+                                                       prior.mean,
+                                                       transition_and_control_function,
+                                                       prior)
+
             # -- stochastic integration rule for predictive state mean and covariance
             #    matrix
             fpoints_diff = fpoints - xp

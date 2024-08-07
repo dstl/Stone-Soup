@@ -1049,15 +1049,15 @@ class StochasticIntegrationUpdater(KalmanUpdater):
         # until either number of iterations is reached or threshold is reached
         while N < self.Nmin or np.all([N < self.Nmax, np.any([(np.linalg.norm(Vz) > self.Eps)])]):
             N += 1
-            
             # -- cubature points and weights computation (for standard normal PDF)
             # -- points transformation for given filtering mean and covariance matrix
-            xpoints, w, hpoints = cubPointsAndTransfer(nx, self.SIorder, Sp, epMean, measurement_model.function, predicted_state)
-
+            xpoints, w, hpoints = cubPointsAndTransfer(nx, self.SIorder, Sp,
+                                                       epMean,
+                                                       measurement_model.function,
+                                                       predicted_state)
             # -- stochastic integration rule for predictive measurement mean and covariance
             #    matrix and predictive state and measurement covariance matrix
             SumRz = np.average(hpoints, axis=1, weights=w)
-
             # --- update mean Iz
             Dz = (SumRz - Iz) / N
             Iz += Dz.astype(np.float64)
@@ -1067,13 +1067,16 @@ class StochasticIntegrationUpdater(KalmanUpdater):
         zp = Iz
 
         N = 0
-        while N < self.Nmin or (N < self.Nmax and (np.linalg.norm(VPz) > self.Eps or np.linalg.norm(VPxz) > self.Eps)):
+        while N < self.Nmin or (N < self.Nmax and
+                                (np.linalg.norm(VPz) > self.Eps
+                                 or np.linalg.norm(VPxz) > self.Eps)):
             N += 1
-            
             # -- cubature points and weights computation (for standard normal PDF)
             # -- points transformation for given filtering mean and covariance matrix
-            xpoints, w, hpoints = cubPointsAndTransfer(nx, self.SIorder, Sp, epMean, measurement_model.function, predicted_state)
-
+            xpoints, w, hpoints = cubPointsAndTransfer(nx, self.SIorder, Sp,
+                                                       epMean,
+                                                       measurement_model.function,
+                                                       predicted_state)
             # Stochastic integration rule for predictive measurement mean and covariance
             # Matrix and predictive state and measurement covariance matrix
             hpoints_diff = hpoints - zp

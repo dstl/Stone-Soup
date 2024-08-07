@@ -384,18 +384,19 @@ class StochasticIntegrationSmoother(KalmanSmoother):
         # - SIR recursion for measurement predictive moments computation
         # -- until either required number of iterations is reached or threshold is reached
         while N < self.Nmin or all([N < self.Nmax, (np.linalg.norm(VPxx) > self.Eps)]):
-            
             N += 1
-            
             # -- cubature points and weights computation (for standard normal PDF)
             # -- points transformation for given filtering mean and covariance matrix
-            xpoints, w, fpoints = cubPointsAndTransfer(nx, self.SIorder, Sf, efMean, transition_function, prediction)
+            xpoints, w, fpoints = cubPointsAndTransfer(nx, self.SIorder, Sf,
+                                                       efMean,
+                                                       transition_function,
+                                                       prediction)
 
             # Stochastic integration rule for predictive measurement
             # mean and covariance matrix
             fpoints_diff = fpoints - predMean
             xpoints_diff = xpoints - filtMean
-            SumRPxx = xpoints_diff @ (fpoints_diff * np.tile(w,(nx,1))).T
+            SumRPxx = xpoints_diff @ (fpoints_diff * np.tile(w, (nx, 1))).T
 
             # --- update cross-covariance matrix IPxx
             DPxx = (SumRPxx - IPxx) / N
