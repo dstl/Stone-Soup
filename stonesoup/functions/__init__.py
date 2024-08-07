@@ -890,18 +890,16 @@ def stochasticCubatureRulePoints(nx, order):
 
         # Calculating sigma points
         Q = ortho_group.rvs(nx)
-        v = np.zeros((nx, nx + 1))
-        for i in range(0, nx):
-            v[i, i] = np.sqrt((nx + 1) * (nx - i) / nx / (nx - i + 1))
-            for j in range(i + 1, nx + 1):
-                v[i, j] = -np.sqrt((nx + 1) / ((nx - i) * nx * (nx - i + 1)))
+        v = np.zeros((nx, nx + 1))    
+        i_vals, j_vals = np.triu_indices(nx + 1, k=1)
+        v[i_vals, i_vals] = np.sqrt((nx+1) * (nx-i_vals) / (nx * (nx-i_vals+1)))
+        v[i_vals, j_vals] = -np.sqrt((nx+1) / ((nx-i_vals) * nx * (nx-i_vals+1)))
         v = Q @ v
-        y = np.zeros((nx, int(nx * (nx + 1) / 2)))
-        cnt = -1
-        for j in range(0, nx + 1):
-            for i in range(0, j):
-                cnt = cnt + 1
-                y[:, cnt] = (v[:, j] + v[:, i]) / np.linalg.norm(v[:, j] + v[:, i], 2)
+        i_vals, j_vals = np.tril_indices(nx + 1, k=-1)
+        comb_v = v[:, i_vals] + v[:, j_vals]
+        y = comb_v / np.linalg.norm(comb_v, axis=0)
+
+                
 
         SCRSigmaPoints = np.block(
             [
