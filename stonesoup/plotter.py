@@ -406,7 +406,7 @@ class Plotter(_Plotter):
                         w, v = np.linalg.eig(HH @ state.covar @ HH.T)
                         if np.iscomplexobj(w) or np.iscomplexobj(v):
                             warnings.warn("Can not plot uncertainty for all states due to complex "
-                                          "eignevalues or eigenvectors", UserWarning)
+                                          "eigenvalues or eigenvectors", UserWarning)
                             continue
                         max_ind = np.argmax(w)
                         min_ind = np.argmin(w)

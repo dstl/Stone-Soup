@@ -218,7 +218,7 @@ class Intervals(Type):
 
     @staticmethod
     def get_merged_intervals(intervals):
-        """Merge all intervals. Ie. combine any intervals that overlap, returning a new list of
+        """Merge all intervals. I.e., combine any intervals that overlap, returning a new list of
         disjoint intervals."""
 
         new_intervals = copy.copy(intervals)

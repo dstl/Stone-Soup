@@ -116,7 +116,7 @@ class OneToOneAssociator(Associator):
     def fail_value(self):
         """
         For an association to be valid is must be over (or under if maximise_measure is True)
-        (non-inclusive). Therefore setting the value to the association threshold will result in
+        (non-inclusive). Therefore, setting the value to the association threshold will result in
         the association not taking place.
         """
         return self.association_threshold
