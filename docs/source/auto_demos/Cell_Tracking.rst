@@ -26,12 +26,12 @@ Tracking cell data from intracellular infection assays
 Introduction
 ------------
 Tracking cellular movement within biological imagery is a complex task. In
-this demo we are using StoneSoup to track cells in confocal transmitted light
+this demo we are using Stone Soup to track cells in confocal transmitted light
 imagery. Utilising tracking to be able to analyse single cell data over time
 from frame based population data increases the utility of the data set. It
 allows for the characteristics of individual cells to be monitored throughout
 the time course, providing an additional dimension to the data set for
-analyses. This demo shows how StoneSoup can be utilised for tracking of the
+analyses. This demo shows how Stone Soup can be utilised for tracking of the
 cells. A number of packages in Python are available to generate morphological
 metrics from the segmented datasets.
 
@@ -179,14 +179,14 @@ estimated.
 
 Using these estimated parameters, we run the algorithm.
 
-- **Detector** - Since the segmented cell data is in a simple CSV format CSVDetectionReader is used to make the detector. The column names of the state vector fields are included as a list, and the column name of the time field is also specified.
-- **Transition Model** - A combine linear Gaussian transition model is used. The position, split into x and y coordinates, and area are assumed to change according to a RandomWalk. The intensity, or spread of infection within the cells, is assumed to change with ConstantVelocity.
-- **Measurement Model** - A linear Gaussian measurement model is used. The state vector has five dimensions - one each for the x position, y position and area and two for the intensity.
-- **Predictor and Updater** - The tracker is made using a Kalman filter, with the KalmanPredictor and KalmanUpdater classes being used for the predictor and updater respectively.
-- **Hypothesiser** - The DistanceHypothesiser is used to generate the hypothesis pairs of detections and predicted measurements. This uses the Mahalanobis distance as the measure of the quality of these pairs. 
+- **Detector** - Since the segmented cell data is in a simple CSV format :class:`~.CSVDetectionReader` is used to make the detector. The column names of the state vector fields are included as a list, and the column name of the time field is also specified.
+- **Transition Model** - A :class:`~.CombinedLinearGaussianTransitionModel` is used. The position, split into x and y coordinates, and area are assumed to change according to a :class:'~.RandomWalk`. The intensity, or spread of infection within the cells, is assumed to change with :class:`~.ConstantVelocity`.
+- **Measurement Model** - A :class:`~.LinearGaussian` measurement model is used. The state vector has five dimensions - one each for the x position, y position and area and two for the intensity.
+- **Predictor and Updater** - The tracker is made using a Kalman filter, with the :class:`~.KalmanPredictor` and :class:`~.KalmanUpdater` classes being used for the predictor and updater respectively.
+- **Hypothesiser** - The :class:`~.DistanceHypothesiser` is used to generate the hypothesis pairs of detections and predicted measurements. This uses the :class:`~.Mahalanobis` distance as the measure of the quality of these pairs. 
 - **Data Associator** - The Global Nearest Neighbour algorithm is used as the data associator to pick the best hypothesis pair.
-- **Deleter** - An UpdateTimeStepsDeleter is used to delete tracks that have not been seen in the last 5 frames.
-- **Initiator** - A MultiMeasurementInitiator is used to add tracks that have been seen in the last 4 frames. Within this there is a deleter set to 3, so the potential tracks are deleted if they are not seen in the last 3 frames.
+- **Deleter** - An :class:`~.UpdateTimeStepsDeleter` is used to delete tracks that have not been seen in the last 5 frames.
+- **Initiator** - A :class:`~.MultiMeasurementInitiator` is used to add tracks that have been seen in the last 4 frames. Within this there is a deleter set to 3, so the potential tracks are deleted if they are not seen in the last 3 frames.
 
 .. GENERATED FROM PYTHON SOURCE LINES 130-174
 
@@ -293,7 +293,7 @@ the white outlines show the cells that have been segmented but are not in tracks
 
 Optimizer
 ---------
-Next, we implement the Optuna optimizer on the StoneSoup algorithm. To do this, we first have to
+Next, we implement the Optuna optimizer on the Stone Soup algorithm. To do this, we first have to
 define an objective function. This is done through the following steps:
 
 1) Set the parameters to vary the values of. In this example all of the the parameters being changed are integers so the suggest_int function is used. The numbers passed in as arguments of the function are the minimum and maximum values that the parameter can take (inclusive).
@@ -301,7 +301,7 @@ define an objective function. This is done through the following steps:
 3) Define metric(s) for optimisation. These are meant to be representative of the quality of the tracks, such that maximising or minimising these metrics will improve the tracking algorithm. The objective function returns the metric(s) defined for optimisation. In this case, these are the number of long tracks, defined as the number of tracks spanning at least 90% of the frames, and the total number of tracks. These are standardised to account for the difference in size of the two values, so that the multi-objective optimisation isn't weighted towards the metric that is the larger value (total number of tracks). Single-objective optimisation is also possible in Optuna, and indeed is the more widely used optimisation method. However, as there is no group truth for this problem, multi-objective optimisation was preferred in this case.
 
 While only integer values are changed in this demonstration, Optuna
-can also be used to vary a range of other types of variables. See [here](https://optuna.readthedocs.io/en/stable/reference/generated/optuna.trial.Trial.html)
+can also be used to vary a range of other types of variables. See `here <https://optuna.readthedocs.io/en/stable/reference/generated/optuna.trial.Trial.html>`__
 for more information.
 
 Also, it is important to note that the default optimisation approach that Optuna uses is Bayesian
@@ -398,7 +398,7 @@ run time, but for best results a higher number of trials should be used (e.g. >1
 
 .. GENERATED FROM PYTHON SOURCE LINES 301-306
 
-Once the objective function has been define, a study can be created. The directions argument
+Once the objective function has been defined, a study can be created. The directions argument
 specifies whether the metrics being outputted by the objective function should be maximized or
 minimized. Also, in optimizing the study n_trials must be specified, which is the number of
 trials to be run in the study. Each trial is a full run of the tracking algorithm using
