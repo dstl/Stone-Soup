@@ -1,15 +1,12 @@
 from functools import partial
 
 import numpy as np
-import numpy.matlib as npm
 import scipy.linalg as la
-import copy
 
-from ..types.array import CovarianceMatrix, StateVector, StateVectors
+from ..types.array import CovarianceMatrix, StateVector
 from .base import Predictor
 from ._utils import predict_lru_cache
 from ..base import Property
-from ..types.array import CovarianceMatrix, StateVector
 from ..types.prediction import Prediction, SqrtGaussianStatePrediction
 from ..models.base import LinearModel
 from ..models.transition import TransitionModel
