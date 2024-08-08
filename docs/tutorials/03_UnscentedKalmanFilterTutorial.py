@@ -232,7 +232,7 @@ predict_meas_samples = pupdater.predict_measurement(pred_samples)
 # %%
 # Don't worry what all this means for the moment. It's a convenient way of showing the 'true'
 # distribution of the predicted measurement - which is rendered as a blue cloud. Note that
-# no noise is added by the :meth:`~.UnscentedKalmanUpdater.predict_measurement` method so we add
+# no noise is added by the :meth:`~.UnscentedKalmanUpdater.predict_measurement` method, so we add
 # some noise below. This is additive Gaussian in the sensor coordinates.
 from matplotlib import pyplot as plt
 fig = plt.figure(figsize=(10, 6), tight_layout=True)
@@ -302,7 +302,7 @@ fig
 
 # %%
 # You may have to spend some time fiddling with the parameters to see major differences between the
-# EKF and UKF. Indeed the point to make is not that there is any great magic about the UKF. Its
+# EKF and UKF. Indeed, the point to make is not that there is any great magic about the UKF. Its
 # power is that it harnesses some extra free parameters to give a more flexible description of the
 # transformed distribution.
 
@@ -316,7 +316,7 @@ fig
 # References
 # ----------
 # .. [#] Julier S., Uhlmann J., Durrant-Whyte H.F. 2000, A new method for the nonlinear
-#        transformation of means and covariances in filters and estimators," in IEEE Transactions
+#        transformation of means and covariances in filters and estimators, in IEEE Transactions
 #        on Automatic Control, vol. 45, no. 3, pp. 477-482, doi: 10.1109/9.847726.
 # .. [#] Julier S.J. 2002, The scaled unscented transformation, Proceedings of the 2002 American
 #        Control Conference (IEEE Cat. No.CH37301), Anchorage, AK, USA, 2002, pp. 4555-4559 vol.6,

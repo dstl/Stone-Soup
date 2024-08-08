@@ -103,7 +103,7 @@ for state in truth:
 
 # %%
 # We plot the measurements using the Plotterly class in Stone Soup. Again specifying the :math:`x`, :math:`y` position
-# indicies from the state vector.
+# indices from the state vector.
 
 
 plotter.plot_measurements(measurements,[0,2])
