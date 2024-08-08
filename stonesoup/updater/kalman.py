@@ -14,7 +14,7 @@ from ..models.base import LinearModel
 from ..models.measurement.linear import LinearGaussian
 from ..models.measurement import MeasurementModel
 from ..functions import (gauss2sigma, unscented_transform, cubature_transform,
-                         stochasticCubatureRulePoints)
+                         cubPointsAndTransfer)
 from ..measures import Measure, Euclidean
 
 
@@ -913,29 +913,29 @@ class StochasticIntegrationUpdater(KalmanUpdater):
     the stochastic integration approximation.
 
     """
+
     # Can be non-linear and non-differentiable
     measurement_model: MeasurementModel = Property(
         default=None,
         doc="The measurement model to be used. This need not be defined if a "
-            "measurement model is provided in the measurement. If no model "
-            "specified on construction, or in the measurement, then error "
-            "will be thrown.")
-    Nmax: float = Property(
-        default=10,
-        doc="maximal number of iterations of SIR")
+        "measurement model is provided in the measurement. If no model "
+        "specified on construction, or in the measurement, then error "
+        "will be thrown.",
+    )
+    Nmax: float = Property(default=10, doc="maximal number of iterations of SIR")
     Nmin: float = Property(
         default=5,
-        doc="minimal number of iterations of stochastic integration rule (SIR)")
-    Eps: float = Property(
-        default=5e-4,
-        doc="allowed threshold for integration error")
+        doc="minimal number of iterations of stochastic integration rule (SIR)",
+    )
+    Eps: float = Property(default=5e-4, doc="allowed threshold for integration error")
     SIorder: float = Property(
-        default=3,
-        doc="order of SIR (orders 1, 3, 5 are currently supported)")
+        default=5, doc="order of SIR (orders 1, 3, 5 are currently supported)"
+    )
 
     @lru_cache()
-    def predict_measurement(self, predicted_state, measurement_model=None, measurement_noise=True,
-                            **kwargs):
+    def predict_measurement(
+        self, predicted_state, measurement_model=None, measurement_noise=True, **kwargs
+    ):
         """SIF.
 
         Parameters
@@ -964,70 +964,45 @@ class StochasticIntegrationUpdater(KalmanUpdater):
         epMean = predicted_state.mean
         Iz = np.zeros((nz, 1))
         Vz = np.zeros((nz, 1))
-        IPz = np.zeros((nz))
+        IPz = np.zeros((nz, nz))
         VPz = np.zeros((nz))
         IPxz = np.zeros((nx, nz))
         VPxz = np.zeros((nx, nz))
         N = 0
         # SIR recursion for measurement predictive moments computation
         # until either number of iterations is reached or threshold is reached
-        while N < self.Nmin or np.all([N < self.Nmax,
-                                       np.any([(np.linalg.norm(Vz) >
-                                                self.Eps)])]):
-            N = N + 1
+        while N < self.Nmin or np.all([N < self.Nmax, np.any([(np.linalg.norm(Vz) > self.Eps)])]):
+            N += 1
             # -- cubature points and weights computation (for standard normal PDF)
-            [SCRSigmaPoints, w] = stochasticCubatureRulePoints(nx,
-                                                               self.SIorder)
-
-            # -- points transformation for given filtering mean and covariance
-            #    matrix
-            xpoints = Sp@SCRSigmaPoints + \
-                np.matlib.repmat(epMean, 1, np.size(SCRSigmaPoints, 1))
-            # -- points transformation via measurement equation (deterministic part)
-            sigma_points_states = []
-            for xpoint in xpoints.T:
-                state_copy = copy.copy(predicted_state)
-                state_copy.state_vector = StateVector(xpoint)
-                sigma_points_states.append(state_copy)
-
-            hpoints = StateVectors([
-                measurement_model.function(sigma_points_state)
-                for sigma_points_state in sigma_points_states])
+            # -- points transformation for given filtering mean and covariance matrix
+            xpoints, w, hpoints = cubPointsAndTransfer(nx, self.SIorder, Sp,
+                                                       epMean,
+                                                       measurement_model.function,
+                                                       predicted_state)
             # -- stochastic integration rule for predictive measurement mean and covariance
             #    matrix and predictive state and measurement covariance matrix
-            # SumRz = hpoints@w.reshape(np.size(w),1);
-
             SumRz = np.average(hpoints, axis=1, weights=w)
-
             # --- update mean Iz
             Dz = (SumRz - Iz) / N
-            Iz = Iz + Dz
+            Iz += Dz.astype(np.float64)
             Vz = (N - 2) * Vz / N + Dz ** 2
 
         # - measurement predictive moments
         zp = Iz
 
         N = 0
-        while N < self.Nmin or (N < self.Nmax and (np.linalg.norm(VPz) > self.Eps
-                                                   or np.linalg.norm(VPxz) > self.Eps)):
+        while N < self.Nmin or (N < self.Nmax and
+                                (np.linalg.norm(VPz) > self.Eps
+                                 or np.linalg.norm(VPxz) > self.Eps)):
             N += 1
             # -- cubature points and weights computation (for standard normal PDF)
-            SCRSigmaPoints, w = stochasticCubatureRulePoints(nx,  self.SIorder)
-            # -- points transformation for given filtering mean and covariance
-            #    matrix
-            xpoints = Sp@SCRSigmaPoints + epMean
-            # Points transformation via measurement equation (deterministic part)
-            sigma_points_states = []
-            for xpoint in xpoints.T:
-                state_copy = copy.copy(predicted_state)
-                state_copy.state_vector = StateVector(xpoint)
-                sigma_points_states.append(state_copy)
-            hpoints = StateVectors([
-                measurement_model.function(sigma_points_state)
-                for sigma_points_state in sigma_points_states])
+            # -- points transformation for given filtering mean and covariance matrix
+            xpoints, w, hpoints = cubPointsAndTransfer(nx, self.SIorder, Sp,
+                                                       epMean,
+                                                       measurement_model.function,
+                                                       predicted_state)
             # Stochastic integration rule for predictive measurement mean and covariance
             # Matrix and predictive state and measurement covariance matrix
-
             hpoints_diff = hpoints - zp
             SumRPz = hpoints_diff @ np.diag(w) @ hpoints_diff.T
             SumRPxz = (xpoints - xpoints[:, 0:1]) @ np.diag(w) @ hpoints_diff.T
@@ -1035,22 +1010,25 @@ class StochasticIntegrationUpdater(KalmanUpdater):
             # Update covariance matrix IPz
             DPz = (SumRPz - IPz) / N
             IPz += DPz.reshape(np.shape(IPz))
-            VPz = (N - 2)*VPz/N + DPz**2
+            VPz = (N - 2) * VPz / N + DPz**2
             # Update cross-covariance matrix IPxz
             DPxz = (SumRPxz - IPxz) / N
             IPxz += DPxz
-            VPxz = (N - 2)*VPxz/N + DPxz**2
+            VPxz = (N - 2) * VPxz / N + DPxz ** 2
 
         Pzp = IPz
         if measurement_noise:
-           	Pzp = Pzp + measurement_model.covar() + np.diag(Vz.ravel())
+            Pzp = Pzp + measurement_model.covar() + np.diag(Vz.ravel())
         else:
-           	Pzp = Pzp + np.diag(Vz.ravel())
-        Pzp = Pzp.astype(np.float64)
+            Pzp = Pzp + np.diag(Vz.ravel())
 
+        Pzp = Pzp.astype(np.float64)
         Pxzp = IPxz
 
         cross_covar = Pxzp.view(CovarianceMatrix)
         return MeasurementPrediction.from_state(
-            predicted_state, zp.view(StateVector), Pzp.view(CovarianceMatrix),
-            cross_covar=cross_covar)
+            predicted_state,
+            zp.view(StateVector),
+            Pzp.view(CovarianceMatrix),
+            cross_covar=cross_covar,
+        )

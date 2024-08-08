@@ -3,6 +3,7 @@ import copy
 import warnings
 
 import numpy as np
+from scipy.stats import ortho_group
 
 from ..types.numeric import Probability
 from ..types.array import StateVector, StateVectors, CovarianceMatrix
@@ -1083,3 +1084,148 @@ def cubature_transform(state, fun, points_noise=None, covar_noise=None, alpha=1.
     cross_covar = cross_covar.view(CovarianceMatrix)
 
     return mean, covar, cross_covar, cubature_points_t
+
+
+def stochasticCubatureRulePoints(nx, order):
+    """Stochstic cubature rule points
+
+    computation of cubature points and weights for the stochastic integration
+
+    Parameters
+    ==========
+    integer
+        number of points
+
+    Returns
+    =======
+    numpy.ndarray dim x nx
+        Matrix of sigma points
+    """
+
+    if order == 1:
+        X = np.random.randn(nx, 1)
+        SCRSigmaPoints = np.concatenate((X, -X), axis=1)
+        weights = np.array([0.5, 0.5])
+    elif order == 3:
+        CRSigmaPoints = np.concatenate(
+            (np.zeros((nx, 1)), np.eye(nx), -np.eye(nx)), axis=1
+        )
+        rho = np.sqrt(np.random.chisquare(nx + 2))
+        Q = ortho_group.rvs(nx)
+        SCRSigmaPoints = Q * rho @ CRSigmaPoints
+        weights = np.insert(0.5 * np.ones(2 * nx) / rho**2, 0, (1 - nx / rho**2))
+
+    elif order == 5:
+        # generating random values
+        r = np.sqrt(np.random.chisquare(2 * nx + 7))
+
+        q = np.random.beta(nx + 2, 3 / 2)
+
+        rho = r * np.sin(np.arcsin(q) / 2)
+        delta = r * np.cos(np.arcsin(q) / 2)
+
+        # calculating weights
+        c1up = nx + 2 - delta**2
+        c1do = rho**2 * (rho**2 - delta**2)
+        c2up = nx + 2 - rho**2
+        c2do = delta**2 * (delta**2 - rho**2)
+        cdo = 2 * (nx + 1) ** 2 * (nx + 2)
+        c3 = (7 - nx) * nx**2
+        c4 = 4 * (nx - 1) ** 2
+        coef1 = c1up * c3 / cdo / c1do
+        coef2 = c2up * c3 / cdo / c2do
+        coef3 = c1up * c4 / cdo / c1do
+        coef4 = c2up * c4 / cdo / c2do
+
+        pom = np.concatenate(
+            (
+                np.ones(2 * nx + 2) * coef1,
+                np.ones(2 * nx + 2) * coef2,
+                np.ones(nx * (nx + 1)) * coef3,
+                np.ones(nx * (nx + 1)) * coef4,
+            ),
+            axis=0,
+        )
+        weights = np.insert(
+            pom, 0, (1 - nx * (rho**2 + delta**2 - nx - 2) / (rho**2 * delta**2))
+        )
+
+        # Calculating sigma points
+        Q = ortho_group.rvs(nx)
+        v = np.zeros((nx, nx + 1))
+        i_vals, j_vals = np.triu_indices(nx + 1, k=1)
+        v[i_vals, i_vals] = np.sqrt((nx+1) * (nx-i_vals) / (nx * (nx-i_vals+1)))
+        v[i_vals, j_vals] = -np.sqrt((nx+1) / ((nx-i_vals) * nx * (nx-i_vals+1)))
+        v = Q @ v
+        i_vals, j_vals = np.tril_indices(nx + 1, k=-1)
+        comb_v = v[:, i_vals] + v[:, j_vals]
+        y = comb_v / np.linalg.norm(comb_v, axis=0)
+
+        SCRSigmaPoints = np.block(
+            [
+                np.zeros((nx, 1)),
+                -rho * v,
+                rho * v,
+                -delta * v,
+                +delta * v,
+                -rho * y,
+                rho * y,
+                -delta * y,
+                delta * y,
+            ]
+        )
+    else:
+        raise ValueError("This order of SIF is not supported")
+
+    return (SCRSigmaPoints, weights)
+
+
+def cubPointsAndTransfer(nx, order, sqrtCov, mean, transFunct, state):
+    r""" Calculates cubature points for stochastic integration filter and
+    puts them through given function (measurement/dynamics)
+
+    Parameters
+    ==========
+    nx : integer
+        dimension
+    order : integer
+        order of SIF rule
+    sqrtCov : array of float 64 [nx x nx]
+        square root of covariance
+    mean : array of int 64 [nx x 1]
+        mean
+    transFunct : function
+        function to transfer state vectors
+    state : state
+        whole state
+
+    Returns
+    =======
+    points : numpy.ndarray nx x number of points (based on order and dim)
+        cubature points
+    w : numpy.ndarray number of points x
+        weights
+    trsfPoints : numpy.ndarray nx x number of points (based on order and dim)
+        cubature transformed points
+    """
+
+    # -- cubature points and weights computation (for standard normal PDF)
+    SCRSigmaPoints, w = stochasticCubatureRulePoints(nx, order)
+
+    # -- points transformation for given filtering mean and covariance matrix
+    points = sqrtCov @ SCRSigmaPoints + mean
+
+    # -- points transformation through the function
+    sigma_points_states = []
+    for point in points.T:
+        state_copy = copy.copy(state)
+        state_copy.state_vector = StateVector(point)
+        sigma_points_states.append(state_copy)
+        trsfPoints = StateVectors(
+            [
+                transFunct(sigma_points_state)
+                for sigma_points_state in sigma_points_states
+            ]
+        )
+
+    return points, w, trsfPoints
