@@ -1,8 +1,11 @@
 from functools import partial
 
 import numpy as np
+import numpy.matlib as npm
 import scipy.linalg as la
+import copy
 
+from ..types.array import CovarianceMatrix, StateVector, StateVectors
 from .base import Predictor
 from ._utils import predict_lru_cache
 from ..base import Property
@@ -19,7 +22,7 @@ from ..functions import (gauss2sigma, unscented_transform, cubature_transform,
 
 class KalmanPredictor(Predictor):
     r"""A predictor class which forms the basis for the family of Kalman
-    predictors. This class also serves as the (specific) Kalman Filter
+    predictors. This class also servas the (specific) Kalman Filter
     :class:`~.Predictor` class. Here transition and control models must be linear:
 
     .. math::
@@ -640,7 +643,6 @@ class StochasticIntegrationPredictor(KalmanPredictor):
         """
 
         nx = np.size(prior.mean, 0)
-
         Sp = np.linalg.cholesky(prior.covar)
         Ix = np.zeros((nx, 1))
         Vx = np.zeros((nx, 1))
@@ -672,7 +674,6 @@ class StochasticIntegrationPredictor(KalmanPredictor):
                                                        prior.mean,
                                                        transition_and_control_function,
                                                        prior)
-
             # Stochastic integration rule for predictive state mean and
             # covariance matrix
             SumRx = np.average(fpoints, axis=1, weights=w)
@@ -710,7 +711,6 @@ class StochasticIntegrationPredictor(KalmanPredictor):
 
         Pp = IPx + Q + np.diag(Vx.ravel())
         Pp = (Pp + Pp.T) / 2
-
         Pp = Pp.astype(np.float64)
 
         # and return a Gaussian state based on these parameters

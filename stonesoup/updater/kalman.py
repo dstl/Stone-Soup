@@ -1,12 +1,13 @@
 import warnings
 
+import copy
 import numpy as np
 import scipy.linalg as la
 from functools import lru_cache
 
 from ..base import Property
 from .base import Updater
-from ..types.array import CovarianceMatrix, StateVector
+from ..types.array import CovarianceMatrix, StateVector, StateVectors
 from ..types.prediction import MeasurementPrediction
 from ..types.update import Update
 from ..models.base import LinearModel

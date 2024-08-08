@@ -391,18 +391,15 @@ class StochasticIntegrationSmoother(KalmanSmoother):
                                                        efMean,
                                                        transition_function,
                                                        prediction)
-
             # Stochastic integration rule for predictive measurement
             # mean and covariance matrix
             fpoints_diff = fpoints - predMean
             xpoints_diff = xpoints - filtMean
             SumRPxx = xpoints_diff @ (fpoints_diff * np.tile(w, (nx, 1))).T
-
             # --- update cross-covariance matrix IPxx
             DPxx = (SumRPxx - IPxx) / N
             IPxx += DPxx
             VPxx = (N - 2) * VPxx / N + DPxx**2
-
         # - measurement predictive moments
         Pxxps = IPxx
 
