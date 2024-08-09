@@ -800,52 +800,6 @@ def sde_euler_maruyama_integration(fun, t_values, state_x0):
     return state_x.state_vector
 
 
-def RandOrthMat(n, tol=1e-6):
-    """Random orthogonal real matrix
-
-    M = RANDORTHMAT(n)
-    generates a random n x n orthogonal real matrix.
-    M = RANDORTHMAT(n,tol)
-    explicitly specifies a thresh value that measures linear dependence
-    of a newly formed column with the existing columns. Defaults to 1e-6.
-
-    In this version the generated matrix distribution *is* uniform over the
-    manifold O(n) w.r.t. the induced R^(n^2) Lebesgue measure,at a slight
-    computational overhead (randn + normalization, as opposed to rand ).
-
-    (c) Ofek Shilon , 2006.
-
-    Parameters
-    ==========
-    n integer
-        matrix size
-
-    Returns
-    =======
-    numpy.ndarray n x n
-       Random orthogonal real matrix
-    """
-
-    M = np.zeros((n, n))
-
-    # Gram-schmidt on random column vectors
-    vi = np.random.rand(n, 1)
-    # the n-dimensional normal distribution has spherical symmetry, which implies
-    # that after normalization the drawn vectors would be uniformly distributed on the
-    # n-dimensional unit sphere.
-    M[:, 0] = (vi * 1 / (np.linalg.norm(vi))).T
-
-    for i in range(1, n):
-        nrm = 0
-        while nrm < tol:
-            vi = np.random.rand(n, 1)
-            vi = vi - M[:, 0:i] @ (M[:, 0:i].T @ vi)
-            nrm = np.linalg.norm(vi)
-        M[:, i] = (vi / nrm).T
-
-    return (M)
-
-
 def gauss2cubature(state, alpha=1.0):
     r"""Evaluate the cubature points for an input Gaussian state. This is done under the assumption
     that the input state is :math:`\mathcal{N}(\mathbf{\mu}, \Sigma)` of dimension :math:`n`. We
