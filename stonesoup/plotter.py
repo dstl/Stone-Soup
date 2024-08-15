@@ -53,21 +53,21 @@ class Dimension(IntEnum):
 class _Plotter(ABC):
 
     @abstractmethod
-    def plot_ground_truths(self, truths, mapping, truths_label="Ground Truth", **kwargs):
+    def plot_ground_truths(self, truths, mapping, label="Ground Truth", **kwargs):
         raise NotImplementedError
 
     @abstractmethod
     def plot_measurements(self, measurements, mapping, measurement_model=None,
-                          measurements_label="Measurements", **kwargs):
+                          label="Measurements", **kwargs):
         raise NotImplementedError
 
     @abstractmethod
-    def plot_tracks(self, tracks, mapping, uncertainty=False, particle=False, track_label="Tracks",
+    def plot_tracks(self, tracks, mapping, uncertainty=False, particle=False, label="Tracks",
                     **kwargs):
         raise NotImplementedError
 
     @abstractmethod
-    def plot_sensors(self, sensors, mapping, sensor_label="Sensors", **kwargs):
+    def plot_sensors(self, sensors, mapping, label="Sensors", **kwargs):
         raise NotImplementedError
 
     def _conv_measurements(self, measurements, mapping, measurement_model=None,
@@ -166,7 +166,7 @@ class Plotter(_Plotter):
         # This is new compared to plotter.py
         self.legend_dict = {}  # create an empty dictionary to hold legend entries
 
-    def plot_ground_truths(self, truths, mapping, truths_label="Ground Truth", **kwargs):
+    def plot_ground_truths(self, truths, mapping, label="Ground Truth", **kwargs):
         """Plots ground truth(s)
 
         Plots each ground truth path passed in to :attr:`truths` and generates a legend
@@ -183,7 +183,7 @@ class Plotter(_Plotter):
             for iteration.
         mapping: list
             List of items specifying the mapping of the position components of the state space.
-        truths_label: str
+        label: str
             Label for truth data. Default is "Ground Truth"
         \\*\\*kwargs: dict
             Additional arguments to be passed to plot function. Default is ``linestyle="--"``.
@@ -192,7 +192,13 @@ class Plotter(_Plotter):
         -------
         : list of :class:`matplotlib.artist.Artist`
             List of artists that have been added to the axis.
+
+
+        .. deprecated:: 1.5
+           ``label`` has replaced ``truths_label``. In the current implementation ``truths_label``
+           overrides ``label``. However, use of ``truths_label`` may be removed in the future.
         """
+        label = kwargs.pop('truths_label', None) or label
         truths_kwargs = dict(linestyle="--")
         truths_kwargs.update(kwargs)
         if not isinstance(truths, Collection) or isinstance(truths, StateMutableSequence):
@@ -219,14 +225,14 @@ class Plotter(_Plotter):
         else:
             colour = "black"
         truths_handle = Line2D([], [], linestyle=truths_kwargs['linestyle'], color=colour)
-        self.legend_dict[truths_label] = truths_handle
+        self.legend_dict[label] = truths_handle
         # Generate legend
         artists.append(self.ax.legend(handles=self.legend_dict.values(),
                                       labels=self.legend_dict.keys()))
         return artists
 
     def plot_measurements(self, measurements, mapping, measurement_model=None,
-                          measurements_label="Measurements", convert_measurements=True, **kwargs):
+                          label="Measurements", convert_measurements=True, **kwargs):
         """Plots measurements
 
         Plots detections and clutter, generating a legend automatically. Detections are plotted as
@@ -245,7 +251,7 @@ class Plotter(_Plotter):
         measurement_model : :class:`~.Model`, optional
             User-defined measurement model to be used in finding measurement state inverses if
             they cannot be found from the measurements themselves.
-        measurements_label : str
+        label : str
             Label for the measurements.  Default is "Measurements".
         convert_measurements : bool
             Should the measurements be converted from measurement space to state space before
@@ -258,8 +264,14 @@ class Plotter(_Plotter):
         -------
         : list of :class:`matplotlib.artist.Artist`
             List of artists that have been added to the axis.
-        """
 
+
+        .. deprecated:: 1.5
+           ``label`` has replaced ``measurements_label``. In the current implementation
+           ``measurements_label`` overrides ``label``. However, use of ``measurements_label``
+           may be removed in the future.
+        """
+        label = kwargs.pop('measurements_label', None) or label
         measurement_kwargs = dict(marker='o', color='b')
         measurement_kwargs.update(kwargs)
 
@@ -286,9 +298,9 @@ class Plotter(_Plotter):
 
             # Generate legend items for measurements
             if plot_clutter:
-                name = measurements_label + "<br>(Detections)"
+                name = label + "<br>(Detections)"
             else:
-                name = measurements_label
+                name = label
             self.legend_dict[name] = measurements_handle
 
         if plot_clutter:
@@ -299,7 +311,7 @@ class Plotter(_Plotter):
             clutter_handle = Line2D([], [], linestyle='', **clutter_kwargs)
 
             # Generate legend items for clutter
-            name = measurements_label + "<br>(Clutter)"
+            name = label + "<br>(Clutter)"
             self.legend_dict[name] = clutter_handle
 
         # Generate legend
@@ -307,7 +319,7 @@ class Plotter(_Plotter):
                                       labels=self.legend_dict.keys()))
         return artists
 
-    def plot_tracks(self, tracks, mapping, uncertainty=False, particle=False, track_label="Tracks",
+    def plot_tracks(self, tracks, mapping, uncertainty=False, particle=False, label="Tracks",
                     err_freq=1, same_color=False, **kwargs):
         """Plots track(s)
 
@@ -333,7 +345,7 @@ class Plotter(_Plotter):
             If True, function plots uncertainty ellipses or bars.
         particle : bool
             If True, function plots particles.
-        track_label: str
+        label: str
             Label to apply to all tracks for legend.
         err_freq: int
             Frequency of error bar plotting on tracks. Default value is 1, meaning
@@ -348,8 +360,14 @@ class Plotter(_Plotter):
         -------
         : list of :class:`matplotlib.artist.Artist`
             List of artists that have been added to the axis.
-        """
 
+
+        .. deprecated:: 1.5
+           ``label`` has replaced ``track_label``. In the current implementation
+           ``track_label`` overrides ``label``. However, use of ``track_label``
+           may be removed in the future.
+        """
+        label = kwargs.pop('track_label', None) or label
         tracks_kwargs = dict(linestyle='-', marker="s", color=None)
         tracks_kwargs.update(kwargs)
         if not isinstance(tracks, Collection) or isinstance(tracks, StateMutableSequence):
@@ -396,7 +414,7 @@ class Plotter(_Plotter):
         # Generate legend items for track
         track_handle = Line2D([], [], linestyle=tracks_kwargs['linestyle'],
                               marker=tracks_kwargs['marker'], color=tracks_kwargs['color'])
-        self.legend_dict[track_label] = track_handle
+        self.legend_dict[label] = track_handle
         if uncertainty:
             if self.dimension is Dimension.TWO:
                 # Plot uncertainty ellipses
@@ -487,7 +505,7 @@ class Plotter(_Plotter):
 
         return artists
 
-    def plot_sensors(self, sensors, mapping=None, sensor_label="Sensors", **kwargs):
+    def plot_sensors(self, sensors, mapping=None, label="Sensors", **kwargs):
         """Plots sensor(s)
 
         Plots sensors.  Users can change the color and marker of sensors using keyword
@@ -500,7 +518,7 @@ class Plotter(_Plotter):
         mapping: list
             List of items specifying the mapping of the position components of the
             sensor's position. Default is either [0, 1] or [0, 1, 2] depending on `self.dimension`
-        sensor_label: str
+        label: str
             Label to apply to all sensors for legend.
         \\*\\*kwargs: dict
             Additional arguments to be passed to plot function for sensors. Defaults are
@@ -510,8 +528,14 @@ class Plotter(_Plotter):
         -------
         : list of :class:`matplotlib.artist.Artist`
             List of artists that have been added to the axis.
-        """
 
+
+        .. deprecated:: 1.5
+           ``label`` has replaced ``sensor_label``. In the current implementation
+           ``sensor_label`` overrides ``label``. However, use of ``sensor_label``
+           may be removed in the future.
+        """
+        label = kwargs.pop('sensor_label', None) or label
         sensor_kwargs = dict(marker='x', color='black')
         sensor_kwargs.update(kwargs)
 
@@ -534,7 +558,7 @@ class Plotter(_Plotter):
                                               **sensor_kwargs))
             else:
                 raise NotImplementedError('Unsupported dimension type for sensor plotting')
-        self.legend_dict[sensor_label] = Line2D([], [], linestyle='', **sensor_kwargs)
+        self.legend_dict[label] = Line2D([], [], linestyle='', **sensor_kwargs)
         artists.append(self.ax.legend(handles=self.legend_dict.values(),
                                       labels=self.legend_dict.keys()))
         return artists
@@ -1035,7 +1059,7 @@ class Plotterly(_Plotter):
         elif len(mapping) != self.dimension:
             raise TypeError("Plotter dimension is not same as the mapping dimension.")
 
-    def plot_ground_truths(self, truths, mapping, truths_label="Ground Truth", **kwargs):
+    def plot_ground_truths(self, truths, mapping, label="Ground Truth", **kwargs):
         """Plots ground truth(s)
 
         Plots each ground truth path passed in to :attr:`truths` and generates a legend
@@ -1052,20 +1076,27 @@ class Plotterly(_Plotter):
             set to allow for iteration.
         mapping: list
             List of items specifying the mapping of the position components of the state space.
-        truths_label: str
+        label: str
             Label for truth data. Default is "Ground Truth"
         \\*\\*kwargs: dict
             Additional arguments to be passed to scatter function. Default is
             ``line=dict(dash="dash")``.
+
+
+        .. deprecated:: 1.5
+           ``label`` has replaced ``truths_label``. In the current implementation
+           ``truths_label`` overrides ``label``. However, use of ``truths_label``
+           may be removed in the future.
         """
+        label = kwargs.pop('truths_label', None) or label
         if not isinstance(truths, Collection) or isinstance(truths, StateMutableSequence):
             truths = {truths}
 
         self._check_mapping(mapping)  # ensure mapping is compatible with plotter dimension
 
         truths_kwargs = dict(
-            mode="lines", line=dict(dash="dash"), legendgroup=truths_label, legendrank=100,
-            name=truths_label)
+            mode="lines", line=dict(dash="dash"), legendgroup=label, legendrank=100,
+            name=label)
 
         if self.dimension == 3:  # make ground truth line thicker so easier to see in 3d plot
             truths_kwargs.update(dict(line=dict(width=8, dash="longdashdot")))
@@ -1105,7 +1136,7 @@ class Plotterly(_Plotter):
                     **scatter_kwargs)
 
     def plot_measurements(self, measurements, mapping, measurement_model=None,
-                          measurements_label="Measurements", convert_measurements=True, **kwargs):
+                          label="Measurements", convert_measurements=True, **kwargs):
         """Plots measurements
 
         Plots detections and clutter, generating a legend automatically. Detections are plotted as
@@ -1124,7 +1155,7 @@ class Plotterly(_Plotter):
         measurement_model : :class:`~.Model`, optional
             User-defined measurement model to be used in finding measurement state inverses if
             they cannot be found from the measurements themselves.
-        measurements_label : str
+        label : str
             Label for the measurements.  Default is "Measurements".
         convert_measurements: bool
             Should the measurements be converted from measurement space to state space before
@@ -1132,8 +1163,14 @@ class Plotterly(_Plotter):
         \\*\\*kwargs: dict
             Additional arguments to be passed to scatter function for detections. Defaults are
             ``marker=dict(color="#636EFA")``.
-        """
 
+
+        .. deprecated:: 1.5
+           ``label`` has replaced ``measurements_label``. In the current implementation
+           ``measurements_label`` overrides ``label``. However, use of ``measurements_label``
+           may be removed in the future.
+        """
+        label = kwargs.pop('measurements_label', None) or label
         if not isinstance(measurements, Collection):
             measurements = {measurements}
 
@@ -1151,9 +1188,9 @@ class Plotterly(_Plotter):
 
         if plot_detections:
             if plot_clutter:
-                name = measurements_label + "<br>(Detections)"
+                name = label + "<br>(Detections)"
             else:
-                name = measurements_label
+                name = label
             measurement_kwargs = dict(
                 mode='markers', marker=dict(color='#636EFA'),
                 name=name, legendgroup=name, legendrank=200)
@@ -1193,7 +1230,7 @@ class Plotterly(_Plotter):
                 )
 
         if plot_clutter:
-            name = measurements_label + "<br>(Clutter)"
+            name = label + "<br>(Clutter)"
             clutter_kwargs = dict(
                 mode='markers', marker=dict(symbol="star-triangle-up", color='#FECB52'),
                 name=name, legendgroup=name, legendrank=210)
@@ -1255,7 +1292,7 @@ class Plotterly(_Plotter):
         color_index = figure_index % max_index
         return colorway[color_index]
 
-    def plot_tracks(self, tracks, mapping, uncertainty=False, particle=False, track_label="Tracks",
+    def plot_tracks(self, tracks, mapping, uncertainty=False, particle=False, label="Tracks",
                     ellipse_points=30, err_freq=1, same_color=False, **kwargs):
         """Plots track(s)
 
@@ -1277,7 +1314,7 @@ class Plotterly(_Plotter):
             If True, function plots uncertainty ellipses.
         particle : bool
             If True, function plots particles.
-        track_label: str
+        label: str
             Label to apply to all tracks for legend.
         ellipse_points: int
             Number of points for polygon approximating ellipse shape
@@ -1290,7 +1327,14 @@ class Plotterly(_Plotter):
             Additional arguments to be passed to scatter function. Defaults are
             ``marker=dict(symbol='square')`` for :class:`~.Update` and
             ``marker=dict(symbol='circle')`` for other states.
+
+
+        .. deprecated:: 1.5
+           ``label`` has replaced ``track_label``. In the current implementation
+           ``track_label`` overrides ``label``. However, use of ``track_label``
+           may be removed in the future.
         """
+        label = kwargs.pop('track_label', None) or label
         if not isinstance(tracks, Collection) or isinstance(tracks, StateMutableSequence):
             tracks = {tracks}  # Make a set of length 1
 
@@ -1298,7 +1342,7 @@ class Plotterly(_Plotter):
 
         # Plot tracks
         track_colors = {}
-        track_kwargs = dict(mode='markers+lines', legendgroup=track_label, legendrank=300)
+        track_kwargs = dict(mode='markers+lines', legendgroup=label, legendrank=300)
 
         if self.dimension == 3:  # change visuals to work well in 3d
             track_kwargs.update(dict(line=dict(width=7)), marker=dict(size=4))
@@ -1319,7 +1363,7 @@ class Plotterly(_Plotter):
             scatter_kwargs = track_kwargs.copy()
             scatter_kwargs['name'] = track.id
             if add_legend:
-                scatter_kwargs['name'] = track_label
+                scatter_kwargs['name'] = label
                 scatter_kwargs['showlegend'] = True
                 add_legend = False
             else:
@@ -1473,7 +1517,7 @@ class Plotterly(_Plotter):
         points = rotational_matrix @ points.T
         return points + state.mean[mapping[:2], :]
 
-    def plot_sensors(self, sensors, mapping=[0, 1], sensor_label="Sensors", **kwargs):
+    def plot_sensors(self, sensors, mapping=[0, 1], label="Sensors", **kwargs):
         """Plots sensor(s)
 
         Plots sensors. Users can change the color and marker of sensors using keyword
@@ -1486,13 +1530,19 @@ class Plotterly(_Plotter):
         mapping: list
             List of items specifying the mapping of the position
             components of the sensor's position.
-        sensor_label: str
+        label: str
             Label to apply to all sensors for legend.
         \\*\\*kwargs: dict
             Additional arguments to be passed to scatter function for sensors. Defaults are
             ``marker=dict(symbol='x', color='black')``.
-        """
 
+
+        .. deprecated:: 1.5
+           ``label`` has replaced ``sensor_label``. In the current implementation
+           ``sensor_label`` overrides ``label``. However, use of ``sensor_label``
+           may be removed in the future.
+        """
+        label = kwargs.pop('sensor_label', None) or label
         if not isinstance(sensors, Collection):
             sensors = {sensors}
 
@@ -1502,10 +1552,10 @@ class Plotterly(_Plotter):
             raise NotImplementedError
 
         sensor_kwargs = dict(mode='markers', marker=dict(symbol='x', color='black'),
-                             legendgroup=sensor_label, legendrank=50)
+                             legendgroup=label, legendrank=50)
         merge(sensor_kwargs, kwargs)
 
-        sensor_kwargs['name'] = sensor_label
+        sensor_kwargs['name'] = label
         if sensor_kwargs['legendgroup'] not in {trace.legendgroup
                                                 for trace in self.fig.data}:
             sensor_kwargs['showlegend'] = True
@@ -1633,7 +1683,7 @@ class PolarPlotterly(_Plotter):
                 theta=bearings, **scatter_kwargs)
             self.fig.add_trace(polar_plot)
 
-    def plot_ground_truths(self, truths, mapping, truths_label="Ground Truth", **kwargs):
+    def plot_ground_truths(self, truths, mapping, label="Ground Truth", **kwargs):
         """Plots ground truth(s)
 
         Plots each ground truth path passed in to :attr:`truths` and generates a legend
@@ -1650,12 +1700,19 @@ class PolarPlotterly(_Plotter):
             set to allow for iteration.
         mapping: list
             List of items specifying the mapping of the position components of the state space.
-        truths_label: str
+        label: str
             Label for truth data. Default is "Ground Truth".
         \\*\\*kwargs: dict
             Additional arguments to be passed to scatter function. Default is
             ``line=dict(dash="dash")``.
+
+
+        .. deprecated:: 1.5
+           ``label`` has replaced ``truths_label``. In the current implementation
+           ``truths_label`` overrides ``label``. However, use of ``truths_label``
+           may be removed in the future.
         """
+        label = kwargs.pop('truths_label', None) or label
         truths_kwargs = dict(mode="lines", line=dict(dash="dash"), legendrank=100)
         merge(truths_kwargs, kwargs)
         angle_mapping = mapping[0]
@@ -1664,10 +1721,10 @@ class PolarPlotterly(_Plotter):
         else:
             range_mapping = None
         self.plot_state_sequence(state_sequences=truths, angle_mapping=angle_mapping,
-                                 range_mapping=range_mapping, label=truths_label, **truths_kwargs)
+                                 range_mapping=range_mapping, label=label, **truths_kwargs)
 
     def plot_measurements(self, measurements, mapping, measurement_model=None,
-                          measurements_label="Measurements", convert_measurements=True, **kwargs):
+                          label="Measurements", convert_measurements=True, **kwargs):
         """Plots measurements
 
         Plots detections and clutter, generating a legend automatically. Detections are plotted as
@@ -1686,15 +1743,21 @@ class PolarPlotterly(_Plotter):
         measurement_model : :class:`~.Model`, optional
             User-defined measurement model to be used in finding measurement state inverses if
             they cannot be found from the measurements themselves.
-        measurements_label : str
+        label : str
             Label for the measurements.  Default is "Measurements".
         convert_measurements: bool
             Should the measurements be converted before being plotted. Default is True.
         \\*\\*kwargs: dict
             Additional arguments to be passed to scatter function for detections. Defaults are
             ``marker=dict(color="#636EFA")``.
-        """
 
+
+        .. deprecated:: 1.5
+           ``label`` has replaced ``measurements_label``. In the current implementation
+           ``measurements_label`` overrides ``label``. However, use of ``measurements_label``
+           may be removed in the future.
+        """
+        label = kwargs.pop('measurements_label', None) or label
         if not isinstance(measurements, Collection):
             measurements = {measurements}
 
@@ -1716,9 +1779,9 @@ class PolarPlotterly(_Plotter):
 
         if plot_detections:
             if plot_clutter:
-                name = measurements_label + "<br>(Detections)"
+                name = label + "<br>(Detections)"
             else:
-                name = measurements_label
+                name = label
             measurement_kwargs = dict(mode='markers', marker=dict(color='#636EFA'), legendrank=200)
             merge(measurement_kwargs, kwargs)
             plotting_data = [State(state_vector=plotting_state_vector,
@@ -1730,7 +1793,7 @@ class PolarPlotterly(_Plotter):
                                      **measurement_kwargs)
 
         if plot_clutter:
-            name = measurements_label + "<br>(Clutter)"
+            name = label + "<br>(Clutter)"
             clutter_kwargs = dict(mode='markers', legendrank=210,
                                   marker=dict(symbol="star-triangle-up", color='#FECB52'))
             merge(clutter_kwargs, kwargs)
@@ -1742,7 +1805,7 @@ class PolarPlotterly(_Plotter):
                                      range_mapping=range_mapping, label=name,
                                      **clutter_kwargs)
 
-    def plot_tracks(self, tracks, mapping, uncertainty=False, particle=False, track_label="Tracks",
+    def plot_tracks(self, tracks, mapping, uncertainty=False, particle=False, label="Tracks",
                     **kwargs):
         """Plots track(s)
 
@@ -1764,12 +1827,19 @@ class PolarPlotterly(_Plotter):
             If True, function plots uncertainty ellipses.
         particle : bool
             If True, function plots particles.
-        track_label: str
+        label: str
             Label to apply to all tracks for legend.
         \\*\\*kwargs: dict
             Additional arguments to be passed to scatter function. Defaults are
             ``mode='markers+lines'``.
+
+
+        .. deprecated:: 1.5
+           ``label`` has replaced ``track_label``. In the current implementation
+           ``track_label`` overrides ``label``. However, use of ``track_label``
+           may be removed in the future.
         """
+        label = kwargs.pop('track_label', None) or label
         if uncertainty or particle:
             raise NotImplementedError
 
@@ -1781,9 +1851,9 @@ class PolarPlotterly(_Plotter):
         else:
             range_mapping = None
         self.plot_state_sequence(state_sequences=tracks, angle_mapping=angle_mapping,
-                                 range_mapping=range_mapping, label=track_label, **track_kwargs)
+                                 range_mapping=range_mapping, label=label, **track_kwargs)
 
-    def plot_sensors(self, sensors, sensor_label="Sensors", **kwargs):
+    def plot_sensors(self, sensors, label="Sensors", **kwargs):
         raise NotImplementedError
 
 
@@ -1869,7 +1939,7 @@ class AnimationPlotter(_Plotter):
 
         self.animation_output.save(filename, **kwargs)
 
-    def plot_ground_truths(self, truths, mapping: List[int], truths_label: str = "Ground Truth",
+    def plot_ground_truths(self, truths, mapping: List[int], label: str = "Ground Truth",
                            **kwargs):
         """Plots ground truth(s)
 
@@ -1887,18 +1957,24 @@ class AnimationPlotter(_Plotter):
             for iteration.
         mapping: list
             List of items specifying the mapping of the position components of the state space.
-        truths_label: str
+        label: str
             Label for truth data. Default is "Ground Truth"
         \\*\\*kwargs: dict
             Additional arguments to be passed to plot function. Default is ``linestyle="--"``.
-        """
 
+
+        .. deprecated:: 1.5
+           ``label`` has replaced ``truths_label``. In the current implementation
+           ``truths_label`` overrides ``label``. However, use of ``truths_label``
+           may be removed in the future.
+        """
+        label = kwargs.pop('truths_label', None) or label
         truths_kwargs = dict(linestyle="--")
         truths_kwargs.update(kwargs)
-        self.plot_state_mutable_sequence(truths, mapping, truths_label, **truths_kwargs)
+        self.plot_state_mutable_sequence(truths, mapping, label, **truths_kwargs)
 
     def plot_tracks(self, tracks, mapping: List[int], uncertainty=False, particle=False,
-                    track_label="Tracks", **kwargs):
+                    label="Tracks", **kwargs):
         """Plots track(s)
 
         Plots each track generated, generating a legend automatically. Tracks are plotted as solid
@@ -1917,18 +1993,25 @@ class AnimationPlotter(_Plotter):
             Currently not implemented. If True, an error is raised
         particle : bool
             Currently not implemented. If True, an error is raised
-        track_label: str
+        label: str
             Label to apply to all tracks for legend.
         \\*\\*kwargs: dict
             Additional arguments to be passed to plot function. Defaults are ``linestyle="-"``,
             ``marker='s'`` for :class:`~.Update` and ``marker='o'`` for other states.
+
+
+        .. deprecated:: 1.5
+           ``label`` has replaced ``track_label``. In the current implementation
+           ``track_label`` overrides ``label``. However, use of ``track_label``
+           may be removed in the future.
         """
+        label = kwargs.pop('track_label', None) or label
         if uncertainty or particle:
             raise NotImplementedError
 
         tracks_kwargs = dict(linestyle='-', marker="s", color=None)
         tracks_kwargs.update(kwargs)
-        self.plot_state_mutable_sequence(tracks, mapping, track_label, **tracks_kwargs)
+        self.plot_state_mutable_sequence(tracks, mapping, label, **tracks_kwargs)
 
     def plot_state_mutable_sequence(self, state_mutable_sequences, mapping: List[int], label: str,
                                     **plotting_kwargs):
@@ -1967,7 +2050,7 @@ class AnimationPlotter(_Plotter):
             ))
 
     def plot_measurements(self, measurements, mapping, measurement_model=None,
-                          measurements_label="Measurements", convert_measurements=True, **kwargs):
+                          label="Measurements", convert_measurements=True, **kwargs):
         """Plots measurements
 
         Plots detections and clutter, generating a legend automatically. Detections are plotted as
@@ -1986,7 +2069,7 @@ class AnimationPlotter(_Plotter):
         measurement_model : :class:`~.Model`, optional
             User-defined measurement model to be used in finding measurement state inverses if
             they cannot be found from the measurements themselves.
-        measurements_label: str
+        label: str
             Label for measurements. Default is "Detections".
         convert_measurements: bool
             Should the measurements be converted from measurement space to state space before
@@ -1994,8 +2077,14 @@ class AnimationPlotter(_Plotter):
         \\*\\*kwargs: dict
             Additional arguments to be passed to plot function for detections. Defaults are
             ``marker='o'`` and ``color='b'``.
-        """
 
+
+        .. deprecated:: 1.5
+           ``label`` has replaced ``measurements_label``. In the current implementation
+           ``measurements_label`` overrides ``label``. However, use of ``measurements_label``
+           may be removed in the future.
+        """
+        label = kwargs.pop('measurements_label', None) or label
         measurement_kwargs = dict(marker='o', color='b')
         measurement_kwargs.update(kwargs)
 
@@ -2014,9 +2103,9 @@ class AnimationPlotter(_Plotter):
 
         if plot_detections:
             if plot_clutter:
-                name = measurements_label + "<br>(Detections)"
+                name = label + "<br>(Detections)"
             else:
-                name = measurements_label
+                name = label
             detection_kwargs = dict(linestyle='', marker='o', color='b')
             detection_kwargs.update(kwargs)
             self.plotting_data.append(_AnimationPlotterDataClass(
@@ -2034,11 +2123,11 @@ class AnimationPlotter(_Plotter):
                 plotting_data=[State(state_vector=plotting_state_vector,
                                      timestamp=detection.timestamp)
                                for detection, plotting_state_vector in plot_clutter.items()],
-                plotting_label=measurements_label + "<br>(Clutter)",
+                plotting_label=label + "<br>(Clutter)",
                 plotting_keyword_arguments=clutter_kwargs
             ))
 
-    def plot_sensors(self, sensors, sensor_label="Sensors", **kwargs):
+    def plot_sensors(self, sensors, label="Sensors", **kwargs):
         raise NotImplementedError
 
     @classmethod
@@ -2444,7 +2533,7 @@ class AnimatedPlotterly(_Plotter):
 
             self.fig.update_yaxes(range=[ymin - yrange / 20, ymax + yrange / 20])
 
-    def plot_ground_truths(self, truths, mapping, truths_label="Ground Truth",
+    def plot_ground_truths(self, truths, mapping, label="Ground Truth",
                            resize=True, **kwargs):
 
         """Plots ground truth(s)
@@ -2463,14 +2552,20 @@ class AnimatedPlotterly(_Plotter):
             for iteration.
         mapping: list
             List of items specifying the mapping of the position components of the state space.
-        truths_label: str
+        label: str
             Name of ground truths in legend/plot
         resize: bool
             if True, will resize figure to ensure that ground truths are in view
         \\*\\*kwargs: dict
             Additional arguments to be passed to plot function. Default is ``linestyle="--"``.
 
+
+        .. deprecated:: 1.5
+           ``label`` has replaced ``truths_label``. In the current implementation
+           ``truths_label`` overrides ``label``. However, use of ``truths_label``
+           may be removed in the future.
         """
+        label = kwargs.pop('truths_label', None) or label
 
         if not isinstance(truths, Collection) or isinstance(truths, StateMutableSequence):
             truths = {truths}  # Make a set of length 1
@@ -2498,9 +2593,9 @@ class AnimatedPlotterly(_Plotter):
         # add a trace that keeps the legend up for the entire simulation (will remain
         # even if no truths are present), then add a trace for each truth in the simulation.
         # initialise keyword arguments, then add them to the traces
-        truth_kwargs = dict(x=[], y=[], mode="lines", hoverinfo='none', legendgroup=truths_label,
+        truth_kwargs = dict(x=[], y=[], mode="lines", hoverinfo='none', legendgroup=label,
                             line=dict(dash="dash", color=self.colorway[0]), legendrank=100,
-                            name=truths_label, showlegend=True)
+                            name=label, showlegend=True)
         merge(truth_kwargs, kwargs)
         # legend dummy trace
         self.fig.add_trace(go.Scatter(truth_kwargs))
@@ -2565,7 +2660,7 @@ class AnimatedPlotterly(_Plotter):
         self.plotting_function_called = True
 
     def plot_measurements(self, measurements, mapping, measurement_model=None,
-                          resize=True, measurements_label="Measurements",
+                          resize=True, label="Measurements",
                           convert_measurements=True, **kwargs):
         """Plots measurements
 
@@ -2587,7 +2682,7 @@ class AnimatedPlotterly(_Plotter):
             they cannot be found from the measurements themselves.
         resize: bool
             If True, will resize figure to ensure measurements are in view
-        measurements_label : str
+        label : str
             Label for the measurements.  Default is "Measurements".
         convert_measurements : bool
             Should the measurements be converted from measurement space to state space before
@@ -2595,7 +2690,14 @@ class AnimatedPlotterly(_Plotter):
         \\*\\*kwargs: dict
             Additional arguments to be passed to scatter function for detections. Defaults are
             ``marker=dict(color="#636EFA")``.
+
+
+        .. deprecated:: 1.5
+           ``label`` has replaced ``measurements_label``. In the current implementation
+           ``measurements_label`` overrides ``label``. However, use of ``measurements_label``
+           may be removed in the future.
         """
+        label = kwargs.pop('measurements_label', None) or label
 
         if not isinstance(measurements, Collection):
             measurements = {measurements}  # Make a set of length 1
@@ -2648,9 +2750,9 @@ class AnimatedPlotterly(_Plotter):
 
         # initialise detections
         if plot_clutter:
-            name = measurements_label + "<br>(Detections)"
+            name = label + "<br>(Detections)"
         else:
-            name = measurements_label
+            name = label
         measurement_kwargs = dict(x=[], y=[], mode='markers',
                                   name=name,
                                   legendgroup=name,
@@ -2664,7 +2766,7 @@ class AnimatedPlotterly(_Plotter):
         self.fig.add_trace(go.Scatter(measurement_kwargs))  # trace for plotting
 
         # change necessary kwargs to initialise clutter trace
-        name = measurements_label + "<br>(Clutter)"
+        name = label + "<br>(Clutter)"
         clutter_kwargs = dict(x=[], y=[], mode='markers',
                               name=name,
                               legendgroup=name,
@@ -2726,7 +2828,7 @@ class AnimatedPlotterly(_Plotter):
 
     def plot_tracks(self, tracks, mapping, uncertainty=False, resize=True,
                     particle=False, plot_history=False, ellipse_points=30,
-                    track_label="Tracks", **kwargs):
+                    label="Tracks", **kwargs):
         """
         Plots each track generated, generating a legend automatically. If 'uncertainty=True',
         error ellipses are plotted. Tracks are plotted as solid lines with point markers
@@ -2754,15 +2856,19 @@ class AnimatedPlotterly(_Plotter):
             If true, plots all particles and uncertainty ellipses up to current time step
         ellipse_points: int
             Number of points for polygon approximating ellipse shape
-        track_label: str
+        label: str
             Label to apply to all tracks for legend
         \\*\\*kwargs: dict
             Additional arguments to be passed to plot function. Defaults are ``linestyle="-"``,
             ``marker='s'`` for :class:`~.Update` and ``marker='o'`` for other states.
 
-        Returns
-        -------
+
+        .. deprecated:: 1.5
+           ``label`` has replaced ``track_label``. In the current implementation
+           ``track_label`` overrides ``label``. However, use of ``track_label``
+           may be removed in the future.
         """
+        label = kwargs.pop('track_label', None) or label
 
         if not isinstance(tracks, Collection) or isinstance(tracks, StateMutableSequence):
             tracks = {tracks}  # Make a set of length 1
@@ -2797,7 +2903,7 @@ class AnimatedPlotterly(_Plotter):
         # add dummy trace for legend for track
 
         track_kwargs = dict(x=[], y=[], mode="markers+lines", line=dict(color=self.colorway[2]),
-                            legendgroup=track_label, legendrank=400, name=track_label,
+                            legendgroup=label, legendrank=400, name=label,
                             showlegend=True)
         track_kwargs.update(kwargs)
         self.fig.add_trace(go.Scatter(track_kwargs))
@@ -2869,7 +2975,7 @@ class AnimatedPlotterly(_Plotter):
             self._resize(data, "tracks")
 
         if uncertainty:  # plot ellipses
-            name = f'{track_label}<br>Uncertainty'
+            name = f'{label}<br>Uncertainty'
             uncertainty_kwargs = dict(x=[], y=[], legendgroup=name, fill='toself',
                                       fillcolor=self.colorway[2],
                                       opacity=0.2, legendrank=500, name=name,
@@ -2894,7 +3000,7 @@ class AnimatedPlotterly(_Plotter):
         if particle:  # plot particles
 
             # initialise traces. One for legend and one per track
-            name = f'{track_label}<br>Particles'
+            name = f'{label}<br>Particles'
             particle_kwargs = dict(mode='markers', marker=dict(size=2, color=self.colorway[2]),
                                    opacity=0.4,
                                    hoverinfo='skip', legendgroup=name, name=name,
@@ -2989,7 +3095,7 @@ class AnimatedPlotterly(_Plotter):
         if resize:
             self._resize(data, type="particle_or_uncertainty")
 
-    def plot_sensors(self, sensors, sensor_label="Sensors", resize=True, **kwargs):
+    def plot_sensors(self, sensors, label="Sensors", resize=True, **kwargs):
         """Plots sensor(s)
 
         Plots sensors.  Users can change the color and marker of detections using keyword
@@ -3000,12 +3106,20 @@ class AnimatedPlotterly(_Plotter):
         ----------
         sensors : Collection of :class:`~.Sensor`
             Sensors to plot
-        sensor_label: str
+        label: str
             Label to apply to all tracks for legend.
         \\*\\*kwargs: dict
             Additional arguments to be passed to scatter function for detections. Defaults are
             ``marker=dict(symbol='x', color='black')``.
+
+
+        .. deprecated:: 1.5
+           ``label`` has replaced ``sensor_label``. In the current implementation
+           ``sensor_label`` overrides ``label``. However, use of ``sensor_label``
+           may be removed in the future.
         """
+        label = kwargs.pop('sensor_label', None) or label
+
         if not isinstance(sensors, Collection):
             sensors = {sensors}
 
@@ -3013,8 +3127,8 @@ class AnimatedPlotterly(_Plotter):
         if sensors:
             trace_base = len(self.fig.data)  # number of traces currently in figure
             sensor_kwargs = dict(mode='markers', marker=dict(symbol='x', color='black'),
-                                 legendgroup=sensor_label, legendrank=50,
-                                 name=sensor_label, showlegend=True)
+                                 legendgroup=label, legendrank=50,
+                                 name=label, showlegend=True)
             merge(sensor_kwargs, kwargs)
 
             self.fig.add_trace(go.Scatter(sensor_kwargs))  # initialises trace
