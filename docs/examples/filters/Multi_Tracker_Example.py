@@ -365,13 +365,13 @@ for step, (time, current_tracks) in enumerate(tracker_PF, 1):
 
 # %%
 # Finally, we plot the results:
-plotter.plot_tracks(tracks_EKF, [0, 2], track_label="EKF", line=dict(color="orange"),
+plotter.plot_tracks(tracks_EKF, [0, 2], label="EKF", line=dict(color="orange"),
                     uncertainty=False)
-plotter.plot_tracks(tracks_UKF, [0, 2], track_label="UKF", line=dict(color="blue"),
+plotter.plot_tracks(tracks_UKF, [0, 2], label="UKF", line=dict(color="blue"),
                     uncertainty=False)
-plotter.plot_tracks(tracks_PF, [0, 2], track_label="PF", line=dict(color="brown"),
+plotter.plot_tracks(tracks_PF, [0, 2], label="PF", line=dict(color="brown"),
                     uncertainty=False)
-plotter.plot_tracks(tracks_ESIF, [0, 2], track_label="ESIF", line=dict(color="green"),
+plotter.plot_tracks(tracks_ESIF, [0, 2], label="ESIF", line=dict(color="green"),
                     uncertainty=False)
 plotter.fig
 

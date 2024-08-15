@@ -58,11 +58,11 @@ colours_iter = iter(colours)
 
 plotter = Plotterly()
 plotter.plot_tracks(tracks=[Track(state) for state in states_from_a],
-                    mapping=[0, 1], track_label="Source A",
+                    mapping=[0, 1], label="Source A",
                     mode="markers", marker=dict(symbol="cross", color=next(colours_iter)))
 
 plotter.plot_tracks(tracks=[Track(state) for state in states_from_b],
-                    mapping=[0, 1], track_label="Source B",
+                    mapping=[0, 1], label="Source B",
                     mode="markers", marker=dict(symbol="circle", color=next(colours_iter)))
 
 plotter.fig
@@ -109,17 +109,17 @@ for idx, assoc in enumerate(associations.associations):
     track = Track(state_from_a, init_metadata=dict(source="a", association=idx))
     plotter.plot_tracks(track,
                         mapping=[0, 1], mode="markers",
-                        track_label=f"{state_names[state_from_a]}, Association {idx}",
+                        label=f"{state_names[state_from_a]}, Association {idx}",
                         marker=dict(symbol="cross", color=colour))
 
     track = Track(state_from_b, init_metadata=dict(source="b", association=idx))
     plotter.plot_tracks(track, mapping=[0, 1], mode="markers",
-                        track_label=f"{state_names[state_from_b]}, Association {idx}",
+                        label=f"{state_names[state_from_b]}, Association {idx}",
                         marker=dict(symbol="circle", color=colour))
 
     track = Track([state_from_a, state_from_b], init_metadata=dict(association=idx))
     plotter.plot_tracks(track, mapping=[0, 1], mode="lines",
-                        track_label=f"Association {idx}",
+                        label=f"Association {idx}",
                         line=dict(color=colour))
 
     dist_between_states = Euclidean()(state_from_a, state_from_b)
@@ -134,7 +134,7 @@ for state in unassociated_states_a:
     colour = next(colours_iter)
     track = Track(state, init_metadata=dict(source="a", association=None))
     plotter.plot_tracks(track, mapping=[0, 1],
-                        track_label=f"{state_names[state]}, No Association",
+                        label=f"{state_names[state]}, No Association",
                         mode="markers", marker=dict(symbol="cross", color=colour))
 
 for state in unassociated_states_b:
@@ -143,7 +143,7 @@ for state in unassociated_states_b:
     colour = next(colours_iter)
     track = Track(state, init_metadata=dict(source="b", association=None))
     plotter.plot_tracks(track, mapping=[0, 1],
-                        track_label=f"{state_names[state]}, No Association",
+                        label=f"{state_names[state]}, No Association",
                         mode="markers", marker=dict(symbol="circle", color=colour))
 
 # %%
@@ -215,11 +215,11 @@ plotter = Plotterly()
 
 colour = next(colours_iter)
 for track in tracks_a:
-    plotter.plot_tracks(track, mapping=[0, 1], track_label=track.id, marker=dict(color=colour))
+    plotter.plot_tracks(track, mapping=[0, 1], label=track.id, marker=dict(color=colour))
 
 colour = next(colours_iter)
 for track in tracks_b:
-    plotter.plot_tracks(track, mapping=[0, 1], track_label=track.id, marker=dict(color=colour))
+    plotter.plot_tracks(track, mapping=[0, 1], label=track.id, marker=dict(color=colour))
 
 plotter.fig
 
@@ -272,7 +272,7 @@ for assoc in associations.associations:
     print('Associated together', [track.id for track in assoc.objects])
     colour = next(colours_iter)
     for track in assoc.objects:
-        plotter.plot_tracks(track, mapping=[0, 1], track_label=track.id,
+        plotter.plot_tracks(track, mapping=[0, 1], label=track.id,
                             marker=dict(color=colour))
 
 print("Not Associated in A: ", [track.id for track in unassociated_a])
@@ -280,7 +280,7 @@ print("Not Associated in B: ", [track.id for track in unassociated_b])
 
 for track in [*unassociated_a, *unassociated_b]:
     colour = next(colours_iter)
-    plotter.plot_tracks(track, mapping=[0, 1], track_label=track.id, marker=dict(color=colour))
+    plotter.plot_tracks(track, mapping=[0, 1], label=track.id, marker=dict(color=colour))
 
 plotter.fig
 
