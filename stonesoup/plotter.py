@@ -298,7 +298,7 @@ class Plotter(_Plotter):
 
             # Generate legend items for measurements
             if plot_clutter:
-                name = label + "<br>(Detections)"
+                name = label + "\n(Detections)"
             else:
                 name = label
             self.legend_dict[name] = measurements_handle
@@ -311,7 +311,7 @@ class Plotter(_Plotter):
             clutter_handle = Line2D([], [], linestyle='', **clutter_kwargs)
 
             # Generate legend items for clutter
-            name = label + "<br>(Clutter)"
+            name = label + "\n(Clutter)"
             self.legend_dict[name] = clutter_handle
 
         # Generate legend
@@ -2103,7 +2103,7 @@ class AnimationPlotter(_Plotter):
 
         if plot_detections:
             if plot_clutter:
-                name = label + "<br>(Detections)"
+                name = label + "\n(Detections)"
             else:
                 name = label
             detection_kwargs = dict(linestyle='', marker='o', color='b')
@@ -2123,7 +2123,7 @@ class AnimationPlotter(_Plotter):
                 plotting_data=[State(state_vector=plotting_state_vector,
                                      timestamp=detection.timestamp)
                                for detection, plotting_state_vector in plot_clutter.items()],
-                plotting_label=label + "<br>(Clutter)",
+                plotting_label=label + "\n(Clutter)",
                 plotting_keyword_arguments=clutter_kwargs
             ))
 
@@ -2748,34 +2748,36 @@ class AnimatedPlotterly(_Plotter):
         # get number of traces currently in fig
         trace_base = len(self.fig.data)
 
-        # initialise detections
+        if plot_detections:
+            # initialise detections
+            if plot_clutter:
+                name = label + "<br>(Detections)"
+            else:
+                name = label
+            measurement_kwargs = dict(x=[], y=[], mode='markers',
+                                      name=name,
+                                      legendgroup=name,
+                                      legendrank=200, showlegend=True,
+                                      marker=dict(color="#636EFA"), hoverinfo='none')
+            merge(measurement_kwargs, kwargs)
+
+            self.fig.add_trace(go.Scatter(measurement_kwargs))  # trace for legend
+
+            measurement_kwargs.update({"showlegend": False})
+            self.fig.add_trace(go.Scatter(measurement_kwargs))  # trace for plotting
+
         if plot_clutter:
-            name = label + "<br>(Detections)"
-        else:
-            name = label
-        measurement_kwargs = dict(x=[], y=[], mode='markers',
+            # change necessary kwargs to initialise clutter trace
+            name = label + "<br>(Clutter)"
+            clutter_kwargs = dict(x=[], y=[], mode='markers',
                                   name=name,
                                   legendgroup=name,
-                                  legendrank=200, showlegend=True,
-                                  marker=dict(color="#636EFA"), hoverinfo='none')
-        merge(measurement_kwargs, kwargs)
+                                  legendrank=300, showlegend=True,
+                                  marker=dict(symbol="star-triangle-up", color='#FECB52'),
+                                  hoverinfo='none')
+            merge(clutter_kwargs, kwargs)
 
-        self.fig.add_trace(go.Scatter(measurement_kwargs))  # trace for legend
-
-        measurement_kwargs.update({"showlegend": False})
-        self.fig.add_trace(go.Scatter(measurement_kwargs))  # trace for plotting
-
-        # change necessary kwargs to initialise clutter trace
-        name = label + "<br>(Clutter)"
-        clutter_kwargs = dict(x=[], y=[], mode='markers',
-                              name=name,
-                              legendgroup=name,
-                              legendrank=300, showlegend=True,
-                              marker=dict(symbol="star-triangle-up", color='#FECB52'),
-                              hoverinfo='none')
-        merge(clutter_kwargs, kwargs)
-
-        self.fig.add_trace(go.Scatter(clutter_kwargs))  # trace for plotting clutter
+            self.fig.add_trace(go.Scatter(clutter_kwargs))  # trace for plotting clutter
 
         # add data to frames
         for frame in self.fig.frames:
