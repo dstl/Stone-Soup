@@ -106,35 +106,25 @@ sensor3d = RadarElevationBearingRange(
 )
 
 
-@pytest.fixture(scope="function")
+@pytest.fixture(scope="module")
 def plotter_class(request):
 
     plotter_class = request.param
     assert plotter_class in {Plotter, Plotterly, AnimationPlotter,
                              PolarPlotterly, AnimatedPlotterly}
 
-    figures_to_close = []
-
     def _generate_animated_plotterly(*args, **kwargs):
         return AnimatedPlotterly(*args, timesteps=timesteps, **kwargs)
 
     def _generate_plotter(*args, **kwargs):
-        _plotter = Plotter(*args, **kwargs)
-        figures_to_close.append(_plotter.fig)
-        return _plotter
-
-    def _generate_other_plotter(*args, **kwargs):
         return plotter_class(*args, **kwargs)
 
-    if plotter_class is Plotter:
+    if plotter_class in {Plotter, Plotterly, AnimationPlotter, PolarPlotterly}:
         yield _generate_plotter
     elif plotter_class is AnimatedPlotterly:
         yield _generate_animated_plotterly
     else:
-        yield _generate_other_plotter
-
-    for fig in figures_to_close:
-        plt.close(fig)
+        raise ValueError("Invalid Plotter type.")
 
 
 # Test functions
@@ -490,13 +480,14 @@ def test_plotterlys_plot_measurements_label(plotter_class, _measurements, expect
                           (all_measurements, {'Measurements\n(Detections)',
                                               'Measurements\n(Clutter)'})
                           ])
-def test_plotter_plot_measurements_label(plotter_class, _measurements, expected_labels):
-    plotter = plotter_class()
+def test_plotter_plot_measurements_label(_measurements, expected_labels):
+    plotter = Plotter()
     plotter.plot_measurements(_measurements, [0, 2])
     actual_labels = set(plotter.legend_dict.keys())
     assert actual_labels == expected_labels
 
 
-# def test_close_all_figures():
-#     plt.show()
- #   plt.close('all')
+def teardown_module():
+    """Closes all matplotlib plots.
+    Without this code plots would remain in the background for the duration of all the tests."""
+    plt.close('all')
