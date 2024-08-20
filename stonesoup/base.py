@@ -425,19 +425,20 @@ class Base(metaclass=BaseMeta):
             try:
                 name, _ = next(prop_iter)
             except StopIteration:
-                raise TypeError('too many positional arguments') from None
+                raise TypeError(f'{cls.__name__} had too many positional arguments') from None
             if name in kwargs:
-                raise TypeError(f'multiple values for argument {name!r}')
+                raise TypeError(f'{cls.__name__} received multiple values for argument {name!r}')
             setattr(self, name, arg)
 
         for name, prop in prop_iter:
             value = kwargs.pop(name, prop.default)
             if value is Property.empty:
-                raise TypeError(f'missing a required argument: {name!r}')
+                raise TypeError(f'{cls.__name__} is missing a required argument: {name!r}')
             setattr(self, name, value)
 
         if kwargs:
-            raise TypeError(f'got an unexpected keyword argument {next(iter(kwargs))!r}')
+            raise TypeError(f'{cls.__name__} got an unexpected keyword argument '
+                            f'{next(iter(kwargs))!r}')
 
     def __repr__(self):
         # Indents every line
