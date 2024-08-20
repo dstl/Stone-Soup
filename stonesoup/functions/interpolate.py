@@ -16,6 +16,7 @@ except ImportError:
         from more_itertools import pairwise
     except ImportError:
         from itertools import tee
+
         def pairwise(iterable: Iterable):
             a, b = tee(iterable)
             next(b, None)
