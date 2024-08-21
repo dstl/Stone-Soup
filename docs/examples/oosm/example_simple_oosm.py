@@ -11,17 +11,17 @@ Dealing with Out-Of-Sequence Measurements with a fixed lag storage
 # In real world tracking situations, out of sequence measurements (OOSM) are a frequent
 # issue and it is important to have tools to minimise their impact in our tracking capabilities.
 #
-# In literature there are sophisticated solutions to adress this challenge. In a series of examples,
+# In literature there are sophisticated solutions to address this challenge. In a series of examples,
 # we aim to provide a toolkit of approaches, better than just choosing to ignore such measurements.
 #
 # In this example we focus on the simpler approach, also known as algorithm A [#]_ (also in [#]_ and [#]_),
 # where we create a "fixed lag" storage (called :math:`\ell`-storage) of measurements and we go over the
 # detections and place the OOSM in the correct order chain of measurements.
 #
-# We employ a buffer of size :math:`\ell` where the measurements are temporarely stored before being processed
+# We employ a buffer of size :math:`\ell` where the measurements are temporarily stored before being processed
 # by the tracker. This buffer collects measurements until it is filled, checks the timestamps and
 # re-order them accordingly and releases the data with the smallest timestamp.
-# As a new measurement arrives, it is stored in the buffer and the same precedure is applied.
+# As a new measurement arrives, it is stored in the buffer and the same procedure is applied.
 #
 # The issue with this approach is that the :math:`\ell`-storage of measurements can grow
 # quickly if we are dealing with large number of sensors or targets, therefore computationally expensive.
@@ -283,7 +283,7 @@ plotter.fig
 #        problem in tracking, Proceedings of the 2002 IEEE Aerospace
 #        Conference.
 # .. [#] Y. Bar-Shalom, 2002, Update with out-of-sequence measurements in tracking:
-#        exact solution, IEEE Transactons on Aerospace and Electronic Systems 38.
+#        exact solution, IEEE Transactions on Aerospace and Electronic Systems 38.
 # .. [#] S. R. Maskell, R. G. Everitt, R. Wright, M. Briers, 2005,
 #        Multi-target out-of-sequence data association: Tracking using
 #        graphical models, Information Fusion.

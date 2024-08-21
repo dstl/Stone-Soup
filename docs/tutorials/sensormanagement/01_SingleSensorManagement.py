@@ -86,7 +86,7 @@
 #
 # The performance of the two sensor management methods explored in this tutorial can be assessed
 # using metrics available from the Stone Soup framework. The metrics used to assess the
-# performance of the different methods are the OPSA metric [#]_, SIAP metrics [#]_ and an
+# performance of the different methods are the OSPA metric [#]_, SIAP metrics [#]_ and an
 # uncertainty metric. Demonstrations of the OSPA and SIAP metrics can be found in the Metrics
 # Example.
 #

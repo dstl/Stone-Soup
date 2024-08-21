@@ -406,7 +406,7 @@ class Plotter(_Plotter):
                         w, v = np.linalg.eig(HH @ state.covar @ HH.T)
                         if np.iscomplexobj(w) or np.iscomplexobj(v):
                             warnings.warn("Can not plot uncertainty for all states due to complex "
-                                          "eignevalues or eigenvectors", UserWarning)
+                                          "eigenvalues or eigenvectors", UserWarning)
                             continue
                         max_ind = np.argmax(w)
                         min_ind = np.argmin(w)
@@ -1192,8 +1192,8 @@ class Plotterly(_Plotter):
                 name=name, legendgroup=name, legendrank=210)
 
             if self.dimension == 3:  # update - star-triangle-up not in 3d plotly
-                measurement_kwargs.update(dict(marker=dict(size=4, symbol="diamond",
-                                                           color='#FECB52')))
+                clutter_kwargs.update(dict(marker=dict(size=4, symbol="diamond",
+                                                       color='#FECB52')))
 
             merge(clutter_kwargs, kwargs)
             if clutter_kwargs['legendgroup'] not in {trace.legendgroup

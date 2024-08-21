@@ -42,7 +42,7 @@ from stonesoup.types.groundtruth import GroundTruthPath, GroundTruthState
 
 from typing import Sequence, Collection
 
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from dateutil.parser import parse
 
 
@@ -84,7 +84,8 @@ class _DataFrameReader(Reader):
             time_field_value = datetime.strptime(row[self.time_field], self.time_field_format)
         elif self.timestamp:
             fractional, timestamp = modf(float(row[self.time_field]))
-            time_field_value = datetime.utcfromtimestamp(int(timestamp))
+            time_field_value = datetime.fromtimestamp(
+                int(timestamp), timezone.utc).replace(tzinfo=None)
             time_field_value += timedelta(microseconds=fractional * 1E6)
         else:
             time_field_value = row[self.time_field]
@@ -110,7 +111,7 @@ class _DataFrameReader(Reader):
 class DataFrameGroundTruthReader(GroundTruthReader, _DataFrameReader):
     """A custom reader for pandas DataFrames containing truth data.
 
-    The DataFrame must have colums containing all fields needed to generate the
+    The DataFrame must have columns containing all fields needed to generate the
     ground truth state. Those states with the same ID will be put into
     a :class:`~.GroundTruthPath` in sequence, and all paths that are updated at the same time
     are yielded together, and such assumes file is in time order.
@@ -241,7 +242,7 @@ ground_truth_reader.dataframe.head(3)
 # that can read in DataFrames containing detections through subclassing from Stone Soup's
 # `DetectionReader` class, along with our custom `_DataFrameReader` class above.
 # Again, this closely resembles the existing `CSVDetectionReader` class within the Stone Soup
-# library, except we include a instance attribute 'dataframe', and modify our detections_gen
+# library, except we include an instance attribute 'dataframe', and modify our detections_gen
 # function to work with dataframes rather than .csv files. This can be seen below:
 
 class DataFrameDetectionReader(DetectionReader, _DataFrameReader):

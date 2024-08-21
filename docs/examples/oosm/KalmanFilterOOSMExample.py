@@ -203,7 +203,7 @@ prior3 = deepcopy(prior1)
 #
 # Tracker 2 will be lagging behind the timesteps, at :math:`t_{\text{now}}+t_{\text{delay}}`, in this way
 # the tracker will wait for the delayed detections to arrive and will consider them in the
-# correct order and correct timestep. However the tracks will be behind the ground-truth track.
+# correct order and correct timestep. However, the tracks will be behind the ground-truth track.
 #
 # The final tracker (3) will ignore all detections from delayed sensor.
 #

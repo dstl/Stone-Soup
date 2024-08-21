@@ -9,7 +9,7 @@ Accumulated States Densities - Out-of-Sequence measurements
 # %%
 # Smoothing a filtered trajectory is an important task in live systems. Using
 # Rauch–Tung–Striebel retrodiction after the normal filtering has a great effect on
-# the filtered trajectories but it is not optimal because one has to calculate the
+# the filtered trajectories, but it is not optimal because one has to calculate the
 # retrodiction in an own step. In this point the Accumulated-State-Densities (ASDs) can help.
 # In the ASDs the retrodiction is calculated in the prediction and update step.
 # We use a multistate over time which can be pruned for better performance. Another advantage
@@ -64,7 +64,7 @@ plotter.plot_measurements(measurements, [0, 1], LinearGaussian(2, (0, 1), np.dia
 plotter.fig
 
 # %%
-# Now we have to setup a transition model for the prediction and the :class:`~.ASDKalmanPredictor`.
+# Now we have to set up a transition model for the prediction and the :class:`~.ASDKalmanPredictor`.
 
 from stonesoup.models.transition.linear import \
     CombinedLinearGaussianTransitionModel, ConstantVelocity
@@ -176,7 +176,7 @@ for i in range(0, len(measurements)):
 animation.ArtistAnimation(ani_plotter.fig, frames)
 
 # %%
-# For comparision, the plot below shows a approximately equivalent track if
+# For comparison, the plot below shows an approximately equivalent track if
 # at each step the prediction was stored, and out of sequence measurements were ignored.
 
 # sphinx_gallery_thumbnail_number = 4

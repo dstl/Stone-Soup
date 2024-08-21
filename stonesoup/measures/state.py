@@ -128,7 +128,7 @@ class EuclideanWeighted(Measure):
         Returns
         -------
         dist : float
-            Weighted euclidean distance between two input
+            Weighted Euclidean distance between two input
             :class:`~.State` objects
 
         """
@@ -485,10 +485,10 @@ class KLDivergence(Measure):
                 inv_state2_covar = np.linalg.inv(state2.covar)
                 trace_term = np.trace(inv_state2_covar@state1.covar)
 
-                delta = state2.state_vector - state1.state_vector
-                mahalanobis_term = delta.T @ inv_state2_covar @ delta
+                delta = (state2.state_vector - state1.state_vector).ravel()
+                mahalanobis_term = np.dot(np.dot(delta, inv_state2_covar), delta)
 
-                kld = float(0.5*(log_term - n_dims + trace_term + mahalanobis_term))
+                kld = 0.5*(log_term - n_dims + trace_term + mahalanobis_term)
 
             else:
                 raise ValueError(f'The state dimensions are not compatible '
