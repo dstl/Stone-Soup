@@ -3,18 +3,31 @@ import datetime
 import pytest
 import numpy as np
 
-from ..probability import PDA, JPDA
+from ..probability import PDA, JPDA, JPDAwithLBP
 from ...types.detection import Detection, MissedDetection
 from ...types.state import GaussianState
 from ...types.track import Track
+try:
+    from ...plugins.pyehm import JPDAWithEHM, JPDAWithEHM2
+except ImportError:
+    JPDAWithEHM = None
+    JPDAWithEHM2 = None
 
 
-@pytest.fixture(params=[PDA, JPDA])
+@pytest.fixture(
+    params=[
+        PDA,
+        JPDA,
+        JPDAwithLBP,
+        pytest.param(
+            JPDAWithEHM,
+            marks=pytest.mark.skipif(JPDAWithEHM is None, reason="pyehm required")),
+        pytest.param(
+            JPDAWithEHM2,
+            marks=pytest.mark.skipif(JPDAWithEHM2 is None, reason="pyehm required")),
+    ])
 def associator(request, probability_hypothesiser):
-    if request.param is PDA:
-        return request.param(probability_hypothesiser)
-    elif request.param is JPDA:
-        return request.param(probability_hypothesiser)
+    return request.param(probability_hypothesiser)
 
 
 def test_probability(associator):

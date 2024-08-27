@@ -139,10 +139,20 @@ class Probability(Real):
         return Probability(log_l + log1p(-exp_diff),
                            log_value=True)
 
-    def __mul__(self, other):
+    def __imul__(self, other):
         try:
             return Probability(self.log_value + self._log(other),
                                log_value=True)
+        except ValueError:
+            return float(self) * other
+
+    def __mul__(self, other):
+        try:
+            if isinstance(other, Probability):
+                return Probability(self.log_value + self._log(other),
+                                   log_value=True)
+            else:
+                return exp(self.log_value + self._log(other))
         except ValueError:
             return float(self) * other
 

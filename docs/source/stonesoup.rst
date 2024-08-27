@@ -26,6 +26,7 @@ Enabling Components
     stonesoup.detector
     stonesoup.feeder
     stonesoup.metricgenerator
+    stonesoup.movable
     stonesoup.platform
     stonesoup.reader
     stonesoup.sensor
@@ -41,6 +42,7 @@ Algorithm Components
     stonesoup.dataassociator
     stonesoup.deleter
     stonesoup.gater
+    stonesoup.kernel
     stonesoup.hypothesiser
     stonesoup.initiator
     stonesoup.mixturereducer

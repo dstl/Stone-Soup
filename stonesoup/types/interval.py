@@ -175,6 +175,8 @@ class Intervals(Type):
         elif not isinstance(self.intervals, MutableSequence):
             if isinstance(self.intervals, (Interval, Tuple)):
                 self.intervals = [self.intervals]
+            elif isinstance(self.intervals, Intervals):
+                self.intervals = self.intervals.intervals
             else:
                 raise TypeError("Must contain Interval types")
         elif len(self.intervals) == 2 and all(isinstance(elem, Real) for elem in self.intervals):
@@ -216,7 +218,7 @@ class Intervals(Type):
 
     @staticmethod
     def get_merged_intervals(intervals):
-        """Merge all intervals. Ie. combine any intervals that overlap, returning a new list of
+        """Merge all intervals. I.e., combine any intervals that overlap, returning a new list of
         disjoint intervals."""
 
         new_intervals = copy.copy(intervals)

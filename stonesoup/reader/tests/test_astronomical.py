@@ -3,9 +3,11 @@ from datetime import datetime
 
 import pytest
 import numpy as np
-from astropy.io import fits
 
-from ..astronomical import FITSReader, TLEFileReader
+pytest.importorskip("astropy")
+from astropy.io import fits  # noqa: E402
+
+from ..astronomical import FITSReader, TLEFileReader  # noqa: E402
 
 
 def test_fits(tmpdir):

@@ -62,7 +62,8 @@ class InformationKalmanUpdater(KalmanUpdater):
         return inv_measurement_covar
 
     @lru_cache()
-    def predict_measurement(self, predicted_state, measurement_model=None, **kwargs):
+    def predict_measurement(self, predicted_state, measurement_model=None, measurement_noise=True,
+                            **kwargs):
         r"""There's no direct analogue of a predicted measurement in the information form. This
         method is therefore provided to return the predicted measurement as would the standard
         Kalman updater. This is mainly for compatibility as it's not anticipated that it would
@@ -70,11 +71,14 @@ class InformationKalmanUpdater(KalmanUpdater):
 
         Parameters
         ----------
-        predicted_information_state : :class:`~.State`
+        predicted_state : :class:`~.State`
             The predicted state in information form :math:`\mathbf{y}_{k|k-1}`
         measurement_model : :class:`~.MeasurementModel`
             The measurement model. If omitted, the model in the updater object
             is used
+        measurement_noise : bool
+            Whether to include measurement noise :math:`R` with innovation covariance.
+            Default `True`
         **kwargs : various
             These are passed to :meth:`~.MeasurementModel.matrix()`
 
@@ -96,7 +100,9 @@ class InformationKalmanUpdater(KalmanUpdater):
         predicted_state_mean = predicted_covariance @ predicted_state.state_vector
 
         predicted_measurement = hh @ predicted_state_mean
-        innovation_covariance = hh @ predicted_covariance @ hh.T + measurement_model.covar()
+        innovation_covariance = hh @ predicted_covariance @ hh.T
+        if measurement_noise:
+            innovation_covariance += measurement_model.covar(**kwargs)
 
         return GaussianMeasurementPrediction(predicted_measurement, innovation_covariance,
                                              predicted_state.timestamp,

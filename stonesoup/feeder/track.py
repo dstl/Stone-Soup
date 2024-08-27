@@ -22,6 +22,7 @@ class Tracks2GaussianDetectionFeeder(DetectionFeeder):
         for time, tracks in self.reader:
             detections = set()
             for track in tracks:
+
                 if isinstance(track, Track):
                     dim = len(track.state.state_vector)
                     metadata = track.metadata.copy()
@@ -29,6 +30,8 @@ class Tracks2GaussianDetectionFeeder(DetectionFeeder):
                     detections.add(
                         GaussianDetection.from_state(
                             track.state,
+                            state_vector=track.mean,
+                            covar=track.covar,
                             measurement_model=LinearGaussian(
                                 dim, list(range(dim)), np.asarray(track.covar)),
                             metadata=metadata,

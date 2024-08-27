@@ -8,6 +8,7 @@ from ..types.hypothesis import (
 from ..types.multihypothesis import MultipleHypothesis
 from ..types.numeric import Probability
 import itertools
+import numpy as np
 
 
 class PDA(DataAssociator):
@@ -172,3 +173,217 @@ class JPDA(DataAssociator):
                 measurements.add(measurement)
 
         return True
+
+
+class JPDAwithLBP(JPDA):
+    """ Joint Probabilistic Data Association with Loopy Belief Propagation
+
+    This is a faster alternative of the standard :class:`~.JPDA` algorithm, which makes use of
+    Loopy Belief Propagation (LBP) to efficiently approximately compute the marginal association
+    probabilities of tracks to measurements. See Williams and Lau (2014) for further details.
+
+    Reference
+    ----------
+    Jason L. Williams and Rosalyn A. Lau, Approximate evaluation of marginal association
+    probabilities with belief propagation, IEEE Transactions on Aerospace and Electronic Systems,
+    vol 50(4), pp. 2942-2959, 2014.
+    """
+
+    def associate(self, tracks, detections, timestamp, **kwargs):
+        """Associate tracks and detections
+
+        Parameters
+        ----------
+        tracks : set of :class:`stonesoup.types.track.Track`
+            Tracks which detections will be associated to.
+        detections : set of :class:`stonesoup.types.detection.Detection`
+            Detections to be associated to tracks.
+        timestamp : :class:`datetime.datetime`
+            Timestamp to be used for missed detections and to predict to.
+
+        Returns
+        -------
+        : mapping of :class:`stonesoup.types.track.Track` : :class:`stonesoup.types.hypothesis.Hypothesis`
+            Mapping of track to Hypothesis
+        """  # noqa: E501
+
+        # Calculate MultipleHypothesis for each Track over all available Detections
+        hypotheses = {
+            track: self.hypothesiser.hypothesise(track, detections, timestamp)
+            for track in tracks}
+
+        if not hypotheses or not detections:  # No tracks or no detections
+            return hypotheses
+        else:
+            return self._compute_multi_hypotheses(tracks, detections, hypotheses, timestamp)
+
+    @staticmethod
+    def _calc_likelihood_matrix(tracks, detections, hypotheses):
+        """ Compute the likelihood matrix (i.e. single target association weights)
+
+        Parameters
+        ----------
+        tracks: list of :class:`stonesoup.types.track.Track`
+            Current tracked objects
+        detections : list of :class:`stonesoup.types.detection.Detection`
+            Retrieved measurements
+        hypotheses: dict
+            Key value pairs of tracks with associated detections
+
+        Returns
+        -------
+        :class:`numpy.ndarray`
+            An indicator matrix of shape (num_tracks, num_detections + 1) indicating the possible
+            (aka. valid) associations between tracks and detections. The first column corresponds
+            to the null hypothesis (hence contains all ones).
+        :class:`numpy.ndarray`
+            A matrix of shape (num_tracks, num_detections + 1) containing the unnormalised
+            likelihoods for all combinations of tracks and detections. The first column corresponds
+            to the null hypothesis.
+        """
+
+        # Construct validation and likelihood matrices
+        # Both matrices have shape (num_tracks, num_detections + 1), where the first column
+        # corresponds to the null hypothesis.
+        num_tracks, num_detections = len(tracks), len(detections)
+        likelihood_matrix = np.zeros((num_tracks, num_detections + 1))
+        for i, track in enumerate(tracks):
+            for hyp in hypotheses[track]:
+                if not hyp:
+                    likelihood_matrix[i, 0] = hyp.weight
+                else:
+                    j = next(d_i for d_i, detection in enumerate(detections)
+                             if hyp.measurement is detection)
+                    likelihood_matrix[i, j + 1] = hyp.weight
+
+        # change the normalisation of the likelihood matrix to have the no measurement
+        # association hypothesis normalised to unity
+        likelihood_matrix /= likelihood_matrix[:, [0]]
+
+        return likelihood_matrix.astype(float)
+
+    @staticmethod
+    def _loopy_belief_propagation(likelihood_matrix, n_iterations, delta):
+        """
+        Perform loopy belief propagation (Williams and Lau, 2014) to determine the approximate
+        marginal association probabilities (of tracks to measurements). This requires:
+        1. likelihood_matrix = single target association weights
+        2. n_iterations = number of iterations between convergence checks
+        3. delta = deviation tolerance(of approximate weights from true weights)
+        """
+        # number of tracks
+        num_tracks = likelihood_matrix.shape[0]
+
+        # number of measurements/detections
+        num_measurements = likelihood_matrix.shape[1] - 1
+
+        # initialise
+        iteration: int = 0
+        alpha: float = 1.0
+        d: float = 0.0
+
+        # allocate memory
+        nu = np.ones((num_tracks, num_measurements))
+        nu_tilde = np.zeros((num_tracks, num_measurements))
+        assoc_prob_matrix = np.zeros((num_tracks, num_measurements + 1))
+
+        # determine W_star
+        w_star: float = np.max(np.sum(likelihood_matrix[:, 1:], axis=1))
+
+        # loopy belief propagation
+        while iteration == 0 or (alpha * d) / (1 - alpha) >= 0.5 * np.log10(1 + delta):
+
+            for k in range(1, n_iterations + 1):
+
+                # increment the number of iterations
+                iteration += 1
+
+                # calculate L-R message
+                val = likelihood_matrix[:, 1:] * nu
+                # Minus val to remove j = j'
+                s = 1 + np.sum(val, axis=1, keepdims=True) - val
+                mu = likelihood_matrix[:, 1:] / s
+
+                # save values for convergence check
+                if k == n_iterations:
+                    nu_tilde = nu.copy()
+
+                # calculate R-L messages
+                nu = 1 / (1 + np.sum(mu, axis=0, keepdims=True) - mu)
+
+            # check for convergence
+            d = np.max(np.abs(np.log10(nu / nu_tilde)))
+
+            # determine alpha
+            if d > 0:
+                alpha = np.log10((1 + w_star*d) / (1 + w_star))
+                alpha /= np.log10(d)
+            else:
+                alpha = 0.0
+
+            # if w_star has a very large value, alpha = 1 which causes division by zero in the
+            # convergence check therefore, set alpha to be a nominal value just short of unity
+            if alpha == 1:
+                alpha = (1 - 1e-10)
+
+        # calculate marginal probabilities (beliefs)
+        s = 1 + np.sum(likelihood_matrix[:, 1:] * nu, axis=1, keepdims=True)
+        assoc_prob_matrix[:, :1] = 1 / s
+        assoc_prob_matrix[:, 1:] = (likelihood_matrix[:, 1:] * nu) / s
+
+        # return the matrix of marginal association probabilities
+        return assoc_prob_matrix.astype(float)
+
+    @classmethod
+    def _compute_multi_hypotheses(cls, tracks, detections, hypotheses, time):
+
+        # Tracks and detections must be in a list, so we can keep track of their order
+        track_list = list(tracks)
+        detection_list = list(detections)
+
+        # calculate the single target association weights
+        likelihood_matrix = cls._calc_likelihood_matrix(track_list, detection_list, hypotheses)
+
+        # Run Loopy Belief Propagation to determine the marginal association probability matrix
+        n_iterations: int = 1
+        delta: float = 0.001
+        assoc_prob_matrix = cls._loopy_belief_propagation(likelihood_matrix, n_iterations, delta)
+
+        # Calculate MultiMeasurementHypothesis for each Track over all
+        # available Detections with probabilities drawn from the association matrix
+        new_hypotheses = dict()
+
+        for i, track in enumerate(track_list):
+
+            single_measurement_hypotheses = list()
+
+            # Null measurement hypothesis
+            null_hypothesis = next((hyp for hyp in hypotheses[track] if not hyp), None)
+            prob_misdetect = Probability(assoc_prob_matrix[i, 0])
+            single_measurement_hypotheses.append(
+                SingleProbabilityHypothesis(
+                    null_hypothesis.prediction,
+                    MissedDetection(timestamp=time),
+                    measurement_prediction=null_hypothesis.measurement_prediction,
+                    probability=prob_misdetect))
+
+            # True hypotheses
+            for hypothesis in hypotheses[track]:
+                if not hypothesis:
+                    continue
+
+                # Get the detection index
+                j = next(d_i + 1 for d_i, detection in enumerate(detection_list)
+                         if hypothesis.measurement is detection)
+
+                pro_detect_assoc = Probability(assoc_prob_matrix[i, j])
+                single_measurement_hypotheses.append(
+                    SingleProbabilityHypothesis(
+                        hypothesis.prediction,
+                        hypothesis.measurement,
+                        measurement_prediction=hypothesis.measurement_prediction,
+                        probability=pro_detect_assoc))
+
+            new_hypotheses[track] = MultipleHypothesis(single_measurement_hypotheses, True, 1)
+
+        return new_hypotheses

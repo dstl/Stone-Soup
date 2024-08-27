@@ -64,8 +64,8 @@ def params():
                     np.random.uniform(-2, 2, 1)]*n_spacial_dimensions
 
     for i in range(number_of_targets):
-        number_of_segments = int(np.random.choice(range(1, max_segments), 1))
-        truthlet0_length = np.random.choice(range(max_track_start), 1)
+        number_of_segments = np.random.choice(range(1, max_segments))
+        truthlet0_length = np.random.choice(range(max_track_start))
         truthlet_lengths = np.random.choice(range(min_segment_length, max_segment_length),
                                             number_of_segments)
         disjoint_lengths = np.random.choice(range(min_disjoint_length, max_disjoint_length),
@@ -155,7 +155,7 @@ def test__merge_forward_and_backward():
     x_forward = {'a': 1, 'b': 2, 'c': 4}
     x_backward = {'d': 1, 'e': 2, 'f': 3}
     x = TrackStitcher._merge_forward_and_backward(x_forward, x_backward)
-    assert type(x) == collections.defaultdict
+    assert isinstance(x, collections.defaultdict)
     x_forward = {'a': {'f_id': 'f_val'}}
     x_backward = {'a': {None: 'b_val'}}
     with pytest.raises(RuntimeError):

@@ -1,3 +1,4 @@
+import sys
 from typing import List, Any
 
 import pytest
@@ -102,7 +103,12 @@ def test_init_new(base):
 
 
 def test_non_base_property():
-    with pytest.raises(RuntimeError):
+    if sys.version_info >= (3, 12):
+        error_type = AttributeError
+    else:
+        error_type = RuntimeError
+
+    with pytest.raises(error_type):
         class _TestNonBase:
             property_a = Property(int)
 

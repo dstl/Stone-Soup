@@ -52,7 +52,7 @@
 #       \tilde{K}_k &= P_{k|k-1} \tilde{H}_{k}^T \tilde{S}_k^{-1}\\
 #       \tilde{S}_k &= \tilde{H}_{k} P_{k|k-1} \tilde{H}_{k}^T + R_{k}
 #
-# (we omit the control term in this analysis but it also can be incorporated as a non-linear
+# (we omit the control term in this analysis, but it also can be incorporated as a non-linear
 # approximation of the same form.)
 #
 # Stone Soup implements the EKF
@@ -210,7 +210,7 @@ plotter.fig
 # both the posterior state mean and covariance. In instances where we have noisy transition, or
 # perhaps unreliable measurement, this could lead to a sub-optimal performance or even divergence
 # of the filter. In the next tutorial, we see how the **unscented Kalman filter** can begin to
-# addresses these issues.
+# address these issues.
 
 # %%
 # References

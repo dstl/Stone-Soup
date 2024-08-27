@@ -12,8 +12,22 @@ Sensor Managers
     :inherited-members:
 
 
+Tree Search Managers
+--------------------
+
+.. automodule:: stonesoup.sensormanager.tree_search
+    :show-inheritance:
+    :inherited-members:
+
+
 Reward Functions
 ----------------
 .. automodule:: stonesoup.sensormanager.reward
     :show-inheritance:
     :special-members:
+
+
+Actionables
+-----------
+.. automodule:: stonesoup.sensormanager.action
+    :show-inheritance:

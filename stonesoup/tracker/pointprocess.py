@@ -1,16 +1,19 @@
-from .base import Tracker
+import datetime
+from typing import Tuple, Set
+
+from .base import Tracker, _TrackerMixInNext
 from ..base import Property
-from ..reader import DetectionReader
-from ..types.state import TaggedWeightedGaussianState
-from ..types.mixture import GaussianMixture
-from ..types.numeric import Probability
-from ..types.track import Track
-from ..updater import Updater
 from ..hypothesiser.gaussianmixture import GaussianMixtureHypothesiser
 from ..mixturereducer.gaussianmixture import GaussianMixtureReducer
+from ..reader import DetectionReader
+from ..types.mixture import GaussianMixture
+from ..types.numeric import Probability
+from ..types.state import TaggedWeightedGaussianState
+from ..types.track import Track
+from ..updater import Updater
 
 
-class PointProcessMultiTargetTracker(Tracker):
+class PointProcessMultiTargetTracker(_TrackerMixInNext, Tracker):
     """
     Base class for Gaussian Mixture (GM) style implementations of
     point process derived filters
@@ -40,15 +43,11 @@ class PointProcessMultiTargetTracker(Tracker):
         self.gaussian_mixture = GaussianMixture()
 
     @property
-    def tracks(self):
+    def tracks(self) -> Set[Track]:
         tracks = set()
         for track in self.target_tracks.values():
             tracks.add(track)
         return tracks
-
-    def __iter__(self):
-        self.detector_iter = iter(self.detector)
-        return super().__iter__()
 
     def update_tracks(self):
         """
@@ -77,7 +76,7 @@ class PointProcessMultiTargetTracker(Tracker):
                             self.extraction_threshold:
                         self.target_tracks[tag] = Track([component], id=tag)
 
-    def __next__(self):
+    def __next__(self) -> Tuple[datetime.datetime, Set[Track]]:
         time, detections = next(self.detector_iter)
         # Add birth component
         self.birth_component.timestamp = time

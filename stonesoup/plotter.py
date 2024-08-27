@@ -1,14 +1,17 @@
 import warnings
 from abc import ABC, abstractmethod
 from datetime import datetime, timedelta
+from enum import IntEnum
 from itertools import chain
 from typing import Collection, Iterable, Union, List, Optional, Tuple, Dict
+
 import numpy as np
 from matplotlib import animation as animation
 from matplotlib import pyplot as plt
 from matplotlib.legend_handler import HandlerPatch
 from matplotlib.lines import Line2D
 from matplotlib.patches import Ellipse
+from mergedeep import merge
 from scipy.integrate import quad
 from scipy.optimize import brentq
 from scipy.stats import kde
@@ -21,17 +24,14 @@ try:
 except ImportError:
     go = None
 
+from .base import Base, Property
+from .models.base import LinearModel, Model
 from .types import detection
-from .types.groundtruth import GroundTruthPath
 from .types.array import StateVector
+from .types.groundtruth import GroundTruthPath
+from .types.metric import SingleTimeMetric
 from .types.state import State, StateMutableSequence
 from .types.update import Update
-
-from .base import Base, Property
-
-from .models.base import LinearModel, Model
-
-from enum import IntEnum
 
 
 class Dimension(IntEnum):
@@ -45,6 +45,7 @@ class Dimension(IntEnum):
     THREE: int
         Specifies 3D plotting for Plotter object
     """
+    ONE = 1  # 1D plotting mode (plot state over time in Plotterly)
     TWO = 2  # 2D plotting mode (original plotter.py functionality)
     THREE = 3  # 3D plotting mode
 
@@ -213,7 +214,11 @@ class Plotter(_Plotter):
             else:
                 raise NotImplementedError('Unsupported dimension type for truth plotting')
         # Generate legend items
-        truths_handle = Line2D([], [], linestyle=truths_kwargs['linestyle'], color='black')
+        if "color" in kwargs:
+            colour = kwargs["color"]
+        else:
+            colour = "black"
+        truths_handle = Line2D([], [], linestyle=truths_kwargs['linestyle'], color=colour)
         self.legend_dict[truths_label] = truths_handle
         # Generate legend
         artists.append(self.ax.legend(handles=self.legend_dict.values(),
@@ -283,9 +288,11 @@ class Plotter(_Plotter):
             self.legend_dict[measurements_label] = measurements_handle
 
         if plot_clutter:
+            clutter_kwargs = kwargs.copy()
+            clutter_kwargs.update(dict(marker='2'))
             clutter_array = np.array(list(plot_clutter.values()))
-            artists.append(self.ax.scatter(*clutter_array.T, color='y', marker='2'))
-            clutter_handle = Line2D([], [], linestyle='', marker='2', color='y')
+            artists.append(self.ax.scatter(*clutter_array.T, **clutter_kwargs))
+            clutter_handle = Line2D([], [], linestyle='', **clutter_kwargs)
             clutter_label = "Clutter"
 
             # Generate legend items for clutter
@@ -399,7 +406,7 @@ class Plotter(_Plotter):
                         w, v = np.linalg.eig(HH @ state.covar @ HH.T)
                         if np.iscomplexobj(w) or np.iscomplexobj(v):
                             warnings.warn("Can not plot uncertainty for all states due to complex "
-                                          "eignevalues or eigenvectors", UserWarning)
+                                          "eigenvalues or eigenvectors", UserWarning)
                             continue
                         max_ind = np.argmax(w)
                         min_ind = np.argmin(w)
@@ -665,20 +672,7 @@ class MetricPlotter(ABC):
     def __init__(self):
         self.fig = None
         self.axes = None
-        self.plottable_metrics = ["OSPA distances",
-                                  "GOSPA Metrics",
-                                  "SIAP Completeness at times",
-                                  "SIAP Ambiguity at times",
-                                  "SIAP Spuriousness at times",
-                                  "SIAP Position Accuracy at times",
-                                  "SIAP Velocity Accuracy at times",
-                                  "SIAP ID Completeness at times",
-                                  "SIAP ID Correctness at times",
-                                  "SIAP ID Ambiguity at times",
-                                  "PCRB Metrics",
-                                  "Sum of Covariance Norms Metric",
-                                  "Mean of Covariance Norms Metric"
-                                  ]
+        self.plottable_metrics = list()
 
     def plot_metrics(self, metrics, generator_names=None, metric_names=None,
                      combine_plots=True, **kwargs):
@@ -710,6 +704,12 @@ class MetricPlotter(ABC):
         : :class:`matplotlib.pyplot.figure`
             Figure containing subplots displaying all plottable metrics.
         """
+        for metric_dict in metrics.values():
+            for metric_name, metric in metric_dict.items():
+                if isinstance(metric.value, List) \
+                        and all(isinstance(x, SingleTimeMetric) for x in metric.value):
+                    self.plottable_metrics.append(metric_name)
+
         metrics_kwargs = dict(linestyle="-")
         metrics_kwargs.update(kwargs)
 
@@ -967,41 +967,50 @@ class Plotterly(_Plotter):
     A plotting class which is used to simplify the process of plotting ground truths,
     measurements, clutter and tracks. Tracks can be plotted with uncertainty ellipses or
     particles if required. Legends are automatically generated with each plot.
-    Three dimensional plots can be created using the optional dimension parameter.
+    Three-dimensional plots can be created using the optional dimension parameter.
 
     Parameters
     ----------
     dimension: enum \'Dimension\'
-        Optional parameter to specify 2D or 3D plotting. Currently only 2D plotting is
-        supported.
+        Optional parameter to specify 1D, 2D, or 3D plotting.
+    axis_labels: list
+        Optional parameter to specify the axis labels for non-xy dimensions. Default None, i.e.,
+        "x" and "y".
     \\*\\*kwargs: dict
-        Additional arguments to be passed to Figure.
+        Additional arguments to be passed to the Plotly.graph_objects Figure.
 
     Attributes
     ----------
     fig: plotly.graph_objects.Figure
-        Generated figure for graphs to be plotted on
+        Generated figure to display graphs.
     """
-    def __init__(self, dimension=Dimension.TWO, **kwargs):
+    def __init__(self, dimension=Dimension.TWO, axis_labels=None, **kwargs):
+        if dimension != Dimension.ONE:
+            if not axis_labels:
+                axis_labels = ["x", "y"]
+        else:
+            if axis_labels:
+                if len(axis_labels) == 1:
+                    axis_labels = ["Time", axis_labels[0]]
+            else:
+                axis_labels = ["Time", "x"]
         if go is None:
             raise RuntimeError("Usage of Plotterly plotter requires installation of `plotly`")
-        if isinstance(dimension, type(Dimension.TWO)):
-            self.dimension = dimension
-        elif isinstance(dimension, int):
-            self.dimension = Dimension(dimension)
-        else:
-            raise TypeError("%s is an unsupported type for \'dimension\'; "
-                            "expected type %s" % (type(dimension), type(Dimension.TWO)))
-        if self.dimension != dimension.TWO:
-            raise TypeError("Only 2D plotting currently supported")
+
+        self.dimension = Dimension(dimension)  # allows 1, 2, 3,
+        # Dimension(1), Dimension(2) or Dimension(3)
 
         from plotly import colors
         layout_kwargs = dict(
-            xaxis=dict(title=dict(text="<i>x</i>")),
-            yaxis=dict(title=dict(text="<i>y</i>"), scaleanchor="x", scaleratio=1),
+            xaxis_title=axis_labels[0],
+            yaxis_title=axis_labels[1],
             colorway=colors.qualitative.Plotly,  # Needed to match colours later.
         )
-        layout_kwargs.update(kwargs)
+
+        if self.dimension == 3:
+            layout_kwargs.update(dict(scene_aspectmode='data'))  # auto shapes fig to fit data well
+
+        merge(layout_kwargs, kwargs)
 
         # Generate plot axes
         self.fig = go.Figure(layout=layout_kwargs)
@@ -1015,6 +1024,12 @@ class Plotterly(_Plotter):
         text.extend([f"{key}: {value}" for key, value in getattr(state, 'metadata', {}).items()])
 
         return "<br>".join((str(t) for t in text))
+
+    def _check_mapping(self, mapping):
+        if len(mapping) == 0:
+            raise ValueError("No indices provided in mapping.")
+        elif len(mapping) != self.dimension:
+            raise TypeError("Plotter dimension is not same as the mapping dimension.")
 
     def plot_ground_truths(self, truths, mapping, truths_label="Ground Truth", **kwargs):
         """Plots ground truth(s)
@@ -1042,17 +1057,18 @@ class Plotterly(_Plotter):
         if not isinstance(truths, Collection) or isinstance(truths, StateMutableSequence):
             truths = {truths}
 
+        self._check_mapping(mapping)  # ensure mapping is compatible with plotter dimension
+
         truths_kwargs = dict(
             mode="lines", line=dict(dash="dash"), legendgroup=truths_label, legendrank=100,
             name=truths_label)
-        truths_kwargs.update(kwargs)
+
+        if self.dimension == 3:  # make ground truth line thicker so easier to see in 3d plot
+            truths_kwargs.update(dict(line=dict(width=8, dash="longdashdot")))
+
+        merge(truths_kwargs, kwargs)
         add_legend = truths_kwargs['legendgroup'] not in {trace.legendgroup
                                                           for trace in self.fig.data}
-
-        if len(mapping) == 0:
-            raise ValueError("No indices in mapping to reference to")
-        elif len(mapping) > 2:
-            warnings.warn("Mapping has length over 2. Additional mapping indices are ignored")
 
         for truth in truths:
             scatter_kwargs = truths_kwargs.copy()
@@ -1061,16 +1077,26 @@ class Plotterly(_Plotter):
                 add_legend = False
             else:
                 scatter_kwargs['showlegend'] = False
-            if len(mapping) == 1:
+
+            if self.dimension == 1:
                 self.fig.add_scatter(
                     x=[state.timestamp for state in truth],
                     y=[state.state_vector[mapping[0]] for state in truth],
                     text=[self._format_state_text(state) for state in truth],
                     **scatter_kwargs)
-            elif len(mapping) > 1:
+
+            elif self.dimension == 2:
                 self.fig.add_scatter(
                     x=[state.state_vector[mapping[0]] for state in truth],
                     y=[state.state_vector[mapping[1]] for state in truth],
+                    text=[self._format_state_text(state) for state in truth],
+                    **scatter_kwargs)
+
+            elif self.dimension == 3:
+                self.fig.add_scatter3d(
+                    x=[state.state_vector[mapping[0]] for state in truth],
+                    y=[state.state_vector[mapping[1]] for state in truth],
+                    z=[state.state_vector[mapping[2]] for state in truth],
                     text=[self._format_state_text(state) for state in truth],
                     **scatter_kwargs)
 
@@ -1112,10 +1138,7 @@ class Plotterly(_Plotter):
         else:
             measurements_set = set(measurements)
 
-        if len(mapping) == 0:
-            raise ValueError("No indices in mapping to reference to")
-        elif len(mapping) > 2:
-            warnings.warn("Mapping has length over 2. Additional mapping indices are ignored")
+        self._check_mapping(mapping)
 
         plot_detections, plot_clutter = self._conv_measurements(measurements_set,
                                                                 mapping,
@@ -1127,62 +1150,80 @@ class Plotterly(_Plotter):
             measurement_kwargs = dict(
                 mode='markers', marker=dict(color='#636EFA'),
                 name=name, legendgroup=name, legendrank=200)
-            measurement_kwargs.update(kwargs)
+
+            if self.dimension == 3:  # make markers smaller in 3d plot
+                measurement_kwargs.update(dict(marker=dict(size=4, color='#636EFA')))
+
+            merge(measurement_kwargs, kwargs)
             if measurement_kwargs['legendgroup'] not in {trace.legendgroup
                                                          for trace in self.fig.data}:
                 measurement_kwargs['showlegend'] = True
             else:
                 measurement_kwargs['showlegend'] = False
-            detection_array = np.asfarray(list(plot_detections.values()))
+            detection_array = np.asarray(list(plot_detections.values()), dtype=np.float64)
 
-            if len(mapping) == 1:
+            if self.dimension == 1:
                 self.fig.add_scatter(
                     x=[state.timestamp for state in plot_detections.keys()],
                     y=detection_array[:, 0],
                     text=[self._format_state_text(state) for state in plot_detections.keys()],
                     **measurement_kwargs,
                 )
-            elif len(mapping) > 1:
-                if len(mapping) > 2:
-                    warnings.warn("Mapping has length over 2. "
-                                  "Additional mapping indices are ignored")
+            elif self.dimension == 2:
                 self.fig.add_scatter(
                     x=detection_array[:, 0],
                     y=detection_array[:, 1],
                     text=[self._format_state_text(state) for state in plot_detections.keys()],
                     **measurement_kwargs,
                 )
+            elif self.dimension == 3:
+                self.fig.add_scatter3d(
+                    x=detection_array[:, 0],
+                    y=detection_array[:, 1],
+                    z=detection_array[:, 2],
+                    text=[self._format_state_text(state) for state in plot_detections.keys()],
+                    **measurement_kwargs,
+                )
 
         if plot_clutter:
             name = measurements_label + "<br>(Clutter)"
-            measurement_kwargs = dict(
+            clutter_kwargs = dict(
                 mode='markers', marker=dict(symbol="star-triangle-up", color='#FECB52'),
                 name=name, legendgroup=name, legendrank=210)
-            measurement_kwargs.update(kwargs)
-            if measurement_kwargs['legendgroup'] not in {trace.legendgroup
-                                                         for trace in self.fig.data}:
-                measurement_kwargs['showlegend'] = True
-            else:
-                measurement_kwargs['showlegend'] = False
-            clutter_array = np.asfarray(list(plot_clutter.values()))
 
-            if len(mapping) == 1:
+            if self.dimension == 3:  # update - star-triangle-up not in 3d plotly
+                clutter_kwargs.update(dict(marker=dict(size=4, symbol="diamond",
+                                                       color='#FECB52')))
+
+            merge(clutter_kwargs, kwargs)
+            if clutter_kwargs['legendgroup'] not in {trace.legendgroup
+                                                     for trace in self.fig.data}:
+                clutter_kwargs['showlegend'] = True
+            else:
+                clutter_kwargs['showlegend'] = False
+            clutter_array = np.asarray(list(plot_clutter.values()), dtype=np.float64)
+
+            if self.dimension == 1:
                 self.fig.add_scatter(
                     x=[state.timestamp for state in plot_clutter.keys()],
                     y=clutter_array[:, 0],
                     text=[self._format_state_text(state) for state in plot_clutter.keys()],
-                    **measurement_kwargs,
+                    **clutter_kwargs,
                 )
-            elif len(mapping) > 1:
-                if len(mapping) > 2:
-                    warnings.warn("Mapping has length over 2. "
-                                  "Additional mapping indices are ignored")
-
+            elif self.dimension == 2:
                 self.fig.add_scatter(
                     x=clutter_array[:, 0],
                     y=clutter_array[:, 1],
                     text=[self._format_state_text(state) for state in plot_clutter.keys()],
-                    **measurement_kwargs,
+                    **clutter_kwargs,
+                )
+            elif self.dimension == 3:
+                self.fig.add_scatter3d(
+                    x=clutter_array[:, 0],
+                    y=clutter_array[:, 1],
+                    z=clutter_array[:, 2],
+                    text=[self._format_state_text(state) for state in plot_clutter.keys()],
+                    **clutter_kwargs,
                 )
 
     def get_next_color(self):
@@ -1208,7 +1249,7 @@ class Plotterly(_Plotter):
         return colorway[color_index]
 
     def plot_tracks(self, tracks, mapping, uncertainty=False, particle=False, track_label="Tracks",
-                    ellipse_points=30, same_color=False, **kwargs):
+                    ellipse_points=30, err_freq=1, same_color=False, **kwargs):
         """Plots track(s)
 
         Plots each track generated, generating a legend automatically. If ``uncertainty=True``
@@ -1233,6 +1274,9 @@ class Plotterly(_Plotter):
             Label to apply to all tracks for legend.
         ellipse_points: int
             Number of points for polygon approximating ellipse shape
+        err_freq: int
+            Frequency of error bar plotting on tracks. Default value is 1, meaning
+            error bars are plotted at every track step.
         same_color: bool
             Should all the tracks have the same colour. Default False
         \\*\\*kwargs: dict
@@ -1243,21 +1287,17 @@ class Plotterly(_Plotter):
         if not isinstance(tracks, Collection) or isinstance(tracks, StateMutableSequence):
             tracks = {tracks}  # Make a set of length 1
 
+        self._check_mapping(mapping)  # check size of mapping against dimension of plotter
+
         # Plot tracks
         track_colors = {}
         track_kwargs = dict(mode='markers+lines', legendgroup=track_label, legendrank=300)
-        track_kwargs.update(kwargs)
+
+        if self.dimension == 3:  # change visuals to work well in 3d
+            track_kwargs.update(dict(line=dict(width=7)), marker=dict(size=4))
+        merge(track_kwargs, kwargs)
         add_legend = track_kwargs['legendgroup'] not in {trace.legendgroup
                                                          for trace in self.fig.data}
-
-        if len(mapping) == 0:
-            raise ValueError("No indices in mapping to reference to")
-        elif len(mapping) == 1:
-            if uncertainty or particle:
-                raise NotImplementedError("Plotting against time hasn't been implemented for "
-                                          "uncertainty or particles ")
-        elif len(mapping) > 2:
-            warnings.warn("Mapping has length over 2. Additional mapping indices are ignored")
 
         if same_color:
             color = track_kwargs.get('marker', {}).get('color') or \
@@ -1289,14 +1329,20 @@ class Plotterly(_Plotter):
             else:
                 track_colors[track] = self.get_next_color()
 
-            if len(mapping) == 1:
+            if self.dimension == 1:  # plot 1D tracks
+
+                if uncertainty or particle:
+                    raise NotImplementedError
+
                 self.fig.add_scatter(
                     x=[state.timestamp for state in track],
                     y=[float(getattr(state, 'mean', state.state_vector)[mapping[0]])
                        for state in track],
                     text=[self._format_state_text(state) for state in track],
                     **scatter_kwargs)
-            elif len(mapping) > 1:
+
+            elif self.dimension == 2:  # plot 2D tracks
+
                 self.fig.add_scatter(
                     x=[float(getattr(state, 'mean', state.state_vector)[mapping[0]])
                        for state in track],
@@ -1305,11 +1351,51 @@ class Plotterly(_Plotter):
                     text=[self._format_state_text(state) for state in track],
                     **scatter_kwargs)
 
+            elif self.dimension == 3:  # plot 3D tracks
+
+                if particle:
+                    raise NotImplementedError
+
+                # create empty error arrays
+                err_x = np.array([np.nan for _ in range(len(track))], dtype=float)
+                err_y = np.array([np.nan for _ in range(len(track))], dtype=float)
+                err_z = np.array([np.nan for _ in range(len(track))], dtype=float)
+
+                if uncertainty:  # find x,y,z error bars for relevant states
+
+                    for count, state in enumerate(track):
+
+                        if not count % err_freq:  # ie count % err_freq = 0
+                            HH = np.eye(track.ndim)[mapping, :]  # Get position mapping matrix
+                            cov = HH @ state.covar @ HH.T
+
+                            err_x[count] = np.sqrt(cov[0, 0])
+                            err_y[count] = np.sqrt(cov[1, 1])
+                            err_z[count] = np.sqrt(cov[2, 2])
+
+                self.fig.add_scatter3d(
+                    x=[float(getattr(state, 'mean', state.state_vector)[mapping[0]])
+                       for state in track],
+                    error_x=dict(type='data', thickness=10, width=3, array=err_x),
+
+                    y=[float(getattr(state, 'mean', state.state_vector)[mapping[1]])
+                       for state in track],
+                    error_y=dict(type='data', thickness=10, width=3, array=err_y),
+
+                    z=[float(getattr(state, 'mean', state.state_vector)[mapping[2]])
+                       for state in track],
+                    error_z=dict(type='data', thickness=10, width=3, array=err_z),
+                    # note that 3D error thickness seems to be broken in Plotly
+
+                    text=[self._format_state_text(state) for state in track],
+                    **scatter_kwargs)
+
             track_colors[track] = (self.fig.data[-1].line.color
                                    or self.fig.data[-1].marker.color
                                    or self.get_next_color())
 
-        if uncertainty:
+        # earlier checking means this only applies to 2D.
+        if uncertainty and self.dimension == 2:
             name = track_kwargs['legendgroup'] + "<br>(Ellipses)"
             add_legend = name not in {trace.legendgroup for trace in self.fig.data}
             for track in tracks:
@@ -1327,7 +1413,8 @@ class Plotterly(_Plotter):
                         ellipse_kwargs['showlegend'] = False
 
                     self.fig.add_scatter(x=points[0, :], y=points[1, :], **ellipse_kwargs)
-        if particle:
+
+        if particle and self.dimension == 2:
             name = track_kwargs['legendgroup'] + "<br>(Particles)"
             add_legend = name not in {trace.legendgroup for trace in self.fig.data}
             for track in tracks:
@@ -1402,9 +1489,14 @@ class Plotterly(_Plotter):
         if not isinstance(sensors, Collection):
             sensors = {sensors}
 
+        self._check_mapping(mapping)  # ensure mapping is compatible with plotter dimension
+
+        if self.dimension == 1 or self.dimension == 3:
+            raise NotImplementedError
+
         sensor_kwargs = dict(mode='markers', marker=dict(symbol='x', color='black'),
                              legendgroup=sensor_label, legendrank=50)
-        sensor_kwargs.update(kwargs)
+        merge(sensor_kwargs, kwargs)
 
         sensor_kwargs['name'] = sensor_label
         if sensor_kwargs['legendgroup'] not in {trace.legendgroup
@@ -1416,7 +1508,7 @@ class Plotterly(_Plotter):
         sensor_xy = np.array([sensor.position[mapping, 0] for sensor in sensors])
         self.fig.add_scatter(x=sensor_xy[:, 0], y=sensor_xy[:, 1], **sensor_kwargs)
 
-    def hide_plot_traces(self, items_to_hide: set):
+    def hide_plot_traces(self, items_to_hide=None):
         """Hide Plot Traces
 
         This function allows plotting items to be invisible as default. Users can toggle the plot
@@ -1424,15 +1516,33 @@ class Plotterly(_Plotter):
 
         Parameters
         ----------
-        items_to_hide : set[str]
+        items_to_hide : Iterable[str]
             The legend label (`legendgroups`) for the plot traces that should be invisible as
-            default
+            default. If left as ``None`` no traces will be shown.
         """
         for fig_data in self.fig.data:
-            if fig_data.legendgroup in items_to_hide:
+            if items_to_hide is None or fig_data.legendgroup in items_to_hide:
                 fig_data.visible = "legendonly"
             else:
                 fig_data.visible = None
+
+    def show_plot_traces(self, items_to_show=None):
+        """Show Plot Traces
+
+        This function allows specific plotting items to be shown as default. All labels not
+        mentioned in `items_to_show` will be invisible and can be manually toggled on.
+
+        Parameters
+        ----------
+        items_to_show : Iterable[str]
+            The legend label (`legendgroups`) for the plot traces that should be shown as
+            default. If left as ``None`` all traces will be shown.
+        """
+        for fig_data in self.fig.data:
+            if items_to_show is None or fig_data.legendgroup in items_to_show:
+                fig_data.visible = None
+            else:
+                fig_data.visible = "legendonly"
 
 
 class PolarPlotterly(_Plotter):
@@ -1493,7 +1603,7 @@ class PolarPlotterly(_Plotter):
         plotting_kwargs = dict(
             mode="markers", legendgroup=label, legendrank=200,
             name=label, thetaunit="radians")
-        plotting_kwargs.update(kwargs)
+        merge(plotting_kwargs, kwargs)
         add_legend = plotting_kwargs['legendgroup'] not in {trace.legendgroup
                                                             for trace in self.fig.data}
 
@@ -1540,7 +1650,7 @@ class PolarPlotterly(_Plotter):
             ``line=dict(dash="dash")``.
         """
         truths_kwargs = dict(mode="lines", line=dict(dash="dash"), legendrank=100)
-        truths_kwargs.update(kwargs)
+        merge(truths_kwargs, kwargs)
         angle_mapping = mapping[0]
         if len(mapping) > 1:
             range_mapping = mapping[1]
@@ -1600,7 +1710,7 @@ class PolarPlotterly(_Plotter):
         if plot_detections:
             name = measurements_label + "<br>(Detections)"
             measurement_kwargs = dict(mode='markers', marker=dict(color='#636EFA'), legendrank=200)
-            measurement_kwargs.update(kwargs)
+            merge(measurement_kwargs, kwargs)
             plotting_data = [State(state_vector=plotting_state_vector,
                                    timestamp=det.timestamp)
                              for det, plotting_state_vector in plot_detections.items()]
@@ -1611,16 +1721,16 @@ class PolarPlotterly(_Plotter):
 
         if plot_clutter:
             name = measurements_label + "<br>(Clutter)"
-            measurement_kwargs = dict(mode='markers', legendrank=210,
-                                      marker=dict(symbol="star-triangle-up", color='#FECB52'))
-            measurement_kwargs.update(kwargs)
+            clutter_kwargs = dict(mode='markers', legendrank=210,
+                                  marker=dict(symbol="star-triangle-up", color='#FECB52'))
+            merge(clutter_kwargs, kwargs)
             plotting_data = [State(state_vector=plotting_state_vector,
                                    timestamp=det.timestamp)
                              for det, plotting_state_vector in plot_clutter.items()]
 
             self.plot_state_sequence(state_sequences=[plotting_data], angle_mapping=angle_mapping,
                                      range_mapping=range_mapping, label=name,
-                                     **measurement_kwargs)
+                                     **clutter_kwargs)
 
     def plot_tracks(self, tracks, mapping, uncertainty=False, particle=False, track_label="Tracks",
                     **kwargs):
@@ -1654,7 +1764,7 @@ class PolarPlotterly(_Plotter):
             raise NotImplementedError
 
         track_kwargs = dict(mode='markers+lines', legendrank=300)
-        track_kwargs.update(kwargs)
+        merge(track_kwargs, kwargs)
         angle_mapping = mapping[0]
         if len(mapping) > 1:
             range_mapping = mapping[1]
@@ -1676,7 +1786,7 @@ class _AnimationPlotterDataClass(Base):
 class AnimationPlotter(_Plotter):
 
     def __init__(self, dimension=Dimension.TWO, x_label: str = "$x$", y_label: str = "$y$",
-                 legend_kwargs: dict = {}, **kwargs):
+                 title: str = None, legend_kwargs: dict = {}, **kwargs):
 
         self.figure_kwargs = {"figsize": (10, 6)}
         self.figure_kwargs.update(kwargs)
@@ -1688,6 +1798,10 @@ class AnimationPlotter(_Plotter):
 
         self.x_label: str = x_label
         self.y_label: str = y_label
+
+        if title:
+            title += "\n"
+        self.title: str = title
 
         self.plotting_data: List[_AnimationPlotterDataClass] = []
 
@@ -1710,7 +1824,6 @@ class AnimationPlotter(_Plotter):
         \\*\\*kwargs: dict
             Additional arguments to be passed to the animation.FuncAnimation function
         """
-
         if times_to_plot is None:
             times_to_plot = sorted({
                 state.timestamp
@@ -1725,7 +1838,8 @@ class AnimationPlotter(_Plotter):
             y_label=self.y_label,
             figure_kwargs=self.figure_kwargs,
             legend_kwargs=self.legend_kwargs,
-            animation_input_kwargs=kwargs
+            animation_input_kwargs=kwargs,
+            plot_title=self.title
         )
         return self.animation_output
 
@@ -1774,7 +1888,7 @@ class AnimationPlotter(_Plotter):
         self.plot_state_mutable_sequence(truths, mapping, truths_label, **truths_kwargs)
 
     def plot_tracks(self, tracks, mapping: List[int], uncertainty=False, particle=False,
-                    track_label="Tracks",  **kwargs):
+                    track_label="Tracks", **kwargs):
         """Plots track(s)
 
         Plots each track generated, generating a legend automatically. Tracks are plotted as solid
@@ -1926,7 +2040,8 @@ class AnimationPlotter(_Plotter):
                       animation_input_kwargs: dict = {},
                       legend_kwargs: dict = {},
                       x_label: str = "$x$",
-                      y_label: str = "$y$"
+                      y_label: str = "$y$",
+                      plot_title: str = None
                       ) -> animation.FuncAnimation:
         """
         Parameters
@@ -1953,6 +2068,8 @@ class AnimationPlotter(_Plotter):
             Label for the x axis
         y_label: str
             Label for the y axis
+        plot_title: str
+            Title for the plot
 
         Returns
         -------
@@ -2019,7 +2136,7 @@ class AnimationPlotter(_Plotter):
         line_ani = animation.FuncAnimation(fig1, cls.update_animation,
                                            frames=len(times_to_plot),
                                            fargs=(the_lines, plotting_data, min_plot_times,
-                                                  times_to_plot),
+                                                  times_to_plot, plot_title),
                                            **animation_kwargs)
 
         plt.draw()
@@ -2028,7 +2145,7 @@ class AnimationPlotter(_Plotter):
 
     @staticmethod
     def update_animation(index: int, lines: List[Line2D], data_list: List[List[State]],
-                         start_times: List[datetime], end_times: List[datetime]):
+                         start_times: List[datetime], end_times: List[datetime], title: str):
         """
         Parameters
         ----------
@@ -2042,6 +2159,8 @@ class AnimationPlotter(_Plotter):
             lowest (earliest) time for an item to be plotted
         end_times : List[datetime]
             highest (latest) time for an item to be plotted
+        title: str
+            Title for the plot
 
         Returns
         -------
@@ -2052,7 +2171,9 @@ class AnimationPlotter(_Plotter):
         min_time = start_times[index]
         max_time = end_times[index]
 
-        plt.title(max_time)
+        if title is None:
+            title = ""
+        plt.title(title + str(max_time))
         for i, data_source in enumerate(data_list):
 
             if data_source is not None:
@@ -2098,7 +2219,7 @@ class AnimatedPlotterly(_Plotter):
     """
 
     def __init__(self, timesteps, tail_length=0.3, equal_size=False,
-                 sim_duration=6, allow_unequal_timesteps=False, **kwargs):
+                 sim_duration=6, **kwargs):
         """
         Initialise the figure and checks that inputs are correctly formatted.
         Creates an empty frame for each timestep, and configures
@@ -2120,8 +2241,8 @@ class AnimatedPlotterly(_Plotter):
 
         # gives the unique values of time gaps between timesteps. If this contains more than
         # one value, then timesteps are not all evenly spaced which is an issue.
-        if not allow_unequal_timesteps and len(time_spaces) != 1:
-            raise ValueError("Ensure timesteps are equally spaced.")
+        if len(time_spaces) != 1:
+            warnings.warn("Timesteps are not equally spaced, so the passage of time is not linear")
         self.timesteps = timesteps
 
         # checking input to tail_length
@@ -2369,7 +2490,7 @@ class AnimatedPlotterly(_Plotter):
         truth_kwargs = dict(x=[], y=[], mode="lines", hoverinfo='none', legendgroup=truths_label,
                             line=dict(dash="dash", color=self.colorway[0]), legendrank=100,
                             name=truths_label, showlegend=True)
-        truth_kwargs.update(kwargs)
+        merge(truth_kwargs, kwargs)
         # legend dummy trace
         self.fig.add_trace(go.Scatter(truth_kwargs))
 
@@ -2378,9 +2499,8 @@ class AnimatedPlotterly(_Plotter):
 
         for n, _ in enumerate(truths):
             # change the colour of each truth and include n in its name
-            truth_kwargs.update({
-                "line": dict(dash="dash", color=self.colorway[n % len(self.colorway)])})
-            truth_kwargs.update(kwargs)
+            merge(truth_kwargs, dict(line=dict(color=self.colorway[n % len(self.colorway)])))
+            merge(truth_kwargs, kwargs)
             self.fig.add_trace(go.Scatter(truth_kwargs))  # add to traces
 
         for frame in self.fig.frames:
@@ -2519,10 +2639,10 @@ class AnimatedPlotterly(_Plotter):
         name = measurements_label + "<br>(Detections)"
         measurement_kwargs = dict(x=[], y=[], mode='markers',
                                   name=name,
-                                  legendgroup='Detections (Measurements)',
+                                  legendgroup=name,
                                   legendrank=200, showlegend=True,
                                   marker=dict(color="#636EFA"), hoverinfo='none')
-        measurement_kwargs.update(kwargs)
+        merge(measurement_kwargs, kwargs)
 
         self.fig.add_trace(go.Scatter(measurement_kwargs))  # trace for legend
 
@@ -2531,11 +2651,15 @@ class AnimatedPlotterly(_Plotter):
 
         # change necessary kwargs to initialise clutter trace
         name = measurements_label + "<br>(Clutter)"
-        measurement_kwargs.update({"legendgroup": 'Clutter', "legendrank": 300,
-                                   "marker": dict(symbol="star-triangle-up", color='#FECB52'),
-                                   "name": name, 'showlegend': True})
+        clutter_kwargs = dict(x=[], y=[], mode='markers',
+                              name=name,
+                              legendgroup=name,
+                              legendrank=300, showlegend=True,
+                              marker=dict(symbol="star-triangle-up", color='#FECB52'),
+                              hoverinfo='none')
+        merge(clutter_kwargs, kwargs)
 
-        self.fig.add_trace(go.Scatter(measurement_kwargs))  # trace for plotting clutter
+        self.fig.add_trace(go.Scatter(clutter_kwargs))  # trace for plotting clutter
 
         # add data to frames
         for frame in self.fig.frames:
@@ -2731,10 +2855,10 @@ class AnimatedPlotterly(_Plotter):
             self._resize(data, "tracks")
 
         if uncertainty:  # plot ellipses
-
-            uncertainty_kwargs = dict(x=[], y=[], legendgroup='Uncertainty', fill='toself',
+            name = f'{track_label}<br>Uncertainty'
+            uncertainty_kwargs = dict(x=[], y=[], legendgroup=name, fill='toself',
                                       fillcolor=self.colorway[2],
-                                      opacity=0.2, legendrank=500, name='Track<br>Uncertainty',
+                                      opacity=0.2, legendrank=500, name=name,
                                       hoverinfo='skip',
                                       mode='none', showlegend=True)
             uncertainty_kwargs.update(kwargs)
@@ -2756,10 +2880,10 @@ class AnimatedPlotterly(_Plotter):
         if particle:  # plot particles
 
             # initialise traces. One for legend and one per track
-
+            name = f'{track_label}<br>Particles'
             particle_kwargs = dict(mode='markers', marker=dict(size=2, color=self.colorway[2]),
                                    opacity=0.4,
-                                   hoverinfo='skip', legendgroup='particles', name='particles',
+                                   hoverinfo='skip', legendgroup=name, name=name,
                                    legendrank=520, showlegend=True)
             # apply any keyword arguments
             particle_kwargs.update(kwargs)
@@ -2877,7 +3001,7 @@ class AnimatedPlotterly(_Plotter):
             sensor_kwargs = dict(mode='markers', marker=dict(symbol='x', color='black'),
                                  legendgroup=sensor_label, legendrank=50,
                                  name=sensor_label, showlegend=True)
-            sensor_kwargs.update(kwargs)
+            merge(sensor_kwargs, kwargs)
 
             self.fig.add_trace(go.Scatter(sensor_kwargs))  # initialises trace
 

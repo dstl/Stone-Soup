@@ -68,7 +68,7 @@ def test_multiplehypothesis():
 
 
 def test_multiplehypothesis_edge_cases():
-    """MultipleHypothesis error casses tests"""
+    """MultipleHypothesis error cases tests"""
 
     timestamp = 1
     prediction = GaussianStatePrediction([[1], [1]],

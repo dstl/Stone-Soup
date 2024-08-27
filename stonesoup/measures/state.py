@@ -7,7 +7,7 @@ from scipy.spatial import distance
 
 from .base import BaseMeasure
 from ..base import Property
-from ..types.state import State, ParticleState
+from ..types.state import State, ParticleState, GaussianState
 
 
 class Measure(BaseMeasure):
@@ -128,7 +128,7 @@ class EuclideanWeighted(Measure):
         Returns
         -------
         dist : float
-            Weighted euclidean distance between two input
+            Weighted Euclidean distance between two input
             :class:`~.State` objects
 
         """
@@ -224,7 +224,7 @@ class SquaredMahalanobis(Measure):
         else:
             covar = state.covar
 
-        return np.linalg.inv(covar)
+        return np.linalg.pinv(covar)
 
 
 class Mahalanobis(SquaredMahalanobis):
@@ -443,7 +443,7 @@ class KLDivergence(Measure):
 
         """
         if isinstance(state1, ParticleState) and isinstance(state2, ParticleState):
-            if len(state1.particles) == len(state2.particles):
+            if len(state1) == len(state2):
 
                 log_term = np.zeros(state1.log_weight.shape)
 
@@ -457,9 +457,45 @@ class KLDivergence(Measure):
                 kld = np.sum(np.exp(state1.log_weight)*log_term)
             else:
                 raise ValueError(f'The input sizes are not compatible '
-                                 f'({len(state1.particles)} != {len(state2.particles)})')
+                                 f'({len(state1)} != {len(state2)})')
+
+        elif isinstance(state1, GaussianState) and isinstance(state2, GaussianState):
+
+            state1 = copy.copy(state1)
+            state2 = copy.copy(state2)
+
+            if self.mapping is not None:
+                state1.state_vector = state1.state_vector[self.mapping, :]
+                state2.state_vector = state2.state_vector[self.mapping2, :]
+
+                rows = np.array(self.mapping, dtype=np.intp)
+                columns = np.array(self.mapping, dtype=np.intp)
+                state1.covar = state1.covar[rows[:, np.newaxis], columns]
+
+                rows2 = np.array(self.mapping2, dtype=np.intp)
+                columns2 = np.array(self.mapping2, dtype=np.intp)
+                state2.covar = state2.covar[rows2[:, np.newaxis], columns2]
+
+            if state1.ndim == state2.ndim:
+
+                log_term = np.log(np.linalg.det(state2.covar) / np.linalg.det(state1.covar))
+
+                n_dims = state1.ndim
+
+                inv_state2_covar = np.linalg.inv(state2.covar)
+                trace_term = np.trace(inv_state2_covar@state1.covar)
+
+                delta = (state2.state_vector - state1.state_vector).ravel()
+                mahalanobis_term = np.dot(np.dot(delta, inv_state2_covar), delta)
+
+                kld = 0.5*(log_term - n_dims + trace_term + mahalanobis_term)
+
+            else:
+                raise ValueError(f'The state dimensions are not compatible '
+                                 f'({state1.ndim} != {state2.ndim}')
+
         else:
             raise NotImplementedError('This measure is currently only compatible with '
-                                      'ParticleState types')
+                                      'ParticleState or GaussianState types')
 
         return kld

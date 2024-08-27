@@ -1,3 +1,4 @@
+import copy
 import datetime
 from typing import Sequence
 
@@ -7,7 +8,7 @@ from .state import (State, GaussianState, EnsembleState,
                     ParticleState, MultiModelParticleState, RaoBlackwellisedParticleState,
                     SqrtGaussianState, InformationState, TaggedWeightedGaussianState,
                     WeightedGaussianState, CategoricalState, ASDGaussianState,
-                    BernoulliParticleState)
+                    BernoulliParticleState, KernelParticleState)
 from ..base import Property
 from ..models.transition.base import TransitionModel
 from ..types.state import CreatableFromState, CompositeState
@@ -19,6 +20,17 @@ class Prediction(Type, CreatableFromState):
     This is the base prediction class. """
     transition_model: TransitionModel = Property(
         default=None, doc='The transition model used to make the prediction')
+    prior: State = Property(default=None)
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        if self.prior and hasattr(self.prior, 'hypothesis'):
+            self.prior = copy.copy(self.prior)
+            # Stop repeated linking back which will eat memory
+            if self.prior.hypothesis and hasattr(self.prior.hypothesis, 'prediction'):
+                self.prior.hypothesis.prediction = copy.copy(self.prior.hypothesis.prediction)
+                if hasattr(self.prior.hypothesis.prediction, 'prior'):
+                    self.prior.hypothesis.prediction.prior = None
 
 
 class MeasurementPrediction(Type, CreatableFromState):
@@ -155,6 +167,20 @@ class BernoulliParticleStatePrediction(Prediction, BernoulliParticleState):
     """BernoulliParticleStatePrediction type
 
     This is a simple Bernoulli Particle state prediction object"""
+
+
+class KernelParticleStatePrediction(Prediction, KernelParticleState):
+    """KernelParticleStatePrediction type
+
+    This is a kernel particle state prediction object.
+    """
+
+
+class KernelParticleStateMeasurementPrediction(MeasurementPrediction, KernelParticleState):
+    """KernelParticleStateMeasurementPrediction type
+
+    This is a kernel particle state measurement prediction object.
+    """
 
 
 class EnsembleStatePrediction(Prediction, EnsembleState):

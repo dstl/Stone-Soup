@@ -14,7 +14,7 @@ from ..types.particle import Particle
 from ..types.state import State, GaussianState, ParticleState, TaggedWeightedGaussianState, \
     ASDGaussianState, EnsembleState
 from ..types.track import Track
-from ..types.update import GaussianStateUpdate, ParticleStateUpdate, Update, \
+from ..types.update import ParticleStateUpdate, Update, \
     GaussianMixtureUpdate, ASDGaussianStateUpdate, EnsembleStateUpdate
 from ..updater import Updater
 from ..updater.kalman import ExtendedKalmanUpdater
@@ -144,10 +144,11 @@ class SimpleMeasurementInitiator(GaussianInitiator):
             prior_covar[mapped_dimensions, :] = 0
             C0 = inv_model_matrix @ model_covar @ inv_model_matrix.T
             C0 = C0 + prior_covar + np.diag(np.array([self.diag_load] * C0.shape[0]))
-            tracks.add(Track([GaussianStateUpdate(
-                prior_state_vector + state_vector,
-                C0,
-                SingleHypothesis(None, detection),
+            tracks.add(Track([Update.from_state(
+                self.prior_state,
+                state_vector=prior_state_vector + state_vector,
+                covar=C0,
+                hypothesis=SingleHypothesis(None, detection),
                 timestamp=detection.timestamp)
             ]))
         return tracks
@@ -368,16 +369,17 @@ class GaussianMixtureInitiator(GaussianInitiator):
         tracks = self.initiator.initiate(detections, timestamp, **kwargs)
 
         for track in tracks:
-            mixture = [
-                TaggedWeightedGaussianState(
-                    state_vector=track.state_vector,
-                    covar=track.covar,
-                    weight=Probability(1),
-                    timestamp=track.timestamp,
-                    tag=[])]
-            track[-1] = GaussianMixtureUpdate(
-                hypothesis=track.hypothesis,
-                components=mixture)
+            for n, state in enumerate(track):
+                mixture = [
+                    TaggedWeightedGaussianState(
+                        state_vector=state.state_vector,
+                        covar=state.covar,
+                        weight=Probability(1),
+                        timestamp=state.timestamp,
+                        tag=[])]
+                track[n] = GaussianMixtureUpdate(
+                    hypothesis=getattr(state, 'hypothesis', None),
+                    components=mixture)
 
         return tracks
 
@@ -494,11 +496,52 @@ class EnsembleInitiator(GaussianInitiator):
                                            track.covar,
                                            track.timestamp)
 
-            ensemble = EnsembleState.from_gaussian_state(gaussian_state, self.ensemble_size)
+            track[-1] = EnsembleStateUpdate.from_gaussian_state(
+                gaussian_state,
+                self.ensemble_size,
+                hypothesis=track.hypothesis)
 
-            track[-1] = EnsembleStateUpdate(
-                state_vector=ensemble.state_vector,
-                hypothesis=track.hypothesis,
-                timestamp=ensemble.timestamp)
+        return tracks
+
+
+class ParticleGaussianInitiator(GaussianInitiator):
+    """Particle Gaussian Initiator class
+
+    Utilising Particle Initiator, convert the resultant track's state to generate a Gaussian state,
+    overwriting with a :class:`~.GaussianState`.
+    """
+
+    initiator: ParticleInitiator = Property(
+        doc="Particle Initiator which will be used to generate tracks.")
+
+    def initiate(self, detections, timestamp, **kwargs):
+        """Initiates tracks given unassociated measurements
+
+        Parameters
+        ----------
+        detections : set of :class:`~.Detection`
+            A list of unassociated detections
+        timestamp: datetime.datetime
+            Current timestamp
+
+        Returns
+        -------
+        : set of :class:`~.Track`
+            A list of new tracks with an initial :class:`~.GaussianState`
+        """
+        tracks = self.initiator.initiate(detections, timestamp, **kwargs)
+
+        for track in tracks:
+            mu = track.mean
+            covar = track.covar
+            timestamp = track.timestamp
+
+            track[-1] = State.from_state(
+                state=track.state,
+                state_vector=mu,
+                covar=covar,
+                timestamp=timestamp,
+                target_type=GaussianState
+            )
 
         return tracks

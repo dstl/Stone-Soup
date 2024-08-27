@@ -1,19 +1,23 @@
+import datetime
+from typing import Set, Tuple
+
 import numpy as np
 
-from .base import Tracker
+from .base import Tracker, _TrackerMixInNext
 from ..base import Property
 from ..dataassociator import DataAssociator
 from ..deleter import Deleter
-from ..reader import DetectionReader
+from ..functions import gm_reduce_single
 from ..initiator import Initiator
-from ..updater import Updater
+from ..reader import DetectionReader
 from ..types.array import StateVectors
 from ..types.prediction import GaussianStatePrediction
+from ..types.track import Track
 from ..types.update import GaussianStateUpdate
-from ..functions import gm_reduce_single
+from ..updater import Updater
 
 
-class SingleTargetTracker(Tracker):
+class SingleTargetTracker(_TrackerMixInNext, Tracker):
     """A simple single target tracker.
 
     Track a single object using Stone Soup components. The tracker works by
@@ -35,7 +39,7 @@ class SingleTargetTracker(Tracker):
         :attr:`tracks`
     """
     initiator: Initiator = Property(doc="Initiator used to initialise the track.")
-    deleter: Deleter = Property(doc="Deleter used to delete the track")
+    deleter: Deleter = Property(doc="Deleter used to delete tracks.")
     detector: DetectionReader = Property(doc="Detector used to generate detection objects.")
     data_associator: DataAssociator = Property(
         doc="Association algorithm to pair predictions to detections")
@@ -46,14 +50,10 @@ class SingleTargetTracker(Tracker):
         self._track = None
 
     @property
-    def tracks(self):
+    def tracks(self) -> Set[Track]:
         return {self._track} if self._track else set()
 
-    def __iter__(self):
-        self.detector_iter = iter(self.detector)
-        return super().__iter__()
-
-    def __next__(self):
+    def __next__(self) -> Tuple[datetime.datetime, Set[Track]]:
         time, detections = next(self.detector_iter)
         if self._track is not None:
             associations = self.data_associator.associate(
@@ -75,7 +75,7 @@ class SingleTargetTracker(Tracker):
         return time, self.tracks
 
 
-class SingleTargetMixtureTracker(Tracker):
+class SingleTargetMixtureTracker(_TrackerMixInNext, Tracker):
     """ A simple single target tracking that receives associations from a
     (Gaussian) Mixture associator.
 
@@ -93,7 +93,7 @@ class SingleTargetMixtureTracker(Tracker):
     ----------
     """
     initiator: Initiator = Property(doc="Initiator used to initialise the track.")
-    deleter: Deleter = Property(doc="Initiator used to initialise the track.")
+    deleter: Deleter = Property(doc="Deleter used to delete tracks.")
     detector: DetectionReader = Property(doc="Detector used to generate detection objects.")
     data_associator: DataAssociator = Property(
         doc="Association algorithm to pair predictions to detections")
@@ -104,14 +104,10 @@ class SingleTargetMixtureTracker(Tracker):
         self._track = None
 
     @property
-    def tracks(self):
+    def tracks(self) -> Set[Track]:
         return {self._track} if self._track else set()
 
-    def __iter__(self):
-        self.detector_iter = iter(self.detector)
-        return super().__iter__()
-
-    def __next__(self):
+    def __next__(self) -> Tuple[datetime.datetime, Set[Track]]:
         time, detections = next(self.detector_iter)
 
         if self._track is not None:
@@ -177,7 +173,7 @@ class SingleTargetMixtureTracker(Tracker):
         return time, self.tracks
 
 
-class MultiTargetTracker(Tracker):
+class MultiTargetTracker(_TrackerMixInNext, Tracker):
     """A simple multi target tracker.
 
     Track multiple objects using Stone Soup components. The tracker works by
@@ -203,14 +199,10 @@ class MultiTargetTracker(Tracker):
         self._tracks = set()
 
     @property
-    def tracks(self):
+    def tracks(self) -> Set[Track]:
         return self._tracks
 
-    def __iter__(self):
-        self.detector_iter = iter(self.detector)
-        return super().__iter__()
-
-    def __next__(self):
+    def __next__(self) -> Tuple[datetime.datetime, Set[Track]]:
         time, detections = next(self.detector_iter)
 
         associations = self.data_associator.associate(
@@ -231,7 +223,7 @@ class MultiTargetTracker(Tracker):
         return time, self.tracks
 
 
-class MultiTargetMixtureTracker(Tracker):
+class MultiTargetMixtureTracker(_TrackerMixInNext, Tracker):
     """A simple multi target tracker that receives associations from a
     (Gaussian) Mixture associator.
 
@@ -248,7 +240,7 @@ class MultiTargetMixtureTracker(Tracker):
     ----------
     """
     initiator: Initiator = Property(doc="Initiator used to initialise the track.")
-    deleter: Deleter = Property(doc="Initiator used to initialise the track.")
+    deleter: Deleter = Property(doc="Deleter used to delete tracks.")
     detector: DetectionReader = Property(doc="Detector used to generate detection objects.")
     data_associator: DataAssociator = Property(
         doc="Association algorithm to pair predictions to detections")
@@ -259,14 +251,10 @@ class MultiTargetMixtureTracker(Tracker):
         self._tracks = set()
 
     @property
-    def tracks(self):
+    def tracks(self) -> Set[Track]:
         return self._tracks
 
-    def __iter__(self):
-        self.detector_iter = iter(self.detector)
-        return super().__iter__()
-
-    def __next__(self):
+    def __next__(self) -> Tuple[datetime.datetime, Set[Track]]:
         time, detections = next(self.detector_iter)
 
         associations = self.data_associator.associate(

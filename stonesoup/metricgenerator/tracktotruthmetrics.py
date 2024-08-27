@@ -38,7 +38,7 @@ class SIAPMetrics(MetricGenerator):
           1.
 
     Reference
-        [1] Single Integrated Air Picture (SIAP) Metrics Implementation, Votruba et al, 29-10-2001
+        [1] Single Integrated Air Picture (SIAP) Metrics Implementation, Votruba et al., 29-10-2001
     """
 
     position_measure: Measure = Property(
@@ -450,8 +450,9 @@ class SIAPMetrics(MetricGenerator):
         float
             Average rate of track number changes
         """
-        numerator = sum(self.min_num_tracks_needed_to_track(manager, truth) - 1
-                        for truth in ground_truths)
+        numerator = sum(value - 1
+                        for truth in ground_truths
+                        if (value := self.min_num_tracks_needed_to_track(manager, truth)) > 0)
         denominator = sum(self.total_time_tracked(manager, truth)
                           for truth in ground_truths)
 
@@ -513,14 +514,14 @@ class IDSIAPMetrics(SIAPMetrics):
         * This implementation assumes that track and ground truth path IDs are implemented via
           metadata, whereby the strings :attr:`track_id` and :attr:`truth_id` are keys to track and
           truth metadata entries with ID data respectively.
-        * :class:`~.Track` types store metadata outside of their `states` attribute. Therefore the
+        * :class:`~.Track` types store metadata outside of their `states` attribute. Therefore, the
           ID SIAPs make metadata comparisons via the tracks' last ID metadata values (as calling
           `track.metadata` will return a track's metadata at the end of its life). To provide a
           better implementation, one might modify :class:`~.Track` types to contain a list of
           `state` types that hold their own metadata.
 
     Reference
-        [1] Single Integrated Air Picture (SIAP) Metrics Implementation, Votruba et al, 29-10-2001
+        [1] Single Integrated Air Picture (SIAP) Metrics Implementation, Votruba et al., 29-10-2001
     """
 
     truth_id: str = Property(doc="Metadata key for ID of each ground truth path in data-set")

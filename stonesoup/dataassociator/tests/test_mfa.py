@@ -10,7 +10,7 @@ from ...measures import Mahalanobis
 from ...types.detection import Detection
 from ...types.mixture import GaussianMixture
 from ...types.numeric import Probability
-from ...types.state import TaggedWeightedGaussianState
+from ...types.state import TaggedWeightedGaussianState, GaussianState
 from ...types.track import Track
 from ...types.update import GaussianMixtureUpdate
 try:
@@ -34,7 +34,11 @@ def update_tracks(associations, updater):
 def generate_detections(tracks, timestamp, predictor, measurement_model, n=2):
     return {
         Detection(
-            measurement_model.function(predictor.predict(track, timestamp), noise=True),
+            measurement_model.function(predictor.predict(
+                GaussianState(
+                    track.mean,
+                    track.covar,
+                    track.timestamp), timestamp), noise=True),
             timestamp=timestamp)
         for track in tracks for _ in range(n)}  # n detections per track; pseudo clutter
 

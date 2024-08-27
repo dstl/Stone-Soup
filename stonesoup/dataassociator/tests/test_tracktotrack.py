@@ -2,11 +2,15 @@ import datetime
 
 import pytest
 
-from ..tracktotrack import TrackToTrackCounting, TrackToTruth, TrackIDbased
+from ...types.association import Association
+from ...types.groundtruth import GroundTruthPath, GroundTruthState
 from ...types.state import State
 from ...types.track import Track
-from ...types.groundtruth import GroundTruthPath, GroundTruthState
-from ...types.association import Association
+from ..tracktotrack import (
+    TrackIDbased,
+    TrackToTrackCounting,
+    TrackToTruth,
+)
 
 
 @pytest.fixture
@@ -90,7 +94,7 @@ def test_euclidiantracktotrack(tracks):
         position_weighting=0.999)
 
     association_set_3 = heavily_weighted_associator.associate_tracks(
-                            {tracks[0], tracks[2]}, {tracks[1], tracks[3], tracks[4]})
+        {tracks[0], tracks[2]}, {tracks[1], tracks[3], tracks[4]})
 
     association_set_4 = complete_associator.associate_tracks({tracks[0]}, {tracks[5]})
 
@@ -209,8 +213,8 @@ def test_trackidbased():
 
     association_setB = associator.associate_tracks(tracksB, truths)
     assocB = list(association_setB.associations)[0]
-    assert type(assocB) == Association
+    assert isinstance(assocB, Association)
 
     association_setC = associator.associate_tracks(tracksC, truths)
     assocC = list(association_setC.associations)[0]
-    assert type(assocC) == Association
+    assert isinstance(assocC, Association)
