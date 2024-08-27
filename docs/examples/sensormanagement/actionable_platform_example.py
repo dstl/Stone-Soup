@@ -12,14 +12,16 @@ This example demonstrates the management of actionable platforms in Stone Soup.
 # In Stone Soup, instances of :class:`~.Platform` are objects to which one or more sensors can be mounted, and provide a means of controlling the position of mounted sensors.
 # 
 # All platforms in Stone Soup have a movement controller belonging to the class :class:`~.Movable`, which determines if and how the platform can move. The default platforms and corresponding movement controllers currently implemented in Stone Soup are:
-# - :class:`~.FixedPlatform`, which has a default movable class of :class:`~.FixedMovable`. The position of these platforms can be manually defined, but otherwise remains fixed.
-# - :class:`~.MovingPlatform`, which has a default movable class of :class:`~.MovingMovable`, and :class:`~.MultiTransitionMovingPlatform`, which has a deafult movable class of :class:`~.MultiTransitionMovable`. The location of these platforms is not fixed, but changes according to one or more predefined :class:`<~.TransitionModel>s`.
-# 
+#
+# * :class:`~.FixedPlatform`, which has a default movable class of :class:`~.FixedMovable`. The position of these platforms can be manually defined, but otherwise remains fixed.
+# * :class:`~.MovingPlatform`, which has a default movable class of :class:`~.MovingMovable`. The position of these platforms is not fixed, but changes according to a predefined :class:`~.TransitionModel`.
+# * :class:`~.MultiTransitionMovingPlatform`, which has a deafult movable class of :class:`~.MultiTransitionMovable`. The same as for :class:`~.MovingPlatform`, but movement is defined by multiple transition models.
+#
 # Actionable Platforms in Stone Soup
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-# Actionable platforms work slightly differently to these other platforms. They can be instatiated using the previously mentioned :class:`~.FixedPlatform` - what makes them 'actionable' is the use of a movement controller with an :class:`~.ActionGenerator`. The :class:`~.ActionGenerator` produces :class:`<~.Action>s` that can be given to a :class:`~.SensorManager` to be optimised and acted upon at each timestep based on a specified reward function.
+# Actionable platforms work slightly differently to these other platforms. They can be instatiated using the previously mentioned :class:`~.FixedPlatform` - what makes them 'actionable' is the use of a movement controller with an :class:`~.ActionGenerator`. The :class:`~.ActionGenerator` produces objects of class :class:`~.Action` that can be given to a :class:`~.SensorManager` to be optimised and acted upon at each timestep.
 # 
-# Currently, actionable platforms in Stone Soup can be created from a :class:`~.FixedPlatform` using the :class:`~.NStepDirectionalGridMovable` movement controller, which allows movement across a grid-based action space according to given step size and number of steps. Additional actionable movement controllers will likely be added in the future.
+# Currently, actionable platforms in Stone Soup can be created from a :class:`~.FixedPlatform` using the :class:`~.NStepDirectionalGridMovable` movement controller, which allows movement across a grid-based action space according to a given step size and number of steps. Additional actionable movement controllers will likely be added in the future.
 # 
 # This example demonstrates the basic usage of actionable platforms. A scenario is created in which an :class:`~.NStepDirectionalGridMovable` platform mounted with a :class:`~.RadarRotatingBearingRange`
 # sensor is used to track a single moving target that would otherwise move out of the sensor's range.
@@ -67,7 +69,7 @@ plotter.fig
 # %%
 # Creating the Actionable Platform
 # --------------------------------
-# Next we create the actionable platform itself. To do this we create a :class:`~.FixedPlatform` but change the movement controller to a :class:`~.NStepDirectionalGridMovable`. The platform starts alongside the target. We define the platforms movement such that it is capable of moving up to two steps at each timestep. As the resolution is set to 1 and the step size 7.5, each step correpsonds to 7.5 grid cells, each (x=1, y=1) in size. These restrictions will be reflected in the :class:`<~.Action>s` created by the movement controller's :class:`~.ActionGenerator`.
+# Next we create the actionable platform itself. To do this we create a :class:`~.FixedPlatform`, but change the movement controller to a :class:`~.NStepDirectionalGridMovable`. The platform starts alongside the target. We define the platforms movement such that it is capable of moving up to two steps at each timestep. As the resolution is set to 1 and the step size 6.25, each step correpsonds to 6.25 grid cells, each (x=1, y=1) in size. These restrictions will be reflected in the list of :class:`~.Action` objects created by the movement controller's :class:`~.ActionGenerator`.
 # 
 # We add a :class:`~.RadarRotatingBearingRange` radar to this platform, which has a field of view of 30 degrees, a range of 100 grid cells, and is capable of rotating its dwell centre by 180 degrees each timestep.
 
@@ -90,12 +92,12 @@ sensor = RadarRotatingBearingRange(
     resolution=Angle(np.radians(30)))
 
 platform = FixedPlatform(
-    movement_controller=NStepDirectionalGridMovable(states=[State([[-500],[400]],
+    movement_controller=NStepDirectionalGridMovable(states=[State([[-500],[500]],
                                                                  timestamp=start_time)],
                                                     position_mapping=(0,1),
                                                     resolution=1,
                                                     n_steps=2,
-                                                    step_size=6.75,  # 6.75 seems to match target speed
+                                                    step_size=6.25,  # 6.25 seems to match target speed
                                                     action_mapping=(0,1)),
     sensors=[sensor])
 
@@ -128,7 +130,7 @@ updater = ParticleUpdater(sensor.measurement_model,
 # Now we create a sensor manager, giving it our sensor and platform, and a reward function, in this case the ExpectedKLDivergence reward function, which chooses actions based on the information gained by taking that action.
 
 
-from stonesoup.sensormanager.reward import ExpectedKLDivergence, UncertaintyRewardFunction
+from stonesoup.sensormanager.reward import ExpectedKLDivergence
 from stonesoup.sensormanager import BruteForceSensorManager
 
 reward_updater = ParticleUpdater(measurement_model=None)
@@ -272,3 +274,12 @@ def plot_sensor_fov(fig_, sensor_set, sensor_history):
 plot_sensor_fov(plotter.fig, sensor_set, sensor_history)
 plotter.fig
 
+
+# %%
+# Summary
+# -------
+# This was a simple example demonstrating how an actionable platform can be used to track a moving target.
+#
+# There are many other scenarios to which actionable platforms could be applied, and the number of possible behaviours and applications will only increase as additional classes are introduced. Stone Soup also makes it easy to implement additional functionality on your own, for example by experimenting with custom reward functions and/or movement controllers.
+#
+# To see the latest developments for actionable platforms, you can refer to the `Stone Soup docs <https://stackoverflow.com/>`_.
