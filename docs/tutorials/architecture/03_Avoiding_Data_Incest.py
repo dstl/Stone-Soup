@@ -36,48 +36,7 @@ random.seed(1990)
 # We build two sensors to be assigned to the two sensor nodes
 #
 
-from stonesoup.types.state import StateVector
-from stonesoup.sensor.radar.radar import RadarRotatingBearingRange
-from stonesoup.types.angle import Angle
 from stonesoup.models.clutter import ClutterModel
-
-# sf1 = 0.85
-
-# sensor1 = RadarRotatingBearingRange(
-#          position_mapping=[0, 2],
-#          noise_covar=np.array([[sf1 * np.radians(0.5) ** 2, 0],
-#                                   [0, sf1 * 1 ** 2]]),
-#          ndim_state=4,
-#          position=np.array([[10], [20 - 40]]),
-#          rpm=60,
-#          fov_angle=np.radians(360),
-#          dwell_centre=StateVector([0.0]),
-#          max_range=np.inf,
-#          resolutions={'dwell_centre': Angle(np.radians(30))},
-#          clutter_model=ClutterModel(clutter_rate=15, dist_params=((-100, 100), (-50, 60)))
-#      )
-# sensor1.timestamp = start_time
-
-# %%
-
-# sf2 = 0.85
-# sensor2 = RadarRotatingBearingRange(
-#             position_mapping=[0, 2],
-#             noise_covar=np.array([[sf2 * np.radians(0.5) ** 2, 0],
-#                                   [0, sf2 * 1 ** 2]]),
-#             ndim_state=4,
-#             position=np.array([[10], [3*20 - 40]]),
-#             rpm=60,
-#             fov_angle=np.radians(360),
-#             dwell_centre=StateVector([0.0]),
-#             max_range=np.inf,
-#             resolutions={'dwell_centre': Angle(np.radians(30))},
-#             clutter_model=ClutterModel(clutter_rate=5, dist_params=((-100, 100), (-50, 60)))
-#     )
-
-# sensor2.timestamp = start_time
-
-# %%
 from stonesoup.models.measurement.linear import LinearGaussian
 from stonesoup.types.state import CovarianceMatrix
 
