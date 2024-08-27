@@ -16,7 +16,7 @@ from ...models.measurement.nonlinear import \
      Cartesian2DToBearing)
 from ...sensor.action.dwell_action import DwellActionsGenerator
 from ...sensormanager.action import ActionableProperty
-from ...sensor.sensor import Sensor, SimpleSensor
+from ...sensor.sensor import Sensor, SimpleSensor, VisibilityInformed2DSensor
 from ...types.array import CovarianceMatrix
 from ...types.angle import Angle
 from ...types.detection import TrueDetection, Detection
@@ -25,7 +25,7 @@ from ...types.numeric import Probability
 from ...types.state import StateVector
 
 
-class RadarBearingRange(SimpleSensor):
+class RadarBearingRange(VisibilityInformed2DSensor):
     """A simple radar sensor that generates measurements of targets, using a
     :class:`~.CartesianToBearingRange` model, relative to its position.
 
@@ -62,13 +62,15 @@ class RadarBearingRange(SimpleSensor):
     def is_detectable(self, state: GroundTruthState) -> bool:
         measurement_vector = self.measurement_model.function(state, noise=False)
         true_range = measurement_vector[1, 0]  # Bearing(0), Range(1)
-        return true_range <= self.max_range
+        detectable = true_range <= self.max_range
+        visible = self.is_visible(state)
+        return (detectable and visible)
 
     def is_clutter_detectable(self, state: Detection) -> bool:
         return state.state_vector[1, 0] <= self.max_range
 
 
-class RadarBearing(SimpleSensor):
+class RadarBearing(VisibilityInformed2DSensor):
     """A simple radar sensor that generates measurements of targets, using a
     :class:`~.Cartesian2DToBearing` model, relative to its position.
 
@@ -112,7 +114,9 @@ class RadarBearing(SimpleSensor):
         )
         measurement_vector = tmp_meas_model.function(state, noise=False)
         true_range = measurement_vector[1, 0]  # Bearing(0), Range(1)
-        return true_range <= self.max_range
+        detectable = true_range <= self.max_range
+        visible = self.is_visible(state)
+        return (detectable and visible)
 
     def is_clutter_detectable(self, state: Detection) -> bool:
         return True

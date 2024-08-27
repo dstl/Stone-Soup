@@ -3,8 +3,10 @@ from typing import MutableSequence
 import numpy as np
 
 from stonesoup.base import Property, Base
+from stonesoup.functions import build_rotation_matrix
 from stonesoup.movable import Movable, FixedMovable, MovingMovable, MultiTransitionMovable
 from stonesoup.sensor.sensor import Sensor
+from stonesoup.types.array import StateVectors
 from stonesoup.types.groundtruth import GroundTruthPath
 
 
@@ -193,8 +195,31 @@ class MultiTransitionMovingPlatform(Platform):
 
 
 class Obstacle(Platform):
-    """A platform class representing obstacles in the environment that may block the visibility of targets."""
+    """A platform class representing obstacles in the environment that may 
+    block the visibility of targets."""
 
-    vertices: np.ndarray = Property(default=None,
-                                    doc="Vertices describing the obstacle shape. Vertices "
-                                        "are assumed to be connected by straight lines")
+    shape_data: StateVectors = Property(default=None,
+                                   doc="Vertices coordinated defined relative to the obstacle "
+                                   "origin point, with no orientation. Defaults to `None`.")
+    
+    _default_movable_class = FixedMovable
+
+    @property
+    def vertices(self):
+        rot_mat = build_rotation_matrix(self.orientation)
+        rotated_shape = \
+            rot_mat[np.ix_(self.position_mapping,self.position_mapping)] @ \
+                 self.shape_data[self.position_mapping,:]
+        return rotated_shape + self.position
+
+    @property
+    def edges(self):
+        return [np.concatenate([(self.vertices[pos_dim,:],np.roll(self.vertices[pos_dim,:],-1))],
+                               axis=0) for pos_dim in self.position_mapping]
+    
+    @property
+    def _b(self):
+        return np.array([self.edges[self.position_mapping[0]][0,:] -
+                          self.edges[self.position_mapping[0]][1,:],
+                         self.edges[self.position_mapping[1]][0,:] -
+                           self.edges[self.position_mapping[1]][1,:]])
