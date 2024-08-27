@@ -1,6 +1,6 @@
 from abc import abstractmethod, ABC
 from collections.abc import Sequence
-from typing import Union
+from typing import Set, Union, List, TYPE_CHECKING
 
 import numpy as np
 
@@ -10,7 +10,10 @@ from ..base import Property
 from ..models.clutter.clutter import ClutterModel
 from ..types.detection import TrueDetection, Detection
 from ..types.groundtruth import GroundTruthState
-# from ..platform.base import Obstacle
+from ..types.state import ParticleState, State
+
+if TYPE_CHECKING:
+    from ..platform.base import Obstacle
 
 
 class Sensor(PlatformMountable, Actionable):
@@ -135,6 +138,9 @@ class SimpleSensor(Sensor, ABC):
     def is_clutter_detectable(self, state: Detection) -> bool:
         raise NotImplementedError
 
+    def is_visible(self, state: State) -> bool:
+        return True
+
 
 class SensorSuite(Sensor):
     """Sensor composition type
@@ -180,35 +186,47 @@ class SensorSuite(Sensor):
         raise NotImplementedError
 
 
-class VisibilityInformed2DSensor(Sensor):
+class VisibilityInformed2DSensor(SimpleSensor):
     """The base class of 2D sensors that evaluate the visibility of
     targets in known cluttered environments.
     """
 
-    obstacles: list= Property(default=None,
+    obstacles: List['Obstacle']= Property(default=None,
                               doc="list of Obstacle type platforms that represent "
                                   "obstacles in the environment")
 
-    def visibility_check(self, state):
+    def is_visible(self, state):
         """Function for evaluating the visibility of states in the
         environment based on a 2D line of signt intersection check with obstacles"""
 
-        if not hasattr(self, 'position_mapping'):
-            raise NotImplementedError
+        if not self.obstacles:
+            return True
 
-        if hasattr(state, 'state_vectors'):
-            position = state.state_vectors[self.position_mapping, :]
+        if isinstance(state, ParticleState):
+            nstates = len(state)
         else:
-            position = state.state_vector[self.position_mapping, :]
+            nstates = 1
 
-        true_measurements = self.measurement_model.function(state, noise=False)
+        B = np.concatenate([obstacle._b for obstacle in self.obstacles], axis=1)
 
-        if hasattr(self, 'max_range'):
-            out_of_range = true_measurements[1,:] > self.max_range
-        else:
-            out_of_range = np.full((1,state.shape[2]), False)
+        A = np.array([state.state_vector[self.position_mapping[0],:] - self.position[0,0],
+                      state.state_vector[self.position_mapping[1],:] - self.position[1,0]])
 
-        if hasattr(self, 'fov_angle'):
-            out_of_fov = -self.fov_angle/2 < true_measurements[0, :] < self.fov_angle/2
-        else:
-            out_of_fov = np.full((1, state.shape[2]), False)
+        C = self.position[0:2] - np.concatenate([obstacle.vertices
+                                                 for obstacle in self.obstacles],axis=1)
+
+        intersections = np.full((B.shape[1],nstates),False)
+
+        for n in range(B.shape[1]):
+            denom = A[1,:]*B[0,n] - A[0,:]*B[1,n]
+            alpha = (B[1,n]*C[0,n]-B[0,n]*C[1,n])/denom
+            beta = (A[0,:]*C[1,n]-A[1,:]*C[0,n])/denom
+
+            intersections[n,:] = np.logical_and.reduce((alpha >= 0,alpha <= 1,beta >= 0,beta <= 1))
+
+        intersections = np.invert(np.any(intersections,0))
+        if nstates == 1:
+            intersections = intersections[0]
+
+        return intersections
+
