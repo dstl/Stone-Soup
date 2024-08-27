@@ -111,7 +111,7 @@ base_sensor = RadarRotatingBearingRange(
     fov_angle=np.radians(360),
     dwell_centre=StateVector([0.0]),
     max_range=np.inf,
-    resolutions={'dwell_centre': Angle(np.radians(30))}
+    resolution=Angle(np.radians(30))
 )
 base_sensor.timestamp = start_time
 
