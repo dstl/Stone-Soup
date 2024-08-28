@@ -525,8 +525,6 @@ class NetworkArchitecture(Architecture):
             else:
                 edge.update_messages(self.current_time, use_arrival_time=self.use_arrival_time)
 
-        # for node in self.processing_nodes:
-        #     node.process() # This should happen when a new message is received
         for fuse_node in self.fusion_nodes:
             fuse_node.fuse()
 
