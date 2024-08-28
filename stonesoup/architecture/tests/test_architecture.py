@@ -485,7 +485,7 @@ def test_information_arch_measure(edge_lists, ground_truths, times):
     all_detections = network.measure(ground_truths=ground_truths, current_time=start_time)
 
     # Check all_detections is a dictionary
-    assert type(all_detections) == dict
+    assert isinstance(all_detections, dict)
 
     # Check that number all_detections contains data for all sensor nodes
     assert all_detections.keys() == network.sensor_nodes
@@ -494,10 +494,10 @@ def test_information_arch_measure(edge_lists, ground_truths, times):
     # of targets
     for sensornode in network.sensor_nodes:
         # Check that a detection is made for all 3 targets
-        assert(len(all_detections[sensornode])) == 3
-        assert type(all_detections[sensornode]) == set
+        assert len(all_detections[sensornode]) == 3
+        assert isinstance(all_detections[sensornode], set)
         for detection in all_detections[sensornode]:
-            assert type(detection) == TrueDetection
+            assert isinstance(detection, TrueDetection)
 
     for node in network.sensor_nodes:
         # Check that each sensor node has data held for the detection of all 3 targets
@@ -511,13 +511,13 @@ def test_information_arch_measure_no_noise(edge_lists, ground_truths, times):
     all_detections = network.measure(ground_truths=ground_truths, current_time=start_time,
                                      noise=False)
 
-    assert type(all_detections) == dict
+    assert isinstance(all_detections, dict)
     assert all_detections.keys() == network.sensor_nodes
     for sensornode in network.sensor_nodes:
-        assert(len(all_detections[sensornode])) == 3
-        assert type(all_detections[sensornode]) == set
+        assert len(all_detections[sensornode]) == 3
+        assert isinstance(all_detections[sensornode], set)
         for detection in all_detections[sensornode]:
-            assert type(detection) == TrueDetection
+            assert isinstance(detection, TrueDetection)
 
 
 def test_information_arch_measure_no_detections(edge_lists, ground_truths, times):
@@ -526,13 +526,13 @@ def test_information_arch_measure_no_detections(edge_lists, ground_truths, times
     network = InformationArchitecture(edges=edges, current_time=None)
     all_detections = network.measure(ground_truths=[], current_time=start_time)
 
-    assert type(all_detections) == dict
+    assert isinstance(all_detections, dict)
     assert all_detections.keys() == network.sensor_nodes
 
     # There should exist a key for each sensor node containing an empty list
     for sensornode in network.sensor_nodes:
-        assert(len(all_detections[sensornode])) == 0
-        assert type(all_detections[sensornode]) == set
+        assert len(all_detections[sensornode]) == 0
+        assert isinstance(all_detections[sensornode], set)
 
 
 def test_information_arch_measure_no_time(edge_lists, ground_truths):
@@ -540,13 +540,13 @@ def test_information_arch_measure_no_time(edge_lists, ground_truths):
     network = InformationArchitecture(edges=edges)
     all_detections = network.measure(ground_truths=ground_truths)
 
-    assert type(all_detections) == dict
+    assert isinstance(all_detections, dict)
     assert all_detections.keys() == network.sensor_nodes
     for sensornode in network.sensor_nodes:
-        assert(len(all_detections[sensornode])) == 3
-        assert type(all_detections[sensornode]) == set
+        assert len(all_detections[sensornode]) == 3
+        assert isinstance(all_detections[sensornode], set)
         for detection in all_detections[sensornode]:
-            assert type(detection) == TrueDetection
+            assert isinstance(detection, TrueDetection)
 
 
 def test_fully_propagated(edge_lists, times, ground_truths):
