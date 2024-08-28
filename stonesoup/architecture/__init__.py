@@ -370,11 +370,9 @@ class InformationArchitecture(Architecture):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
-        if isinstance(self, InformationArchitecture):
-            for node in self.all_nodes:
-                if isinstance(node, RepeaterNode):
-                    raise TypeError("Information architecture should not contain any repeater "
-                                    "nodes")
+    if any([isinstance(node, RepeaterNode) for node in self.all_nodes]):
+        raise TypeError("Information architecture should not contain any repeater "
+                        "nodes")
         for fusion_node in self.fusion_nodes:
             pass  # fusion_node.tracker.set_time(self.current_time)
 
