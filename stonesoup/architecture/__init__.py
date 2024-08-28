@@ -370,11 +370,11 @@ class InformationArchitecture(Architecture):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
-    if any([isinstance(node, RepeaterNode) for node in self.all_nodes]):
-        raise TypeError("Information architecture should not contain any repeater "
-                        "nodes")
-        for fusion_node in self.fusion_nodes:
-            pass  # fusion_node.tracker.set_time(self.current_time)
+        if any([isinstance(node, RepeaterNode) for node in self.all_nodes]):
+            raise TypeError("Information architecture should not contain any repeater "
+                            "nodes")
+            for fusion_node in self.fusion_nodes:
+                pass  # fusion_node.tracker.set_time(self.current_time)
 
     def measure(self, ground_truths: List[GroundTruthPath], noise: Union[bool, np.ndarray] = True,
                 **kwargs) -> Dict[SensorNode, Set[Union[TrueDetection, Clutter]]]:
