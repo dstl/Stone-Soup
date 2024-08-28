@@ -96,7 +96,6 @@ class Architecture(Base):
         from node1 to node2 if key1=node1 and key2=node2. If no path exists from node1 to node2,
         a KeyError is raised.
         """
-        # Initiate a new DiGraph as self.digraph isn't necessarily directed.
         g = nx.DiGraph()
         for edge in self.edges.edge_list:
             g.add_edge(edge[0], edge[1])
