@@ -728,14 +728,13 @@ def test_net_arch_fully_propagated(edge_lists, times, ground_truths, radar_nodes
             assert len(node.data_held['created'][key]) == 3
 
     # Put some data in a Node's 'messages_to_pass_on'
-    edge = edges.get((radar_nodes['a'], radar_nodes['c']))
-    node = radar_nodes['a']
+    edge = edges.get((node_A, repeaternode1))[0]
     message = Message(edge, datetime.datetime(2016, 1, 2, 3, 4, 5), start_time,
                       DataPiece(node, node, 'test_data', datetime.datetime(2016, 1, 2, 3, 4, 5)))
-    node.messages_to_pass_on.append(message)
+    edge.sender.messages_to_pass_on.append(message)
 
     # Network should not be fully propagated
-    assert network_arch.fully_propagated is False
+    assert not network_arch.fully_propagated
 
     network_arch.propagate(time_increment=1)
 
