@@ -384,7 +384,9 @@ class InformationArchitecture(Architecture):
         # Filter out only the ground truths that have already happened at self.current_time
         current_ground_truths = OrderedSet()
         for ground_truth_path in ground_truths:
-            current_ground_truths.add(GroundTruthPath(ground_truth_path[:self.current_time + timedelta(seconds=1e-99)]))
+            available_gtp = GroundTruthPath(ground_truth_path[:self.current_time + timedelta(seconds=1e-99)])
+            if len(available_gtp) > 0:
+                current_ground_truths.add(available_gtp)
 
         for sensor_node in self.sensor_nodes:
             all_detections[sensor_node] = set()
@@ -468,16 +470,17 @@ class NetworkArchitecture(Architecture):
         """ Similar to the method for :class:`~.SensorSuite`. Updates each node. """
         all_detections = dict()
 
-        # Get rid of ground truths that have not yet happened
-        # (ie GroundTruthState's with timestamp after self.current_time)
-        new_ground_truths = set()
+        # Filter out only the ground truths that have already happened at self.current_time
+        current_ground_truths = set()
         for ground_truth_path in ground_truths:
-            # need an if len(states) == 0 continue condition here?
-            new_ground_truths.add(GroundTruthPath(ground_truth_path[:self.current_time + timedelta(seconds=1e-99)]))
+            available_gtp = GroundTruthPath(ground_truth_path[:self.current_time + timedelta(seconds=1e-99)])
+            if len(available_gtp) > 0:
+                current_ground_truths.add(available_gtp)
+
 
         for sensor_node in self.sensor_nodes:
             all_detections[sensor_node] = set()
-            for detection in sensor_node.sensor.measure(new_ground_truths, noise, **kwargs):
+            for detection in sensor_node.sensor.measure(current_ground_truths, noise, **kwargs):
                 all_detections[sensor_node].add(detection)
 
             for data in all_detections[sensor_node]:
