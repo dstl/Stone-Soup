@@ -101,9 +101,9 @@ class SingleDistanceHypothesis(SingleHypothesis):
 class SingleProbabilityHypothesis(ProbabilityHypothesis, SingleHypothesis):
     """Single Measurement Probability scored hypothesis subclass."""
 
-    def __hash__(self):
-        return hash((self.probability, self.prediction, self.measurement,
-                    self.measurement_prediction))
+    # def __hash__(self):
+    #     return hash((self.probability, self.prediction, self.measurement,
+    #                 self.measurement_prediction))
 
 
 class JointHypothesis(Type, UserDict):

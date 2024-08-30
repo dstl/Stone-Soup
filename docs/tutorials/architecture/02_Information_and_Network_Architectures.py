@@ -39,7 +39,7 @@ import random
 # %%
 # 1 - Ground Truth
 # ----------------
-# We start this tutorial by generating a set of :class:`~.GroundTruthPath`s as a basis for a
+# We start this tutorial by generating a set of :class:`~.GroundTruthPath`\s as a basis for a
 # tracking simulation.
 
 
@@ -160,9 +160,9 @@ base_tracker = MultiTargetTracker(
 # %%
 # 3 - Generate Identical Architectures
 # ------------------------------------
-# The NetworkArchitecture class has a property information_arch, which contains the
-# information-architecture-representation of the underlying network architecture. This means
-# that if we use the NetworkArchitectureGenerator class to generate a pair of identical network
+# The :class:`~.NetworkArchitecture` class has a property information_arch, which contains the
+# information architecture representation of the underlying network architecture. This means
+# that if we use the :class:`~.NetworkArchitectureGenerator` class to generate a pair of identical network
 # architectures, we can extract the information architecture from one.
 #
 # This will provide us with two completely separate architecture classes: a network architecture,

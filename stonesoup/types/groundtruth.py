@@ -42,13 +42,6 @@ class GroundTruthPath(StateMutableSequence):
         if self.id is None:
             self.id = str(uuid.uuid4())
 
-    def available_at_time(self, time: datetime):
-        new_path = []
-        for state in self.states:
-            if state.timestamp <= time:
-                new_path.append(state)
-        return GroundTruthPath(new_path, self.id)
-
 
 class CompositeGroundTruthState(CompositeState):
     """Composite ground truth state type.
