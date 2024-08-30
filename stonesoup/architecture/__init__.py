@@ -384,7 +384,7 @@ class InformationArchitecture(Architecture):
         # Filter out only the ground truths that have already happened at self.current_time
         current_ground_truths = OrderedSet()
         for ground_truth_path in ground_truths:
-            current_ground_truths.add(ground_truth_path[:self.current_time+1e-99])
+            current_ground_truths.add(ground_truth_path[:self.current_time + timedelta(seconds=1e-99)])
 
         for sensor_node in self.sensor_nodes:
             all_detections[sensor_node] = set()
@@ -473,7 +473,7 @@ class NetworkArchitecture(Architecture):
         new_ground_truths = set()
         for ground_truth_path in ground_truths:
             # need an if len(states) == 0 continue condition here?
-            new_ground_truths.add(ground_truth_path[:self.current_time+1e-99])
+            new_ground_truths.add(ground_truth_path[:self.current_time + timedelta(seconds=1e-99)])
 
         for sensor_node in self.sensor_nodes:
             all_detections[sensor_node] = set()
