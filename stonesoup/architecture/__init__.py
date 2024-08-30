@@ -1,21 +1,21 @@
 from abc import abstractmethod
+from datetime import datetime, timedelta
 from operator import attrgetter
-
-import pydot
+from typing import List, Tuple, Collection, Set, Union, Dict
 from ordered_set import OrderedSet
 
-from ..base import Base, Property
-from .node import Node, SensorNode, RepeaterNode, FusionNode
-from .edge import Edges, DataPiece, Edge
-from ..types.groundtruth import GroundTruthPath
-from ..types.detection import TrueDetection, Clutter
-from ._functions import _default_label_gen
-
-from typing import List, Tuple, Collection, Set, Union, Dict
+import graphviz
 import numpy as np
 import networkx as nx
-import graphviz
-from datetime import datetime, timedelta
+import pydot
+
+from .edge import Edges, DataPiece, Edge
+from .node import Node, SensorNode, RepeaterNode, FusionNode
+from ._functions import _default_label_gen
+from ..base import Base, Property
+from ..types.detection import TrueDetection, Clutter
+from ..types.groundtruth import GroundTruthPath
+
 
 
 class Architecture(Base):
@@ -304,17 +304,18 @@ class Architecture(Base):
         """Returns `True` if the :class:`Architecture` is hierarchical, otherwise `False`. Uses
         the following logic: An architecture is hierarchical if and only if there exists only
         one node with 0 recipients and all other nodes have exactly 1 recipient."""
-        if not len(self.top_level_nodes) == 1:
+        top_nodes = self.top_level_nodes
+        if len(self.top_level_nodes) != 1:
             return False
         for node in self.all_nodes:
-            if node not in self.top_level_nodes and len(self.recipients(node)) != 1:
+            if node not in top_nodes and len(self.recipients(node)) != 1:
                 return False
         return True
 
     @property
     def is_centralised(self):
         """
-        Returns 'True' if the :class:`Architecture` is hierarchical, otherwise 'False'.
+        Returns 'True' if the :class:`Architecture` is centralised, otherwise 'False'.
         Uses the following logic: An architecture is centralised if and only if there exists only
         one node with 0 recipients, and there exists a path to this node from every other node in
         the architecture.
@@ -322,9 +323,8 @@ class Architecture(Base):
         top_nodes = self.top_level_nodes
         if len(top_nodes) != 1:
             return False
-        else:
-            top_node = top_nodes.pop()
-        for node in self.all_nodes - self.top_level_nodes:
+        top_node = top_nodes.pop()
+        for node in self.all_nodes - {top_node}:
             try:
                 _ = self.shortest_path_dict[node][top_node]
             except KeyError:
@@ -381,16 +381,14 @@ class InformationArchitecture(Architecture):
         """ Similar to the method for :class:`~.SensorSuite`. Updates each node. """
         all_detections = dict()
 
-        # Get rid of ground truths that have not yet happened
-        # (ie GroundTruthState's with timestamp after self.current_time)
-        new_ground_truths = OrderedSet()
+        # Filter out only the ground truths that have already happened at self.current_time
+        current_ground_truths = OrderedSet()
         for ground_truth_path in ground_truths:
-            # need an if len(states) == 0 continue condition here?
-            new_ground_truths.add(ground_truth_path.available_at_time(self.current_time))
+            current_ground_truths.add(ground_truth_path[:self.current_time+1e-99])
 
         for sensor_node in self.sensor_nodes:
             all_detections[sensor_node] = set()
-            for detection in sensor_node.sensor.measure(new_ground_truths, noise, **kwargs):
+            for detection in sensor_node.sensor.measure(current_ground_truths, noise, **kwargs):
                 all_detections[sensor_node].add(detection)
 
             for data in all_detections[sensor_node]:
@@ -406,19 +404,16 @@ class InformationArchitecture(Architecture):
         for edge in self.edges.edges:
             if failed_edges and edge in failed_edges:
                 edge._failed(self.current_time, time_increment)
-                continue  # No data passed along these edges
+                continue  # No data passed along these edges.
 
             # Initial update of message categories
             edge.update_messages(self.current_time, use_arrival_time=self.use_arrival_time)
-            # fuse goes here?
             for data_piece, time_pertaining in edge.unsent_data:
                 edge.send_message(data_piece, time_pertaining, data_piece.time_arrived)
 
             # Need to re-run update messages so that messages aren't left as 'pending'
             edge.update_messages(self.current_time, use_arrival_time=self.use_arrival_time)
 
-        # for node in self.processing_nodes:
-        #     node.process() # This should happen when a new message is received
         for fuse_node in self.fusion_nodes:
             fuse_node.fuse()
 
@@ -478,7 +473,7 @@ class NetworkArchitecture(Architecture):
         new_ground_truths = set()
         for ground_truth_path in ground_truths:
             # need an if len(states) == 0 continue condition here?
-            new_ground_truths.add(ground_truth_path.available_at_time(self.current_time))
+            new_ground_truths.add(ground_truth_path[:self.current_time+1e-99])
 
         for sensor_node in self.sensor_nodes:
             all_detections[sensor_node] = set()
