@@ -189,9 +189,9 @@ for state in reversed(list(track.last_timestamp_generator())):
 asd_states = sorted(asd_states, key=attrgetter('timestamp'))
 
 plotter.plot_tracks({track2}, [0, 2], uncertainty=True, line=dict(color='green'),
-                    track_label="Equivalent track without ASD")
+                    label="Equivalent track without ASD")
 plotter.plot_tracks({Track(asd_states)}, [0, 2], line=dict(color='red'),
-                    track_label="ASD Track")
+                    label="ASD Track")
 plotter.fig
 
 # %%

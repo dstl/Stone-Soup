@@ -185,9 +185,9 @@ for (time, sd1), (_, sd2) in zip(radar1plot, radar2plot):
 # Plot the detections from the two radars
 plotter = Plotterly()
 plotter.plot_measurements(s1_detections, [0, 2], marker=dict(color='red'),
-                          measurements_label='Sensor 1 measurements')
+                          label='Sensor 1 measurements')
 plotter.plot_measurements(s2_detections, [0, 2], marker=dict(color='blue'),
-                          measurements_label='Sensor 2 measurements')
+                          label='Sensor 2 measurements')
 plotter.plot_sensors({sensor1_platform, sensor2_platform}, [0, 1],
                      marker=dict(color='black', symbol='1', size=10))
 plotter.plot_ground_truths(truths, [0, 2])
@@ -431,12 +431,12 @@ truths = set(groundtruth_simulation.groundtruth_paths)
 # Let's visualise the various tracks and detections in the cases
 # using the Kalman and particle filters.
 
-plotter.plot_tracks(PF_track1, [0, 2], line=dict(color="orange"), track_label='PF partial track 1')
-plotter.plot_tracks(PF_track2, [0, 2], line=dict(color="gold"), track_label='PF partial track 2')
-plotter.plot_tracks(PF_fused_track, [0, 2], line=dict(color="red"), track_label='PF fused track')
-plotter.plot_tracks(KF_fused_track, [0, 2], line=dict(color="blue"), track_label='KF fused track')
-plotter.plot_tracks(KF_track1, [0, 2], line=dict(color="cyan"), track_label='KF partial track 1')
-plotter.plot_tracks(KF_track2, [0, 2], line=dict(color="skyblue"), track_label='KF partial track 2')
+plotter.plot_tracks(PF_track1, [0, 2], line=dict(color="orange"), label='PF partial track 1')
+plotter.plot_tracks(PF_track2, [0, 2], line=dict(color="gold"), label='PF partial track 2')
+plotter.plot_tracks(PF_fused_track, [0, 2], line=dict(color="red"), label='PF fused track')
+plotter.plot_tracks(KF_fused_track, [0, 2], line=dict(color="blue"), label='KF fused track')
+plotter.plot_tracks(KF_track1, [0, 2], line=dict(color="cyan"), label='KF partial track 1')
+plotter.plot_tracks(KF_track2, [0, 2], line=dict(color="skyblue"), label='KF partial track 2')
 
 plotter.fig
 

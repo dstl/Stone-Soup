@@ -349,7 +349,7 @@ for time, current_tracks in tracker:
     tracks.update(current_tracks)
 
 plotter.plot_measurements(centroid_detections, [0, 2], marker=dict(color='red'),
-                          measurements_label='Cluster centroids')
+                          label='Cluster centroids')
 plotter.plot_tracks(tracks, [0, 2])
 plotter.fig
 

@@ -85,8 +85,8 @@ for t in timesteps:
 # :class:`~.Plotterly` plotting class:
 plotter_xy = Plotterly(title="Bird's Eye View of Targets")
 mapping = [0, 2]
-plotter_xy.plot_ground_truths(target_1, mapping=[0, 2], truths_label="Target 1")
-plotter_xy.plot_ground_truths(target_2, mapping=[0, 2], truths_label="Target 2")
+plotter_xy.plot_ground_truths(target_1, mapping=[0, 2], label="Target 1")
+plotter_xy.plot_ground_truths(target_2, mapping=[0, 2], label="Target 2")
 plotter_xy.fig
 
 # %%
@@ -130,9 +130,9 @@ plotter_az_t_cart = Plotterly(dimension=1,
                               yaxis=dict(title=dict(text="Bearing (Radians)"))
                               )
 plotter_az_t_cart.plot_ground_truths({angular_ground_truth_1},
-                                     mapping=mapping, truths_label="Target 1")
+                                     mapping=mapping, label="Target 1")
 plotter_az_t_cart.plot_ground_truths({angular_ground_truth_2},
-                                     mapping=mapping, truths_label="Target 2")
+                                     mapping=mapping, label="Target 2")
 plotter_az_t_cart.plot_measurements(detections, mapping=mapping, convert_measurements=False)
 plotter_az_t_cart.fig
 
@@ -154,8 +154,8 @@ plotter_az_t_cart.fig
 # ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 mapping = [0]
 plotter_az_t = PolarPlotterly(title="Azimuth Angle (Degrees) vs Time (s)")
-plotter_az_t.plot_ground_truths({angular_ground_truth_1}, mapping=mapping, truths_label="Target 1")
-plotter_az_t.plot_ground_truths({angular_ground_truth_2}, mapping=mapping, truths_label="Target 2")
+plotter_az_t.plot_ground_truths({angular_ground_truth_1}, mapping=mapping, label="Target 1")
+plotter_az_t.plot_ground_truths({angular_ground_truth_2}, mapping=mapping, label="Target 2")
 plotter_az_t.plot_measurements(detections, mapping=mapping, convert_measurements=False)
 plotter_az_t.fig
 
@@ -175,8 +175,8 @@ plotter_az_t.fig
 # sphinx_gallery_thumbnail_number = 4
 plotter_az_r = PolarPlotterly(title="Azimuth Angle (Degrees) vs Range (m)")
 mapping = [0, 1]
-plotter_az_r.plot_ground_truths({angular_ground_truth_1}, mapping=mapping, truths_label="Target 1")
-plotter_az_r.plot_ground_truths({angular_ground_truth_2}, mapping=mapping, truths_label="Target 2")
+plotter_az_r.plot_ground_truths({angular_ground_truth_1}, mapping=mapping, label="Target 1")
+plotter_az_r.plot_ground_truths({angular_ground_truth_2}, mapping=mapping, label="Target 2")
 plotter_az_r.plot_measurements(detections, mapping=mapping, convert_measurements=False)
 plotter_az_r.fig
 

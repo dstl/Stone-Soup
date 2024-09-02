@@ -302,9 +302,9 @@ plotter = AnimatedPlotterly(timestamps)
 plotter.plot_ground_truths(truths, [0, 2])
 
 plotter.plot_measurements(scans_detections, [0, 2])
-plotter.plot_tracks(track, [0, 2], track_label='Track dealing with OOSM',
+plotter.plot_tracks(track, [0, 2], label='Track dealing with OOSM',
                     line=dict(color='blue'))
-plotter.plot_tracks(track2, [0, 2], track_label='Track ignoring OOSM')
+plotter.plot_tracks(track2, [0, 2], label='Track ignoring OOSM')
 plotter.fig
 
 # %%

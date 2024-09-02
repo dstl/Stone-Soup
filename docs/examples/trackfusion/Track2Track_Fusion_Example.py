@@ -629,17 +629,17 @@ for plotter in [plotter1, plotter2]:
     plotter.plot_ground_truths(truths, [0, 2],
                                color='black')
     plotter.plot_measurements(s1_detections, [0, 2], color='orange', marker='*',
-                              measurements_label='Measurements - Airborne Radar')
+                              label='Measurements - Airborne Radar')
     plotter.plot_measurements(s2_detections, [0, 2], color='blue', marker='*',
-                              measurements_label='Measurements - Ground Radar')
+                              label='Measurements - Ground Radar')
     plotter.plot_tracks(jpda_tracks, [0, 2], color='red',
-                        track_label='Tracks - Airborne Radar (JPDAF)')
+                        label='Tracks - Airborne Radar (JPDAF)')
     plotter.plot_tracks(gmlcc_tracks, [0, 2], color='purple',
-                        track_label='Tracks - Ground Radar (GM-LCC)')
+                        label='Tracks - Ground Radar (GM-LCC)')
     plotter.plot_tracks(meas_fusion_tracks, [0, 2], color='green',
-                        track_label='Tracks - Measurement Fusion (GM-PHD)')
+                        label='Tracks - Measurement Fusion (GM-PHD)')
     plotter.plot_tracks(track_fusion_tracks, [0, 2], color='pink',
-                        track_label='Tracks - Covariance Intersection (GM-PHD)')
+                        label='Tracks - Covariance Intersection (GM-PHD)')
 
     # Format the legend a bit. Set the position outside of the plot, and
     # swap the order of the clutter and ground radar measurements

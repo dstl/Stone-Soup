@@ -429,7 +429,7 @@ for measurement in measurements:
 
 plotter = Plotter()
 plotter.plot_ground_truths(truth, [0, 2], linewidth=3.0, color='black')
-plotter.plot_tracks(track, [0, 2], track_label='AKKF - quadratic', color='royalblue')
+plotter.plot_tracks(track, [0, 2], label='AKKF - quadratic', color='royalblue')
 plotter.fig
 
 # %%
