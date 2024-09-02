@@ -203,18 +203,20 @@ class Edge(Base):
 
     @property
     def unsent_data(self):
-        from .node import SensorFusionNode, SensorNode, FusionNode
+        from .node import SensorFusionNode, SensorNode, FusionNode, RepeaterNode, Node
         """Data held by the sender that has not been sent to the recipient."""
         unsent = []
         if isinstance(type(self.sender.data_held), type(None)) or self.sender.data_held is None:
             return unsent
         else:
-            if isinstance(self.nodes[0], SensorFusionNode):
+            if isinstance(self.nodes[0], (SensorFusionNode, Node)):
                 statuses = ["fused", "created"]
             elif isinstance(self.nodes[0], FusionNode):
                 statuses = ["fused"]
             elif isinstance(self.nodes[0], SensorNode):
                 statuses = ["created"]
+            elif isinstance(self.nodes[0], (RepeaterNode, Node)):
+                statuses = []
             else:
                 raise NotImplementedError("Node should be a Sensor, Fusion or SensorFusion node.")
 
