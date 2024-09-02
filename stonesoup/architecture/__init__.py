@@ -17,7 +17,6 @@ from ..types.detection import TrueDetection, Clutter
 from ..types.groundtruth import GroundTruthPath
 
 
-
 class Architecture(Base):
     """Abstract Architecture Base class. Subclasses must implement the
     :meth:`~Architecture.propogate` method.
@@ -96,7 +95,8 @@ class Architecture(Base):
         from node1 to node2 if key1=node1 and key2=node2. If no path exists from node1 to node2,
         a KeyError is raised.
         """
-        g = self.di_graph
+        # Cannot use self.di_graph as it is not adjusted when edges are removed after instantiation of architecture.
+        g = nx.DiGraph()
         for edge in self.edges.edge_list:
             g.add_edge(edge[0], edge[1])
         path = nx.all_pairs_shortest_path_length(g)
@@ -373,8 +373,6 @@ class InformationArchitecture(Architecture):
         if any([isinstance(node, RepeaterNode) for node in self.all_nodes]):
             raise TypeError("Information architecture should not contain any repeater "
                             "nodes")
-            for fusion_node in self.fusion_nodes:
-                pass  # fusion_node.tracker.set_time(self.current_time)
 
     def measure(self, ground_truths: List[GroundTruthPath], noise: Union[bool, np.ndarray] = True,
                 **kwargs) -> Dict[SensorNode, Set[Union[TrueDetection, Clutter]]]:
@@ -384,7 +382,7 @@ class InformationArchitecture(Architecture):
         # Filter out only the ground truths that have already happened at self.current_time
         current_ground_truths = OrderedSet()
         for ground_truth_path in ground_truths:
-            available_gtp = GroundTruthPath(ground_truth_path[:self.current_time + timedelta(seconds=1e-99)])
+            available_gtp = GroundTruthPath(ground_truth_path[:self.current_time + timedelta(microseconds=1)])
             if len(available_gtp) > 0:
                 current_ground_truths.add(available_gtp)
 
@@ -473,7 +471,7 @@ class NetworkArchitecture(Architecture):
         # Filter out only the ground truths that have already happened at self.current_time
         current_ground_truths = set()
         for ground_truth_path in ground_truths:
-            available_gtp = GroundTruthPath(ground_truth_path[:self.current_time + timedelta(seconds=1e-99)])
+            available_gtp = GroundTruthPath(ground_truth_path[:self.current_time + timedelta(seconds=1e-6)])
             if len(available_gtp) > 0:
                 current_ground_truths.add(available_gtp)
 

@@ -11,7 +11,6 @@ from ..types.track import Track
 from ..types.detection import Detection
 from ..types.hypothesis import Hypothesis
 from ._functions import _dict_set
-from .node import SensorFusionNode
 
 if TYPE_CHECKING:
     from .node import Node
@@ -204,13 +203,22 @@ class Edge(Base):
 
     @property
     def unsent_data(self):
+        from .node import SensorFusionNode, SensorNode, FusionNode
         """Data held by the sender that has not been sent to the recipient."""
         unsent = []
         if isinstance(type(self.sender.data_held), type(None)) or self.sender.data_held is None:
             return unsent
         else:
-            for status in ["fused"] if isinstance(self.nodes[0], SensorFusionNode) else \
-                    ["fused", "created"]:
+            if isinstance(self.nodes[0], SensorFusionNode):
+                statuses = ["fused", "created"]
+            elif isinstance(self.nodes[0], FusionNode):
+                statuses = ["fused"]
+            elif isinstance(self.nodes[0], SensorNode):
+                statuses = ["created"]
+            else:
+                raise NotImplementedError("Node should be a Sensor, Fusion or SensorFusion node.")
+
+            for status in statuses:
                 for time_pertaining in self.sender.data_held[status]:
                     for data_piece in self.sender.data_held[status][time_pertaining]:
                         # Data will be sent to any nodes it hasn't been sent to before
