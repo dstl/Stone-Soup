@@ -6,8 +6,10 @@ import datetime
 from stonesoup.architecture import InformationArchitecture, NetworkArchitecture, \
     NonPropagatingArchitecture
 from ..edge import Edge, Edges, FusionQueue, Message, DataPiece
+from ..generator import NetworkArchitectureGenerator
 from ..node import RepeaterNode, SensorNode, FusionNode
 from stonesoup.types.detection import TrueDetection
+from ...types.track import Track
 
 
 def test_hierarchical_plot(nodes, edge_lists):
@@ -675,71 +677,116 @@ def test_network_arch(radar_sensors, ground_truths, tracker, track_tracker, time
     assert network_arch.information_arch.fusion_nodes == {node_C, node_F, node_G}
 
 
-def test_net_arch_fully_propagated(edge_lists, times, ground_truths, radar_nodes, radar_sensors,
-                                   tracker, track_tracker):
-    start_time = times['start']
-    sensor_set = radar_sensors
-    fq = FusionQueue()
+# def test_net_arch_fully_propagated(edge_lists, times, ground_truths, radar_nodes, radar_sensors,
+#                                    tracker, track_tracker):
+#     start_time = times['start']
+#     sensor_set = radar_sensors
+#     fq = FusionQueue()
+#
+#     node_A = SensorNode(sensor=sensor_set[0], label='SensorNode A')
+#     node_B = SensorNode(sensor=sensor_set[2], label='SensorNode B')
+#
+#     node_C_tracker = copy.deepcopy(tracker)
+#     node_C_tracker.detector = FusionQueue()
+#     node_C = FusionNode(tracker=node_C_tracker, fusion_queue=node_C_tracker.detector, latency=0,
+#                         label='FusionNode C')
+#
+#     ##
+#     node_D = SensorNode(sensor=sensor_set[1], label='SensorNode D')
+#     node_E = SensorNode(sensor=sensor_set[3], label='SensorNode E')
+#
+#     node_F_tracker = copy.deepcopy(tracker)
+#     node_F_tracker.detector = FusionQueue()
+#     node_F = FusionNode(tracker=node_F_tracker, fusion_queue=node_F_tracker.detector, latency=0)
+#
+#     node_H = SensorNode(sensor=sensor_set[4])
+#
+#     node_G = FusionNode(tracker=track_tracker, fusion_queue=fq, latency=0)
+#
+#     repeaternode1 = RepeaterNode(label='RepeaterNode 1')
+#     repeaternode2 = RepeaterNode(label='RepeaterNode 2')
+#
+#     edges = Edges([Edge((node_A, repeaternode1), edge_latency=0.5),
+#                    Edge((repeaternode1, node_C), edge_latency=0.5),
+#                    Edge((node_B, node_C)),
+#                    Edge((node_A, repeaternode2), edge_latency=0.5),
+#                    Edge((repeaternode2, node_C)),
+#                    Edge((repeaternode1, repeaternode2)),
+#                    Edge((node_D, node_F)), Edge((node_E, node_F)),
+#                    Edge((node_C, node_G), edge_latency=0),
+#                    Edge((node_F, node_G), edge_latency=0),
+#                    Edge((node_H, node_G))
+#                    ])
+#
+#     network_arch = NetworkArchitecture(
+#         edges=edges,
+#         current_time=start_time)
+#
+#     network_arch.measure(ground_truths=ground_truths, noise=True)
+#
+#     for node in network_arch.sensor_nodes:
+#         # Check that each sensor node has data held for the detection of all 3 targets
+#         for key in node.data_held['created'].keys():
+#             assert len(node.data_held['created'][key]) == 3
+#
+#     # Put some data in a Node's 'messages_to_pass_on'
+#     edge = edges.get((node_A, repeaternode1))[0]
+#     message = Message(edge, datetime.datetime(2016, 1, 2, 3, 4, 5), start_time,
+#                       DataPiece(node_A, node_A, 'test_data', datetime.datetime(2016, 1, 2, 3, 4, 5)))
+#     node_A.messages_to_pass_on.append(message)
+#
+#     # Network should not be fully propagated
+#     assert not network_arch.fully_propagated
+#
+#     network_arch.propagate(time_increment=1)
+#
+#     # Network should now be fully propagated
+#     assert network_arch.fully_propagated
 
-    node_A = SensorNode(sensor=sensor_set[0], label='SensorNode A')
-    node_B = SensorNode(sensor=sensor_set[2], label='SensorNode B')
+def test_net_arch_fully_propagated(generator_params, ground_truths):
+    start_time = generator_params['start_time']
+    base_sensor = generator_params['base_sensor']
+    base_tracker = generator_params['base_tracker']
 
-    node_C_tracker = copy.deepcopy(tracker)
-    node_C_tracker.detector = FusionQueue()
-    node_C = FusionNode(tracker=node_C_tracker, fusion_queue=node_C_tracker.detector, latency=0,
-                        label='FusionNode C')
+    gen = NetworkArchitectureGenerator(arch_type='hierarchical',
+                                       start_time=start_time,
+                                       mean_degree=2,
+                                       node_ratio=[3, 2, 1],
+                                       base_tracker=base_tracker,
+                                       base_sensor=base_sensor,
+                                       n_archs=1)
 
-    ##
-    node_D = SensorNode(sensor=sensor_set[1], label='SensorNode D')
-    node_E = SensorNode(sensor=sensor_set[3], label='SensorNode E')
+    arch = gen.generate()[0]
 
-    node_F_tracker = copy.deepcopy(tracker)
-    node_F_tracker.detector = FusionQueue()
-    node_F = FusionNode(tracker=node_F_tracker, fusion_queue=node_F_tracker.detector, latency=0)
+    # Pre-test checks on generated architecture
+    assert isinstance(arch, NetworkArchitecture)
+    assert len(arch.sensor_nodes) == sum(gen.node_ratio[:2])
+    assert len(arch.fusion_nodes) == sum(gen.node_ratio[1:])
 
-    node_H = SensorNode(sensor=sensor_set[4])
+    arch.measure(ground_truths=ground_truths, noise=True)
 
-    node_G = FusionNode(tracker=track_tracker, fusion_queue=fq, latency=0)
-
-    repeaternode1 = RepeaterNode(label='RepeaterNode 1')
-    repeaternode2 = RepeaterNode(label='RepeaterNode 2')
-
-    edges = Edges([Edge((node_A, repeaternode1), edge_latency=0.5),
-                   Edge((repeaternode1, node_C), edge_latency=0.5),
-                   Edge((node_B, node_C)),
-                   Edge((node_A, repeaternode2), edge_latency=0.5),
-                   Edge((repeaternode2, node_C)),
-                   Edge((repeaternode1, repeaternode2)),
-                   Edge((node_D, node_F)), Edge((node_E, node_F)),
-                   Edge((node_C, node_G), edge_latency=0),
-                   Edge((node_F, node_G), edge_latency=0),
-                   Edge((node_H, node_G))
-                   ])
-
-    network_arch = NetworkArchitecture(
-        edges=edges,
-        current_time=start_time)
-
-    network_arch.measure(ground_truths=ground_truths, noise=True)
-
-    for node in network_arch.sensor_nodes:
+    for node in arch.sensor_nodes:
         # Check that each sensor node has data held for the detection of all 3 targets
         for key in node.data_held['created'].keys():
+            print(key)
             assert len(node.data_held['created'][key]) == 3
 
-    # Put some data in a Node's 'messages_to_pass_on'
-    edge = edges.get((node_A, repeaternode1))[0]
+    edge = {edge for edge in arch.edges if
+            isinstance(edge.nodes[0], RepeaterNode) and
+            isinstance(edge.nodes[1], FusionNode)}.pop()
+
     message = Message(edge, datetime.datetime(2016, 1, 2, 3, 4, 5), start_time,
-                      DataPiece(node, node, 'test_data', datetime.datetime(2016, 1, 2, 3, 4, 5)))
+                      DataPiece(edge.sender, edge.sender, Track([]), datetime.datetime(2016, 1, 2, 3, 4, 5)))
+
     edge.sender.messages_to_pass_on.append(message)
 
     # Network should not be fully propagated
-    assert not network_arch.fully_propagated
+    assert not arch.fully_propagated
 
-    network_arch.propagate(time_increment=1)
+    arch.propagate(time_increment=1)
 
     # Network should now be fully propagated
-    assert network_arch.fully_propagated
+    assert arch.fully_propagated
 
 
 def test_non_propagating_arch(edge_lists, times):
