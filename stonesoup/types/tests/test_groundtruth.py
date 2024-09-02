@@ -3,8 +3,6 @@ import numpy as np
 from ..groundtruth import GroundTruthState, GroundTruthPath, CategoricalGroundTruthState, \
     CompositeGroundTruthState
 
-from datetime import datetime
-
 
 def test_groundtruthpath():
     empty_path = GroundTruthPath()

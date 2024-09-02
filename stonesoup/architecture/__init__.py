@@ -95,7 +95,8 @@ class Architecture(Base):
         from node1 to node2 if key1=node1 and key2=node2. If no path exists from node1 to node2,
         a KeyError is raised.
         """
-        # Cannot use self.di_graph as it is not adjusted when edges are removed after instantiation of architecture.
+        # Cannot use self.di_graph as it is not adjusted when edges are removed after
+        # instantiation of architecture.
         g = nx.DiGraph()
         for edge in self.edges.edge_list:
             g.add_edge(edge[0], edge[1])
@@ -382,7 +383,8 @@ class InformationArchitecture(Architecture):
         # Filter out only the ground truths that have already happened at self.current_time
         current_ground_truths = OrderedSet()
         for ground_truth_path in ground_truths:
-            available_gtp = GroundTruthPath(ground_truth_path[:self.current_time + timedelta(microseconds=1)])
+            available_gtp = GroundTruthPath(ground_truth_path[:self.current_time +
+                                                              timedelta(microseconds=1)])
             if len(available_gtp) > 0:
                 current_ground_truths.add(available_gtp)
 
@@ -471,10 +473,10 @@ class NetworkArchitecture(Architecture):
         # Filter out only the ground truths that have already happened at self.current_time
         current_ground_truths = set()
         for ground_truth_path in ground_truths:
-            available_gtp = GroundTruthPath(ground_truth_path[:self.current_time + timedelta(seconds=1e-6)])
+            available_gtp = GroundTruthPath(ground_truth_path[:self.current_time +
+                                                              timedelta(seconds=1e-6)])
             if len(available_gtp) > 0:
                 current_ground_truths.add(available_gtp)
-
 
         for sensor_node in self.sensor_nodes:
             all_detections[sensor_node] = set()
