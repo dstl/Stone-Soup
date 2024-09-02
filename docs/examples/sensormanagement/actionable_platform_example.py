@@ -9,31 +9,48 @@ This example demonstrates the management of actionable platforms in Stone Soup.
 # %%
 # Platforms in Stone Soup
 # -----------------------
-# In Stone Soup, instances of :class:`~.Platform` are objects to which one or more sensors can be mounted, and provide a means of controlling the position of mounted sensors.
+# In Stone Soup, instances of the :class:`~.Platform` class are objects to which one or more
+# sensors can be mounted. They provide a means of controlling the position of mounted sensors.
 # 
-# All platforms in Stone Soup have a movement controller belonging to the class :class:`~.Movable`, which determines if and how the platform can move. The default platforms and corresponding movement controllers currently implemented in Stone Soup are:
+# All platforms in Stone Soup have a movement controller belonging to the class
+# :class:`~.Movable`, which determines if and how the platform can move. The default platforms
+# and corresponding movement controllers currently implemented in Stone Soup are:
 #
-# * :class:`~.FixedPlatform`, which has a default movable class of :class:`~.FixedMovable`. The position of these platforms can be manually defined, but otherwise remains fixed.
-# * :class:`~.MovingPlatform`, which has a default movable class of :class:`~.MovingMovable`. The position of these platforms is not fixed, but changes according to a predefined :class:`~.TransitionModel`.
-# * :class:`~.MultiTransitionMovingPlatform`, which has a deafult movable class of :class:`~.MultiTransitionMovable`. The same as for :class:`~.MovingPlatform`, but movement is defined by multiple transition models.
+# * :class:`~.FixedPlatform`, which has a default movable class of :class:`~.FixedMovable`. The
+#   position of these platforms can be manually defined, but otherwise remains fixed.
+# * :class:`~.MovingPlatform`, which has a default movable class of :class:`~.MovingMovable`. The
+#   position of these platforms is not fixed, but changes according to a predefined
+#   :class:`~.TransitionModel`.
+# * :class:`~.MultiTransitionMovingPlatform`, which has a default movable class of
+#   :class:`~.MultiTransitionMovable`. The same as for :class:`~.MovingPlatform`, but movement is
+#   defined by multiple transition models.
 #
 # Actionable Platforms in Stone Soup
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-# Actionable platforms work slightly differently to these other platforms. They can be instatiated using the previously mentioned :class:`~.FixedPlatform` - what makes them 'actionable' is the use of a movement controller with an :class:`~.ActionGenerator`. The :class:`~.ActionGenerator` produces objects of class :class:`~.Action` that can be given to a :class:`~.SensorManager` to be optimised and acted upon at each timestep.
+# Actionable platforms work slightly differently to these other platforms. They can be
+# instantiated using the previously mentioned :class:`~.FixedPlatform` - what makes them
+# 'actionable' is the use of a movement controller with an :class:`~.ActionGenerator`. The
+# :class:`~.ActionGenerator` produces objects of class :class:`~.Action` that can be given to a
+# :class:`~.SensorManager` to be optimised and acted upon at each timestep.
 # 
-# Currently, actionable platforms in Stone Soup can be created from a :class:`~.FixedPlatform` using the :class:`~.NStepDirectionalGridMovable` movement controller, which allows movement across a grid-based action space according to a given step size and number of steps. Additional actionable movement controllers will likely be added in the future.
+# Currently, actionable platforms in Stone Soup can be created from a :class:`~.FixedPlatform`
+# using the :class:`~.NStepDirectionalGridMovable` movement controller, which allows movement
+# across a grid-based action space according to a given step size and number of steps.
+# Additional actionable movement controllers will likely be added in the future.
 # 
-# This example demonstrates the basic usage of actionable platforms. A scenario is created in which an :class:`~.NStepDirectionalGridMovable` platform mounted with a :class:`~.RadarRotatingBearingRange`
-# sensor is used to track a single moving target that would otherwise move out of the sensor's range.
+# This example demonstrates the basic usage of actionable platforms. A scenario is created in
+# which an :class:`~.NStepDirectionalGridMovable` platform mounted with a
+# :class:`~.RadarRotatingBearingRange` sensor is used to track a single moving target that would
+# otherwise move out of the sensor's range.
 
 # %%
 # Setting Up the Scenario
 # -----------------------
-# We begin by setting up the scenario. We generate a ground truth to simulate the linear movement of a target with a small amount of noise.
+# We begin by setting up the scenario. We generate a ground truth to simulate the linear movement
+# of a target with a small amount of noise.
 
 
 import numpy as np
-import math
 from datetime import datetime, timedelta
 
 from stonesoup.models.transition.linear import CombinedLinearGaussianTransitionModel, ConstantVelocity
@@ -43,13 +60,14 @@ np.random.seed(1990)
 
 start_time = datetime.now().replace(microsecond=0)
 
-transition_model = CombinedLinearGaussianTransitionModel([ConstantVelocity(0.1),ConstantVelocity(0.1)])
+transition_model = CombinedLinearGaussianTransitionModel(
+    [ConstantVelocity(0.1), ConstantVelocity(0.1)])
 
 truth = GroundTruthPath([GroundTruthState([-450, 5, 450, -5], timestamp=start_time)])
 duration = 120
 timesteps = [start_time]
 
-for k in range(1,duration):
+for k in range(1, duration):
     timesteps.append(start_time+timedelta(seconds=k))
     truth.append(GroundTruthState(
         transition_model.function(truth[k-1], noise=True, time_interval=timedelta(seconds=1)),
@@ -69,9 +87,17 @@ plotter.fig
 # %%
 # Creating the Actionable Platform
 # --------------------------------
-# Next we create the actionable platform itself. To do this we create a :class:`~.FixedPlatform`, but change the movement controller to a :class:`~.NStepDirectionalGridMovable`. The platform starts alongside the target. We define the platforms movement such that it is capable of moving up to two steps at each timestep. As the resolution is set to 1 and the step size 6.25, each step correpsonds to 6.25 grid cells, each (x=1, y=1) in size. These restrictions will be reflected in the list of :class:`~.Action` objects created by the movement controller's :class:`~.ActionGenerator`.
+# Next we create the actionable platform itself. To do this we create a :class:`~.FixedPlatform`,
+# but change the movement controller to a :class:`~.NStepDirectionalGridMovable`. The platform
+# starts alongside the target. We define the platforms movement such that it is capable of moving
+# up to two steps at each timestep. As the resolution is set to 1 and the step size 6.25, each
+# step corresponds to 6.25 grid cells, each (x=1, y=1) in size. These restrictions will be
+# reflected in the list of :class:`~.Action` objects created by the movement controller's
+# :class:`~.ActionGenerator`.
 # 
-# We add a :class:`~.RadarRotatingBearingRange` radar to this platform, which has a field of view of 30 degrees, a range of 100 grid cells, and is capable of rotating its dwell centre by 180 degrees each timestep.
+# We add a :class:`~.RadarRotatingBearingRange` radar to this platform, which has a field of
+# view of 30 degrees, a range of 100 grid cells, and is capable of rotating its dwell centre by
+# 180 degrees each timestep.
 
 
 from stonesoup.platform import FixedPlatform
@@ -81,7 +107,7 @@ from stonesoup.types.angle import Angle
 from stonesoup.types.state import State, StateVector
 
 sensor = RadarRotatingBearingRange(
-    position_mapping=(0,2),
+    position_mapping=(0, 2),
     noise_covar=np.array([[np.radians(1)**2, 0],
                           [0, 1**2]]),
     ndim_state=4,
@@ -92,22 +118,31 @@ sensor = RadarRotatingBearingRange(
     resolution=Angle(np.radians(30)))
 
 platform = FixedPlatform(
-    movement_controller=NStepDirectionalGridMovable(states=[State([[-500],[500]],
-                                                                 timestamp=start_time)],
-                                                    position_mapping=(0,1),
+    movement_controller=NStepDirectionalGridMovable(states=[State([[-500], [500]],
+                                                                  timestamp=start_time)],
+                                                    position_mapping=(0, 1),
                                                     resolution=1,
                                                     n_steps=2,
-                                                    step_size=6.25,  # 6.25 seems to match target speed
-                                                    action_mapping=(0,1)),
+                                                    step_size=6.25,  # 6.25 seems to match target
+                                                    action_mapping=(0, 1)),
     sensors=[sensor])
 
 
 # %%
 # Creating a Predictor and Updater
 # --------------------------------
-# Next we create some of the standard Stone Soup components required for tracking: a predictor, which in this case creates an initial estimate of the target at each timestep according to a linear transition model, and an updater, which updates our inital estimate based on our sensor's measurements.
+# Next we create some standard Stone Soup components required for tracking: a predictor,
+# which in this case creates an initial estimate of the target at each timestep according to a
+# linear transition model, and an updater, which updates our initial estimate based on our sensor's
+# measurements.
 # 
-# As we are working with a particle filter, we also include a resampler, which occasionally regenerates particles according to their weight/likelihood, with those particles with higher weights being preserved and replicated. A drawback of this approach is particle impoverishment, whereby repeatedly resampling higher weight particles results in a lower diversity of samples. We therefore include a regulariser to mitigate sample impoverishment by slightly moving resampled particles according to a Gaussian kernel if an acceptance probability is met.
+# As we are working with a particle filter, we also include a resampler, which occasionally
+# regenerates particles according to their weight/likelihood. The particles with higher
+# weights are preserved and replicated. A drawback of this approach is particle
+# impoverishment, whereby repeatedly resampling higher weight particles results in a lower
+# diversity of samples. We therefore include a regulariser to mitigate sample impoverishment by
+# slightly moving resampled particles according to a Gaussian kernel if an acceptance
+# probability is met.
 
 
 from stonesoup.resampler.particle import ESSResampler
@@ -127,7 +162,9 @@ updater = ParticleUpdater(sensor.measurement_model,
 # %%
 # Creating a Sensor Manager
 # -------------------------
-# Now we create a sensor manager, giving it our sensor and platform, and a reward function, in this case the ExpectedKLDivergence reward function, which chooses actions based on the information gained by taking that action.
+# Now we create a sensor manager, giving it our sensor and platform, and a reward function. In
+# this case the ExpectedKLDivergence reward function is used, which chooses actions based on the
+# information gained by taking that action.
 
 
 from stonesoup.sensormanager.reward import ExpectedKLDivergence
@@ -144,17 +181,19 @@ sensormanager = BruteForceSensorManager(sensors={sensor},
 # %%
 # Creating a Track
 # ----------------
-# We create a prior and use this to initialise a track. The prior consists of 2000 particles for each component of our state vector, normally distributed around the ground truth, and each with an equal initial weight.
+# We create a prior and use this to initialise a track. The prior consists of 2000 particles for
+# each component of our state vector, normally distributed around the ground truth, and each with
+# an equal initial weight.
 
 
 from stonesoup.types.state import StateVectors, ParticleState
 from stonesoup.types.track import Track
 
 nparts = 2000
-prior = ParticleState(StateVectors([np.random.normal(truth[0].state_vector[0],10, nparts),
-                                    np.random.normal(truth[0].state_vector[1],1, nparts),
-                                    np.random.normal(truth[0].state_vector[2],10, nparts),
-                                    np.random.normal(truth[0].state_vector[3],1, nparts)]),
+prior = ParticleState(StateVectors([np.random.normal(truth[0].state_vector[0], 10, nparts),
+                                    np.random.normal(truth[0].state_vector[1], 1, nparts),
+                                    np.random.normal(truth[0].state_vector[2], 10, nparts),
+                                    np.random.normal(truth[0].state_vector[3], 1, nparts)]),
                       weight=np.array([1/nparts]*nparts),
                       timestamp=start_time)
 prior.parent = prior
@@ -164,7 +203,8 @@ track = Track([prior])
 # %%
 # Creating a Hypothesiser and Data Associator
 # -------------------------------------------
-# The final components we need before we can begin the tracking loop are a hypothesiser and data associator, which, in this case, pair detections with predictions based on their distance.
+# The final components we need before we can begin the tracking loop are a hypothesiser and data
+# associator, which, in this case, pair detections with predictions based on their distance.
 
 
 from stonesoup.hypothesiser.distance import DistanceHypothesiser
@@ -180,9 +220,18 @@ data_associator = GNNWith2DAssignment(hypothesiser)
 # -------------------------
 # Finally we can run the tracking loop.
 # 
-# At each timestep we use our sensor manager to generate the optimal actions for our sensor and platform. When we call the sensor manager's :meth:`~.SensorManager.choose_actions` method, a few things are happening in the background. For each actionable we control (including our actionable platform), the actionable's :class:`~.ActionGenerator` is used to retrieve all of the possible actions that our sensor or platform could take at that timestep. What happens next will depend on the kind of sensor manager used. In our case we chose a :class:`~.BruteForceSensorManager`, so every combination of actions between sensor and platform are considered, and each one is evaluated by our reward function. The combination of actions resulting in the highest reward will be returned, and we then move our actionables accordingly.
+# At each timestep we use our sensor manager to generate the optimal actions for our sensor and
+# platform. When we call the sensor manager's :meth:`~.SensorManager.choose_actions` method, a few
+# things are happening in the background. For each actionable we control (including our actionable
+# platform), the actionable's :class:`~.ActionGenerator` is used to retrieve all possible
+# actions that our sensor or platform could take at that timestep. What happens next will depend
+# on the kind of sensor manager used. In our case we chose a :class:`~.BruteForceSensorManager`,
+# so every combination of actions between sensor and platform are considered, and each one is
+# evaluated by our reward function. The combination of actions resulting in the highest reward
+# will be returned, and we then move our actionables accordingly.
 # 
-# After moving our actionable objects, we take a measurement with our sensor, and update our track depending on what we see.
+# After moving our actionable objects, we take a measurement with our sensor, and update our track
+# depending on what we see.
 
 
 from stonesoup.sensor.sensor import Sensor
@@ -217,17 +266,19 @@ for timestep in timesteps[1:]:
 # %%
 # Plotting
 # --------
-# As we can see, the actionable platform is able to follow the target as it moves across the action space, keeping it within the sensor's range.
+# As we can see, the actionable platform is able to follow the target as it moves across the
+# action space, keeping it within the sensor's range.
 
 
 import plotly.graph_objects as go
 from stonesoup.functions import pol2cart
 
 plotter.plot_sensors(platform)
-plotter.plot_tracks(track, mapping=(0,2))
-plotter.plot_measurements(measurements, mapping=(0,2))
+plotter.plot_tracks(track, mapping=(0, 2))
+plotter.plot_measurements(measurements, mapping=(0, 2))
 
 sensor_set = {sensor}
+
 
 def plot_sensor_fov(fig_, sensor_set, sensor_history):
     # Plot sensor field of view
@@ -278,8 +329,13 @@ plotter.fig
 # %%
 # Summary
 # -------
-# This was a simple example demonstrating how an actionable platform can be used to track a moving target.
+# This was a simple example demonstrating how an actionable platform can be used to track a moving
+# target.
 #
-# There are many other scenarios to which actionable platforms could be applied, and the number of possible behaviours and applications will only increase as additional classes are introduced. Stone Soup also makes it easy to implement additional functionality on your own, for example by experimenting with custom reward functions and/or movement controllers.
+# There are many other scenarios to which actionable platforms could be applied, and the number of
+# possible behaviours and applications will only increase as additional classes are introduced.
+# Stone Soup also makes it easy to implement additional functionality on your own, for example by
+# experimenting with custom reward functions and/or movement controllers.
 #
-# To see the latest developments for actionable platforms, you can refer to the `Stone Soup docs <https://stackoverflow.com/>`_.
+# To see the latest developments for actionable platforms, you can refer to the
+# `Stone Soup docs <https://stackoverflow.com/>`_.
