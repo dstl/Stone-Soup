@@ -4,8 +4,6 @@ from collections.abc import MutableSequence, MutableMapping, Sequence
 from .state import State, StateMutableSequence, CategoricalState, CompositeState
 from ..base import Property
 
-from datetime import datetime
-
 
 class GroundTruthState(State):
     """Ground Truth State type"""
