@@ -164,6 +164,27 @@ def test_euclidiantracktotruth(tracks):
         seconds=6)
 
 
+def test_empty_track_to_truth(tracks):
+    associator = TrackToTruth(
+        association_threshold=10,
+        consec_pairs_confirm=3,
+        consec_misses_end=2)
+
+    empty_track = Track()
+    empty_truth = GroundTruthPath()
+    association_set = associator.associate_tracks(
+        truth_set={empty_track, tracks[0]},
+        tracks_set={empty_truth, tracks[2], tracks[1], tracks[3]})
+
+    associated_objects = {obj
+                          for association in association_set
+                          for obj in association.objects}
+
+    assert empty_track not in associated_objects
+    assert empty_truth not in associated_objects
+    assert associated_objects == {tracks[0], tracks[1]}
+
+
 def test_trackidbased():
     associator = TrackIDbased()
     start_time = datetime.datetime(2019, 1, 1, 14, 0, 0)

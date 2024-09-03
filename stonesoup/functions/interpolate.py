@@ -1,12 +1,26 @@
 import copy
 import datetime
 import warnings
-from typing import Union, List, Iterable
+from typing import Union, List, Iterable, Callable
 
 import numpy as np
 
 from ..types.array import StateVectors
 from ..types.state import StateMutableSequence, State
+
+try:
+    # Available from python 3.10
+    from itertools import pairwise
+except ImportError:
+    try:
+        from more_itertools import pairwise
+    except ImportError:
+        from itertools import tee
+
+        def pairwise(iterable: Iterable):
+            a, b = tee(iterable)
+            next(b, None)
+            return zip(a, b)
 
 
 def time_range(start_time: datetime.datetime, end_time: datetime.datetime,
@@ -46,6 +60,24 @@ def interpolate_state_mutable_sequence(sms: StateMutableSequence,
     If a list of :class:`~datetime.datetime` is inputted for the variable ``times`` then a
     :class:`~.StateMutableSequence` is returned with the states in the sequence corresponding to
     ``times``.
+
+    When interpolating the previous state is used to create the interpolated state. This means
+    properties from that previous state are also copied but will not be interpolated
+    e.g. covariance.
+
+
+    Parameters
+    ----------
+    sms: StateMutableSequence
+        A :class:`~.StateMutableSequence` that should be interpolated
+    times: Union[datetime.datetime, List[datetime.datetime]]
+        a time, or a list of times for ``sms`` to be interpolated to.
+
+    Returns
+    -------
+    Union[StateMutableSequence, State]
+        If a single time is provided then a single state is returned. If a list of times is
+        provided then a :class:`~.StateMutableSequence` with the same type as ``sms`` is returned
 
     Note
     ----
@@ -101,6 +133,10 @@ def interpolate_state_mutable_sequence(sms: StateMutableSequence,
     if len(times_to_interpolate) > 0:
         # Only interpolate if required
         state_vectors = StateVectors([state.state_vector for state in time_state_dict.values()])
+
+        # Needed for states with angles present
+        state_vectors = state_vectors.astype(float)
+
         state_timestamps = [time.timestamp() for time in time_state_dict.keys()]
         interp_timestamps = [time.timestamp() for time in times_to_interpolate]
 
@@ -110,9 +146,41 @@ def interpolate_state_mutable_sequence(sms: StateMutableSequence,
                                                         xp=state_timestamps,
                                                         fp=state_vectors[element_index, :])
 
+        retrieve_previous_state_fun = _get_previous_state(sms)
         for state_index, time in enumerate(times_to_interpolate):
-            time_state_dict[time] = State(interp_output[:, state_index], timestamp=time)
+            original_state_before = retrieve_previous_state_fun(time)
+            time_state_dict[time] = original_state_before.from_state(
+                state=original_state_before,
+                timestamp=time,
+                state_vector=interp_output[:, state_index])
 
     new_sms.states = [time_state_dict[time] for time in times]
 
     return new_sms
+
+
+def _get_previous_state(sms: StateMutableSequence) -> Callable[[datetime.datetime], State]:
+    """This function produces a function which will return the state before a time in ``sms``.
+
+    Parameters
+    ----------
+    sms: StateMutableSequence
+        A :class:`~.StateMutableSequence` to provide the states.
+
+    Returns
+    -------
+    Function
+        This function takes a :class:`datetime.datetime` and will return the State before that
+        time. If this inner function is called multiple times, the time must not decrease.
+
+    """
+    state_iter = iter(pairwise(sms.states))
+    state_before, state_after = next(state_iter)
+
+    def inner_fun(t: datetime.datetime) -> State:
+        nonlocal state_before, state_after
+        while state_after.timestamp < t:
+            state_before, state_after = next(state_iter)
+        return state_before
+
+    return inner_fun

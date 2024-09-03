@@ -5,7 +5,7 @@ import numpy as np
 import pytest
 
 from ..interpolate import time_range, interpolate_state_mutable_sequence
-from ...types.state import State, StateMutableSequence
+from ...types.state import State, StateMutableSequence, GaussianState, StateVector
 
 
 @pytest.mark.parametrize("input_kwargs, expected",
@@ -107,3 +107,39 @@ def test_interpolate_error(gen_test_data):
 
     with pytest.raises(IndexError):
         _ = interpolate_state_mutable_sequence(sms, time)
+
+
+def test_interpolate_state_other_properties():
+    float_times = [0, 0.1, 0.4, 0.9, 1.6, 2.5, 3.6, 4.9, 6.4, 8.1, 10]
+
+    sms = StateMutableSequence([GaussianState(state_vector=[t],
+                                              covar=[[t]],
+                                              timestamp=t0+datetime.timedelta(seconds=t))
+                                for t in float_times
+                                ])
+
+    interp_float_times = [0, 2, 4, 6, 8, 10]
+    interp_datetime_times = [t0+datetime.timedelta(seconds=t) for t in interp_float_times]
+
+    new_sms = interpolate_state_mutable_sequence(sms, interp_datetime_times)
+
+    # Test state vector and times
+    for expected_value, state in zip(interp_float_times, new_sms.states):
+        assert state.timestamp == t0 + datetime.timedelta(seconds=expected_value)
+        # assert state.state_vector[0] == expected_value
+        np.testing.assert_allclose(state.state_vector, StateVector([expected_value]))
+        assert isinstance(state, GaussianState)
+
+    # Test Covariances
+    # Ideally the covariance should be the same as the state vector. However interpolating the
+    # covariance is not implemented and probably shouldn't be. Instead the current method uses the
+    # previous state’s covariance. In the future it may be better to use the closest state’s
+    # covariance. Therefore these tests are purposely quite lax and only check the covariance
+    # value is within a sensible range.
+
+    assert new_sms[0].covar[0][0] == 0  # t=0
+    assert 1.6 <= new_sms[1].covar[0][0] <= 2.5  # t=2
+    assert 3.6 <= new_sms[2].covar[0][0] <= 4.9  # t=4
+    assert 4.9 <= new_sms[3].covar[0][0] <= 6.4  # t=6
+    assert 6.4 <= new_sms[4].covar[0][0] <= 8.1  # t=8
+    assert new_sms[5].covar[0][0] == 10  # t=10

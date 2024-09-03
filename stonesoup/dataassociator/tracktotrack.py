@@ -258,6 +258,10 @@ class TrackToTruth(TwoTrackToTrackAssociator):
 
         associations = set()
 
+        # Remove tracks and truths with zero length
+        tracks_set = {track for track in tracks_set if len(track) > 0}
+        truth_set = {truth for truth in truth_set if len(truth) > 0}
+
         for track in tracks_set:
 
             current_truth = None
