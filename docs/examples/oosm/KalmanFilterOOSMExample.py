@@ -155,12 +155,12 @@ time_steps = [start_time + timedelta(seconds=2*i) for i in range(num_steps + 5)]
 plotter = AnimatedPlotterly(timesteps=time_steps)
 plotter.plot_ground_truths(truth, [0, 2])
 plotter.plot_measurements(measurements1, [0, 2], marker=dict(color='blue'),
-                          measurements_label='Detections with no lag')
+                          label='Detections with no lag')
 plotter.plot_measurements(measurements2, [0, 2], marker=dict(color='orange'),
-                          measurements_label='Detections with lag')
+                          label='Detections with lag')
 plotter.plot_sensors([sensor1_platform, sensor2_platform],
                      marker=dict(color='black', symbol='129', size=15),
-                     sensor_label='Fixed Platforms')
+                     label='Fixed Platforms')
 plotter.fig
 
 # %%
@@ -203,7 +203,7 @@ prior3 = deepcopy(prior1)
 #
 # Tracker 2 will be lagging behind the timesteps, at :math:`t_{\text{now}}+t_{\text{delay}}`, in this way
 # the tracker will wait for the delayed detections to arrive and will consider them in the
-# correct order and correct timestep. However the tracks will be behind the ground-truth track.
+# correct order and correct timestep. However, the tracks will be behind the ground-truth track.
 #
 # The final tracker (3) will ignore all detections from delayed sensor.
 #
@@ -297,10 +297,10 @@ for k in range(num_steps+5):  # loop over the timestep
 # However, it is interesting to see a 1-to-1 comparison between the three trackers, even if the
 # Tracker 2 track is not, visually, lagging behind.
 
-plotter.plot_tracks(track1, [0, 2], track_label='Tracker 1')
-plotter.plot_tracks(track2, [0, 2], track_label='Tracker 2',
+plotter.plot_tracks(track1, [0, 2], label='Tracker 1')
+plotter.plot_tracks(track2, [0, 2], label='Tracker 2',
                     line=dict(color='red'))
-plotter.plot_tracks(track3, [0, 2], track_label='Tracker 3',
+plotter.plot_tracks(track3, [0, 2], label='Tracker 3',
                     line=dict(color='green'))
 plotter.fig
 

@@ -5,17 +5,19 @@ import pytest
 from pytest import approx
 
 from ..base import ParticleInitiator
+from ...hypothesiser.probability import PDAHypothesiser
 from ...models.base import LinearModel, ReversibleModel
 from ...models.measurement.linear import LinearGaussian
 from ...models.measurement.nonlinear import CartesianToBearingRange, Cartesian2DToBearing, \
     CombinedReversibleGaussianMeasurementModel
 from ...models.transition.linear import \
-    CombinedLinearGaussianTransitionModel, ConstantVelocity
+    CombinedLinearGaussianTransitionModel, ConstantVelocity, RandomWalk
 from ...types.array import StateVectors
+from ...types.mixture import GaussianMixture
 from ...types.track import Track
 from ...updater.kalman import KalmanUpdater, ExtendedKalmanUpdater
 from ...predictor.kalman import KalmanPredictor
-from ...deleter.time import UpdateTimeDeleter
+from ...deleter.time import UpdateTimeDeleter, UpdateTimeStepsDeleter
 from ...hypothesiser.distance import DistanceHypothesiser
 from ...dataassociator.neighbour import NearestNeighbour
 from ...measures import Mahalanobis
@@ -456,26 +458,58 @@ def test_gaussian_particle(gaussian_initiator):
         GaussianState(np.array([[0]]), np.array([[100]])),
         LinearGaussian(1, [0], np.array([[1]]))
     ),
-], ids=['SinglePoint', 'LinearMeasurement'])
+    MultiMeasurementInitiator(
+        prior_state=GaussianState(np.array([[0]]),  np.array([[100]])),
+        measurement_model=LinearGaussian(1, [0], np.array([[1]])),
+        deleter=UpdateTimeStepsDeleter(time_steps_since_update=3),
+        data_associator=NearestNeighbour(
+            PDAHypothesiser(
+                predictor=KalmanPredictor(CombinedLinearGaussianTransitionModel(
+                    [RandomWalk(0.5)])),
+                updater=ExtendedKalmanUpdater(
+                    measurement_model=LinearGaussian(1, [0], np.array([[1]]))),
+                clutter_spatial_density=0.5,
+                prob_detect=0.95)),
+        updater=ExtendedKalmanUpdater(measurement_model=LinearGaussian(1, [0], np.array([[1]]))),
+        min_points=2,
+        updates_only=True
+    ),
+], ids=['SinglePoint', 'LinearMeasurement', "MultiMeasurement"])
 def test_gaussian_mixture(gaussian_initiator):
     mixture_initiator = GaussianMixtureInitiator(gaussian_initiator)
 
-    timestamp = datetime.datetime.now()
-    detections = [Detection(np.array([[5]]), timestamp),
-                  Detection(np.array([[-5]]), timestamp)]
-    tracks = mixture_initiator.initiate(detections, timestamp)
+    tplus0 = datetime.datetime.now().replace(microsecond=0)
+    tplus1 = tplus0 + datetime.timedelta(seconds=1)
+    tplus2 = tplus0 + datetime.timedelta(seconds=2)
+    tplus3 = tplus0 + datetime.timedelta(seconds=3)
+    list_detections = [[Detection(np.array([[5]]), tplus0), Detection(np.array([[-5]]), tplus0)],
+                       [Detection(np.array([[5]]), tplus1), Detection(np.array([[-5]]), tplus1)],
+                       [Detection(np.array([[5]]), tplus2), Detection(np.array([[-5]]), tplus2)],
+                       [Detection(np.array([[5]]), tplus3), Detection(np.array([[-5]]), tplus3)]]
+    detections = [(tplus0, set(list_detections[0])),
+                  (tplus1, set(list_detections[1])),
+                  (tplus2, set(list_detections[2])),
+                  (tplus3, set(list_detections[3]))]
 
-    for track in tracks:
-        assert isinstance(track.state, GaussianMixtureUpdate)
+    for n, (timestamp, detection_set) in enumerate(detections):
+        tracks = mixture_initiator.initiate(detection_set, timestamp)
 
-        if track.state.mean > 0:
-            assert np.allclose(track.state.mean, np.array([[5]]), atol=0.4)
-            assert track.state.hypothesis.measurement is detections[0]
+        if tracks:
+            for track in tracks:
+                assert isinstance(track.state, GaussianMixtureUpdate)
+
+                if track.state.mean > 0:
+                    assert np.allclose(track.state.mean, np.array([[5]]), atol=0.4)
+                    assert track.state.hypothesis.measurement is list_detections[n][0]
+                else:
+                    assert np.allclose(track.state.mean, np.array([[-5]]), atol=0.4)
+                    assert track.state.hypothesis.measurement is list_detections[n][1]
+                assert track.timestamp == timestamp
+                assert np.allclose(track.covar, np.array([[1]]), atol=0.4)
+            assert np.all(
+                [isinstance(state, GaussianMixture) for track in tracks for state in track])
         else:
-            assert np.allclose(track.state.mean, np.array([[-5]]), atol=0.4)
-            assert track.state.hypothesis.measurement is detections[1]
-        assert track.timestamp == timestamp
-        assert np.allclose(track.covar, np.array([[1]]), atol=0.4)
+            assert len(tracks) == 0
 
 
 @pytest.mark.parametrize("gaussian_initiator", [
