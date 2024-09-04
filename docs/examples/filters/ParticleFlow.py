@@ -99,7 +99,7 @@ number_particles = 1000
 samples = multivariate_normal.rvs(np.array([0, 1, 0, 1]),
                                   np.diag([1.5, 0.5, 1.5, 0.5]),
                                   size=number_particles)
-# Note weights not used in particle flow, so value won't effect it.
+# Note weights not used in particle flow, so value won't affect it.
 weight = Probability(1/number_particles)
 particles = [
     Particle(sample.reshape(-1, 1), weight=weight) for sample in samples]

@@ -1,6 +1,7 @@
 import copy
 import datetime
 import uuid
+import weakref
 from collections import abc
 from numbers import Integral
 from typing import MutableSequence, Any, Optional, Sequence, MutableMapping
@@ -53,10 +54,10 @@ class State(Type):
         \\*args: Sequence
             Arguments to pass to newly created state, replacing those with same name in `state`.
         target_type: Type,  optional
-            Optional argument specifying the type of of object to be created. This need not
+            Optional argument specifying the type of object to be created. This need not
             necessarily be :class:`~.State` subclass. Any arguments that match between the input
             `state` and the target type will be copied from the old to the new object (except those
-            explicitly specified in `args` and `kwargs`.
+            explicitly specified in `args` and `kwargs`).
         \\*\\*kwargs: Mapping
             New property names and associate value for use in newly created state, replacing those
             on the `state` parameter.
@@ -317,7 +318,7 @@ class StateMutableSequence(Type, abc.MutableSequence):
         # such attribute.
         #
         # An alternative mechanism using __getattr__ seems simpler (as it skips the first few lines
-        # of code, but __getattr__ has no mechanism to capture the originally raised error.
+        # of code, but __getattr__ has no mechanism to capture the originally raised error).
         try:
             # This tries first to get the attribute from self.
             return Type.__getattribute__(self, name)
@@ -663,15 +664,17 @@ class ParticleState(State):
                 raise ValueError("Either all particles should have"
                                  " parents or none of them should.")
 
-        if self.parent:
-            self.parent.parent = None  # Removed to avoid using significant memory
+        if self.parent and self.parent.parent:  # Create weakref to avoid using significant memory
+            self.parent.parent = weakref.ref(self.parent.parent)
 
         if self.state_vector is not None and not isinstance(self.state_vector, StateVectors):
             self.state_vector = StateVectors(self.state_vector)
 
     def __getitem__(self, item):
         if self.parent is not None:
-            parent = self.parent[item]
+            parent = copy.copy(self.parent)
+            parent.parent = None  # Don't slice parent parent
+            parent = parent[item]
         else:
             parent = None
 
@@ -691,6 +694,13 @@ class ParticleState(State):
                                            log_weight=log_weight,
                                            parent=parent)
         return result
+
+    @parent.getter
+    def parent(self):
+        if isinstance(self._property_parent, weakref.ReferenceType):
+            return self._property_parent()
+        else:
+            return self._property_parent
 
     @classmethod
     def from_state(cls, state: 'State', *args: Any, target_type: Optional[typing.Type] = None,
@@ -787,7 +797,9 @@ class MultiModelParticleState(ParticleState):
 
     def __getitem__(self, item):
         if self.parent is not None:
-            parent = self.parent[item]
+            parent = copy.copy(self.parent)
+            parent.parent = None  # Don't slice parent parent
+            parent = parent[item]
         else:
             parent = None
 
@@ -833,7 +845,9 @@ class RaoBlackwellisedParticleState(ParticleState):
 
     def __getitem__(self, item):
         if self.parent is not None:
-            parent = self.parent[item]
+            parent = copy.copy(self.parent)
+            parent.parent = None  # Don't slice parent parent
+            parent = parent[item]
         else:
             parent = None
 
@@ -888,7 +902,9 @@ class BernoulliParticleState(ParticleState):
 
     def __getitem__(self, item):
         if self.parent is not None:
-            parent = self.parent[item]
+            parent = copy.copy(self.parent)
+            parent.parent = None  # Don't slice parent parent
+            parent = parent[item]
         else:
             parent = None
 
@@ -917,10 +933,49 @@ class BernoulliParticleState(ParticleState):
         return result
 
 
+class KernelParticleState(State):
+    """Kernel Particle State type
+
+    This is a kernel particle state object which describes the state as a
+    distribution of particles and kernel covariance.
+    """
+
+    state_vector: StateVectors = Property(doc='State vectors.')
+    weight: np.ndarray = Property(default=None, doc='Weights of particles. Defaults to [1/N]*N.')
+    kernel_covar: CovarianceMatrix = Property(default=None,
+                                              doc='Kernel covariance value. Default `None`.'
+                                                  'If None, the identity matrix is used.')
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        if self.kernel_covar is None:
+            self.kernel_covar = CovarianceMatrix(np.identity(self.state_vector.shape[1])
+                                                 * (1/self.state_vector.shape[1]))
+
+    def __len__(self):
+        return self.state_vector.shape[1]
+
+    @property
+    def ndim(self):
+        """The number of dimensions represented by the state."""
+        return self.state_vector.shape[0]
+
+    @clearable_cached_property('state_vector', 'weight')
+    def mean(self):
+        return self.state_vector @ self.weight[:, np.newaxis]
+
+    @clearable_cached_property('state_vector', 'kernel_covar')
+    def covar(self):
+        return self.state_vector @ self.kernel_covar @ self.state_vector.T
+
+
+ParticleState.register(KernelParticleState)
+
+
 class EnsembleState(State):
     r"""Ensemble State type
 
-    This is an Ensemble state object which describes the system state as a
+    This is an Ensemble state object which describes the system state as an
     ensemble of state vectors for use in Ensemble based filters.
 
     This approach is functionally identical to the Particle state type except

@@ -331,7 +331,7 @@ for k in range(len(scan_s1)):
 # %%
 # 4. Run the comparison between the resulting tracks and plot the results.
 # ------------------------------------------------------------------------
-# We have obtained the final tracks from the detections and we have two sets of
+# We have obtained the final tracks from the detections, and we have two sets of
 # tracks, one with OOSM and one without. We can visualise the results
 # and evaluate the track-to-track accuracy using the OSPA metric tool.
 #
@@ -339,11 +339,11 @@ for k in range(len(scan_s1)):
 from stonesoup.plotter import AnimatedPlotterly
 plotter = AnimatedPlotterly(timesteps=timestamps)
 plotter.plot_ground_truths(truths, [0, 2])
-plotter.plot_measurements(scan_s1, [0, 2], measurements_label='scan1', measurement_model=sensor_1_mm)
-plotter.plot_measurements(scan_s2, [0, 2], measurements_label='scan2', measurement_model=sensor_1_mm)
-plotter.plot_tracks(oosm_tracks, [0, 2], track_label='OOSM Tracks',
+plotter.plot_measurements(scan_s1, [0, 2], label='scan1', measurement_model=sensor_1_mm)
+plotter.plot_measurements(scan_s2, [0, 2], label='scan2', measurement_model=sensor_1_mm)
+plotter.plot_tracks(oosm_tracks, [0, 2], label='OOSM Tracks',
                     line= dict(color='orange'))
-plotter.plot_tracks(noOsm_tracks, [0, 2], track_label='no-OOSM Tracks',
+plotter.plot_tracks(noOsm_tracks, [0, 2], label='no-OOSM Tracks',
                     line= dict(color='red'))
 plotter.fig
 
@@ -400,7 +400,7 @@ graph.fig
 #        problem in tracking, Proceedings of the 2002 IEEE Aerospace
 #        Conference.
 # .. [2] Y. Bar-Shalom, 2002, Update with out-of-sequence measurements in tracking:
-#        exact solution, IEEE Transactons on Aerospace and Electronic Systems 38.
+#        exact solution, IEEE Transactions on Aerospace and Electronic Systems 38.
 # .. [3] S. R. Maskell, R. G. Everitt, R. Wright, M. Briers, 2005,
 #        Multi-target out-of-sequence data association: Tracking using
 #        graphical models, Information Fusion.

@@ -1,5 +1,5 @@
 import json
-from datetime import datetime
+from datetime import datetime, timezone
 
 import numpy as np
 
@@ -59,8 +59,8 @@ class JSON_AISDetectionReader(DetectionReader, TextFileReader):
                 lon_value = float(record['LONGITUDE'])/600000
 
                 # extract timestamp values from JSON record
-                time_value = datetime.utcfromtimestamp(float(
-                        record['TIME']))
+                time_value = datetime.fromtimestamp(float(
+                        record['TIME']), timezone.utc).replace(tzinfo=None)
 
                 # delete lat, lon, timestamp from JSON record;
                 # the rest is metadata

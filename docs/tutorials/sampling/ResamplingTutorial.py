@@ -241,7 +241,7 @@ plot(normalised_weights)
 
 # %%
 # As we're interested in particles of weight :math:`w^{i} \geq 1/N`, in this example we're looking
-# for particles with :math:`w^{i} \geq 1/5`. Hence Particle 2 (orange, weight = 0.5) and Particle
+# for particles with :math:`w^{i} \geq 1/5`. Hence, Particle 2 (orange, weight = 0.5) and Particle
 # 5 (purple, weight = 0.2). We resample these particles :math:`N^{i}_{j} = floor(Nw^{i}_{j})`
 # times:
 #
@@ -386,7 +386,7 @@ print(upsampled_particles.weight)
 # Example using ESS and ResidualResampler
 # """""""""""""""""""""""""""""""""""""""
 #
-# In this example, we use both the Effecive Sample Size method, and the residual resampler, using
+# In this example, we use both the Effective Sample Size method, and the residual resampler, using
 # the systematic method to resample the residuals.
 
 from stonesoup.resampler.particle import ESSResampler, ResidualResampler

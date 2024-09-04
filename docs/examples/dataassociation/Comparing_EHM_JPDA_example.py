@@ -14,7 +14,7 @@ Comparing Efficient Hypothesis Management (EHM) with probability associators
 # association of measurements to predictions, which can be ambiguous and
 # that could lead to a combinatorial explosion. To reduce the computational
 # cost of the operations, a number of algorithms have been developed to
-# match measurements and predictions to tracks. One of this methods is the
+# match measurements and predictions to tracks. One of these methods is the
 # efficient hypothesis management, explained in detail in [#]_, [#]_ and under
 # patent in [#]_; this algorithm improves the joint probability data association,
 # which is a brute force approach, with improved capability of hypothesis matching
@@ -77,7 +77,7 @@ number_of_steps = 50  # number of time-steps
 birth_rate = 0.25   # probability of new target to appear
 death_probability = 0.01  # 1% probability of target to disappear
 
-# setup the initial state of the simulation
+# set up the initial state of the simulation
 initial_state = GaussianState(state_vector=initial_state_mean,
                               covar=initial_state_covariance,
                               timestamp=simulation_start_time)
@@ -129,7 +129,7 @@ detection_sim = SimpleDetectionSimulator(
     clutter_rate=clutter_rate)
 
 # To make a 1 to 1 comparison between different trackers we have
-# to feed the same detections to each trackers, so we have to
+# to feed the same detections to each tracker, so we have to
 # duplicate the detection simulations.
 from itertools import tee
 detection, *detection_sims = tee(detection_sim, 4)
@@ -229,7 +229,7 @@ EHM1_tracker = MultiTargetMixtureTracker(
 # Copy the same initiator for EHM
 EHM2_initiator = deepcopy(EHM_initiator)
 
-# This tracker uses the the second implementation
+# This tracker uses the second implementation
 # of EHM.
 EHM2_tracker = MultiTargetMixtureTracker(
     initiator=EHM2_initiator,
@@ -383,11 +383,11 @@ plotter = Plotterly()
 plotter.plot_ground_truths(groundtruths, [0, 2])
 plotter.plot_measurements(detections_set, [0, 2])
 plotter.plot_tracks(JPDA_tracks, [0, 2], line= dict(color='orange'),
-                    track_label='JPDA tracks')
+                    label='JPDA tracks')
 plotter.plot_tracks(EHM1_tracks, [0, 2], line= dict(color='green', dash='dot'),
-                    track_label='EHM1 tracks')
+                    label='EHM1 tracks')
 plotter.plot_tracks(EHM2_tracks, [0, 2], line= dict(color='red', dash='dot'),
-                    track_label='EHM2 tracks')
+                    label='EHM2 tracks')
 plotter.fig
 
 # %%
