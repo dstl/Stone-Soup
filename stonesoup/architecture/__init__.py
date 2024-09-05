@@ -54,6 +54,7 @@ class Architecture(Base):
             self.current_time = datetime.now()
 
         self.di_graph = nx.to_networkx_graph(self.edges.edge_list, create_using=nx.DiGraph)
+        self._viz_graph = None
 
         if self.force_connected and not self.is_connected and len(self) > 0:
             raise ValueError("The graph is not connected. Use force_connected=False, "
@@ -69,7 +70,17 @@ class Architecture(Base):
             self.di_graph.nodes[node].update(self._node_kwargs(node))
 
     def recipients(self, node: Node):
-        """Returns a set of all nodes to which the input node has a direct edge to"""
+        """Returns a set of all nodes to which the input node has a direct edge to
+
+        Args:
+            node (Node): Node of which to return the recipients of.
+
+        Raises:
+            ValueError: Errors if given node is not in the Architecture.
+
+        Returns:
+            set: Set of nodes that are recipients of the given node.
+        """
         if node not in self.all_nodes:
             raise ValueError("Node not in this architecture")
         recipients = set()
@@ -79,7 +90,17 @@ class Architecture(Base):
         return recipients
 
     def senders(self, node: Node):
-        """Returns a set of all nodes to which the input node has a direct edge from"""
+        """Returns a set of all nodes to which the input node has a direct edge from
+
+        Args:
+            node (Node): Node of which to return the senders of.
+
+        Raises:
+            ValueError: Errors if given node is not in the Architecture.
+
+        Returns:
+            set: Set of nodes that are senders to the given node.
+        """
         if node not in self.all_nodes:
             raise ValueError("Node not in this architecture")
         senders = set()
@@ -90,10 +111,13 @@ class Architecture(Base):
 
     @property
     def shortest_path_dict(self):
-        """
-        Returns a dictionary where dict[key1][key2] gives the distance of the shortest path
+        """Returns a dictionary where dict[key1][key2] gives the distance of the shortest path
         from node1 to node2 if key1=node1 and key2=node2. If no path exists from node1 to node2,
         a KeyError is raised.
+
+        Returns:
+            dict: Nested dictionary where dict[node1][node2] gives the distance of the shortest
+            path from node1 to node2.
         """
         # Cannot use self.di_graph as it is not adjusted when edges are removed after
         # instantiation of architecture.
@@ -106,7 +130,12 @@ class Architecture(Base):
 
     @property
     def top_level_nodes(self):
-        """Returns a list of nodes with no recipients"""
+        """Returns a list of 'top level nodes' - These are nodes with no recipients. E.g. the
+        single node at the top of a hierarchical architecture.
+
+        Returns:
+            set: Set of nodes that have no recipients.
+        """
         top_nodes = set()
         for node in self.all_nodes:
             if len(self.recipients(node)) == 0:
@@ -115,9 +144,14 @@ class Architecture(Base):
         return top_nodes
 
     def number_of_leaves(self, node: Node):
-        """
-        Returns the number of leaf nodes which are connected to the node given as a parameter by a
-        path from the leaf node to the parameter node.
+        """Returns the number of leaf nodes which are connected to the node given as a parameter
+        by apath from the leaf node to the parameter node.
+
+        Args:
+            node (Node): Node of which to calculate number of leaf nodes.
+
+        Returns:
+            int: Number of leaf nodes that are connected to a given node.
         """
         node_leaves = set()
         non_leaves = 0
@@ -132,14 +166,16 @@ class Architecture(Base):
                         node_leaves.add(leaf_node)
                 except KeyError:
                     non_leaves += 1
-            else:
-                return len(node_leaves)
+
+        return len(node_leaves)
 
     @property
     def leaf_nodes(self):
-        """
-        Returns all the nodes in the :class:`Architecture` which have no sender nodes. i.e. all
-        nodes that do not receive any data from other nodes.
+        """Returns all the nodes in the :class:`Architecture` which have no sender nodes. i.e.
+        all nodes that do not receive any data from other nodes.
+
+        Returns:
+            set: Set of all leaf nodes that exist in the Architecture
         """
         leaf_nodes = set()
         for node in self.all_nodes:
@@ -154,15 +190,19 @@ class Architecture(Base):
 
     @property
     def all_nodes(self):
-        """
-        Returns a set of all Nodes in the :class:`Architecture`.
+        """Returns a set of all Nodes in the :class:`Architecture`.
+
+        Returns:
+            set: Set of all nodes in the Architecture
         """
         return set(self.di_graph.nodes)
 
     @property
     def sensor_nodes(self):
-        """
-        Returns a set of all SensorNodes in the :class:`Architecture`.
+        """Returns a set of all SensorNodes in the :class:`Architecture`.
+
+        Returns:
+            set: Set of nodes in the Architecture that have a Sensor.
         """
         sensor_nodes = set()
         for node in self.all_nodes:
@@ -172,8 +212,10 @@ class Architecture(Base):
 
     @property
     def fusion_nodes(self):
-        """
-        Returns a set of all FusionNodes in the :class:`Architecture`.
+        """Returns a set of all FusionNodes in the :class:`Architecture`.
+
+        Returns:
+            set: Set of nodes in the Architecture that perform data fusion.
         """
         fusion = set()
         for node in self.all_nodes:
@@ -183,9 +225,13 @@ class Architecture(Base):
 
     @property
     def repeater_nodes(self):
+        """Returns a set of all RepeaterNodes in the :class:`Architecture`.
+
+        Returns:
+            set: Set of nodes in the Architecture whose only role is to link two other nodes
+            together.
         """
-        Returns a set of all RepeaterNodes in the :class:`Architecture`.
-        """
+
         repeater_nodes = set()
         for node in self.all_nodes:
             if isinstance(node, RepeaterNode):
@@ -334,10 +380,20 @@ class Architecture(Base):
 
     @property
     def is_connected(self):
+        """Property of Architecture class stating whether the graph is connected or not.
+
+        Returns:
+            bool: Returns True if graph is connected, otherwise False.
+        """
         return nx.is_connected(self.to_undirected)
 
     @property
     def to_undirected(self):
+        """Returns an undirected version of self.digraph
+
+        Returns:
+            _type_: _description_
+        """
         return self.di_graph.to_undirected()
 
     def __len__(self):
