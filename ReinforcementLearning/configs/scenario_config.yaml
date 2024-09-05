@@ -33,7 +33,7 @@ targets:
         - [-1]
       - metadata:
           type: known
-  - id: 7ee3db3d-6225-4b4e-8863-e2a5247d66f0
+  - id: fbb44360-da49-4f4b-85cc-5facffb6b6cf
 - !stonesoup.types.groundtruth.GroundTruthPath
   - states:
     - !stonesoup.types.groundtruth.GroundTruthState
@@ -44,7 +44,7 @@ targets:
         - [-1]
       - metadata:
           type: known
-  - id: 8cdd5e36-f64e-44ad-a9c7-8d7e323b4ac7
+  - id: 339e7e95-7110-4007-bc7c-f24c845c01ea
 - !stonesoup.types.groundtruth.GroundTruthPath
   - states:
     - !stonesoup.types.groundtruth.GroundTruthState
@@ -55,7 +55,7 @@ targets:
         - [-0.5]
       - metadata:
           type: known
-  - id: 9d1d7fac-1475-494f-a3cc-dae64a121cf6
+  - id: 2c1cecbe-e39c-4705-a224-e53acf4ef8ac
 
 # The sensor manager is responsible for controlling the platforms
 # and their sensors. Moving platforms have movement_controllers that can use to move the
@@ -104,7 +104,7 @@ sensor_manager:
       - dwell_centre: !stonesoup.types.array.StateVector
         - [0]
       - rpm: 60
-      - fov_angle: 3.141592653589793
+      - fov_angle: 1.5707963267948966
       - rotation_offset: !stonesoup.types.array.StateVector
         - [0]
         - [0]
@@ -113,7 +113,47 @@ sensor_manager:
         - [0]
         - [0]
       - movement_controller: *id002
-      - max_range: 50
+      - max_range: 100
+      - resolution: 0.017453292519943295
+    - !stonesoup.sensor.radar.radar.RadarRotatingBearingRange
+      - position_mapping: *id001
+      - noise_covar: !numpy.ndarray
+        - [0.0, 0.0]
+        - [0.0, 0.0]
+      - dwell_centre: !stonesoup.types.array.StateVector
+        - [0]
+      - rpm:
+        - 60
+      - fov_angle: 1.5707963267948966
+      - rotation_offset: !stonesoup.types.array.StateVector
+        - [0]
+        - [0]
+        - [0]
+      - mounting_offset: !stonesoup.types.array.StateVector
+        - [0]
+        - [1]
+      - movement_controller: *id002
+      - max_range: 100
+      - resolution: 0.017453292519943295
+    - !stonesoup.sensor.radar.radar.RadarRotatingBearingRange
+      - position_mapping: *id001
+      - noise_covar: !numpy.ndarray
+        - [0.0, 0.0]
+        - [0.0, 0.0]
+      - dwell_centre: !stonesoup.types.array.StateVector
+        - [0]
+      - rpm:
+        - 60
+      - fov_angle: 1.5707963267948966
+      - rotation_offset: !stonesoup.types.array.StateVector
+        - [0]
+        - [0]
+        - [0]
+      - mounting_offset: !stonesoup.types.array.StateVector
+        - [0]
+        - [1]
+      - movement_controller: *id002
+      - max_range: 100
       - resolution: 0.017453292519943295
 
 # These are the no of unknown targets present in the scenario.
@@ -132,3 +172,25 @@ scenario_dimensions:
 
 # This is the maximum velocity that any object can travel.
 velocity_limit: 10
+
+# This indicates if sensors are actionable. If som the actions
+# will be specified in sensor_level_actions.
+actionable_sensors: true
+
+# This is a list of dictionaries containing sensor property names as keys,
+# linking to a list of discrete values that the property could be. Each disctionary represents a sensor.
+# The first dictionary in the list represents the first sensor, the second represents the second sensor,
+# etc. You don't have to add a dictionary for each sensor. If there are more sensors than dictionaries, then
+# only the first n sensors will have actionable sensors, where n is the number of dictionaries in the list.
+# Note: Do not add more dictionaries than there are sensors as this will result in an indexing error.
+sensor_level_actions:
+- dwell_centre:
+  - 0.0
+  - 1.5707963267948966
+  - 3.141592653589793
+  - 4.71238898038469
+- dwell_centre:
+  - 0.0
+  - 1.5707963267948966
+  - 3.141592653589793
+  - 4.71238898038469

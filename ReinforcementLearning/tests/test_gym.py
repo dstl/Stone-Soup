@@ -27,8 +27,14 @@ def test_gym(
     # Check spaces exist
     assert gym_env.action_space is not None
     assert gym_env.observation_space is not None
+    assert isinstance(gym_env.scenario_items["actionable_sensors"], bool)
 
     act = 1
+    if gym_env.scenario_items["actionable_sensors"] is True:
+        act = [1] * (len(gym_env.scenario_items["sensor_level_actions"]) + 1)
+
+    else:
+        act = 1
 
     # Iterate for thorough testing
     for _ in range(10):
@@ -69,7 +75,11 @@ def test_process_obs(
 
     # Test 5 times
     for j in range(5):
+
         act = 1
+        if env.scenario_items["actionable_sensors"] is True:
+            act = [1] * (len(env.scenario_items["sensor_level_actions"]) + 1)
+
         obs, reward, terminated, truncated, info = env.step(act)
 
         # Type test
@@ -83,10 +93,12 @@ def test_process_obs(
             )
             * 4
             * 5
-        ) + ((len(env.scenario_items["sensor_manager"]) - 1) * 4) + (
-            len(env.scenario_items["sensor_manager"]["platform"].sensors)
-        ) + (
-            len(env.scenario_items["targets"]) * 2
+        ) + ((len(env.scenario_items["sensor_manager"]) - 1) * 4) + (1) + (
+            (
+                len(env.scenario_items["targets"])
+                + len(env.scenario_items["unknown_targets"])
+            )
+            * 2
         )
 
 
@@ -114,10 +126,12 @@ def test_obs_space(
         )
         * 4
         * 5
-    ) + ((len(env.scenario_items["sensor_manager"]) - 1) * 4) + (
-        len(env.scenario_items["sensor_manager"]["platform"].sensors)
-    ) + (
-        len(env.scenario_items["targets"]) * 2
+    ) + ((len(env.scenario_items["sensor_manager"]) - 1) * 4) + (1) + (
+        (
+            len(env.scenario_items["targets"])
+            + len(env.scenario_items["unknown_targets"])
+        )
+        * 2
     )
 
 
@@ -134,7 +148,13 @@ def test_action_space(
     the correct type (Discrete).
     """
     # Type check
-    assert isinstance(env.action_space, gymnasium.spaces.Discrete)
+
+    assert isinstance(env.scenario_items["actionable_sensors"], bool)
+    if env.scenario_items["actionable_sensors"] is True:
+
+        assert isinstance(env.action_space, gymnasium.spaces.MultiDiscrete)
+    else:
+        assert isinstance(env.action_space, gymnasium.spaces.Discrete)
 
 
 def test_reward(
@@ -149,7 +169,7 @@ def test_reward(
     and acceptable type (int or float).
     """
     # Calculate reward
-    reward = env._compute_rewards(env._compute_obs())
+    reward = env._compute_rewards(env._compute_observations())
 
     # Type test
     assert isinstance(reward, int) or isinstance(reward, float)
@@ -186,7 +206,12 @@ def test_info(
     of the expected type (dict).
     """
 
-    act = 0
+    act = []
+    if env.scenario_items["actionable_sensors"] is True:
+        act = [0] * (len(env.scenario_items["sensor_level_actions"]) + 1)
+
+    else:
+        act = 0
 
     # Generate info
     obs, reward, terminated, truncated, info = env.step(act)

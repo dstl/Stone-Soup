@@ -11,6 +11,10 @@ class CustomCallback(DefaultCallbacks):
             metric: []
             for metric in [
                 "cumulative_distance",
+                "basic_metric",
+                "OSPA_distances",
+                "detected_this_step",
+                "agent_outside",
             ]
         }
 
@@ -31,7 +35,13 @@ class CustomCallback(DefaultCallbacks):
         self, *, worker, base_env, policies, episode, env_index, **kwargs
     ):
         for key, value in episode.user_data.items():
-            if key == "cumulative_distance":
+            if key in [
+                "cumulative_distance",
+                "basic_metric",
+                "OSPA_distances",
+                "detected_this_step",
+                "agent_outside",
+            ]:
                 # Take average of formation reward per step per agent per episode
                 episode.custom_metrics[key] = sum(value) / len(value)
             else:

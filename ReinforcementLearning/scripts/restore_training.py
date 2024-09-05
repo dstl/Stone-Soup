@@ -72,9 +72,11 @@ if __name__ == "__main__":
 
     PARSER = argparse.ArgumentParser()
     PARSER.add_argument(
-        "--chkp", type=str, help="Path to interrupted experiment. Usually ./logs/ray_runs/{}. \
-        Like so: PPO_StoneSoupEnv-v1__06.19.2024_11.17.02/PPO_StoneSoupEnv-v1_1237d_00000_0_2024-06-19_11-17-02/checkpoint_000000 "
-        , default='PPO_StoneSoupEnv-v1__07.02.2024_08.48.14/PPO_StoneSoupEnv-v1_70146_00000_0_2024-07-02_08-48-14/checkpoint_000224'
+        "--chkp",
+        type=str,
+        help="Path to interrupted experiment. Usually ./logs/ray_runs/{}. \
+        Like so: PPO_StoneSoupEnv-v1__06.19.2024_11.17.02/PPO_StoneSoupEnv-v1_1237d_00000_0_2024-06-19_11-17-02/checkpoint_000000 ",
+        default="PPO_StoneSoupEnv-v1__07.25.2024_16.32.06/PPO_StoneSoupEnv-v1_0cbb7_00000_0_2024-07-25_16-32-06/checkpoint_000000",
     )
     PARSER.add_argument(
         "--local-dir",

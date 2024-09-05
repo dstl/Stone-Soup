@@ -28,8 +28,13 @@ def main(chkp: str, render: bool):
         log_dir=DEFAULT_LOG_DIR,
     )
 
+    env2 = StoneSoupEnv(
+        scenario_config=DEAFULT_SCENARIO_CONFIG,
+        render_episodes=False,
+        log_dir=DEFAULT_LOG_DIR,
+    )
     # Register custom environment with RLlib
-    register_env(name="StoneSoupEnv-v1", env_creator=lambda config_dict: env)
+    register_env(name="StoneSoupEnv-v1", env_creator=lambda config_dict: env2)
 
     # Check if dir exists, else create one
     if os.path.exists(os.getcwd() + "/ReinforcementLearning/logs/"):
@@ -47,19 +52,22 @@ def main(chkp: str, render: bool):
         print("AttributeError")
         return False
 
-    for ep in range(100):
+    for ep in range(5):
+        trailing_reward = 0
         terminated = truncated = False
         obs, info = env.reset(seed=random.seed(10))
-        with trange(500, disable=True) as t:
+        with trange(100, disable=True) as t:
             for j in t:
                 action = agent.compute_single_action(obs)
-                print("Actions from trained policy: ", action)
                 if not terminated:
                     obs, reward, terminated, truncated, info = env.step(action)
+                    print("Total reward: ", trailing_reward + reward)
+                    trailing_reward += reward
+
                 else:
                     print("############# NEXT EPISODE ##############")
                     env.reset()
-
+    env.close()
     ray.shutdown()
 
 
@@ -70,7 +78,7 @@ if __name__ == "__main__":
     )
     PARSER.add_argument(
         "--chkp",
-        default="PPO_StoneSoupEnv-v1__06.27.2024_00.30.45/PPO_StoneSoupEnv-v1_8166c9e5_0_2024-06-27_09-14-37/checkpoint_000565",
+        default="PPO_StoneSoupEnv-v1__08.13.2024_16.10.16/PPO_StoneSoupEnv-v1_25e22_00000_0_2024-08-13_16-10-16/checkpoint_000593",
         help="Pass primary chkp directory which can be found in logs/ray_runs/{}",
     )
     PARSER.add_argument(

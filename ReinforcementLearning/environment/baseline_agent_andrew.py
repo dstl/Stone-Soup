@@ -1,15 +1,15 @@
 import os
 import sys
+
 sys.path.insert(0, os.getcwd())
 
+import argparse
+import copy
 import math
 import random
 from datetime import datetime, timedelta
 from os import path as osp
 from typing import Any, TypeVar
-import copy
-import argparse
-
 
 import gymnasium as gym
 import imageio
@@ -99,8 +99,8 @@ class BaselineAgentEnv(gym.Env):
         self._apply_action(action)
         self._step_targets()
 
-        tracks = self._compute_obs()
-        obs = self._normalise_obs(tracks)
+        tracks = self._compute_observations()
+        obs = self._normalise_observations(tracks)
         reward = self._compute_rewards(obs)
 
         info = self._compute_info()
@@ -134,8 +134,8 @@ class BaselineAgentEnv(gym.Env):
         self.agent.states[0].timestamp = self.step_time
 
         # Initial detection is made on reset. Can change if necessary
-        tracks = self._compute_obs()
-        obs = self._normalise_obs(tracks)
+        tracks = self._compute_observations()
+        obs = self._normalise_observations(tracks)
 
         info = {}
         self.previous_distance = 0
@@ -427,7 +427,7 @@ class BaselineAgentEnv(gym.Env):
         )
         self.agent.states.append(new_state)
 
-    def _compute_obs(self):
+    def _compute_observations(self):
         """
         Return StateVector of last 5 tracks for each target.
         StateVector([np.inf,np.inf,np.inf,np.inf]) means mo detection
@@ -479,7 +479,9 @@ class BaselineAgentEnv(gym.Env):
                 try:
                     post = updater.update(hypothesis)
                 except np.linalg.LinAlgError:
-                    hypothesis.measurement_prediction.covar += np.eye(hypothesis.measurement_prediction.covar.shape[0]) * 1e-10
+                    hypothesis.measurement_prediction.covar += (
+                        np.eye(hypothesis.measurement_prediction.covar.shape[0]) * 1e-10
+                    )
                     post = updater.update(hypothesis)
 
                 self.tracks[f"track_{idx+1}"].append(post)
@@ -511,7 +513,9 @@ class BaselineAgentEnv(gym.Env):
         if self.step_count >= self.scenario_items["episode_threshold"]:
             return True
 
-        is_outside = self._outside_scenario(scenario_bounds=self.scenario_bounds, platform=self.agent)
+        is_outside = self._outside_scenario(
+            scenario_bounds=self.scenario_bounds, platform=self.agent
+        )
 
         if is_outside:
             return True
@@ -548,7 +552,9 @@ class BaselineAgentEnv(gym.Env):
                 target.state, state_vector=state_vector, timestamp=self.step_time
             )
 
-            new_state = self._outside_scenario(scenario_bounds=self.scenario_bounds, target=target, new_state=new_state)
+            new_state = self._outside_scenario(
+                scenario_bounds=self.scenario_bounds, target=target, new_state=new_state
+            )
 
             target.states.append(new_state)
 
@@ -561,7 +567,7 @@ class BaselineAgentEnv(gym.Env):
                     target[-1].state_vector[2],
                 ]
 
-    def _normalise_obs(self, tracks: list) -> list:
+    def _normalise_observations(self, tracks: list) -> list:
 
         platform_state = self.agent.state
 
@@ -737,7 +743,9 @@ class BaselineAgentEnv(gym.Env):
         # print(self.previous_distance, current_cumulative_distance)
 
         # Higher reward if closer to target, lower if farther from previous state
-        reward += range_normalising_constant * (self.previous_distance - current_cumulative_distance)
+        reward += range_normalising_constant * (
+            self.previous_distance - current_cumulative_distance
+        )
 
         return reward
 
@@ -768,10 +776,14 @@ class BaselineAgentEnv(gym.Env):
         targets = (
             self.scenario_items["targets"] + self.scenario_items["unknown_targets"]
         )
-        detectable_targets = [1 if sensor.is_detectable(target[-1]) else 0 for target in targets]
-        info['detected_this_step'] = sum(detectable_targets)
-        print(info['detected_this_step'])
-        info['agent_outside'] = self._outside_scenario(scenario_bounds=self.scenario_bounds, platform=self.agent)
+        detectable_targets = [
+            1 if sensor.is_detectable(target[-1]) else 0 for target in targets
+        ]
+        info["detected_this_step"] = sum(detectable_targets)
+        print(info["detected_this_step"])
+        info["agent_outside"] = self._outside_scenario(
+            scenario_bounds=self.scenario_bounds, platform=self.agent
+        )
 
         return info
 
@@ -884,15 +896,21 @@ class BaselineAgentEnv(gym.Env):
 
         return img
 
-    def _outside_scenario(self, target=None, new_state=None, platform=None, scenario_bounds=list):
+    def _outside_scenario(
+        self, target=None, new_state=None, platform=None, scenario_bounds=list
+    ):
 
         if platform:
             position = platform.position
         else:
             position = new_state.state_vector[0], new_state.state_vector[2]
 
-        is_outside_x = (position[0] < scenario_bounds[0]) | (position[0] > scenario_bounds[1])
-        is_outside_y = (position[1] < scenario_bounds[0]) | (position[1] > scenario_bounds[1])
+        is_outside_x = (position[0] < scenario_bounds[0]) | (
+            position[0] > scenario_bounds[1]
+        )
+        is_outside_y = (position[1] < scenario_bounds[0]) | (
+            position[1] > scenario_bounds[1]
+        )
         is_outside = is_outside_x | is_outside_y
 
         if is_outside:
@@ -900,7 +918,7 @@ class BaselineAgentEnv(gym.Env):
             if platform:
                 return is_outside
 
-            target.transition_model = self.scenario_items['turn_model']
+            target.transition_model = self.scenario_items["turn_model"]
 
             state_vector = target.transition_model.function(
                 state=target.state,
@@ -917,11 +935,11 @@ class BaselineAgentEnv(gym.Env):
         return new_state
 
     def _run_baseline(self, steps=50):
-        '''
+        """
         Run a baseline agent. Works the same as BruteForceSensorManager class.
         Tests each action and chooses the one that returns the highest reward.
         Defaults at 50 steps
-        '''
+        """
 
         baseline_reward = 0
 
@@ -938,8 +956,12 @@ class BaselineAgentEnv(gym.Env):
 
                 # Save environment state before testing action
                 self.intermediate_agent = copy.deepcopy(self.agent)
-                self.intermediate_known_targets = copy.deepcopy(self.scenario_items["targets"])
-                self.intermediate_unknown_targets = copy.deepcopy(self.scenario_items["unknown_targets"])
+                self.intermediate_known_targets = copy.deepcopy(
+                    self.scenario_items["targets"]
+                )
+                self.intermediate_unknown_targets = copy.deepcopy(
+                    self.scenario_items["unknown_targets"]
+                )
                 self.intermediate_measurements = copy.deepcopy(self.measurements)
                 self.intermediate_obs = copy.deepcopy(self.past_observations)
                 self.intermediate_tracks = copy.deepcopy(self.tracks)
@@ -949,8 +971,8 @@ class BaselineAgentEnv(gym.Env):
                 self._step_targets()
 
                 # Calculate test reward
-                tracks = self._compute_obs()
-                test_obs = self._normalise_obs(tracks)
+                tracks = self._compute_observations()
+                test_obs = self._normalise_observations(tracks)
                 test_reward = self._compute_rewards(test_obs)
 
                 # Save best action based on highest reward
@@ -962,26 +984,28 @@ class BaselineAgentEnv(gym.Env):
                 # Reset environment to state before test action
                 self.agent = self.intermediate_agent
                 self.tracks = self.intermediate_tracks
-                self.scenario_items['targets'] = self.intermediate_known_targets
-                self.scenario_items['unknown_targets'] = self.intermediate_unknown_targets
+                self.scenario_items["targets"] = self.intermediate_known_targets
+                self.scenario_items[
+                    "unknown_targets"
+                ] = self.intermediate_unknown_targets
                 self.measurements = self.intermediate_measurements
                 self.past_observations = self.intermediate_obs
 
             # Do best action
-            print('BEST ACTION', best_action)
+            print("BEST ACTION", best_action)
 
             self._apply_action(best_action)
             self._step_targets()
 
-            tracks = self._compute_obs()
-            best_obs = self._normalise_obs(tracks)
+            tracks = self._compute_observations()
+            best_obs = self._normalise_observations(tracks)
             best_reward = self._compute_rewards(best_obs)
 
             self._compute_info()
             self._compute_done()
 
             baseline_reward += best_reward
-            print('Total Reward:', baseline_reward)
+            print("Total Reward:", baseline_reward)
 
             # Render environment if option enabled
             if self.render_episodes:
@@ -1009,7 +1033,9 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
 
     parser.add_argument("-c", "--config", type=str, default=DEAFULT_SCENARIO_CONFIG)
-    parser.add_argument("-r", "--render", action="store_true", default=DEFAULT_RENDERING)
+    parser.add_argument(
+        "-r", "--render", action="store_true", default=DEFAULT_RENDERING
+    )
 
     ARGS = parser.parse_args()
 

@@ -91,24 +91,38 @@ target between states and timesteps.""",
                         noise_covar=np.diag([0.00, 0.00]),
                         dwell_centre=StateVector([0]),
                         rpm=60,
-                        fov_angle=np.pi,
+                        fov_angle=np.pi / 2,
                         rotation_offset=StateVector([0, 0, 0]),
                         mounting_offset=StateVector([0, 0]),
-                        movement_controller=MovingMovable(
-                            states=(StateVector([-1, 1, -1, -0.5])),
-                            position_mapping=(0, 2),
-                            transition_model=CombinedLinearGaussianTransitionModel(
-                                model_list=[
-                                    ConstantVelocity(noise_diff_coeff=0, seed=None),
-                                    ConstantVelocity(noise_diff_coeff=0, seed=None),
-                                ],
-                                seed=None,
-                            ),
-                            velocity_mapping=(1, 3),
-                        ),
                         clutter_model=None,
                         ndim_state=2,
-                        max_range=50,
+                        max_range=100,
+                        resolution=0.017453292519943295,
+                    ),
+                    RadarRotatingBearingRange(
+                        position_mapping=(0, 2),
+                        noise_covar=np.diag([0.00, 0.00]),
+                        dwell_centre=StateVector([0]),
+                        rpm=[60],
+                        fov_angle=np.pi / 2,
+                        rotation_offset=StateVector([0, 0, 0]),
+                        mounting_offset=StateVector([0, 1]),
+                        clutter_model=None,
+                        ndim_state=2,
+                        max_range=100,
+                        resolution=0.017453292519943295,
+                    ),
+                    RadarRotatingBearingRange(
+                        position_mapping=(0, 2),
+                        noise_covar=np.diag([0.00, 0.00]),
+                        dwell_centre=StateVector([0]),
+                        rpm=[60],
+                        fov_angle=np.pi / 2,
+                        rotation_offset=StateVector([0, 0, 0]),
+                        mounting_offset=StateVector([0, 1]),
+                        clutter_model=None,
+                        ndim_state=2,
+                        max_range=100,
                         resolution=0.017453292519943295,
                     ),
                 ),
@@ -163,6 +177,29 @@ dimensions.""",
         data.yaml_set_comment_before_after_key(
             key="velocity_limit",
             before="""\nThis is the maximum velocity that any object can travel.""",
+        )
+
+        data["actionable_sensors"] = True
+
+        data.yaml_set_comment_before_after_key(
+            key="actionable_sensors",
+            before="""\nThis indicates if sensors are actionable. If som the actions
+will be specified in sensor_level_actions.""",
+        )
+
+        data["sensor_level_actions"] = [
+            {"dwell_centre": [0.0, np.pi / 2, np.pi, 3 * np.pi / 2]},
+            {"dwell_centre": [0.0, np.pi / 2, np.pi, 3 * np.pi / 2]},
+        ]
+
+        data.yaml_set_comment_before_after_key(
+            key="sensor_level_actions",
+            before="""\nThis is a list of dictionaries containing sensor property names as keys,
+linking to a list of discrete values that the property could be. Each disctionary represents a sensor.
+The first dictionary in the list represents the first sensor, the second represents the second sensor,
+etc. You don't have to add a dictionary for each sensor. If there are more sensors than dictionaries, then
+only the first n sensors will have actionable sensors, where n is the number of dictionaries in the list.
+Note: Do not add more dictionaries than there are sensors as this will result in an indexing error.""",
         )
 
         stonesoup_yaml.dump(data, file)

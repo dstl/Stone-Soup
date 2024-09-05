@@ -13,6 +13,11 @@ import numpy as np
 import PIL
 from ordered_set import OrderedSet
 from ruamel.yaml import YAML
+from stonesoup.dataassociator.tracktotrack import TrackToTruth
+from stonesoup.measures import Euclidean
+from stonesoup.metricgenerator.basicmetrics import BasicMetrics
+from stonesoup.metricgenerator.manager import SimpleManager
+from stonesoup.metricgenerator.ospametric import OSPAMetric
 from stonesoup.predictor.kalman import ExtendedKalmanPredictor
 from stonesoup.types.detection import Detection
 from stonesoup.types.groundtruth import *
@@ -44,25 +49,26 @@ class StoneSoupEnv(gym.Env):
         self.render_episodes = render_episodes
         self.log_dir = log_dir
 
-        if self.render_episodes:
-            self._plot = plt.imshow(np.zeros((2000, 2000)))
-            plt.show(block=False)
         self.step_count = 0
         self.step_time = datetime.datetime.now()
 
         """Declare initial set up for env"""
-        self._set_action_space()
-        self._scenario_creator(scenario_config)
-        self.scenario_bounds = (
-            -self.scenario_items["scenario_dimensions"][0] / 2,
-            self.scenario_items["scenario_dimensions"][0] / 2,
-        )
 
+        self._scenario_creator(scenario_config)
+        self.sensor_level_actions = self.scenario_items["sensor_level_actions"]
+        self._set_action_space()
         self._set_observation_space()
         self.agent = self.scenario_items["sensor_manager"]["platform"]
         self.agent.states[0].timestamp = self.step_time
         self.frames = []
         self.previous_distance = 0
+
+        if self.render_episodes:
+            self.sensor_colors = [
+                random.uniform(0.6, 1) for sensor in self.agent.sensors
+            ]
+            self._plot = plt.imshow(np.zeros((2000, 2000)))
+            plt.show(block=False)
 
     def step(
         self, action: ActType
@@ -88,8 +94,8 @@ class StoneSoupEnv(gym.Env):
         self._apply_action(action)
         self._step_targets()
 
-        tracks = self._compute_obs()
-        obs = self._normalise_obs(tracks)
+        tracks = self._compute_observations()
+        obs = self._normalise_observations(tracks)
         reward = self._compute_rewards(obs)
 
         info = self._compute_info()
@@ -123,8 +129,8 @@ class StoneSoupEnv(gym.Env):
         self.agent.states[0].timestamp = self.step_time
 
         # Initial detection is made on reset. Can change if necessary
-        tracks = self._compute_obs()
-        obs = self._normalise_obs(tracks)
+        tracks = self._compute_observations()
+        obs = self._normalise_observations(tracks)
 
         info = {}
         self.previous_distance = 0
@@ -222,9 +228,10 @@ class StoneSoupEnv(gym.Env):
         The x and y range of possible positions can be represented in normalised
         values between 0 and 1.
         This applies to all known targets.
+        Also applying to unknown targets. Last known ground truth position
         """
-        n_targets_low = [0, 0] * n_known_targets
-        n_targets_high = [1, 1] * n_known_targets
+        n_targets_low = [0, 0] * (n_known_targets + n_unknown_targets)
+        n_targets_high = [1, 1] * (n_known_targets + n_unknown_targets)
 
         self.observation_space = gym.spaces.Box(
             low=np.array(
@@ -266,17 +273,37 @@ class StoneSoupEnv(gym.Env):
         ]
         self.state_vectors = [
             [0.00001, 0.00001],
-            [-2, 0],
-            [2, 0],
-            [0, -2],
-            [0, 2],
-            [-2, 2],
-            [2, 2],
-            [-2, -2],
-            [2, -2],
+            [-4, 0],
+            [4, 0],
+            [0, -4],
+            [0, 4],
+            [-4, 4],
+            [4, 4],
+            [-4, -4],
+            [4, -4],
         ]
 
-        self.action_space = gym.spaces.Discrete(9)
+        self.sensor_actions_meta = ["North", "East", "South", "West"]
+
+        actions_space_partial = []
+        # Check if sensor actions are enabled
+        if self.scenario_items["actionable_sensors"] is True:
+
+            # For each actionable
+            num_actionable_sensors = len(self.sensor_level_actions)
+
+            # For each sensor with actionables
+            for x in range(0, num_actionable_sensors):
+
+                # For each actionable in this particular sensor, add to multi discrete space with the number of options in the dictionary value.
+                for i, j in self.sensor_level_actions[x].items():
+                    actions_space_partial += [len(j)]
+
+            self.action_space = gym.spaces.MultiDiscrete([9] + actions_space_partial)
+
+        else:
+            # Just use platform direction actions
+            self.action_space = gym.spaces.Discrete(9)
 
     def _scenario_creator(
         self,
@@ -301,12 +328,31 @@ class StoneSoupEnv(gym.Env):
         self.scenario_items = _get_yaml_scenario(config_path)
         unknown_targets = []
 
+        self.scenario_bounds = (
+            (
+                -self.scenario_items["scenario_dimensions"][0] / 2,
+                self.scenario_items["scenario_dimensions"][0] / 2,
+            ),
+            (
+                -self.scenario_items["scenario_dimensions"][1] / 2,
+                self.scenario_items["scenario_dimensions"][1] / 2,
+            ),
+        )
+
         for target_number in range(self.scenario_items["unknown_targets"]):
 
             # generate ground truth state + path
             rand_state = np.random.rand(4)
-            rand_state[1] = 2 * rand_state[1] - 1
-            rand_state[3] = 2 * rand_state[3] - 1
+
+            rand_state[0] = random.randint(
+                self.scenario_bounds[0][0] + 50, self.scenario_bounds[0][1] - 50
+            )
+            rand_state[2] = random.randint(
+                self.scenario_bounds[1][0] + 50, self.scenario_bounds[1][1] - 50
+            )
+
+            rand_state[1] = rand_state[3] = 2 * rand_state[1] - 1
+
             ground_truth = GroundTruthState(
                 rand_state,
                 metadata={"type": "unknown"},
@@ -339,12 +385,24 @@ class StoneSoupEnv(gym.Env):
             for target in self.scenario_items["targets"]
         ]
 
+        self.scenario_items["unknown_target_positions"] = [
+            [np.inf, np.inf] for target in self.scenario_items["unknown_targets"]
+        ]
+
         # Randomise target position and velocity on reset
         if reset:
             for target in self.scenario_items["targets"]:
                 rand_state = np.random.rand(4)
-                rand_state[1] = 2 * rand_state[1] - 1
-                rand_state[3] = 2 * rand_state[3] - 1
+
+                rand_state[0] = random.randint(
+                    self.scenario_bounds[0][0] + 50, self.scenario_bounds[0][1] - 50
+                )
+                rand_state[2] = random.randint(
+                    self.scenario_bounds[1][0] + 50, self.scenario_bounds[1][1] - 50
+                )
+
+                rand_state[1] = rand_state[3] = 2 * rand_state[1] - 1
+
                 target.states[0] = GroundTruthState(
                     rand_state, metadata={"type": "known"}, timestamp=self.step_time
                 )
@@ -396,14 +454,59 @@ class StoneSoupEnv(gym.Env):
 
     def _apply_action(self, action):
 
-        desired_agent_state = State(
-            [
-                [self.agent.position[0]],
-                [self.state_vectors[action][0]],
-                [self.agent.position[1]],
-                [self.state_vectors[action][1]],
-            ]
-        )
+        desired_agent_state = []
+
+        # Iterate through sensors
+        # Check if sensor has actionable in list
+        # If not then just make sensor action = 0
+
+        # Check if multi discrete space is being used (for sensor actions)
+        if self.scenario_items["actionable_sensors"] is True:
+
+            # For if sensor actions are used
+            desired_agent_state = State(
+                [
+                    [self.agent.position[0]],
+                    [self.state_vectors[action[0]][0]],
+                    [self.agent.position[1]],
+                    [self.state_vectors[action[0]][1]],
+                ]
+            )
+
+            # For each actionable
+            num_actionable_sensors = len(self.sensor_level_actions)
+
+            act_count = 0
+            # For each sensor with actionables
+            for x in range(0, num_actionable_sensors):
+
+                # For each actionable in this particular sensor, add to multi discrete space with the number of options in the dictionary value.
+                for i in self.sensor_level_actions[x]:
+                    act_count += 1
+                    # Change sensor (simple)
+                    # This sets the specified attribute name to the decided action value.
+                    setattr(
+                        self.agent.sensors[x],
+                        i,
+                        StateVector(
+                            # This line gets the act_countth action from the discete action space,
+                            # Then uses that discrete value to index the actionable values of actionabe i,
+                            # of sensor x.
+                            [self.sensor_level_actions[x][i][action[act_count]]]
+                        ),
+                    )
+
+        else:
+
+            # For if only platform actions are used
+            desired_agent_state = State(
+                [
+                    [self.agent.position[0]],
+                    [self.state_vectors[action][0]],
+                    [self.agent.position[1]],
+                    [self.state_vectors[action][1]],
+                ]
+            )
 
         state_vector = self.agent.transition_model.function(
             state=desired_agent_state,
@@ -416,7 +519,7 @@ class StoneSoupEnv(gym.Env):
         )
         self.agent.states.append(new_state)
 
-    def _compute_obs(self):
+    def _compute_observations(self):
         """
         Return StateVector of last 5 tracks for each target.
         StateVector([np.inf,np.inf,np.inf,np.inf]) means mo detection
@@ -429,64 +532,85 @@ class StoneSoupEnv(gym.Env):
 
         # Currently end of list is most recent
         # TODO: Detectable if detectable by any sensor
-        sensor = self.scenario_items["sensor_manager"]["platform"].sensors[0]
-        detectable_targets = [sensor.is_detectable(target[-1]) for target in targets]
 
-        self.discovered_this_step = 0
-        for idx, target in enumerate(targets):
-            if detectable_targets[idx]:
+        if len(self.scenario_items["sensor_manager"]["platform"].sensors) > 1:
+            # Multiple sensors
+            tracks = self._fuse_tracks(targets)
+        else:
 
-                # TODO: loop through sensors
-                measurement_model = (
-                    self.scenario_items["sensor_manager"]["platform"]
-                    .sensors[0]
-                    .measurement_model
-                )
+            sensor = self.scenario_items["sensor_manager"]["platform"].sensors[0]
+            detectable_targets = [
+                sensor.is_detectable(target[-1]) for target in targets
+            ]
 
-                measurement = measurement_model.function(target[-1], noise=False)
+            self.discovered_this_step = 0
+            for idx, target in enumerate(targets):
+                if detectable_targets[idx]:
 
-                self.measurements[f"measurements_{idx+1}"].append(
-                    Detection(
-                        measurement,
-                        timestamp=self.step_time,
-                        measurement_model=measurement_model,
+                    # TODO: loop through sensors
+                    measurement_model = (
+                        self.scenario_items["sensor_manager"]["platform"]
+                        .sensors[0]
+                        .measurement_model
                     )
-                )
 
-                # TODO: Needs to be put in yaml generator
-                predictor = ExtendedKalmanPredictor(target.transition_model)
-                updater = ExtendedKalmanUpdater(measurement_model)
+                    measurement = measurement_model.function(target[-1], noise=False)
 
-                # If detected for first time prior will be last time it was detected
-                # TODO: Add data association for multi-target
-                prediction = predictor.predict(
-                    self.tracks[f"track_{idx+1}"][-1], timestamp=self.step_time
-                )
-                hypothesis = SingleHypothesis(
-                    prediction, self.measurements[f"measurements_{idx+1}"][-1]
-                )
-                post = updater.update(hypothesis)
+                    self.measurements[f"measurements_{idx+1}"].append(
+                        Detection(
+                            measurement,
+                            timestamp=self.step_time,
+                            measurement_model=measurement_model,
+                        )
+                    )
 
-                self.tracks[f"track_{idx+1}"].append(post)
+                    # TODO: Needs to be put in yaml generator
+                    predictor = ExtendedKalmanPredictor(target.transition_model)
+                    updater = ExtendedKalmanUpdater(measurement_model)
 
-                self.past_observations[f"target_{idx+1}"].append(post.state_vector)
-                self.past_observations[f"target_{idx+1}"].pop(0)
+                    # If detected for first time prior will be last time it was detected
+                    # TODO: Add data association for multi-target
+                    prediction = predictor.predict(
+                        self.tracks[f"track_{idx+1}"][-1], timestamp=self.step_time
+                    )
+                    hypothesis = SingleHypothesis(
+                        prediction, self.measurements[f"measurements_{idx+1}"][-1]
+                    )
+                    try:
+                        post = updater.update(hypothesis)
+                    except np.linalg.LinAlgError:
+                        hypothesis.measurement_prediction.covar += (
+                            np.eye(hypothesis.measurement_prediction.covar.shape[0])
+                            * 1e-10
+                        )
+                        post = updater.update(hypothesis)
 
-                if idx > len(self.scenario_items["targets"]) & (
-                    target.id not in self.scenario_items["discovered_targets"]
-                ):
-                    self.discovered_this_step += 1
-                    self.scenario_items["discovered_targets"].append(target.id)
+                    self.tracks[f"track_{idx+1}"].append(post)
 
-            else:
-                self.past_observations[f"target_{idx+1}"].append(
-                    StateVector([np.inf, np.inf, np.inf, np.inf])
-                )
-                self.past_observations[f"target_{idx+1}"].pop(0)
+                    self.past_observations[f"target_{idx+1}"].append(post.state_vector)
+                    self.past_observations[f"target_{idx+1}"].pop(0)
 
-        tracks = []
-        for lst in self.past_observations.values():
-            tracks += [lst]
+                    if idx > len(self.scenario_items["targets"]) & (
+                        target.id not in self.scenario_items["discovered_targets"]
+                    ):
+                        self.discovered_this_step += 1
+                        self.scenario_items["discovered_targets"].append(target.id)
+
+                    # Update unknown target position in obs if detectable
+                    if target.state.metadata["type"] == "unknown":
+                        self.scenario_items["unknown_target_positions"][
+                            idx - len(self.scenario_items["targets"])
+                        ] = [target.state_vector[0], target.state_vector[2]]
+
+                else:
+                    self.past_observations[f"target_{idx+1}"].append(
+                        StateVector([np.inf, np.inf, np.inf, np.inf])
+                    )
+                    self.past_observations[f"target_{idx+1}"].pop(0)
+
+            tracks = []
+            for lst in self.past_observations.values():
+                tracks += [lst]
 
         return tracks
 
@@ -495,7 +619,9 @@ class StoneSoupEnv(gym.Env):
         if self.step_count >= self.scenario_items["episode_threshold"]:
             return True
 
-        is_outside = self._outside_scenario(scenario_bounds=self.scenario_bounds, platform=self.agent)
+        is_outside = self._outside_scenario(
+            scenario_bounds=self.scenario_bounds, platform=self.agent
+        )
 
         if is_outside:
             return True
@@ -532,7 +658,9 @@ class StoneSoupEnv(gym.Env):
                 target.state, state_vector=state_vector, timestamp=self.step_time
             )
 
-            new_state = self._outside_scenario(scenario_bounds=self.scenario_bounds, target=target, new_state=new_state)
+            new_state = self._outside_scenario(
+                scenario_bounds=self.scenario_bounds, target=target, new_state=new_state
+            )
 
             target.states.append(new_state)
 
@@ -545,7 +673,7 @@ class StoneSoupEnv(gym.Env):
                     target[-1].state_vector[2],
                 ]
 
-    def _normalise_obs(self, tracks: list) -> list:
+    def _normalise_observations(self, tracks: list) -> list:
 
         platform_state = self.agent.state
 
@@ -589,8 +717,24 @@ class StoneSoupEnv(gym.Env):
             .tolist()
         )
 
+        norm_unknown_target_positions = (
+            np.array(
+                [
+                    self._normalise_values(position=position, bounds=bounds, clip=True)
+                    for position in self.scenario_items["unknown_target_positions"]
+                ]
+            )
+            .astype(np.float64)
+            .flatten()
+            .tolist()
+        )
+
         normalised_obs = (
-            norm_tracks + norm_platform_state + norm_sensors + norm_target_positions
+            norm_tracks
+            + norm_platform_state
+            + norm_sensors
+            + norm_target_positions
+            + norm_unknown_target_positions
         )
 
         return normalised_obs
@@ -598,7 +742,6 @@ class StoneSoupEnv(gym.Env):
     def _normalise_values(
         self, state=None, position=None, bounds=tuple, clip: bool = True
     ) -> list:
-
         if position:
             x, y = position
         else:
@@ -714,15 +857,22 @@ class StoneSoupEnv(gym.Env):
             current_cumulative_distance += math.dist(t_coords, p_coords)
 
         # Range normalising constant for calculating distance based reward
-        range_normalising_constant = 0.5
+        range_normalising_constant = 0.9
 
         # Higher reward if closer to target, lower if farther from previous state
-        reward += range_normalising_constant * (self.previous_distance - current_cumulative_distance)
+        reward += range_normalising_constant * (
+            self.previous_distance - current_cumulative_distance
+        )
 
         return reward
 
     def _compute_info(self):
+        """
+        This computes the metrics used during callbacks.
 
+        This includes custom metrics like the cumulatve distance between
+        all targets. As well as Stone Soups' in-built metrics like OSPA.
+        """
         info = {}
         target_states = []
         for target in self.scenario_items["targets"]:
@@ -735,6 +885,7 @@ class StoneSoupEnv(gym.Env):
         ].movement_controller.states[-1]
         p_coords = [platform_state.state_vector[0], platform_state.state_vector[2]]
 
+        # Calculate total distance between each target and the platform
         cumulative_distance = 0
         for state in target_states:
             t_coords = [state.state_vector[0], state.state_vector[2]]
@@ -743,13 +894,67 @@ class StoneSoupEnv(gym.Env):
         info["cumulative_distance"] = cumulative_distance
         self.previous_distance = cumulative_distance
 
+        # Calculating how many targets were detected this step
         sensor = self.scenario_items["sensor_manager"]["platform"].sensors[0]
         targets = (
             self.scenario_items["targets"] + self.scenario_items["unknown_targets"]
         )
-        detectable_targets = [1 if sensor.is_detectable(target[-1]) else 0 for target in targets]
-        info['detected_this_step'] = sum(detectable_targets)
-        info['agent_outside'] = self._outside_scenario(scenario_bounds=self.scenario_bounds, platform=self.agent)
+        detectable_targets = [
+            1 if sensor.is_detectable(target[-1]) else 0 for target in targets
+        ]
+        info["detected_this_step"] = sum(detectable_targets)
+
+        # Checks if platform has left the scenario
+        info["agent_outside"] = self._outside_scenario(
+            scenario_bounds=self.scenario_bounds, platform=self.agent
+        )
+
+        # Initialise metric generators
+        basic_generator = BasicMetrics()
+        ospa_generator = OSPAMetric(c=10, p=1, measure=Euclidean([0, 2]))
+
+        # Initialise associator
+        associator = TrackToTruth(association_threshold=5)
+
+        # Inititalise metric manager
+        metric_manager = SimpleManager(
+            [basic_generator, ospa_generator], associator=associator
+        )
+
+        # List latest measurements
+        measure_frame = []
+        for idx, target in enumerate(targets):
+            if self.measurements[f"measurements_{idx+1}"] != []:
+                if (
+                    self.measurements[f"measurements_{idx+1}"][-1].timestamp
+                    == self.step_time
+                ):
+                    measure_frame.append(self.measurements[f"measurements_{idx+1}"][-1])
+
+        # Store current tracks in set
+        track_set = set()
+        for t in self.tracks.values():
+            if t.timestamp == self.step_time:
+                track_set.add(t)
+
+        # Add data to metric manager
+        metric_manager.add_data(
+            set(
+                self.scenario_items["targets"] + self.scenario_items["unknown_targets"]
+            ),
+            track_set,
+            set(measure_frame),
+            overwrite=True,
+        )
+
+        # Compute metrics
+        metrics = metric_manager.generate_metrics()
+
+        # Store basic metric in infor
+        info["basic_metric"] = metrics["Track-to-target ratio"].value
+
+        # Store OSPA metric in info
+        info["OSPA_distances"] = metrics["OSPA distances"].value[-1].value
 
         return info
 
@@ -759,8 +964,15 @@ class StoneSoupEnv(gym.Env):
         ax = plt.gca()
         plt.grid()
 
-        colors = ["g", "c", "r", "m", "b"]
-        labels = ["Known Target", "Unknown Target", "Platfrom", "Track", "Detection"]
+        colors = ["g", "c", "r", "m", "b", "0.8"]
+        labels = [
+            "Known Target",
+            "Unknown Target",
+            "Platfrom",
+            "Track",
+            "Detection",
+            "Sensor ranges",
+        ]
 
         """Establish Legend"""
         test_list = []
@@ -798,6 +1010,14 @@ class StoneSoupEnv(gym.Env):
         # Uncomment for marker
         X = [self.agent.states[-1].state_vector[0]]
         Y = [self.agent.states[-1].state_vector[2]]
+
+        for idx, sensor in enumerate(self.agent.sensors):
+            circle = plt.Circle(
+                (X, Y),
+                self.agent.sensors[idx].max_range,
+                color=str(self.sensor_colors[idx]),
+            )
+            ax.add_patch(circle)
 
         ax.plot(X, Y, marker="x", color="r")
 
@@ -862,23 +1082,29 @@ class StoneSoupEnv(gym.Env):
 
         return img
 
-    def _outside_scenario(self, target=None, new_state=None, platform=None, scenario_bounds=list):
+    def _outside_scenario(
+        self, target=None, new_state=None, platform=None, scenario_bounds=list
+    ):
 
         if platform:
             position = platform.position
         else:
             position = new_state.state_vector[0], new_state.state_vector[2]
 
-        is_outside_x = (position[0] < scenario_bounds[0]) | (position[0] > scenario_bounds[1])
-        is_outside_y = (position[1] < scenario_bounds[0]) | (position[1] > scenario_bounds[1])
+        is_outside_x = (position[0] < scenario_bounds[0][0]) | (
+            position[0] > scenario_bounds[0][1]
+        )
+        is_outside_y = (position[1] < scenario_bounds[1][0]) | (
+            position[1] > scenario_bounds[1][1]
+        )
         is_outside = is_outside_x | is_outside_y
+
+        if platform:
+            return 1 if is_outside else 0
 
         if is_outside:
 
-            if platform:
-                return is_outside
-
-            target.transition_model = self.scenario_items['turn_model']
+            target.transition_model = self.scenario_items["turn_model"]
 
             state_vector = target.transition_model.function(
                 state=target.state,
@@ -894,3 +1120,87 @@ class StoneSoupEnv(gym.Env):
             return new_state
 
         return new_state
+
+    def _fuse_tracks(self, targets):
+        """
+        Function to fuse tracks from multiple sensors into one track per target
+        uses common transition model from targets
+        For each target
+            For each sensor
+                Get current track
+                Measure/ Predict
+                Update existing post i.e. track
+            If new post is the same as old post, no sensor picked up the track
+                Return infinite values
+        TODO Add detections per sensor
+        """
+        transition_model = self.scenario_items["transition_model"]
+
+        sensors = self.scenario_items["sensor_manager"]["platform"].sensors
+
+        detectable_targets = [
+            [sensor.is_detectable(target[-1]) for target in targets]
+            for sensor in sensors
+        ]
+        self.discovered_this_step = 0
+        kalman_predictor = ExtendedKalmanPredictor(transition_model)
+        updater = ExtendedKalmanUpdater(measurement_model=None)
+
+        for idx, target in enumerate(targets):
+            post = self.tracks[f"track_{idx+1}"][-1]
+            new_post = post
+            for idy, sensor in enumerate(sensors):
+                if detectable_targets[idy][idx]:
+                    measurement_model = sensor.measurement_model
+
+                    measurement = measurement_model.function(target[-1], noise=False)
+
+                    measurement = Detection(
+                        measurement,
+                        timestamp=self.step_time,
+                        measurement_model=measurement_model,
+                    )
+
+                    prediction = kalman_predictor.predict(
+                        post, timestamp=self.step_time
+                    )
+                    hypothesis = SingleHypothesis(prediction, measurement)
+
+                    try:
+                        new_post = updater.update(hypothesis)
+                    except np.linalg.LinAlgError:
+                        hypothesis.measurement_prediction.covar += (
+                            np.eye(hypothesis.measurement_prediction.covar.shape[0])
+                            * 1e-10
+                        )
+                        new_post = updater.update(hypothesis)
+
+                    # Update unknown target position in obs if detectable
+                    if target.state.metadata["type"] == "unknown":
+                        self.scenario_items["unknown_target_positions"][
+                            idx - len(self.scenario_items["targets"])
+                        ] = [target.state_vector[0], target.state_vector[2]]
+
+            if post != new_post:
+                self.tracks[f"track_{idx+1}"].append(new_post)
+                self.past_observations[f"target_{idx+1}"].append(new_post.state_vector)
+                self.past_observations[f"target_{idx+1}"].pop(0)
+
+                if idx > len(self.scenario_items["targets"]) & (
+                    target.id not in self.scenario_items["discovered_targets"]
+                ):
+                    self.discovered_this_step += 1
+                    self.scenario_items["discovered_targets"].append(target.id)
+
+                post = new_post
+            else:
+                self.past_observations[f"target_{idx+1}"].append(
+                    StateVector([np.inf, np.inf, np.inf, np.inf])
+                )
+                self.past_observations[f"target_{idx+1}"].pop(0)
+
+        tracks = []
+        for lst in self.past_observations.values():
+            tracks += [lst]
+
+        return tracks
