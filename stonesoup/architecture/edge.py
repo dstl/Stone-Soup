@@ -203,24 +203,12 @@ class Edge(Base):
 
     @property
     def unsent_data(self):
-        from .node import SensorFusionNode, SensorNode, FusionNode, RepeaterNode, Node
         """Data held by the sender that has not been sent to the recipient."""
         unsent = []
         if isinstance(type(self.sender.data_held), type(None)) or self.sender.data_held is None:
             return unsent
         else:
-            if isinstance(self.nodes[0], (SensorFusionNode, Node)):
-                statuses = ["fused", "created"]
-            elif isinstance(self.nodes[0], FusionNode):
-                statuses = ["fused"]
-            elif isinstance(self.nodes[0], SensorNode):
-                statuses = ["created"]
-            elif isinstance(self.nodes[0], (RepeaterNode, Node)):
-                statuses = []
-            else:
-                raise NotImplementedError("Node should be a Sensor, Fusion or SensorFusion node.")
-
-            for status in statuses:
+            for status in ["fused", "created"]:
                 for time_pertaining in self.sender.data_held[status]:
                     for data_piece in self.sender.data_held[status][time_pertaining]:
                         # Data will be sent to any nodes it hasn't been sent to before
@@ -259,7 +247,9 @@ class Edges(Base, Collection):
         self.edges.remove(edge)
 
     def get(self, node_pair):
-        if not isinstance(node_pair, Tuple) and all(isinstance(node, Node) for node in node_pair):
+        from .node import Node
+        if not (isinstance(node_pair, Tuple) and
+                all(isinstance(node, Node) for node in node_pair)):
             raise TypeError("Must supply a tuple of nodes")
         if not len(node_pair) == 2:
             raise ValueError("Incorrect tuple length. Must be of length 2")

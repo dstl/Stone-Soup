@@ -7,7 +7,7 @@ from stonesoup.architecture import InformationArchitecture, NetworkArchitecture,
     NonPropagatingArchitecture
 from ..edge import Edge, Edges, FusionQueue, Message, DataPiece
 from ..generator import NetworkArchitectureGenerator
-from ..node import RepeaterNode, SensorNode, FusionNode
+from ..node import RepeaterNode, SensorNode, FusionNode, Node
 from stonesoup.types.detection import TrueDetection
 from ...types.track import Track
 
@@ -329,6 +329,14 @@ def test_number_of_leaves(nodes, edge_lists):
     assert circular_architecture.number_of_leaves(nodes['s3']) == 0
     assert circular_architecture.number_of_leaves(nodes['s4']) == 0
     assert circular_architecture.number_of_leaves(nodes['s5']) == 0
+
+    # Test loop case
+    r1 = Node()
+
+    edges = Edges([Edge((r1, r1))])
+    arch = InformationArchitecture(edges)
+
+    assert arch.number_of_leaves(r1) == 0
 
 
 def test_leaf_nodes(nodes, edge_lists):
@@ -677,6 +685,36 @@ def test_network_arch(radar_sensors, ground_truths, tracker, track_tracker, time
     assert network_arch.information_arch.fusion_nodes == {node_C, node_F, node_G}
 
 
+def test_network_arch_instantiation_methods(radar_nodes, times):
+    time = times['start']
+
+    nodeA = radar_nodes['a']
+    nodeB = radar_nodes['c']
+    nodeR = RepeaterNode()
+
+    info_edges = Edges([Edge((nodeA, nodeB))])
+    network_edges = Edges([Edge((nodeA, nodeR)), Edge((nodeR, nodeB))])
+
+    # Method 1: Provide InformationArchitecture to NetworkArchitecture
+    i_arch = InformationArchitecture(edges=info_edges, current_time=time)
+
+    net_arch1 = NetworkArchitecture(edges=network_edges, information_arch=i_arch)
+
+    assert net_arch1.information_arch.edges == info_edges
+    assert net_arch1.edges == network_edges
+
+    # Method 2: Provide set of information architecture edges to NetworkArchitecture
+    net_arch2 = NetworkArchitecture(edges=network_edges,
+                                    information_architecture_edges=info_edges)
+    assert net_arch2.information_arch.edges == info_edges
+    assert net_arch2.edges == network_edges
+
+    # Method 3: Identical Information and Network Architectures
+    net_arch3 = NetworkArchitecture(edges=info_edges)
+    assert net_arch3.information_arch.edges == info_edges
+    assert net_arch3.edges == info_edges
+
+
 def test_net_arch_fully_propagated(generator_params, ground_truths):
     start_time = generator_params['start_time']
     base_sensor = generator_params['base_sensor']
@@ -688,7 +726,8 @@ def test_net_arch_fully_propagated(generator_params, ground_truths):
                                        node_ratio=[3, 2, 1],
                                        base_tracker=base_tracker,
                                        base_sensor=base_sensor,
-                                       n_archs=1)
+                                       n_archs=1,
+                                       sensor_max_distance=(10, 10))
 
     arch = gen.generate()[0]
 

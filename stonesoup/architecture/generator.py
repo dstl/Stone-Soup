@@ -153,7 +153,7 @@ class InformationArchitectureGenerator(Base):
                                       latency=0)
                     nodes[architecture][label] = node
 
-            elif label.startswith('r'):
+            else:
                 for architecture in range(self.n_archs):
                     node = RepeaterNode(label=label,
                                         latency=0)
@@ -198,7 +198,6 @@ class InformationArchitectureGenerator(Base):
                 g = nx.DiGraph(edges)
                 for f_node in ['f' + str(i) for i in range(self.n_fusion_nodes)]:
                     if g.in_degree(f_node) == 0:
-                        valid = False
                         break
                     else:
                         valid = True
@@ -227,10 +226,13 @@ class InformationArchitectureGenerator(Base):
                 g = nx.DiGraph(edges)
                 for f_node in ['f' + str(i) for i in range(self.n_fusion_nodes)]:
                     if g.in_degree(f_node) == 0:
-                        valid = False
                         break
                     else:
                         valid = True
+
+        else:
+            raise ValueError(f"Invalid architecture type of {self.arch_type}. arch_type must be "
+                             "one of: 'hierarchical' or 'decentralised'")
 
         return edges, nodes
 

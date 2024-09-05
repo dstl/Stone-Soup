@@ -290,6 +290,9 @@ def test_get():
     with pytest.raises(ValueError):
         edges.get(node_pair=(node1, node2, node3))
 
+    with pytest.raises(TypeError):
+        edges.get(node_pair=[2, node3])
+
 
 def test_pass_message(times):
     start_time = times['start']

@@ -156,16 +156,15 @@ class Architecture(Base):
         node_leaves = set()
         non_leaves = 0
 
-        if node in self.leaf_nodes:
-            return 1
-        else:
-            for leaf_node in self.leaf_nodes:
-                try:
-                    shortest_path = self.shortest_path_dict[leaf_node][node]
-                    if shortest_path != 0:
-                        node_leaves.add(leaf_node)
-                except KeyError:
-                    non_leaves += 1
+        for leaf_node in self.leaf_nodes:
+            try:
+                shortest_path = self.shortest_path_dict[leaf_node][node]
+                if node != leaf_node or shortest_path != 0:
+                    node_leaves.add(leaf_node)
+                else:
+                    return 1
+            except KeyError:
+                non_leaves += 1
 
         return len(node_leaves)
 
@@ -459,10 +458,12 @@ class InformationArchitecture(Architecture):
 
     def propagate(self, time_increment: float, failed_edges: Collection = None):
         """Performs the propagation of the measurements through the network"""
+        # Update each edge with messages received/sent
         for edge in self.edges.edges:
-            if failed_edges and edge in failed_edges:
-                edge._failed(self.current_time, time_increment)
-                continue  # No data passed along these edges.
+            # TODO: Future work - Introduce failed edges functionality
+            # if failed_edges and edge in failed_edges:
+            #     edge._failed(self.current_time, time_increment)
+            #     continue  # No data passed along these edges.
 
             # Initial update of message categories
             edge.update_messages(self.current_time, use_arrival_time=self.use_arrival_time)
@@ -549,12 +550,12 @@ class NetworkArchitecture(Architecture):
 
     def propagate(self, time_increment: float, failed_edges: Collection = None):
         """Performs the propagation of the measurements through the network"""
-
         # Update each edge with messages received/sent
         for edge in self.edges.edges:
-            if failed_edges and edge in failed_edges:
-                edge._failed(self.current_time, time_increment)
-                continue  # No data passed along these edges
+            # TODO: Future work - Introduce failed edges functionality
+            # if failed_edges and edge in failed_edges:
+            #     edge._failed(self.current_time, time_increment)
+            #     continue  # No data passed along these edges
 
             # Initial update of message categories
             if edge.recipient not in self.information_arch.all_nodes:
@@ -596,11 +597,10 @@ class NetworkArchitecture(Architecture):
             if edge.sender in self.information_arch.all_nodes:
                 if len(edge.unsent_data) != 0:
                     return False
-                if len(edge.unpassed_data) != 0:
+                elif len(edge.unpassed_data) != 0:
                     return False
-            else:
-                if len(edge.unpassed_data) != 0:
-                    return False
+            elif len(edge.unpassed_data) != 0:
+                return False
 
         return True
 
