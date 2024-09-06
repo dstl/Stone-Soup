@@ -23,10 +23,11 @@ class ClearMotMetrics(MetricGenerator):
     activities, and relationships (CLEAR) evaluation workshops. The implementation here
     is derived from [1] and provides following metrics:
 
-        * MOTP (precision): average distance between all associated truth and track states. The target score is 0.
-        * MOTA (accuracy): 1 - ratio of the number of misses, false positives, and mismatches (ID-switches)
-          relative to the total number of truth states. The target score is 1. This score can become
-          negative with a higher number of errors.
+        * MOTP (precision): average distance between all associated truth and track states.
+          The target score is 0.
+        * MOTA (accuracy): 1 - ratio of the number of misses, false positives, and mismatches
+          (ID-switches)relative to the total number of truth states. The target score is 1.
+          This score can become negative with a higher number of errors.
 
     Reference:
         [1] Evaluating Multiple Object Tracking Performance: The CLEAR MOT Metrics,
