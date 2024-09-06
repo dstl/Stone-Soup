@@ -1,5 +1,5 @@
-Track-to-truth metrics
-======================
+CLEAR MOT Metrics
+=================
 
 .. automodule:: stonesoup.metricgenerator.clearmotmetrics
     :show-inheritance:

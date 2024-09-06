@@ -17,20 +17,20 @@ StatesFromTimeIdLookup = Dict[datetime.datetime, Dict[str, State]]
 
 
 class ClearMotMetrics(MetricGenerator):
-    """CLEAR MOT Metrics
+    """CLEAR MOT metrics
 
     Computes multi-object tracking (MOT) metrics designed for the classification of events,
-    activities, and relationships (CLEAR) evaluation workshops. The implementation provided here
-    is derived from [1] and focuses on providing the MOTP (precision) and MOTA (accuracy) scores:
+    activities, and relationships (CLEAR) evaluation workshops. The implementation here
+    is derived from [1] and provides following metrics:
 
-    - MOTP: average distance between all associated truth and track states. The target score is 0.
-    - MOTA: 1 - ratio of the number of misses, false positives, and mismatches (ID-switches)
-        relative to the total number of truth states. The target score is 1. This score can become
-        negative with a higher number of errors.
+        * MOTP (precision): average distance between all associated truth and track states. The target score is 0.
+        * MOTA (accuracy): 1 - ratio of the number of misses, false positives, and mismatches (ID-switches)
+          relative to the total number of truth states. The target score is 1. This score can become
+          negative with a higher number of errors.
 
-    Reference
+    Reference:
         [1] Evaluating Multiple Object Tracking Performance: The CLEAR MOT Metrics,
-            Bernardin et al, 2008
+        Bernardin et al, 2008
     """
     tracks_key: str = Property(doc='Key to access set of tracks added to MetricManager',
                                default='tracks')
