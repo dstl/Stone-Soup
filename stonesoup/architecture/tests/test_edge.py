@@ -178,7 +178,7 @@ def test_message_destinations(times, radar_nodes):
                        destinations={node2, node3})
     
     # Another message like 1, but this will not be put through Edge.pass_message
-    message1b = Message(edge1, datetime.datetime(2016, 1, 2, 3, 4, 5), start_time,
+    message1b = Message(edge1, datetime.datetime(2016, 1, 2, 3, 4, 5), start_time+timedelta(seconds=1),
                        DataPiece(node1, node1, Track([]),
                                  datetime.datetime(2016, 1, 2, 3, 4, 5)))
 
@@ -212,7 +212,8 @@ def test_message_destinations(times, radar_nodes):
     edge1.update_messages(start_time+datetime.timedelta(minutes=1), to_network_node=False)
     edge2.update_messages(start_time + datetime.timedelta(minutes=1), to_network_node=True)
 
-    assert message1b.destinations == {edge1.recipient}
+    m1b = {m for m in edge1.messages_held['pending'][start_time+timedelta(seconds=1)]}.pop()
+    assert m1b == {edge1.recipient}
 
     # Check node2.messages_to_pass_on contains message3 that does not have node 2 as a destination
     assert len(node2.messages_to_pass_on) == 2
