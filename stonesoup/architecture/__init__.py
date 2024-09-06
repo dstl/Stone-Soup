@@ -516,10 +516,6 @@ class NetworkArchitecture(Architecture):
         node_label_gens = {}
         labels = {node.label.replace("\n", " ") for node in self.di_graph.nodes if node.label}
         for node in self.di_graph.nodes:
-            if not node.label:
-                label_gen = node_label_gens.setdefault(type(node), _default_label_gen(type(node)))
-                while not node.label or node.label.replace("\n", " ") in labels:
-                    node.label = next(label_gen)
             self.di_graph.nodes[node].update(self._node_kwargs(node))
 
     def measure(self, ground_truths: List[GroundTruthPath], noise: Union[bool, np.ndarray] = True,

@@ -124,17 +124,14 @@ def test_info_generate_invalid(generator_params):
 
     mean_deg = 2.5
 
-    gen = InformationArchitectureGenerator(arch_type='invalid',
+    with pytest.raises(ValueError):
+            gen = InformationArchitectureGenerator(arch_type='invalid',
                                            start_time=start_time,
                                            mean_degree=mean_deg,
                                            node_ratio=[3, 1, 1],
                                            base_tracker=base_tracker,
                                            base_sensor=base_sensor,
                                            n_archs=2)
-
-    with pytest.raises(ValueError):
-        gen.generate()
-
 
 def test_net_arch_gen_init(generator_params):
     start_time = generator_params['start_time']

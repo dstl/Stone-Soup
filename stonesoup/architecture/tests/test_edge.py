@@ -141,6 +141,9 @@ def test_fusion_queue():
     assert b == "another item"
     assert q._to_consume == 1
 
+    # with pytest.raises(RuntimeError):
+    #     next(next(iter_q))
+
 
 def test_message_destinations(times, radar_nodes):
     start_time = times['start']
@@ -173,6 +176,11 @@ def test_message_destinations(times, radar_nodes):
                        DataPiece(node1, node1, Track([]),
                                  datetime.datetime(2016, 1, 2, 3, 4, 5)),
                        destinations={node2, node3})
+    
+    # Another message like 1, but this will not be put through Edge.pass_message
+    message1b = Message(edge1, datetime.datetime(2016, 1, 2, 3, 4, 5), start_time,
+                       DataPiece(node1, node1, Track([]),
+                                 datetime.datetime(2016, 1, 2, 3, 4, 5)))
 
     # Add messages to node1.messages_to_pass_on and check that unpassed_data() catches it
     node1.messages_to_pass_on = [message1, message2, message3, message4]
@@ -196,9 +204,15 @@ def test_message_destinations(times, radar_nodes):
     assert node2.messages_to_pass_on == []
     assert node3.messages_to_pass_on == []
 
+    # Add message without destination to edge1
+    edge1.unpassed_data.append(message1b)
+    assert message1b.destinations is None
+
     # Update both edges
     edge1.update_messages(start_time+datetime.timedelta(minutes=1), to_network_node=False)
     edge2.update_messages(start_time + datetime.timedelta(minutes=1), to_network_node=True)
+
+    assert message1b.destinations == {edge1.recipient}
 
     # Check node2.messages_to_pass_on contains message3 that does not have node 2 as a destination
     assert len(node2.messages_to_pass_on) == 2
@@ -210,6 +224,8 @@ def test_message_destinations(times, radar_nodes):
     for time in node2.data_held['unfused'].keys():
         data_held += node2.data_held['unfused'][time]
     assert len(data_held) == 3
+
+
 
 
 def test_unpassed_data(times):
