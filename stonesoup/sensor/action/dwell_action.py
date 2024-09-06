@@ -125,10 +125,6 @@ class DwellActionsGenerator(RealNumberActionGenerator):
 
     def __contains__(self, item):
 
-        if self.angle_delta >= np.pi:
-            # Left turn and right turn are > 180, so all angles hit
-            return True
-
         if isinstance(item, ChangeDwellAction):
             item = item.target_value
 
@@ -193,7 +189,7 @@ class DwellActionsGenerator(RealNumberActionGenerator):
             raise ValueError("Can only generate action from an Angle/float/int type")
 
         if value not in self:
-            return None  # Should this raise an error?
+            return None
 
         # Use resolution to reach target value from initial value - does not exceed
         current_value = previous_value = self.initial_value

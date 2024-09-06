@@ -335,7 +335,6 @@ class MovingMovable(Movable):
         try:
             time_interval = timestamp - self.state.timestamp
         except TypeError:
-            # TypeError: (timestamp or prior.timestamp) is None
             return
 
         if self.transition_model is None:
@@ -405,7 +404,6 @@ class MultiTransitionMovable(MovingMovable):
         try:
             time_interval = timestamp - self.state.timestamp
         except TypeError:
-            # TypeError: (timestamp or prior.timestamp) is None
             return
 
         temp_state = self.state
