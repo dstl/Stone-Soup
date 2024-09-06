@@ -84,7 +84,7 @@ class JerkActionGenerator(TransitionModelActionGenerator):
         duration = self.end_time - self.state.timestamp
 
         for point in self.movement_grid(duration):
-            state = State(state_vector=np.zeros(self.ndim), 
+            state = State(state_vector=np.zeros(self.ndim),
                           timestamp=self.end_time)
             for i in range(len(self.position_mapping)):
                 state.state_vector[self.position_mapping[i]] = point[i]
@@ -100,7 +100,7 @@ class JerkActionGenerator(TransitionModelActionGenerator):
         centre, amax, _, _ = self.define_movement_ellipse()
         min_position = centre - amax
 
-        min_state = np.zeros(self.ndim) 
+        min_state = np.zeros(self.ndim)
         for i, j in enumerate(self.position_mapping):
             min_state[j] = min_position[i]
 

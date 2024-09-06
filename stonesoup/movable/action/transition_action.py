@@ -10,8 +10,8 @@ from ...sensormanager.action import StateVectorActionGenerator, Action
 
 
 class TransitionModelActionGenerator(StateVectorActionGenerator):
-    """A base class for action generators for transition model actions. 
-    
+    """A base class for action generators for transition model actions.
+
        NB: This is currently only implemented for 2D action space (e.g. in the x, y plane)."""
     # TODO: Should this be named to reflect 2D implementation?
     # TODO: Should this raise errors elsewhere?

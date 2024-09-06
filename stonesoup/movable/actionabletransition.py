@@ -74,7 +74,7 @@ class JerkTransitionMovable(MovingMovable):
 
         # If platform is moving, calculate orientation from velocity information
         elif self.is_moving:
-           self._property_orientation = MovingMovable.orientation.fget(self)
+            self._property_orientation = MovingMovable.orientation.fget(self)
 
         return self._property_orientation
 

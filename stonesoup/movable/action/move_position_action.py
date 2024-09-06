@@ -57,7 +57,7 @@ class GridActionGenerator(StateVectorActionGenerator):
     @abstractmethod
     def __iter__(self) -> Iterator[MovePositionAction]:
         raise NotImplementedError
-    
+
     @property
     def initial_value(self):
         return self.default_action.target_value

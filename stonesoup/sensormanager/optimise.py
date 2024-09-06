@@ -1,14 +1,11 @@
 from abc import abstractmethod
-from collections import defaultdict, OrderedDict
+from collections import OrderedDict
 
-import numpy as np
 from scipy.optimize import brute, basinhopping, fmin
 
 from . import BruteForceSensorManager
-from .action import StateVectorActionGenerator
 from ..base import Property
 from ..types.state import StateVector
-from ..types.angle import Angle
 
 
 class _OptimizeSensorManager(BruteForceSensorManager):
@@ -23,19 +20,19 @@ class _OptimizeSensorManager(BruteForceSensorManager):
     def choose_actions(self, tracks, timestamp, nchoose=1, return_reward=False, **kwargs):
         if nchoose > 1:
             raise ValueError("Can only return best result (nchoose=1)")
-        
-        all_action_generators = OrderedDict([(actionable, actionable.actions(timestamp)) 
+
+        all_action_generators = OrderedDict([(actionable, actionable.actions(timestamp))
                                             for actionable in self.actionables])
 
         def config_from_x(x):
-            config = OrderedDict() 
+            config = OrderedDict()
             i = 0
             for actionable, generators in all_action_generators.items():
                 config[actionable] = list()
                 for generator in generators:
                     if generator.ndim > 1:
                         ndim_state = generator.ndim
-                        action = generator.action_from_value(StateVector(x[i:i+ndim_state])) 
+                        action = generator.action_from_value(StateVector(x[i:i+ndim_state]))
                         i += ndim_state
 
                     else:
@@ -54,7 +51,7 @@ class _OptimizeSensorManager(BruteForceSensorManager):
                 return 0
 
         best_x = self._optimiser(optimise_func, all_action_generators, config_from_x)
-        config = config_from_x(best_x) 
+        config = config_from_x(best_x)
 
         if return_reward:
             reward = self.reward_function(config, tracks, timestamp)
@@ -110,12 +107,11 @@ class OptimizeBruteSensorManager(_OptimizeSensorManager):
         for gens in all_action_generators.values():
             for generator in gens:
                 # if generator dimensions > 1, iterate over until added every min and max
-                if generator.ndim > 1:  
+                if generator.ndim > 1:
                     for i in range(generator.ndim):
                         ranges.append((generator.min[i], generator.max[i]))
-                else:  
+                else:
                     ranges.append((generator.min, generator.max))
-
 
         if self.finish:
             self.finish_func = fmin
@@ -195,10 +191,10 @@ class OptimizeBasinHoppingSensorManager(_OptimizeSensorManager):
         for gens in all_action_generators.values():
             for generator in gens:
                 # if generator dim > 1, iterate over until added every initial value
-                if generator.ndim > 1:  
+                if generator.ndim > 1:
                     for i in range(generator.ndim):
                         initial_values.append(float(generator.initial_value[i]))
-                else:  
+                else:
                     initial_values.append(float(generator.initial_value))
 
         result = basinhopping(func=optimise_func,
@@ -209,4 +205,4 @@ class OptimizeBasinHoppingSensorManager(_OptimizeSensorManager):
                               interval=self.interval,
                               disp=self.disp,
                               niter_success=self.niter_success)
-        return result.x 
+        return result.x
