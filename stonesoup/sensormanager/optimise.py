@@ -1,43 +1,61 @@
 from abc import abstractmethod
-from collections import defaultdict
+from collections import defaultdict, OrderedDict
 
 import numpy as np
 from scipy.optimize import brute, basinhopping, fmin
 
 from . import BruteForceSensorManager
+from .action import StateVectorActionGenerator
 from ..base import Property
+from ..types.state import StateVector
+from ..types.angle import Angle
 
 
 class _OptimizeSensorManager(BruteForceSensorManager):
 
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+
     @abstractmethod
-    def _optimiser(self, optimise_func, all_action_generators):
+    def _optimiser(self, optimise_func, all_action_generators, config_from_x):
         raise NotImplementedError
 
     def choose_actions(self, tracks, timestamp, nchoose=1, return_reward=False, **kwargs):
         if nchoose > 1:
             raise ValueError("Can only return best result (nchoose=1)")
-        all_action_generators = dict()
-
-        for sensor in self.sensors:
-            action_generators = sensor.actions(timestamp)
-            all_action_generators[sensor] = action_generators
+        
+        all_action_generators = OrderedDict([(actionable, actionable.actions(timestamp)) 
+                                            for actionable in self.actionables])
 
         def config_from_x(x):
-            config = defaultdict(list)
-            for i, (sensor, generators) in enumerate(all_action_generators.items()):
+            config = OrderedDict() 
+            i = 0
+            for actionable, generators in all_action_generators.items():
+                config[actionable] = list()
                 for generator in generators:
-                    action = generator.action_from_value(x[i])
-                    if action is not None:
-                        config[sensor].append(action)
+                    if generator.ndim > 1:
+                        ndim_state = generator.ndim
+                        action = generator.action_from_value(StateVector(x[i:i+ndim_state])) 
+                        i += ndim_state
+
+                    else:
+                        action = generator.action_from_value(x[i])
+                        i += 1
+
+                    config[actionable].append(action)
+
             return config
 
         def optimise_func(x):
             config = config_from_x(x)
-            return -self.reward_function(config, tracks, timestamp)
+            if config:
+                return -self.reward_function(config, tracks, timestamp)
+            else:
+                return 0
 
-        best_x = self._optimiser(optimise_func, all_action_generators)
-        config = config_from_x(best_x)
+        best_x = self._optimiser(optimise_func, all_action_generators, config_from_x)
+        config = config_from_x(best_x) 
+
         if return_reward:
             reward = self.reward_function(config, tracks, timestamp)
             return [config], reward
@@ -46,6 +64,7 @@ class _OptimizeSensorManager(BruteForceSensorManager):
 
 
 class OptimizeBruteSensorManager(_OptimizeSensorManager):
+    # TODO: Rename to Grid based SM?
     """
     A sensor manager built around the SciPy :func:`~.scipy.optimize.brute` method.
     The sensor manager
@@ -67,7 +86,7 @@ class OptimizeBruteSensorManager(_OptimizeSensorManager):
 
     n_grid_points: int = Property(
         default=10,
-        doc="Number of grid points to search along axis. See Ns in "
+        doc="Number of grid points to search along (each) axis. See Ns in "
             ":func:`~.scipy.optimize.brute`. "
             "Default is 10.")
     generate_full_output: bool = Property(default=False,
@@ -84,11 +103,19 @@ class OptimizeBruteSensorManager(_OptimizeSensorManager):
                           doc="Set to True to print convergence messages from the finish "
                               "callable.")
 
-    def _optimiser(self, optimise_func, all_action_generators):
-        ranges = [
-            (float(gen.min), float(gen.max))
-            for gens in all_action_generators.values()
-            for gen in gens]
+    def _optimiser(self, optimise_func, all_action_generators, config_from_x):
+
+        ranges = []
+
+        for gens in all_action_generators.values():
+            for generator in gens:
+                # if generator dimensions > 1, iterate over until added every min and max
+                if generator.ndim > 1:  
+                    for i in range(generator.ndim):
+                        ranges.append((generator.min[i], generator.max[i]))
+                else:  
+                    ranges.append((generator.min, generator.max))
+
 
         if self.finish:
             self.finish_func = fmin
@@ -106,7 +133,7 @@ class OptimizeBruteSensorManager(_OptimizeSensorManager):
             self.full_output = result
             result = result[0]
 
-        return np.atleast_1d(result)
+        return result
 
     def get_full_output(self):
         """
@@ -162,17 +189,24 @@ class OptimizeBasinHoppingSensorManager(_OptimizeSensorManager):
                                       'remains the same '
                                       'for this number of iterations.')
 
-    def _optimiser(self, optimise_func, all_action_generators):
-        initial_values = [
-            float(gen.initial_value)
-            for gens in all_action_generators.values()
-            for gen in gens]
+    def _optimiser(self, optimise_func, all_action_generators, config_from_x):
+        initial_values = list()
+
+        for gens in all_action_generators.values():
+            for generator in gens:
+                # if generator dim > 1, iterate over until added every initial value
+                if generator.ndim > 1:  
+                    for i in range(generator.ndim):
+                        initial_values.append(float(generator.initial_value[i]))
+                else:  
+                    initial_values.append(float(generator.initial_value))
+
         result = basinhopping(func=optimise_func,
                               x0=initial_values,
-                              niter=self.n_iter,  # was 50
+                              niter=self.n_iter,
                               T=self.T,
-                              stepsize=self.stepsize,  # was 1
+                              stepsize=self.stepsize,
                               interval=self.interval,
                               disp=self.disp,
                               niter_success=self.niter_success)
-        return np.atleast_1d(result.x)
+        return result.x 
