@@ -112,10 +112,8 @@ class ClearMotMetrics(MetricGenerator):
             truths_ids_at_timestamp = truth_states_by_time_and_id[timestamp].keys()
             tracks_ids_at_timestamp = track_states_by_time_and_id[timestamp].keys()
 
-            unmatched_truth_ids = list(filter(lambda x: x not in matched_truth_ids_curr,
-                                              truths_ids_at_timestamp))
-            unmatched_track_ids = list(filter(lambda x: x not in matched_tracks_at_timestamp,
-                                              tracks_ids_at_timestamp))
+            unmatched_truth_ids = truths_ids_at_timestamp - matched_truth_ids_curr
+            unmatched_track_ids = tracks_ids_at_timestamp - matched_tracks_at_timestamp
 
             # update counter variables used for MOTA
             num_misses += len(unmatched_truth_ids)
@@ -185,13 +183,10 @@ class ClearMotMetrics(MetricGenerator):
         truths_ids_at_both_timestamps = matched_truth_ids_prev & matched_truth_ids_curr
 
         for truth_id in truths_ids_at_both_timestamps:
-            prev_matches_with_truth_id = list(
-                filter(lambda match: match[0] == truth_id, matches_prev))
-            cur_matches_with_truth_id = list(
-                filter(lambda match: match[0] == truth_id, matches_current))
-
-            matched_track_id_prev = prev_matches_with_truth_id[0][1]
-            matched_track_id_curr = cur_matches_with_truth_id[0][1]
+            matched_track_id_prev = next(
+                match[1] for match in matches_prev if match[0] == truth_id)
+            matched_track_id_curr = next(
+                match[1] for match in matches_current if match[0] == truth_id)
 
             if matched_track_id_prev != matched_track_id_curr:
                 num_miss_matches_current += 1
