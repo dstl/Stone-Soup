@@ -3,7 +3,7 @@ from abc import abstractmethod
 from typing import Iterator, Sequence
 
 from ...base import Property
-from ...sensormanager.action import ActionGenerator, Action
+from ...sensormanager.action import StateVectorActionGenerator, Action
 from ...types.state import StateVector
 
 
@@ -15,7 +15,8 @@ class MovePositionAction(Action):
         return self.target_value
 
 
-class GridActionGenerator(ActionGenerator):
+# TODO: should this be an abstract class due to NotImplemented?
+class GridActionGenerator(StateVectorActionGenerator):
     """This is the base class for generators that generate actions in a grid like fashion."""
 
     action_space: np.ndarray = Property(
@@ -56,6 +57,10 @@ class GridActionGenerator(ActionGenerator):
     @abstractmethod
     def __iter__(self) -> Iterator[MovePositionAction]:
         raise NotImplementedError
+    
+    @property
+    def initial_value(self):
+        return self.default_action.target_value
 
 
 class NStepDirectionalGridActionGenerator(GridActionGenerator):
