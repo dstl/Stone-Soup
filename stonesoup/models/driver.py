@@ -74,7 +74,6 @@ class GaussianDriver(LevyDriver):
             mean = np.tile(mean, (num_samples, 1, 1))
             return mean.view(StateVectors)
 
-
     def covar(
         self,
         e_ft_func: Callable[..., np.ndarray],

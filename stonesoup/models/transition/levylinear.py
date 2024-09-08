@@ -180,8 +180,7 @@ class LevyNthDerivativeDecay(LinearLevyTransitionModel, TimeVariantModel):
     def ndim_state(self):
         return self.decay_derivative + 1
 
-
-    def matrix(self, time_interval, **kwargs):
+    def matrix(self, time_interval: timedelta, **kwargs):
         dt = time_interval.total_seconds()
         return expm(self.A * dt)
     
@@ -210,3 +209,54 @@ class LevyLangevin(LevyNthDerivativeDecay):
     @property
     def decay_derivative(self):
         return 1
+    
+    def matrix(self, time_interval: timedelta, **kwargs) -> np.ndarray:
+        """Closed form known, faster than matrix exponentiation"""
+        dt = time_interval.total_seconds()
+        eA0 = np.array([[0, 1.0 / -self.damping_coeff], [0.0, 1.0]])
+        eA1 = np.array([[1, 1.0 / self.damping_coeff], [0.0, 0.0]])
+        eAdt = np.exp(-self.damping_coeff* dt) * eA0 + eA1
+        # exp_A_delta_t
+        return eAdt  # (m, m)
+    
+    def _integrand_f(self, dt: float, jtimes: np.ndarray) -> np.ndarray:
+        v1 = np.array([[1.0 / -self.damping_coeff], [1.0]])  # (m, 1)
+        v2 = np.array([[1.0 / self.damping_coeff], [0.0]])
+        term1 = np.exp(-self.damping_coeff * (dt - jtimes))[..., None, None]  # (n_jumps, n_samples, 1, 1)
+        term2 = np.ones_like(jtimes)[..., None, None]
+        return term1 * v1 + term2 * v2  # (n_jumps, n_samples, m, 1)
+
+    def _integral_f(self, dt: float) -> np.ndarray:
+        v1 = np.array([[1.0 / -self.damping_coeff], [1.0]])
+        v2 = np.array([[1.0 / self.damping_coeff], [0.0]])
+        term1 = (np.exp(-self.damping_coeff * dt) - 1.0) / (-self.theta) * v1
+        term2 = dt * v2
+        return term1 + term2  # (m, 1)
+    
+    def _integrand(self, dt: float, jtimes: np.ndarray) -> np.ndarray:
+        return self._integrand_f
+    
+    def mean(
+        self, latents: Latents, time_interval: timedelta, **kwargs
+    ) -> Union[StateVector, StateVectors]:
+        """Model mean"""
+        dt = time_interval.total_seconds()
+        return self.driver.mean(
+            latents=latents,
+            dt=dt,
+            e_ft_func=self._integral_f,
+            ft_func=self._integrand_f,
+            mu_W=self.mu_W,
+        )
+
+    def covar(self, latents: Latents, time_interval: timedelta, **kwargs) -> Union[CovarianceMatrix, CovarianceMatrices]:
+        """Model covariance"""
+        dt = time_interval.total_seconds()        
+        return self.driver.covar(
+            latents=latents,
+            dt=dt,
+            e_ft_func=self._integral_f,
+            ft_func=self._integrand_f,
+            mu_W=self.mu_W,
+            sigma_W2=self.sigma_W2,
+        )
