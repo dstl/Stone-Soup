@@ -178,7 +178,7 @@ class CombinedLevyTransitionModel(TransitionModel, LevyModel):
         return sum(model.ndim_state for model in self.model_list)
 
 
-    def mean(self, **kwargs) -> StateVector | StateVectors:
+    def mean(self, **kwargs) -> Union[StateVector, StateVectors]:
         """Returns the transition model noise mean matrix.
 
         Returns
@@ -194,7 +194,7 @@ class CombinedLevyTransitionModel(TransitionModel, LevyModel):
             return np.concatenate(mean_list, axis=1).view(StateVectors)
         
     
-    def covar(self, **kwargs) -> CovarianceMatrix | CovarianceMatrices:
+    def covar(self, **kwargs) -> Union[CovarianceMatrix, CovarianceMatrices]:
         """Returns the transition model noise covariance matrix.
 
         Returns

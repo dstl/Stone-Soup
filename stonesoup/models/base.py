@@ -369,7 +369,7 @@ class LevyModel(Model):
     
     def mean(
         self, latents: Latents, time_interval: timedelta, **kwargs
-    ) -> StateVector | StateVectors:
+    ) -> Union[StateVector, StateVectors]:
         """Model mean"""
         dt = time_interval.total_seconds()
         integrand_f = self._integrand
@@ -383,7 +383,7 @@ class LevyModel(Model):
             mu_W=self.mu_W,
         )
 
-    def covar(self, latents: Latents, time_interval: timedelta, **kwargs) -> CovarianceMatrix | CovarianceMatrices:
+    def covar(self, latents: Latents, time_interval: timedelta, **kwargs) -> Union[CovarianceMatrix, CovarianceMatrices]:
         """Model covariance"""
         dt = time_interval.total_seconds()
         integrand_f = self._integrand
@@ -461,11 +461,11 @@ class LevyModel(Model):
 
         return likelihood
 
-    def logpdf(self, state1: State, state2: State, **kwargs) -> Probability | np.ndarray:
+    def logpdf(self, state1: State, state2: State, **kwargs) -> Union[Probability, np.ndarray]:
         r"""Model log pdf/likelihood evaluation function"""
         return NotImplementedError
 
 
-    def pdf(self, state1: State, state2: State, **kwargs) -> Probability | np.ndarray:
+    def pdf(self, state1: State, state2: State, **kwargs) -> Union[Probability, np.ndarray]:
         r"""Model pdf/likelihood evaluation function"""
         return Probability.from_log_ufunc(self.logpdf(state1, state2, **kwargs))

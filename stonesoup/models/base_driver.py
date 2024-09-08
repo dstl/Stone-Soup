@@ -178,7 +178,7 @@ class LevyDriver(Driver):
         dt: float,
         mu_W: Optional[float]=None,
         **kwargs
-    ) -> StateVector | StateVectors:
+    ) -> Union[StateVector, StateVectors]:
         """Computes a num_samples of mean vectors"""
         mu_W = np.atleast_2d(self.mu_W) if mu_W is None else np.atleast_2d(mu_W)
 
@@ -209,7 +209,7 @@ class LevyDriver(Driver):
         mu_W: Optional[float] = None,
         sigma_W2: Optional[float] = None,
         **kwargs
-    ) -> CovarianceMatrix | CovarianceMatrices:
+    ) -> Union[CovarianceMatrix, CovarianceMatrices]:
         """Computes covariance matrix / matrices"""
         mu_W = np.atleast_2d(self.mu_W) if mu_W is None else np.atleast_2d(mu_W)
         sigma_W2 = np.atleast_2d(self.sigma_W2) if sigma_W2 is None else np.atleast_2d(sigma_W2)     

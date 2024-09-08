@@ -9,7 +9,7 @@ import numpy as np
 from datetime import timedelta
 from scipy.integrate import quad_vec
 from scipy.linalg import expm, block_diag
-from typing import Optional
+from typing import Optional, Union
 
 
 class LinearLevyTransitionModel(TransitionModel, LinearModel, LevyModel):
@@ -93,11 +93,11 @@ class LevyConstantNthDerivative(LinearLevyTransitionModel, TimeVariantModel):
 
     def rvs(
         self,
-        latents: Latents | None = None,
+        latents: Optional[Latents] = None,
         num_samples: int = 1,
         random_state: RandomState = None,
         **kwargs
-    ) -> StateVector | StateVectors:
+    ) -> Union[StateVector, StateVectors]:
         coeff = self.noise_diff_coeff
         return super().rvs(latents, num_samples, random_state, **kwargs) * coeff
 
@@ -187,11 +187,11 @@ class LevyNthDerivativeDecay(LinearLevyTransitionModel, TimeVariantModel):
     
     def rvs(
         self,
-        latents: Latents | None = None,
+        latents: Optional[Latents] = None,
         num_samples: int = 1,
         random_state: RandomState = None,
         **kwargs
-    ) -> StateVector | StateVectors:
+    ) -> Union[StateVector, StateVectors]:
         coeff = self.noise_diff_coeff
         return super().rvs(latents, num_samples, random_state, **kwargs) * coeff
 
