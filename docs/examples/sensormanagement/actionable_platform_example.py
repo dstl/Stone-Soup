@@ -273,7 +273,7 @@ for timestep in timesteps[1:]:
 import plotly.graph_objects as go
 from stonesoup.functions import pol2cart
 
-plotter.plot_tracks(track, mapping=(0, 2), particle=True)
+plotter.plot_tracks(track, mapping=(0, 2))
 plotter.plot_measurements(measurements, mapping=(0, 2))
 
 sensor_set = {sensor}
