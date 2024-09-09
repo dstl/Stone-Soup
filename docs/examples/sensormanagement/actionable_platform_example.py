@@ -163,8 +163,8 @@ updater = ParticleUpdater(sensor.measurement_model,
 # Creating a Sensor Manager
 # -------------------------
 # Now we create a sensor manager, giving it our sensor and platform, and a reward function. In
-# this case the ExpectedKLDivergence reward function is used, which chooses actions based on the
-# information gained by taking that action.
+# this case the :class:`~.ExpectedKLDivergence` reward function is used, which chooses actions
+# based on the information gained by taking that action.
 
 
 from stonesoup.sensormanager.reward import ExpectedKLDivergence
@@ -273,8 +273,7 @@ for timestep in timesteps[1:]:
 import plotly.graph_objects as go
 from stonesoup.functions import pol2cart
 
-plotter.plot_sensors(platform)
-plotter.plot_tracks(track, mapping=(0, 2))
+plotter.plot_tracks(track, mapping=(0, 2), particle=True)
 plotter.plot_measurements(measurements, mapping=(0, 2))
 
 sensor_set = {sensor}
@@ -337,5 +336,6 @@ plotter.fig
 # Stone Soup also makes it easy to implement additional functionality on your own, for example by
 # experimenting with custom reward functions and/or movement controllers.
 #
-# To see the latest developments for actionable platforms, you can refer to the
-# `Stone Soup docs <https://stackoverflow.com/>`_.
+# To see the latest developments for actionable platforms, you can refer to the Stone Soup
+# docs for :doc:`Movables <../../stonesoup.movable>` and
+# their :doc:`Actions <../../stonesoup.movable.action>`.
