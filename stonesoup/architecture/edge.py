@@ -32,8 +32,6 @@ class FusionQueue(Queue):
         self._to_consume += 1
 
     def __iter__(self):
-        if self._consuming:
-            raise RuntimeError("Queue can only be iterated over once.")
         self._consuming = True
         while True:
             yield super().get()
@@ -95,11 +93,7 @@ class Edge(Base):
         :param time_sent: Time at which the message was sent
         """
         if not isinstance(data_piece, DataPiece):
-            raise TypeError(f"data_piece is type {type(data_piece}. Expected DataPiece")
-        # Add message to 'pending' dict of edge
-        # data_to_send = copy.deepcopy(data_piece.data)
-        # new_datapiece = DataPiece(data_piece.node, data_piece.originator, data_to_send,
-        #                           data_piece.time_arrived, data_piece.track)
+            raise TypeError(f"data_piece is type {type(data_piece)}. Expected DataPiece")
         message = Message(edge=self, time_pertaining=time_pertaining, time_sent=time_sent,
                           data_piece=data_piece, destinations={self.recipient})
         _, self.messages_held = _dict_set(self.messages_held, message, 'pending', time_sent)

@@ -178,9 +178,6 @@ def test_fusion_queue():
     assert b == "another item"
     assert q._to_consume == 1
 
-    # with pytest.raises(RuntimeError):
-    #     next(next(iter_q))
-
 
 def test_message_destinations(times, radar_nodes):
     start_time = times['start']
