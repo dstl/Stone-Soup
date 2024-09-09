@@ -125,13 +125,14 @@ def test_info_generate_invalid(generator_params):
     mean_deg = 2.5
 
     with pytest.raises(ValueError):
-            gen = InformationArchitectureGenerator(arch_type='invalid',
-                                           start_time=start_time,
-                                           mean_degree=mean_deg,
-                                           node_ratio=[3, 1, 1],
-                                           base_tracker=base_tracker,
-                                           base_sensor=base_sensor,
-                                           n_archs=2)
+        InformationArchitectureGenerator(arch_type='invalid',
+                                         start_time=start_time,
+                                         mean_degree=mean_deg,
+                                         node_ratio=[3, 1, 1],
+                                         base_tracker=base_tracker,
+                                         base_sensor=base_sensor,
+                                         n_archs=2)
+
 
 def test_net_arch_gen_init(generator_params):
     start_time = generator_params['start_time']
@@ -158,12 +159,13 @@ def test_net_arch_gen_init(generator_params):
     assert gen.sensor_max_distance == (0, 0)
 
     with pytest.raises(ValueError):
-        NetworkArchitectureGenerator(arch_type='not_valid',
-                                     start_time=start_time,
-                                     mean_degree=2,
-                                     node_ratio=[3, 1, 1],
-                                     base_tracker=base_tracker,
-                                     base_sensor=base_sensor)
+        gen = NetworkArchitectureGenerator(arch_type='not_valid',
+                                           start_time=start_time,
+                                           mean_degree=2,
+                                           node_ratio=[3, 1, 1],
+                                           base_tracker=base_tracker,
+                                           base_sensor=base_sensor)
+        gen.generate()
 
 
 def test_net_generate_hierarchical(generator_params):

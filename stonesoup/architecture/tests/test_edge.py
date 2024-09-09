@@ -2,10 +2,11 @@ import datetime
 
 import pytest
 
-from .. import RepeaterNode
+from .. import RepeaterNode, Node
 from ..edge import Edges, Edge, DataPiece, Message, FusionQueue
 from ...types.track import Track
 from ...types.time import CompoundTimeRange, TimeRange
+from .._functions import _dict_set
 
 from datetime import timedelta
 
@@ -67,6 +68,42 @@ def test_send_update_message(edges, times, data_pieces):
     assert len(edge.messages_held['received']) == 1
     assert len(edge.messages_held['pending']) == 0
     assert message in edge.messages_held['received'][times['a']]
+
+
+def test_update_messages():
+
+    # Test scenario where message has not yet reached recipient
+    A = Node(label='A')
+    B = Node(label='B')
+    edge = Edge((A, B), edge_latency=0.5)
+
+    time_created = datetime.datetime.now()
+    time_sent = time_created
+    data = DataPiece(A, A, Track([]), time_created)
+
+    # Add message to edge
+    edge.send_message(data, time_created, time_sent)
+    assert len(edge.messages_held['pending']) == 1
+
+    # Message should not have arrived yet
+    edge.update_messages(time_created)
+    assert len(edge.messages_held['pending']) == 1
+
+    # Try again a secomd later
+    edge.update_messages(time_created + timedelta(seconds=1))
+    assert len(edge.messages_held['pending']) == 0
+
+    # Test scenario when message has no destinations
+    message = Message(edge, time_created, time_sent, data, destinations=None)
+    _, edge.messages_held = _dict_set(edge.messages_held,
+                                      message,
+                                      'pending',
+                                      message.arrival_time)
+
+    assert message in edge.messages_held['pending'][message.arrival_time]
+
+    edge.update_messages(time_created + datetime.timedelta(seconds=2))
+    assert len(edge.messages_held['pending']) == 0
 
 
 def test_failed(edges, times):
@@ -176,11 +213,6 @@ def test_message_destinations(times, radar_nodes):
                        DataPiece(node1, node1, Track([]),
                                  datetime.datetime(2016, 1, 2, 3, 4, 5)),
                        destinations={node2, node3})
-    
-    # Another message like 1, but this will not be put through Edge.pass_message
-    message1b = Message(edge1, datetime.datetime(2016, 1, 2, 3, 4, 5), start_time+timedelta(seconds=1),
-                       DataPiece(node1, node1, Track([]),
-                                 datetime.datetime(2016, 1, 2, 3, 4, 5)))
 
     # Add messages to node1.messages_to_pass_on and check that unpassed_data() catches it
     node1.messages_to_pass_on = [message1, message2, message3, message4]
@@ -204,16 +236,9 @@ def test_message_destinations(times, radar_nodes):
     assert node2.messages_to_pass_on == []
     assert node3.messages_to_pass_on == []
 
-    # Add message without destination to edge1
-    edge1.unpassed_data.append(message1b)
-    assert message1b.destinations is None
-
     # Update both edges
     edge1.update_messages(start_time+datetime.timedelta(minutes=1), to_network_node=False)
     edge2.update_messages(start_time + datetime.timedelta(minutes=1), to_network_node=True)
-
-    m1b = {m for m in edge1.messages_held['pending'][start_time+timedelta(seconds=1)]}.pop()
-    assert m1b == {edge1.recipient}
 
     # Check node2.messages_to_pass_on contains message3 that does not have node 2 as a destination
     assert len(node2.messages_to_pass_on) == 2
@@ -225,8 +250,6 @@ def test_message_destinations(times, radar_nodes):
     for time in node2.data_held['unfused'].keys():
         data_held += node2.data_held['unfused'][time]
     assert len(data_held) == 3
-
-
 
 
 def test_unpassed_data(times):

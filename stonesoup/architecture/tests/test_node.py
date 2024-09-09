@@ -32,8 +32,12 @@ def test_node(data_pieces, times, nodes):
     assert new_data_piece2.time_arrived == times['a']
 
     with pytest.raises(TypeError):
-        node.update(times['a'], times['b'], data_pieces['fail'], "fused", track=Track([]),
-               use_arrival_time=False)
+        node.update(times['a'],
+                    times['b'],
+                    data_pieces['fail'],
+                    "fused",
+                    track=Track([]),
+                    use_arrival_time=False)
 
 
 def test_sensor_node(nodes):

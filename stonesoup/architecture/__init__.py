@@ -513,8 +513,6 @@ class NetworkArchitecture(Architecture):
         # Need to reset digraph for info-arch
         self.di_graph = nx.to_networkx_graph(self.edges.edge_list, create_using=nx.DiGraph)
         # Set attributes such as label, colour, shape, etc. for each node
-        node_label_gens = {}
-        labels = {node.label.replace("\n", " ") for node in self.di_graph.nodes if node.label}
         for node in self.di_graph.nodes:
             self.di_graph.nodes[node].update(self._node_kwargs(node))
 

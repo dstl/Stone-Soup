@@ -202,7 +202,7 @@ class InformationArchitectureGenerator(Base):
                     else:
                         valid = True
 
-        elif self.arch_type == 'decentralised':
+        else:
 
             while not valid:
 
@@ -229,10 +229,6 @@ class InformationArchitectureGenerator(Base):
                         break
                     else:
                         valid = True
-
-        else:
-            raise ValueError(f"Invalid architecture type of {self.arch_type}. arch_type must be "
-                             "one of: 'hierarchical' or 'decentralised'")
 
         return edges, nodes
 
