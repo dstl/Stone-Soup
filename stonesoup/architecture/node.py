@@ -49,8 +49,12 @@ class Node(Base):
     def update(self, time_pertaining, time_arrived, data_piece, category, track=None,
                use_arrival_time=False):
         """Updates this :class:`~.Node`'s :attr:`~.data_held` using a new data piece. """
-        if not isinstance(time_pertaining, datetime) and isinstance(time_arrived, datetime):
+        if not (isinstance(time_pertaining, datetime) and isinstance(time_arrived, datetime)):
             raise TypeError("Times must be datetime objects")
+        if not isinstance(data_piece, DataPiece):
+            raise TypeError(f"data_piece must be a DataPiece. Provided type {type(data_piece)}")
+        if category not in self.data_held.keys():
+            raise ValueError(f"category must be one of {self.data_held.keys()}")
         if not track:
             if not isinstance(data_piece.data, Detection) and \
                     not isinstance(data_piece.data, Track):
@@ -75,10 +79,11 @@ class Node(Base):
                 self.fusion_queue.received.add(data)
                 self.fusion_queue.put((time_pertaining, {data}))
 
-        elif isinstance(self, FusionNode) and category in ("created", "unfused"):
-            if data_piece.data not in self.fusion_queue.received:
-                self.fusion_queue.received.add(data_piece.data)
-                self.fusion_queue.put((time_pertaining, {data_piece.data}))
+        elif isinstance(self, FusionNode) and \
+                category in ("created", "unfused") and \
+                data_piece.data not in self.fusion_queue.received:
+            self.fusion_queue.received.add(data_piece.data)
+            self.fusion_queue.put((time_pertaining, {data_piece.data}))
 
         return added
 
@@ -115,7 +120,11 @@ class FusionNode(Node):
         super().__init__(*args, **kwargs)
         self.tracks = set()  # Set of tracks this Node has recorded
         if not self.fusion_queue:
-            self.fusion_queue = FusionQueue()
+            if self.tracker.detector:
+                self.fusion_queue = self.tracker.detector
+            else:
+                self.fusion_queue = FusionQueue()
+                self.tracker.detector = self.fusion_queue
 
         self._track_queue = Queue()
         self._tracking_thread = threading.Thread(
@@ -140,9 +149,9 @@ class FusionNode(Node):
                 if not self._tracking_thread.is_alive() or waiting_for_data:
                     break
             else:
-                time, tracks = data
+                _, tracks = data
                 self.tracks.update(tracks)
-                updated_tracks |= tracks
+                updated_tracks = updated_tracks.union(tracks)
 
         for track in updated_tracks:
             data_piece = DataPiece(self, self, copy.copy(track), track.timestamp, True)
