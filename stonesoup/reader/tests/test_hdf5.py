@@ -1,11 +1,12 @@
 import datetime
 from operator import attrgetter
 
-import h5py
 import numpy as np
 import pytest
+pytest.importorskip('h5py')
 
-from ..hdf5 import HDF5DetectionReader, HDF5GroundTruthReader
+import h5py  # noqa: E402
+from ..hdf5 import HDF5DetectionReader, HDF5GroundTruthReader  # noqa: E402
 
 
 @pytest.fixture()

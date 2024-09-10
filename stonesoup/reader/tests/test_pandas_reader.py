@@ -4,14 +4,10 @@ import numpy as np
 from io import StringIO
 from operator import attrgetter
 
-from ..pandas_reader import DataFrameGroundTruthReader, DataFrameDetectionReader
-
-try:
-    import pandas as pd
-except ImportError as error:
-    raise ImportError(
-        "Pandas Readers require dependency 'pandas' being installed. ") from error
-
+import pytest
+pytest.importorskip('pandas')
+import pandas as pd  # noqa: E402
+from ..pandas_reader import DataFrameGroundTruthReader, DataFrameDetectionReader  # noqa: E402
 
 # generate dummy pandas dataframe for ground-truth testing purposes
 gt_test_df = pd.read_table(
