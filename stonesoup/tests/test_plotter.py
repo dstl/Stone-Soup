@@ -106,6 +106,14 @@ sensor3d = RadarElevationBearingRange(
 )
 
 
+@pytest.fixture(autouse=True)
+def close_figs():
+    existing_figs = set(plt.get_fignums())
+    yield None
+    for fignum in set(plt.get_fignums()) - existing_figs:
+        plt.close(fignum)
+
+
 @pytest.fixture(scope="module")
 def plotter_class(request):
 
@@ -143,7 +151,6 @@ def test_particle_3d():  # warning should arise if particle is attempted in 3d m
 def test_plot_sensors():
     plotter3d = Plotter(Dimension.THREE)
     plotter3d.plot_sensors(sensor3d, marker='o', color='red')
-    plt.close()
     assert 'Sensors' in plotter3d.legend_dict
 
 
@@ -485,9 +492,3 @@ def test_plotter_plot_measurements_label(_measurements, expected_labels):
     plotter.plot_measurements(_measurements, [0, 2])
     actual_labels = set(plotter.legend_dict.keys())
     assert actual_labels == expected_labels
-
-
-def teardown_module():
-    """Closes all matplotlib plots.
-    Without this code plots would remain in the background for the duration of all the tests."""
-    plt.close('all')
