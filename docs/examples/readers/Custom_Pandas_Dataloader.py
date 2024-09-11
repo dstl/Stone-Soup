@@ -40,7 +40,7 @@ from stonesoup.reader.base import GroundTruthReader, DetectionReader, Reader
 from stonesoup.types.detection import Detection
 from stonesoup.types.groundtruth import GroundTruthPath, GroundTruthState
 
-from typing import Sequence, Collection
+from collections.abc import Sequence, Collection
 
 from datetime import datetime, timedelta, timezone
 from dateutil.parser import parse

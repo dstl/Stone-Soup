@@ -1,5 +1,5 @@
 """Contains collection of error based deleters"""
-from typing import Sequence
+from collections.abc import Sequence
 
 import numpy as np
 

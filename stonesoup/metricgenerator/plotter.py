@@ -1,5 +1,3 @@
-from typing import Tuple
-
 from .base import PlotGenerator
 from ..base import Property
 from ..models.measurement import MeasurementModel
@@ -15,11 +13,11 @@ class TwoDPlotter(PlotGenerator):
     Plots of :class:`~.Track`, :class:`~.Detection` and
     :class:`~.GroundTruthPath` objects in two dimensions.
     """
-    track_indices: Tuple[int, int] = Property(
+    track_indices: tuple[int, int] = Property(
         doc="Elements of track state vector to plot as x and y")
-    gtruth_indices: Tuple[int, int] = Property(
+    gtruth_indices: tuple[int, int] = Property(
         doc="Elements of ground truth path state vector to plot as x and y")
-    detection_indices: Tuple[int, int] = Property(
+    detection_indices: tuple[int, int] = Property(
         doc="Elements of detection state vector to plot as x and y")
     uncertainty: bool = Property(default=False,
                                  doc='If True the plot includes uncertainty ellipses')

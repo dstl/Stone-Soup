@@ -1,7 +1,5 @@
 import datetime
 
-from typing import Set
-
 from stonesoup.base import Property
 from stonesoup.hypothesiser import Hypothesiser
 from stonesoup.predictor import Predictor
@@ -35,7 +33,7 @@ class SimpleHypothesiser(Hypothesiser):
         if self.predict_measurement and self.updater is None:
             raise ValueError("Updater must be provided if `predict_measurement` is `True`")
 
-    def hypothesise(self, track: Track, detections: Set[Detection], timestamp: datetime.datetime,
+    def hypothesise(self, track: Track, detections: set[Detection], timestamp: datetime.datetime,
                     **kwargs) -> MultipleHypothesis:
         """ Evaluate and return all track association hypotheses.
 

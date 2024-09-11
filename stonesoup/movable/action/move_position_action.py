@@ -1,6 +1,7 @@
-import numpy as np
 from abc import abstractmethod
-from typing import Iterator, Sequence
+from collections.abc import Iterator, Sequence
+
+import numpy as np
 
 from ...base import Property
 from ...sensormanager.action import ActionGenerator, Action

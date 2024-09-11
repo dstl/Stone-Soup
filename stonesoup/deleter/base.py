@@ -1,5 +1,4 @@
 from abc import abstractmethod
-from typing import Set
 
 from ..base import Base, Property
 from ..types.track import Track
@@ -31,7 +30,7 @@ class Deleter(Base):
         """
         pass
 
-    def delete_tracks(self, tracks: Set[Track], **kwargs) -> Set[Track]:
+    def delete_tracks(self, tracks: set[Track], **kwargs) -> set[Track]:
         """Generic/Base track deletion method.
 
         Iterates through all tracks in a given list and calls
