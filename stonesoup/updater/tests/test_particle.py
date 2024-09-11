@@ -1,7 +1,7 @@
 """Test for updater.particle module"""
-import itertools
-
 import datetime
+import itertools
+import warnings
 from functools import partial
 
 import numpy as np
@@ -47,7 +47,12 @@ def updater(request):
     updater_class = request.param
     measurement_model = LinearGaussian(
         ndim_state=2, mapping=[0], noise_covar=np.array([[0.04]]))
-    return updater_class(measurement_model)
+    with warnings.catch_warnings():
+        warnings.filterwarnings(
+            'ignore',
+            message=r"`regulariser` has been defined but a `resampler` has not")
+        updater = updater_class(measurement_model)
+    return updater
 
 
 def test_particle(updater):
@@ -216,13 +221,18 @@ def test_regularised_particle(transition_model, model_flag):
     measurement_model = LinearGaussian(
         ndim_state=2, mapping=[0], noise_covar=np.array([[10]]))
 
-    if model_flag:
-        updater = ParticleUpdater(regulariser=MCMCRegulariser(),
-                                  measurement_model=measurement_model)
-    else:
-        updater = ParticleUpdater(regulariser=MCMCRegulariser(transition_model=transition_model),
-                                  measurement_model=measurement_model)
-    # Measurement model
+    with warnings.catch_warnings():
+        warnings.filterwarnings(
+            'ignore',
+            message=r"`regulariser` has been defined but a `resampler` has not")
+        if model_flag:
+            updater = ParticleUpdater(regulariser=MCMCRegulariser(),
+                                      measurement_model=measurement_model)
+        else:
+            updater = ParticleUpdater(
+                regulariser=MCMCRegulariser(transition_model=transition_model),
+                measurement_model=measurement_model)
+
     timestamp = datetime.datetime.now()
     particles = [Particle([[10], [10]], 1 / 9),
                  Particle([[10], [20]], 1 / 9),
