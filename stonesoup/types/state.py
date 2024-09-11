@@ -1,11 +1,11 @@
 import copy
 import datetime
+import typing
 import uuid
 import weakref
-from collections import abc
+from collections.abc import MutableMapping, MutableSequence, Sequence
 from numbers import Integral
-from typing import MutableSequence, Any, Optional, Sequence, MutableMapping
-import typing
+from typing import Any, Optional
 
 import numpy as np
 from scipy.stats import multivariate_normal
@@ -235,7 +235,7 @@ class ASDState(Type):
 State.register(ASDState)
 
 
-class StateMutableSequence(Type, abc.MutableSequence):
+class StateMutableSequence(Type, MutableSequence):
     """A mutable sequence for :class:`~.State` instances
 
     This sequence acts like a regular list object for States, as well as
@@ -268,7 +268,7 @@ class StateMutableSequence(Type, abc.MutableSequence):
     def __init__(self, states=None, *args, **kwargs):
         if states is None:
             states = []
-        elif not isinstance(states, abc.Sequence):
+        elif not isinstance(states, Sequence):
             # Ensure states is a list
             states = [states]
         super().__init__(states, *args, **kwargs)

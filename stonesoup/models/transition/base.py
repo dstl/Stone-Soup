@@ -1,9 +1,9 @@
-from abc import abstractmethod
 import copy
-from typing import Sequence
+from abc import abstractmethod
+from collections.abc import Sequence
 
-from scipy.linalg import block_diag
 import numpy as np
+from scipy.linalg import block_diag
 
 from ..base import Model, GaussianModel
 from ...base import Property

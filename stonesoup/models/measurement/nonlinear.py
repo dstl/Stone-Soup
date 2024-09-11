@@ -1,6 +1,7 @@
 from abc import ABC
 import copy
-from typing import Sequence, Tuple, Union
+from collections.abc import Sequence
+from typing import Union
 
 from math import sqrt
 import numpy as np
@@ -31,7 +32,7 @@ class CombinedReversibleGaussianMeasurementModel(ReversibleModel, GaussianModel,
     :exc:`NotImplementedError` if any model isn't either a
     :class:`~.LinearModel` or :class:`~.ReversibleModel`.
     """
-    model_list: Sequence[GaussianModel] = Property(doc="List of Measurement Models.")
+    model_list: Sequence[GaussianModel] = Property(doc="list of Measurement Models.")
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -710,7 +711,7 @@ class CartesianToBearingRangeRate(NonLinearGaussianMeasurement):
     translation_offset: StateVector = Property(
         default=None,
         doc="A 3x1 array specifying the origin offset in terms of :math:`x,y` coordinates.")
-    velocity_mapping: Tuple[int, int, int] = Property(
+    velocity_mapping: tuple[int, int, int] = Property(
         default=(1, 3, 5),
         doc="Mapping to the targets velocity within its state space")
     velocity: StateVector = Property(
@@ -858,7 +859,7 @@ class CartesianToElevationBearingRangeRate(NonLinearGaussianMeasurement, Reversi
     translation_offset: StateVector = Property(
         default=None,
         doc="A 3x1 array specifying the origin offset in terms of :math:`x,y,z` coordinates.")
-    velocity_mapping: Tuple[int, int, int] = Property(
+    velocity_mapping: tuple[int, int, int] = Property(
         default=(1, 3, 5),
         doc="Mapping to the targets velocity within its state space")
     velocity: StateVector = Property(

@@ -1,7 +1,8 @@
 import datetime
 import inspect
 from abc import ABC, abstractmethod
-from typing import Set, Sequence, Iterator, Any
+from collections.abc import Sequence, Iterator
+from typing import Any
 
 from stonesoup.base import Base, Property
 
@@ -147,7 +148,7 @@ class Actionable(Base, ABC):
         return generator.default_action
 
     def actions(self, timestamp: datetime.datetime, start_timestamp: datetime.datetime = None
-                ) -> Set[ActionGenerator]:
+                ) -> set[ActionGenerator]:
         """Method to return a set of action generators available up to a provided timestamp.
 
         A generator is returned for each actionable property that the sensor has.

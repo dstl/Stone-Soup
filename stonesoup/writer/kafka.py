@@ -1,5 +1,4 @@
 import json
-from typing import Dict
 
 try:
     from confluent_kafka import Producer
@@ -18,7 +17,7 @@ class KafkaWriter(Writer):
     Parameters
     ----------
     """
-    kafka_config: Dict[str, str] = Property(
+    kafka_config: dict[str, str] = Property(
         doc="Configuration properties for the underlying kafka consumer. See the "
             "`confluent-kafka documentation <https://docs.confluent.io/platform/current/clients/confluent-kafka-python/html/index.html#kafka-client-configuration>`_ " # noqa
             "for more details.")

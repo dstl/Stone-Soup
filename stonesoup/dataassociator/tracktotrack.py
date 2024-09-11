@@ -1,5 +1,4 @@
 from operator import attrgetter
-from typing import Set
 
 from ordered_set import OrderedSet
 
@@ -88,7 +87,7 @@ class TrackToTrackCounting(TwoTrackToTrackAssociator):
             "at the same time"
     )
 
-    def associate_tracks(self, tracks_set_1: Set[Track], tracks_set_2: Set[Track]):
+    def associate_tracks(self, tracks_set_1: set[Track], tracks_set_2: set[Track]):
         """Associate two sets of tracks together.
 
         Parameters
@@ -237,7 +236,7 @@ class TrackToTruth(TwoTrackToTrackAssociator):
         default=Euclidean(),
         doc="Distance measure to use. Default :class:`~.measures.Euclidean()`")
 
-    def associate_tracks(self, tracks_set: Set[Track], truth_set: Set[GroundTruthPath]):
+    def associate_tracks(self, tracks_set: set[Track], truth_set: set[GroundTruthPath]):
         """Associate Tracks
 
         Method compares to sets of :class:`~.Track` objects and will determine
@@ -431,7 +430,7 @@ class OneToOneTrackAssociator(TwoTrackToTrackAssociator, OneToOneAssociator):
 
     measure: TrackMeasure = Property()
 
-    def associate_tracks(self, *tracks_sets: Set[Track]) -> AssociationSet:
+    def associate_tracks(self, *tracks_sets: set[Track]) -> AssociationSet:
         if len(tracks_sets) != 2:  # Should have two sets of tracks
             raise ValueError("There should be two sources of tracks to compare")
 

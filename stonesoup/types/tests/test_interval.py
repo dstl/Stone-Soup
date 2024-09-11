@@ -1,5 +1,4 @@
 import operator
-from typing import List
 
 import pytest
 
@@ -122,11 +121,11 @@ def test_interval_disjoint():
 
 def test_intervals_init():
     temp = Intervals()
-    assert isinstance(temp.intervals, List)
+    assert isinstance(temp.intervals, list)
     assert len(temp.intervals) == 0  # Stores an empty list of intervals
 
     temp = Intervals(a)
-    assert isinstance(temp.intervals, List)
+    assert isinstance(temp.intervals, list)
     assert len(temp.intervals) == 1
     assert temp.intervals[0] == a
 
@@ -134,11 +133,11 @@ def test_intervals_init():
         Intervals('a string')
 
     temp = Intervals((0, 1))
-    assert isinstance(temp.intervals, List)
+    assert isinstance(temp.intervals, list)
     assert len(temp.intervals) == 1
     assert temp.intervals[0] == a  # Converts tuple of length 2 in to a list of one Interval type
 
-    assert isinstance(A.intervals, List)
+    assert isinstance(A.intervals, list)
     assert len(A.intervals) == 2
     assert A.intervals == [a, b]  # Converts lists of tuples to lists of Interval types
 
@@ -147,7 +146,7 @@ def test_intervals_init():
         Intervals([(0, 1), 'a string'])
 
     temp = Intervals([a, b, c])
-    assert isinstance(temp.intervals, List)
+    assert isinstance(temp.intervals, list)
     assert temp.intervals == [Interval(0, 3)]  # intervals merge on instantiation
 
 

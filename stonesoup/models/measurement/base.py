@@ -1,5 +1,5 @@
 from abc import abstractmethod, ABC
-from typing import Sequence
+from collections.abc import Sequence
 
 from ..base import Model
 from ...base import Property

@@ -1,6 +1,5 @@
 import copy
-from collections import abc
-from typing import MutableSequence
+from collections.abc import MutableSequence
 
 import numpy as np
 
@@ -12,7 +11,7 @@ from .numeric import Probability
 from .state import GaussianState, TaggedWeightedGaussianState, WeightedGaussianState
 
 
-class GaussianMixture(Type, abc.MutableSequence):
+class GaussianMixture(Type, MutableSequence):
     """
     Gaussian Mixture type
 

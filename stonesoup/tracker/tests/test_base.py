@@ -1,6 +1,5 @@
 import datetime
 import heapq
-from typing import Tuple, Set, List
 
 import pytest
 
@@ -16,7 +15,7 @@ class TrackerNextWithoutDetector(_TrackerMixInNext, Tracker):
         super().__init__(*args, **kwargs)
         self._tracks = set()
 
-    def __next__(self) -> Tuple[datetime.datetime, Set[Track]]:
+    def __next__(self) -> tuple[datetime.datetime, set[Track]]:
         time, detections = next(self.detector_iter)
         self._tracks = {Track(detection) for detection in detections}
         return time, self.tracks
@@ -36,8 +35,8 @@ class TrackerUpdateWithoutDetector(_TrackerMixInUpdate, Tracker):
         super().__init__(*args, **kwargs)
         self._tracks = set()
 
-    def update_tracker(self, time: datetime.datetime, detections: Set[Detection]) \
-            -> Tuple[datetime.datetime, Set[Track]]:
+    def update_tracker(self, time: datetime.datetime, detections: set[Detection]) \
+            -> tuple[datetime.datetime, set[Track]]:
 
         self._tracks = {Track(detection) for detection in detections}
         return time, self.tracks
@@ -52,7 +51,7 @@ class TrackerUpdateWithDetector(TrackerUpdateWithoutDetector):
 
 
 @pytest.fixture
-def detector() -> List[Tuple[datetime.datetime, Set[Detection]]]:
+def detector() -> list[tuple[datetime.datetime, set[Detection]]]:
     detections = [
         Detection(timestamp=datetime.datetime(2023, 11, i), state_vector=[i])
         for i in range(1, 10)
