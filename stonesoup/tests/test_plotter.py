@@ -183,15 +183,15 @@ def test_equal_3daxis():
     plotter_xyz.set_equal_3daxis([0, 1, 2])
     plotters = [plotter_default, plotter_xy_default, plotter_xy, plotter_xyz]
     lengths = [3, 2, 2, 1]
-    for plotter, l in zip(plotters, lengths):
+    for plotter, length in zip(plotters, lengths):
         min_xyz = [0, 0, 0]
         max_xyz = [0, 0, 0]
         for i in range(3):
             for line in plotter.ax.lines:
                 min_xyz[i] = np.min([min_xyz[i], *line.get_data_3d()[i]])
                 max_xyz[i] = np.max([max_xyz[i], *line.get_data_3d()[i]])
-        assert len(set(min_xyz)) == l
-        assert len(set(max_xyz)) == l
+        assert len(set(min_xyz)) == length
+        assert len(set(max_xyz)) == length
 
 
 def test_equal_3daxis_2d():
