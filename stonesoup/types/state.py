@@ -760,7 +760,8 @@ class ParticleState(State):
         if value is None:
             self.log_weight = None
         else:
-            self.log_weight = np.log(np.asarray(value, dtype=np.float64))
+            with np.errstate(divide='ignore'):  # Log weight of -inf is fine
+                self.log_weight = np.log(np.asarray(value, dtype=np.float64))
             self.__dict__['weight'] = np.asanyarray(value)
 
     @weight.getter
