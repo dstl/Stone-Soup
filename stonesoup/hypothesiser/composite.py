@@ -1,5 +1,5 @@
 from collections import defaultdict
-from typing import Sequence
+from collections.abc import Sequence
 
 from .base import Hypothesiser
 from ..base import Property

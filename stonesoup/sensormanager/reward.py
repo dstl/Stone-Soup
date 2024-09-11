@@ -1,7 +1,7 @@
 from abc import ABC
 import copy
 import datetime
-from typing import Mapping, Sequence, Set
+from collections.abc import Mapping, Sequence
 
 import numpy as np
 
@@ -38,7 +38,7 @@ class RewardFunction(Base, ABC):
     and chooses the appropriate sensing configuration to use at that time step.
     """
 
-    def __call__(self, config: Mapping[Sensor, Sequence[Action]], tracks: Set[Track],
+    def __call__(self, config: Mapping[Sensor, Sequence[Action]], tracks: set[Track],
                  metric_time: datetime.datetime, *args, **kwargs):
         """
         A method which returns a reward metric based on information about the state of the
@@ -80,7 +80,7 @@ class UncertaintyRewardFunction(RewardFunction):
                                            "noise to the predicted measurements for sensor "
                                            "management.")
 
-    def __call__(self, config: Mapping[Sensor, Sequence[Action]], tracks: Set[Track],
+    def __call__(self, config: Mapping[Sensor, Sequence[Action]], tracks: set[Track],
                  metric_time: datetime.datetime, *args, **kwargs):
         """
         For a given configuration of sensors and actions this reward function calculates the
@@ -214,7 +214,7 @@ class ExpectedKLDivergence(RewardFunction):
         super().__init__(*args, **kwargs)
         self.KLD = KLDivergence()
 
-    def __call__(self, config: Mapping[Sensor, Sequence[Action]], tracks: Set[Track],
+    def __call__(self, config: Mapping[Sensor, Sequence[Action]], tracks: set[Track],
                  metric_time: datetime.datetime, *args, **kwargs):
         """
         For a given configuration of sensors and actions this reward function

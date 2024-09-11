@@ -6,7 +6,7 @@ of data that is in common formats.
 
 import csv
 from datetime import datetime, timedelta, timezone
-from typing import Sequence, Collection, Mapping
+from collections.abc import Collection, Mapping, Sequence
 
 from math import modf
 

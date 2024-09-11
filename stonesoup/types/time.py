@@ -1,7 +1,6 @@
 import copy
 import datetime
 from itertools import combinations, permutations
-from typing import List
 
 from ..base import Property
 from ..types.interval import Interval, Intervals
@@ -42,7 +41,7 @@ class TimeRange(Interval):
         return self.length
 
     @property
-    def key_times(self) -> List[datetime.datetime]:
+    def key_times(self) -> list[datetime.datetime]:
         """Times the TimeRange begins and ends"""
         return [self.start, self.end]
 
@@ -172,7 +171,7 @@ class CompoundTimeRange(Intervals):
         return total_duration
 
     @property
-    def key_times(self) -> List[datetime.datetime]:
+    def key_times(self) -> list[datetime.datetime]:
         """Returns all timestamps at which a component starts or ends"""
         key_times = set()
         for component in self.time_ranges:

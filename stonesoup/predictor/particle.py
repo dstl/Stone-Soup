@@ -1,6 +1,6 @@
 import copy
+from collections.abc import Sequence
 from enum import Enum
-from typing import Sequence
 
 import numpy as np
 from scipy.special import logsumexp

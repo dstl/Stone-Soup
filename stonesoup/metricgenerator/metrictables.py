@@ -1,5 +1,5 @@
+from collections.abc import Collection
 from operator import attrgetter
-from typing import Collection
 
 import numpy as np
 import matplotlib

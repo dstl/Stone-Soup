@@ -1,9 +1,10 @@
 import warnings
 from abc import ABC, abstractmethod
+from collections.abc import Collection, Iterable
 from datetime import datetime, timedelta
 from enum import IntEnum
 from itertools import chain
-from typing import Collection, Iterable, Union, List, Optional, Tuple, Dict
+from typing import Optional, Union
 
 import numpy as np
 from matplotlib import animation as animation
@@ -72,7 +73,7 @@ class _Plotter(ABC):
 
     def _conv_measurements(self, measurements, mapping, measurement_model=None,
                            convert_measurements=True) -> \
-            Tuple[Dict[detection.Detection, StateVector], Dict[detection.Clutter, StateVector]]:
+            tuple[dict[detection.Detection, StateVector], dict[detection.Clutter, StateVector]]:
         conv_detections = {}
         conv_clutter = {}
         for state in measurements:
@@ -734,7 +735,7 @@ class MetricPlotter(ABC):
         """
         for metric_dict in metrics.values():
             for metric_name, metric in metric_dict.items():
-                if isinstance(metric.value, List) \
+                if isinstance(metric.value, list) \
                         and all(isinstance(x, SingleTimeMetric) for x in metric.value):
                     self.plottable_metrics.append(metric_name)
 
@@ -1884,12 +1885,12 @@ class AnimationPlotter(_Plotter):
             title += "\n"
         self.title: str = title
 
-        self.plotting_data: List[_AnimationPlotterDataClass] = []
+        self.plotting_data: list[_AnimationPlotterDataClass] = []
 
         self.animation_output: animation.FuncAnimation = None
 
     def run(self,
-            times_to_plot: List[datetime] = None,
+            times_to_plot: list[datetime] = None,
             plot_item_expiry: Optional[timedelta] = None,
             **kwargs):
         """Run the animation
@@ -1940,7 +1941,7 @@ class AnimationPlotter(_Plotter):
 
         self.animation_output.save(filename, **kwargs)
 
-    def plot_ground_truths(self, truths, mapping: List[int], label: str = "Ground Truth",
+    def plot_ground_truths(self, truths, mapping: list[int], label: str = "Ground Truth",
                            **kwargs):
         """Plots ground truth(s)
 
@@ -1974,7 +1975,7 @@ class AnimationPlotter(_Plotter):
         truths_kwargs.update(kwargs)
         self.plot_state_mutable_sequence(truths, mapping, label, **truths_kwargs)
 
-    def plot_tracks(self, tracks, mapping: List[int], uncertainty=False, particle=False,
+    def plot_tracks(self, tracks, mapping: list[int], uncertainty=False, particle=False,
                     label="Tracks", **kwargs):
         """Plots track(s)
 
@@ -2014,7 +2015,7 @@ class AnimationPlotter(_Plotter):
         tracks_kwargs.update(kwargs)
         self.plot_state_mutable_sequence(tracks, mapping, label, **tracks_kwargs)
 
-    def plot_state_mutable_sequence(self, state_mutable_sequences, mapping: List[int], label: str,
+    def plot_state_mutable_sequence(self, state_mutable_sequences, mapping: list[int], label: str,
                                     **plotting_kwargs):
         """Plots State Mutable Sequence
 
@@ -2133,7 +2134,7 @@ class AnimationPlotter(_Plotter):
 
     @classmethod
     def run_animation(cls,
-                      times_to_plot: List[datetime],
+                      times_to_plot: list[datetime],
                       data: Iterable[_AnimationPlotterDataClass],
                       plot_item_expiry: Optional[timedelta] = None,
                       axis_padding: float = 0.1,
@@ -2251,8 +2252,8 @@ class AnimationPlotter(_Plotter):
         return line_ani
 
     @staticmethod
-    def update_animation(index: int, lines: List[Line2D], data_list: List[List[State]],
-                         start_times: List[datetime], end_times: List[datetime], title: str):
+    def update_animation(index: int, lines: list[Line2D], data_list: list[list[State]],
+                         start_times: list[datetime], end_times: list[datetime], title: str):
         """
         Parameters
         ----------

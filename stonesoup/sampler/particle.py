@@ -1,8 +1,9 @@
+from collections.abc import Callable
+
 import numpy as np
 
 from .base import Sampler
 from ..base import Property
-from typing import Callable
 from ..types.state import ParticleState
 from ..types.array import StateVectors
 

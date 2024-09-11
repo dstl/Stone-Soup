@@ -1,6 +1,6 @@
 import datetime
 from abc import abstractmethod
-from typing import Set, Mapping, Tuple
+from collections.abc import Mapping
 
 from ..base import Base, Property
 from ..hypothesiser import Hypothesiser
@@ -28,7 +28,7 @@ class DataAssociator(Base):
                 for track in tracks}
 
     @abstractmethod
-    def associate(self, tracks: Set[Track], detections: Set[Detection],
+    def associate(self, tracks: set[Track], detections: set[Detection],
                   timestamp: datetime.datetime, **kwargs) -> Mapping[Track, Hypothesis]:
         """Associate tracks and detections
 
@@ -63,7 +63,7 @@ class TrackToTrackAssociator(Associator):
     """Associates *n* sets of :class:`~.Track` objects together"""
 
     @abstractmethod
-    def associate_tracks(self, *tracks_sets: Set[Track]) \
+    def associate_tracks(self, *tracks_sets: set[Track]) \
             -> AssociationSet:
         """Associate *n* sets of tracks together.
 
@@ -79,8 +79,8 @@ class TrackToTrackAssociator(Associator):
 
         """
 
-    def associated_and_unassociated_tracks(self, *tracks_sets: Set[Track]) \
-            -> Tuple[AssociationSet, Tuple[Set[Track]]]:
+    def associated_and_unassociated_tracks(self, *tracks_sets: set[Track]) \
+            -> tuple[AssociationSet, tuple[set[Track]]]:
         """Associate n sets of tracks together. The unassociated tracks are returned with
          the associated tracks.
 
@@ -111,7 +111,7 @@ class TwoTrackToTrackAssociator(TrackToTrackAssociator):
     """Associates two sets of :class:`~.Track` objects together"""
 
     @abstractmethod
-    def associate_tracks(self, tracks_set_1: Set[Track], tracks_set_2: Set[Track]) \
+    def associate_tracks(self, tracks_set_1: set[Track], tracks_set_2: set[Track]) \
             -> AssociationSet:
         """Associate two sets of tracks together.
 

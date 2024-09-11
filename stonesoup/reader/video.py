@@ -6,8 +6,9 @@ of video data/streams.
 
 import datetime
 import threading
+from collections.abc import Mapping, Sequence
 from queue import Queue
-from typing import Mapping, Tuple, Sequence, Any
+from typing import Any
 from urllib.parse import ParseResult
 
 import numpy as np
@@ -129,13 +130,13 @@ class FFmpegVideoStreamReader(UrlReader, FrameReader):
         default=None,
         doc="FFmpeg output options, provided in the form of a dictionary, whose keys correspond "
             "to option names. The default is ``{'f': 'rawvideo', 'pix_fmt': 'rgb24'}``.")
-    filters: Sequence[Tuple[str, Sequence[Any], Mapping[Any, Any]]] = Property(
+    filters: Sequence[tuple[str, Sequence[Any], Mapping[Any, Any]]] = Property(
         default=None,
         doc="FFmpeg filters, provided in the form of a list of filter name, sequence of "
             "arguments, mapping of key/value pairs (e.g. ``[('scale', ('320', '240'), {})]``). "
             "Default `None` where no filter will be applied. Note that :attr:`frame_size` may "
             "need to be set in when video size changed by filter.")
-    frame_size: Tuple[int, int] = Property(
+    frame_size: tuple[int, int] = Property(
         default=None,
         doc="Tuple of frame width and height. Default `None` where it will be detected using "
             "`ffprobe` against the input, but this may yield wrong width/height (e.g. when "

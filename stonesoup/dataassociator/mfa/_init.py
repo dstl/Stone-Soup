@@ -8,10 +8,10 @@ The public API for this module is init_hyp_info(), which returns a HypInfo recor
 """
 
 from collections import defaultdict
+from collections.abc import Sequence
 from dataclasses import dataclass
 from itertools import groupby
 from operator import itemgetter
-from typing import List, Dict, Tuple, Sequence
 
 import numpy as np
 
@@ -51,7 +51,7 @@ class Hyp:
 _DUMMY_TRACK_ASSIGNMENT_COST = 0
 
 
-def _add_dummy_tracks(hyps: List[Hyp], all_measurements: List[Tuple[int, int]], slide_window: int):
+def _add_dummy_tracks(hyps: list[Hyp], all_measurements: list[tuple[int, int]], slide_window: int):
     """Add dummy tracks for each non-null measurement
 
     Each measurement has a hypothesis that it was used and another that it wasn't so that all of
@@ -81,7 +81,7 @@ def _add_dummy_tracks(hyps: List[Hyp], all_measurements: List[Tuple[int, int]], 
 
 
 def _compact_measurement_indices(
-    hyps: List[Hyp], all_measurements: List[Tuple[int, int]], slide_window: int
+    hyps: list[Hyp], all_measurements: list[tuple[int, int]], slide_window: int
 ):
     """Compacts the measurement indices in measHistorySlideWindow of each Hyp.
 
@@ -114,21 +114,21 @@ class TimeStepIndices:
     # track i (i.e. these hypotheses do not associate track i with any measurement)
     # Philosophically, Dict[int, List[int]] is perhaps more correct, but the keys (the track IDs)
     # are contiguous so makes more sense to use List[List[int]].
-    trackNull_index: List[List[int]]
+    trackNull_index: list[list[int]]
     # measTrack_index[j, i] is list of indices that assign measurement j to track i
-    measTrack_index: Dict[Tuple[int, int], List[int]]
+    measTrack_index: dict[tuple[int, int], list[int]]
     # measIndex[j] is a list of Hyp indices that use measurement j for any track
     # Does not include j==0 i.e. false alarm hypotheses
-    measIndex: Dict[int, List[int]]
+    measIndex: dict[int, list[int]]
     # Number of measurements used in any hypothesis in this time step
     measurement_count: int
 
 
-def _get_hyp_indices(hyps: List[Hyp], slide_window: int):
+def _get_hyp_indices(hyps: list[Hyp], slide_window: int):
     """Computes useful indices mapping into the list of hypotheses.
 
     The main result is a list of HypInfo structures, which are used in the main algorithm step.
-    In addition, track_to_hyp_map, which is a List[List[int]]. track_to_hyp_map[j] is a list of hyp
+    In addition, track_to_hyp_map, which is a list[list[int]]. track_to_hyp_map[j] is a list of hyp
     indices that are for trackID j. This is used in construction of the constraints matrix.
     """
     track_count = hyps[-1].trackID + 1
@@ -184,19 +184,19 @@ def _get_constraints_matrix(hyps, time_step_indices, track_to_hyp_map):
 class HypInfo:
     """Container for various information extracted from Hypothesis objects for MFA."""
 
-    hyps: List[Hyp]
+    hyps: list[Hyp]
     # track_to_hyp_map[j] is list of hyp indices that are for trackID j
     # Although used as a map, the keys are contiguous integers so use a list
-    track_to_hyp_map: List[List[int]]
+    track_to_hyp_map: list[list[int]]
     # TimeStepIndices structure for each time step
-    time_step_indices: List[TimeStepIndices]
+    time_step_indices: list[TimeStepIndices]
     # Binary indicator matrix of constraints used in the optimisation
     constraint_matrix: np.array
     # The individual costs of the Hyp objects pulled out into a single array
     all_costs: np.array
 
 
-def init_hyp_info(hyps: List[Hyp], slide_window: int):
+def init_hyp_info(hyps: list[Hyp], slide_window: int):
     all_measurements = sorted(set(
         (time_index, measurement)  # Time index is relative to start of sliding window
         for hyp in hyps

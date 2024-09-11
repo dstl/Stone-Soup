@@ -1,5 +1,6 @@
 from itertools import chain
-from typing import Sequence, Dict, Iterable, Union
+from collections.abc import Sequence, Iterable
+from typing import Union
 
 from .base import MetricManager, MetricGenerator
 from ..base import Property
@@ -27,7 +28,7 @@ class MultiManager(MetricManager):
         self.association_set = None
         self.metrics = None
 
-    def add_data(self, metric_data: Dict = None, overwrite=True):
+    def add_data(self, metric_data: dict = None, overwrite=True):
         """Adds data to the metric generator
 
         Parameters

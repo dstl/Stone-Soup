@@ -1,9 +1,9 @@
 import numpy as np
 
+from collections.abc import Sequence, Collection
 from datetime import datetime, timedelta, timezone
 from dateutil.parser import parse
 from math import modf
-from typing import Sequence, Collection
 
 try:
     import pandas as pd
