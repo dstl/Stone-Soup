@@ -1,7 +1,6 @@
 from typing import Union
 
 import numpy as np
-from enum import Enum
 from scipy.stats import multivariate_normal as mvn
 
 from stonesoup.base import Property
@@ -55,7 +54,6 @@ class PriorAsProposal(Proposal):
                                      prior=prior)
 
 
-
 class KFasProposal(Proposal):
     """This proposal uses the kalman filter prediction and update steps to
     generate new set of particles and weights
@@ -84,9 +82,6 @@ class KFasProposal(Proposal):
         : :class:`~.ParticlePrediction`
         """
 
-        # get the number of particles
-        number_particles = prior.state_vector.shape[1]
-
         if measurement is not None:
             timestamp = measurement.timestamp
             time_interval = measurement.timestamp - prior.timestamp
@@ -105,7 +100,7 @@ class KFasProposal(Proposal):
         if isinstance(self.predictor, SqrtKalmanPredictor):
             prior_cls = SqrtGaussianState
 
-        # Null covariance
+        # Null covariance for the particles
         null_covar = np.zeros_like(prior.covar)
 
         predictions = [

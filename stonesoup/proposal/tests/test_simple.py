@@ -2,7 +2,6 @@ import itertools
 
 import datetime
 import numpy as np
-import pytest
 
 # Import the proposals
 from stonesoup.proposal.simple import PriorAsProposal, KFasProposal
@@ -11,7 +10,6 @@ from stonesoup.types.particle import Particle
 from stonesoup.types.prediction import ParticleStatePrediction
 from stonesoup.predictor.kalman import KalmanPredictor
 from stonesoup.updater.kalman import KalmanUpdater
-from stonesoup.updater.particle import ParticleUpdater
 from stonesoup.types.state import ParticleState, GaussianState
 from stonesoup.predictor.particle import ParticlePredictor
 from stonesoup.types.detection import Detection
@@ -29,7 +27,7 @@ def test_prior_proposal():
 
     # Define time related variables
     timestamp = datetime.datetime.now()
-    timediff = 2  # 2sec
+    timediff = 2  # 2 sec
     new_timestamp = timestamp + datetime.timedelta(seconds=timediff)
     time_interval = new_timestamp - timestamp
 
@@ -88,7 +86,7 @@ def test_kf_proposal():
 
     # Define time related variables
     timestamp = datetime.datetime.now()
-    timediff = 2  # 2sec
+    timediff = 2  # 2 sec
     new_timestamp = timestamp + datetime.timedelta(seconds=timediff)
     time_interval = new_timestamp - timestamp
 
@@ -100,13 +98,18 @@ def test_kf_proposal():
 
     prior = ParticleState(None, particle_list=prior_particles, timestamp=timestamp)
 
-    prior_kf = GaussianState(prior.mean, prior.covar, prior.timestamp)
+    # null covariance for the predictions
+    null_covar = np.zeros_like(prior.covar)
+    prior_kf = GaussianState(prior.mean, null_covar, prior.timestamp)
+
+    # Kalman filter components
     kf_predictor = KalmanPredictor(cv)
     kf_updater = KalmanUpdater(lg)
 
     # perform the kalman filter update
     prediction = kf_predictor.predict(prior_kf, timestamp=new_timestamp)
 
+    # state prediction
     new_state = GaussianState(state_vector=cv.function(prior_kf, noise=True,
                                                        time_interval=time_interval),
                               covar=np.diag([1, 1]),
@@ -117,31 +120,13 @@ def test_kf_proposal():
                           timestamp=new_timestamp,
                           measurement_model=lg)
 
-    predictions = [kf_predictor.predict(
-        GaussianState(particle_sv, np.zeros_like(prior.covar), prior.timestamp),
-        timestamp=timestamp)
-        for particle_sv in prior.state_vector]
-
-    updates = [kf_updater.update(SingleHypothesis(prediction, detection))
-               for prediction in predictions]
-
-#    eval_state = kf_updater.update(SingleHypothesis(prediction, detection))
+    eval_state = kf_updater.update(SingleHypothesis(prediction, detection))
 
     proposal = KFasProposal(KalmanPredictor(cv),
                             KalmanUpdater(lg))
+    # particle proposal
+    particle_proposal = proposal.rvs(prior, measurement=detection, time_interval=time_interval)
 
-    x = proposal.rvs(prior, measurement=detection, time_interval=time_interval)
-
-    # pf_predictor = ParticlePredictor(cv,
-    #                                  proposal=proposal)
-    #
-    # pf_updater = ParticleUpdater(lg)
-    #
-    # pred_state = pf_predictor.predict(prior, timestamp=new_timestamp, detection=detection)
-    #
-
-    #print()
-    assert x.state_vector.shape == prior.state_vector.shape
-#    assert np.allclose(pred_state.mean, eval_state.state_vector)
-#    assert np.allclose(x.mean, eval_state.state_vector)
-    assert pred_state.timestamp == new_timestamp
+    assert particle_proposal.state_vector.shape == prior.state_vector.shape
+    assert np.allclose(particle_proposal.mean, eval_state.state_vector, rtol=1)
+    assert particle_proposal.timestamp == new_timestamp
