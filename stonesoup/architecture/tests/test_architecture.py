@@ -2,13 +2,15 @@ import copy
 
 import pytest
 import datetime
+import numpy as np
 
-from stonesoup.architecture import InformationArchitecture, NetworkArchitecture, \
+from .. import InformationArchitecture, NetworkArchitecture, \
     NonPropagatingArchitecture
 from ..edge import Edge, Edges, FusionQueue, Message, DataPiece
 from ..generator import NetworkArchitectureGenerator
 from ..node import RepeaterNode, SensorNode, FusionNode, Node
-from stonesoup.types.detection import TrueDetection
+from ...types.detection import TrueDetection
+from ...types.state import GaussianState
 from ...types.track import Track
 
 
@@ -748,9 +750,17 @@ def test_net_arch_fully_propagated(generator_params, ground_truths):
             isinstance(edge.nodes[0], RepeaterNode) and
             isinstance(edge.nodes[1], FusionNode)}.pop()
 
-    message = Message(edge, datetime.datetime(2016, 1, 2, 3, 4, 5), start_time,
-                      DataPiece(edge.sender, edge.sender, Track([]),
-                                datetime.datetime(2016, 1, 2, 3, 4, 5)))
+    message = Message(
+        edge,
+        datetime.datetime(2016, 1, 2, 3, 4, 5),
+        start_time,
+        DataPiece(
+            edge.sender,
+            edge.sender,
+            Track([GaussianState([1, 2, 3, 4], np.diag([1, 1, 1, 1]), datetime.datetime(2016, 1, 2, 3, 4, 5))]),
+            datetime.datetime(2016, 1, 2, 3, 4, 5),
+        ),
+    )
 
     edge.sender.messages_to_pass_on.append(message)
 

@@ -168,13 +168,13 @@ def radar_sensors(times):
 
 
 @pytest.fixture
-def predictor():
+def predictor(transition_model):
     predictor = KalmanPredictor(transition_model)
     return predictor
 
 
 @pytest.fixture
-def updater(transition_model):
+def updater():
     updater = ExtendedKalmanUpdater(measurement_model=None)
     return updater
 
@@ -199,7 +199,7 @@ def deleter(hypothesiser):
 
 
 @pytest.fixture
-def initiator():
+def initiator(data_associator, deleter, updater):
     initiator = MultiMeasurementInitiator(
         prior_state=GaussianState([[0], [0], [0], [0]], np.diag([0, 1, 0, 1])),
         measurement_model=None,
@@ -212,7 +212,7 @@ def initiator():
 
 
 @pytest.fixture
-def tracker():
+def tracker(initiator, deleter, data_associator, updater):
     tracker = MultiTargetTracker(initiator, deleter, None, data_associator, updater)
     return tracker
 
@@ -230,7 +230,7 @@ def detection_updater():
 
 
 @pytest.fixture
-def detection_track_updater():
+def detection_track_updater(detection_updater, track_updater):
     detection_track_updater = DetectionAndTrackSwitchingUpdater(None, detection_updater,
                                                                 track_updater)
     return detection_track_updater
@@ -243,7 +243,7 @@ def fusion_queue():
 
 
 @pytest.fixture
-def track_tracker():
+def track_tracker(initiator, deleter, fusion_queue, data_associator, detection_track_updater):
     track_tracker = MultiTargetTracker(
         initiator, deleter, Tracks2GaussianDetectionFeeder(fusion_queue), data_associator,
         detection_track_updater)
@@ -251,7 +251,7 @@ def track_tracker():
 
 
 @pytest.fixture
-def radar_nodes(radar_sensors, fusion_queue):
+def radar_nodes(tracker, track_tracker, radar_sensors, fusion_queue):
     sensor_set = radar_sensors
     node_A = SensorNode(sensor=sensor_set[0])
     node_B = SensorNode(sensor=sensor_set[2])
