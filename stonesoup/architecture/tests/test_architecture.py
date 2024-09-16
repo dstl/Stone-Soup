@@ -757,7 +757,7 @@ def test_net_arch_fully_propagated(generator_params, ground_truths):
         DataPiece(
             edge.sender,
             edge.sender,
-            Track([GaussianState([1, 2, 3, 4], np.diag([1, 1, 1, 1]), 
+            Track([GaussianState([1, 2, 3, 4], np.diag([1, 1, 1, 1]),
                                  datetime.datetime(2016, 1, 2, 3, 4, 5))]),
             datetime.datetime(2016, 1, 2, 3, 4, 5),
         ),
