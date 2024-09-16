@@ -357,7 +357,7 @@ SIAPDiffTableGenerator([network_siap_averages, information_siap_averages]).compu
 # edge. We aim to show the following:
 #
 # * It is possible to remove certain edges from a network architecture without affecting the
-# performance of the network.
+#   performance of the network.
 # * Removing an edge from an information architecture will likely have an effect on performance.
 
 # First, we must set up the two architectures, and remove an edge from each. In the network
