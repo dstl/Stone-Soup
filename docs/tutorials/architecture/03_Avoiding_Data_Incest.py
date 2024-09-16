@@ -7,11 +7,6 @@
 ========================
 """
 
-import random
-import copy
-import numpy as np
-from datetime import datetime, timedelta
-
 # %%
 # Introduction
 # ------------
@@ -21,9 +16,13 @@ from datetime import datetime, timedelta
 # We design two architectures: a centralised (non-hierarchical) architecture, and a hierarchical
 # alternative, and look to compare the fused results at the central node.
 #
-# ## Scenario generation
 #
 #
+
+import random
+import copy
+import numpy as np
+from datetime import datetime, timedelta
 
 start_time = datetime.now().replace(microsecond=0)
 np.random.seed(1990)
@@ -33,7 +32,7 @@ random.seed(1990)
 # Sensors
 # ^^^^^^^
 #
-# We build two sensors to be assigned to the two sensor nodes
+# We build two sensors to be assigned to the two sensor nodes.
 #
 
 from stonesoup.models.clutter import ClutterModel
@@ -216,9 +215,9 @@ NH_edges = Edges([Edge((sensornode1, fusion_node1), edge_latency=0),
 # risk of data incest, due to the fact that information from sensor node 1 could reach fusion
 # node 1 via two routes, while appearing to not be from the same source:
 #
-# Route 1: Sensor Node 1 (S1) passes its information straight to Fusion Node 1 (F1)
+# - Route 1: Sensor Node 1 (S1) passes its information straight to Fusion Node 1 (F1)
 #
-# Route 2: S1 also passes its information to Fusion Node 2 (F2). Here it is fused with
+# - Route 2: S1 also passes its information to Fusion Node 2 (F2). Here it is fused with
 # information from Sensor Node 2 (S2). This resulting information is then passed to Fusion Node 1.
 #
 # Ultimately, F1 is recieving information from S1, and information from F2 which is based on the
@@ -446,7 +445,7 @@ H_siap_averages_EKF = {H_siap_metrics.get(metric) for metric in H_siap_metrics
 
 from stonesoup.metricgenerator.metrictables import SIAPDiffTableGenerator
 
-SIAPDiffTableGenerator([NH_siap_averages_EKF, H_siap_averages_EKF]).compute_metric()
+SIAPDiffTableGenerator([NH_siap_averages_EKF, H_siap_averages_EKF]).compute_metric();
 
 # %%
 

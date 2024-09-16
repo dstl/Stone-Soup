@@ -7,11 +7,11 @@
 ========================================
 """
 # %%
-# Comparing Information and Network Architectures using ArchitectureGenerators
+# Comparing Information and Network Architectures Using ArchitectureGenerators
 # ----------------------------------------------------------------------------
 #
-# In this demo, we intend to show that running a simulation over both an Information
-# Architecture, and its underlying Network Architecture, yields the same results.
+# In this demo, we intend to show that running a simulation over both an information
+# architecture and its underlying network architecture yields the same results.
 #
 # To build this demonstration, we shall carry out the following steps:
 #
@@ -19,13 +19,13 @@
 #
 # 2) Build a base sensor model, and a base tracker
 #
-# 3) Use the ArchitectureGenerator classes to generate 2 pairs of identical architectures
-# (1 network, 1 information), where the network architecture is a valid representation of
+# 3) Use the :class:`~.ArchitectureGenerator` classes to generate 2 pairs of identical architectures
+# (one of each type), where the network architecture is a valid representation of
 # the information architecture.
 #
-# 4) Run simulation over both, and compare results
+# 4) Run the simulation over both, and compare results.
 #
-# 5) Remove edges from each of the architectures, rerun and
+# 5) Remove edges from each of the architectures, and rerun. 
 
 # %%
 # Module Imports
@@ -83,7 +83,7 @@ for j in range(0, ntruths):
 # %%
 # 2 - Base Tracker and Sensor Models
 # ----------------------------------
-# We can use the ArchitectureGenerator classes to generate multiple identical architectures.
+# We can use the :class:`~.ArchitectureGenerator` classes to generate multiple identical architectures.
 # These classes take in base tracker and sensor models, which are duplicated and applied to each
 # relevant node in the architecture. The base tracker must not have a detector, in order for it
 # to be duplicated - the detector will be applied during the architecture generation step.
@@ -118,8 +118,8 @@ base_sensor.timestamp = start_time
 # %%
 # Tracker
 # ^^^^^^^
-# The base tracker provides a similar concept to the base sensor - it is duplicated and applied
-# to each fusion node. In order to duplicate the tracker, it's components must all be compatible
+# The base tracker is used here in the same way as the base sensor - it is duplicated and applied
+# to each fusion node. In order to duplicate the tracker, its components must all be compatible
 # with being deep-copied. This means that we need to remove the fusion queue and reassign it
 # after duplication.
 
@@ -160,7 +160,7 @@ base_tracker = MultiTargetTracker(
 # %%
 # 3 - Generate Identical Architectures
 # ------------------------------------
-# The :class:`~.NetworkArchitecture` class has a property information_arch, which contains the
+# The :class:`~.NetworkArchitecture` class has a property `information_arch`, which contains the
 # information architecture representation of the underlying network architecture. This means
 # that if we use the :class:`~.NetworkArchitectureGenerator` class to generate a pair of identical network
 # architectures, we can extract the information architecture from one.
@@ -186,16 +186,16 @@ id_net_archs = gen.generate()
 network_arch = id_net_archs[0]
 information_arch = id_net_archs[1].information_arch
 
-network_arch.plot()
+network_arch
 
 # %%
-information_arch.plot()
+information_arch
 
 # %%
 # The two plots above display a network architecture, and corresponding information architecture,
 # respectively. Grey nodes in the network architecture represent repeater nodes - these have the
 # sole purpose of passing data from one node to another. Comparing the two graphs, while ignoring
-# the repeater nodes, should reveal that the two plots are both representations of the same
+# the repeater nodes, should confirm that the two plots are both representations of the same
 # system.
 
 # %%
@@ -253,7 +253,7 @@ plotter.fig
 # %%
 # Run Information Architecture Simulation
 # ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-# Run the simulation over the information architecture. As before, we extract some extra
+# Now we run the simulation over the information architecture. As before, we extract some extra
 # information from the architecture to add to the plot - location of sensors, and detections.
 
 
@@ -283,10 +283,11 @@ plotter.fig
 
 # %%
 # Comparing Tracks from each Architecture
+# ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 #
 # The information architecture we have studied is hierarchical, and while the network
-# architecture isn't strictly a hierarchical graph, it does have one central node receiving all
-# information. The central node is Fusion Node 1. The code below plots SIAP metrics for the
+# architecture isn't strictly a hierarchical graph, it does have one central node (Fusion Node 1) 
+# receiving all information. The code below plots SIAP metrics for the
 # tracks maintained at Fusion Node 1 in both architecures. Some variation between the two is
 # expected due to the randomness of the measurements, but we aim to show that the results from
 # both architectures are near identical.
@@ -347,22 +348,22 @@ information_siap_averages = {information_siap_metrics.get(metric) for
 
 # %%
 from stonesoup.metricgenerator.metrictables import SIAPDiffTableGenerator
-SIAPDiffTableGenerator([network_siap_averages, information_siap_averages]).compute_metric()
+SIAPDiffTableGenerator([network_siap_averages, information_siap_averages]).compute_metric();
 
 # %%
 # 5 - Remove edges from each architecture and re-run
 # --------------------------------------------------
 # In this section, we take an identical copy of each of the architectures above, and remove an
-# edge. We aim to show the following 2 points:
+# edge. We aim to show the following:
 #
-# 1) It is possible to remove certain edges from a network architecture without effecting the
+# - It is possible to remove certain edges from a network architecture without affecting the
 # performance of the network.
 #
-# 2) Removing an edge from an information architecture will likely have an effect on performance.
+# - Removing an edge from an information architecture will likely have an effect on performance.
 #
 # First, we must set up the two architectures, and remove an edge from each. In the network
 # architecture, there are multiple routes between some pairs of nodes. This redundency increases
-# the resiliance of the network when an edge, or node, is taken out of action. In this example,
+# the resilience of the network when an edge, or node, is taken out of action. In this example,
 # we remove edges connecting repeater node r3, in turn, disabling a route from sensor node s0
 # to fusion node f0. As another route from s0 to f0 exists (via repeater node r4), the
 # performance of the network should not be effected (assuming unlimited bandwidth).
@@ -382,7 +383,7 @@ for edge in rm:
     network_arch_rm.edges.remove(edge)
 
 # %%
-network_arch_rm.plot()
+network_arch_rm
 
 # %%
 # Now we remove an edge from the information architecture. You could choose pretty much any
@@ -401,7 +402,7 @@ for edge in rm:
     information_arch_rm.edges.remove(edge)
 
 # %%
-information_arch_rm.plot()
+information_arch_rm
 
 # %%
 # We now run the simulation for both architectures and calculate the same SIAP metrics as we
