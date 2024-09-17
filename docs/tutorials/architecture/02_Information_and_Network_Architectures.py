@@ -39,7 +39,7 @@ import random
 # %%
 # 1 - Ground Truth
 # ----------------
-# We start this tutorial by generating a set of :class:`~.GroundTruthPath`'s as a basis for a
+# We start this tutorial by generating a set of :class:`~.GroundTruthPath`s as a basis for a
 # tracking simulation.
 
 
@@ -94,7 +94,7 @@ for j in range(0, ntruths):
 # The base sensor model's `position` property is used to calculate a location for sensors in
 # the architectures that we will generate. As you'll see in later steps, we can either plot
 # all sensors at the same location (`base_sensor.position`), or in a specified range around
-# the base_sensor's position (`base_sensor.position` +- a specified distance).
+# the base sensor's position (`base_sensor.position` +- a specified distance).
 
 
 from stonesoup.types.state import StateVector
