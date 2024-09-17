@@ -13,11 +13,26 @@
 # This tutorial uses the Stone Soup Architecture module to provide an example of how data incest
 # can occur in a poorly designed network.
 #
-# We design two architectures: a centralised (non-hierarchical) architecture, and a hierarchical
+# In this example, data incest is represented by the scenario where a fusion node receives the 
+# same piece of data from two sources, without the knowledge that both pieces of information are
+# actually from the same source. Having received two copies of the information, the fusion node
+# becomes overconfident, or biased towards the duplicated data.
+# 
+# This tutorial intends to demonstrate this effect by modelling two similar information
+# architectures: a centralised (non-hierarchical) architecture, and a hierarchical
 # alternative, and look to compare the fused results at the central node.
 #
+# This tutorial will follow the following steps:
 #
+# 1) Build sensors for sensor nodes
 #
+# 2) Build a ground truth, as a basis for the simulation
+#
+# 3) Build trackers for fusion nodes
+#
+# 4) Build a non hierarchical architecture
+#
+# 5) Build a hierarchical architecture by removing an edge from the non hierarchical architecture
 
 import random
 import copy
@@ -29,8 +44,8 @@ np.random.seed(1990)
 random.seed(1990)
 
 # %%
-# Sensors
-# ^^^^^^^
+# 1) Sensors
+# ^^^^^^^^^^
 #
 # We build two sensors to be assigned to the two sensor nodes.
 #
@@ -77,8 +92,9 @@ sensor2 = DummySensor(measurement_model=mm2,
 sensor2.clutter_model.distribution = sensor2.clutter_model.random_state.uniform
 
 # %%
-# Ground Truth
-# ^^^^^^^^^^^^
+# 2) Ground Truth  
+# ^^^^^^^^^^^^^^^
+# Ground truth provides a basis for the tracking example
 
 from stonesoup.models.transition.linear import CombinedLinearGaussianTransitionModel, \
     ConstantVelocity
@@ -115,8 +131,8 @@ for j in range(0, ntruths):
         ydirection *= -1
 
 # %%
-# Build Tracker
-# ^^^^^^^^^^^^^
+# 3) Build Trackers
+# ^^^^^^^^^^^^^^^^^
 # We use the same configuration of trackers and track-trackers as we did in the previous tutorial.
 #
 
@@ -167,15 +183,14 @@ track_tracker = MultiTargetTracker(
     initiator, deleter, None, data_associator, detection_track_updater)
 
 # %%
-# Non-Hierarchical Architecture
-# -----------------------------
+# 4) Non-Hierarchical Architecture
+# --------------------------------
 # We start by constructing the non-hierarchical, centralised architecture.
 #
 # Nodes
 # ^^^^^
-#
 
-from stonesoup.architecture.node import SensorNode, FusionNode, SensorFusionNode
+from stonesoup.architecture.node import SensorNode, FusionNode
 
 sensornode1 = SensorNode(sensor=copy.deepcopy(sensor1), label='Sensor Node 1')
 sensornode1.sensor.clutter_model.distribution = \
@@ -217,8 +232,9 @@ NH_edges = Edges([Edge((sensornode1, fusion_node1), edge_latency=0),
 #
 # * Route 1: Sensor Node 1 (S1) passes its information straight to Fusion Node 1 (F1)
 # * Route 2: S1 also passes its information to Fusion Node 2 (F2). Here it is fused with
-#   information from Sensor Node 2 (S2). This resulting information is then passed to Fusion Node 1.
-
+#   information from Sensor Node 2 (S2). This resulting information is then passed to Fusion
+#   Node 1.
+#
 # Ultimately, F1 is recieving information from S1, and information from F2 which is based on the
 # same information from S1. This can cause a bias towards the information created at S1. In this
 # example, we would expect to see overconfidence in the form of unrealistically small uncertainty
@@ -226,7 +242,7 @@ NH_edges = Edges([Edge((sensornode1, fusion_node1), edge_latency=0),
 
 
 NH_architecture = InformationArchitecture(NH_edges, current_time=start_time, use_arrival_time=True)
-NH_architecture.plot(plot_style='hierarchical')  # Style similar to hierarchical
+# NH_architecture.plot(plot_style='hierarchical')  # Style similar to hierarchical
 NH_architecture
 
 # %%
@@ -276,18 +292,22 @@ plotter.plot_measurements(NH_dets, [0, 2])
 plotter.fig
 
 # %%
-# Hierarchical Architecture
-# -------------------------
+# 5) Hierarchical Architecture
+# ----------------------------
 # We now create an alternative architecture. We recreate the same set of nodes as before, but
 # with a new edge set, which is a subset of the edge set used in the non-hierarchical
 # architecture.
+#
+# In this architecture, by removing the edge joining sensor node 1 to fusion node 2, we prevent 
+# data incest by removing the second path which data from sensor node 1 can take to reach 
+# fusion node 1.
 
 # %%
 # Regenerate Nodes identical to those in the non-hierarchical example
 # ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 #
 
-from stonesoup.architecture.node import SensorNode, FusionNode, SensorFusionNode
+from stonesoup.architecture.node import SensorNode, FusionNode
 
 sensornode1B = SensorNode(sensor=copy.deepcopy(sensor1), label='Sensor Node 1')
 sensornode1B.sensor.clutter_model.distribution = \
@@ -402,7 +422,7 @@ NH_siap_metrics = NH_metrics['NH_SIAP_EKF-truth']
 NH_siap_averages_EKF = {NH_siap_metrics.get(metric) for metric in NH_siap_metrics
                         if metric.startswith("SIAP") and not metric.endswith(" at times")}
 
-#%%
+# %%
 # Calculate Metrics for Hierarchical Architecture
 # ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 #
@@ -432,6 +452,7 @@ H_siap_averages_EKF = {H_siap_metrics.get(metric) for metric in H_siap_metrics
 # %%
 # Compare Metrics
 # ---------------
+# %%
 # SIAP Metrics
 # ^^^^^^^^^^^^
 #
@@ -444,7 +465,7 @@ H_siap_averages_EKF = {H_siap_metrics.get(metric) for metric in H_siap_metrics
 
 from stonesoup.metricgenerator.metrictables import SIAPDiffTableGenerator
 
-SIAPDiffTableGenerator([NH_siap_averages_EKF, H_siap_averages_EKF]).compute_metric();
+SIAPDiffTableGenerator([NH_siap_averages_EKF, H_siap_averages_EKF]).compute_metric()
 
 # %%
 
@@ -468,7 +489,8 @@ from stonesoup.metricgenerator.pcrbmetric import PCRBMetric
 pcrb = PCRBMetric(prior=prior,
                   transition_model=transition_model,
                   measurement_model=LinearGaussian(ndim_state=4, mapping=[0, 2],
-                                                   noise_covar=CovarianceMatrix(np.diag([5., 5.]))),
+                                                   noise_covar=CovarianceMatrix(
+                                                       np.diag([5., 5.]))),
                   sensor_locations=StateVectors([sensor1.position, sensor2.position]),
                   position_mapping=[0, 2],
                   velocity_mapping=[1, 3],
@@ -487,4 +509,4 @@ pcrb_metrics = metrics['PCRB Metrics']
 
 # %%
 pcrb_metrics
-
+ 

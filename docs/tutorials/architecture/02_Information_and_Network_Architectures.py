@@ -19,8 +19,8 @@
 #
 # 2) Build a base sensor model, and a base tracker
 #
-# 3) Use the :class:`~.ArchitectureGenerator` classes to generate 2 pairs of identical architectures
-# (one of each type), where the network architecture is a valid representation of
+# 3) Use the :class:`~.ArchitectureGenerator` classes to generate 2 pairs of identical 
+# architectures (one of each type), where the network architecture is a valid representation of
 # the information architecture.
 #
 # 4) Run the simulation over both, and compare results.
@@ -39,7 +39,7 @@ import random
 # %%
 # 1 - Ground Truth
 # ----------------
-# We start this tutorial by generating a set of :class:`~.GroundTruthPath`\s as a basis for a
+# We start this tutorial by generating a set of :class:`~.GroundTruthPath`'s as a basis for a
 # tracking simulation.
 
 
@@ -83,10 +83,11 @@ for j in range(0, ntruths):
 # %%
 # 2 - Base Tracker and Sensor Models
 # ----------------------------------
-# We can use the :class:`~.ArchitectureGenerator` classes to generate multiple identical architectures.
-# These classes take in base tracker and sensor models, which are duplicated and applied to each
-# relevant node in the architecture. The base tracker must not have a detector, in order for it
-# to be duplicated - the detector will be applied during the architecture generation step.
+# We can use the :class:`~.ArchitectureGenerator` classes to generate multiple identical 
+# architectures. These classes take in base tracker and sensor models, which are duplicated and 
+# applied to each relevant node in the architecture. The base tracker must not have a detector, 
+# in order for it to be duplicated - the detector will be applied during the architecture 
+# generation step.
 #
 # Sensor Model
 # ^^^^^^^^^^^^
@@ -162,8 +163,8 @@ base_tracker = MultiTargetTracker(
 # ------------------------------------
 # The :class:`~.NetworkArchitecture` class has a property `information_arch`, which contains the
 # information architecture representation of the underlying network architecture. This means
-# that if we use the :class:`~.NetworkArchitectureGenerator` class to generate a pair of identical network
-# architectures, we can extract the information architecture from one.
+# that if we use the :class:`~.NetworkArchitectureGenerator` class to generate a pair of identical 
+# network architectures, we can extract the information architecture from one.
 #
 # This will provide us with two completely separate architecture classes: a network architecture,
 # and an information architecture representation of the same network architecture. This will
@@ -276,7 +277,9 @@ plotter.plot_ground_truths(truths, [0, 2])
 for node in information_arch.fusion_nodes:
     if True:
         hexcol = ["#"+''.join([random.choice('ABCDEF0123456789') for i in range(6)])]
-        plotter.plot_tracks(reduce_tracks(node.tracks), [0, 2], track_label=str(node.label), line=dict(color=hexcol[0]), uncertainty=True)
+        plotter.plot_tracks(reduce_tracks(node.tracks), [0, 2], 
+                            track_label=str(node.label), 
+                            line=dict(color=hexcol[0]), uncertainty=True)
 plotter.plot_sensors(ia_sensors)
 plotter.plot_measurements(ia_dets, [0, 2])
 plotter.fig
@@ -318,8 +321,8 @@ network_metrics = network_metric_manager.generate_metrics()
 
 # %%
 network_siap_metrics = network_metrics['network_siap']
-network_siap_averages = {network_siap_metrics.get(metric) for metric in network_siap_metrics
-                        if metric.startswith("SIAP") and not metric.endswith(" at times")}
+network_siap_averages = {network_siap_metrics.get(metric) for metric in network_siap_metrics if
+                         metric.startswith("SIAP") and not metric.endswith(" at times")}
 
 # %%
 top_node = information_arch.top_level_nodes.pop()
@@ -348,7 +351,7 @@ information_siap_averages = {information_siap_metrics.get(metric) for
 
 # %%
 from stonesoup.metricgenerator.metrictables import SIAPDiffTableGenerator
-SIAPDiffTableGenerator([network_siap_averages, information_siap_averages]).compute_metric();
+SIAPDiffTableGenerator([network_siap_averages, information_siap_averages]).compute_metric()
 
 # %%
 # 5 - Remove edges from each architecture and re-run
@@ -359,7 +362,7 @@ SIAPDiffTableGenerator([network_siap_averages, information_siap_averages]).compu
 # * It is possible to remove certain edges from a network architecture without affecting the
 #   performance of the network.
 # * Removing an edge from an information architecture will likely have an effect on performance.
-
+#
 # First, we must set up the two architectures, and remove an edge from each. In the network
 # architecture, there are multiple routes between some pairs of nodes. This redundency increases
 # the resilience of the network when an edge, or node, is taken out of action. In this example,
@@ -394,7 +397,8 @@ network_arch_rm
 
 rm = []
 for edge in information_arch_rm.edges:
-    if 'sf0' in [node.label for node in edge.nodes] and 'f1' in [node.label for node in edge.nodes]:
+    if ('sf0' in [node.label for node in edge.nodes]) and \
+     ('f1' in [node.label for node in edge.nodes]):
         rm.append(edge)
 
 for edge in rm:
@@ -444,8 +448,8 @@ information_rm_siap = SIAPMetrics(position_measure=Euclidean((0, 2)),
                                   truths_key='truths'
                                   )
 
-information_rm_metric_manager = MultiManager([information_rm_siap,
-                                  ], associator)  # associator for generating SIAP metrics
+information_rm_metric_manager = MultiManager([information_rm_siap], 
+                                             associator)  # associator for generating SIAP metrics
 information_rm_metric_manager.add_data({'information_rm_tracks': top_node.tracks,
                                         'truths': truths}, overwrite=False)
 information_rm_metrics = information_rm_metric_manager.generate_metrics()

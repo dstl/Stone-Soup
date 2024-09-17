@@ -19,8 +19,8 @@
 # Nodes
 # -----
 #
-# Nodes represent points in the architecture that collect, process (fuse), or simply forward on data. Before advancing,
-# a few definitions are required:
+# Nodes represent points in the architecture that collect, process (fuse), or simply forward on 
+# data. Before advancing, a few definitions are required:
 #
 # - Relationships between nodes are defined as parent-child. In a directed graph, an edge from
 #   node A to node B means that data is passed from the child node, A, to the parent node, B.
@@ -55,9 +55,9 @@ node_B = Node(label='Node B')
 node_C = Node(label='Node C')
 
 # %%
-# The :class:`.~Node` base class contains several properties. The `latency` property gives functionality to
-# simulate processing latency at the node. The rest of the properties (`label`, `position`, `colour`,
-# `shape`, `font_size`, `node_dim`), are used for graph plotting.
+# The :class:`.~Node` base class contains several properties. The `latency` property gives 
+# functionality to simulate processing latency at the node. The rest of the properties (`label`, 
+# `position`, `colour`, `shape`, `font_size`, `node_dim`), are used for graph plotting.
 
 node_A.colour = '#006494'
 
@@ -67,9 +67,9 @@ node_A.shape = 'hexagon'
 # :class:`~.SensorNode` and :class:`~.FusionNode` objects have additional properties that must be
 # defined. A :class:`~.SensorNode` must be given an additional `sensor` property - this must be a
 # :class:`~.Sensor`. A :class:`~.FusionNode` has two additional properties: `tracker` and
-# `fusion_queue`.`tracker`  must both be :class:`~.Tracker`\s - the main tracker manages the fusion at
-# the node, while the `fusion_queue` property is a :class:`~.FusionQueue` by default - this manages the
-# inflow of data from child nodes.
+# `fusion_queue`.`tracker`  must both be :class:`~.Tracker`\s - the main tracker manages the 
+# fusion at the node, while the `fusion_queue` property is a :class:`~.FusionQueue` by default - 
+# this manages the inflow of data from child nodes.
 #
 # Edges
 # -----
