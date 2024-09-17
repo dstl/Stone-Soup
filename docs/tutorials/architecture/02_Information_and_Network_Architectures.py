@@ -39,7 +39,7 @@ import random
 # %%
 # 1 - Ground Truth
 # ----------------
-# We start this tutorial by generating a set of :class:`~.GroundTruthPath`s as a basis for a
+# We start this tutorial by generating a set of :class:`~.GroundTruthPath`\s as a basis for a
 # tracking simulation.
 
 
