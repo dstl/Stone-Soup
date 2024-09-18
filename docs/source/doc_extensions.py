@@ -88,6 +88,11 @@ def setup(app):
     app.connect('autodoc-process-docstring', declarative_class)
     app.connect('autodoc-process-signature', shorten_type_hints)
 
+    return {
+        'parallel_read_safe': True,
+        'parallel_write_safe': True,
+    }
+
 
 class GalleryScraper():
     def __init__(self):

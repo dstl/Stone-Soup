@@ -92,6 +92,7 @@ jobs:
       - store_artifacts:
           path: test-reports
   docs:
+    resource_class: medium
     docker:
       - image: cimg/python:3.12
     steps:
@@ -105,16 +106,21 @@ jobs:
             . venv/bin/activate
             pip install --upgrade pip
             pip install -r docs/ci-requirements.txt
-            pip install -e .[dev,orbital] opencv-python-headless
+            pip install -e .[dev,orbital] opencv-python-headless joblib
       - save_cache:
           paths:
             - ./venv
           key: dependencies-doc-{{ .Environment.CACHE_VERSION }}-{{ checksum "/home/circleci/.pyenv/version" }}-{{ checksum "setup.cfg" }}
       - run:
           name: Build Docs
+          environment:
+            SPHINX_GALLERY_PARALLEL: 2
           command: |
             . venv/bin/activate
-            coverage run -m sphinx -b html -d build/.doctrees -W --keep-going -D sphinx_gallery_conf.junit=../../../test-reports/sphinx-gallery/junit.xml docs/source docs/build/html
+            python .circleci/install_coverage_subprocess_pth.py
+            export COVERAGE_PROCESS_START="${PWD}/pyproject.toml"
+            coverage run -m sphinx -b html -j ${SPHINX_GALLERY_PARALLEL} -d build/.doctrees -W --keep-going -D sphinx_gallery_conf.junit=../../../test-reports/sphinx-gallery/junit.xml docs/source docs/build/html
+            coverage combine --quiet
             coverage xml -o test-reports/coverage.xml
       - store_artifacts:
           path: docs/build/html
