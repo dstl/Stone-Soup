@@ -58,7 +58,7 @@ dev = [
     "pytest-skip-slow",
     "Sphinx",
     "sphinx_rtd_theme>=1.2",
-    "sphinx-gallery>=0.16",
+    "sphinx-gallery>=0.17",
 ]
 video = [
     "ffmpeg-python",
@@ -97,6 +97,7 @@ python_classes = []
 
 [tool.coverage.run]
 branch = true
+parallel = true
 source = [
     "stonesoup"
 ]

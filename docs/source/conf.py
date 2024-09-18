@@ -83,6 +83,7 @@ sphinx_gallery_conf = {
         'binderhub_url': 'https://mybinder.org',
         'dependencies': ['requirements.txt'],
     },
+    'parallel': int(os.environ.get('SPHINX_GALLERY_PARALLEL', 1)),
 }
 
 intersphinx_mapping = {
