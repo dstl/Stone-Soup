@@ -1858,7 +1858,7 @@ class PolarPlotterly(_Plotter):
 
 
 class _AnimationPlotterDataClass(Base):
-    plotting_data = Property(Iterable[State])
+    plotting_data: Iterable[State] = Property()
     plotting_label: str = Property()
     plotting_keyword_arguments: dict = Property()
 
@@ -1866,7 +1866,7 @@ class _AnimationPlotterDataClass(Base):
 class AnimationPlotter(_Plotter):
 
     def __init__(self, dimension=Dimension.TWO, x_label: str = "$x$", y_label: str = "$y$",
-                 title: str = None, legend_kwargs: dict = {}, **kwargs):
+                 title: str = None, legend_kwargs: dict = None, **kwargs):
 
         self.figure_kwargs = {"figsize": (10, 6)}
         self.figure_kwargs.update(kwargs)
@@ -1874,7 +1874,8 @@ class AnimationPlotter(_Plotter):
             raise NotImplementedError
 
         self.legend_kwargs = dict()
-        self.legend_kwargs.update(legend_kwargs)
+        if legend_kwargs is not None:
+            self.legend_kwargs.update(legend_kwargs)
 
         self.x_label: str = x_label
         self.y_label: str = y_label
@@ -2136,9 +2137,9 @@ class AnimationPlotter(_Plotter):
                       data: Iterable[_AnimationPlotterDataClass],
                       plot_item_expiry: Optional[timedelta] = None,
                       axis_padding: float = 0.1,
-                      figure_kwargs: dict = {},
-                      animation_input_kwargs: dict = {},
-                      legend_kwargs: dict = {},
+                      figure_kwargs: dict = None,
+                      animation_input_kwargs: dict = None,
+                      legend_kwargs: dict = None,
                       x_label: str = "$x$",
                       y_label: str = "$y$",
                       plot_title: str = None
@@ -2178,8 +2179,12 @@ class AnimationPlotter(_Plotter):
         """
 
         animation_kwargs = dict(blit=False, repeat=False, interval=50)  # milliseconds
+        if animation_input_kwargs is None:
+            animation_input_kwargs = dict()
         animation_kwargs.update(animation_input_kwargs)
 
+        if figure_kwargs is None:
+            figure_kwargs = dict()
         fig1 = plt.figure(**figure_kwargs)
 
         the_lines = []
@@ -2222,6 +2227,8 @@ class AnimationPlotter(_Plotter):
 
         lines_with_legend = [line for line, label in zip(the_lines, legends_key)
                              if label is not None]
+        if legend_kwargs is None:
+            legend_kwargs = dict()
         plt.legend(lines_with_legend, [label for label in legends_key if label is not None],
                    **legend_kwargs)
 
