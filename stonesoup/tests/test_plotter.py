@@ -1,3 +1,4 @@
+import warnings
 from datetime import datetime, timedelta
 
 import matplotlib.pyplot as plt
@@ -30,7 +31,6 @@ for k in range(1, 21):
         transition_model.function(truth[k-1], noise=True, time_interval=timedelta(seconds=1)),
         timestamp=start_time+timedelta(seconds=k)))
 timesteps = [start_time + timedelta(seconds=k) for k in range(1, 21)]
-prob_det = 0.5
 
 measurement_model = LinearGaussian(
     ndim_state=4,
@@ -41,29 +41,25 @@ true_measurements = []
 for state in truth:
     measurement_set = set()
     # Generate actual detection from the state with a 1-p_d chance that no detection is received.
-    if np.random.rand() <= prob_det:
-        measurement = measurement_model.function(state, noise=True)
-        measurement_set.add(TrueDetection(state_vector=measurement,
-                                          groundtruth_path=truth,
-                                          timestamp=state.timestamp,
-                                          measurement_model=measurement_model))
+    measurement = measurement_model.function(state, noise=True)
+    measurement_set.add(TrueDetection(state_vector=measurement,
+                                      groundtruth_path=truth,
+                                      timestamp=state.timestamp,
+                                      measurement_model=measurement_model))
 
     true_measurements.append(measurement_set)
 
-prob_clutter = 0.8
 clutter_measurements = []
 for state in truth:
     clutter_measurement_set = set()
-    # Generate clutter detections
-    if np.random.rand() <= prob_clutter:
-        random_state = state.from_state(
-            state=state,
-            state_vector=np.random.uniform(-20, 20, size=state.state_vector.size)
-        )
-        measurement = measurement_model.function(random_state, noise=True)
-        clutter_measurement_set.add(Clutter(state_vector=measurement,
-                                            timestamp=state.timestamp,
-                                            measurement_model=measurement_model))
+    random_state = state.from_state(
+        state=state,
+        state_vector=np.random.uniform(-20, 20, size=state.state_vector.size)
+    )
+    measurement = measurement_model.function(random_state, noise=True)
+    clutter_measurement_set.add(Clutter(state_vector=measurement,
+                                        timestamp=state.timestamp,
+                                        measurement_model=measurement_model))
 
     clutter_measurements.append(clutter_measurement_set)
 
@@ -250,6 +246,13 @@ def test_animation_plotter():
     animation_plotter_with_title.plot_ground_truths(truth, [0, 2])
     animation_plotter_with_title.plot_tracks(track, [0, 2])
     animation_plotter_with_title.run()
+    with warnings.catch_warnings():
+        warnings.filterwarnings(
+            'ignore',
+            "Animation was deleted without rendering anything"
+        )
+        del animation_plotter
+        del animation_plotter_with_title
 
 
 def test_animated_plotterly():
