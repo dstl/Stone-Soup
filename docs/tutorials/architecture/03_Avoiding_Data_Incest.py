@@ -10,29 +10,35 @@
 # %%
 # Introduction
 # ------------
-# This tutorial uses the Stone Soup Architecture module to provide an example of how data incest
-# can occur in a poorly designed network.
+# This tutorial uses the Stone Soup architecture module to provide an example
+# of how data incest can occur in a poorly designed network.
 #
-# In this example, data incest is represented by the scenario where a fusion node receives the 
-# same piece of data from two sources, without the knowledge that both pieces of information are
-# actually from the same source. Having received two copies of the information, the fusion node
-# becomes overconfident, or biased towards the duplicated data.
+# In this example, data incest is shown in a simple architecture. A top-level
+# fusion node receives data from two sources, which contain information (tracks)
+# sourced from two sensors. However, one sensor is overly represented, due to a
+# triangle in the information architecture graph. As a consequence, the fusion
+# node becomes overconfident, or biased towards the duplicated data.
 # 
-# This tutorial intends to demonstrate this effect by modelling two similar information
-# architectures: a centralised (non-hierarchical) architecture, and a hierarchical
-# alternative, and look to compare the fused results at the central node.
+# The aim is to demonstrate this effect by modelling two similar
+# information architectures: a centralised (non-hierarchical) architecture,
+# and a hierarchical alternative, and looks to compare the fused results
+# at the top-level node.
 #
-# This tutorial will follow the following steps:
+# We will follow the following steps:
 #
-# 1) Build sensors for sensor nodes
+# 1) Define sensors for sensor nodes
 #
-# 2) Build a ground truth, as a basis for the simulation
+# 2) Simulate a ground truth, as a basis for the simulation
 #
-# 3) Build trackers for fusion nodes
+# 3) Create trackers for fusion nodes
 #
-# 4) Build a non hierarchical architecture
+# 4) Build a non-hierarchical architecture, containing a triangle
 #
-# 5) Build a hierarchical architecture by removing an edge from the non hierarchical architecture
+# 5) Build a hierarchical architecture by removing an edge
+# from the non-hierarchical architecture
+#
+# 6) Compare and contrast. What difference, if any, will the
+# hierarchical alternative make?
 
 import random
 import copy
@@ -49,8 +55,8 @@ random.seed(1990)
 # 1) Sensors
 # ^^^^^^^^^^
 #
-# We build two sensors to be assigned to the two sensor nodes.
-#
+# We need two sensors to be assigned to the two sensor nodes.
+# Notice they vary only in their position. 
 
 from stonesoup.models.clutter import ClutterModel
 from stonesoup.models.measurement.linear import LinearGaussian
@@ -96,7 +102,6 @@ sensor2.clutter_model.distribution = sensor2.clutter_model.random_state.uniform
 # %%
 # 2) Ground Truth  
 # ^^^^^^^^^^^^^^^
-# Ground truth provides a basis for the tracking example
 
 from stonesoup.models.transition.linear import CombinedLinearGaussianTransitionModel, \
     ConstantVelocity
@@ -135,7 +140,8 @@ for j in range(0, ntruths):
 # %%
 # 3) Build Trackers
 # ^^^^^^^^^^^^^^^^^
-# We use the same configuration of trackers and track-trackers as we did in the previous tutorial.
+# We use the same configuration of trackers and track-trackers as we did in the
+# previous tutorial.
 #
 
 from stonesoup.predictor.kalman import KalmanPredictor
@@ -228,23 +234,26 @@ NH_edges = Edges([Edge((sensornode1, fusion_node1), edge_latency=0),
 # %%
 # Create the Non-Hierarchical Architecture
 # ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-# The cell below should create and plot the architecture we have built. This architecture is at
-# risk of data incest, due to the fact that information from sensor node 1 could reach fusion
-# node 1 via two routes, while appearing to not be from the same source:
+# The cell below should create and plot the architecture we have built.
+# This architecture is at risk of data incest, due to the fact that 
+# information from sensor node 1 could reach Fusion Node 1 via two routes,
+# while appearing to not be from the same source:
 #
-# * Route 1: Sensor Node 1 (S1) passes its information straight to Fusion Node 1 (F1)
-# * Route 2: S1 also passes its information to Fusion Node 2 (F2). Here it is fused with
-#   information from Sensor Node 2 (S2). This resulting information is then passed to Fusion
-#   Node 1.
+# * Route 1: Sensor Node 1 (S1) passes its information straight to
+# Fusion Node 1 (F1)
+# * Route 2: S1 also passes its information to Fusion Node 2 (F2). 
+# Here it is fused with information from Sensor Node 2 (S2). This
+# resulting information is then passed to Fusion Node 1.
 #
-# Ultimately, F1 is recieving information from S1, and information from F2 which is based on the
-# same information from S1. This can cause a bias towards the information created at S1. In this
-# example, we would expect to see overconfidence in the form of unrealistically small uncertainty
-# of the output tracks.
+# Ultimately, F1 is recieving information from S1, and information from 
+# F2 which is based on the same information from S1. This can cause a 
+# bias towards the information created at S1. In this example, we would
+# expect to see overconfidence in the form of unrealistically small 
+# uncertainty of the output tracks.
 
 
-NH_architecture = InformationArchitecture(NH_edges, current_time=start_time, use_arrival_time=True)
-# NH_architecture.plot(plot_style='hierarchical')  # Style similar to hierarchical
+NH_architecture = InformationArchitecture(NH_edges, current_time=start_time,
+                                          use_arrival_time=True)
 NH_architecture
 
 # %%
@@ -257,7 +266,7 @@ for time in timesteps:
     NH_architecture.propagate(time_increment=1)
 
 # %%
-# Extract all detections that arrived at Non-Hierarchical Node C
+# Extract all Detections that arrived at Non-Hierarchical Node C
 # ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 #
 
@@ -296,16 +305,16 @@ plotter.fig
 # %%
 # 5) Hierarchical Architecture
 # ----------------------------
-# We now create an alternative architecture. We recreate the same set of nodes as before, but
-# with a new edge set, which is a subset of the edge set used in the non-hierarchical
-# architecture.
+# We now create an alternative architecture. We recreate the same set of
+# nodes as before, but with a new edge set, which is a subset of the edge
+# set used in the non-hierarchical architecture.
 #
-# In this architecture, by removing the edge joining sensor node 1 to fusion node 2, we prevent 
-# data incest by removing the second path which data from sensor node 1 can take to reach 
-# fusion node 1.
+# In this architecture, by removing the edge joining sensor node 1 to
+# fusion node 2, we prevent data incest by removing the second path which
+# data from sensor node 1 can take to reach fusion node 1.
 
 # %%
-# Regenerate Nodes identical to those in the non-hierarchical example
+# Regenerate nodes identical to those in the non-hierarchical example
 # ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 #
 
@@ -341,10 +350,13 @@ H_edges = Edges([Edge((sensornode1B, fusion_node1B), edge_latency=0),
 # %%
 # Create the Hierarchical Architecture
 # ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-# The only difference between the two architectures is the removal of the edge from S1 to F2.
-# This change removes the second route for information to travel from S1 to F1.
+# The only difference between the two architectures is the removal
+# of the edge from Sensor Node 1 to Fusion Node 2. This change removes
+# the second route for information to travel from Sensor Node 1 to 
+# Fusion Node 1.
 
-H_architecture = InformationArchitecture(H_edges, current_time=start_time, use_arrival_time=True)
+H_architecture = InformationArchitecture(H_edges, current_time=start_time, 
+                                         use_arrival_time=True)
 H_architecture
 
 # %%
@@ -387,23 +399,23 @@ plotter.fig
 # %%
 # Metrics
 # -------
-# At a glance, the results from the hierarchical architecture look similar to the results from
-# the original centralised architecture. We will now calculate and plot some metrics to give an
-# insight into the differences.
-#
+# At a glance, the results from the hierarchical architecture look similar
+# to the results from the original centralised architecture. We will now
+# calculate and plot some metrics to give an insight into the differences.
 
 # %%
 # Trace of Covariance Matrix
 # ^^^^^^^^^^^^^^^^^^^^^^^^^^
 #
-# A consequence of data incest in tracking is overconfidence in track states. In this example we 
-# would expect to see unrealistically small uncertainty in the tracks generated by Fusion Node 1
-# in the non-hierarchical architecture.
+# A consequence of data incest in tracking is overconfidence in track states.
+# In this example we would expect to see unrealistically small uncertainty in
+# the tracks generated by Fusion Node 1 in the non-hierarchical architecture.
 #
-# To investigate this, we plot the mean trace of the covariance matrix of track states at each 
-# time-step - for both architectures. We should expect to see that the uncertainty of the
-# non-hierarchical architecture is lower than the hierarchical architecture - despite both
-# receiving an identical set of measurements.
+# To investigate this, we plot the mean trace of the covariance matrix of track
+# states at each time step -- for both architectures. We should expect to see
+# that the uncertainty of the non-hierarchical architecture is lower than the
+# hierarchical architecture, despite both receiving an identical set of
+# measurements.
 #
 
 NH_tracks = [node.tracks for node in
@@ -428,7 +440,11 @@ for t in timesteps:
 
 # %%
 
-plt.plot(NH_mean_covar_trace, label="Non Hierarhical")
+plt.plot(NH_mean_covar_trace, label="Non-Hierarchical")
 plt.plot(H_mean_covar_trace, label="Hierarchical")
-plt.legend(loc="upper left")
+plt.legend(loc="upper right")
 plt.show()
+
+# As expected, the plot shows that the non-hierarchical architecture has a
+# lower mean covariance trace. A naive observer may think this makes it higher
+# performing, but we know that in fact it is a sign of overconfidence. 
