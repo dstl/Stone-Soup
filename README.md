@@ -24,42 +24,5 @@ Please see the [tutorials](https://stonesoup.readthedocs.io/en/latest/auto_tutor
 and [demonstrations](https://stonesoup.readthedocs.io/en/latest/auto_demos/index.html),
 which you can also try out on Binder: [![Binder](https://mybinder.org/badge_logo.svg)](https://mybinder.org/v2/gh/dstl/Stone-Soup/main?filepath=notebooks)
 
-## Dependencies
-Stone Soup uses the following dependencies:
-
-| Name | License |
-| ---- | ------- |
-| [Python](https://www.python.org/) (v3.8+) | PSFL |
-| [numpy](https://numpy.org/) | BSD |
-| [SciPy](https://www.scipy.org/) | BSD |
-| [matplotlib](https://matplotlib.org/) | [PSF/BSD-compatible](https://matplotlib.org/users/license.html) |
-| [ruamel.yaml](https://yaml.readthedocs.io/) | MIT |
-| [pymap3d](https://github.com/scivision/pymap3d) | MIT |
-| [utm](https://github.com/Turbo87/utm) | MIT |
-| [ordered-set](https://github.com/LuminosoInsight/ordered-set) | MIT |
-| [setuptools](https://github.com/pypa/setuptools) | MIT |
-| [rtree](https://github.com/Toblerity/rtree) | MIT |
-
-### Development
-
-#### Testing
-These dependencies are required for running Stone Soup tests.
-
-| Name | License |
-| ---- | ------- |
-| [pytest](https://docs.pytest.org/) | MIT |
-| [Flake8](https://flake8.pycqa.org/) | MIT |
-| [Coverage.py](https://coverage.readthedocs.io/) | Apache 2.0 |
-
-#### Documentation
-These dependencies are required for building Stone Soup documentation.
-
-| Name | License |
-| ---- | ------- |
-| [Sphinx](https://www.sphinx-doc.org/) | BSD |
-| [sphinx-gallery](https://sphinx-gallery.github.io/) | BSD |
-| [pillow](https://pillow.readthedocs.io/en/stable/index.html) | [PIL Software License](https://pillow.readthedocs.io/en/stable/about.html#license) |
-| [folium](https://python-visualization.github.io/folium/) | MIT |
-
 ## License
 Stone Soup is released under MIT License. Please see [License](LICENSE) for details.
