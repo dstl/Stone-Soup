@@ -35,10 +35,11 @@
 # 4) Build a non-hierarchical architecture, containing a triangle
 #
 # 5) Build a hierarchical architecture by removing an edge
-#   from the non-hierarchical architecture
+#    from the non-hierarchical architecture
 #
 # 6) Compare and contrast. What difference, if any, will the
-#   hierarchical alternative make?
+#    hierarchical alternative make?
+#
 
 import random
 import copy
