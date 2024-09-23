@@ -39,6 +39,7 @@
 #
 # 6) Compare and contrast. What difference, if any, will the
 # hierarchical alternative make?
+#
 
 import random
 import copy
