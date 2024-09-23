@@ -39,7 +39,6 @@
 #
 # 6) Compare and contrast. What difference, if any, will the
 # hierarchical alternative make?
-#
 
 import random
 import copy
@@ -241,10 +240,10 @@ NH_edges = Edges([Edge((sensornode1, fusion_node1), edge_latency=0),
 # while appearing to not be from the same source:
 #
 # * Route 1: Sensor Node 1 (S1) passes its information straight to
-# Fusion Node 1 (F1)
+#   Fusion Node 1 (F1)
 # * Route 2: S1 also passes its information to Fusion Node 2 (F2). 
-# Here it is fused with information from Sensor Node 2 (S2). This
-# resulting information is then passed to Fusion Node 1.
+#   Here it is fused with information from Sensor Node 2 (S2). This
+#   resulting information is then passed to Fusion Node 1.
 #
 # Ultimately, F1 is recieving information from S1, and information from 
 # F2 which is based on the same information from S1. This can cause a 
