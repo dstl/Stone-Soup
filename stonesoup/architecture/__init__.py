@@ -400,7 +400,7 @@ class Architecture(Base):
 
     @property
     def fully_propagated(self):
-        """Checks if all data for each node have begun transfer 
+        """Checks if all data for each node have begun transfer
         to its recipients. With zero latency, this should be the case after running propagate"""
         for edge in self.edges.edges:
             if len(edge.unsent_data) != 0:
@@ -476,7 +476,7 @@ class InformationArchitecture(Architecture):
             edge.update_messages(self.current_time, use_arrival_time=self.use_arrival_time)
 
             # Need to re-run update messages so that messages aren't left as 'pending'
-            edge.update_messages(self.current_time, 
+            edge.update_messages(self.current_time,
                                  use_arrival_time=self.use_arrival_time)
 
         for fuse_node in self.fusion_nodes:
