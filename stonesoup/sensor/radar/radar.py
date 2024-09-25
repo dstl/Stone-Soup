@@ -15,6 +15,7 @@ from ...models.measurement.nonlinear import \
      CartesianToBearingRangeRate, CartesianToElevationBearingRangeRate,
      Cartesian2DToBearing)
 from ...sensor.action.dwell_action import DwellActionsGenerator
+from ...sensor.action.tilt_action import TiltActionsGenerator
 from ...sensormanager.action import ActionableProperty
 from ...sensor.sensor import Sensor, SimpleSensor
 from ...types.array import CovarianceMatrix
@@ -350,6 +351,107 @@ class RadarElevationBearingRange(RadarBearingRange):
         measurement_vector = measurement_model.function(state, noise=False)
         true_range = measurement_vector[2, 0]  # Elevation(0), Bearing(1), Range(2)
         return true_range <= self.max_range
+
+
+class RadarRotatingElevationBearingRange(RadarElevationBearingRange):
+    """
+    A rotating radar, with set field-of-view (FOV) angle, range and rotations per minute (RPM),
+    that generates measurements of targets, using a :class:`~.CartesianToElevationBearingRange`
+    model, relative to its position.
+
+    Note
+    ----
+    * The current implementation of this class assumes a 3D Cartesian plane.
+    """
+
+    dwell_centre: StateVector = ActionableProperty(
+        doc="A `state_vector` property that describes the rotation angle of the centre of the "
+            "sensor's current FOV (i.e. the dwell centre) relative to the positive x-axis of the "
+            "sensor frame/orientation. The angle is positive if the rotation is in the "
+            "counter-clockwise direction when viewed by an observer looking down the z-axis of "
+            "the sensor frame, towards the origin. Angle units are in radians",
+        generator_cls=DwellActionsGenerator,
+        generator_kwargs_mapping={'rpm': 'rpm', 'resolution': 'resolution'})
+    tilt_centre: StateVector = ActionableProperty(
+        doc="A `state_vector` property that describes the tilting angle of the centre of the "
+            "sensor's current FOV (i.e. the tilt centre) relative to the x-y plane of the sensor "
+            "frame/orientation. The angle is positive if the tilt is towards the positive z "
+            "direction when viewed by an observer looking down the x-axis of the sensor frame, "
+            "towards the origin. Angle units are in radians",
+        generator_cls=TiltActionsGenerator,
+        generator_kwargs_mapping={'rpm': 'rpm', 'resolution': 'resolution'})
+    rpm: float = Property(
+        doc="The number of antenna rotations per minute (RPM)")
+    resolution: Angle = Property(
+        default=Angle(np.radians(1)),
+        doc="Resolution of the dwell_centre. Used by the :class:`~.DwellActionsGenerator` "
+            "during sensor management.")
+    fov_angle: float = Property(
+        doc="The radar horizontal field of view (FOV) angle (in radians).")
+    vertical_extent: float = Property(
+        doc="The radar vertical field of view (FOV) angle (in radians).")
+
+    @property
+    def measurement_model(self):
+        # Set rotation offset of underlying measurement model
+        rot_offset = StateVector([[self.orientation[0, 0]],
+                                  [self.orientation[1, 0] + self.tilt_centre[0, 0]],
+                                  [self.orientation[2, 0] + self.dwell_centre[0, 0]]])
+
+        return CartesianToElevationBearingRange(
+            ndim_state=self.ndim_state,
+            mapping=self.position_mapping,
+            noise_covar=self.noise_covar,
+            translation_offset=self.position,
+            rotation_offset=rot_offset)
+
+    def measure(self, ground_truths: Set[GroundTruthState], noise: Union[np.ndarray, bool] = True,
+                **kwargs) -> Set[TrueDetection]:
+
+        if self.timestamp is None:
+            # Read timestamp from ground truth
+            try:
+                self.timestamp = next(iter(ground_truths)).timestamp
+            except StopIteration:
+                # No ground truths to get timestamp from
+                return set()
+
+        return super().measure(ground_truths, noise, **kwargs)
+
+    def is_detectable(self, state: GroundTruthState) -> bool:
+        measurement_vector = self.measurement_model.function(state, noise=False)
+
+        # Check if state falls within sensor's FOV
+        ver_min = -self.vertical_extent / 2
+        ver_max = +self.vertical_extent / 2
+
+        fov_min = -self.fov_angle / 2
+        fov_max = +self.fov_angle / 2
+
+        elevation_t = measurement_vector[0, 0]
+        bearing_t = measurement_vector[1, 0]
+        true_range = measurement_vector[1, 0]
+        return (ver_min <= elevation_t <= ver_max and
+                fov_min <= bearing_t <= fov_max and
+                true_range <= self.max_range)
+
+    def is_clutter_detectable(self, state: Detection) -> bool:
+        measurement_vector = state.state_vector
+
+        # Check if state falls within sensor's FOV
+        ver_min = -self.vertical_extent / 2
+        ver_max = +self.vertical_extent / 2
+
+        fov_min = -self.fov_angle / 2
+        fov_max = +self.fov_angle / 2
+
+        elevation_t = measurement_vector[0, 0]
+        bearing_t = measurement_vector[1, 0]
+        true_range = measurement_vector[1, 0]
+
+        return (ver_min <= elevation_t <= ver_max and
+                fov_min <= bearing_t <= fov_max and
+                true_range <= self.max_range)
 
 
 class RadarBearingRangeRate(RadarBearingRange):

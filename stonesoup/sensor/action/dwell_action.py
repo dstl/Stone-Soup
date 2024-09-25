@@ -187,40 +187,20 @@ class DwellActionsGenerator(RealNumberActionGenerator):
 
         if isinstance(value, (int, float)):
             value = Angle(value)
-        elif isinstance(value, Angle):
-            value = value
-        else:
+        if not isinstance(value, Angle):
             raise ValueError("Can only generate action from an Angle/float/int type")
 
         if value not in self:
-            return None  # Should this raise an error?
+            return None
 
-        # Use resolution to reach target value from initial value - does not exceed
-        current_value = previous_value = self.initial_value
-
-        if value > self.initial_value:
-            while not np.isclose(float(abs(current_value)), float(abs(value)), atol=1e-6):
-                if current_value > value:
-                    current_value = previous_value
-                    break
-                previous_value = current_value
-                current_value += self.resolution
-
-        elif value < self.initial_value:
-            while not np.isclose(float(abs(current_value)), float(abs(value)), atol=1e-6):
-                if current_value < value:
-                    current_value = previous_value
-                    break
-                previous_value = current_value
-                current_value -= self.resolution
-
-        elif value == self.initial_value:
-            current_value = value
-
+        # Find the number of resolutions that fit between initial value and target
+        n = (value - self.initial_value) / self.resolution
+        if np.isclose(n, round(n), 1e-6):
+            n = round(n)
         else:
-            raise ValueError()
+            n = int(n)
 
-        target_value = current_value
+        target_value = self.initial_value + self.resolution * n
 
         rot_end_time, increasing = self._end_time_direction(target_value)
 
