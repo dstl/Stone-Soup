@@ -744,14 +744,16 @@ class ParticleState(State):
         """Sample mean for particles"""
         if len(self) == 1:  # No need to calculate mean
             return self.state_vector
-        return np.average(self.state_vector, axis=1, weights=np.exp(self.log_weight))
+        return np.average(self.state_vector, axis=1,
+                          weights=np.exp(self.log_weight - np.max(self.log_weight)))
 
     @clearable_cached_property('state_vector', 'log_weight', 'fixed_covar')
     def covar(self):
         """Sample covariance matrix for particles"""
         if self.fixed_covar is not None:
             return self.fixed_covar
-        return np.cov(self.state_vector, ddof=0, aweights=np.exp(self.log_weight))
+        return np.cov(self.state_vector, ddof=0,
+                      aweights=np.exp(self.log_weight - np.max(self.log_weight)))
 
     @weight.setter
     def weight(self, value):
