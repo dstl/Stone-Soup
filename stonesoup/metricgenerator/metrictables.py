@@ -6,7 +6,7 @@ import matplotlib
 from matplotlib import pyplot as plt
 
 from .base import MetricTableGenerator, MetricGenerator
-from ..base import Property
+from ..base import Property, Base
 
 
 class RedGreenTableGenerator(MetricTableGenerator):
@@ -105,6 +105,115 @@ class SIAPTableGenerator(RedGreenTableGenerator):
             "SIAP ID Correctness": (0, 1),
             "SIAP ID Ambiguity": (0, 1)
         }
+
+    def set_default_targets(self):
+        self.targets = {
+            "SIAP Completeness": 1,
+            "SIAP Ambiguity": 1,
+            "SIAP Spuriousness": 0,
+            "SIAP Position Accuracy": 0,
+            "SIAP Velocity Accuracy": 0,
+            "SIAP Rate of Track Number Change": 0,
+            "SIAP Longest Track Segment": 1,
+            "SIAP ID Completeness": 1,
+            "SIAP ID Correctness": 1,
+            "SIAP ID Ambiguity": 0
+        }
+
+    def set_default_descriptions(self):
+        self.descriptions = {
+            "SIAP Completeness": "Fraction of true objects being tracked",
+            "SIAP Ambiguity": "Number of tracks assigned to a true object",
+            "SIAP Spuriousness": "Fraction of tracks that are unassigned to a true object",
+            "SIAP Position Accuracy": "Positional error of associated tracks to their respective "
+                                      "truths",
+            "SIAP Velocity Accuracy": "Velocity error of associated tracks to their respective "
+                                      "truths",
+            "SIAP Rate of Track Number Change": "Rate of number of track changes per truth",
+            "SIAP Longest Track Segment": "Duration of longest associated track segment per truth",
+            "SIAP ID Completeness": "Fraction of true objects with an assigned ID",
+            "SIAP ID Correctness": "Fraction of true objects with correct ID assignment",
+            "SIAP ID Ambiguity": "Fraction of true objects with ambiguous ID assignment"
+        }
+
+
+class SIAPDiffTableGenerator(Base):
+    """
+    Given two sets of metric generators, the SiapDiffTableGenerator returns a table displaying the
+    difference between two sets of metrics. Allows quick comparison of two sets of metrics.
+    """
+    metrics: Collection[Collection[MetricGenerator]] = Property(doc="Set of metrics to put in the "
+                                                                    "table")
+
+    metrics_labels: Collection[str] = Property(doc='List of titles for ',
+                                               default=None)
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.targets = None
+        self.descriptions = None
+        self.set_default_targets()
+        self.set_default_descriptions()
+        if self.metrics_labels is None:
+            self.metrics_labels = ['Metrics ' + str(i) + ' Value'
+                                   for i in range(1, len(self.metrics) + 1)]
+
+    def compute_metric(self, **kwargs):
+        """Generate table method
+
+        Returns a matplotlib Table of metrics for two sets of values. Table contains metric
+        descriptions, target values and a coloured value cell for each set of metrics.
+        The colour of each value cell represents how the pair of values of the metric compare to
+        eachother, with the better value showing in green. Table also contains a 'Diff' value
+        displaying the difference between the pair of metric values."""
+
+        white = (1, 1, 1)
+        cellText = [["Metric", "Description", "Target"] + list(self.metrics_labels) + ["Max Diff"]]
+        cellColors = [[white] * (4 + len(self.metrics))]
+
+        sorted_metrics = [sorted(metric_gens, key=attrgetter('title'))
+                          for metric_gens in self.metrics]
+
+        for row_num in range(len(sorted_metrics[0])):
+            row_metrics = [m[row_num] for m in sorted_metrics]
+
+            metric_name = row_metrics[0].title
+            description = self.descriptions[metric_name]
+            target = self.targets[metric_name]
+
+            values = [metric.value for metric in row_metrics]
+
+            diff = round(max(values) - min(values), ndigits=3)
+
+            row_vals = [metric_name, description, target] + \
+                       ["{:.2f}".format(value) for value in values] + [diff]
+
+            cellText.append(row_vals)
+
+            colours = []
+            for i, value in enumerate(values):
+                other_values = values[:i] + values[i+1:]
+                if all(num <= 0 for num in [abs(value - target) - abs(v - target)
+                                            for v in other_values]):
+                    colours.append((0, 1, 0, 0.5))
+                elif all(num >= 0 for num in [abs(value - target) - abs(v - target)
+                                              for v in other_values]):
+                    colours.append((1, 0, 0, 0.5))
+                else:
+                    colours.append((1, 1, 0, 0.5))
+
+            cellColors.append([white, white, white] + colours + [white])
+
+        # "Plot" table
+        scale = (1, 3)
+        fig = plt.figure(figsize=(len(cellText)*scale[0] + 1, len(cellText[0])*scale[1]/2))
+        ax = fig.add_subplot(1, 1, 1)
+        ax.axis('off')
+        table = matplotlib.table.table(ax, cellText, cellColors, loc='center')
+        table.auto_set_column_width([0, 1, 2, 3])
+        table.scale(*scale)
+
+        return table
 
     def set_default_targets(self):
         self.targets = {
