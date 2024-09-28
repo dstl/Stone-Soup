@@ -1,14 +1,13 @@
 from itertools import chain
-from typing import Sequence, Dict, Iterable, Union
+from typing import Dict, Iterable, Sequence, Union
 
-from .base import MetricManager, MetricGenerator
 from ..base import Property
 from ..dataassociator import Associator
-
+from ..platform import Platform
+from ..types.detection import Detection
 from ..types.groundtruth import GroundTruthPath
 from ..types.track import Track
-from ..types.detection import Detection
-from ..platform import Platform
+from .base import MetricGenerator, MetricManager
 
 
 class MultiManager(MetricManager):
@@ -78,7 +77,7 @@ class MultiManager(MetricManager):
             Metrics generated
         """
 
-        metrics = {}
+        metrics: Dict[Dict] = {}
 
         generators = self.generators if isinstance(self.generators, list) else [self.generators]
 
