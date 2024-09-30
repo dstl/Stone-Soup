@@ -20,8 +20,8 @@
 # 2) Build a base sensor model, and a base tracker
 #
 # 3) Use the :class:`~.ArchitectureGenerator` classes to generate 2 pairs of
-#   identical architectures (one of each type), where the network architecture
-#   is a valid representation of the information architecture.
+#    identical architectures (one of each type), where the network architecture
+#    is a valid representation of the information architecture.
 #
 # 4) Run the simulation over both, and compare results.
 #
