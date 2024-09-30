@@ -33,6 +33,9 @@ class ClearMotMetrics(MetricGenerator):
         [1] Evaluating Multiple Object Tracking Performance: The CLEAR MOT Metrics,
         Bernardin et al, 2008
     """
+    generator_name: str = Property(doc="Unique identifier to use when accessing generated metrics "
+                                       "from MultiManager",
+                                   default='clearmot_generator')
     tracks_key: str = Property(doc='Key to access set of tracks added to MetricManager',
                                default='tracks')
     truths_key: str = Property(doc="Key to access set of ground truths added to MetricManager. "
