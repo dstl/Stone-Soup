@@ -88,7 +88,7 @@ class SimpleSensor(Sensor, ABC):
         measurement_model = self.measurement_model
 
         detectable_ground_truths = [truth for truth in ground_truths
-                                    if self.is_detectable(truth)]
+                                    if self.is_detectable(truth, measurement_model)]
 
         if noise is True:
             if len(detectable_ground_truths) > 1:
@@ -126,7 +126,7 @@ class SimpleSensor(Sensor, ABC):
         return detections
 
     @abstractmethod
-    def is_detectable(self, state: GroundTruthState) -> bool:
+    def is_detectable(self, state: GroundTruthState, measurement_model=None) -> bool:
         raise NotImplementedError
 
     @abstractmethod
