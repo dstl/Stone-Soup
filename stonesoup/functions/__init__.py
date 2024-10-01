@@ -1,6 +1,7 @@
 """Mathematical functions used within Stone Soup"""
 import copy
 import warnings
+from functools import lru_cache
 
 import numpy as np
 
@@ -707,10 +708,12 @@ def build_rotation_matrix(angle_vector: np.ndarray):
         :class:`numpy.ndarray` of shape (3, 3)
             The model (3D) rotation matrix.
     """
-    theta_x = -angle_vector[0, 0]  # roll
-    theta_y = angle_vector[1, 0]  # pitch#elevation
-    theta_z = -angle_vector[2, 0]  # yaw#azimuth
-    return rotx(theta_x) @ roty(theta_y) @ rotz(theta_z)
+    return _build_rotation_matrix(angle_vector[0, 0], angle_vector[1, 0], angle_vector[2, 0])
+
+
+@lru_cache()
+def _build_rotation_matrix(theta_x, theta_y, theta_z):
+    return rotx(-theta_x) @ roty(theta_y) @ rotz(-theta_z)
 
 
 def build_rotation_matrix_xyz(angle_vector: np.ndarray):
@@ -734,10 +737,12 @@ def build_rotation_matrix_xyz(angle_vector: np.ndarray):
         :class:`numpy.ndarray` of shape (3, 3)
             The model (3D) rotation matrix.
     """
-    theta_x = -angle_vector[0, 0]  # roll
-    theta_y = angle_vector[1, 0]  # pitch#elevation
-    theta_z = -angle_vector[2, 0]  # yaw#azimuth
-    return rotz(theta_z) @ roty(theta_y) @ rotx(theta_x)
+    return _build_rotation_matrix_xyz(angle_vector[0, 0], angle_vector[1, 0], angle_vector[2, 0])
+
+
+@lru_cache()
+def _build_rotation_matrix_xyz(theta_x, theta_y, theta_z):
+    return rotz(-theta_z) @ roty(theta_y) @ rotx(-theta_x)
 
 
 def dotproduct(a, b):
