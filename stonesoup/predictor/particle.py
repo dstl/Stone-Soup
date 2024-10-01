@@ -11,6 +11,8 @@ from ._utils import predict_lru_cache
 from .kalman import KalmanPredictor, ExtendedKalmanPredictor
 from ..base import Property
 from ..models.transition import TransitionModel
+from ..proposal.base import Proposal
+from ..proposal.simple import PriorAsProposal
 from ..sampler.particle import ParticleSampler
 from ..types.numeric import Probability
 from ..types.prediction import Prediction
@@ -25,9 +27,18 @@ class ParticlePredictor(Predictor):
 
     An implementation of a Particle Filter predictor.
     """
+    proposal: Proposal = Property(
+        default=None,
+        doc="A proposal object that generates samples from the proposal distribution. If `None`,"
+            "the transition model is used to generate samples.")
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        if self.proposal is None:
+            self.proposal = PriorAsProposal(self.transition_model)
 
     @predict_lru_cache()
-    def predict(self, prior, timestamp=None, **kwargs):
+    def predict(self, prior, timestamp=None, measurement=None, **kwargs):
         """Particle Filter prediction step
 
         Parameters
@@ -37,12 +48,17 @@ class ParticlePredictor(Predictor):
         timestamp: :class:`datetime.datetime`, optional
             A timestamp signifying when the prediction is performed
             (the default is `None`)
+        measurement: :class:`~.Detection`, optional
+            measurement used in the Kalman Filter proposal to update
+            the prediction
+            (the default is `None`)
 
         Returns
         -------
         : :class:`~.ParticleStatePrediction`
             The predicted state
         """
+
         # Compute time_interval
         try:
             time_interval = timestamp - prior.timestamp
@@ -50,18 +66,11 @@ class ParticlePredictor(Predictor):
             # TypeError: (timestamp or prior.timestamp) is None
             time_interval = None
 
-        new_state_vector = self.transition_model.function(
-            prior,
-            noise=True,
-            time_interval=time_interval,
-            **kwargs)
-
-        return Prediction.from_state(prior,
-                                     parent=prior,
-                                     state_vector=new_state_vector,
-                                     timestamp=timestamp,
-                                     transition_model=self.transition_model,
-                                     prior=prior)
+        return self.proposal.rvs(prior,
+                                 noise=True,
+                                 time_interval=time_interval,
+                                 measurement=measurement,
+                                 **kwargs)
 
 
 class ParticleFlowKalmanPredictor(ParticlePredictor):
