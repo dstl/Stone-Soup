@@ -121,9 +121,8 @@ class KFasProposal(Proposal):
                             for state in updates])
 
         # Compute the log of q(x_k|x_{k-1}, y_k)
-        post_log_weights = np.array([mvn.logpdf(sample,
-                                                np.array(update.mean).reshape(-1),
-                                                update.covar)
+        post_log_weights = np.array([mvn.logpdf(sample - update.state_vector.reshape(-1),
+                                                cov=update.covar)
                                      for sample, update in zip(samples, updates)])
 
         pred_state = Prediction.from_state(prior,

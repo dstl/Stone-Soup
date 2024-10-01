@@ -20,7 +20,6 @@ from stonesoup.types.hypothesis import SingleHypothesis
 def test_prior_proposal():
     # test that the proposal as prior and basic PF implementation
     # yield same results, since they are driven by the transition model
-    np.random.seed(16549)
 
     # Initialise a transition model
     cv = ConstantVelocity(noise_diff_coeff=0)
@@ -73,8 +72,6 @@ def test_prior_proposal():
 
 
 def test_kf_proposal():
-
-    np.random.seed(16549)
 
     # Initialise a transition model
     cv = ConstantVelocity(noise_diff_coeff=1)
