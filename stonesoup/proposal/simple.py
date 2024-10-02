@@ -27,14 +27,21 @@ class PriorAsProposal(Proposal):
     def rvs(self, prior: State, measurement=None, time_interval=None,
             **kwargs) -> Union[StateVector, StateVectors]:
         """Generate samples from the proposal.
+
         Parameters
         ----------
         state: :class:`~.State`
             The state to generate samples from.
+        measurement: :class:`~.Detection`
+            the measurement that will preferably used to get time interval
+            if provided(the default is `None`)
+        time_interval: :class:`datetime.time_delta`
+            time interval of the prediction is needed to propagate the states
+
         Returns
         -------
-        : :class:`~.ParticlePrediction` with samples drawn from the updated proposal
-
+        : :class:`~.ParticlePrediction`
+            State with samples drawn from the updated proposal
         """
 
         if measurement is not None:
@@ -55,7 +62,7 @@ class PriorAsProposal(Proposal):
 
 
 class KFasProposal(Proposal):
-    """This proposal uses the kalman filter prediction and update steps to
+    """This proposal uses the Kalman filter prediction and update steps to
     generate new set of particles and weights
     """
     predictor: Predictor = Property(
@@ -66,13 +73,15 @@ class KFasProposal(Proposal):
     def rvs(self, prior: State, measurement: Detection = None, time_interval=None,
             **kwargs):
         """Generate samples from the proposal.
-            Use the kalman filter predictor and updater to create a new distribution
+
+        Use the Kalman filter predictor and updater to create a new distribution
+
         Parameters
         ----------
         state: :class:`~.State`
             The state to generate samples from.
         measurement: :class:`~.Detection`
-            the measurement that is used in the update step of the kalman prediction,
+            the measurement that is used in the update step of the Kalman prediction,
             (the default is `None`)
         time_interval: :class:`datetime.time_delta`
             time interval of the prediction is needed to propagate the states
@@ -80,6 +89,7 @@ class KFasProposal(Proposal):
         Returns
         -------
         : :class:`~.ParticlePrediction`
+            State with samples drawn from the updated proposal
         """
 
         if measurement is not None:
