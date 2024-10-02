@@ -91,7 +91,7 @@ def test_bernoulli_particle_no_detection():
     new_timestamp = timestamp+datetime.timedelta(seconds=timediff)
     time_interval = new_timestamp - timestamp
 
-    random_seed = 1990
+    rng = np.random.RandomState(1990)
     nbirth_parts = 9
     prior_particles = [Particle(np.array([[10], [10]]), 1 / 9),
                        Particle(np.array([[10], [20]]), 1 / 9),
@@ -112,7 +112,7 @@ def test_bernoulli_particle_no_detection():
                                    existence_probability=existence_prob,
                                    timestamp=timestamp)
 
-    backup_sampler = ParticleSampler(distribution_func=np.random.uniform,
+    backup_sampler = ParticleSampler(distribution_func=rng.uniform,
                                      params={'low': np.array([0, 10]),
                                              'high': np.array([30, 30]),
                                              'size': (nbirth_parts, 2)},
@@ -121,8 +121,8 @@ def test_bernoulli_particle_no_detection():
     sampler = SwitchingDetectionSampler(detection_sampler=detection_sampler,
                                         backup_sampler=backup_sampler)
 
-    np.random.seed(random_seed)
-    birth_samples = np.random.uniform(np.array([0, 10]), np.array([30, 30]), (nbirth_parts, 2))
+    rng = np.random.RandomState(1990)
+    birth_samples = rng.uniform(np.array([0, 10]), np.array([30, 30]), (nbirth_parts, 2))
 
     eval_prior = copy.copy(prior)
     eval_prior.state_vector = np.concatenate((eval_prior.state_vector,
@@ -147,7 +147,6 @@ def test_bernoulli_particle_no_detection():
     eval_weight[9:] = birth_prob*(1-existence_prob)/eval_existence * eval_weight[9:]
     eval_weight = eval_weight/np.sum(eval_weight)
 
-    np.random.seed(random_seed)
     predictor = BernoulliParticlePredictor(transition_model=cv,
                                            birth_sampler=sampler,
                                            birth_probability=birth_prob,
@@ -184,7 +183,7 @@ def test_bernoulli_particle_detection():
     new_timestamp = timestamp+datetime.timedelta(seconds=timediff)
     time_interval = new_timestamp - timestamp
 
-    random_seed = 1990
+    rng = np.random.RandomState(1990)
     nbirth_parts = 9
     prior_particles = [Particle(np.array([[10], [10]]), 1 / 9),
                        Particle(np.array([[10], [20]]), 1 / 9),
@@ -221,7 +220,6 @@ def test_bernoulli_particle_detection():
     sampler = SwitchingDetectionSampler(detection_sampler=detection_sampler,
                                         backup_sampler=backup_sampler)
 
-    np.random.seed(random_seed)
     birth_samples = gm_sample([np.array([detections[0].state_vector[0], 0]),
                               np.array([detections[1].state_vector[0], 0]),
                               np.array([detections[2].state_vector[0], 0])],
@@ -229,7 +227,8 @@ def test_bernoulli_particle_detection():
                               np.diag([detections[1].measurement_model.noise_covar[0, 0], 0]),
                               np.diag([detections[2].measurement_model.noise_covar[0, 0], 0])],
                               nbirth_parts,
-                              np.array([1/3]*3))
+                              np.array([1/3]*3),
+                              random_state=rng)
 
     eval_prior = copy.copy(prior)
     eval_prior.state_vector = np.concatenate((eval_prior.state_vector,
@@ -246,7 +245,7 @@ def test_bernoulli_particle_detection():
                                                        timestamp=new_timestamp,
                                                        particle_list=eval_prediction)
 
-    eval_existence = birth_prob * (1 - existence_prob) + survival_prob * existence_prob
+    eval_existence = birth_prob*(1 - existence_prob) + survival_prob*existence_prob
 
     eval_weight = eval_prior.weight
 
@@ -259,8 +258,8 @@ def test_bernoulli_particle_detection():
                                            birth_probability=birth_prob,
                                            survival_probability=survival_prob)
 
-    np.random.seed(random_seed)
-    prediction = predictor.predict(prior, timestamp=new_timestamp)
+    rng = np.random.RandomState(1990)
+    prediction = predictor.predict(prior, timestamp=new_timestamp, random_state=rng)
 
     # check that the correct number of particles are output
     assert len(prediction) == len(eval_prediction)
@@ -297,11 +296,14 @@ def test_smcphd(birth_scheme):
     new_timestamp = timestamp + datetime.timedelta(seconds=timediff)
     time_interval = new_timestamp - timestamp
 
+    # Ensure same random numbers are generated
+    rng = np.random.RandomState(16549)
+
     # Parameters for SMC-PHD
     death_probability = Probability(0.01)  # Probability of death
     birth_probability = Probability(0.1)  # Probability of birth
     birth_rate = 0.05  # Birth-rate (Mean number of new targets per scan)
-    birth_sampler = ParticleSampler(distribution_func=np.random.multivariate_normal,
+    birth_sampler = ParticleSampler(distribution_func=rng.multivariate_normal,
                                     params={'mean': np.array([20., 0.0]),
                                             'cov': np.diag([10. ** 2, 1. ** 2])},
                                     ndim_state=2)
@@ -331,11 +333,8 @@ def test_smcphd(birth_scheme):
                                 birth_func_num_samples_field='size',
                                 birth_scheme=birth_scheme)
 
-    # Ensure same random numbers are generated
-    np.random.seed(16549)
-
     # Perform the prediction
-    prediction = predictor.predict(prior, timestamp=new_timestamp)
+    prediction = predictor.predict(prior, timestamp=new_timestamp, random_state=rng)
 
     # Compute the expected survival probability
     prob_survive = np.exp(-float(death_probability) * time_interval.total_seconds())
