@@ -651,8 +651,7 @@ class StochasticIntegrationPredictor(KalmanPredictor):
 
         # - SIR recursion for state predictive moments computation
         # -- until either max iterations or threshold is reached
-        while N < self.Nmin or np.all([N < self.Nmax,
-                                       np.any([(np.linalg.norm(Vx) > self.Eps),]),]):
+        while N < self.Nmin or (N < self.Nmax and np.linalg.norm(Vx) > self.Eps):
             N += 1
 
             # -- cubature points and weights computation (for standard normal PDF)
@@ -675,7 +674,7 @@ class StochasticIntegrationPredictor(KalmanPredictor):
         N = 0
         # - SIR recursion for state predictive moments computation
         # -- until max iterations are reached or threshold is reached
-        while N < self.Nmin or np.all([N < self.Nmax, np.any([(np.linalg.norm(VPx) > self.Eps)])]):
+        while N < self.Nmin or (N < self.Nmax and np.linalg.norm(VPx) > self.Eps):
             N += 1
             # -- cubature points and weights computation (for standard normal PDF)
             # -- points transformation for given filtering mean and covariance matrix
