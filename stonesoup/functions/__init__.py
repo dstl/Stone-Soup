@@ -1085,19 +1085,11 @@ def cubPointsAndTransfer(nx, order, sqrtCov, mean, transFunct, state):
     SCRSigmaPoints, w = stochasticCubatureRulePoints(nx, order)
 
     # -- points transformation for given filtering mean and covariance matrix
-    points = sqrtCov @ SCRSigmaPoints + mean
+    points = StateVectors(sqrtCov@SCRSigmaPoints + mean)
 
     # -- points transformation through the function
-    sigma_points_states = []
-    for point in points.T:
-        state_copy = copy.copy(state)
-        state_copy.state_vector = StateVector(point)
-        sigma_points_states.append(state_copy)
-        trsfPoints = StateVectors(
-            [
-                transFunct(sigma_points_state)
-                for sigma_points_state in sigma_points_states
-            ]
-        )
+    state_copy = copy.copy(state)
+    state_copy.state_vector = points
+    trsfPoints = transFunct(state_copy)
 
     return points, w, trsfPoints
