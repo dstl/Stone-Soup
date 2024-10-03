@@ -406,3 +406,8 @@ def test_stochastic_integration(order, nx):
         # Check if off-diagonal elements are close to 0
         off_diagonal_elements = var[~np.eye(nx, dtype=bool)]
         assert np.allclose(off_diagonal_elements, 0, atol=1e-5)
+
+
+def test_stochastic_integration_invalid_order():
+    with pytest.raises(ValueError, match="This order of SIF is not supported"):
+        stochasticCubatureRulePoints(5, 2)
