@@ -313,11 +313,6 @@ class UnscentedKalmanPredictor(KalmanPredictor):
         doc="Secondary spread scaling parameter. Default is calculated as "
             "3-Ns")
 
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-
-        self._time_interval = None
-
     def _transition_and_control_function(self, prior_state, **kwargs):
         r"""Returns the result of applying the transition and control functions
         for the unscented transform
@@ -589,11 +584,6 @@ class StochasticIntegrationPredictor(KalmanPredictor):
     SIorder: float = Property(
         default=5, doc="order of SIR (orders 1, 3, 5 are currently supported)"
     )
-
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-
-        self._time_interval = None
 
     def _transition_and_control_function(self, prior_state, **kwargs):
         r"""Returns the result of applying the transition and control functions
