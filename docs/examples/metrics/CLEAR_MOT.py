@@ -233,4 +233,4 @@ plotter.fig
 # While observing the red (north-east heading) truth, we see that it deviates from the
 # orange track at around the first third of the complete observation period. I.e. a third of the
 # red track is successfully tracked, which adds some amount to the percentage of tracked
-# truths, which sums up to 57%.
+# truths, which sums up to 57%. Unmatched track samples are regarded as False Positives.
