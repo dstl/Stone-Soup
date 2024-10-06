@@ -59,15 +59,18 @@ class RadarBearingRange(VisibilityInformed2DSensor):
             translation_offset=self.position,
             rotation_offset=self.orientation)
 
-    def is_detectable(self, state: GroundTruthState) -> bool:
+    def is_detectable(self, state: GroundTruthState, **kwargs) -> bool:
         measurement_vector = self.measurement_model.function(state, noise=False)
         true_range = measurement_vector[1, 0]  # Bearing(0), Range(1)
         detectable = true_range <= self.max_range
-        visible = self.is_visible(state)
+        visible = self.is_visible(state, **kwargs)
         return (detectable and visible)
 
-    def is_clutter_detectable(self, state: Detection) -> bool:
-        return state.state_vector[1, 0] <= self.max_range
+    def is_clutter_detectable(self, state: Detection, **kwargs) -> bool:
+        clutter_cart = self.measurement_model.inverse_function(state)
+        visible = self.is_visible(clutter_cart, **kwargs)
+        detectable = state.state_vector[1, 0] <= self.max_range
+        return (detectable and visible)
 
 
 class RadarBearing(VisibilityInformed2DSensor):
@@ -104,7 +107,7 @@ class RadarBearing(VisibilityInformed2DSensor):
             translation_offset=self.position,
             rotation_offset=self.orientation)
 
-    def is_detectable(self, state: GroundTruthState) -> bool:
+    def is_detectable(self, state: GroundTruthState, **kwargs) -> bool:
         tmp_meas_model = CartesianToBearingRange(
             ndim_state=self.ndim_state,
             mapping=self.position_mapping,
@@ -115,7 +118,7 @@ class RadarBearing(VisibilityInformed2DSensor):
         measurement_vector = tmp_meas_model.function(state, noise=False)
         true_range = measurement_vector[1, 0]  # Bearing(0), Range(1)
         detectable = true_range <= self.max_range
-        visible = self.is_visible(state)
+        visible = self.is_visible(state,**kwargs)
         return (detectable and visible)
 
     def is_clutter_detectable(self, state: Detection) -> bool:
