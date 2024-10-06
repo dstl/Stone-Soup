@@ -1568,6 +1568,33 @@ class Plotterly(_Plotter):
         sensor_xy = np.array([sensor.position[mapping, 0] for sensor in sensors])
         self.fig.add_scatter(x=sensor_xy[:, 0], y=sensor_xy[:, 1], **sensor_kwargs)
 
+    def plot_obstacles(self, obstacles, mapping=[0, 1], obstacle_label='obstacles', **kwargs):
+
+        if not isinstance(obstacles, Collection):
+            obstacles = {obstacles}
+
+        self._check_mapping(mapping)
+
+        if self.dimension == 1 or self.dimension == 3:
+            raise NotImplementedError
+
+        obstacle_kwargs = dict(mode='markers', marker=dict(symbol='x', color='grey'),
+                               legendgroup=obstacle_label, legend_rank=50, fill='toself')
+
+        merge(obstacle_kwargs, kwargs)
+
+        obstacle_kwargs['name'] = obstacle_label
+        if obstacle_kwargs['legendgroup'] not in {trace.legendgroup
+                                                  for trace in self.fig.data}:
+            obstacle_kwargs['showlegend'] = True
+        else:
+            obstacle_kwargs['showlegend'] = False
+
+        for obstacle in obstacles:
+            obstacle_xy = obstacle.vertices[mapping,:]
+            self.fig.add_scatter(x=obstacle_xy[0, :], y=obstacle_xy[1, :], **obstacle_kwargs)
+
+
     def hide_plot_traces(self, items_to_hide=None):
         """Hide Plot Traces
 
@@ -2508,6 +2535,12 @@ class AnimatedPlotterly(_Plotter):
                 for y_values in dictionary["y"]:
                     all_y.extend([np.nanmax(y_values), np.nanmin(y_values)])
 
+        elif type == "obstacle":
+            for obstacle in data:
+                obstacle_xy = obstacle.vertices[(0,1),:]
+                all_x.extend(obstacle_xy[0,:])
+                all_y.extend(obstacle_xy[1,:])
+
         xmax = max(all_x)
         ymax = max(all_y)
         xmin = min(all_x)
@@ -3161,6 +3194,58 @@ class AnimatedPlotterly(_Plotter):
                 frame.data = data_
 
         # we have called a plotting function so update flag (used in _resize)
+        self.plotting_function_called = True
+
+    def plot_obstacles(self, obstacles, mapping=[0,1], obstacle_label="Obstacles", resize=True,
+                       **kwargs):
+        """Plots obstacle(s)
+
+        Plots obstacles.  Users can change the colour and marker size of obstacle
+        vertices with keywork arguments. Marker colour determines the fill colour
+        of obstale patches. Defaults is grey '.' marker and fill. Currently only
+        works for stationary obstacles
+
+        Parameters
+        ----------
+        obstacles : Collection of :class:`~.Obstacle`
+            Obstacles to plot
+        sensor_label: str
+            Label to apply to obstacles for the legend.
+        \\*\\*kwargs: dict
+            Additional arguments to be passed to scatter function for detections. Defaults are
+            ``marker=dict(symbol='circle', size=3, color='grey')``.
+        """
+        if not isinstance(obstacles, Collection):
+            obstacles = {obstacles}
+
+        if obstacles:
+            trace_base = len(self.fig.data)
+
+            obstacle_kwargs = dict(mode='markers', marker=dict(symbol='circle', size=3,
+                                                               color='grey'),
+                               legendgroup=obstacle_label, legendrank=50, fill='toself',
+                               name=obstacle_label)
+
+            merge(obstacle_kwargs, kwargs)
+
+            self.fig.add_trace(go.Scatter(obstacle_kwargs))
+
+            if resize:
+                self._resize(obstacles, "obstacle")
+
+            obstacle_xy = np.concatenate(
+                [np.concatenate([obstacle.vertices[mapping,:], np.array([[None],[None]])], axis=1)
+                 for obstacle in obstacles], axis=1)
+            for frame in self.fig.frames:
+                traces_ = list(frame.traces)
+                data_ = list(frame.data)
+
+                data_.append(go.Scatter(x=obstacle_xy[0, :], y=obstacle_xy[1, :]))
+                traces_.append(trace_base)
+
+                frame.traces = traces_
+                frame.data = data_
+
         self.plotting_function_called = True
 
 
