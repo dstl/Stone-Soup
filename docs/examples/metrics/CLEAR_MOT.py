@@ -7,6 +7,8 @@ CLEAR MOT example
 """
 
 # %%
+# Introduction
+# ------------
 # This example demonstrates the CLEAR MOT metrics available in Stone Soup and how they
 # are used with the :class:`~.MultiManager` to assess tracking performance. The
 # CLEAR MOT metrics require a specific association scheme between the truths and tracks
@@ -75,7 +77,7 @@ for k in range(1, 21):
 _ = truths.add(truth)
 
 # %%
-# Plot the ground truth
+# Create an interactive plot instance and add the truth to it.
 
 from stonesoup.plotter import AnimatedPlotterly
 
@@ -179,6 +181,11 @@ for n, measurements in enumerate(all_measurements):
             track.append(hypothesis.prediction)
 
 # %%
+# Add tracks to the interacive plot
+
+plotter.plot_tracks(tracks, [0, 2], uncertainty=False)
+
+# %%
 # Compute CLEAR MOT metrics
 # -------------------------
 # Having both the `truths` and  `tracks` sets, we now can compute the metrics.
@@ -222,7 +229,6 @@ print("MOTA:", "{:.2f}".format(metrics["CLEARMOT_gen"]["MOTA"].value))
 # ^^^^^^^^^^
 # First, we plot both tracks and truths
 
-plotter.plot_tracks(tracks, [0, 2], uncertainty=False)
 plotter.fig
 
 # %%
@@ -234,7 +240,11 @@ plotter.fig
 # By oberving the proximity of truths and tracks, we can see that the green (south-east heading) is
 # followed by the violet track. At least half (50%) of the total number of truth samples
 # is successfully tracked.
+#
 # While observing the red (north-east heading) truth, we see that it deviates from the
 # orange track at around the first third of the complete observation period. I.e. a third of the
-# red track is successfully tracked, which adds some amount to the percentage of tracked
-# truths, which sums up to 57%. Unmatched track samples are regarded as False Positives.
+# red track is successfully tracked, which adds a positive amount to the percentage of tracked
+# truths.
+# 
+# In total, both tracks cover 57% of the truth samples. Unmatched track samples are regarded
+# as False Positives.
