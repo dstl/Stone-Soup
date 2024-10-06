@@ -4,6 +4,8 @@ from typing import Set, Union, List, TYPE_CHECKING
 
 import numpy as np
 
+from stonesoup.types.array import StateVector
+
 from ..sensormanager.action import Actionable
 from .base import PlatformMountable
 from ..base import Property
@@ -191,44 +193,89 @@ class SensorSuite(Sensor):
 
 class VisibilityInformed2DSensor(SimpleSensor):
     """The base class of 2D sensors that evaluate the visibility of
-    targets in known cluttered environments.
+    targets in known cluttered environments. Only run when sensor is defined
+    when :attr:`obstacles` is not `None`.
     """
 
     obstacles: List['Obstacle']= Property(default=None,
-                              doc="list of Obstacle type platforms that represent "
-                                  "obstacles in the environment")
+                                          doc="list of Obstacle type platforms that represent "
+                                          "obstacles in the environment")
 
-    def is_visible(self, state):
+    def is_visible(self, state, obstacle_check=False):
         """Function for evaluating the visibility of states in the
-        environment based on a 2D line of signt intersection check with obstacles"""
+        environment based on a 2D line of signt intersection check with obstacles edges.
 
+        Parameters
+        ----------
+        state : :class:`~.State`
+            A state object that describes `n` positions to to check line of sight to from
+            the sensor position.
+        obstacle_check : bool, optional
+            A flag for returning a second output that indicates if the state is
+            inside an obstacle. Defaults to false
+
+        Returns
+        -------
+        : :class:`~numpy.ndarray`
+            1 x n array of booleans indicating the visibility of `state`. True represents
+              that the state is visible
+        : :class:`~numpy.ndarray`
+            1 x n array of booleans indicating whether `state` is inside an obstacle
+            and is true when a state is inside an obstacle. Only returned when
+            `obstacle_check` is True"""
+
+        # Check if visibility calculations should be run
         if not self.obstacles:
             return True
 
+        # Check number of states if `state` is `ParticleState`
         if isinstance(state, ParticleState):
             nstates = len(state)
         else:
             nstates = 1
 
-        B = np.concatenate([obstacle._b for obstacle in self.obstacles], axis=1)
+        # Get relative edges from obstacle list
+        relative_edges = np.concatenate([obstacle.relative_edges
+                                         for obstacle in self.obstacles], axis=1)
 
-        A = np.array([state.state_vector[self.position_mapping[0],:] - self.position[0,0],
-                      state.state_vector[self.position_mapping[1],:] - self.position[1,0]])
+        # Calculate relative vector between sensor position and state position
+        if isinstance(state, State):
+            relative_ray = np.array([state.state_vector[self.position_mapping[0],:]
+                                      - self.position[0,0],
+                                     state.state_vector[self.position_mapping[1],:]
+                                      - self.position[1,0]])
+        elif isinstance(state, StateVector):
+            relative_ray = np.array([state[self.position_mapping[0],:]
+                                      - self.position[0,0],
+                                     state[self.position_mapping[1],:]
+                                      - self.position[1,0]])
 
-        C = self.position[0:2] - np.concatenate([obstacle.vertices
+        # Calculate relative vector between sensor and all obstacle edge positions
+        relative_sensor_to_edge = self.position[0:2] - np.concatenate([obstacle.vertices
                                                  for obstacle in self.obstacles],axis=1)
 
-        intersections = np.full((B.shape[1],nstates),False)
+        # Initialise the intersection vector
+        intersections = np.full((relative_edges.shape[1],nstates),False)
 
-        for n in range(B.shape[1]):
-            denom = A[1,:]*B[0,n] - A[0,:]*B[1,n]
-            alpha = (B[1,n]*C[0,n]-B[0,n]*C[1,n])/denom
-            beta = (A[0,:]*C[1,n]-A[1,:]*C[0,n])/denom
+        # Perform intersection check
+        for n in range(relative_edges.shape[1]):
+            denom = relative_ray[1,:]*relative_edges[0,n] - relative_ray[0,:]*relative_edges[1,n]
+            alpha = (relative_edges[1,n]*relative_sensor_to_edge[0,n]
+                     - relative_edges[0,n]*relative_sensor_to_edge[1,n])/denom
+            beta = (relative_ray[0,:]*relative_sensor_to_edge[1,n]
+                    - relative_ray[1,:]*relative_sensor_to_edge[0,n])/denom
 
             intersections[n,:] = np.logical_and.reduce((alpha >= 0,alpha <= 1,beta >= 0,beta <= 1))
 
+        # Count intersectons. If the number of intersections is odd then the state
+        # is inside an obstacle. If the number of intersections is even, the
+        # state is in free space.
+        intersection_count = sum(intersections,0)
         intersections = np.invert(np.any(intersections,0))
         if nstates == 1:
             intersections = intersections[0]
 
-        return intersections
+        if obstacle_check:
+            return intersections, intersection_count % 2 != 0
+        else:
+            return intersections
