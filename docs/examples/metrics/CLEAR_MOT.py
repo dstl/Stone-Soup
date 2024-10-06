@@ -245,6 +245,6 @@ plotter.fig
 # orange track at around the first third of the complete observation period. I.e. a third of the
 # red track is successfully tracked, which adds a positive amount to the percentage of tracked
 # truths.
-# 
+#
 # In total, both tracks cover 57% of the truth samples. Unmatched track samples are regarded
 # as False Positives.
