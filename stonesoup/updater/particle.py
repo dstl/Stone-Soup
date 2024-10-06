@@ -7,6 +7,8 @@ import numpy as np
 from scipy.linalg import inv
 from scipy.special import logsumexp
 
+from stonesoup.sensor.sensor import Sensor
+
 from .base import Updater
 from .kalman import KalmanUpdater, ExtendedKalmanUpdater
 from ..base import Property
@@ -465,8 +467,7 @@ class BernoulliParticleUpdater(ParticleUpdater):
             # Evaluate measurement likelihood and approximate integrals
             log_meas_likelihood = []
             delta_part2 = []
-            log_detection_probability = np.full(len(prediction),
-                                                np.log(self.detection_probability))
+            log_detection_probability = self.get_detection_probability(prediction)
 
             for detection in detections:
                 measurement_model = detection.measurement_model or self.measurement_model
@@ -491,7 +492,7 @@ class BernoulliParticleUpdater(ParticleUpdater):
                 np.logaddexp(log_detection_probability
                              + logsumexp(log_meas_likelihood, axis=0)
                              - np.log(self.clutter_rate * self.clutter_distribution),
-                             np.log(1 - self.detection_probability)) \
+                             np.log(1 - np.exp(log_detection_probability))) \
                 + updated_state.log_weight
 
             # Normalise weights
@@ -509,6 +510,13 @@ class BernoulliParticleUpdater(ParticleUpdater):
                                                             updated_state)
 
         return updated_state
+    
+    def get_detection_probability(self, prediction):
+
+        log_detection_probability = np.full(len(prediction),
+                                            np.log(self.detection_probability))
+        
+        return log_detection_probability
 
     @staticmethod
     def _log_space_product(A, B):
@@ -519,6 +527,43 @@ class BernoulliParticleUpdater(ParticleUpdater):
         Astack = np.stack([A] * B.shape[1]).transpose(1, 0, 2)
         Bstack = np.stack([B] * A.shape[0]).transpose(0, 2, 1)
         return np.squeeze(logsumexp(Astack + Bstack, axis=2))
+    
+
+class VisibilityInformedBernoulliParticleUpdater(BernoulliParticleUpdater):
+    """A Bernoulli particle updater implementing visibility estimation of particles
+    for reduced existence probability decay rate in cluttered environments."""
+    """Visibility informed Bernoulli Particle Filter Updater class
+
+    An implementation of a particle filter updater utilising the
+    Bernoulli filter formulation that estimates the spatial distribution
+    of a single target and estimates its existence. This implementation 
+    modifies the probability of detection of particles depending on whether 
+    they are calculated to be not visible to the sensor, as described in [#vibpf]_.
+
+    Due to the nature of the Bernoulli particle
+    filter prediction process, resampling is required at every
+    time step to reduce the number of particles back down to the
+    desired size.
+
+    References
+    ----------
+    .. [#vibpf] Glover, Timothy J & Liu, Cunjia & Chen, Wen-Hua, Visibility 
+       informed Bernoulli filter for target tracking in cluttered evironmnets, 
+       2022, 25th International Conference on Information Fusion (FUSION), 1-8.
+    """
+
+    sensor: Sensor = Property(default=None, doc="Sensor providing measurements for update stages. "
+        "Used here to evaluate visibility of particles.")
+    obstacle_detection_probability: float = Property(default=1e-20, doc="Probability of detection "
+        "to assume when particle state is not visible to the sensor.")
+    
+    def get_detection_probability(self, prediction):
+        
+        log_detection_probability = np.full(len(prediction), np.log(self.detection_probability))
+        visible_parts = self.sensor.is_detectable(prediction)
+        log_detection_probability[~visible_parts] = np.log(self.obstacle_detection_probability)
+
+        return log_detection_probability
 
 
 class SMCPHDUpdater(ParticleUpdater):
