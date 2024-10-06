@@ -8,16 +8,16 @@ CLEAR MOT example
 
 # %%
 # This example demonstrates the CLEAR MOT metrics available in Stone Soup and how they
-# are used with the :class:`~.MultiManager` to assess tracking performance. Since the
+# are used with the :class:`~.MultiManager` to assess tracking performance. The
 # CLEAR MOT metrics require a specific association scheme between the truths and tracks
-# we also demonstrate the usage of the :class:`~.ClearMotAssociator`.
+# by matching a single truth to a track based on the proximity and previous assignment.
 #
-# To generate metrics, we need:
-#  - At least one :class:`~.ClearMotAssociator` - these are used to associate the truths and
+# To generate CLEAR MOT metrics, we need:
+#  - An instance of  :class:`~.ClearMotAssociator` - this is used to associate the truths and
 #    tracks, so that, a single truth is associated with a single track by a pre-specified distance
 #    threshold.
-#  - At least one :class:`~.ClearMotMetrics` - these are used to compute the MOTA and MOTP metrics
-#    given the associations and both truths and tracks.
+#  - An instance of :class:`~.ClearMotMetrics` - these are used to compute the MOTA and MOTP
+#    metrics based on the associations between both truths and tracks.
 #  - The :class:`~.MultiManager` metric manager - this is used to hold the metric generator(s)
 #    as well as all the ground truth and track sets we want to generate our
 #    metrics from. We will generate our metrics using the :meth:`generate_metrics` method
@@ -25,13 +25,18 @@ CLEAR MOT example
 
 # %%
 # Generate ground truths and tracks
-# --------------------------------
+# ---------------------------------
 # We start by simulating 2 targets moving in different directions across the 2D Cartesian plane.
-# They start at (0, 0) and (0, 20) and cross roughly half-way through their transit.
+# They start at (0, 0) and (0, 20) and cross roughly half-way through their transit. This
+# section is solely for demonstration purposes, feel free to replace with your own tracking logic
+# to create the sets for truth and tracks. Both sets are used to generate the metrics in the next
+# section.
 
 # %%
-# Generate ground truth
-# ^^^^^^^^^^^^^^^^^^^^^
+# Generate ground truth tracks
+# ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+# Two targets moving in different directions across the 2D Cartesian plane.
+
 from datetime import datetime, timedelta
 
 import numpy as np
@@ -76,11 +81,12 @@ from stonesoup.plotter import AnimatedPlotterly
 
 plotter = AnimatedPlotterly(timesteps, tail_length=0.3)
 plotter.plot_ground_truths(truths, [0, 2])
-plotter.fig
 
 # %%
 # Generate detections with clutter
 # ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+# The detections (and clutter) from the truth tracks are later used as input for the
+# multiple-object tracking.
 
 from scipy.stats import uniform
 
@@ -120,6 +126,7 @@ for k in range(20):
 # %%
 # Run multiple-object-tracking
 # ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
 # Create the Kalman predictor and updater
 from stonesoup.predictor.kalman import KalmanPredictor
 
@@ -132,6 +139,7 @@ updater = KalmanUpdater(measurement_model)
 # %%
 # We will quantify predicted-measurement to measurement distance
 # using the Mahalanobis distance.
+
 from stonesoup.hypothesiser.distance import DistanceHypothesiser
 from stonesoup.measures import Mahalanobis
 
@@ -143,8 +151,7 @@ from stonesoup.dataassociator.neighbour import GlobalNearestNeighbour
 data_associator = GlobalNearestNeighbour(hypothesiser)
 
 # %%
-# Run the Kalman filters
-# ^^^^^^^^^^^^^^^^^^^^^^
+# Run the Kalman filters.
 #
 # We create 2 priors reflecting the targets' initial states.
 from stonesoup.types.state import GaussianState
@@ -174,9 +181,9 @@ for n, measurements in enumerate(all_measurements):
 # %%
 # Compute CLEAR MOT metrics
 # -------------------------
-#  TODO
+# Having both the `truths` and  `tracks` sets, we now can compute the metrics.
 
-# %% 
+# %%
 # Create metric generator and metric manager
 # ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
@@ -201,14 +208,11 @@ metric_manager.add_data({'truths': truths,
                          'tracks': tracks}, overwrite=False)
 
 # %%
-# Generate metrics
-# ^^^^^^^^^^^^^^^^
+# Compute metrics
+# ^^^^^^^^^^^^^^^
 # We are now ready to generate the metrics from our MultiManager.
 
 metrics = metric_manager.generate_metrics()
-
-# %%
-# Observe the metrics
 
 print("MOTP:", "{:.2f}m".format(metrics["CLEARMOT_gen"]["MOTP"].value))
 print("MOTA:", "{:.2f}".format(metrics["CLEARMOT_gen"]["MOTA"].value))
