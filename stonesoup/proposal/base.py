@@ -7,7 +7,9 @@ class Proposal(Base):
     @abstractmethod
     def rvs(self, *args, **kwargs):
         r"""Proposal noise/sample generation function
+
         Generates samples from the proposal.
+
         Parameters
         ----------
         state: :class:`~.State`
