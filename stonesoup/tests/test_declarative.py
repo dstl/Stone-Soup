@@ -1,5 +1,5 @@
 import sys
-from typing import List, Any
+from typing import List, Any, Optional
 
 import pytest
 
@@ -358,3 +358,54 @@ def test_type_hint_checking():
     class TestClass(Base):
         i = Property(Any, doc='Test')
     _ = TestClass(i=1)
+
+
+def test_missing_default_value():
+    class TestClass(Base):
+        test_number: int = Property(default=0, doc="Test number")
+        values: Optional[list] = Property(default=Property.MISSING, doc='Test value')
+
+        def __init__(self, *args, **kwargs):
+            super().__init__(*args, **kwargs)
+            if self.values is Property.MISSING:
+                self.values = list()
+
+    # No input values
+    tc = TestClass()
+    assert tc.test_number == 0
+    assert tc.values == []
+
+    # `None`` argument
+    tc = TestClass(1, None)
+    assert tc.test_number == 1
+    assert tc.values is None
+
+    # list argument
+    tc = TestClass(2, [1, 2, 3])
+    assert tc.test_number == 2
+    assert tc.values == [1, 2, 3]
+
+    # Property.MISSING argument
+    tc = TestClass(3, Property.MISSING)
+    assert tc.test_number == 3
+    assert tc.values == []
+
+    # No input values
+    tc = TestClass(test_number=4)
+    assert tc.test_number == 4
+    assert tc.values == []
+
+    # `None`` argument
+    tc = TestClass(test_number=5, values=None)
+    assert tc.test_number == 5
+    assert tc.values is None
+
+    # list argument
+    tc = TestClass(test_number=6, values=[1, 2, 3])
+    assert tc.test_number == 6
+    assert tc.values == [1, 2, 3]
+
+    # Property.MISSING argument
+    tc = TestClass(test_number=7, values=Property.MISSING)
+    assert tc.test_number == 7
+    assert tc.values == []
