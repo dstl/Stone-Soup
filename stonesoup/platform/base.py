@@ -206,13 +206,19 @@ class Obstacle(Platform):
         doc="Vertices coordinated defined relative to the obstacle "
             "origin point, with no orientation. Defaults to `None`.")
 
-    simplices: Union[Sequence, np.ndarray] = Property(
+    simplices: Union[Sequence[int], np.ndarray] = Property(
         default=None,
         doc="A :class:`Sequence` or :class:`np.ndarray`, of shape (1,n) or (n,), of :class:`int` "
             "describing connectivity of vertices provided in :attr:`shape_data`. "
             "Should be constructed such that element i is the index of a vertex "
             "that i is connected to. Default assumes that :attr:`shape_data` "
             "is provided such that consecutive vertices are connected.")
+
+    shape_mapping: Sequence[int] = Property(
+        default=(0,1),
+        doc="A mapping for shape data dimensions to x y cartesian position. Default value is "
+            "(0,1)."
+    )
 
     _default_movable_class = FixedMovable
 
@@ -279,18 +285,18 @@ class Obstacle(Platform):
         # `position` and `orientation`.
         rot_mat = build_rotation_matrix(self.orientation)
         rotated_shape = \
-            rot_mat[np.ix_(self.position_mapping,self.position_mapping)] @ \
-                 self.shape_data[self.position_mapping,:]
+            rot_mat[np.ix_(self.shape_mapping,self.shape_mapping)] @ \
+                 self.shape_data[self.shape_mapping,:]
         verts = rotated_shape + self.position
         return verts
 
     def _calculate_relative_edges(self):
         # Calculates the relative edge length in Cartesian space. Required
         # for visibility estimator
-        return np.array([self.vertices[self.position_mapping[0],:] -
-                         self.vertices[self.position_mapping[0],self.simplices],
-                         self.vertices[self.position_mapping[1],:] -
-                         self.vertices[self.position_mapping[1],self.simplices]])
+        return np.array([self.vertices[self.shape_mapping[0],:] -
+                         self.vertices[self.shape_mapping[0],self.simplices],
+                         self.vertices[self.shape_mapping[1],:] -
+                         self.vertices[self.shape_mapping[1],self.simplices]])
 
     @classmethod
     def from_obstacle(
