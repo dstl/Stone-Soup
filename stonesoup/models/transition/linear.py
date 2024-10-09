@@ -8,7 +8,7 @@ from scipy.linalg import block_diag
 
 from .base import TransitionModel, CombinedGaussianTransitionModel
 from ..base import (LinearModel, GaussianModel, TimeVariantModel,
-                    TimeInvariantModel)
+                    TimeInvariantModel, LevyModel)
 from ...base import Property
 from ...types.array import CovarianceMatrix
 
