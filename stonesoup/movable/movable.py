@@ -295,8 +295,8 @@ class MovingMovable(Movable):
                 _, bearing = cart2pol(*velocity.flat)
                 self._property_orientation = StateVector([0, 0, bearing])
             else:
-                raise NotImplementedError('Orientation of a moving platform is only implemented for 2'
-                                          'and 3 dimensions')
+                raise NotImplementedError('Orientation of a moving platform is only' 
+                                          'implemented for 2 and 3 dimensions')
 
         return self._property_orientation
 
