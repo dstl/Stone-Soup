@@ -74,12 +74,12 @@ def test_prior_proposal():
 def test_kf_proposal():
 
     # Initialise a transition model
-    cv = ConstantVelocity(noise_diff_coeff=1)
+    cv = ConstantVelocity(noise_diff_coeff=0.1)
 
     # initialise the measurement model
     lg = LinearGaussian(ndim_state=2,
                         mapping=[0],
-                        noise_covar=np.diag([1]))
+                        noise_covar=np.diag([0.1]))
 
     # Define time related variables
     timestamp = datetime.datetime.now()
