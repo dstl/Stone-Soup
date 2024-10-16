@@ -562,7 +562,7 @@ def rotz(theta):
                      [zero, zero, one]])
 
 
-def gm_sample(means, covars, size, weights=None):
+def gm_sample(means, covars, size, weights=None, random_state=None):
     """Sample from a mixture of multi-variate Gaussians
 
     Parameters
@@ -596,8 +596,10 @@ def gm_sample(means, covars, size, weights=None):
     elif weights is None:
         weights = np.array([1 / len(means)] * len(means))
 
-    n_samples = np.random.multinomial(size, weights)
-    samples = np.vstack([np.random.multivariate_normal(mean.ravel(), covar, sample)
+    rng = random_state if random_state is not None else np.random
+
+    n_samples = rng.multinomial(size, weights)
+    samples = np.vstack([rng.multivariate_normal(mean.ravel(), covar, sample)
                          for (mean, covar, sample) in zip(means, covars, n_samples)]).T
 
     return StateVectors(samples)
