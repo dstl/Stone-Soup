@@ -831,6 +831,53 @@ class MultiModelParticleState(ParticleState):
         return result
 
 
+class MarginalisedParticleState(ParticleState):
+    # need to do dimensionality check on this covariance, need it to be 3-d
+    covariance: np.ndarray = Property(doc="Three dimensional array (mxmxn) of covariance matrices")
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        if self.fixed_covar is not None:
+            raise AttributeError("Fixed covariance should be none")
+    
+    @clearable_cached_property('state_vector', 'weight', 'covariance')
+    def covar(self):
+        """Sample covariance matrix for particles"""
+        covariance = self.covariance
+        mu = self.state_vector
+        weighted_covar = np.sum(self.weight[np.newaxis, np.newaxis, :] * covariance, axis=len(covariance.shape)-1)
+        
+        mu_bar = np.sum(self.weight[np.newaxis, :] * mu, axis=1)
+        tmp = mu - mu_bar[:, np.newaxis]
+        weighted_mean = np.sum(self.weight[np.newaxis, np.newaxis, :] * (np.einsum("ik,jk->ijk", tmp, tmp)), axis=len(covariance.shape)-1)
+        # print("In")
+        # print(weighted_mean + weighted_covar )
+        # print("In")
+        # print(covariance)
+        return np.array(weighted_mean + weighted_covar, dtype=float)
+    
+    # @clearable_cached_property('state_vector', 'log_weight')
+    def particles(self):
+        """Sequence of individual :class:`~.Particle` objects."""
+        if self.particle_list is not None:
+            return self.particle_list
+        return tuple(particle for particle in self)
+
+    @clearable_cached_property('state_vector', 'log_weight', 'covariance')
+    def mean(self):
+        """Sample mean for particles"""
+        if len(self) == 1:  # No need to calculate mean
+            return self.state_vector
+        return np.average(self.state_vector, axis=1, weights=np.exp(self.log_weight))
+
+    # @clearable_cached_property('state_vector', 'log_weight', 'covariance')
+    # def covar(self):
+    #     """Sample covariance matrix for particles"""
+    #     if self.fixed_covar is not None:
+    #         return self.fixed_covar
+    #     return np.cov(self.state_vector, ddof=0, aweights=np.exp(self.log_weight))
+
+
 class RaoBlackwellisedParticleState(ParticleState):
 
     model_probabilities: np.ndarray = Property(

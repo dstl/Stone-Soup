@@ -8,7 +8,7 @@ from .state import CreatableFromState, CompositeState, KernelParticleState
 from .state import State, GaussianState, ParticleState, EnsembleState, \
     SqrtGaussianState, InformationState, CategoricalState, ASDGaussianState, \
     WeightedGaussianState, TaggedWeightedGaussianState, \
-    MultiModelParticleState, RaoBlackwellisedParticleState, BernoulliParticleState
+    MultiModelParticleState, RaoBlackwellisedParticleState, BernoulliParticleState, MarginalisedParticleState
 from ..base import Property
 
 
@@ -145,3 +145,24 @@ class CompositeUpdate(Update, CompositeState):
         doc="Sequence of sub-updates comprising the composite update. All sub-updates must have "
             "matching timestamp. Must not be empty.")
     hypothesis: CompositeHypothesis = Property(doc="Hypothesis used for updating")
+
+
+class MarginalisedParticleStateUpdate(Update, MarginalisedParticleState):
+    """RBStateUpdate type
+
+    This is a simple MarginalisedParticle state update object.
+    """
+    """Particle Filter update step
+
+        Parameters
+        ----------
+        hypothesis : :class:`~.Hypothesis`
+            Hypothesis with predicted state and associated detection used for
+            updating.
+
+        Returns
+        -------
+        : :class:`~.ParticleState`
+            The state posterior
+        """
+    pass
