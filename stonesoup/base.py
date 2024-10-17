@@ -63,6 +63,10 @@ from functools import cached_property
 from types import MappingProxyType
 
 
+class _MISSING:
+    ...
+
+
 class Property:
     """Property(cls, default=inspect.Parameter.empty)
     Property class for definition of attributes on component classes.
@@ -76,7 +80,7 @@ class Property:
     A default value can be specified to signify the property on the class is
     optional. As ``None`` and ``False`` are reasonable default values,
     :class:`inspect.Parameter.empty` is used to signify the argument is
-    mandatory. (Also aliased to :attr:`Property.empty` for ease)
+    mandatory. (Also aliased to :attr:`Property._empty` for ease)
 
     A description string can also be provided which will be rendered in the
     documentation.
@@ -95,7 +99,7 @@ class Property:
         and providing both will raise an error.
     default : any, optional
         A default value, which should be same type as class or None. Defaults
-        to :class:`inspect.Parameter.empty` (alias :attr:`Property.empty`)
+        to :class:`inspect.Parameter.empty` (alias :attr:`Property._empty`)
     doc : str, optional
         Doc string for property
     readonly : bool, optional
@@ -107,10 +111,14 @@ class Property:
     default
     doc
     readonly
-    empty : :class:`inspect.Parameter.empty`
+    _empty : :class:`inspect.Parameter.empty`
         Alias to :class:`inspect.Parameter.empty`
+    MISSING
+        A singleton to indicator a value is missing and default value
+        should be created.
     """
-    empty = inspect.Parameter.empty
+    _empty = inspect.Parameter.empty
+    MISSING = _MISSING()
 
     def __init__(self, cls=None, *, default=inspect.Parameter.empty, doc=None,
                  readonly=False):
@@ -312,7 +320,7 @@ class BaseMeta(ABCMeta):
 
         for prop_name in list(properties):
             # Optional arguments must follow mandatory
-            if properties[prop_name].default is not Property.empty:
+            if properties[prop_name].default is not Property._empty:
                 properties.move_to_end(prop_name)
 
         if '__init__' not in namespace:
@@ -432,7 +440,7 @@ class Base(metaclass=BaseMeta):
 
         for name, prop in prop_iter:
             value = kwargs.pop(name, prop.default)
-            if value is Property.empty:
+            if value is Property._empty:
                 raise TypeError(f'{cls.__name__} is missing a required argument: {name!r}')
             setattr(self, name, value)
 
