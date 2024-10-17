@@ -1,5 +1,4 @@
 from collections.abc import Sequence
-import typing
 
 from .detection import MissedDetection
 from .numeric import Probability
@@ -16,7 +15,7 @@ class MultipleHypothesis(Type, Sequence):
     A Multiple Hypothesis is a container to store a collection of hypotheses.
     """
 
-    single_hypotheses: typing.Sequence[SingleHypothesis] = Property(
+    single_hypotheses: Sequence[SingleHypothesis] = Property(
         default=None,
         doc="The initial list of :class:`~.SingleHypothesis`. Default `None` "
             "which initialises with empty list.")
@@ -128,7 +127,7 @@ class MultipleCompositeHypothesis(Type, Sequence):
     redefined.
     """
 
-    single_hypotheses: typing.Sequence[CompositeHypothesis] = Property(
+    single_hypotheses: Sequence[CompositeHypothesis] = Property(
         default=None,
         doc="The initial list of :class:`~.CompositeHypothesis`. Default `None` which initialises "
             "with empty list.")

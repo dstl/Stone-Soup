@@ -145,7 +145,8 @@ def test_isotropic_plume(state, mapping, translation_offset):
         actual_likelihood = 1 / (sigma * np.sqrt(2 * np.pi)) \
             * np.exp(-(conc.state_vector - pred_conc) ** 2 / (2 * sigma ** 2))
 
-    assert np.all(np.isclose(expected_log_likelihood, np.log(actual_likelihood)))
+    with np.errstate(divide='ignore'):
+        assert np.all(np.isclose(expected_log_likelihood, np.log(actual_likelihood)))
 
     # Check expected response from model.covar
     with pytest.raises(NotImplementedError) as e:

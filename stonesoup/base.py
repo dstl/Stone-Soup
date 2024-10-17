@@ -61,6 +61,7 @@ from collections import OrderedDict
 from copy import copy
 from functools import cached_property
 from types import MappingProxyType
+from typing import Any, get_args, get_origin
 
 
 class Property:
@@ -290,7 +291,9 @@ class BaseMeta(ABCMeta):
                                      f'for property {key} of class {name}')
 
                 if not (isinstance(value.cls, type)
-                        or getattr(value.cls, '__module__', "") == 'typing'
+                        or value.cls is Any
+                        or get_origin(value.cls) is not None
+                        or get_args(value.cls)
                         or value.cls == name
                         or isinstance(value.cls, str)):  # Forward declaration for type hinting
                     raise ValueError(f'Invalid type specification ({str(value.cls)}) '

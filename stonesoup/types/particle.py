@@ -1,5 +1,5 @@
 import weakref
-from typing import Sequence
+from collections.abc import Sequence
 
 from ..base import Property
 from .array import StateVector

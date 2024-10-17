@@ -1,7 +1,7 @@
 from copy import deepcopy
+from collections.abc import Sequence
 from datetime import timedelta
 from itertools import combinations
-from typing import Tuple, Sequence
 
 import numpy as np
 
@@ -171,7 +171,7 @@ class Point2PointConstantAcceleration(TransitionModel):
 
     state: State = Property(doc="The initial state, assumed to have x and y cartesian position and"
                                 "velocities")
-    destination: Tuple[float, float] = Property(doc="Destination coordinates in 2D cartesian"
+    destination: tuple[float, float] = Property(doc="Destination coordinates in 2D cartesian"
                                                     "coordinates (x, y)")
     duration: timedelta = Property(doc="Duration of transition in seconds")
 
@@ -242,7 +242,7 @@ class Point2PointStop(TransitionModel):
 
     state: State = Property(doc="The initial state, assumed to have x and y cartesian position and"
                                 "velocities")
-    destination: Tuple[float, float] = Property(doc="Destination coordinates in 2D cartesian"
+    destination: tuple[float, float] = Property(doc="Destination coordinates in 2D cartesian"
                                                     "coordinates (x, y)")
 
     def __init__(self, *args, **kwargs):

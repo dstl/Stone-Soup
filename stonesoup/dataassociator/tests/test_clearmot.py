@@ -1,5 +1,4 @@
 import datetime
-from typing import List
 
 import pytest
 
@@ -74,7 +73,7 @@ def tracks():
     return tracks
 
 
-def test_clear_mot(tracks: List[Track]):
+def test_clear_mot(tracks: list[Track]):
 
     associator = ClearMotAssociator(measure=Euclidean(mapping=[0, 1]), association_threshold=3.0)
 
@@ -93,7 +92,7 @@ def test_clear_mot(tracks: List[Track]):
     assert assoc.time_range.end == datetime.datetime(2019, 1, 1, 14, 0, 6)
 
 
-def test_clear_mot_two_truths_crossing(tracks: List[Track]):
+def test_clear_mot_two_truths_crossing(tracks: list[Track]):
 
     associator = ClearMotAssociator(measure=Euclidean(mapping=[0, 1]), association_threshold=2.0)
 
@@ -123,7 +122,7 @@ def test_clear_mot_two_truths_crossing(tracks: List[Track]):
     assert assocB.time_range.end == datetime.datetime(2019, 1, 1, 14, 0, 9)
 
 
-def test_clear_mot_measure_dimensions(tracks: List[Track]):
+def test_clear_mot_measure_dimensions(tracks: list[Track]):
 
     track = tracks[0]
     truth_track = tracks[4]

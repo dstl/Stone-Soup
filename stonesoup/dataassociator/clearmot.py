@@ -2,16 +2,8 @@ import datetime
 import itertools
 import sys
 from collections import defaultdict
-from typing import (
-    Any,
-    Dict,
-    Generator,
-    Iterable,
-    List,
-    MutableSequence,
-    Set,
-    Tuple,
-)
+from collections.abc import Generator, Iterable, MutableSequence
+from typing import Any
 
 import numpy as np
 import scipy
@@ -26,8 +18,8 @@ from ..types.time import TimeRange
 from ..types.track import Track
 from .base import TwoTrackToTrackAssociator
 
-StatesFromTimeIdLookup = Dict[datetime.datetime, Dict[str, State]]
-TrackFromIdLookup = Dict[str, Track]
+StatesFromTimeIdLookup = dict[datetime.datetime, dict[str, State]]
+TrackFromIdLookup = dict[str, Track]
 
 
 class ClearMotAssociator(TwoTrackToTrackAssociator):
@@ -58,7 +50,7 @@ class ClearMotAssociator(TwoTrackToTrackAssociator):
         default=Euclidean(),
         doc="Distance measure to use. Default :class:`~.measures.Euclidean()`")
 
-    def associate_tracks(self, tracks_set: Set[Track], truth_set: Set[GroundTruthPath])\
+    def associate_tracks(self, tracks_set: set[Track], truth_set: set[GroundTruthPath])\
             -> AssociationSet:
         """Associate Tracks
 
@@ -83,10 +75,10 @@ class ClearMotAssociator(TwoTrackToTrackAssociator):
             self._prepare_timestamps_and_helpful_lookups(tracks_set, truth_set)
 
         # we use this to collect match sets over time
-        matches_over_time: List[Set[Tuple[str, str]]] = []
+        matches_over_time: list[set[tuple[str, str]]] = []
 
         # holds the match set of the previous timestep in (truth_id, track_id) format
-        matches_previous: Set[Tuple[str, str]] = set()
+        matches_previous: set[tuple[str, str]] = set()
 
         for current_time in timestamps:
 
@@ -128,9 +120,9 @@ class ClearMotAssociator(TwoTrackToTrackAssociator):
 
         return AssociationSet(associations)
 
-    def _prepare_timestamps_and_helpful_lookups(self, tracks_set: Set[Track],
-                                                truth_set: Set[Track]) -> \
-        Tuple[List[datetime.datetime], StatesFromTimeIdLookup, StatesFromTimeIdLookup,
+    def _prepare_timestamps_and_helpful_lookups(self, tracks_set: set[Track],
+                                                truth_set: set[Track]) -> \
+        tuple[list[datetime.datetime], StatesFromTimeIdLookup, StatesFromTimeIdLookup,
               TrackFromIdLookup, TrackFromIdLookup]:
         """Helper function to prepare lookups and determine unique timestamps across
         both truth and tracks.
@@ -159,10 +151,10 @@ class ClearMotAssociator(TwoTrackToTrackAssociator):
             truth_tracks_by_id, estim_tracks_by_id
 
     def _create_associations_from_matches_over_time(self,
-                                                    estim_tracks_by_id: Dict[str, Track],
-                                                    truth_tracks_by_id: Dict[str, GroundTruthPath],
+                                                    estim_tracks_by_id: dict[str, Track],
+                                                    truth_tracks_by_id: dict[str, GroundTruthPath],
                                                     timestamps: MutableSequence[datetime.datetime],
-                                                    matches_over_time: List[Set[Tuple[str, str]]]):
+                                                    matches_over_time: list[set[tuple[str, str]]]):
         unique_matches = {
             match for matches_timestamp in matches_over_time for match in matches_timestamp}
 
@@ -186,12 +178,12 @@ class ClearMotAssociator(TwoTrackToTrackAssociator):
         return associations
 
     def _forward_matches_from_previous_timestep(self,
-                                                truth_states_by_id: Dict[str, State],
-                                                track_states_by_id: Dict[str, State],
-                                                matches_previous: Set[Tuple[str, str]],
+                                                truth_states_by_id: dict[str, State],
+                                                track_states_by_id: dict[str, State],
+                                                matches_previous: set[tuple[str, str]],
                                                 truth_ids_at_current_time: OrderedSet[str],
                                                 track_ids_at_current_time: OrderedSet[str]) \
-            -> Tuple[Set[Tuple[str, str]], OrderedSet[str], OrderedSet[str]]:
+            -> tuple[set[tuple[str, str]], OrderedSet[str], OrderedSet[str]]:
         """Checks if matches from the previous timestep are still valid by their distance and
         adds them to the returned set of matches. Note that, the variables
         """
@@ -221,11 +213,11 @@ class ClearMotAssociator(TwoTrackToTrackAssociator):
                 track_ids_at_current_time.remove(track_id)
         return matches_current, truth_ids_at_current_time, track_ids_at_current_time
 
-    def _match_unassigned_tracks(self, truth_states_by_id: Dict[str, State],
-                                 track_states_by_id: Dict[str, State],
+    def _match_unassigned_tracks(self, truth_states_by_id: dict[str, State],
+                                 track_states_by_id: dict[str, State],
                                  truth_ids_at_current_time: OrderedSet[str],
                                  track_ids_at_current_time: OrderedSet[str]
-                                 ) -> Set[Tuple[str, str]]:
+                                 ) -> set[tuple[str, str]]:
         """Match unassigned tracks using Munkers algorithm and distance threshold.
         """
         num_truth_unassigned = len(truth_ids_at_current_time)
@@ -253,14 +245,14 @@ class ClearMotAssociator(TwoTrackToTrackAssociator):
 
 
 def get_strictly_monotonously_increasing_intervals(arr: MutableSequence[int])\
-        -> List[Tuple[int, int]]:
+        -> list[tuple[int, int]]:
     """Return (start <= t < end) index intervals where array elements are increasing by 1.
 
     Args:
         timesteps (MutableSequence[int]): array
 
     Returns:
-        List[Tuple[int, int]]: intervals with indices, where
+        list[tuple[int, int]]: intervals with indices, where
             array elements are increasing monotonically by 1
     """
     time_jumps = np.diff(arr) > 1

@@ -1,6 +1,6 @@
 import datetime
 from abc import abstractmethod
-from typing import Iterator, Set, Tuple
+from collections.abc import Iterator
 
 from ..base import Base
 from ..types.detection import Detection
@@ -12,14 +12,14 @@ class Tracker(Base):
 
     @property
     @abstractmethod
-    def tracks(self) -> Set[Track]:
+    def tracks(self) -> set[Track]:
         raise NotImplementedError
 
-    def __iter__(self) -> Iterator[Tuple[datetime.datetime, Set[Track]]]:
+    def __iter__(self) -> Iterator[tuple[datetime.datetime, set[Track]]]:
         return self
 
     @abstractmethod
-    def __next__(self) -> Tuple[datetime.datetime, Set[Track]]:
+    def __next__(self) -> tuple[datetime.datetime, set[Track]]:
         """
         Returns
         -------
@@ -36,7 +36,7 @@ class _TrackerMixInBase(Base):
         super().__init__(*args, **kwargs)
         self.detector_iter = None
 
-    def __iter__(self) -> Iterator[Tuple[datetime.datetime, Set[Track]]]:
+    def __iter__(self) -> Iterator[tuple[datetime.datetime, set[Track]]]:
         if self.detector is None:
             raise AttributeError("Detector has not been set. A detector attribute is required to "
                                  "iterate over a tracker.")
@@ -50,11 +50,11 @@ class _TrackerMixInNext(_TrackerMixInBase):
     """ The tracking logic is contained within the __next__ method."""
 
     @abstractmethod
-    def __next__(self) -> Tuple[datetime.datetime, Set[Track]]:
+    def __next__(self) -> tuple[datetime.datetime, set[Track]]:
         """Pull detections from the detector (`detector_iter`). Act on them to create tracks."""
 
-    def update_tracker(self, time: datetime.datetime, detections: Set[Detection]) \
-            -> Tuple[datetime.datetime, Set[Track]]:
+    def update_tracker(self, time: datetime.datetime, detections: set[Detection]) \
+            -> tuple[datetime.datetime, set[Track]]:
 
         placeholder_detector_iter = self.detector_iter
         self.detector_iter = iter([(time, detections)])
@@ -66,11 +66,11 @@ class _TrackerMixInNext(_TrackerMixInBase):
 class _TrackerMixInUpdate(_TrackerMixInBase):
     """ The tracking logic is contained within the update_tracker function."""
 
-    def __next__(self) -> Tuple[datetime.datetime, Set[Track]]:
+    def __next__(self) -> tuple[datetime.datetime, set[Track]]:
         time, detections = next(self.detector_iter)
         return self.update_tracker(time, detections)
 
     @abstractmethod
-    def update_tracker(self, time: datetime.datetime, detections: Set[Detection]) \
-            -> Tuple[datetime.datetime, Set[Track]]:
+    def update_tracker(self, time: datetime.datetime, detections: set[Detection]) \
+            -> tuple[datetime.datetime, set[Track]]:
         """Use `time` and `detections` to create tracks."""

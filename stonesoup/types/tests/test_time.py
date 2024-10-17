@@ -89,8 +89,8 @@ def test_contains(times):
     assert times[1] in test_range
     assert times[2] in test_range
     assert times[3] in test_range
-    assert not times[0] in test_range
-    assert not times[4] in test_range
+    assert times[0] not in test_range
+    assert times[4] not in test_range
 
     assert test2 in test_range
     assert test_range not in test2

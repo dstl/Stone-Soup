@@ -1,7 +1,6 @@
-from typing import Tuple
-
 from .base import PlotGenerator
 from ..base import Property
+from ..models.measurement import MeasurementModel
 from ..types.metric import TimeRangePlottingMetric
 from ..types.prediction import Prediction
 from ..types.time import TimeRange
@@ -14,11 +13,11 @@ class TwoDPlotter(PlotGenerator):
     Plots of :class:`~.Track`, :class:`~.Detection` and
     :class:`~.GroundTruthPath` objects in two dimensions.
     """
-    track_indices: Tuple[int, int] = Property(
+    track_indices: tuple[int, int] = Property(
         doc="Elements of track state vector to plot as x and y")
-    gtruth_indices: Tuple[int, int] = Property(
+    gtruth_indices: tuple[int, int] = Property(
         doc="Elements of ground truth path state vector to plot as x and y")
-    detection_indices: Tuple[int, int] = Property(
+    detection_indices: tuple[int, int] = Property(
         doc="Elements of detection state vector to plot as x and y")
     uncertainty: bool = Property(default=False,
                                  doc='If True the plot includes uncertainty ellipses')
@@ -36,6 +35,9 @@ class TwoDPlotter(PlotGenerator):
     generator_name: str = Property(doc="Unique identifier to use when accessing generated "
                                        "plots from MultiManager",
                                    default='tracker_plot')
+    measurement_model: MeasurementModel = Property(doc="Default mesaurement mode to use for "
+                                                       "detections without own model",
+                                                   default=None)
 
     def compute_metric(self, manager, *args, **kwargs):
         """Compute the metric using the data in the metric manager
@@ -97,16 +99,21 @@ class TwoDPlotter(PlotGenerator):
         plotter.ax.set_title(self.generator_name)
 
         if detections is not None:
-            plotter.plot_measurements(detections, [self.detection_indices[0],
-                                                   self.detection_indices[1]],
-                                      convert_measurements, color='tab:blue')
+            plotter.plot_measurements(
+                detections, [self.detection_indices[0], self.detection_indices[1]],
+                measurement_model=self.measurement_model,
+                convert_measurements=convert_measurements,
+                color='tab:blue',
+                label=self.detections_key)
         else:
             detections = []
 
         if groundtruth_paths is not None:
-            plotter.plot_ground_truths(groundtruth_paths, [self.gtruth_indices[0],
-                                                           self.gtruth_indices[1]],
-                                       linestyle=':')
+            plotter.plot_ground_truths(
+                groundtruth_paths,
+                [self.gtruth_indices[0], self.gtruth_indices[1]],
+                linestyle=':',
+                label=self.truths_key)
         else:
             groundtruth_paths = []
 
