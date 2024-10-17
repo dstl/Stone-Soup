@@ -10,6 +10,12 @@ Trackers
 .. automodule:: stonesoup.tracker.simple
     :show-inheritance:
 
+Particle
+--------
+
+.. automodule:: stonesoup.tracker.particle
+    :show-inheritance:
+
 Point Process
 -------------
 
