@@ -1,6 +1,9 @@
 import pytest
 
-from ..opensky import OpenSkyNetworkDetectionReader, OpenSkyNetworkGroundTruthReader
+pytest.importorskip('requests')
+
+from ..opensky import (  # noqa: E402
+    OpenSkyNetworkDetectionReader, OpenSkyNetworkGroundTruthReader)
 
 pytestmark = pytest.mark.remote_data
 

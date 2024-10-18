@@ -1,18 +1,19 @@
 import datetime
 from abc import abstractmethod, ABC
 from functools import lru_cache
-from typing import Sequence, Tuple, MutableSequence, Optional
+from collections.abc import Sequence, MutableSequence
+from typing import Optional
 
 import numpy as np
 from math import cos, sin
 from scipy.linalg import expm
 
-from stonesoup.base import Property
-from stonesoup.functions import cart2sphere, cart2pol, build_rotation_matrix, rotz
-from stonesoup.models.transition import TransitionModel
-from stonesoup.types.array import StateVector
-from stonesoup.types.state import State, StateMutableSequence
-from stonesoup.sensormanager.action import Actionable
+from ..base import Property
+from ..functions import cart2sphere, cart2pol, build_rotation_matrix, rotz
+from ..models.transition import TransitionModel
+from ..types.array import StateVector
+from ..types.state import State, StateMutableSequence
+from ..sensormanager.action import Actionable
 
 
 class Movable(StateMutableSequence, Actionable, ABC):
@@ -145,7 +146,7 @@ class Movable(StateMutableSequence, Actionable, ABC):
         else:
             return offset
 
-    def range_and_angles_to_other(self, other: 'Movable') -> Tuple[float, float, float]:
+    def range_and_angles_to_other(self, other: 'Movable') -> tuple[float, float, float]:
         """ Calculate the range, azimuth and elevation of a given Movable relative to current
         Movable.
 
@@ -354,7 +355,7 @@ class MultiTransitionMovable(MovingMovable):
     movement behaviour of the platform for given durations.
     """
 
-    transition_models: Sequence[TransitionModel] = Property(doc="List of transition models")
+    transition_models: Sequence[TransitionModel] = Property(doc="list of transition models")
     transition_times: Sequence[datetime.timedelta] = Property(doc="Durations for each listed "
                                                                   "transition model")
 

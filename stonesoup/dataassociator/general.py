@@ -1,4 +1,4 @@
-from typing import Tuple, Collection
+from collections.abc import Collection
 
 import numpy as np
 from scipy.optimize import linear_sum_assignment
@@ -46,7 +46,7 @@ class OneToOneAssociator(Associator):
                 self.association_threshold = 1e10
 
     def associate(self, objects_a: Collection, objects_b: Collection) \
-            -> Tuple[AssociationSet, Collection, Collection]:
+            -> tuple[AssociationSet, Collection, Collection]:
         """Associate two collections of objects together. Calculate the measure between each
         object. :func:`~scipy.optimize.linear_sum_assignment` is used to find
         the minimum (or maximum) measure by combination objects from two sources.

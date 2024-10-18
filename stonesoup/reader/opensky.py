@@ -1,6 +1,5 @@
 import datetime
 from time import sleep
-from typing import Tuple
 
 try:
     import requests
@@ -42,7 +41,7 @@ class _OpenSkyNetworkReader(Reader):
         3: "FLARM",
     }
 
-    bbox: Tuple[float, float, float, float] = Property(
+    bbox: tuple[float, float, float, float] = Property(
         default=None,
         doc="Bounding box to filter data to (left, bottom, right, top). "
             "Default `None` which will include global data.")

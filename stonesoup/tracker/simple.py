@@ -1,5 +1,4 @@
 import datetime
-from typing import Set, Tuple
 
 import numpy as np
 
@@ -50,10 +49,10 @@ class SingleTargetTracker(_TrackerMixInNext, Tracker):
         self._track = None
 
     @property
-    def tracks(self) -> Set[Track]:
+    def tracks(self) -> set[Track]:
         return {self._track} if self._track else set()
 
-    def __next__(self) -> Tuple[datetime.datetime, Set[Track]]:
+    def __next__(self) -> tuple[datetime.datetime, set[Track]]:
         time, detections = next(self.detector_iter)
         if self._track is not None:
             associations = self.data_associator.associate(
@@ -104,10 +103,10 @@ class SingleTargetMixtureTracker(_TrackerMixInNext, Tracker):
         self._track = None
 
     @property
-    def tracks(self) -> Set[Track]:
+    def tracks(self) -> set[Track]:
         return {self._track} if self._track else set()
 
-    def __next__(self) -> Tuple[datetime.datetime, Set[Track]]:
+    def __next__(self) -> tuple[datetime.datetime, set[Track]]:
         time, detections = next(self.detector_iter)
 
         if self._track is not None:
@@ -199,10 +198,10 @@ class MultiTargetTracker(_TrackerMixInNext, Tracker):
         self._tracks = set()
 
     @property
-    def tracks(self) -> Set[Track]:
+    def tracks(self) -> set[Track]:
         return self._tracks
 
-    def __next__(self) -> Tuple[datetime.datetime, Set[Track]]:
+    def __next__(self) -> tuple[datetime.datetime, set[Track]]:
         time, detections = next(self.detector_iter)
 
         associations = self.data_associator.associate(
@@ -251,10 +250,10 @@ class MultiTargetMixtureTracker(_TrackerMixInNext, Tracker):
         self._tracks = set()
 
     @property
-    def tracks(self) -> Set[Track]:
+    def tracks(self) -> set[Track]:
         return self._tracks
 
-    def __next__(self) -> Tuple[datetime.datetime, Set[Track]]:
+    def __next__(self) -> tuple[datetime.datetime, set[Track]]:
         time, detections = next(self.detector_iter)
 
         associations = self.data_associator.associate(

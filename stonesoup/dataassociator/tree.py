@@ -1,7 +1,7 @@
 import datetime
 from collections import defaultdict
+from collections.abc import Sequence
 from operator import attrgetter
-from typing import Sequence
 
 import numpy as np
 import scipy as sp

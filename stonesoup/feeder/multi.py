@@ -1,5 +1,5 @@
 import heapq
-from typing import Collection
+from collections.abc import Collection
 
 from .base import DetectionFeeder, GroundTruthFeeder
 from ..base import Property

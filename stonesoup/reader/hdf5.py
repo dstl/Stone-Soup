@@ -5,8 +5,8 @@ of data that is in `HDF5 <https://hdfgroup.org/>`_ format, using the `h5py
 <https://docs.h5py.org/>`_ library.
 """
 
+from collections.abc import Collection, Sequence
 from datetime import datetime, timedelta, timezone
-from typing import Collection, Sequence
 
 try:
     import h5py

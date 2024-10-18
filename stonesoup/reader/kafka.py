@@ -1,10 +1,10 @@
 import json
 import sys
+from collections.abc import Collection
 from datetime import datetime, timedelta, timezone
 from math import modf
 from queue import Empty, Queue
 from threading import Thread
-from typing import Dict, List, Collection
 
 try:
     from confluent_kafka import Consumer
@@ -25,11 +25,11 @@ from ..types.groundtruth import GroundTruthPath, GroundTruthState
 
 class _KafkaReader(Reader):
     topic: str = Property(doc="The Kafka topic on which to listen for messages.")
-    kafka_config: Dict[str, str] = Property(
+    kafka_config: dict[str, str] = Property(
         doc="Configuration properties for the underlying kafka consumer. See the "
             "`confluent-kafka documentation <https://docs.confluent.io/platform/current/clients/confluent-kafka-python/html/index.html#kafka-client-configuration>`_ " # noqa
             "for more details.")
-    state_vector_fields: List[str] = Property(
+    state_vector_fields: list[str] = Property(
         doc="List of columns names to be used in state vector.")
     time_field: str = Property(
         doc="Name of column to be used as time field.")

@@ -1,6 +1,6 @@
 import datetime
 from collections import defaultdict
-from typing import Dict, List, Set, Tuple, Union
+from typing import Union
 
 from ..base import Property
 from ..measures.state import Measure
@@ -12,8 +12,8 @@ from ..types.track import Track
 from .base import MetricGenerator
 from .manager import MultiManager
 
-MatchSetAtTimestamp = Set[Tuple[str, str]]  # tuples of (truth, track)
-StatesFromTimeIdLookup = Dict[datetime.datetime, Dict[str, State]]
+MatchSetAtTimestamp = set[tuple[str, str]]  # tuples of (truth, track)
+StatesFromTimeIdLookup = dict[datetime.datetime, dict[str, State]]
 
 
 class ClearMotMetrics(MetricGenerator):
@@ -46,7 +46,7 @@ class ClearMotMetrics(MetricGenerator):
     distance_measure: Measure = Property(
         doc="Distance measure used in calculating the MOTP score.")
 
-    def compute_metric(self, manager: MultiManager, **kwargs) -> List[Metric]:
+    def compute_metric(self, manager: MultiManager, **kwargs) -> list[Metric]:
         """Compute MOTP and MOTA metrics for a given time-period covered by truths and the tracks.
 
         Parameters
@@ -76,7 +76,7 @@ class ClearMotMetrics(MetricGenerator):
                                generator=self)
         return [motp, mota]
 
-    def _compute_mota_and_motp(self, manager: MultiManager) -> Tuple[float, float]:
+    def _compute_mota_and_motp(self, manager: MultiManager) -> tuple[float, float]:
 
         matches_at_time_lookup = self._create_matches_at_time_lookup(manager)
 
@@ -156,12 +156,12 @@ class ClearMotMetrics(MetricGenerator):
         return error_sum_in_timestep
 
     def _compute_total_number_of_gt_states(self, manager: MultiManager) -> int:
-        truth_state_set: Set[Track] = manager.states_sets[self.truths_key]
+        truth_state_set: set[Track] = manager.states_sets[self.truths_key]
         total_number_of_gt_states = sum(len(truth_track) for truth_track in truth_state_set)
         return total_number_of_gt_states
 
     def _create_matches_at_time_lookup(self, manager: MultiManager) \
-            -> Dict[datetime.datetime, MatchSetAtTimestamp]:
+            -> dict[datetime.datetime, MatchSetAtTimestamp]:
         timestamps = manager.list_timestamps(generator=self)
 
         matches_by_timestamp = defaultdict(set)
@@ -197,7 +197,7 @@ class ClearMotMetrics(MetricGenerator):
         return num_miss_matches_current
 
     @staticmethod
-    def truth_track_from_association(association) -> Tuple[Track, Track]:
+    def truth_track_from_association(association) -> tuple[Track, Track]:
         """Find truth and track from an association.
 
         Parameters
@@ -217,7 +217,7 @@ class ClearMotMetrics(MetricGenerator):
         return truth, track
 
 
-def _create_state_from_time_and_id_lookup(tracks_set: Set[Union[Track, GroundTruthPath]]) \
+def _create_state_from_time_and_id_lookup(tracks_set: set[Union[Track, GroundTruthPath]]) \
         -> StatesFromTimeIdLookup:
     track_states_by_time_id: StatesFromTimeIdLookup = defaultdict(dict)
     for track in tracks_set:
@@ -231,7 +231,7 @@ class AssociationSetNotValid(Exception):
 
 
 def check_matches_for_metric_calculation(matches_by_timestamp:
-                                         Dict[datetime.datetime, MatchSetAtTimestamp]):
+                                         dict[datetime.datetime, MatchSetAtTimestamp]):
     """Checks the matches prior to computing CLEAR MOT metrics. If this function returns
     without raising an exception, it is checked that a single track is associated with one truth
     (one-2-one relationship) at a given timestep and vice versa.

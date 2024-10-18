@@ -1,10 +1,10 @@
 import uuid
-from typing import MutableSequence
+from collections.abc import MutableSequence
 
-from stonesoup.base import Property, Base
-from stonesoup.movable import Movable, FixedMovable, MovingMovable, MultiTransitionMovable
-from stonesoup.sensor.sensor import Sensor
-from stonesoup.types.groundtruth import GroundTruthPath
+from ..base import Property, Base
+from ..movable import Movable, FixedMovable, MovingMovable, MultiTransitionMovable
+from ..sensor.sensor import Sensor
+from ..types.groundtruth import GroundTruthPath
 
 
 class Platform(Base):

@@ -1,6 +1,5 @@
 import warnings
 from abc import abstractmethod
-from typing import Tuple
 
 import utm
 from pymap3d import geodetic2enu, geodetic2ned
@@ -11,9 +10,9 @@ from ..buffered_generator import BufferedGenerator
 
 
 class _LLARefConverter(DetectionFeeder, GroundTruthFeeder):
-    reference_point: Tuple[float, float, float] = Property(
+    reference_point: tuple[float, float, float] = Property(
         doc="(Long, Lat, Altitude)")
-    mapping: Tuple[int, int, int] = Property(
+    mapping: tuple[int, int, int] = Property(
         default=(0, 1, 2),
         doc="Indexes of long, lat, altitude. Default (0, 1, 2)")
 
@@ -76,7 +75,7 @@ class LongLatToUTMConverter(DetectionFeeder, GroundTruthFeeder):
 
     """
 
-    mapping: Tuple[int, int] = Property(
+    mapping: tuple[int, int] = Property(
         default=(0, 1),
         doc="Indexes of long, lat. Default (0, 1)")
     zone_number: int = Property(

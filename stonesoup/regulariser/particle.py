@@ -1,7 +1,8 @@
 import copy
 import numpy as np
+from collections.abc import Callable, Sequence
+
 from scipy.stats import multivariate_normal, uniform
-from typing import Sequence, Callable
 
 from .base import Regulariser
 from ..functions import cholesky_eps

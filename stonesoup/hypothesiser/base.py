@@ -1,5 +1,5 @@
 import datetime
-from typing import Set, Sequence
+from collections.abc import Sequence
 
 from ..base import Base
 from ..types.detection import Detection
@@ -13,7 +13,7 @@ class Hypothesiser(Base):
     Given a track and set of detections, generate hypothesis of association.
     """
 
-    def hypothesise(self, track: Track, detections: Set[Detection], timestamp: datetime.datetime,
+    def hypothesise(self, track: Track, detections: set[Detection], timestamp: datetime.datetime,
                     **kwargs) -> Sequence[Hypothesis]:
         """Hypothesise track and detection association
 
