@@ -42,6 +42,9 @@ text = "MIT"
 
 [project.urls]
 Homepage = "https://github.com/dstl/Stone-Soup"
+Documentation = "https://stonesoup.readthedocs.org"
+"Release Notes" = "https://github.com/dstl/Stone-Soup/releases"
+Issues = "https://github.com/dstl/Stone-Soup/issues"
 
 [project.optional-dependencies]
 dev = [
