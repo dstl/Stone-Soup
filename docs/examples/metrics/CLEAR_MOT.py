@@ -83,12 +83,13 @@ from stonesoup.plotter import AnimatedPlotterly
 
 plotter = AnimatedPlotterly(timesteps, tail_length=0.3)
 plotter.plot_ground_truths(truths, [0, 2])
+plotter.fig
 
 # %%
 # Generate detections with clutter
 # ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 # The detections (and clutter) from the truth tracks are later used as input for the
-# multiple-object tracking.
+# multiple target tracking.
 
 from scipy.stats import uniform
 
@@ -126,7 +127,7 @@ for k in range(20):
     all_measurements.append(measurement_set)
 
 # %%
-# Run multiple-object-tracking
+# Run multiple target tracking
 # ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 # Create the Kalman predictor and updater
@@ -153,8 +154,6 @@ from stonesoup.dataassociator.neighbour import GlobalNearestNeighbour
 data_associator = GlobalNearestNeighbour(hypothesiser)
 
 # %%
-# Run the Kalman filters.
-#
 # We create 2 priors reflecting the targets' initial states.
 from stonesoup.types.state import GaussianState
 
@@ -181,9 +180,10 @@ for n, measurements in enumerate(all_measurements):
             track.append(hypothesis.prediction)
 
 # %%
-# Add tracks to the interacive plot
+# Add tracks to the interactive plot
 
 plotter.plot_tracks(tracks, [0, 2], uncertainty=False)
+plotter.fig 
 
 # %%
 # Compute CLEAR MOT metrics
@@ -209,7 +209,7 @@ clear_mot_associator = ClearMotAssociator(measure=Euclidean((0, 2)),
 metric_manager = MultiManager([clear_mot_metrics], associator=clear_mot_associator)
 
 # %%
-# add tracks data to metric manager
+# Add tracks data to metric manager
 
 metric_manager.add_data({'truths': truths,
                          'tracks': tracks}, overwrite=False)
@@ -235,10 +235,10 @@ plotter.fig
 # When associated, the average distance between tracks and truths is around 1m, which is reflected
 # by the MOTP metric.
 #
-# The MOTA score is around 0.57, which means that more than a half of the truth samples is
-# sucessfully tracked (i.e. below the association distance of 3 meters).
+# The MOTA score is around 0.57, which means that more than a half of the truth samples are
+# sucessfully tracked (i.e. below the association distance of 3 metres).
 # By oberving the proximity of truths and tracks, we can see that the green (south-east heading) is
-# followed by the violet track. At least half (50%) of the total number of truth samples
+# followed by the violet track. At least half (i.e. 50%) of the total number of truth samples
 # is successfully tracked.
 #
 # While observing the red (north-east heading) truth, we see that it deviates from the
