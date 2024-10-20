@@ -236,9 +236,9 @@ plotter.fig
 # by the MOTP metric.
 #
 # The MOTA score is around 0.57, which means that more than a half of the truth samples are
-# sucessfully tracked (i.e. below the association distance of 3 metres).
-# By oberving the proximity of truths and tracks, we can see that the green (south-east heading) is
-# followed by the violet track. At least half (i.e. 50%) of the total number of truth samples
+# successfully tracked (i.e. below the association distance of 3 metres).
+# By observing the proximity of truths and tracks, we can see that the green (south-east heading)
+# is followed by the violet track. At least half (i.e. 50%) of the total number of truth samples
 # is successfully tracked.
 #
 # While observing the red (north-east heading) truth, we see that it deviates from the
