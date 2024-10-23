@@ -1,4 +1,5 @@
 from abc import abstractmethod
+from typing import Sequence
 
 import numpy as np
 
@@ -16,17 +17,17 @@ class Kernel(Base):
     @abstractmethod
     def __call__(self, state1, state2=None):
         r"""
-        Compute the kernel state of a pair of :class:`~.State` objects
+        Compute the kernel state of a pair of :class:`~.StateVectors` objects
 
         Parameters
         ----------
-        state1 : :class:`~.State`
-        state2 : :class:`~.State`
+        state1 : :class:`~.StateVectors`
+        state2 : :class:`~.StateVectors`
 
         Returns
         -------
         StateVectors
-            kernel state of a pair of input :class:`~.State` objects
+            kernel state of a pair of input :class:`~.StateVectors` objects
 
         """
         raise NotImplementedError
@@ -47,83 +48,136 @@ class Kernel(Base):
         return state_vector1, state_vector2
 
 
-class QuadraticKernel(Kernel):
+class AdditiveKernel(Kernel):
+    """Additive kernel
+
+    Elementwise addition of corresponding kernel state values. Similar to an OR operation.
+    """
+
+    kernel_list: Sequence[Kernel] = Property(doc="List of kernels")
+
+    def __call__(self, state1, state2=None):
+        return np.sum([kernel(state1, state2) for kernel in self.kernel_list], axis=0)
+
+
+class MultiplicativeKernel(Kernel):
+    """Multiplicative kernel
+
+    Elementwise multiplication of corresponding kernel state values. Similar to an AND operation.
+    """
+
+    kernel_list: Sequence[Kernel] = Property(doc="List of kernels")
+
+    def __call__(self, state1, state2=None):
+        return np.prod([kernel(state1, state2) for kernel in self.kernel_list], axis=0)
+
+
+class PolynomialKernel(Kernel):
+    r"""Polynomial Kernel
+
+    This kernel returns the polynomial kernel of order :math:`p` state from a pair of
+    :class:`.StateVectors` objects.
+
+    The polynomial kernel of state vectors :math:`\mathbf{x}` and :math:`\mathbf{x}^\prime` is
+    defined as:
+
+    .. math::
+        \mathtt{k}(\mathbf{x}, \mathbf{x}^\prime) =
+        \left(\alpha \left\langle \mathbf{x}, \mathbf{x}^\prime \right\rangle + c \right) ^ p
+    """
+
+    power: int = Property(doc="The polynomial power :math:`p`.")
+    c: float = Property(default=1,
+                        doc="Free parameter trading off the influence of higher-order versus "
+                            "lower-order terms in the polynomial. Default is 1.")
+    ialpha: float = Property(default=1e1, doc="Slope. Range is [1e0, 1e4]. Default is 1e1.")
+
+    def __call__(self, state1, state2=None):
+        state_vector1, state_vector2 = self._get_state_vectors(state1, state2)
+        return (state_vector1.T @ state_vector2 / self.ialpha + self.c) ** self.power
+
+
+class LinearKernel(PolynomialKernel):
+    r"""Linear Kernel
+
+   This kernel returns the linear kernel state vector from a pair of :class:`~.StateVectors`
+   objects.
+
+   The linear kernel of state vectors :math:`\mathbf{x}` and :math:`\mathbf{x}^\prime` is
+   defined as:
+
+   .. math::
+        \mathtt{k}\left(\mathbf{x}, \mathbf{x}^\prime\right) =
+        \mathbf{x}^T\mathbf{x}^\prime
+
+   The linear kernel can capture the first-order moments of a distribution, such as the mean
+   and covariance.
+   """
+
+    @property
+    def power(self):
+        r"""The linear polynomial power, :math:`p=1`"""
+        return 1
+
+    @property
+    def c(self):
+        return 0
+
+    @property
+    def ialpha(self):
+        return 1
+
+
+class QuadraticKernel(PolynomialKernel):
     r"""Quadratic Kernel type
 
-    This kernel returns the quadratic kernel state vector from a pair of
-    :class:`~.KernelParticleState` state vectors.
+    This kernel returns the quadratic kernel state vector from a pair of :class:`~.StateVectors`
+    objects.
 
-    The Quadratic kernel of state vectors :math:`\mathbf{x}` and
-    :math:`\mathbf{x}'` is defined as:
+    The quadratic kernel of state vectors :math:`\mathbf{x}` and :math:`\mathbf{x}^\prime` is
+    defined as:
 
     .. math::
-         \mathtt{k}\left(\mathbf{x}, \mathbf{x}'\right) =
-         \left(\alpha \langle \mathbf{x}, \mathbf{x}' \rangle + c\right)^2
+         \mathtt{k}\left(\mathbf{x}, \mathbf{x}^\prime\right) =
+         \left(\alpha \langle \mathbf{x}, \mathbf{x}^\prime \rangle + c\right)^2
+
+    The quadratic kernel can capture the second-order moments of a distribution, such as the
+    covariance and correlations between pairs of variables.
+    The quadratic kernel is appropriate when the data is nonlinear but still relatively simple.
     """
-    c: float = Property(
-        default=1,
-        doc="Free parameter trading off the influence of higher-order versus lower-order "
-            "terms in the polynomial. Default is 1.")
-    ialpha: float = Property(default=1e1, doc="Slope. Range is [1e0, 1e4].")
-
-    def __call__(self, state1, state2=None):
-        r"""Calculate the Quadratic Kernel transformation for a pair of state vectors
-
-        Parameters
-        ----------
-        state1 : :class:`~.KernelParticleState`
-        state2 : :class:`~.KernelParticleState`
-
-        Returns
-        -------
-        StateVectors
-            Transformed state vector in kernel space.
-        """
-        state_vector1, state_vector2 = self._get_state_vectors(state1, state2)
-        return (state_vector1.T@state_vector2/self.ialpha + self.c) ** 2
+    @property
+    def power(self):
+        r"""The quadratic polynomial power, :math:`p=2`"""
+        return 2
 
 
-class QuarticKernel(Kernel):
+class QuarticKernel(PolynomialKernel):
     r"""Quartic Kernel
 
-    This kernel returns the quartic kernel state from a pair of
-    :class:`~.KernelParticleState` objects.
+    This kernel returns the quartic kernel state from a pair of :class:`~.StateVectors` objects.
 
-    The Quartic kernel of state vectors :math:`\mathbf{x}` and
-    :math:`\mathbf{x}'` is defined as:
+    The quartic kernel of state vectors :math:`\mathbf{x}` and :math:`\mathbf{x}^\prime` is defined
+    as:
 
     .. math::
-         \mathtt{k}(\mathbf{x}, \mathbf{x}') =
-         \left(\alpha \langle \mathbf{x}, \mathbf{x}' \rangle + c\right)^4
+         \mathtt{k}(\mathbf{x}, \mathbf{x}^\prime) =
+         \left(\alpha \langle \mathbf{x}, \mathbf{x}^\prime \rangle + c\right)^4
+
+    The quartic kernel can capture higher-order moments beyond the mean and covariance, such as
+    skewness and kurtosis.
+    THe quartic kernel can be used when the data is highly nonlinear and complex.
     """
-    c: float = Property(
-        default=1,
-        doc="Free parameter trading off the influence of higher-order versus lower-order "
-            "terms in the polynomial. Default is 1.")
-    ialpha: float = Property(default=1e1, doc="Slope. Range is [1e0, 1e4].")
-
-    def __call__(self, state1, state2=None):
-        r"""Calculate the Quartic Kernel transformation for a pair of state vectors
-
-        Parameters
-        ----------
-        state1 : :class:`~.KernelParticleState`
-        state2 : :class:`~.KernelParticleState`
-
-        Returns
-        -------
-        StateVectors
-            Transformed state in kernel space.
-        """
-        state_vector1, state_vector2 = self._get_state_vectors(state1, state2)
-        return (state_vector1.T@state_vector2/self.ialpha + self.c) ** 4
+    @property
+    def power(self):
+        r"""The quartic polynomial power, :math:`p=4`"""
+        return 4
 
 
 class GaussianKernel(Kernel):
     r"""Gaussian Kernel
 
     This kernel returns the Gaussian kernel state vector from a pair of
-    :class:`~.KernelParticleState` state vectors.
+    :class:`~.StateVectors` objects.
 
     The Gaussian kernel of state vectors :math:`\mathbf{x}` and
     :math:`\mathbf{x}'` is defined as:
@@ -142,8 +196,8 @@ class GaussianKernel(Kernel):
 
         Parameters
         ----------
-        state1 : :class:`~.KernelParticleState`
-        state2 : :class:`~.KernelParticleState`
+        state1 : :class:`~.StateVectors`
+        state2 : :class:`~.StateVectors`
 
         Returns
         -------
