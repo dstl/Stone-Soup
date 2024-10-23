@@ -6,8 +6,7 @@ import numpy as np
 from scipy.special import logsumexp
 from ordered_set import OrderedSet
 
-from stonesoup.sensor.sensor import Sensor
-from stonesoup.types.detection import TrueDetection
+from ..sensor.sensor import Sensor
 
 from .base import Predictor
 from ._utils import predict_lru_cache
@@ -326,33 +325,22 @@ class BernoulliParticlePredictor(ParticlePredictor):
             parent=prior,
         )
 
-        # Predict particles using the transition model
-        # new_state_vector = self.transition_model.function(
-        #     new_particle_state,
-        #     noise=True,
-        #     time_interval=time_interval,
-        #     **kwargs)
-
-        transitioned_state_vector = self.transition_model.function(
+        new_state_vector = self.transition_model.function(
             new_particle_state,
-            noise=False,
             time_interval=time_interval,
+            noise=True,
             **kwargs)
-        state_noise = self.transition_model.rvs(num_samples=transitioned_state_vector.shape[1],
-                                                time_interval=time_interval,
-                                                 **kwargs)
-        new_state_vector = transitioned_state_vector + state_noise
 
         # Estimate existence
         predicted_existence = self.estimate_existence(
             new_particle_state.existence_probability)
 
         predicted_log_weights = self.predict_log_weights(
-            new_particle_state,
+            untransitioned_state,  # prior state
             Prediction.from_state(
                 new_particle_state,
                 state_vector=new_state_vector,
-            ),
+            ),  # predicted_state
             new_particle_state.existence_probability,
             predicted_existence, nsurv_particles,
             new_particle_state.log_weight,
@@ -376,7 +364,7 @@ class BernoulliParticlePredictor(ParticlePredictor):
                              + self.survival_probability * existence_prior
         return existence_estimate
 
-    def predict_log_weights(self, transitioned_state_vector, noisy_state_vector, prior_existence, 
+    def predict_log_weights(self, prior_state, predicted_state, prior_existence,
                             predicted_existence, surv_part_size, prior_log_weights, **kwargs):
 
         # Weight prediction function currently assumes that the chosen importance density is the
@@ -403,7 +391,7 @@ class BernoulliParticlePredictor(ParticlePredictor):
             if prior.hypothesis is not None:
                 for hypothesis in prior.hypothesis:
                     if hypothesis.measurement:
-                        detections |= {hypothesis.measurement} 
+                        detections |= {hypothesis.measurement}
 
         return detections
 
@@ -416,18 +404,19 @@ class VisibilityInformedBernoulliParticlePredictor(BernoulliParticlePredictor):
 
     An implementation of a particle filter predictor utilising the Bernoulli
     filter formulation that estimates the spatial distribution of a single
-    target and estimates its existence. This implementation modifies the weight 
-    prediction step to account for particles that are predicted to be inside 
-    obstacles and not visible to the sensor. This is based on the work by 
-     Glover et al. [#vibpf]
+    target and estimates its existence. This implementation modifies the weight
+    prediction step to account for particles that are predicted to be inside
+    obstacles and not visible to the sensor. This is based on the work by
+    Glover et al. [#vibpf]
 
     This should be used in conjunction with the
-    :class:`~.BernoulliParticleUpdater`.
+    :class:`~.VisibilityInformedBernoulliParticleUpdater` but also works with
+    :class:`.BernoulliParticleUpdater`.
 
     References
     ----------
-    .. [#vibpf] Glover, Timothy J & Liu, Cunjia & Chen, Wen-Hua, Visibility 
-       informed Bernoulli filter for target tracking in cluttered evironmnets, 
+    .. [#vibpf] Glover, Timothy J & Liu, Cunjia & Chen, Wen-Hua, Visibility
+       informed Bernoulli filter for target tracking in cluttered evironmnets,
        2022, 25th International Conference on Information Fusion (FUSION), 1-8.
     """
 
@@ -441,43 +430,44 @@ class VisibilityInformedBernoulliParticlePredictor(BernoulliParticlePredictor):
         default=1e-20, doc="Birth transition likelihood of particles that are not visible "
         "or within obstacles")
 
-
-    def predict_log_weights(self, transitioned_state_vector, noisy_state_vector, prior_existence,
+    def predict_log_weights(self, prior_state, predicted_state, prior_existence,
                             predicted_existence, surv_part_size, prior_log_weights, **kwargs):
 
         # Weight prediction function currently assumes that the chosen importance density is the
         # transition density. This will need to change if implementing a different importance
         # density or incorporating visibility information
 
-        transition_likelihood = self.transition_model.logpdf(noisy_state_vector,
-                                                             transitioned_state_vector,
+        transition_likelihood = self.transition_model.logpdf(predicted_state,
+                                                             prior_state,
                                                              **kwargs)
-        
-        visible_parts, parts_in_obs = self.sensor.is_detectable(noisy_state_vector, 
-                                                                obstacle_check=True)
+
+        visible_parts = self.sensor.is_detectable(predicted_state)
+        _, parts_in_obs = self.sensor.is_visible(predicted_state,
+                                                 obstacle_check=True)
 
         transition_likelihood_mod = copy.copy(transition_likelihood)
         transition_likelihood_mod[:surv_part_size][parts_in_obs[:surv_part_size]] = \
             np.log(self.obstacle_transition_likelihood)
-        
+
         transition_likelihood_mod[surv_part_size:][~visible_parts[surv_part_size:]] = \
             np.log(self.obstacle_birth_likelihood)
 
         surv_weights = \
             np.log((self.survival_probability*prior_existence)/predicted_existence) + \
-                    (transition_likelihood_mod[:surv_part_size] -
-                    transition_likelihood[:surv_part_size]) + prior_log_weights[:surv_part_size]
+                  (transition_likelihood_mod[:surv_part_size] -
+                   transition_likelihood[:surv_part_size]) + prior_log_weights[:surv_part_size]
 
         birth_weights = \
             np.log((self.birth_probability*(1-prior_existence))/predicted_existence) + \
-                    (transition_likelihood_mod[surv_part_size:] - \
-                    transition_likelihood[surv_part_size:]) + prior_log_weights[surv_part_size:]
+                  (transition_likelihood_mod[surv_part_size:] -
+                   transition_likelihood[surv_part_size:]) + prior_log_weights[surv_part_size:]
         predicted_log_weights = np.concatenate((surv_weights, birth_weights))
 
         # Normalise weights
         predicted_log_weights -= logsumexp(predicted_log_weights)
 
         return predicted_log_weights
+
 
 class SMCPHDBirthSchemeEnum(Enum):
     """SMC-PHD Birth scheme enumeration"""

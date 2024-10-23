@@ -22,9 +22,10 @@ from stonesoup.hypothesiser.distance import DistanceHypothesiser
 from stonesoup.measures import Mahalanobis
 
 from stonesoup.dataassociator.neighbour import NearestNeighbour
-from stonesoup.types.state import GaussianState, State
+from stonesoup.types.state import GaussianState, State, StateVector
 
 from stonesoup.types.track import Track
+from stonesoup.platform.base import Obstacle
 
 start_time = datetime.now()
 transition_model = CombinedLinearGaussianTransitionModel([ConstantVelocity(0.005),
@@ -90,6 +91,17 @@ sensor3d = RadarElevationBearingRange(
     ndim_state=6,
     position=np.array([[10], [50], [0]])
 )
+
+shape = np.array([[-2, -2, 2, 2], [-2, 2, 2, -2]])
+obstacle_list = [Obstacle(shape_data=shape,
+                          states=State(StateVector([[0], [0]])),
+                          position_mapping=(0, 1)),
+                 Obstacle(shape_data=shape,
+                          states=State(StateVector([[0], [5]])),
+                          position_mapping=(0, 1)),
+                 Obstacle(shape_data=shape,
+                          states=State(StateVector([[5], [0]])),
+                          position_mapping=(0, 1))]
 
 plotter = Plotter()
 # Test functions
@@ -230,6 +242,7 @@ def test_animated_plotterly():
     plotter = AnimatedPlotterly(timesteps)
     plotter.plot_ground_truths(truth, [0, 2])
     plotter.plot_measurements(all_measurements, [0, 2])
+    plotter.plot_obstacles(obstacle_list)
     plotter.plot_tracks(track, [0, 2], uncertainty=True, plot_history=True)
 
 
@@ -259,6 +272,7 @@ def test_plotterly_empty():
     plotter.plot_ground_truths({}, [0, 2])
     plotter.plot_measurements({}, [0, 2])
     plotter.plot_tracks({}, [0, 2])
+    plotter.plot_obstacles({}, [0, 1])
     with pytest.raises(TypeError):
         plotter.plot_tracks({})
     with pytest.raises(ValueError):
@@ -286,6 +300,8 @@ def test_plotterly_2d():
     plotter2d.plot_measurements(all_measurements, [0, 2])
     plotter2d.plot_tracks(track, [0, 2], uncertainty=True)
     plotter2d.plot_sensors(sensor2d)
+    plotter2d.plot_obstacles(obstacle_list)
+    plotter2d.plot_obstacles(obstacle_list[0])
 
 
 def test_plotterly_3d():

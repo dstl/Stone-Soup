@@ -1,5 +1,5 @@
 import uuid
-from typing import MutableSequence, Optional, Sequence, Union, Any
+from typing import MutableSequence, Sequence, Union, Any
 import numpy as np
 from functools import lru_cache
 
@@ -9,7 +9,6 @@ from stonesoup.movable import Movable, FixedMovable, MovingMovable, MultiTransit
 from stonesoup.sensor.sensor import Sensor
 from stonesoup.types.array import StateVectors
 from stonesoup.types.groundtruth import GroundTruthPath
-from stonesoup.types.state import State
 
 
 class Platform(Base):
@@ -197,39 +196,41 @@ class MultiTransitionMovingPlatform(Platform):
 
 
 class Obstacle(Platform):
-    """A platform class representing obstacles in the environment that may 
-    block the visibility of targets."""
+    """A platform class representing obstacles in the environment that may
+    block the line of sight to targets, preventing detection and measurement."""
 
     shape_data: StateVectors = Property(
         default=None,
-        doc="Vertices coordinated defined relative to the obstacle "
-            "origin point, with no orientation. Defaults to `None`.")
-    
+        doc="Coordinates defining the vertices of the obstacle relative"
+        "to its centroid without any orientation. Defaults to `None`")
+
     simplices: Union[Sequence[int], np.ndarray] = Property(
         default=None,
-        doc="A :class:`Sequence` or :class:`np.ndarray`, of shape (1,n) or (n,), of :class:`int` "
-            "describing connectivity of vertices provided in :attr:`shape_data`. "
-            "Should be constructed such that element i is the index of a vertex "
-            "that i is connected to. Default assumes that :attr:`shape_data` "
-            "is provided such that consecutive vertices are connected.")
-    
+        doc="A :class:`Sequence` or :class:`np.ndarray`, describing the connectivity "
+            "of vertices specified in :attr:`shape_data`. Should be constructed such "
+            "that element `i` is the index of a vertex that `i` is connected to. "
+            "For example, simplices for a four sided obstacle may be `(1, 2, 3, 0)` "
+            "for consecutively defined shape data. Default assumes that :attr:`shape_data` "
+            "is provided such that consecutive vertices are connected, such as the "
+            "example above.")
+
     shape_mapping: Sequence[int] = Property(
-        default=(0,1),
+        default=(0, 1),
         doc="A mapping for shape data dimensions to x y cartesian position. Default value is "
             "(0,1)."
     )
-    
+
     _default_movable_class = FixedMovable
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        
+
         # If simplices not defined, calculate based on sequential vertices assumption
         if self.simplices is None:
             self.simplices = np.roll(np.linspace(0,
-                                                    self.shape_data.shape[1]-1, 
-                                                    self.shape_data.shape[1]),
-                                    -1).astype(int)
+                                                 self.shape_data.shape[1]-1,
+                                                 self.shape_data.shape[1]),
+                                     -1).astype(int)
         # Initialise vertices
         self._vertices = self._calculate_verts()
 
@@ -238,83 +239,97 @@ class Obstacle(Platform):
 
     @property
     def vertices(self):
-        """Vertices are calculated from applying :attr:`position` and 
-        :attr:`orientation` to :attr:`shape_data`. If :attr:`position` 
-        or :attr:`orientation` changes, then vertices will reflect these changes."""
+        """Vertices are calculated by applying :attr:`position` and
+        :attr:`orientation` to :attr:`shape_data`. If :attr:`position`
+        or :attr:`orientation` changes, then vertices will reflect
+        these changes. If shape data specifies vertices that connect
+        to more than two other vertices, then the vertex with more
+        connections will be duplicated. This enables correct handling
+        of complex non-convex shapes."""
         self._update_verts_and_relative_edges()
         return self._vertices
-    
+
     @property
     def relative_edges(self):
-        """Calculates the difference between connected vertices 
-        Cartesian coordinates. This is used by :meth:`is_visible` 
-        when calculating the visibility of a state due to obstacles 
-        obstructing the line of sight to the target."""
+        """Calculates the difference between connected vertices
+        Cartesian coordinates. This is used by :meth:`is_visible` of
+        :class:`~.VisibilityInformed2DSensor` when calculating the
+        visibility of a state due to obstacles obstructing the line of
+        sight to the target."""
         self._update_verts_and_relative_edges()
         return self._relative_edges
-                    
+
     @lru_cache(maxsize=None)
     def _orientation_cache(self):
         # Cache for orientation allows for vertices and relative edges to be
-        # be calculated when necessary. Maxsize set to unlimited as it 
+        # be calculated when necessary. Maxsize set to unlimited as it
         # is cleared before assigning a new value
         return self.orientation
-    
+
     @lru_cache(maxsize=None)
     def _position_cache(self):
         # Cache for position allows for vertices and relative edges to be
-        # calculated only when necessary. Maxsize set to unlimited as it 
+        # calculated only when necessary. Maxsize set to unlimited as it
         # is cleared before assigning a new value
         return self.position
-    
+
     def _update_verts_and_relative_edges(self):
-        # Checks to see if cached position and orientation matches the 
-        # current property. If they match nothing is calculated. If they 
+        # Checks to see if cached position and orientation matches the
+        # current property. If they match nothing is calculated. If they
         # don't vertices and relative edges are recalculated.
         if np.any(self._orientation_cache() != self.orientation) or \
-            np.any(self._position_cache() != self.position):
+                np.any(self._position_cache() != self.position):
 
             self._orientation_cache.cache_clear()
             self._position_cache.cache_clear()
             self._vertices = self._calculate_verts()
             self._relative_edges = self._calculate_relative_edges()
-            
+
     def _calculate_verts(self) -> np.ndarray:
-        # Calculates the vertices based on the defined `shape_data`, 
+        # Calculates the vertices based on the defined `shape_data`,
         # `position` and `orientation`.
         rot_mat = build_rotation_matrix(self.orientation)
         rotated_shape = \
-            rot_mat[np.ix_(self.shape_mapping,self.shape_mapping)] @ \
-                 self.shape_data[self.shape_mapping,:]
+            rot_mat[np.ix_(self.shape_mapping, self.shape_mapping)] @ \
+            self.shape_data[self.shape_mapping, :]
         verts = rotated_shape + self.position
-        return verts
-    
+        return verts[:, self.simplices]
+
     def _calculate_relative_edges(self):
-        # Calculates the relative edge length in Cartesian space. Required 
+        # Calculates the relative edge length in Cartesian space. Required
         # for visibility estimator
-        return np.array([self.vertices[self.shape_mapping[0],:] - 
-                         self.vertices[self.shape_mapping[0],self.simplices],
-                         self.vertices[self.shape_mapping[1],:] - 
-                         self.vertices[self.shape_mapping[1],self.simplices]])
-    
+        return np.array(
+            [self.vertices[self.shape_mapping[0], :] -
+             self.vertices[self.shape_mapping[0],
+                           np.roll(np.linspace(0,
+                                               len(self.simplices)-1,
+                                               len(self.simplices)), 1).astype(int)],
+             self.vertices[self.shape_mapping[1], :] -
+             self.vertices[self.shape_mapping[1],
+                           np.roll(np.linspace(0,
+                                               len(self.simplices)-1,
+                                               len(self.simplices)), 1).astype(int)],
+             ])
+
     @classmethod
     def from_obstacle(
-        cls,
-        obstacle: 'Obstacle',
-        *args: Any,
-        **kwargs: Any) -> 'Obstacle':
+            cls,
+            obstacle: 'Obstacle',
+            *args: Any,
+            **kwargs: Any) -> 'Obstacle':
 
-        """Return a new obstacle instance by providing new position and orientation. 
-        It is possible to overwrite any property of the original obstacle by 
-        defining the required keyword arguments. Any arguments that are undefined 
-        remain from the `obstacle` attribute. The utility of this method is to 
-        easily create new obstacles from a single base obstacle, where each will 
-        share the shape data of the original.
-        
+        """Return a new obstacle instance by providing new properties to an existing obstacle.
+        It is possible to overwrite any property of the original obstacle by
+        defining the required keyword arguments. Any arguments that are undefined
+        remain from the `obstacle` attribute. The utility of this method is to
+        easily create new obstacles from a single base obstacle, where each will
+        share the shape data of the original, but this is not the limit of its
+        functionality.
+
         Parameters
         ----------
         obstacle: Obstacle
-            :class:`~.Obstacle` to use existing properties from, predominantly shape data.
+            :class:`~.Obstacle` to use existing properties from.
         \\*args: Sequence
             Arguments to pass to newly created obstacle which will replace those in `obstacle`
         \\*\\*kwargs: Mapping
@@ -325,17 +340,16 @@ class Obstacle(Platform):
         args_property_names = {
             name for n, name in enumerate(obstacle._properties) if n < len(args)}
 
-        ignore = ['movement_controller','id']
+        ignore = ['movement_controller', 'id']
 
         new_kwargs = {
             name: getattr(obstacle, name)
             for name in obstacle._properties.keys()
             if name not in args_property_names and name not in kwargs and name not in ignore}
-        
+
         new_kwargs.update(kwargs)
 
         if 'position_mapping' not in kwargs.keys():
             new_kwargs.update({'position_mapping': getattr(obstacle, 'position_mapping')})
 
         return cls(*args, **new_kwargs)
-    

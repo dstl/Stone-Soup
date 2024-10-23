@@ -412,14 +412,6 @@ class BernoulliParticleUpdater(ParticleUpdater):
        2013, IEEE Transactions on Signal Processing, 61(13), 3406-3430.
     """
 
-    birth_probability: float = Property(
-        default=0.01,
-        doc="Probability of target birth.")
-
-    survival_probability: float = Property(
-        default=0.98,
-        doc="Probability of target survival")
-
     clutter_rate: int = Property(
         default=1,
         doc="Average number of clutter measurements per time step. Implementation assumes number "
@@ -510,12 +502,12 @@ class BernoulliParticleUpdater(ParticleUpdater):
                                                             updated_state)
 
         return updated_state
-    
+
     def get_detection_probability(self, prediction):
 
         log_detection_probability = np.full(len(prediction),
                                             np.log(self.detection_probability))
-        
+
         return log_detection_probability
 
     @staticmethod
@@ -527,17 +519,15 @@ class BernoulliParticleUpdater(ParticleUpdater):
         Astack = np.stack([A] * B.shape[1]).transpose(1, 0, 2)
         Bstack = np.stack([B] * A.shape[0]).transpose(0, 2, 1)
         return np.squeeze(logsumexp(Astack + Bstack, axis=2))
-    
+
 
 class VisibilityInformedBernoulliParticleUpdater(BernoulliParticleUpdater):
-    """A Bernoulli particle updater implementing visibility estimation of particles
-    for reduced existence probability decay rate in cluttered environments."""
     """Visibility informed Bernoulli Particle Filter Updater class
 
     An implementation of a particle filter updater utilising the
     Bernoulli filter formulation that estimates the spatial distribution
-    of a single target and estimates its existence. This implementation 
-    modifies the probability of detection of particles depending on whether 
+    of a single target and estimates its existence. This implementation
+    modifies the probability of detection of particles depending on whether
     they are calculated to be not visible to the sensor, as described in [#vibpf]_.
 
     Due to the nature of the Bernoulli particle
@@ -545,20 +535,28 @@ class VisibilityInformedBernoulliParticleUpdater(BernoulliParticleUpdater):
     time step to reduce the number of particles back down to the
     desired size.
 
+    This updater should be used in conjunction with the
+    :class:`~.VisibilityInformedBernoulliParticlePredictor` but is also compatible
+    with :class:`~.BernoulliParticlePredictor`.
+
     References
     ----------
-    .. [#vibpf] Glover, Timothy J & Liu, Cunjia & Chen, Wen-Hua, Visibility 
-       informed Bernoulli filter for target tracking in cluttered evironmnets, 
+    .. [#vibpf] Glover, Timothy J & Liu, Cunjia & Chen, Wen-Hua, Visibility
+       informed Bernoulli filter for target tracking in cluttered evironmnets,
        2022, 25th International Conference on Information Fusion (FUSION), 1-8.
     """
 
-    sensor: Sensor = Property(default=None, doc="Sensor providing measurements for update stages. "
+    sensor: Sensor = Property(
+        default=None,
+        doc="Sensor providing measurements for update stages. "
         "Used here to evaluate visibility of particles.")
-    obstacle_detection_probability: float = Property(default=1e-20, doc="Probability of detection "
+    obstacle_detection_probability: float = Property(
+        default=1e-20,
+        doc="Probability of detection "
         "to assume when particle state is not visible to the sensor.")
-    
+
     def get_detection_probability(self, prediction):
-        
+
         log_detection_probability = np.full(len(prediction), np.log(self.detection_probability))
         visible_parts = self.sensor.is_detectable(prediction)
         log_detection_probability[~visible_parts] = np.log(self.obstacle_detection_probability)
