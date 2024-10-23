@@ -15,19 +15,21 @@ from ...types.hypothesis import SingleHypothesis
 from ...types.multihypothesis import MultipleHypothesis
 from ...types.numeric import Probability
 from ...types.particle import Particle
-from ...types.state import ParticleState
+from ...types.state import ParticleState, StateVector, State
 from ...types.prediction import (
     ParticleStatePrediction, ParticleMeasurementPrediction)
 from ...updater.particle import (
     ParticleUpdater, GromovFlowParticleUpdater,
     GromovFlowKalmanParticleUpdater, BernoulliParticleUpdater,
-    SMCPHDUpdater)
+    SMCPHDUpdater, VisibilityInformedBernoulliParticleUpdater)
 from ...predictor.particle import BernoulliParticlePredictor
 from ...models.transition.linear import ConstantVelocity, CombinedLinearGaussianTransitionModel
 from ...types.update import BernoulliParticleStateUpdate
 from ...sampler.particle import ParticleSampler
 from ...sampler.detection import SwitchingDetectionSampler, GaussianDetectionParticleSampler
 from ...regulariser.particle import MCMCRegulariser
+from ...platform.base import Obstacle
+from ...sensor.radar import RadarBearingRange
 
 
 def dummy_constraint_function(particles):
@@ -111,7 +113,26 @@ def test_particle(updater):
             assert np.allclose(updated_state.mean, StateVectors([[15.0], [20.0]]), rtol=5e-2)
 
 
-def test_bernoulli_particle():
+@pytest.mark.parametrize(
+        "updater, extra_params",
+        [
+            (BernoulliParticleUpdater,  # predictor
+             {},),  # extra_params
+            (VisibilityInformedBernoulliParticleUpdater,  # predictor
+             {'sensor': RadarBearingRange(
+                 position=StateVector([[0], [0]]),
+                 position_mapping=(0, 1),
+                 noise_covar=np.array([[np.radians(1)**2, 0],
+                                       [0, 1**2]]),
+                 ndim_state=4,
+                 obstacles=[Obstacle(states=State(StateVector([[20], [15]])),
+                                     shape_data=np.array([[-2.5, -2.5, 2.5, 2.5],
+                                                          [-2.5, 2.5, 2.5, -2.5]]),
+                                     position_mapping=(0, 1))])})  # extra_params
+        ],
+        ids=["standard_bernoulli", "vis_informed_bernoulli"]
+     )
+def test_bernoulli_particle(updater, extra_params):
     timestamp = datetime.datetime.now()
     timediff = 2
     new_timestamp = timestamp + datetime.timedelta(seconds=timediff)
@@ -174,15 +195,16 @@ def test_bernoulli_particle():
     resampler = SystematicResampler()
     regulariser = MCMCRegulariser(transition_model=cv)
 
-    updater = BernoulliParticleUpdater(measurement_model=None,
-                                       resampler=resampler,
-                                       regulariser=regulariser,
-                                       birth_probability=birth_prob,
-                                       survival_probability=survival_prob,
-                                       clutter_rate=2,
-                                       clutter_distribution=1/10,
-                                       nsurv_particles=9,
-                                       detection_probability=detection_probability)
+    params = {'resampler': resampler,
+              'regulariser': regulariser,
+              'clutter_rate': 2,
+              'clutter_distribution': 1/10,
+              'nsurv_particles': 9,
+              'detection_probability': detection_probability}
+
+    params.update(extra_params)
+
+    updater = updater(measurement_model=None, **params)
 
     hypotheses = MultipleHypothesis(
         [SingleHypothesis(prediction, detection) for detection in detections])

@@ -827,59 +827,54 @@ def test_setting_movement_controller_sensors():
 
 
 @pytest.mark.parametrize(
-    'shape_data, position1, orientation1, position2, orientation2, simplices, '
-    'from_obs_flag, from_obs_mapping',
-    [(np.array([[-2, 2, 2, -2],[2, 2, -2, -2]]),  # shape_data
-      StateVector([1,2]),  # position1
-      StateVector([[0],[0],[0]]),  # orientation1
-      StateVector([3,4]),  # position2 
+    'shape_data, position1, orientation1, position2, orientation2, simplices',
+    [(np.array([[-2, 2, 2, -2], [2, 2, -2, -2]]),  # shape_data
+      StateVector([1, 2]),  # position1
+      StateVector([[0], [0], [0]]),  # orientation1
+      StateVector([3, 4]),  # position2
       StateVector([[0], [0], [np.radians(45)]]),  # orientation2
       (1, 2, 3, 0),  # simplices
-      False,  # from_obs_flag
-      None),  # from_obs_mapping
-      (np.array([[-2, 2, 2, -2],[2, 2, -2, -2]]),  # shape_data
-      StateVector([1,2]),  # position1
-      StateVector([[0], [0] ,[np.radians(22)]]),  # orientation1
-      StateVector([3,4]),  # position2 
+      ),
+     (np.array([[-2, 2, 2, -2], [2, 2, -2, -2]]),  # shape_data
+      StateVector([1, 2]),  # position1
+      StateVector([[0], [0], [np.radians(22)]]),  # orientation1
+      StateVector([3, 4]),  # position2
       StateVector([[0], [0], [0]]),  # orientation2
       None,  # simplices
-      False,  # from_obs_flag
-      None),  # from_obs_mapping
-      (np.array([[-2, 0, 2, 2, -2],[2, 3, 2, -2, -2]]),  # shape_data
-      StateVector([1,2]),  # position1
-      StateVector([[0], [0] ,[0]]),  # orientation1
-      StateVector([3,4]),  # position2 
+      ),  # from_obs_mapping
+     (np.array([[-2, 0, 2, 2, -2], [2, 3, 2, -2, -2]]),  # shape_data
+      StateVector([1, 2]),  # position1
+      StateVector([[0], [0], [0]]),  # orientation1
+      StateVector([3, 4]),  # position2
       StateVector([[0], [0], [np.radians(45)]]),  # orientation2
       None,  # simplices
-      False,  # from_obs_flag
-      None),  # from_obs_mapping
-    ],
-    ids=['test_defined_simpleces', 'test_undefined_simplices', 'test_5_sides']
-)
-def test_obstacle(shape_data, position1, orientation1, position2, orientation2, 
-                  simplices, from_obs_flag, from_obs_mapping):
+      ),  # from_obs_mapping
+     ],
+    ids=['test_defined_simpleces', 'test_undefined_simplices', 'test_5_sides'])
+def test_obstacle(shape_data, position1, orientation1, position2, orientation2,
+                  simplices):
 
-    if np.any(orientation1 != StateVector([[0],[0],[0]])) and simplices:
+    if np.any(orientation1 != StateVector([[0], [0], [0]])) and simplices:
         test_obstacle = Obstacle(states=State(position1),
-                                    shape_data=shape_data,
-                                    orientation=orientation1,
-                                    simplices=simplices,
-                                    position_mapping=(0,1))
+                                 shape_data=shape_data,
+                                 orientation=orientation1,
+                                 simplices=simplices,
+                                 position_mapping=(0, 1))
     elif simplices:
         test_obstacle = Obstacle(states=State(position1),
-                                    shape_data=shape_data,
-                                    simplices=simplices,
-                                    position_mapping=(0,1))
-    elif np.any(orientation1 != StateVector([[0],[0],[0]])):
+                                 shape_data=shape_data,
+                                 simplices=simplices,
+                                 position_mapping=(0, 1))
+    elif np.any(orientation1 != StateVector([[0], [0], [0]])):
         test_obstacle = Obstacle(states=State(position1),
-                                    shape_data=shape_data,
-                                    orientation=orientation1,
-                                    position_mapping=(0,1))
+                                 shape_data=shape_data,
+                                 orientation=orientation1,
+                                 position_mapping=(0, 1))
     else:
         test_obstacle = Obstacle(states=State(position1),
-                                    shape_data=shape_data,
-                                    position_mapping=(0,1))
-    
+                                 shape_data=shape_data,
+                                 position_mapping=(0, 1))
+
     # Check that shape data is correct
     assert np.all(test_obstacle.shape_data == shape_data)
     # Check that position is correct
@@ -888,92 +883,92 @@ def test_obstacle(shape_data, position1, orientation1, position2, orientation2,
     assert np.all(test_obstacle.orientation == orientation1)
 
     # check vertices
-    rot_m = np.array([[1, 0 ,0],
-                      [0, np.cos(-orientation1[0,0]), -np.sin(-orientation1[0,0])],
-                      [0, np.sin(-orientation1[0,0]), np.cos(-orientation1[0,0])]]) @ \
-            np.array([[np.cos(orientation1[1,0]), 0, np.sin(orientation1[1,0])],
-                      [0, 1, 0],
-                      [-np.sin(orientation1[1,0]), 0, np.cos(orientation1[1,0])]]) @ \
-            np.array([[np.cos(-orientation1[2,0]), -np.sin(-orientation1[2,0]), 0],
-                      [np.sin(-orientation1[2,0]), np.cos(-orientation1[2,0]), 0],
-                      [0, 0, 1]])
-    true_vertices = rot_m[:2,:2] @ test_obstacle.shape_data + position1
+    rot_m = np.array([[1, 0, 0],
+                      [0, np.cos(-orientation1[0, 0]), -np.sin(-orientation1[0, 0])],
+                      [0, np.sin(-orientation1[0, 0]), np.cos(-orientation1[0, 0])]]) @ \
+        np.array([[np.cos(orientation1[1, 0]), 0, np.sin(orientation1[1, 0])],
+                  [0, 1, 0],
+                  [-np.sin(orientation1[1, 0]), 0, np.cos(orientation1[1, 0])]]) @ \
+        np.array([[np.cos(-orientation1[2, 0]), -np.sin(-orientation1[2, 0]), 0],
+                  [np.sin(-orientation1[2, 0]), np.cos(-orientation1[2, 0]), 0],
+                  [0, 0, 1]])
 
-    # check relative edges
-    if simplices:
-        true_relative_edges = np.array([true_vertices[0,:] - true_vertices[0,simplices],
-                                        true_vertices[1,:] - true_vertices[1,simplices]])
-    else:
-        simplices = np.roll(np.linspace(0,shape_data.shape[1]-1,shape_data.shape[1]),
-                             -1).astype(int)
-        true_relative_edges = np.array([true_vertices[0,:] - true_vertices[0,simplices],
-                                        true_vertices[1,:] - true_vertices[1,simplices]])
-        
+    if not simplices:
+        simplices = np.roll(np.linspace(0, shape_data.shape[1]-1, shape_data.shape[1]),
+                            -1).astype(int)
+
+    true_vertices = rot_m[:2, :2] @ \
+        test_obstacle.shape_data[:, simplices] + position1
+
+    edge_index = np.roll(np.linspace(0, len(simplices)-1, len(simplices)), 1).astype(int)
+    true_relative_edges = np.array([true_vertices[0, :] - true_vertices[0, edge_index],
+                                    true_vertices[1, :] - true_vertices[1, edge_index]])
+
     assert np.all(test_obstacle.vertices == true_vertices)
     assert np.all(test_obstacle.relative_edges == true_relative_edges)
 
     # Ensure changing position and/or orientation changes vertices
     test_obstacle.movement_controller.states = State(position2),
     if orientation2 is not None:
-        rot_m = np.array([[1, 0 ,0],
-                    [0, np.cos(-orientation2[0,0]), -np.sin(-orientation2[0,0])],
-                    [0, np.sin(-orientation2[0,0]), np.cos(-orientation2[0,0])]]) @ \
-        np.array([[np.cos(orientation2[1,0]), 0, np.sin(orientation2[1,0])],
-                    [0, 1, 0],
-                    [-np.sin(orientation2[1,0]), 0, np.cos(orientation2[1,0])]]) @ \
-        np.array([[np.cos(-orientation2[2,0]), -np.sin(-orientation2[2,0]), 0],
-                    [np.sin(-orientation2[2,0]), np.cos(-orientation2[2,0]), 0],
-                    [0, 0, 1]])
+        rot_m = np.array([[1, 0, 0],
+                          [0, np.cos(-orientation2[0, 0]), -np.sin(-orientation2[0, 0])],
+                          [0, np.sin(-orientation2[0, 0]), np.cos(-orientation2[0, 0])]]) @ \
+            np.array([[np.cos(orientation2[1, 0]), 0, np.sin(orientation2[1, 0])],
+                      [0, 1, 0],
+                      [-np.sin(orientation2[1, 0]), 0, np.cos(orientation2[1, 0])]]) @ \
+            np.array([[np.cos(-orientation2[2, 0]), -np.sin(-orientation2[2, 0]), 0],
+                      [np.sin(-orientation2[2, 0]), np.cos(-orientation2[2, 0]), 0],
+                      [0, 0, 1]])
         test_obstacle.orientation = orientation2
-    
+
     assert np.all(test_obstacle.position == position2)
     if orientation2 is not None:
         assert np.all(test_obstacle.orientation == orientation2)
     else:
         assert np.all(test_obstacle.orientation == orientation1)
-    
-    true_vertices2 = rot_m[:2,:2] @ shape_data + position2
+
+    true_vertices2 = rot_m[:2, :2] @ shape_data[:, simplices] + position2
     assert np.all(test_obstacle.vertices == true_vertices2)
 
-    true_relative_edges2 = np.array([true_vertices2[0,:] - 
-                                     true_vertices2[0,test_obstacle.simplices],
-                                    true_vertices2[1,:] - 
-                                    true_vertices2[1,test_obstacle.simplices]])
+    true_relative_edges2 = np.array([true_vertices2[0, :] -
+                                     true_vertices2[0, edge_index],
+                                    true_vertices2[1, :] -
+                                    true_vertices2[1, edge_index]])
 
     assert np.all(test_obstacle.relative_edges == true_relative_edges2)
 
 
 @pytest.mark.parametrize(
     'position2, orientation2, mapping2',
-    [(StateVector([3,4]),  # position2 
+    [(StateVector([3, 4]),  # position2
       None,  # orientation2
       None),  # mapping2
-    (StateVector([3,4]),  # position2 
-      StateVector([[0],[0],[np.radians(22.2)]]),  # orientation2
+     (StateVector([3, 4]),  # position2
+      StateVector([[0], [0], [np.radians(22.2)]]),  # orientation2
       None),  # mapping2
-    (StateVector([3, 4, 5]),  # position2 
+     (StateVector([3, 4, 5]),  # position2
       None,  # orientation2
       (1, 2)),  # mapping2
-    (StateVector([3 ,4, 5]),  # position2 
+     (StateVector([3, 4, 5]),  # position2
       StateVector([[0], [0], [np.radians(45)]]),  # orientation2
       (1, 2))  # mapping2
-    ],
-    ids=['from_obs_position_change', 'from_obs_orientation_change', 'from_obs_mapping_change', 
+     ],
+    ids=['from_obs_position_change', 'from_obs_orientation_change', 'from_obs_mapping_change',
          'from_obs_mapping_and_orient_change']
 )
 def test_from_obstacle(position2, orientation2, mapping2):
-    
-    shape_data = np.array([[-2, 2, 2, -2],[2, 2, -2, -2]])
-    position = StateVector([1,2])
+
+    shape_data = np.array([[-2, 2, 2, -2], [2, 2, -2, -2]])
+    position = StateVector([1, 2])
     mapping = (0, 1)
 
     initial_obstacle = Obstacle(shape_data=shape_data,
                                 states=State(position),
                                 position_mapping=mapping)
-    
+
     initial_verts = copy.deepcopy(initial_obstacle.vertices)
     initial_relative_edges = copy.deepcopy(initial_obstacle.relative_edges)
-    
+
     # Generate obstacle from initial_obstacle
     if orientation2 is not None and mapping2 is not None:
         sub_obstacle = Obstacle.from_obstacle(initial_obstacle,
@@ -996,45 +991,49 @@ def test_from_obstacle(position2, orientation2, mapping2):
                                               states=State(position2))
         rot_orient = initial_obstacle.orientation
 
-    rot_m = np.array([[1, 0 ,0],
-                      [0, np.cos(-rot_orient[0,0]), -np.sin(-rot_orient[0,0])],
-                      [0, np.sin(-rot_orient[0,0]), np.cos(-rot_orient[0,0])]]) @ \
-            np.array([[np.cos(rot_orient[1,0]), 0, np.sin(rot_orient[1,0])],
-                      [0, 1, 0],
-                      [-np.sin(rot_orient[1,0]), 0, np.cos(rot_orient[1,0])]]) @ \
-            np.array([[np.cos(-rot_orient[2,0]), -np.sin(-rot_orient[2,0]), 0],
-                      [np.sin(-rot_orient[2,0]), np.cos(-rot_orient[2,0]), 0],
-                      [0, 0, 1]])
-    
-    true_vertices = rot_m[:2,:2] @ shape_data + position2[mapping2 if mapping2 is not None
-                                                           else mapping,:]
-    true_relative_edges = np.array([true_vertices[0,:] - 
-                                     true_vertices[0,initial_obstacle.simplices],
-                                    true_vertices[1,:] - 
-                                    true_vertices[1,initial_obstacle.simplices]])
-    
+    rot_m = np.array([[1, 0, 0],
+                      [0, np.cos(-rot_orient[0, 0]), -np.sin(-rot_orient[0, 0])],
+                      [0, np.sin(-rot_orient[0, 0]), np.cos(-rot_orient[0, 0])]]) @ \
+        np.array([[np.cos(rot_orient[1, 0]), 0, np.sin(rot_orient[1, 0])],
+                  [0, 1, 0],
+                  [-np.sin(rot_orient[1, 0]), 0, np.cos(rot_orient[1, 0])]]) @ \
+        np.array([[np.cos(-rot_orient[2, 0]), -np.sin(-rot_orient[2, 0]), 0],
+                  [np.sin(-rot_orient[2, 0]), np.cos(-rot_orient[2, 0]), 0],
+                  [0, 0, 1]])
+
+    true_vertices = rot_m[:2, :2] @ \
+        shape_data[:, initial_obstacle.simplices] + position2[mapping2 if mapping2 is not None
+                                                              else mapping, :]
+    edge_index = np.roll(np.linspace(0,
+                                     len(initial_obstacle.simplices)-1,
+                                     len(initial_obstacle.simplices)), 1). astype(int)
+    true_relative_edges = np.array([true_vertices[0, :] -
+                                    true_vertices[0, edge_index],
+                                    true_vertices[1, :] -
+                                    true_vertices[1, edge_index]])
+
     # Check that shape data has not changed
     assert np.all(sub_obstacle.shape_data == initial_obstacle.shape_data)
     # check that changed properties are correct
     if mapping2 is not None:
-        assert np.all(sub_obstacle.position == position2[mapping2,:])
+        assert np.all(sub_obstacle.position == position2[mapping2, :])
         assert np.all(sub_obstacle.position_mapping == mapping2)
     else:
         assert np.all(sub_obstacle.position == position2)
         assert np.all(sub_obstacle.position_mapping == initial_obstacle.position_mapping)
-    
+
     if orientation2 is not None:
         assert np.all(sub_obstacle.orientation == orientation2)
     else:
         assert np.all(sub_obstacle.orientation == initial_obstacle.orientation)
-    
+
     # check that vertices are correctly calculated
     assert np.all(sub_obstacle.vertices == true_vertices)
     # check that relative edges are calculated correctly
     assert np.all(sub_obstacle.relative_edges == true_relative_edges)
-    
+
     # check that initial_obstacle properties have not changed
-    assert np.all(initial_obstacle.orientation == StateVector([[0],[0],[0]]))
+    assert np.all(initial_obstacle.orientation == StateVector([[0], [0], [0]]))
     assert np.all(initial_obstacle.position == position)
     assert np.all(initial_obstacle.position_mapping == mapping)
     assert np.all(initial_obstacle.vertices == initial_verts)

@@ -19,6 +19,7 @@ from ....types.groundtruth import GroundTruthState, GroundTruthPath
 from ....types.state import State
 from ....types.detection import TrueDetection
 from ....models.clutter.clutter import ClutterModel
+from ....platform.base import Obstacle
 
 
 def h2d(state, pos_map, translation_offset, rotation_offset):
@@ -1035,3 +1036,81 @@ def test_detectable(pan, tilt, ans):
         detection = next(iter(detections))
         assert np.allclose(target.state_vector,
                            detection.measurement_model.inverse_function(detection))
+
+
+@pytest.mark.parametrize("sensor, params",
+                         [
+                            (RadarBearingRange,
+                                {'ndim_state': 2,
+                                 'position_mapping': [0, 1],
+                                 'noise_covar': np.array([[np.radians(0.5) ** 2, 0],
+                                                         [0, 1]]),
+                                 'position': np.array([[0], [1]]),
+                                 'max_range': np.inf}),
+                            (RadarBearing,
+                                {'ndim_state': 2,
+                                 'position_mapping': [0, 1],
+                                 'noise_covar': np.array([[np.radians(0.5) ** 2]]),
+                                 'position': np.array([[0], [1]]),
+                                 'max_range': np.inf}),
+                            (RadarRotatingBearingRange,
+                                {'ndim_state': 2,
+                                 'position_mapping': [0, 1],
+                                 'noise_covar': np.array([[np.radians(0.5) ** 2, 0],
+                                                         [0, 1]]),
+                                 'position': np.array([[0], [1]]),
+                                 'max_range': 100,
+                                 'dwell_centre': StateVector([np.radians(90)]),
+                                 'fov_angle': np.radians(30),
+                                 'rpm': 0}),
+                            (RadarRotatingBearing,
+                                {'ndim_state': 2,
+                                 'position_mapping': [0, 1],
+                                 'noise_covar': np.array([[np.radians(0.5) ** 2]]),
+                                 'position': np.array([[0], [1]]),
+                                 'max_range': 100,
+                                 'dwell_centre': StateVector([np.radians(90)]),
+                                 'fov_angle': np.radians(30),
+                                 'rpm': 0}),
+                         ],
+                         ids=["is_vis_radar_bearing_range", "is_vis_radar_bearing",
+                              "is_vis_rotating_radar_bearing_range",
+                              "is_vis_rotating_radar_bearing"])
+def test_is_visible_sensors(sensor, params):
+
+    obs_state = State(StateVector([[0], [75]]))
+    shape = np.array([[-5, -5, 5, 5], [-5, 5, 5, -5]])
+    obstacles = [Obstacle(states=obs_state,
+                          shape_data=shape,
+                          position_mapping=(0, 1))]
+
+    params['obstacles'] = obstacles
+    vis_informed_sensor = sensor(**params)
+
+    states = [GroundTruthState(StateVector([[25], [50]])),
+              GroundTruthState(StateVector([[0], [50]])),
+              GroundTruthState(StateVector([[-25], [50]])),
+              GroundTruthState(StateVector([[-25], [99]])),
+              GroundTruthState(StateVector([[0], [99]])),
+              GroundTruthState(StateVector([[25], [99]]))]
+
+    # states not visible with limited FOV sensor
+    not_vis_set_1 = [StateVector([[25], [50]]),
+                     StateVector([[-25], [50]]),
+                     StateVector([[-25], [99]]),
+                     StateVector([[25], [99]])]
+
+    # states not visible
+    not_vis_set_2 = [StateVector([[0], [99]])]
+
+    for state in states:
+        measurement = vis_informed_sensor.measure({state}, noise=False)
+
+        if ((isinstance(vis_informed_sensor, RadarRotatingBearing) or
+             isinstance(vis_informed_sensor, RadarRotatingBearingRange))
+            and np.any(np.all(state.state_vector == not_vis_set_1, axis=1)))\
+                or np.any(np.all(state.state_vector == not_vis_set_2, axis=1)):
+            assert len(measurement) == 0
+        else:
+            assert np.all(measurement.pop().state_vector ==
+                          vis_informed_sensor.measurement_model.function(state))
