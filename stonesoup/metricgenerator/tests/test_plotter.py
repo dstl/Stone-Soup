@@ -65,4 +65,4 @@ def test_twodplotter():
         assert metric.time_range.start_timestamp == timestamp1
         assert metric.time_range.end_timestamp == timestamp2
 
-    plt.close(metric.value)
+        plt.close(metric.value)
