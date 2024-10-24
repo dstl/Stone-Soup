@@ -1509,6 +1509,22 @@ class Plotterly(_Plotter):
         self.fig.add_scatter(x=sensor_xy[:, 0], y=sensor_xy[:, 1], **sensor_kwargs)
 
     def plot_obstacles(self, obstacles, mapping=[0, 1], obstacle_label='obstacles', **kwargs):
+        """Plots obstacle(s)
+
+        Plots obstacles.  Users can change the colour and marker size of obstacle
+        vertices with keywork arguments. Marker colour determines the fill colour
+        of obstale patches. Defaults is grey '.' marker and matching fill colour.
+
+        Parameters
+        ----------
+        obstacles : Collection of :class:`~.Obstacle`
+            Obstacles to plot
+        sensor_label: str
+            Label to apply to obstacles for the legend.
+        \\*\\*kwargs: dict
+            Additional arguments to be passed to scatter function for detections. Defaults are
+            ``marker=dict(symbol='circle', size=3, color='grey')``.
+        """
 
         if not isinstance(obstacles, Collection):
             obstacles = {obstacles}
@@ -3063,8 +3079,8 @@ class AnimatedPlotterly(_Plotter):
 
         Plots obstacles.  Users can change the colour and marker size of obstacle
         vertices with keywork arguments. Marker colour determines the fill colour
-        of obstale patches. Defaults is grey '.' marker and fill. Currently only
-        works for stationary obstacles
+        of obstale patches. Defaults is grey '.' marker and matching fill colour.
+        Currently only works for stationary obstacles.
 
         Parameters
         ----------
