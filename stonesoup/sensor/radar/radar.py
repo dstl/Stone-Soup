@@ -73,7 +73,7 @@ class RadarBearingRange(VisibilityInformed2DSensor):
         clutter_cart = self.measurement_model.inverse_function(state)
         visible = self.is_visible(clutter_cart)
         detectable = state.state_vector[1, 0] <= self.max_range
-        return (detectable and visible)
+        return detectable and visible
 
 
 class RadarBearing(VisibilityInformed2DSensor):
@@ -131,7 +131,7 @@ class RadarBearing(VisibilityInformed2DSensor):
         true_range = measurement_vector[1, :]  # Bearing(0), Range(1)
         detectable = true_range <= self.max_range
         visible = self.is_visible(state)
-        return (detectable & visible)
+        return detectable & visible
 
     def is_clutter_detectable(self, state: Detection) -> bool:
         return True
@@ -214,7 +214,7 @@ class RadarRotatingBearingRange(RadarBearingRange):
             (true_range <= self.max_range)
         visible = self.is_visible(state)
 
-        return (detectable & visible)
+        return detectable & visible
 
     def is_clutter_detectable(self, state: Detection) -> bool:
         measurement_vector = state.state_vector
@@ -229,7 +229,7 @@ class RadarRotatingBearingRange(RadarBearingRange):
         clutter_cart = self.measurement_model.inverse_function(state)
         visible = self.is_visible(clutter_cart)
 
-        return (detectable and visible)
+        return detectable and visible
 
 
 class RadarRotatingBearing(RadarBearing):
@@ -329,7 +329,7 @@ class RadarRotatingBearing(RadarBearing):
             (true_range <= self.max_range)
         visible = self.is_visible(state)
 
-        return (detectable & visible)
+        return detectable & visible
 
 
 class RadarElevationBearingRange(RadarBearingRange):
