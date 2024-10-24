@@ -12,7 +12,6 @@ overall iteration.
 
 import warnings
 from dataclasses import dataclass
-from typing import Dict, List
 
 import numpy as np
 from scipy.optimize import linear_sum_assignment
@@ -263,7 +262,7 @@ def algorithm_step(
     state.delta = state.delta + stepSize * g
 
 
-def prune_hypotheses(best_hypotheses: List[Hyp], hyps: List[Hyp]) -> Dict[int, List[Hyp]]:
+def prune_hypotheses(best_hypotheses: list[Hyp], hyps: list[Hyp]) -> dict[int, list[Hyp]]:
     """n-scan pruning.
 
     This routine discards any hypotheses that disagree with the best hypothesis before the

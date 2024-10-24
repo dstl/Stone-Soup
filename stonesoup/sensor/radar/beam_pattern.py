@@ -1,6 +1,6 @@
 import datetime
 from abc import abstractmethod
-from typing import Sequence, Tuple
+from collections.abc import Sequence
 
 from ...base import Property, Base
 
@@ -37,9 +37,9 @@ class BeamSweep(BeamTransitionModel):
     """This describes a beam moving in a raster pattern"""
     init_time: datetime.datetime = Property(default=None, doc="The time the frame is started")
     angle_per_s: float = Property(doc="The speed that the beam scans at")
-    frame: Tuple[float, float] = Property(doc="Dimensions of search frame as [azimuth,elevation]")
+    frame: tuple[float, float] = Property(doc="Dimensions of search frame as [azimuth,elevation]")
     separation: float = Property(doc="Separation of lines in elevation")
-    centre: Tuple[float, float] = Property(
+    centre: tuple[float, float] = Property(
         default=(0, 0),
         doc="Centre of the search frame in [azimuth,elevation]. Defaults to (0, 0)")
 

@@ -1,7 +1,8 @@
+from collections.abc import Sequence
+from copy import copy
+
 import numpy as np
 from numpy.linalg import inv
-from copy import copy
-from typing import Sequence
 
 from .base import MetricGenerator
 from ..base import Property

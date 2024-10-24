@@ -1,3 +1,4 @@
+import warnings
 from datetime import datetime, timedelta
 
 import matplotlib.pyplot as plt
@@ -30,7 +31,6 @@ for k in range(1, 21):
         transition_model.function(truth[k-1], noise=True, time_interval=timedelta(seconds=1)),
         timestamp=start_time+timedelta(seconds=k)))
 timesteps = [start_time + timedelta(seconds=k) for k in range(1, 21)]
-prob_det = 0.5
 
 measurement_model = LinearGaussian(
     ndim_state=4,
@@ -41,29 +41,25 @@ true_measurements = []
 for state in truth:
     measurement_set = set()
     # Generate actual detection from the state with a 1-p_d chance that no detection is received.
-    if np.random.rand() <= prob_det:
-        measurement = measurement_model.function(state, noise=True)
-        measurement_set.add(TrueDetection(state_vector=measurement,
-                                          groundtruth_path=truth,
-                                          timestamp=state.timestamp,
-                                          measurement_model=measurement_model))
+    measurement = measurement_model.function(state, noise=True)
+    measurement_set.add(TrueDetection(state_vector=measurement,
+                                      groundtruth_path=truth,
+                                      timestamp=state.timestamp,
+                                      measurement_model=measurement_model))
 
     true_measurements.append(measurement_set)
 
-prob_clutter = 0.8
 clutter_measurements = []
 for state in truth:
     clutter_measurement_set = set()
-    # Generate clutter detections
-    if np.random.rand() <= prob_clutter:
-        random_state = state.from_state(
-            state=state,
-            state_vector=np.random.uniform(-20, 20, size=state.state_vector.size)
-        )
-        measurement = measurement_model.function(random_state, noise=True)
-        clutter_measurement_set.add(Clutter(state_vector=measurement,
-                                            timestamp=state.timestamp,
-                                            measurement_model=measurement_model))
+    random_state = state.from_state(
+        state=state,
+        state_vector=np.random.uniform(-20, 20, size=state.state_vector.size)
+    )
+    measurement = measurement_model.function(random_state, noise=True)
+    clutter_measurement_set.add(Clutter(state_vector=measurement,
+                                        timestamp=state.timestamp,
+                                        measurement_model=measurement_model))
 
     clutter_measurements.append(clutter_measurement_set)
 
@@ -106,6 +102,14 @@ sensor3d = RadarElevationBearingRange(
 )
 
 
+@pytest.fixture(autouse=True)
+def close_figs():
+    existing_figs = set(plt.get_fignums())
+    yield None
+    for fignum in set(plt.get_fignums()) - existing_figs:
+        plt.close(fignum)
+
+
 @pytest.fixture(scope="module")
 def plotter_class(request):
 
@@ -143,7 +147,6 @@ def test_particle_3d():  # warning should arise if particle is attempted in 3d m
 def test_plot_sensors():
     plotter3d = Plotter(Dimension.THREE)
     plotter3d.plot_sensors(sensor3d, marker='o', color='red')
-    plt.close()
     assert 'Sensors' in plotter3d.legend_dict
 
 
@@ -180,15 +183,15 @@ def test_equal_3daxis():
     plotter_xyz.set_equal_3daxis([0, 1, 2])
     plotters = [plotter_default, plotter_xy_default, plotter_xy, plotter_xyz]
     lengths = [3, 2, 2, 1]
-    for plotter, l in zip(plotters, lengths):
+    for plotter, length in zip(plotters, lengths):
         min_xyz = [0, 0, 0]
         max_xyz = [0, 0, 0]
         for i in range(3):
             for line in plotter.ax.lines:
                 min_xyz[i] = np.min([min_xyz[i], *line.get_data_3d()[i]])
                 max_xyz[i] = np.max([max_xyz[i], *line.get_data_3d()[i]])
-        assert len(set(min_xyz)) == l
-        assert len(set(max_xyz)) == l
+        assert len(set(min_xyz)) == length
+        assert len(set(max_xyz)) == length
 
 
 def test_equal_3daxis_2d():
@@ -243,6 +246,13 @@ def test_animation_plotter():
     animation_plotter_with_title.plot_ground_truths(truth, [0, 2])
     animation_plotter_with_title.plot_tracks(track, [0, 2])
     animation_plotter_with_title.run()
+    with warnings.catch_warnings():
+        warnings.filterwarnings(
+            'ignore',
+            "Animation was deleted without rendering anything"
+        )
+        del animation_plotter
+        del animation_plotter_with_title
 
 
 def test_animated_plotterly():
@@ -485,9 +495,3 @@ def test_plotter_plot_measurements_label(_measurements, expected_labels):
     plotter.plot_measurements(_measurements, [0, 2])
     actual_labels = set(plotter.legend_dict.keys())
     assert actual_labels == expected_labels
-
-
-def teardown_module():
-    """Closes all matplotlib plots.
-    Without this code plots would remain in the background for the duration of all the tests."""
-    plt.close('all')

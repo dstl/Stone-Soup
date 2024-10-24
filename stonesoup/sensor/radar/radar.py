@@ -1,5 +1,5 @@
 import copy
-from typing import Tuple, Set, Union
+from typing import Union
 
 import numpy as np
 import scipy.constants as const
@@ -39,7 +39,7 @@ class RadarBearingRange(SimpleSensor):
         default=2,
         doc="Number of state dimensions. This is utilised by (and follows in format) "
             "the underlying :class:`~.CartesianToBearingRange` model")
-    position_mapping: Tuple[int, int] = Property(
+    position_mapping: tuple[int, int] = Property(
         doc="Mapping between the target's state space and the sensor's "
             "measurement capability")
     noise_covar: CovarianceMatrix = Property(
@@ -84,7 +84,7 @@ class RadarBearing(SimpleSensor):
         default=2,
         doc="Number of state dimensions. This is utilised by (and follows in format) "
             "the underlying :class:`~.Cartesian2DToBearing` model")
-    position_mapping: Tuple[int, int] = Property(
+    position_mapping: tuple[int, int] = Property(
         doc="Mapping between the target's state space and the sensor's "
             "measurement capability")
     noise_covar: CovarianceMatrix = Property(
@@ -178,8 +178,8 @@ class RadarRotatingBearingRange(RadarBearingRange):
             translation_offset=self.position,
             rotation_offset=rot_offset)
 
-    def measure(self, ground_truths: Set[GroundTruthState], noise: Union[np.ndarray, bool] = True,
-                **kwargs) -> Set[TrueDetection]:
+    def measure(self, ground_truths: set[GroundTruthState], noise: Union[np.ndarray, bool] = True,
+                **kwargs) -> set[TrueDetection]:
 
         if self.timestamp is None:
             # Read timestamp from ground truth
@@ -265,8 +265,8 @@ class RadarRotatingBearing(RadarBearing):
             translation_offset=self.position,
             rotation_offset=rot_offset)
 
-    def measure(self, ground_truths: Set[GroundTruthState], noise: Union[np.ndarray, bool] = True,
-                **kwargs) -> Set[TrueDetection]:
+    def measure(self, ground_truths: set[GroundTruthState], noise: Union[np.ndarray, bool] = True,
+                **kwargs) -> set[TrueDetection]:
 
         if self.timestamp is None:
             # Read timestamp from ground truth
@@ -364,7 +364,7 @@ class RadarBearingRangeRate(RadarBearingRange):
 
     """
 
-    velocity_mapping: Tuple[int, int, int] = Property(
+    velocity_mapping: tuple[int, int, int] = Property(
         default=(1, 3, 5),
         doc="Mapping to the target's velocity information within its state space")
     ndim_state: int = Property(
@@ -406,7 +406,7 @@ class RadarElevationBearingRangeRate(RadarBearingRangeRate):
 
     """
 
-    velocity_mapping: Tuple[int, int, int] = Property(
+    velocity_mapping: tuple[int, int, int] = Property(
         default=(1, 3, 5),
         doc="Mapping to the target's velocity information within its state space")
     ndim_state: int = Property(
@@ -565,7 +565,7 @@ class AESARadar(Sensor):
         doc="A 3x1 array of angles (rad), specifying the radar orientation in terms of the "
             "counter-clockwise rotation around the :math:`x,y,z` axis. i.e Roll, Pitch and Yaw. "
             "Default is ``StateVector([0, 0, 0])``")
-    position_mapping: Tuple[int, int, int] = Property(
+    position_mapping: tuple[int, int, int] = Property(
         default=(0, 1, 2),
         doc="Mapping between or positions and state "
             "dimensions. [x,y,z]")
@@ -716,8 +716,8 @@ class AESARadar(Sensor):
                     snr + 1 / 2) ** 0.5)
         return det_prob, snr, rcs, directed_power, 10 * np.log10(spoiled_gain), spoiled_width
 
-    def measure(self, ground_truths: Set[GroundTruthState], noise: Union[np.ndarray, bool] = True,
-                **kwargs) -> Set[TrueDetection]:
+    def measure(self, ground_truths: set[GroundTruthState], noise: Union[np.ndarray, bool] = True,
+                **kwargs) -> set[TrueDetection]:
 
         detections = set()
 

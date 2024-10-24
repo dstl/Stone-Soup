@@ -1,5 +1,5 @@
 import uuid
-from typing import MutableSequence, MutableMapping, Sequence
+from collections.abc import MutableSequence, MutableMapping, Sequence
 
 from .state import State, StateMutableSequence, CategoricalState, CompositeState
 from ..base import Property
