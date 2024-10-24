@@ -197,7 +197,7 @@ class VisibilityInformed2DSensor(SimpleSensor):
 
     def is_visible(self, state, obstacle_check=False):
         """Function for evaluating the visibility of states in the
-        environment based on a 2D line of signt intersection check with
+        environment based on a 2D line of sight intersection check with
         obstacles edges. Note that this method does not check sensor field of
         view in evaluating visibility. If no obstacles are provided, the
         method will return `True`.
@@ -205,7 +205,7 @@ class VisibilityInformed2DSensor(SimpleSensor):
         Parameters
         ----------
         state : :class:`~.State`
-            A state object that describes `n` positions to to check line of sight to from
+            A state object that describes `n` positions to check line of sight to from
             the sensor position.
         obstacle_check : bool, optional
             A flag for returning a second output that indicates if the state is
@@ -268,7 +268,7 @@ class VisibilityInformed2DSensor(SimpleSensor):
                                                         beta >= 0,
                                                         beta <= 1))
 
-        # Count intersectons. If the number of intersections is odd then the state
+        # Count intersections. If the number of intersections is odd then the state
         # is inside an obstacle. If the number of intersections is even, the
         # state is in free space.
         intersection_count = sum(intersections, 0)

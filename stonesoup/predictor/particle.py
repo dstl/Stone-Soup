@@ -425,7 +425,7 @@ class VisibilityInformedBernoulliParticlePredictor(BernoulliParticlePredictor):
     References
     ----------
     .. [#vibpf] Glover, Timothy J & Liu, Cunjia & Chen, Wen-Hua, Visibility
-       informed Bernoulli filter for target tracking in cluttered evironmnets,
+       informed Bernoulli filter for target tracking in cluttered environments,
        2022, 25th International Conference on Information Fusion (FUSION), 1-8.
     """
 
