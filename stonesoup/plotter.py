@@ -1536,12 +1536,12 @@ class Plotterly(_Plotter):
 
         obstacle_kwargs = dict(mode='markers', marker=dict(symbol='circle', size=3,
                                                            color='grey'),
-                               legendgroup=obstacle_label, legendrank=50, fill='toself',
+                               legendgroup=label, legendrank=50, fill='toself',
                                name=label)
 
         merge(obstacle_kwargs, kwargs)
 
-        obstacle_kwargs['name'] = obstacle_label
+        obstacle_kwargs['name'] = label
         if obstacle_kwargs['legendgroup'] not in {trace.legendgroup
                                                   for trace in self.fig.data}:
             obstacle_kwargs['showlegend'] = True
@@ -3100,7 +3100,7 @@ class AnimatedPlotterly(_Plotter):
 
             obstacle_kwargs = dict(mode='markers', marker=dict(symbol='circle', size=3,
                                                                color='grey'),
-                                   legendgroup=obstacle_label, legendrank=50, fill='toself',
+                                   legendgroup=label, legendrank=50, fill='toself',
                                    name=label)
 
             merge(obstacle_kwargs, kwargs)
