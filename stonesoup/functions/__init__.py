@@ -674,18 +674,14 @@ def mod_elevation(x):
     float
         Angle in radians in the range math: :math:`-\pi/2` to :math:`+\pi/2`
     """
-    x = x % (2*np.pi)  # limit to 2*pi
+    x = np.asarray(x) % (2*np.pi)  # limit to 2*pi
     N = x // (np.pi / 2)  # Count # of 90 deg multiples
-    if N == 1:
-        x = np.pi - x
-    elif N == 2:
-        x = np.pi - x
-    elif N == 3:
-        x = x - 2.0 * np.pi
-    elif N == 4:
-        # will only occur on occasions when first operation ('x = ..') returns 2pi to floating
-        # point limit.
-        x = 0.0
+
+    x = np.where(N == 1, np.pi - x, x)
+    x = np.where(N == 2, np.pi - x, x)
+    x = np.where(N == 3, x - 2.0 * np.pi, x)
+    x = np.where(N == 4, 0.0, x)  # handle the edge case
+
     return x
 
 
