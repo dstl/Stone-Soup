@@ -1568,7 +1568,7 @@ class Plotterly(_Plotter):
         sensor_xy = np.array([sensor.position[mapping, 0] for sensor in sensors])
         self.fig.add_scatter(x=sensor_xy[:, 0], y=sensor_xy[:, 1], **sensor_kwargs)
 
-    def plot_obstacles(self, obstacles, mapping=[0, 1], obstacle_label='obstacles', **kwargs):
+    def plot_obstacles(self, obstacles, mapping=[0, 1], label='obstacles', **kwargs):
         """Plots obstacle(s)
 
         Plots obstacles.  Users can change the colour and marker size of obstacle
@@ -1579,7 +1579,7 @@ class Plotterly(_Plotter):
         ----------
         obstacles : Collection of :class:`~.Obstacle`
             Obstacles to plot
-        sensor_label: str
+        label: str
             Label to apply to obstacles for the legend.
         \\*\\*kwargs: dict
             Additional arguments to be passed to scatter function for detections. Defaults are
@@ -1597,7 +1597,7 @@ class Plotterly(_Plotter):
         obstacle_kwargs = dict(mode='markers', marker=dict(symbol='circle', size=3,
                                                            color='grey'),
                                legendgroup=obstacle_label, legendrank=50, fill='toself',
-                               name=obstacle_label)
+                               name=label)
 
         merge(obstacle_kwargs, kwargs)
 
@@ -3213,7 +3213,7 @@ class AnimatedPlotterly(_Plotter):
         # we have called a plotting function so update flag (used in _resize)
         self.plotting_function_called = True
 
-    def plot_obstacles(self, obstacles, mapping=[0, 1], obstacle_label="Obstacles", resize=True,
+    def plot_obstacles(self, obstacles, mapping=[0, 1], label="Obstacles", resize=True,
                        **kwargs):
         """Plots obstacle(s)
 
@@ -3226,7 +3226,7 @@ class AnimatedPlotterly(_Plotter):
         ----------
         obstacles : Collection of :class:`~.Obstacle`
             Obstacles to plot
-        sensor_label: str
+        label: str
             Label to apply to obstacles for the legend.
         \\*\\*kwargs: dict
             Additional arguments to be passed to scatter function for detections. Defaults are
@@ -3241,7 +3241,7 @@ class AnimatedPlotterly(_Plotter):
             obstacle_kwargs = dict(mode='markers', marker=dict(symbol='circle', size=3,
                                                                color='grey'),
                                    legendgroup=obstacle_label, legendrank=50, fill='toself',
-                                   name=obstacle_label)
+                                   name=label)
 
             merge(obstacle_kwargs, kwargs)
 
