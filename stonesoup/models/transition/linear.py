@@ -5,6 +5,7 @@ from functools import lru_cache
 import numpy as np
 from scipy.integrate import quad
 from scipy.linalg import block_diag
+from typing import Callable
 
 from .base import TransitionModel, CombinedGaussianTransitionModel
 from ..base import (LinearModel, GaussianModel, TimeVariantModel,
@@ -412,6 +413,56 @@ class OrnsteinUhlenbeck(NthDerivativeDecay):
     @property
     def decay_derivative(self):
         return 1
+
+
+class WindowedGaussianProcess(LinearGaussianTransitionModel, TimeVariantModel):
+
+    window_size: int = Property(doc="Sliding window size")
+    kernel: Callable[[np.ndarray, np.ndarray], float] = Property(
+        doc="Kernel function",
+    )
+
+    @property
+    def ndim_state(self):
+        """ndim_state getter method
+
+        Returns
+        -------
+        : :class:`int`
+            The number of model state dimensions.
+        """
+
+        return self.window_size
+    
+    
+    def _compute_k_values(self, time_vector, next_time):
+        time_vector = np.array(time_vector).reshape(-1, 1)
+        next_time = np.array([[next_time]])
+        Kt = self.kernel(time_vector, time_vector)
+        kt = self.kernel(time_vector, next_time)
+        kt_1 = self.kernel(next_time, next_time)
+        return Kt, kt, kt_1
+
+    def matrix(self, **kwargs):
+        time_vector = kwargs.get('time_vector')
+        next_time = kwargs.get('next_time')
+        Kt, kt, _ = self._compute_k_values(time_vector, next_time)
+
+        inv_Kt = np.linalg.inv(Kt)
+        matrix_block = kt.T @ inv_Kt
+        identity_block = np.identity(self.window_size - 1)
+        zeros_block = np.zeros((self.window_size - 1, 1))
+
+        return np.vstack([matrix_block, np.hstack((identity_block, zeros_block))])
+
+    def covar(self, **kwargs):
+        time_vector = kwargs.get('time_vector')
+        next_time = kwargs.get('next_time')
+        Kt, kt, kt_1 = self._compute_k_values(time_vector, next_time)
+        sigma_w = kt_1 - kt.T @ np.linalg.inv(Kt) @ kt
+        G = np.zeros((self.window_size, self.window_size))
+        G[0, 0] = 1
+        return G * sigma_w
 
 
 class Singer(NthDerivativeDecay):
