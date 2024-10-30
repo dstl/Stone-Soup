@@ -1,10 +1,8 @@
-import uuid
 from collections.abc import MutableSequence
 
 from ..base import Property, Base
 from ..movable import Movable, FixedMovable, MovingMovable, MultiTransitionMovable
 from ..sensor.sensor import Sensor
-from ..types.groundtruth import GroundTruthPath
 
 
 class Platform(Base):
