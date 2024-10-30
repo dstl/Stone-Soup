@@ -1,8 +1,11 @@
-
+from functools import lru_cache
 import numpy as np
 from scipy.stats import multivariate_normal
 from stonesoup.types.state import PointMassState
 from ..base import Property
+from ..types.prediction import (
+    MeasurementPrediction,
+)
 from ..types.update import Update
 from .base import Updater
 
@@ -13,12 +16,12 @@ class PointMassUpdater(Updater):
     Perform an update by multiplying grid points weights by PDF of measurement
     model
     """
-    sFactor: float = Property(default=4, doc="How many sigma to cover by the grid")
+
+    sFactor: float = Property(default=4.0, doc="How many sigma to cover by the grid")
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
-    # @profile
     def update(self, hypothesis, **kwargs):
         """Point mass update step
 
@@ -30,7 +33,7 @@ class PointMassUpdater(Updater):
 
         Returns
         -------
-        : :class:`~.PointMassState`
+        : :class:`~.ParticleMeasurementPrediction`
             The state posterior
         """
 
@@ -44,9 +47,7 @@ class PointMassUpdater(Updater):
 
         R = measurement_model.covar()  # Noise
 
-        x = measurement_model.function(
-            predicted_state
-        )  # State to measurement space
+        x = measurement_model.function(predicted_state)  # State to measurement space
         pdf_value = multivariate_normal.pdf(
             x.T, np.ravel(hypothesis.measurement.state_vector), R
         )  # likelihood
@@ -68,3 +69,17 @@ class PointMassUpdater(Updater):
         )
 
         return predicted_state
+
+    @lru_cache()
+    def predict_measurement(self, state_prediction, measurement_model=None, **kwargs):
+
+        if measurement_model is None:
+            measurement_model = self.measurement_model
+
+        new_state_vector = measurement_model.function(state_prediction, **kwargs)
+
+        return MeasurementPrediction.from_state(
+            state_prediction,
+            state_vector=new_state_vector,
+            timestamp=state_prediction.timestamp,
+        )

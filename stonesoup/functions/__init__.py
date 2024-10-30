@@ -38,15 +38,14 @@ def gridCreation(xp_aux, Pp_aux, sFactor, nx, Npa):
     predGridDelta : list
         grid step per dimension
     gridDim : list of numpy.ndarrays
-        grid coordinates per dimension before rotation and translation 
+        grid coordinates per dimension before rotation and translation
     xp_aux : numpy.ndarray
         grid center
     eigVect : numpy.ndarray
         eigenvectors describing the rotation of the grid
-        
+
     """
-    gridDim = np.zeros((nx, Npa[0]))
-    gridStep = np.zeros(nx)
+
     eigVal, eigVect = LA.eig(
         Pp_aux
     )  # eigenvalue and eigenvectors for setting up the grid
@@ -72,7 +71,7 @@ def gridCreation(xp_aux, Pp_aux, sFactor, nx, Npa):
     combvec_predGrid = np.array(list(itertools.product(*gridDim)))
     predGrid_pom = np.dot(eigVect, combvec_predGrid.T)
     size_pom = np.size(predGrid_pom, 1)
-    # Grid rotation by eigenvectors and traslation to the counted unscented mean
+    # Grid rotation by eigenvectors and translation to the counted unscented mean
     predGrid = predGrid_pom + matlib.repmat(xp_aux, 1, size_pom)
     predGridDelta = gridStep  # Grid step size
     return predGrid, predGridDelta, gridDim, xp_aux, eigVect

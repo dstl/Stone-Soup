@@ -15,15 +15,14 @@ pio.renderers.default = "browser"
 
 
 class PointMassPredictor(Predictor):
-    """ParticlePredictor class
+    """PointMassPredictor class
 
-    An implementation of a Particle Filter predictor.
+    An implementation of a Point Mass Filter predictor.
     """
 
-    sFactor: float = Property(default=4, doc="How many sigma to cover by the grid")
+    sFactor: float = Property(default=4., doc="How many sigma to cover by the grid")
 
-    # @profile
-    def predict(self, prior, timestamp=1, **kwargs):
+    def predict(self, prior, timestamp=None, **kwargs):
         """Point Mass Filter prediction step
 
         Parameters
@@ -36,7 +35,7 @@ class PointMassPredictor(Predictor):
 
         Returns
         -------
-        : :class:`~.ParticleStatePrediction`
+        : :class:`~.PointMassStatePrediction`
             The predicted state
         """
         # Compute time_interval

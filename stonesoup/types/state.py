@@ -215,7 +215,6 @@ class PointMassState(State):
         """Sample mean for particles"""
         return np.hstack(self.state_vector @ self.weight * np.prod(self.grid_delta))
 
-    # @profile
     def covar(self):
         # Measurement update covariance
         chip_ = self.state_vector - self.mean[:, np.newaxis]

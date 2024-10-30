@@ -1046,7 +1046,7 @@ def test_pointmassstate():
     assert priorPMF.ndim == nx
     assert priorPMF.__len__() == N
 
-    
+
 def test_kernel_particle_state():
     number_particles = 5
     weights = np.array([1 / number_particles] * number_particles)
@@ -1068,4 +1068,3 @@ def test_kernel_particle_state():
     assert number_particles == len(prior)
     assert 4 == prior.ndim
     assert np.array_equal(state_vector @ weights[:, np.newaxis], prior.mean)
-
