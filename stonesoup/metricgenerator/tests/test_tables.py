@@ -1,3 +1,4 @@
+import matplotlib.pyplot as plt
 from matplotlib.table import Table
 
 from ..metrictables import SIAPTableGenerator
@@ -36,3 +37,5 @@ def test_siaptable():
     table_generator = SIAPTableGenerator(metrics)
     table = table_generator.compute_metric()
     assert isinstance(table, Table)
+
+    plt.close(table.figure)

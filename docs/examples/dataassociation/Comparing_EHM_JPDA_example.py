@@ -383,11 +383,11 @@ plotter = Plotterly()
 plotter.plot_ground_truths(groundtruths, [0, 2])
 plotter.plot_measurements(detections_set, [0, 2])
 plotter.plot_tracks(JPDA_tracks, [0, 2], line= dict(color='orange'),
-                    track_label='JPDA tracks')
+                    label='JPDA tracks')
 plotter.plot_tracks(EHM1_tracks, [0, 2], line= dict(color='green', dash='dot'),
-                    track_label='EHM1 tracks')
+                    label='EHM1 tracks')
 plotter.plot_tracks(EHM2_tracks, [0, 2], line= dict(color='red', dash='dot'),
-                    track_label='EHM2 tracks')
+                    label='EHM2 tracks')
 plotter.fig
 
 # %%

@@ -48,6 +48,7 @@ Algorithm Components
     stonesoup.mixturereducer
     stonesoup.models
     stonesoup.predictor
+    stonesoup.proposal
     stonesoup.regulariser
     stonesoup.resampler
     stonesoup.sampler

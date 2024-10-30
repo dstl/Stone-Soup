@@ -1,6 +1,6 @@
+from collections.abc import Sequence
 from operator import attrgetter
 from types import FunctionType
-from typing import Sequence, Tuple
 
 from .base import DetectionFeeder, GroundTruthFeeder
 from ..base import Property
@@ -130,7 +130,7 @@ class BoundingBoxReducer(DetectionFeeder, GroundTruthFeeder):
 
     """
 
-    limits: Sequence[Tuple[float, float]] = Property(
+    limits: Sequence[tuple[float, float]] = Property(
         doc="Array of points that define the bounds of the desired bounding "
             "box. Expressed as a 2D array of min/max coordinate pairs (e.g. "
             ":code:`limits = [[x_min, x_max], [y_min, y_max], ...]`), where "

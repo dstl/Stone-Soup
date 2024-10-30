@@ -238,7 +238,7 @@ for time, detection in tracking:
 
     tracks.add(track)
 
-plotter.plot_tracks(tracks, [0, 2], track_label="Tracks", line=dict(color="Green"))
+plotter.plot_tracks(tracks, [0, 2], label="Tracks", line=dict(color="Green"))
 plotter.fig
 
 # %%

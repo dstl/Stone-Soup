@@ -1,6 +1,6 @@
 import copy
 import datetime
-from typing import Sequence
+from collections.abc import Sequence
 
 from .array import CovarianceMatrix
 from .base import Type

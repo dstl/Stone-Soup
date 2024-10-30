@@ -1,4 +1,4 @@
-from typing import Set, Union
+from typing import Union
 
 import numpy as np
 
@@ -37,8 +37,8 @@ class GasIntensitySensor(Sensor):
         doc="Measurement threshold. Should be set high enough to minimise false detections."
     )
 
-    def measure(self, ground_truths: Set[GroundTruthState], noise: Union[np.ndarray, bool] = True,
-                **kwargs) -> Set[TrueDetection]:
+    def measure(self, ground_truths: set[GroundTruthState], noise: Union[np.ndarray, bool] = True,
+                **kwargs) -> set[TrueDetection]:
         """Generate a measurement for a given state
 
         Parameters

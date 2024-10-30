@@ -339,11 +339,11 @@ for k in range(len(scan_s1)):
 from stonesoup.plotter import AnimatedPlotterly
 plotter = AnimatedPlotterly(timesteps=timestamps)
 plotter.plot_ground_truths(truths, [0, 2])
-plotter.plot_measurements(scan_s1, [0, 2], measurements_label='scan1', measurement_model=sensor_1_mm)
-plotter.plot_measurements(scan_s2, [0, 2], measurements_label='scan2', measurement_model=sensor_1_mm)
-plotter.plot_tracks(oosm_tracks, [0, 2], track_label='OOSM Tracks',
+plotter.plot_measurements(scan_s1, [0, 2], label='scan1', measurement_model=sensor_1_mm)
+plotter.plot_measurements(scan_s2, [0, 2], label='scan2', measurement_model=sensor_1_mm)
+plotter.plot_tracks(oosm_tracks, [0, 2], label='OOSM Tracks',
                     line= dict(color='orange'))
-plotter.plot_tracks(noOsm_tracks, [0, 2], track_label='no-OOSM Tracks',
+plotter.plot_tracks(noOsm_tracks, [0, 2], label='no-OOSM Tracks',
                     line= dict(color='red'))
 plotter.fig
 

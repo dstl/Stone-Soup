@@ -1,5 +1,5 @@
 from abc import abstractmethod, ABC
-from typing import Callable, Set
+from typing import Callable
 import random
 import numpy as np
 import itertools as it
@@ -27,10 +27,10 @@ class SensorManager(Base, ABC):
     which communicate with other sensor managers in a networked fashion.
 
     """
-    sensors: Set['Sensor'] = Property(
+    sensors: set['Sensor'] = Property(
         default=None, doc="The sensor(s) which the sensor manager is managing.")
 
-    platforms: Set['Platform'] = Property(
+    platforms: set['Platform'] = Property(
         default=None, doc="The platform(s) which the sensor manager is managing.")
 
     reward_function: Callable = Property(

@@ -61,6 +61,7 @@ from collections import OrderedDict
 from copy import copy
 from functools import cached_property
 from types import MappingProxyType
+from typing import Any, get_args, get_origin
 
 
 class Property:
@@ -290,7 +291,9 @@ class BaseMeta(ABCMeta):
                                      f'for property {key} of class {name}')
 
                 if not (isinstance(value.cls, type)
-                        or getattr(value.cls, '__module__', "") == 'typing'
+                        or value.cls is Any
+                        or get_origin(value.cls) is not None
+                        or get_args(value.cls)
                         or value.cls == name
                         or isinstance(value.cls, str)):  # Forward declaration for type hinting
                     raise ValueError(f'Invalid type specification ({str(value.cls)}) '
@@ -425,19 +428,20 @@ class Base(metaclass=BaseMeta):
             try:
                 name, _ = next(prop_iter)
             except StopIteration:
-                raise TypeError('too many positional arguments') from None
+                raise TypeError(f'{cls.__name__} had too many positional arguments') from None
             if name in kwargs:
-                raise TypeError(f'multiple values for argument {name!r}')
+                raise TypeError(f'{cls.__name__} received multiple values for argument {name!r}')
             setattr(self, name, arg)
 
         for name, prop in prop_iter:
             value = kwargs.pop(name, prop.default)
             if value is Property.empty:
-                raise TypeError(f'missing a required argument: {name!r}')
+                raise TypeError(f'{cls.__name__} is missing a required argument: {name!r}')
             setattr(self, name, value)
 
         if kwargs:
-            raise TypeError(f'got an unexpected keyword argument {next(iter(kwargs))!r}')
+            raise TypeError(f'{cls.__name__} got an unexpected keyword argument '
+                            f'{next(iter(kwargs))!r}')
 
     def __repr__(self):
         # Indents every line
