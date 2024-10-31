@@ -31,7 +31,6 @@ class PointMassPredictor(Predictor):
             A prior state object
         timestamp: :class:`datetime.datetime`, optional
             A timestamp signifying when the prediction is performed
-            (the default is `1`)
 
         Returns
         -------

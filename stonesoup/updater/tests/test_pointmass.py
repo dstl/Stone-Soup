@@ -12,7 +12,7 @@ from stonesoup.types.detection import Detection
 from stonesoup.types.groundtruth import GroundTruthPath, GroundTruthState
 from stonesoup.types.hypothesis import SingleHypothesis
 from stonesoup.types.state import PointMassState
-from stonesoup.updater.pointMass import PointMassUpdater
+from stonesoup.updater.pointmass import PointMassUpdater
 
 
 def test_pointmass():

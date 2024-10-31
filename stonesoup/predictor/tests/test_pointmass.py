@@ -9,7 +9,7 @@ from numpy.linalg import inv
 from stonesoup.functions import gridCreation
 from stonesoup.models.transition.linear import KnownTurnRate
 from stonesoup.predictor.kalman import KalmanPredictor
-from stonesoup.predictor.pointMass import PointMassPredictor
+from stonesoup.predictor.pointmass import PointMassPredictor
 from stonesoup.types.array import StateVectors
 from stonesoup.types.state import GaussianState, PointMassState
 
