@@ -180,13 +180,19 @@ class ASDKalmanPredictor(KalmanPredictor):
 
             P_right_lower = prior.multi_covar[t_index * ndim:, t_index * ndim:]
 
+            # Calculate what would be the orignal predicted covariance
+            p_state_pred = GaussianState(
+                x_pred_m, correlation_matrices[t_index]['P'], prior.timestamp)
+            p_p_pred = self._predicted_covariance(
+                p_state_pred, predict_over_interval=predict_over_interval)
+
             # add new correlation matrix with the present time step
             correlation_matrices[t_index] = pred_from_corr_matrices = \
                 correlation_matrices[t_index].copy()
-            pred_from_corr_matrices['P_pred'] = p_pred_m
+            pred_from_corr_matrices['P_pred'] = p_p_pred
             pred_from_corr_matrices['F'] = transition_matrix_m
             pred_from_corr_matrices['PFP'] = (
-                    pred_from_corr_matrices['P'] @ transition_matrix_m.T @ np.linalg.inv(p_pred_m))
+                    pred_from_corr_matrices['P'] @ transition_matrix_m.T @ np.linalg.inv(p_p_pred))
 
             correlation_matrices.insert(t_index, {})
             correlation_matrices[t_index]['F'] = transition_matrix_m_plus_1

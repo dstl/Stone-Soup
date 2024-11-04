@@ -1,5 +1,6 @@
 from abc import abstractmethod
-from typing import Any, Collection
+from collections.abc import Collection
+from typing import Any
 
 from ..base import Base
 from ..types.track import Track

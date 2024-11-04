@@ -230,7 +230,7 @@ from stonesoup.plotter import AnimatedPlotterly, AnimationPlotter
 plotter = AnimationPlotter(legend_kwargs=dict(loc='upper left'))
 plotter.plot_ground_truths(groundtruth_paths, (0,2))
 plotter.plot_tracks(kalman_tracks, (0,2))
-plotter.plot_ground_truths(platform, (0,2), truths_label="Sensor Platform")
+plotter.plot_ground_truths(platform, (0,2), label="Sensor Platform")
 plotter.run()
 
 # %%

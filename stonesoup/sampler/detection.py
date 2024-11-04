@@ -43,7 +43,7 @@ class GaussianDetectionParticleSampler(DetectionSampler):
         default=1,
         doc="Number of samples to return")
 
-    def sample(self, detections):
+    def sample(self, detections, random_state=None, **kwargs):
         """Samples from a Gaussian mixture around detections
 
         Parameters
@@ -68,8 +68,7 @@ class GaussianDetectionParticleSampler(DetectionSampler):
                     mapping = detection.measurement_model.mapping
                     mapping_matrix = np.zeros((ndim_state, ndim_meas))
                     mapping_index = np.linspace(0, len(mapping)-1, ndim_meas, dtype=int)
-                    mapping_matrix[mapping, mapping_index] \
-                        = 1
+                    mapping_matrix[mapping, mapping_index] = 1
                     dist_mean.append(mapping_matrix @ detection.state_vector)
                     dist_covar.append(mapping_matrix @
                                       detection.measurement_model.noise_covar @
@@ -89,7 +88,8 @@ class GaussianDetectionParticleSampler(DetectionSampler):
         samples = gm_sample(means=dist_mean,
                             covars=dist_covar,
                             weights=weights,
-                            size=self.nsamples)
+                            size=self.nsamples,
+                            random_state=random_state)
 
         particles = ParticleState(state_vector=StateVectors(samples),
                                   weight=np.array([1 / self.nsamples] * self.nsamples),
@@ -119,7 +119,7 @@ class SwitchingDetectionSampler(DetectionSampler):
     backup_sampler: Sampler = Property(
         doc="Sampler for generating samples in the absence of detections")
 
-    def sample(self, detections, timestamp=None):
+    def sample(self, detections, timestamp=None, **kwargs):
         """Produces samples based on the detections provided.
 
         Parameters
@@ -136,9 +136,9 @@ class SwitchingDetectionSampler(DetectionSampler):
         """
 
         if detections:
-            sample = self.detection_sampler.sample(detections)
+            sample = self.detection_sampler.sample(detections, **kwargs)
 
         else:
-            sample = self.backup_sampler.sample(timestamp=timestamp)
+            sample = self.backup_sampler.sample(timestamp=timestamp, **kwargs)
 
         return sample

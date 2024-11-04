@@ -253,10 +253,11 @@ def test_asdgaussianmeasurementprediction():
 
 def test_kernel_particle_state_prediction():
     number_particles = 4
-    np.random.seed(50)
+    rng = np.random.RandomState(50)
     samples = multivariate_normal.rvs([0, 0, 0, 0],
                                       np.diag([0.01, 0.005, 0.1, 0.5]) ** 2,
-                                      size=number_particles)
+                                      size=number_particles,
+                                      random_state=rng)
 
     state_vector = StateVectors(samples.T)
     weights = np.array([1 / number_particles] * number_particles)

@@ -1,10 +1,11 @@
-from typing import Sequence
-import numpy as np
-from ..base import Property
+from collections.abc import Sequence
 
-from stonesoup.movable import FixedMovable
-from stonesoup.movable.action.move_position_action import NStepDirectionalGridActionGenerator
-from stonesoup.types.state import State
+import numpy as np
+
+from ..base import Property
+from ..types.state import State
+from . import FixedMovable
+from .action.move_position_action import NStepDirectionalGridActionGenerator
 
 
 class _GridActionableMovable(FixedMovable):

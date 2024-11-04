@@ -1,7 +1,7 @@
 """Contains deleters which use a composite of deleters to decide whether a track is to be deleted
 """
 
-from typing import Collection
+from collections.abc import Collection
 
 from ..base import Property
 from .base import Deleter

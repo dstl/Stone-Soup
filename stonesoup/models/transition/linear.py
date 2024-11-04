@@ -1,5 +1,5 @@
 import math
-from typing import Sequence
+from collections.abc import Sequence
 from functools import lru_cache
 
 import numpy as np

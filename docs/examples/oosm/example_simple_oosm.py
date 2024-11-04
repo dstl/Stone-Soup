@@ -201,9 +201,9 @@ scans_detections = [item[1] for item in arrival_time_ordered]
 
 plotter = AnimatedPlotterly(timesteps=timestamps)
 plotter.plot_ground_truths(truths, [0, 2])
-plotter.plot_measurements(scans_detections, [0, 2], measurements_label='Detections',
+plotter.plot_measurements(scans_detections, [0, 2], label='Detections',
                           measurement_model=measurement_model)
-plotter.plot_tracks(track_lag, [0, 2], line= dict(color='grey'), track_label='Track with lag')
+plotter.plot_tracks(track_lag, [0, 2], line= dict(color='grey'), label='Track with lag')
 plotter.fig
 
 # %%
@@ -262,7 +262,7 @@ for k in range(len(arrival_time_ordered)):
 # Plotting the final track
 # ------------------------
 
-plotter.plot_tracks(track, [0, 2], line= dict(color='blue'), track_label='Track with OOSM treated')
+plotter.plot_tracks(track, [0, 2], line= dict(color='blue'), label='Track with OOSM treated')
 plotter.fig
 
 # %%

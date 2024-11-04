@@ -1,6 +1,9 @@
 Movables
 =========
 
+.. toctree::
+    stonesoup.movable.action
+
 .. automodule:: stonesoup.movable
     :no-members:
 
