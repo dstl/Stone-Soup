@@ -19,7 +19,7 @@ from ..functions import (gauss2sigma, unscented_transform, cubature_transform,
 
 class KalmanPredictor(Predictor):
     r"""A predictor class which forms the basis for the family of Kalman
-    predictors. This class also servas the (specific) Kalman Filter
+    predictors. This class also serves as the (specific) Kalman Filter
     :class:`~.Predictor` class. Here transition and control models must be linear:
 
     .. math::
