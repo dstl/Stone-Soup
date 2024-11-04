@@ -970,7 +970,7 @@ class StochasticIntegrationUpdater(KalmanUpdater):
         N = 0
         # SIR recursion for measurement predictive moments computation
         # until either number of iterations is reached or threshold is reached
-        while N < self.Nmin or np.all([N < self.Nmax, np.any([(np.linalg.norm(Vz) > self.Eps)])]):
+        while N < self.Nmin or (N < self.Nmax and np.linalg.norm(Vz) > self.Eps):
             N += 1
             # -- cubature points and weights computation (for standard normal PDF)
             # -- points transformation for given filtering mean and covariance matrix

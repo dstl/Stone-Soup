@@ -313,11 +313,6 @@ class UnscentedKalmanPredictor(KalmanPredictor):
         doc="Secondary spread scaling parameter. Default is calculated as "
             "3-Ns")
 
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-
-        self._time_interval = None
-
     def _transition_and_control_function(self, prior_state, **kwargs):
         r"""Returns the result of applying the transition and control functions
         for the unscented transform
@@ -590,11 +585,6 @@ class StochasticIntegrationPredictor(KalmanPredictor):
         default=5, doc="order of SIR (orders 1, 3, 5 are currently supported)"
     )
 
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-
-        self._time_interval = None
-
     def _transition_and_control_function(self, prior_state, **kwargs):
         r"""Returns the result of applying the transition and control functions
         for the unscented transform
@@ -661,8 +651,7 @@ class StochasticIntegrationPredictor(KalmanPredictor):
 
         # - SIR recursion for state predictive moments computation
         # -- until either max iterations or threshold is reached
-        while N < self.Nmin or np.all([N < self.Nmax,
-                                       np.any([(np.linalg.norm(Vx) > self.Eps),]),]):
+        while N < self.Nmin or (N < self.Nmax and np.linalg.norm(Vx) > self.Eps):
             N += 1
 
             # -- cubature points and weights computation (for standard normal PDF)
@@ -685,7 +674,7 @@ class StochasticIntegrationPredictor(KalmanPredictor):
         N = 0
         # - SIR recursion for state predictive moments computation
         # -- until max iterations are reached or threshold is reached
-        while N < self.Nmin or np.all([N < self.Nmax, np.any([(np.linalg.norm(VPx) > self.Eps)])]):
+        while N < self.Nmin or (N < self.Nmax and np.linalg.norm(VPx) > self.Eps):
             N += 1
             # -- cubature points and weights computation (for standard normal PDF)
             # -- points transformation for given filtering mean and covariance matrix
