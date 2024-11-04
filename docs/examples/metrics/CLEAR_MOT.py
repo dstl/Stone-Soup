@@ -241,8 +241,8 @@ plotter.fig
 # is followed by the violet track. At least half (i.e. 50%) of the total number of truth samples
 # is successfully tracked.
 #
-# While observing the red (north-east heading) truth, we see that it deviates from the
-# orange track at around the first third of the complete observation period. I.e. a third of the
+# While observing the red (north-east heading) truth, we see that the orange track deviates from
+# it at around the first third of the complete observation period. I.e. a third of the
 # red track is successfully tracked, which adds a positive amount to the percentage of tracked
 # truths.
 #
