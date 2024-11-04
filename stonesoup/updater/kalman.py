@@ -935,7 +935,8 @@ class StochasticIntegrationUpdater(KalmanUpdater):
     def predict_measurement(
         self, predicted_state, measurement_model=None, measurement_noise=True, **kwargs
     ):
-        """SIF.
+        """Stochastic Integration Filter measurement prediction step. Uses
+        stochastic integration to estimate a Gaussian distributed predicted measurement.
 
         Parameters
         ----------
