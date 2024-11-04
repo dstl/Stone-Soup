@@ -357,7 +357,7 @@ class StochasticIntegrationSmoother(KalmanSmoother):
 
         Returns
         -------
-         : Matrix
+    :  :class:`numpy.ndarray`
             The smoothing gain
 
         """
