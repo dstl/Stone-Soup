@@ -921,13 +921,13 @@ class StochasticIntegrationUpdater(KalmanUpdater):
         "specified on construction, or in the measurement, then error "
         "will be thrown.",
     )
-    Nmax: float = Property(default=10, doc="maximal number of iterations of SIR")
-    Nmin: float = Property(
+    Nmax: int = Property(default=10, doc="maximal number of iterations of SIR")
+    Nmin: int = Property(
         default=5,
         doc="minimal number of iterations of stochastic integration rule (SIR)",
     )
     Eps: float = Property(default=5e-4, doc="allowed threshold for integration error")
-    SIorder: float = Property(
+    SIorder: int = Property(
         default=5, doc="order of SIR (orders 1, 3, 5 are currently supported)"
     )
 

@@ -335,13 +335,13 @@ class StochasticIntegrationSmoother(KalmanSmoother):
 
     transition_model: TransitionModel = Property(doc="The transition model to be used.")
 
-    Nmax: float = Property(default=10, doc="maximal number of iterations of SIR")
-    Nmin: float = Property(
+    Nmax: int = Property(default=10, doc="maximal number of iterations of SIR")
+    Nmin: int = Property(
         default=5,
         doc="minimal number of iterations of stochastic integration rule (SIR)",
     )
     Eps: float = Property(default=5e-3, doc="allowed threshold for integration error")
-    SIorder: float = Property(
+    SIorder: int = Property(
         default=5, doc="order of SIR (orders 1, 3, 5 are currently supported)"
     )
 
