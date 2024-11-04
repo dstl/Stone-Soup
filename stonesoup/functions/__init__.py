@@ -959,7 +959,7 @@ def cubature_transform(state, fun, points_noise=None, covar_noise=None, alpha=1.
 
 
 def stochasticCubatureRulePoints(nx, order):
-    """Stochstic cubature rule points
+    """Stochastic cubature rule points
 
     computation of cubature points and weights for the stochastic integration
 
