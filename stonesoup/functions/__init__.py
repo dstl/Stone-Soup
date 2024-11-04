@@ -964,17 +964,19 @@ def cubature_transform(state, fun, points_noise=None, covar_noise=None, alpha=1.
 def stochasticCubatureRulePoints(nx, order):
     """Stochastic cubature rule points
 
-    computation of cubature points and weights for the stochastic integration
+    Computation of cubature points and weights for the stochastic integration.
 
     Parameters
     ==========
-    integer
-        number of points
+    nx : int
+        Number of points, presumably equivilant to state dimension.
+    order : int
+        Order for stochastic integration. Only orders 1, 3, and 5 are supported.
 
     Returns
     =======
-    numpy.ndarray dim x nx
-        Matrix of sigma points
+    (numpy.ndarray, numpy.ndarray)
+        Tuple of sigma points and weights
     """
 
     if order == 1:
@@ -1061,26 +1063,27 @@ def cubPointsAndTransfer(nx, order, sqrtCov, mean, transFunct, state):
 
     Parameters
     ==========
-    nx : integer
-        dimension
-    order : integer
-        order of SIF rule
-    sqrtCov : array of float 64 [nx x nx]
-        square root of covariance
-    mean : array of int 64 [nx x 1]
-        mean
-    transFunct : function
-        function to transfer state vectors
-    state : state
-        whole state
+    nx : int
+       Dimension for cubature points, equivilant to state dimension.
+    order : int
+        Order for Stochastic Integration. Only orders 1, 3, and 5 are supported
+    sqrtCov : np.ndarray
+        Matrix square root array of shape (nx, nx) of the covariance matrix
+    mean : np.ndarray
+        An array of shape (nx, 1) of the state mean
+    transFunct : Callable
+        A function to transfer state vectors
+    state : :class:`~.State`
+        State object used to save function output to
 
     Returns
     =======
-    points : numpy.ndarray nx x number of points (based on order and dim)
-        cubature points
-    w : numpy.ndarray number of points x
-        weights
-    trsfPoints : numpy.ndarray nx x number of points (based on order and dim)
+    points : numpy.ndarray
+        Array of shape (nx, number of points) of cubature points
+    w : numpy.ndarray
+        Array of shape (number of points) of weights
+    trsfPoints : numpy.ndarray
+        Array of shape (nx, number of points) (based on order and dim) of
         cubature transformed points
     """
 
