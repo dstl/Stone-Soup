@@ -125,6 +125,8 @@ class TrackletExtractor(Base, BufferedGenerator):
             tracklets.append(tracklets_tmp)
         return tracklets
 
+    # PRH: Replaced the below with states so it more easily generalises
+    """
     def augment_tracklet(self, tracklet, track, transition_model, timestamp):
         track_times = np.array([s.timestamp for s in track])
 
@@ -215,7 +217,83 @@ class TrackletExtractor(Base, BufferedGenerator):
         tracklet = Tracklet(id=track.id, states=states, init_metadata={'sensor_id': sensor_id})
 
         return tracklet
+    """
 
+    # PRH: new init_tracklet and augment_tracklet functions - should be the same for single and two-state trackers
+    @classmethod
+    def init_tracklet(cls, track, tx_model, fuse_times, sensor_id=None):
+        track_times = np.array([s.timestamp for s in track])
+        idx0 = np.flatnonzero(fuse_times >= track_times[0])
+        idx1 = np.flatnonzero(fuse_times <= track_times[-1])
+
+        if not len(idx0) or not len(idx1):
+            return None
+        else:
+            idx0 = idx0[0]
+            idx1 = idx1[-1]
+
+            states = []
+            filtered_times = np.array([s.timestamp for s in track])
+
+            cnt = 0
+            for i in range(idx0, idx1):
+                start_time = fuse_times[i]
+                end_time = fuse_times[i + 1]
+                nupd = np.sum(np.logical_and(track_times > start_time, track_times <= end_time))
+                if nupd > 0:
+                    cnt += 1
+                    # Indices of end-states that are just before the start and end times
+                    ind0 = np.flatnonzero(filtered_times <= start_time)[-1]
+                    ind1 = np.flatnonzero(filtered_times <= end_time)[-1]
+
+                    post_mean, post_cov, prior_mean, prior_cov = \
+                        cls.get_interval_dist(track[ind0:ind1 + 1], tx_model, start_time, end_time)
+
+                    prior = TwoStateGaussianStatePrediction(prior_mean, prior_cov,
+                                                            start_time=start_time,
+                                                            end_time=end_time)
+                    posterior = TwoStateGaussianStateUpdate(post_mean, post_cov,
+                                                            hypothesis=None,
+                                                            start_time=start_time,
+                                                            end_time=end_time)
+
+                    states.append(prior)
+                    states.append(posterior)
+
+            if not cnt:
+                return None
+
+            tracklet = Tracklet(id=track.id, states=states, init_metadata={'sensor_id': sensor_id})
+
+            return tracklet
+
+    def augment_tracklet(self, tracklet, track, transition_model, timestamp):
+        track_times = np.array([s.timestamp for s in track])
+
+        filtered_times = np.array([s.timestamp for s in track])
+
+        start_time = tracklet.states[-1].timestamp
+        end_time = timestamp
+        nupd = np.sum(np.logical_and(track_times > start_time, track_times <= end_time))
+        if nupd > 0:
+            # Indices of end-states that are just before the start and end times
+            ind0 = np.flatnonzero(filtered_times <= start_time)[-1]
+            ind1 = np.flatnonzero(filtered_times <= end_time)[-1]
+
+            post_mean, post_cov, prior_mean, prior_cov = \
+                self.get_interval_dist(track[ind0:ind1 + 1], transition_model, start_time, end_time)
+
+            prior = TwoStateGaussianStatePrediction(prior_mean, prior_cov,
+                                                    start_time=start_time,
+                                                    end_time=end_time)
+            posterior = TwoStateGaussianStateUpdate(post_mean, post_cov,
+                                                    hypothesis=None,
+                                                    start_time=start_time,
+                                                    end_time=end_time)
+            tracklet.states.append(prior)
+            tracklet.states.append(posterior)
+
+    """
     @classmethod
     def get_interval_dist(cls, filtered_means, filtered_covs, filtered_times, states, tx_model,
                           start_time, end_time):
@@ -237,6 +315,27 @@ class TrackletExtractor(Base, BufferedGenerator):
         cv = np.stack([pred0.covar, *list(np.swapaxes(filtered_covs, 0, 2)), pred1.covar], 2)
         t = np.array([start_time, *filtered_times, end_time])
         post_mean, post_cov = cls.rts_smoother_endpoints(mn, cv, t, tx_model)
+
+        return post_mean, post_cov, prior_mean, prior_cov
+    """
+
+    @classmethod
+    def get_interval_dist(cls, filtered_states, transition_model, start_time, end_time):
+
+        # Get filtered distributions at start and end of interval
+        predictor = ExtendedKalmanPredictor(transition_model)
+
+        start_state = predictor.predict(filtered_states[0], start_time)
+        end_state = predictor.predict(filtered_states[-1], end_time)
+
+        # Predict prior mean
+        prior_mean, prior_cov = predict_state_to_two_state(start_state.mean, start_state.covar, transition_model,
+                                                           end_time - start_time)
+
+        mn = np.concatenate([start_state.mean] + [x.mean for x in filtered_states[1:-1]] + [end_state.mean], 1)
+        cv = np.stack([start_state.covar] + [x.covar for x in filtered_states[1:-1]] + [end_state.covar], 2)
+        t = [start_time] + [x.timestamp for x in filtered_states[1:-1]] + [end_time]
+        post_mean, post_cov = cls.rts_smoother_endpoints(mn, cv, t, transition_model)
 
         return post_mean, post_cov, prior_mean, prior_cov
 
@@ -267,7 +366,6 @@ class TrackletExtractor(Base, BufferedGenerator):
             joint_smoothed_mean = F2 @ joint_smoothed_mean + b2
             joint_smoothed_cov = F2 @ joint_smoothed_cov @ F2.T + Omega2
         return joint_smoothed_mean, joint_smoothed_cov
-
 
 class PseudoMeasExtractor(Base, BufferedGenerator):
     tracklet_extractor: TrackletExtractor = Property(doc='The tracket extractor', default=None)
@@ -482,3 +580,87 @@ class PseudoMeasExtractor(Base, BufferedGenerator):
             return H, z, R, evals
 
         return H, z, R, evals
+
+#=======================================================================================================================
+
+# PRH: Added code
+
+class TrackletExtractorTwoState(TrackletExtractor):
+    def __init__(self, *args, **kwargs):
+        super(TrackletExtractor, self).__init__(*args, **kwargs)
+        self._tracklets = []
+        self._fuse_times = []
+
+    @classmethod
+    def get_interval_dist(cls, filtered_states, transition_model, start_time, end_time):
+        """
+        Get the prior (using measurements up to start_time) and posterior (using measurements up to end_time)
+        from filtered_states.
+        Currently, we assume that the end time of the first state is the start time and the end time of the last state
+        is the end time
+        """
+
+        # Get filtered distributions at start and end of interval
+        predictor = ExtendedKalmanPredictor(transition_model)
+
+        # PRH: Assume first and last state times correspond with fuse times for now
+        # TODO: Generalise so start_time could be beteeen start_time and end_time of filtered_states[0] and \
+        #  end_time could be between start_time and end_time of filtered_states[-1]
+        assert (filtered_states[0].end_time == start_time)
+        assert (filtered_states[-1].end_time == end_time)
+
+        # Dimension of a single state (as opposed to a two_state)
+        one_statedim = transition_model.ndim
+
+        # Get single state mean and covariance at start of interval
+        # (to generalise, we could get the mean and covariance at a point in the interval)
+        start_single_state_mean = filtered_states[0].mean[one_statedim:]
+        start_single_state_covar = filtered_states[0].covar[one_statedim:, one_statedim:]
+
+        # Predict prior mean over the time interval
+        prior_mean, prior_cov = predict_state_to_two_state(start_single_state_mean,
+                                                           start_single_state_covar,
+                                                           transition_model, end_time - start_time)
+
+        # Get mean and covariance of the last period up to end_time
+        # (to generalise, could get the two-state distribution between filtered_states[-1].start_time and end_time)
+        end_two_state_mean = filtered_states[-1].mean
+        end_two_state_covar = filtered_states[-1].covar
+
+        # Get posterior mean by running smoother (Note that we ignore filtered_states[0] since this covers an interval
+        # before start_time)
+        # TODO: Generalise to have a two-state distribution at the start if start_time ~= filtered_states[0].end_time
+        mn = np.concatenate([x.mean for x in filtered_states[1:-1]] + [end_two_state_mean], 1)
+        cv = np.stack([x.covar for x in filtered_states[1:-1]] + [end_two_state_covar], 2)
+        post_mean, post_cov = cls._rts_smoother_endpoints_two_state(mn, cv)
+
+        return post_mean, post_cov, prior_mean, prior_cov
+
+    @classmethod
+    def _rts_smoother_endpoints_two_state(cls, filtered_means, filtered_covs):
+        """
+        Given joint distributions (x[k], x[k+1]) for k=0,...,T-1, compute the joint distribution (x[0], x[T])
+        """
+        two_statedim, ntimesteps = filtered_means.shape
+        statedim = two_statedim // 2
+        smoothed_mean, smoothed_cov = filtered_means[:,-1], filtered_covs[:,:,-1]
+
+        for k in reversed(range(ntimesteps - 1)):
+
+            mu_x = filtered_means[:statedim, k]
+            mu_y = filtered_means[statedim:, k]
+            Pxx = filtered_covs[:statedim, :statedim, k]
+            Pyy = filtered_covs[statedim:, statedim:, k]
+            Pxy = filtered_covs[:statedim, statedim:, k]
+
+            F = Pxy @ inv(Pyy)
+            b = mu_x - F @ mu_y
+            Omega = Pxx - Pxy @ inv(Pyy) @ Pxy.T
+
+            F2 = block_diag(F, np.eye(statedim))
+            b2 = np.concatenate((b, np.zeros((statedim,))))
+            Omega2 = block_diag(Omega, np.zeros((statedim, statedim)))
+            smoothed_mean = F2 @ smoothed_mean + b2
+            smoothed_cov = F2 @ smoothed_cov @ F2.T + Omega2
+
+        return smoothed_mean, smoothed_cov

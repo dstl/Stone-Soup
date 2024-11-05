@@ -268,6 +268,7 @@ class FuseTracker2(_BaseFuseTracker):
         super().__init__(*args, **kwargs)
         self._tracks = set()
         self._current_end_time = None
+        self._scans = [] # PRH: Added to get scans
 
     @property
     def tracks(self):
@@ -284,6 +285,9 @@ class FuseTracker2(_BaseFuseTracker):
         for scan in scans:
             self._tracks, self._current_end_time = self.process_scan(scan, self.tracks,
                                                                      self._current_end_time)
+
+        self._scans = scans#.update(scans)  # PRH: Added to get scans
+
         return self.tracks
 
     def process_scans(self, scans):
