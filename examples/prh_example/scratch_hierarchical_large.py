@@ -1,4 +1,32 @@
-# Generate a multi-sensor / multi-target simulation and tracking scenario
+"""
+ Generate a multi-sensor / multi-target simulation and tracking scenario
+ The scenario simulates 8 radar sensors positioned on a 4x2 grid of overlapping FOVs, organised
+ in 4 hierarchical levels of 8 trackers, 4 of 2 each, 2 of 4 each and 1 of all 8 sensors passed
+ up the fusion tree.
+
+                                   |----------------|
+                                   |  Top Tracker   |
+                                   |----------------|
+                                           |
+                    --------------------------------------------
+                   |                                           |
+          |-----------------|                         |-----------------|
+          | Fuse Tracker 2a |                         | Fuse Tracker 2b |
+          |-----------------|                         |-----------------|
+                  |                                           |
+          -------------------                        -------------------
+         |                  |                       |                  |
+|------------------|  |------------------|  |------------------|  |------------------|
+|  Fuse Tracker 1a |  |  Fuse Tracker 1b |  |  Fuse Tracker 1c |  |  Fuse Tracker 1d |
+|------------------|  |------------------|  |------------------|  |------------------|
+    |          |          |          |          |          |          |          |
+|-------|  |-------|  |-------|  |-------|  |-------|  |-------|  |-------|  |-------|
+| Leaf  |  | Leaf  |  | Leaf  |  | Leaf  |  | Leaf  |  | Leaf  |  | Leaf  |  | Leaf  |
+|Sens. 1|  |Sens. 2|  |Sens. 3|  |Sens. 4|  |Sens. 5|  |Sens. 6|  |Sens. 7|  |Sens. 8|
+|-------|  |-------|  |-------|  |-------|  |-------|  |-------|  |-------|  |-------|
+"""
+
+
 
 import matplotlib
 from itertools import tee
@@ -344,6 +372,8 @@ output_truth(outdir + "outputtruth.txt", start_time, truth)
 for i in range(len(all_tracks)):
     # (don't plot the detections because they will have different dimensions)
     plot_tracks(all_tracks[i], None, truth, numxy_hierarchy[i], fusion_hierarchy[i])
+    fig = plt.gcf()
+    fig.suptitle(f'Level {i+1}')
     #plot_tracks(all_tracks[i], all_detections[i], truth, numxy_hierarchy[i], fusion_hierarchy[i])
 
 plt.show()
