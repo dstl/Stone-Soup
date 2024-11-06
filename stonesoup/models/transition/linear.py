@@ -462,7 +462,9 @@ class WindowedGaussianProcess(LinearGaussianTransitionModel, TimeVariantModel):
         sigma_w = kt_1 - kt.T @ np.linalg.inv(Kt) @ kt
         G = np.zeros((self.window_size, self.window_size))
         G[0, 0] = 1
-        return G * sigma_w
+        sigma_w = min(sigma_w, 1e-10) # avoid issues with sqrt
+        w = np.random.normal(0, np.sqrt(sigma_w))
+        return G * w
 
 
 class Singer(NthDerivativeDecay):
