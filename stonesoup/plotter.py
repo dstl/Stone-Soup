@@ -1568,7 +1568,7 @@ class Plotterly(_Plotter):
         sensor_xy = np.array([sensor.position[mapping, 0] for sensor in sensors])
         self.fig.add_scatter(x=sensor_xy[:, 0], y=sensor_xy[:, 1], **sensor_kwargs)
 
-    def plot_obstacles(self, obstacles, mapping=[0, 1], label='obstacles', **kwargs):
+    def plot_obstacles(self, obstacles, mapping=[0, 1], label='Obstacles', **kwargs):
         """Plots obstacle(s)
 
         Plots obstacles.  Users can change the colour and marker size of obstacle
@@ -1601,7 +1601,6 @@ class Plotterly(_Plotter):
 
         merge(obstacle_kwargs, kwargs)
 
-        obstacle_kwargs['name'] = label
         if obstacle_kwargs['legendgroup'] not in {trace.legendgroup
                                                   for trace in self.fig.data}:
             obstacle_kwargs['showlegend'] = True
@@ -1611,6 +1610,7 @@ class Plotterly(_Plotter):
         for obstacle in obstacles:
             obstacle_xy = obstacle.vertices[mapping, :]
             self.fig.add_scatter(x=obstacle_xy[0, :], y=obstacle_xy[1, :], **obstacle_kwargs)
+            obstacle_kwargs['showlegend'] = False
 
     def hide_plot_traces(self, items_to_hide=None):
         """Hide Plot Traces
