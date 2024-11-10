@@ -18,6 +18,91 @@ from ...types.array import StateVector, CovarianceMatrix, StateVectors
 from ...types.angle import Bearing, Elevation, Azimuth
 from ..base import LinearModel, GaussianModel, ReversibleModel
 from .base import MeasurementModel
+from ...types.state import State
+
+
+
+
+class TerrainAidedNavigation():
+    
+    def __init__(self,interpolator,noise_covar,mapping):
+        self.interpolator = interpolator
+        self.noise_covar = noise_covar
+        self.mapping = mapping
+
+    @property
+    def ndim_meas(self) -> int:
+        """ndim_meas getter method
+
+        Returns
+        -------
+        :class:`int`
+            The number of measurement dimensions
+        """
+        return 1
+
+    def function(self, state, noise=False, **kwargs) -> StateVector:
+
+        out = self.interpolator(state.state_vector[self.mapping,:].T)
+        if isinstance(noise, bool) or noise is None:
+            if noise:
+                noise = np.random.normal([0], self.noise_covar, out.size)
+                out = out + noise
+
+
+        # Return the interpolated measurements with added noise
+        return out
+    
+    def covar(self, **kwargs) -> CovarianceMatrix:
+        """Returns the measurement model noise covariance matrix.
+
+        Returns
+        -------
+        :class:`~.CovarianceMatrix` of shape\
+        (:py:attr:`~ndim_meas`, :py:attr:`~ndim_meas`)
+            The measurement noise covariance.
+        """
+
+        return self.noise_covar
+    
+    def logpdf(self, state1: State, state2: State, **kwargs) -> Union[float, np.ndarray]:
+        r"""Model log pdf/likelihood evaluation function
+
+        Evaluates the pdf/likelihood of ``state1``, given the state
+        ``state2`` which is passed to :meth:`function()`.
+
+        In mathematical terms, this can be written as:
+
+        .. math::
+
+            p = p(y_t | x_t) = \mathcal{N}(y_t; x_t, Q)
+
+        where :math:`y_t` = ``state_vector1``, :math:`x_t` = ``state_vector2``
+        and :math:`Q` = :attr:`covar`.
+
+        Parameters
+        ----------
+        state1 : State
+        state2 : State
+
+        Returns
+        -------
+        :  float or :class:`~.numpy.ndarray`
+            The log likelihood of ``state1``, given ``state2``
+        """
+        covar = self.covar(**kwargs)
+
+
+        # Calculate difference before to handle custom types (mean defaults to zero)
+        # This is required as log pdf coverts arrays to floats
+        likelihood = np.atleast_1d(
+            multivariate_normal.logpdf((state1.state_vector - self.function(state2, **kwargs)).T,
+                                        cov=covar))
+
+        if len(likelihood) == 1:
+            likelihood = likelihood[0]
+
+        return likelihood
 
 
 class CombinedReversibleGaussianMeasurementModel(ReversibleModel, GaussianModel, MeasurementModel):

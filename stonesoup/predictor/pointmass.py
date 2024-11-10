@@ -37,6 +37,14 @@ class PointMassPredictor(Predictor):
         : :class:`~.PointMassStatePrediction`
             The predicted state
         """
+        
+        # -------------------------------------------------------------------------------
+        # runGSFversion = kwargs.get("GSF", "0")
+        
+        # if runGSFversion:
+        #     futureMeas = kwargs.get("futureMeas","None")
+        # -------------------------------------------------------------------------------
+        
         # Compute time_interval
         time_interval = timestamp - prior.timestamp
 
@@ -59,6 +67,69 @@ class PointMassPredictor(Predictor):
             invFT = np.linalg.inv(F.T)
             FqF = invF @ Q @ invFT
             matrixForEig = prior.covar() + FqF
+            
+            # -------------------------------------------------------------------------------
+            # # Initialize and normalize
+            # wbark = filtPdf / np.sum(filtPdf)
+        
+            # # Predict
+            # Xbark = F @ predGrid
+            # s, n = Xbark.shape
+            # eye_s = np.eye(s)
+        
+            # # Weighted mean and spread
+            # xbark = Xbark @ wbark
+            # chip_ = Xbark - xbark[:, np.newaxis]
+        
+            # # Covariance Ps with precomputed constants
+            # factor = (4 / (n * (s + 2))) ** (2 / (s + 4))
+            # Ps = factor * (chip_ * wbark) @ chip_.T + Q
+            # Ps = (Ps + Ps.T) / 2
+            # invPs = solve(Ps, np.eye(s))
+        
+            # # Observation matrix H and measurement noise W
+            # H = np.tile(np.array([[0.1, 0.9], [0.8, 0.3]]), (1, 1, n))
+            # Ht = np.transpose(H, (1, 0, 2))
+            # W = np.einsum('ijk,jl,kl->ik', H, Ps, Ht) + R
+        
+            # # Kalman gain K using solve to avoid inversion
+            # K = solve(W, np.einsum('jl,kl->jk', Ps, Ht))
+        
+            # # Measurement residuals
+            # v = z[:, k + 1, np.newaxis] - hfunct(Xbark, np.zeros((Xbark.shape[0], 1)), k + 1)
+            # v = np.reshape(v, (s, 1, n))
+        
+            # # State estimate update XkGSF
+            # XkGSF = Xbark + np.einsum('ij,ijk->jk', K, v)
+        
+            # # Updated covariance PkGSF
+            # KH = np.einsum('ij,ij->ij', K, H)
+            # PkGSF = (eye_s - KH) @ Ps @ (eye_s - KH).T + K @ R @ K.T
+        
+            # # Weight update using stable log-sum-exp and softmax
+            # eigvals_W = np.array([np.prod(eigh(W[..., i], eigvals_only=True)) for i in range(W.shape[2])])
+            # wkGSF_log = np.log(wbark) - 0.5 * np.log(eigvals_W) - 0.5 * np.einsum('ij,ij->ij', v.T, solve(W, v)).sum(axis=0)
+            # wkGSF = softmax(wkGSF_log - np.max(wkGSF_log))
+        
+            # # State estimate xhatk
+            # xhatk = XkGSF @ wkGSF
+        
+            # # Updated covariance Phatk
+            # nuxk = XkGSF - xhatk[:, np.newaxis]
+            # Phatk = np.einsum('ij,jk,kl->il', nuxk, np.diag(wkGSF), nuxk.T) + np.sum(PkGSF * wkGSF[:, np.newaxis, np.newaxis], axis=2)
+            # Phatk = (Phatk + Phatk.T) / 2
+
+            # matrixForEig = inv(F)*(Phatk + Q)*inv(F');
+            # measMean = inv(F)*xhatk;
+            
+            # measGridNew, GridDeltaOld, gridDimOld, nothing, eigVect = gridCreation(
+            #     measMean,
+            #     matrixForEig,
+            #     self.sFactor,
+            #     len(invF),
+            #     prior.Npa,
+            # )
+            # ----------------------------------------------------------------------------------------
 
             measGridNew, GridDeltaOld, gridDimOld, nothing, eigVect = gridCreation(
                 prior.mean.reshape(-1, 1),
@@ -126,6 +197,12 @@ class PointMassPredictor(Predictor):
 
             xOld = F @ np.vstack(prior.mean)
             Ppold = F @ eigVect
+            
+            
+            # ----------------------------------------------------------------------------------------
+            #gridCenter = xhatk;
+            #gridRotation = F @ eigVect;
+            # ----------------------------------------------------------------------------------------
 
         return PointMassState(
             state_vector=StateVectors(np.squeeze(predGrid)),
