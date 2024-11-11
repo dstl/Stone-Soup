@@ -528,6 +528,8 @@ class SMCPHDPredictor(Predictor):
 
 
 class MarginalisedParticlePredictor(ParticlePredictor):
+    """Implementation of the Marginalised Particle Filter predictor"""
+
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
@@ -539,23 +541,24 @@ class MarginalisedParticlePredictor(ParticlePredictor):
 
         num_samples = len(prior)
         model = self.transition_model
-        
-        latents = model.sample_latents(time_interval=time_interval, num_samples=num_samples)
-        process_mean = model.mean(latents=latents, time_interval=time_interval)[:, :, 0] # (N, M)
-        process_covar = model.covar(latents=latents, time_interval=time_interval)
-        process_mean = process_mean.T # (M, N)
-        process_covar = process_covar.T# (M, M, N)
 
-        F = model.matrix(time_interval=time_interval, **kwargs) # (M, M)
+        latents = model.sample_latents(time_interval=time_interval, num_samples=num_samples)
+        process_mean = model.mean(latents=latents, time_interval=time_interval)[:, :, 0]  # (N, M)
+        process_covar = model.covar(latents=latents, time_interval=time_interval)
+        process_mean = process_mean.T  # (M, N)
+        process_covar = process_covar.T  # (M, M, N)
+
+        F = model.matrix(time_interval=time_interval, **kwargs)  # (M, M)
         new_state_vector = F @ prior.state_vector + process_mean
-        tmp = np.einsum("jik, li-> jlk", prior.covariance, F) # ()
+        tmp = np.einsum("jik, li-> jlk", prior.covariance, F)  # ()
         new_covariance = np.einsum("ij, jlk->ilk", F, tmp) + process_covar
- 
-        ret = Prediction.from_state(prior,
-                                     parent=prior,
-                                     state_vector=new_state_vector,
-                                     covariance=new_covariance,
-                                     timestamp=timestamp,
-                                     transition_model=self.transition_model)
+
+        ret = Prediction.from_state(
+            prior,
+            parent=prior,
+            state_vector=new_state_vector,
+            covariance=new_covariance,
+            timestamp=timestamp,
+            transition_model=self.transition_model,
+        )
         return ret
-        
