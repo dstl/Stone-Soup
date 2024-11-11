@@ -15,7 +15,7 @@ class Kernel(Base):
     """
 
     @abstractmethod
-    def __call__(self, state1, state2=None):
+    def __call__(self, state1, state2=None, **kwargs):
         r"""
         Compute the kernel state of a pair of :class:`~.State` objects
 
@@ -56,8 +56,8 @@ class AdditiveKernel(Kernel):
 
     kernel_list: Sequence[Kernel] = Property(doc="List of kernels")
 
-    def __call__(self, state1, state2=None):
-        return np.sum([kernel(state1, state2) for kernel in self.kernel_list], axis=0)
+    def __call__(self, state1, state2=None, **kwargs):
+        return np.sum([kernel(state1, state2, **kwargs) for kernel in self.kernel_list], axis=0)
 
 
 class MultiplicativeKernel(Kernel):
@@ -68,8 +68,8 @@ class MultiplicativeKernel(Kernel):
 
     kernel_list: Sequence[Kernel] = Property(doc="List of kernels")
 
-    def __call__(self, state1, state2=None):
-        return np.prod([kernel(state1, state2) for kernel in self.kernel_list], axis=0)
+    def __call__(self, state1, state2=None, **kwargs):
+        return np.prod([kernel(state1, state2, **kwargs) for kernel in self.kernel_list], axis=0)
 
 
 class PolynomialKernel(Kernel):
@@ -92,7 +92,7 @@ class PolynomialKernel(Kernel):
                             "lower-order terms in the polynomial. Default is 1.")
     ialpha: float = Property(default=1e1, doc="Slope. Range is [1e0, 1e4]. Default is 1e1.")
 
-    def __call__(self, state1, state2=None):
+    def __call__(self, state1, state2=None, **kwargs):
         state_vector1, state_vector2 = self._get_state_vectors(state1, state2)
         return (state_vector1.T @ state_vector2 / self.ialpha + self.c) ** self.power
 
@@ -191,7 +191,7 @@ class GaussianKernel(Kernel):
         doc=r"Denoted as :math:`\sigma^2` in the equation above. Determines the width of the "
             r"Gaussian kernel. Range is [1e0, 1e2].")
 
-    def __call__(self, state1, state2=None):
+    def __call__(self, state1, state2=None, **kwargs):
         r"""Calculate the Gaussian Kernel transformation for a pair of :class:`~.State` objects.
 
         Parameters
