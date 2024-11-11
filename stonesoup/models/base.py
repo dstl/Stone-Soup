@@ -13,7 +13,6 @@ from stonesoup.types.array import StateVector, StateVectors, CovarianceMatrix, C
 from stonesoup.types.numeric import Probability
 from stonesoup.types.state import State
 from scipy.integrate import quad_vec
-from scipy.linalg import expm
 
 if TYPE_CHECKING:
     from ..types.detection import Detection
@@ -375,7 +374,9 @@ class Latents:
         """
         return driver in self.store
 
-    def add(self, driver: ConditionallyGaussianDriver, jsizes: np.ndarray, jtimes: np.ndarray) -> None:
+    def add(
+        self, driver: ConditionallyGaussianDriver, jsizes: np.ndarray, jtimes: np.ndarray
+    ) -> None:
         """Adds the driver instance to the store alongside its sampled
         latent variables.
 
@@ -430,21 +431,24 @@ class Latents:
         Returns:
             int: No. expected jumps
         """
-        return self._num_samples    
-        
+        return self._num_samples
+
 
 class LevyModel(Model):
     """
     Class to be derived from for Levy models.
     For now, we consider only conditionally Gaussian ones
     """
-    driver: Union[ConditionallyGaussianDriver, GaussianDriver] = Property(doc="Conditional Gaussian process noise driver")
+
+    driver: Union[ConditionallyGaussianDriver, GaussianDriver] = Property(
+        doc="Conditional Gaussian process noise driver"
+    )
     mu_W: Optional[float] = Property(default=None, doc="Condtional Gaussian mean")
     sigma_W2: Optional[float] = Property(default=None, doc="Conditional Gaussian variance")
-    
+
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        
+
     @abstractmethod
     def _integrand(self, dt: float, jtimes: np.ndarray) -> np.ndarray:
         pass
@@ -452,11 +456,12 @@ class LevyModel(Model):
     def _integrate(self, func: np.ndarray, a: np.ndarray, b: np.ndarray) -> np.ndarray:
         res, err = quad_vec(func, a=a, b=b)
         return res
-    
+
     def _integral(self, dt: float) -> np.ndarray:
-        func = lambda dt: self._integrand(dt, jtimes=np.zeros((1, 1)))[0, 0, :] # currying
+        def func(dt: int):
+            return self._integrand(dt, jtimes=np.zeros((1, 1)))[0, 0, :]  # currying
         return self._integrate(func, a=0, b=dt)
-    
+
     def mean(
         self, latents: Latents, time_interval: timedelta, **kwargs
     ) -> Union[StateVector, StateVectors]:
@@ -478,8 +483,9 @@ class LevyModel(Model):
             num_samples=latents.num_samples,
         )
 
-
-    def covar(self, latents: Latents, time_interval: timedelta, **kwargs) -> Union[CovarianceMatrix, CovarianceMatrices]:
+    def covar(
+        self, latents: Latents, time_interval: timedelta, **kwargs
+    ) -> Union[CovarianceMatrix, CovarianceMatrices]:
         """Model covariance"""
         assert latents is not None
         dt = time_interval.total_seconds()
@@ -499,14 +505,21 @@ class LevyModel(Model):
             num_samples=latents.num_samples,
         )
 
-    def sample_latents(self, time_interval: timedelta, num_samples: int, random_state: Optional[np.random.RandomState]=None) -> Latents:
+    def sample_latents(
+        self,
+        time_interval: timedelta,
+        num_samples: int,
+        random_state: Optional[np.random.RandomState] = None,
+    ) -> Latents:
         dt = time_interval.total_seconds()
         latents = Latents(num_samples=num_samples)
         if isinstance(self.driver, ConditionallyGaussianDriver):
-            jsizes, jtimes = self.driver.sample_latents(dt=dt, num_samples=num_samples, random_state=random_state)
+            jsizes, jtimes = self.driver.sample_latents(
+                dt=dt, num_samples=num_samples, random_state=random_state
+            )
             latents.add(driver=self.driver, jsizes=jsizes, jtimes=jtimes)
         return latents
-    
+
     def rvs(
         self,
         latents: Optional[Latents] = None,
@@ -517,7 +530,9 @@ class LevyModel(Model):
         noise = 0
         n_mean_covar_pair = 1
         if not latents:
-            latents = self.sample_latents(num_samples=n_mean_covar_pair, random_state=random_state, **kwargs)
+            latents = self.sample_latents(
+                num_samples=n_mean_covar_pair, random_state=random_state, **kwargs
+            )
         mean = self.mean(latents=latents, **kwargs)
         if mean is None or None in mean:
             raise ValueError("Cannot generate rvs from None-type mean")
@@ -527,18 +542,27 @@ class LevyModel(Model):
         if covar is None or None in covar:
             raise ValueError("Cannot generate rvs from None-type covariance")
         assert isinstance(covar, CovarianceMatrix)
-        
+
         noise += self.driver.rvs(
-            mean=mean, covar=covar, random_state=random_state, num_samples=n_rvs_samples_for_each_mean_covar_pair, **kwargs
+            mean=mean,
+            covar=covar,
+            random_state=random_state,
+            num_samples=n_rvs_samples_for_each_mean_covar_pair,
+            **kwargs
         )
         return noise
 
-    def condpdf(self, state1: State, state2: State, latents: Optional[Latents] = None, **kwargs) -> Union[Probability, np.ndarray]:
+    def condpdf(
+        self, state1: State, state2: State, latents: Optional[Latents] = None, **kwargs
+    ) -> Union[Probability, np.ndarray]:
         r"""Model conditional pdf/likelihood evaluation function"""
-        return Probability.from_log_ufunc(self.logcondpdf(state1, state2, latents=latents, **kwargs))
+        return Probability.from_log_ufunc(
+            self.logcondpdf(state1, state2, latents=latents, **kwargs)
+        )
 
-
-    def logcondpdf(self, state1: State, state2: State, latents: Optional[Latents] = None, **kwargs) -> Union[float, np.ndarray]:
+    def logcondpdf(
+        self, state1: State, state2: State, latents: Optional[Latents] = None, **kwargs
+    ) -> Union[float, np.ndarray]:
         r"""Model log conditional pdf/likelihood evaluation function"""
         if latents is None:
             raise ValueError("Latents cannot be none.")
@@ -553,10 +577,11 @@ class LevyModel(Model):
             raise ValueError("Cannot generate pdf from None-type covariance")
         assert isinstance(covar, CovarianceMatrix)
 
-
         likelihood = np.atleast_1d(
-            multivariate_normal.logpdf((state1.state_vector - self.function(state2, **kwargs)).T,
-                                       mean=mean, cov=covar))
+            multivariate_normal.logpdf(
+                (state1.state_vector - self.function(state2, **kwargs)).T, mean=mean, cov=covar
+            )
+        )
 
         if len(likelihood) == 1:
             likelihood = likelihood[0]
@@ -566,7 +591,6 @@ class LevyModel(Model):
     def logpdf(self, state1: State, state2: State, **kwargs) -> Union[Probability, np.ndarray]:
         r"""Model log pdf/likelihood evaluation function"""
         return NotImplementedError
-
 
     def pdf(self, state1: State, state2: State, **kwargs) -> Union[Probability, np.ndarray]:
         r"""Model pdf/likelihood evaluation function"""

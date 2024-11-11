@@ -1,18 +1,17 @@
-from contextlib import nullcontext as does_not_raise
-from datetime import timedelta
-from unittest.mock import MagicMock
-
-import matplotlib.pyplot as plt
 import numpy as np
 import pytest
 from scipy.integrate import quad
 from scipy.special import gamma
-from scipy.stats import kstest, levy_stable, norm, uniform
+from scipy.stats import kstest, levy_stable, norm
 
-from stonesoup.models.base_driver import LevyDriver, NoiseCase
-from stonesoup.models.driver import AlphaStableNSMDriver, GaussianDriver
-from stonesoup.types.array import (CovarianceMatrices, CovarianceMatrix,
-                                   StateVector, StateVectors)
+from stonesoup.models.base_driver import NoiseCase
+from stonesoup.models.driver import AlphaStableNSMDriver
+from stonesoup.types.array import (
+    CovarianceMatrices,
+    CovarianceMatrix,
+    StateVector,
+    StateVectors,
+)
 
 
 @pytest.fixture
@@ -47,10 +46,14 @@ def alpha_stable_nsm_driver(
 
 
 def test_mean_covar(alpha_stable_nsm_driver: AlphaStableNSMDriver):
+    def ft(dt: int, jtimes: np.array):
+        return np.ones_like(jtimes)[..., None, None]
+
+    def e_ft(dt: int):
+        return dt * np.ones((1, 1))
+
     dt = 1
     n_samples = 2
-    ft = lambda dt, jtimes: np.ones_like(jtimes)[..., None, None]
-    e_ft = lambda dt: dt * np.ones((1, 1))
     jsizes, jtimes = alpha_stable_nsm_driver.sample_latents(dt=dt, num_samples=n_samples)
     mean = alpha_stable_nsm_driver.mean(
         jsizes=jsizes, jtimes=jtimes, e_ft_func=e_ft, ft_func=ft, dt=dt
@@ -105,12 +108,16 @@ def test_sample_latents(
 
 
 def raw_abs_moment_gaussian(alpha, mu, sigma):
-    func = lambda x: (np.abs(x) ** alpha) * norm.pdf(x, loc=mu, scale=sigma)
+    def func(x):
+        return (np.abs(x) ** alpha) * norm.pdf(x, loc=mu, scale=sigma)
+
     return quad(func, -6, 6)[0]
 
 
 def signed_raw_abs_moment_gaussian(alpha, mu, sigma):
-    func = lambda x: (np.sign(x) * np.abs(x) ** alpha) * norm.pdf(x, loc=mu, scale=sigma)
+    def func(x):
+        return (np.sign(x) * np.abs(x) ** alpha) * norm.pdf(x, loc=mu, scale=sigma)
+
     return quad(func, -6, 6)[0]
 
 
@@ -132,11 +139,16 @@ def alpha_stable_cdf(alpha, mu, sigma2):
 
 def test_rvs(alpha_stable_nsm_driver: AlphaStableNSMDriver):
     """Tests if resulting noise distribution is correct"""
+
+    def ft(dt: int, jtimes: np.array):
+        return np.ones_like(jtimes)[..., None, None]
+
+    def e_ft(dt: int):
+        return dt * np.ones((1, 1))
+
     alpha_stable_nsm_driver.c = 100
     num_samples = 1000
     dt = 1
-    ft = lambda dt, jtimes: np.ones_like(jtimes)[..., None, None]
-    e_ft = lambda dt: dt * np.ones((1, 1))
     jsizes, jtimes = alpha_stable_nsm_driver.sample_latents(
         dt=dt, num_samples=num_samples
     )
@@ -144,8 +156,8 @@ def test_rvs(alpha_stable_nsm_driver: AlphaStableNSMDriver):
     assert jtimes.shape == (alpha_stable_nsm_driver.c, num_samples)
     rvs_samples = []
     for i in range(num_samples):
-        a = jsizes[:, i : i + 1]
-        b = jtimes[:, i : i + 1]
+        a = jsizes[:, i: i + 1]
+        b = jtimes[:, i: i + 1]
         mean = alpha_stable_nsm_driver.mean(
             jsizes=a, jtimes=b, e_ft_func=e_ft, ft_func=ft, dt=dt
         )

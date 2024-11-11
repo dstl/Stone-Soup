@@ -5,14 +5,18 @@ import pytest
 
 from stonesoup.models.base_driver import NoiseCase
 from stonesoup.models.driver import AlphaStableNSMDriver, GaussianDriver
-from stonesoup.models.transition.base import LevyModel
 from stonesoup.models.transition.levy_linear import (
-    CombinedLinearLevyTransitionModel, LevyLangevin, LevyRandomWalk)
+    CombinedLinearLevyTransitionModel,
+    LevyLangevin,
+    LevyRandomWalk,
+)
 from stonesoup.predictor.particle import MarginalisedParticlePredictor
 from stonesoup.types.array import CovarianceMatrices, StateVectors
 from stonesoup.types.numeric import Probability
-from stonesoup.types.prediction import (MarginalisedParticleState,
-                                        MarginalisedParticleStatePrediction)
+from stonesoup.types.prediction import (
+    MarginalisedParticleState,
+    MarginalisedParticleStatePrediction,
+)
 
 
 @pytest.fixture
@@ -33,7 +37,9 @@ def alpha_stable_langevin_model_2d(seed):
     theta = 0.2
     transition_model_x = LevyLangevin(damping_coeff=theta, driver=driver)
     transition_model_y = LevyLangevin(damping_coeff=theta, driver=driver)
-    return CombinedLinearLevyTransitionModel(model_list=[transition_model_x, transition_model_y])
+    return CombinedLinearLevyTransitionModel(
+        model_list=[transition_model_x, transition_model_y]
+    )
 
 
 @pytest.fixture(scope="function")
@@ -113,28 +119,124 @@ def gaussian_random_walk_model_1d(seed):
             CovarianceMatrices(
                 [
                     [
-                        [1.91274417e02, 2.08692049e02, 3.35442281e03, 2.92355908e04, 2.05968615e02],
-                        [9.61730879e01, 1.07339161e02, 4.09684328e03, 6.02232891e04, 1.14768907e02],
-                        [0.00000000e00, 0.00000000e00, 0.00000000e00, 0.00000000e00, 0.00000000e00],
-                        [0.00000000e00, 0.00000000e00, 0.00000000e00, 0.00000000e00, 0.00000000e00],
+                        [
+                            1.91274417e02,
+                            2.08692049e02,
+                            3.35442281e03,
+                            2.92355908e04,
+                            2.05968615e02,
+                        ],
+                        [
+                            9.61730879e01,
+                            1.07339161e02,
+                            4.09684328e03,
+                            6.02232891e04,
+                            1.14768907e02,
+                        ],
+                        [
+                            0.00000000e00,
+                            0.00000000e00,
+                            0.00000000e00,
+                            0.00000000e00,
+                            0.00000000e00,
+                        ],
+                        [
+                            0.00000000e00,
+                            0.00000000e00,
+                            0.00000000e00,
+                            0.00000000e00,
+                            0.00000000e00,
+                        ],
                     ],
                     [
-                        [9.61730879e01, 1.07339161e02, 4.09684328e03, 6.02232891e04, 1.14768907e02],
-                        [1.43071683e02, 1.35040268e02, 5.18703675e03, 1.24597076e05, 1.39323271e02],
-                        [0.00000000e00, 0.00000000e00, 0.00000000e00, 0.00000000e00, 0.00000000e00],
-                        [0.00000000e00, 0.00000000e00, 0.00000000e00, 0.00000000e00, 0.00000000e00],
+                        [
+                            9.61730879e01,
+                            1.07339161e02,
+                            4.09684328e03,
+                            6.02232891e04,
+                            1.14768907e02,
+                        ],
+                        [
+                            1.43071683e02,
+                            1.35040268e02,
+                            5.18703675e03,
+                            1.24597076e05,
+                            1.39323271e02,
+                        ],
+                        [
+                            0.00000000e00,
+                            0.00000000e00,
+                            0.00000000e00,
+                            0.00000000e00,
+                            0.00000000e00,
+                        ],
+                        [
+                            0.00000000e00,
+                            0.00000000e00,
+                            0.00000000e00,
+                            0.00000000e00,
+                            0.00000000e00,
+                        ],
                     ],
                     [
-                        [0.00000000e00, 0.00000000e00, 0.00000000e00, 0.00000000e00, 0.00000000e00],
-                        [0.00000000e00, 0.00000000e00, 0.00000000e00, 0.00000000e00, 0.00000000e00],
-                        [1.91274417e02, 2.08692049e02, 3.35442281e03, 2.92355908e04, 2.05968615e02],
-                        [9.61730879e01, 1.07339161e02, 4.09684328e03, 6.02232891e04, 1.14768907e02],
+                        [
+                            0.00000000e00,
+                            0.00000000e00,
+                            0.00000000e00,
+                            0.00000000e00,
+                            0.00000000e00,
+                        ],
+                        [
+                            0.00000000e00,
+                            0.00000000e00,
+                            0.00000000e00,
+                            0.00000000e00,
+                            0.00000000e00,
+                        ],
+                        [
+                            1.91274417e02,
+                            2.08692049e02,
+                            3.35442281e03,
+                            2.92355908e04,
+                            2.05968615e02,
+                        ],
+                        [
+                            9.61730879e01,
+                            1.07339161e02,
+                            4.09684328e03,
+                            6.02232891e04,
+                            1.14768907e02,
+                        ],
                     ],
                     [
-                        [0.00000000e00, 0.00000000e00, 0.00000000e00, 0.00000000e00, 0.00000000e00],
-                        [0.00000000e00, 0.00000000e00, 0.00000000e00, 0.00000000e00, 0.00000000e00],
-                        [9.61730879e01, 1.07339161e02, 4.09684328e03, 6.02232891e04, 1.14768907e02],
-                        [1.43071683e02, 1.35040268e02, 5.18703675e03, 1.24597076e05, 1.39323271e02],
+                        [
+                            0.00000000e00,
+                            0.00000000e00,
+                            0.00000000e00,
+                            0.00000000e00,
+                            0.00000000e00,
+                        ],
+                        [
+                            0.00000000e00,
+                            0.00000000e00,
+                            0.00000000e00,
+                            0.00000000e00,
+                            0.00000000e00,
+                        ],
+                        [
+                            9.61730879e01,
+                            1.07339161e02,
+                            4.09684328e03,
+                            6.02232891e04,
+                            1.14768907e02,
+                        ],
+                        [
+                            1.43071683e02,
+                            1.35040268e02,
+                            5.18703675e03,
+                            1.24597076e05,
+                            1.39323271e02,
+                        ],
                     ],
                 ]
             ),
@@ -143,7 +245,9 @@ def gaussian_random_walk_model_1d(seed):
             "gaussian_random_walk_model_1d",
             MarginalisedParticleState(
                 state_vector=StateVectors(
-                    StateVectors([[0.85778795, 0.81499289, -1.55124413, -1.34084576, 0.3580332]])
+                    StateVectors(
+                        [[0.85778795, 0.81499289, -1.55124413, -1.34084576, 0.3580332]]
+                    )
                 ),
                 covariance=np.array([[[100.0, 100.0, 100.0, 100.0, 100.0]]]),
                 timestamp=None,

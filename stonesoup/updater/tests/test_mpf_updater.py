@@ -1,4 +1,4 @@
-from datetime import UTC, datetime, timedelta
+from datetime import UTC, datetime
 
 import numpy as np
 import pytest
@@ -7,15 +7,21 @@ from stonesoup.models.base_driver import NoiseCase
 from stonesoup.models.driver import AlphaStableNSMDriver, GaussianDriver
 from stonesoup.models.measurement.linear import LinearGaussian
 from stonesoup.models.transition.levy_linear import (
-    CombinedLinearLevyTransitionModel, LevyLangevin, LevyRandomWalk)
+    CombinedLinearLevyTransitionModel,
+    LevyLangevin,
+    LevyRandomWalk,
+)
 from stonesoup.resampler.particle import SystematicResampler
-from stonesoup.types.array import (CovarianceMatrices, CovarianceMatrix,
-                                   StateVector, StateVectors)
+from stonesoup.types.array import (
+    CovarianceMatrices,
+    CovarianceMatrix,
+    StateVector,
+    StateVectors,
+)
 from stonesoup.types.detection import Detection
 from stonesoup.types.hypothesis import SingleHypothesis
 from stonesoup.types.numeric import Probability
-from stonesoup.types.prediction import (MarginalisedParticleState,
-                                        MarginalisedParticleStatePrediction)
+from stonesoup.types.prediction import MarginalisedParticleStatePrediction
 from stonesoup.types.update import MarginalisedParticleStateUpdate
 from stonesoup.updater.particle import MarginalisedParticleUpdater
 

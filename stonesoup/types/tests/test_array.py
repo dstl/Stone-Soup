@@ -1,7 +1,14 @@
 import numpy as np
 import pytest
 
-from ..array import Matrix, StateVector, StateVectors, CovarianceMatrix, PrecisionMatrix, CovarianceMatrices
+from ..array import (
+    Matrix,
+    StateVector,
+    StateVectors,
+    CovarianceMatrix,
+    PrecisionMatrix,
+    CovarianceMatrices,
+)
 
 
 def test_statevector():
@@ -21,13 +28,13 @@ def test_statevector():
 
 
 def test_statevectors():
-    vec1 = np.array([[1.], [2.], [3.]]) # 3x1
-    vec2 = np.array([[2.], [3.], [4.]]) # 3x1
+    vec1 = np.array([[1.0], [2.0], [3.0]])  # 3x1
+    vec2 = np.array([[2.0], [3.0], [4.0]])  # 3x1
 
     sv1 = StateVector(vec1)
     sv2 = StateVector(vec2)
 
-    vecs1 = np.concatenate((vec1, vec2), axis=1) # 3x2
+    vecs1 = np.concatenate((vec1, vec2), axis=1)  # 3x2
     svs1 = StateVectors([sv1, sv2])
     svs2 = StateVectors(vecs1)
     svs3 = StateVectors([vec1, vec2])  # Creates 3dim array, # 2x3x1
@@ -40,8 +47,8 @@ def test_statevectors():
 
 
 def test_statevectors_mean():
-    svs = StateVectors([[1., 2., 3.], [4., 5., 6.]])
-    mean = StateVector([[2., 5.]])
+    svs = StateVectors([[1.0, 2.0, 3.0], [4.0, 5.0, 6.0]])
+    mean = StateVector([[2.0, 5.0]])
 
     assert np.allclose(np.average(svs, axis=1), mean)
     assert np.allclose(np.mean(svs, axis=1, keepdims=True), mean)
@@ -101,42 +108,55 @@ def test_setting():
 
 
 def test_covariancematrix():
-    """ CovarianceMatrix Type test """
+    """CovarianceMatrix Type test"""
 
     with pytest.raises(ValueError):
         CovarianceMatrix(np.array([0]))
 
-    covar_nparray = np.array([[2.2128, 0, 0, 0],
-                              [0.0002, 2.2130, 0, 0],
-                              [0.3897, -0.00004, 0.0128, 0],
-                              [0, 0.3897, 0.0013, 0.0135]]) * 1e3
+    covar_nparray = (
+        np.array(
+            [
+                [2.2128, 0, 0, 0],
+                [0.0002, 2.2130, 0, 0],
+                [0.3897, -0.00004, 0.0128, 0],
+                [0, 0.3897, 0.0013, 0.0135],
+            ]
+        )
+        * 1e3
+    )
 
     covar_matrix = CovarianceMatrix(covar_nparray)
     assert np.array_equal(covar_matrix, covar_nparray)
 
 
 def test_precisionmatrix():
-    """ CovarianceMatrix Type test """
+    """CovarianceMatrix Type test"""
 
     with pytest.raises(ValueError):
         PrecisionMatrix(np.array([0]))
 
-    prec_nparray = np.array([[7, 1, 0.5, 0],
-                             [1, 4, 2, 0.4],
-                             [0.5, 2, 6, 0.3],
-                             [0, 0.4, 0.3, 5]])
+    prec_nparray = np.array(
+        [[7, 1, 0.5, 0], [1, 4, 2, 0.4], [0.5, 2, 6, 0.3], [0, 0.4, 0.3, 5]]
+    )
 
     prec_matrix = PrecisionMatrix(prec_nparray)
     assert np.array_equal(prec_matrix, prec_nparray)
 
 
 def test_matrix():
-    """ Matrix Type test """
+    """Matrix Type test"""
 
-    covar_nparray = np.array([[2.2128, 0, 0, 0],
-                              [0.0002, 2.2130, 0, 0],
-                              [0.3897, -0.00004, 0.0128, 0],
-                              [0, 0.3897, 0.0013, 0.0135]]) * 1e3
+    covar_nparray = (
+        np.array(
+            [
+                [2.2128, 0, 0, 0],
+                [0.0002, 2.2130, 0, 0],
+                [0.3897, -0.00004, 0.0128, 0],
+                [0, 0.3897, 0.0013, 0.0135],
+            ]
+        )
+        * 1e3
+    )
 
     matrix = Matrix(covar_nparray)
     assert np.array_equal(matrix, covar_nparray)
@@ -145,38 +165,37 @@ def test_matrix():
 def test_multiplication():
     vector = np.array([[1, 1, 1, 1]]).T
     state_vector = StateVector(vector)
-    array = np.array([[1., 2., 3., 4.],
-                      [5., 6., 7., 8.]])
+    array = np.array([[1.0, 2.0, 3.0, 4.0], [5.0, 6.0, 7.0, 8.0]])
     covar = CovarianceMatrix(array)
     Mtype = Matrix
     Vtype = StateVector
 
-    assert np.array_equal(covar@state_vector, array@vector)
-    assert np.array_equal(covar@vector, array@vector)
-    assert np.array_equal(array@state_vector, array@vector)
-    assert np.array_equal(state_vector.T@covar.T, vector.T@array.T)
-    assert np.array_equal(vector.T@covar.T, vector.T@array.T)
-    assert np.array_equal(state_vector.T@array.T, vector.T@array.T)
+    assert np.array_equal(covar @ state_vector, array @ vector)
+    assert np.array_equal(covar @ vector, array @ vector)
+    assert np.array_equal(array @ state_vector, array @ vector)
+    assert np.array_equal(state_vector.T @ covar.T, vector.T @ array.T)
+    assert np.array_equal(vector.T @ covar.T, vector.T @ array.T)
+    assert np.array_equal(state_vector.T @ array.T, vector.T @ array.T)
 
-    assert type(array@state_vector) == Vtype  # noqa: E721
-    assert type(state_vector.T@array.T) == Mtype  # noqa: E721
-    assert type(covar@vector) == Vtype  # noqa: E721
-    assert type(vector.T@covar.T) == Mtype  # noqa: E721
+    assert type(array @ state_vector) == Vtype  # noqa: E721
+    assert type(state_vector.T @ array.T) == Mtype  # noqa: E721
+    assert type(covar @ vector) == Vtype  # noqa: E721
+    assert type(vector.T @ covar.T) == Mtype  # noqa: E721
 
 
 def test_array_ops():
     vector = np.array([[1, 1, 1, 1]]).T
-    vector2 = vector + 2.
+    vector2 = vector + 2.0
     sv = StateVector(vector)
-    array = np.array([[1., 2., 3., 4.], [2., 3., 4., 5.]]).T
+    array = np.array([[1.0, 2.0, 3.0, 4.0], [2.0, 3.0, 4.0, 5.0]]).T
     covar = CovarianceMatrix(array)
     Mtype = Matrix
     Vtype = type(sv)
 
     assert np.array_equal(covar - vector, array - vector)
-    assert type(covar-vector) == Mtype  # noqa: E721
+    assert type(covar - vector) == Mtype  # noqa: E721
     assert np.array_equal(covar + vector, array + vector)
-    assert type(covar+vector) == Mtype  # noqa: E721
+    assert type(covar + vector) == Mtype  # noqa: E721
     assert np.array_equal(vector - covar, vector - array)
     assert type(vector - covar) == Mtype  # noqa: E721
     assert np.array_equal(vector + covar, vector + array)
@@ -190,8 +209,8 @@ def test_array_ops():
     assert type(vector2 + sv) == Vtype  # noqa: E721
     assert np.array_equal(sv + vector2, vector + vector2)
     assert type(sv + vector2) == Vtype  # noqa: E721
-    assert type(sv+2.) == Vtype  # noqa: E721
-    assert type(sv*2.) == Vtype  # noqa: E721
+    assert type(sv + 2.0) == Vtype  # noqa: E721
+    assert type(sv * 2.0) == Vtype  # noqa: E721
 
     assert np.array_equal(array - sv, array - vector)
     assert type(array - sv) == Mtype  # noqa: E721
@@ -201,23 +220,23 @@ def test_array_ops():
     assert type(array + sv) == Mtype  # noqa: E721
     assert np.array_equal(sv + array, vector + array)
     assert type(sv + array) == Mtype  # noqa: E721
-    assert type(covar+2.) == Mtype  # noqa: E721
-    assert type(covar*2.) == Mtype  # noqa: E721
+    assert type(covar + 2.0) == Mtype  # noqa: E721
+    assert type(covar * 2.0) == Mtype  # noqa: E721
 
 
 def test_covariancematrices():
-    cov1 = np.array([[1., 0., 0.], [0., 2., 0.], [0., 0., 3.]]) 
-    cov2 = np.array([[4., 0., 0.], [0., 5., 0.], [0., 0., 6.]])
+    cov1 = np.array([[1.0, 0.0, 0.0], [0.0, 2.0, 0.0], [0.0, 0.0, 3.0]])
+    cov2 = np.array([[4.0, 0.0, 0.0], [0.0, 5.0, 0.0], [0.0, 0.0, 6.0]])
 
-    cm1 = CovarianceMatrix(cov1) 
+    cm1 = CovarianceMatrix(cov1)
     cm2 = CovarianceMatrix(cov2)
-    cms0 =  CovarianceMatrices([cov1])
+    cms0 = CovarianceMatrices([cov1])
     assert isinstance(cms0, CovarianceMatrix)
 
     tensor1 = np.stack((cov1, cov2), axis=-1)
-    cms1 = CovarianceMatrices([cm1, cm2]) # 3x3x2
+    cms1 = CovarianceMatrices([cm1, cm2])  # 3x3x2
     assert np.array_equal(cms1, tensor1)
-    cms2 = CovarianceMatrices(tensor1) # 3x3x2
+    cms2 = CovarianceMatrices(tensor1)  # 3x3x2
     assert np.array_equal(cms2, tensor1)
     cms3 = CovarianceMatrices([cov1, cov2])  # 2x3x3
     assert cms3.shape != tensor1.shape
@@ -225,60 +244,17 @@ def test_covariancematrices():
         assert isinstance(cm, CovarianceMatrix)
 
 
-
 def test_covariancematrices_mean():
-    cov1 = np.array([[1., 0., 0.], [0., 2., 0.], [0., 0., 3.]]) 
-    cov2 = np.array([[4., 0., 0.], [0., 5., 0.], [0., 0., 6.]])
-    cm1 = CovarianceMatrix(cov1) 
+    cov1 = np.array([[1.0, 0.0, 0.0], [0.0, 2.0, 0.0], [0.0, 0.0, 3.0]])
+    cov2 = np.array([[4.0, 0.0, 0.0], [0.0, 5.0, 0.0], [0.0, 0.0, 6.0]])
+    cm1 = CovarianceMatrix(cov1)
     cm2 = CovarianceMatrix(cov2)
     cms1 = CovarianceMatrices([cm1, cm2])
     cms2 = CovarianceMatrices([cov1, cov2])
-    mean1 = CovarianceMatrix([[2.5, 0., 0.], [0., 3.5, 0.], [0., 0., 4.5]])
-    mean2 = CovarianceMatrices([[[2.5], [0.], [0.]], [[0.], [3.5], [0.]], [[0.], [0.], [4.5]]])
+    mean1 = CovarianceMatrix([[2.5, 0.0, 0.0], [0.0, 3.5, 0.0], [0.0, 0.0, 4.5]])
+    mean2 = CovarianceMatrices(
+        [[[2.5], [0.0], [0.0]], [[0.0], [3.5], [0.0]], [[0.0], [0.0], [4.5]]]
+    )
     assert np.allclose(np.average(cms1, axis=2), mean1)
     assert np.allclose(np.average(cms2, axis=0), mean1)
     assert np.allclose(np.mean(cms1, axis=2, keepdims=True), mean2)
-
-
-def test_statevectors_mean():
-    svs = StateVectors([[1., 2., 3.], [4., 5., 6.]])
-    mean = StateVector([[2., 5.]])
-
-    assert np.allclose(np.average(svs, axis=1), mean)
-    assert np.allclose(np.mean(svs, axis=1, keepdims=True), mean)
-
-
-def test_standard_statevector_indexing():
-    state_vector_array = np.array([[1], [2], [3], [4]])
-    state_vector = StateVector(state_vector_array)
-
-    # test standard indexing
-    assert state_vector[2, 0] == 3
-    assert not isinstance(state_vector[2, 0], StateVector)
-
-    # test Slicing
-    assert state_vector[1:2, 0] == 2
-    assert isinstance(state_vector[1:2, 0], Matrix)  # (n,)
-    assert isinstance(state_vector[1:2, :], StateVector)  # (n, 1)
-    assert np.array_equal(state_vector[:], state_vector)
-    assert isinstance(state_vector[:, 0], Matrix)  # (n,)
-    assert isinstance(state_vector[:, :], StateVector)  # (n, 1)
-    assert np.array_equal(state_vector[0:], state_vector)
-    assert isinstance(state_vector[0:, 0], Matrix)  # (n,)
-    assert isinstance(state_vector[0:, :], StateVector)  # (n, 1)
-
-    # test list indices
-    assert np.array_equal(state_vector[[1, 3]], StateVector([2, 4]))
-    assert isinstance(state_vector[[1, 3], 0], Matrix)
-
-    # test int indexing
-    assert state_vector[2] == 3
-    assert not isinstance(state_vector[2], StateVector)
-
-    # test behaviour of ravel and flatten functions
-    state_vector_ravel = state_vector.ravel()
-    state_vector_flatten = state_vector.flatten()
-    assert isinstance(state_vector_ravel, Matrix)
-    assert isinstance(state_vector_flatten, Matrix)
-    assert state_vector_flatten[0] == 1
-    assert state_vector_ravel[0] == 1

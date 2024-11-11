@@ -1,11 +1,5 @@
-from typing import Callable
-from unittest.mock import MagicMock
-
 import numpy as np
 import pytest
-
-from stonesoup.models.base_driver import LevyDriver
-from stonesoup.models.driver import GaussianDriver
 
 
 @pytest.fixture
