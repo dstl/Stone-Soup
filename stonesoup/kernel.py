@@ -17,17 +17,17 @@ class Kernel(Base):
     @abstractmethod
     def __call__(self, state1, state2=None):
         r"""
-        Compute the kernel state of a pair of :class:`~.StateVectors` objects
+        Compute the kernel state of a pair of :class:`~.State` objects
 
         Parameters
         ----------
-        state1 : :class:`~.StateVectors`
-        state2 : :class:`~.StateVectors`
+        state1 : :class:`~.State`
+        state2 : :class:`~.State`
 
         Returns
         -------
         StateVectors
-            kernel state of a pair of input :class:`~.StateVectors` objects
+            kernel state of a pair of input :class:`~.State` objects
 
         """
         raise NotImplementedError
@@ -76,7 +76,7 @@ class PolynomialKernel(Kernel):
     r"""Polynomial Kernel
 
     This kernel returns the polynomial kernel of order :math:`p` state from a pair of
-    :class:`.StateVectors` objects.
+    :class:`.State` objects.
 
     The polynomial kernel of state vectors :math:`\mathbf{x}` and :math:`\mathbf{x}^\prime` is
     defined as:
@@ -100,7 +100,7 @@ class PolynomialKernel(Kernel):
 class LinearKernel(PolynomialKernel):
     r"""Linear Kernel
 
-   This kernel returns the linear kernel state vector from a pair of :class:`~.StateVectors`
+   This kernel returns the linear kernel state vector from a pair of :class:`~.State`
    objects.
 
    The linear kernel of state vectors :math:`\mathbf{x}` and :math:`\mathbf{x}^\prime` is
@@ -131,7 +131,7 @@ class LinearKernel(PolynomialKernel):
 class QuadraticKernel(PolynomialKernel):
     r"""Quadratic Kernel type
 
-    This kernel returns the quadratic kernel state vector from a pair of :class:`~.StateVectors`
+    This kernel returns the quadratic kernel state vector from a pair of :class:`~.State`
     objects.
 
     The quadratic kernel of state vectors :math:`\mathbf{x}` and :math:`\mathbf{x}^\prime` is
@@ -154,7 +154,7 @@ class QuadraticKernel(PolynomialKernel):
 class QuarticKernel(PolynomialKernel):
     r"""Quartic Kernel
 
-    This kernel returns the quartic kernel state from a pair of :class:`~.StateVectors` objects.
+    This kernel returns the quartic kernel state from a pair of :class:`~.State` objects.
 
     The quartic kernel of state vectors :math:`\mathbf{x}` and :math:`\mathbf{x}^\prime` is defined
     as:
@@ -177,7 +177,7 @@ class GaussianKernel(Kernel):
     r"""Gaussian Kernel
 
     This kernel returns the Gaussian kernel state vector from a pair of
-    :class:`~.StateVectors` objects.
+    :class:`~.State` objects.
 
     The Gaussian kernel of state vectors :math:`\mathbf{x}` and
     :math:`\mathbf{x}'` is defined as:
@@ -192,12 +192,12 @@ class GaussianKernel(Kernel):
             r"Gaussian kernel. Range is [1e0, 1e2].")
 
     def __call__(self, state1, state2=None):
-        r"""Calculate the Gaussian Kernel transformation for a pair of state vectors
+        r"""Calculate the Gaussian Kernel transformation for a pair of :class:`~.State` objects.
 
         Parameters
         ----------
-        state1 : :class:`~.StateVectors`
-        state2 : :class:`~.StateVectors`
+        state1 : :class:`~.State`
+        state2 : :class:`~.State`
 
         Returns
         -------
