@@ -15,7 +15,7 @@ from ..predictor.particle import MultiModelPredictor, RaoBlackwellisedMultiModel
 from ..resampler import Resampler
 from ..regulariser import Regulariser
 from ..types.numeric import Probability
-from ..types.state import StateVectors, CovarianceMatrix
+from stonesoup.types.array import StateVectors, CovarianceMatrices
 from ..types.prediction import (
     Prediction, ParticleMeasurementPrediction, GaussianStatePrediction, MeasurementPrediction)
 from ..types.update import ParticleStateUpdate, Update
@@ -678,13 +678,6 @@ class MarginalisedParticleUpdater(ParticleUpdater):
     def _posterior_covariance(self, hypothesis):
         predicted_covar = hypothesis.prediction.covariance
         post_cov = np.zeros_like(predicted_covar)
-        # num_samples = post_cov.shape[-1]
-        # for p in range(num_samples):
-        #     mp_covar = hypothesis.measurement_prediction.covariance[..., p] # M x M X N
-        #     mp_cross_covar =  hypothesis.measurement_prediction.cross_covar[..., p]
-            
-        #     kalman_gain = mp_cross_covar @ np.linalg.inv(mp_covar)
-        #     post_cov[..., p] = predicted_covar[..., p] - kalman_gain @ mp_covar @ kalman_gain.T
         mp_covar = hypothesis.measurement_prediction.covariance # M x M X N
         mp_cross_covar =  hypothesis.measurement_prediction.cross_covar
         inv = np.linalg.inv(mp_covar.T).T # M x M X N
@@ -692,7 +685,7 @@ class MarginalisedParticleUpdater(ParticleUpdater):
         tmp = np.einsum("jki, lki -> jli", mp_covar, kalman_gain)
         post_cov = predicted_covar - np.einsum("jli, lki -> jki", kalman_gain, tmp)
        
-        return post_cov.view(CovarianceMatrix), kalman_gain
+        return post_cov.view(CovarianceMatrices), kalman_gain
 
     def update(self, hypothesis, **kwargs):
         predicted_state = hypothesis.prediction

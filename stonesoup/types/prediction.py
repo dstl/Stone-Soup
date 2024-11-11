@@ -235,7 +235,7 @@ class CompositeMeasurementPrediction(MeasurementPrediction, CompositeState):
 class MarginalisedParticleStatePrediction(Prediction, MarginalisedParticleState):
     """RBStateUpdate type
 
-    This is a simple RBParticle state update object.
+    This is a simple MarginalisedParticle state update object.
     """
     pass
 
