@@ -11,7 +11,7 @@ import numpy as np
 from datetime import datetime, timedelta, timezone
 from stonesoup.types.groundtruth import GroundTruthPath, GroundTruthState
 from stonesoup.types.array import StateVector
-from typing import Union
+from typing import Union, List
 from stonesoup.models.base import LevyModel
 
 
@@ -39,7 +39,7 @@ def conditionally_gaussian_driver(seed):
     )
 
 
-def compare_transition(model: LevyModel, expected_state_vectors: list[StateVector]):
+def compare_transition(model: LevyModel, expected_state_vectors: List[StateVector]):
     start_time = datetime.now(tz=timezone.UTC).replace(microsecond=0)
     timesteps = [start_time]
     truth = GroundTruthPath([GroundTruthState(expected_state_vectors[0], timestamp=timesteps[0])])
