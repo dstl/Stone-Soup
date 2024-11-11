@@ -1,15 +1,19 @@
-from numpy.random import RandomState
-from stonesoup.models.base import Latents
-from stonesoup.types.array import CovarianceMatrices, CovarianceMatrix, StateVector, StateVectors
-from ...base import Property
-from ..base import LevyModel, LinearModel
-from .base import CombinedLevyTransitionModel, LinearModel, TransitionModel, TimeVariantModel
-from functools import lru_cache
-import numpy as np
 from datetime import timedelta
-from scipy.integrate import quad_vec
-from scipy.linalg import expm, block_diag
 from typing import Optional, Union
+
+import numpy as np
+from numpy.random import RandomState
+from scipy.linalg import block_diag, expm
+
+from stonesoup.base import Property
+from stonesoup.models.base import (
+    LinearModel,
+    TimeVariantModel,
+    Latents,
+    LevyModel,
+)
+from stonesoup.models.transition.base import CombinedLevyTransitionModel,     TransitionModel
+from stonesoup.types.array import StateVector, StateVectors
 
 
 class LinearLevyTransitionModel(TransitionModel, LinearModel, LevyModel):
@@ -50,16 +54,20 @@ class CombinedLinearLevyTransitionModel(CombinedLevyTransitionModel, LinearModel
 
 
 class LevyConstantNthDerivative(LinearLevyTransitionModel, TimeVariantModel):
-    r"""Identical model to :class:`~.ConstantNthDerivative`, but driving white noise is now replaced with
-    a Levy driving process.
+    r"""Identical model to :class:`~.ConstantNthDerivative`, but driving white noise
+    is now replaced with a Levy driving process.
     """
 
     constant_derivative: int = Property(
-        doc="The order of the derivative with respect to time to be kept constant, eg if 2 "
-        "identical to constant acceleration"
+        doc=(
+            "The order of the derivative with respect to time to be kept constant, eg if 2 "
+            "identical to constant acceleration"
+        )
     )
 
-    noise_diff_coeff: Optional[float] = Property(default=1.0, doc="The acceleration noise diffusion coefficient :math:`q`")
+    noise_diff_coeff: Optional[float] = Property(
+        default=1.0, doc="The acceleration noise diffusion coefficient :math:`q`"
+    )
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -82,7 +90,7 @@ class LevyConstantNthDerivative(LinearLevyTransitionModel, TimeVariantModel):
     @property
     def ndim_state(self):
         return self.constant_derivative + 1
-    
+
     def _integrand(self, dt: float, jtimes: np.ndarray) -> np.ndarray:
         delta = dt - jtimes[..., np.newaxis, np.newaxis]
         return expm(self.A * delta) @ self.h
@@ -106,8 +114,8 @@ class LevyRandomWalk(LevyConstantNthDerivative):
     r"""This is a class implementation of a discrete, time-variant 1D
     Linear-Levy Random Walk Transition Model.
 
-        The target is assumed to be (almost) stationary, where
-        target velocity is modelled as white noise.
+    The target is assumed to be (almost) stationary, where
+    target velocity is modelled as white noise.
     """
 
     @property
@@ -144,20 +152,26 @@ class LevyConstantAcceleration(LevyConstantNthDerivative):
 
 
 class LevyNthDerivativeDecay(LinearLevyTransitionModel, TimeVariantModel):
-    r"""Identical model to :class:`~.NthDerivativeDecay`, but driving white noise is now replaced with
-    a Levy driving process.
+    r"""Identical model to :class:`~.NthDerivativeDecay`, but driving white noise is
+    now replaced with a Levy driving process.
     """
+
     decay_derivative: int = Property(
         doc="The derivative with respect to time to decay exponentially, eg if 2 identical to "
-            "singer")
-    noise_diff_coeff: Optional[float] = Property(default=1.0, doc="The acceleration noise diffusion coefficient :math:`q`")
-    damping_coeff: float = Property(doc="The Nth derivative damping coefficient :math:`K`")
+        "singer"
+    )
+    noise_diff_coeff: Optional[float] = Property(
+        default=1.0, doc="The acceleration noise diffusion coefficient :math:`q`"
+    )
+    damping_coeff: float = Property(
+        doc="The Nth derivative damping coefficient :math:`K`"
+    )
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.A = self._init_A()
         self.h = self._init_h()
-    
+
     def _integrand(self, dt: float, jtimes: np.ndarray) -> np.ndarray:
         delta = dt - jtimes[..., np.newaxis, np.newaxis]
         return expm(self.A * delta) @ self.h
@@ -183,7 +197,7 @@ class LevyNthDerivativeDecay(LinearLevyTransitionModel, TimeVariantModel):
     def matrix(self, time_interval: timedelta, **kwargs):
         dt = time_interval.total_seconds()
         return expm(self.A * dt)
-    
+
     def rvs(
         self,
         latents: Optional[Latents] = None,
@@ -209,20 +223,22 @@ class LevyLangevin(LevyNthDerivativeDecay):
     @property
     def decay_derivative(self):
         return 1
-    
+
     def matrix(self, time_interval: timedelta, **kwargs) -> np.ndarray:
         """Closed form known, faster than matrix exponentiation"""
         dt = time_interval.total_seconds()
         eA0 = np.array([[0, 1.0 / -self.damping_coeff], [0.0, 1.0]])
         eA1 = np.array([[1, 1.0 / self.damping_coeff], [0.0, 0.0]])
-        eAdt = np.exp(-self.damping_coeff* dt) * eA0 + eA1
+        eAdt = np.exp(-self.damping_coeff * dt) * eA0 + eA1
         # exp_A_delta_t
         return eAdt  # (m, m)
-    
+
     def _integrand(self, dt: float, jtimes: np.ndarray) -> np.ndarray:
         v1 = np.array([[1.0 / -self.damping_coeff], [1.0]])  # (m, 1)
         v2 = np.array([[1.0 / self.damping_coeff], [0.0]])
-        term1 = np.exp(-self.damping_coeff * (dt - jtimes))[..., None, None]  # (n_jumps, n_samples, 1, 1)
+        term1 = np.exp(-self.damping_coeff * (dt - jtimes))[
+            ..., None, None
+        ]  # (n_jumps, n_samples, 1, 1)
         term2 = np.ones_like(jtimes)[..., None, None]
         return term1 * v1 + term2 * v2  # (n_jumps, n_samples, m, 1)
 

@@ -1,17 +1,20 @@
+import copy
 from abc import abstractmethod
 from datetime import timedelta
-import copy
-from typing import Sequence, Iterable, Union, List, Optional, Callable
+from typing import Iterable, List, Optional, Sequence, Union
 
-from scipy.linalg import block_diag
 import numpy as np
+from scipy.linalg import block_diag
 
-from stonesoup.models.base import Model, GaussianModel, LinearModel, TimeVariantModel, LevyModel, Latents
 from stonesoup.base import Property
-from stonesoup.types.array import StateVector, StateVectors, CovarianceMatrix, CovarianceMatrices
-from stonesoup.types.state import State
-from stonesoup.types.numeric import Probability
+from stonesoup.models.base import GaussianModel, Latents, LevyModel, Model
 from stonesoup.models.base_driver import ConditionallyGaussianDriver
+from stonesoup.types.array import (
+    CovarianceMatrices,
+    CovarianceMatrix,
+    StateVector,
+    StateVectors,
+)
 
 
 class TransitionModel(Model):
@@ -36,6 +39,7 @@ class CombinedGaussianTransitionModel(TransitionModel, GaussianModel):
     If any of the models are time variant the keyword argument "time_interval"
     must be supplied to all methods
     """
+
     model_list: Sequence[GaussianModel] = Property(doc="List of Transition Models.")
 
     def __init__(self, *args, **kwargs):
@@ -75,10 +79,12 @@ class CombinedGaussianTransitionModel(TransitionModel, GaussianModel):
         else:
             noise_loop = False
         for model in self.model_list:
-            temp_state.state_vector =\
-                state.state_vector[ndim_count:model.ndim_state + ndim_count, :]
-            state_vector[ndim_count:model.ndim_state + ndim_count, :] += \
-                model.function(temp_state, noise=noise_loop, **kwargs)
+            temp_state.state_vector = state.state_vector[
+                ndim_count: model.ndim_state + ndim_count, :
+            ]
+            state_vector[ndim_count: model.ndim_state + ndim_count, :] += model.function(
+                temp_state, noise=noise_loop, **kwargs
+            )
             ndim_count += model.ndim_state
         if isinstance(noise, bool):
             noise = 0
@@ -102,8 +108,9 @@ class CombinedGaussianTransitionModel(TransitionModel, GaussianModel):
         ndim_count = 0
         J_list = []
         for model in self.model_list:
-            temp_state.state_vector =\
-                state.state_vector[ndim_count:model.ndim_state + ndim_count, :]
+            temp_state.state_vector = state.state_vector[
+                ndim_count: model.ndim_state + ndim_count, :
+            ]
             J_list.append(model.jacobian(temp_state, **kwargs))
 
             ndim_count += model.ndim_state
@@ -143,11 +150,12 @@ class CombinedLevyTransitionModel(TransitionModel, LevyModel):
     If any of the models are time variant the keyword argument "time_interval"
     must be supplied to all methods
     """
+
     model_list: Sequence[GaussianModel] = Property(doc="List of Transition Models.")
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        assert(len(self.model_list) != 0)
+        assert len(self.model_list) != 0
 
     def _integrand(self, dt: float, jtimes: np.ndarray):
         return NotImplementedError
@@ -160,12 +168,15 @@ class CombinedLevyTransitionModel(TransitionModel, LevyModel):
     def mu_W(self):
         mu = [m.mu_W if m.mu_W is not None else m.driver.mu_W for m in self.model_list]
         return np.atleast_2d(mu).T
-    
+
     @property
     def sigma_W2(self):
-        sigma2 = [m.sigma_W2 if m.sigma_W2 is not None else m.driver.sigma_W2 for m in self.model_list]
+        sigma2 = [
+            m.sigma_W2 if m.sigma_W2 is not None else m.driver.sigma_W2
+            for m in self.model_list
+        ]
         return np.diag(sigma2)
-    
+
     @property
     def ndim_state(self):
         """ndim_state getter method
@@ -177,9 +188,8 @@ class CombinedLevyTransitionModel(TransitionModel, LevyModel):
         """
         return sum(model.ndim_state for model in self.model_list)
 
-
     def mean(self, **kwargs) -> Union[StateVector, StateVectors]:
-        """Returns the transition model noise mean matrix.
+        """Returns the transition model noise mean vector.
 
         Returns
         -------
@@ -192,8 +202,7 @@ class CombinedLevyTransitionModel(TransitionModel, LevyModel):
             return np.vstack(mean_list).view(StateVector)
         else:
             return np.concatenate(mean_list, axis=1).view(StateVectors)
-        
-    
+
     def covar(self, **kwargs) -> Union[CovarianceMatrix, CovarianceMatrices]:
         """Returns the transition model noise covariance matrix.
 
@@ -212,13 +221,14 @@ class CombinedLevyTransitionModel(TransitionModel, LevyModel):
             ret = []
             for n in range(N):
                 tmp = []
-                for tensor in covar_list: # D
+                for tensor in covar_list:  # D
                     tmp.append(tensor[n])
                 ret.append(block_diag(*tmp))
             return np.array(ret).view(CovarianceMatrices)
 
-
-    def function(self, state, time_interval: timedelta, noise=False, **kwargs) -> StateVector:
+    def function(
+        self, state, time_interval: timedelta, noise=False, **kwargs
+    ) -> StateVector:
         """Applies each transition model in :py:attr:`~model_list` in turn to the state's
         corresponding state vector components.
         For example, in a 3D state space, with :py:attr:`~model_list` = [modelA(ndim_state=2),
@@ -229,6 +239,10 @@ class CombinedLevyTransitionModel(TransitionModel, LevyModel):
         ----------
         state : :class:`stonesoup.state.State`
             The state to be transitioned according to the models in :py:attr:`~model_list`.
+        time_interval : :class:`timestamp.timedelta`
+            The time interval between two observations.
+        noise : :class:`bool`
+
 
         Returns
         -------
@@ -253,10 +267,14 @@ class CombinedLevyTransitionModel(TransitionModel, LevyModel):
         latents = self.sample_latents(time_interval=time_interval, num_samples=1)
         for model in self.model_list:
             temp_state.state_vector = state.state_vector[
-                ndim_count : model.ndim_state + ndim_count, :
+                ndim_count: model.ndim_state + ndim_count, :
             ]
-            state_vector[ndim_count : model.ndim_state + ndim_count, :] += model.function(
-                state=temp_state, latents=latents, time_interval=time_interval, noise=noise_loop, **kwargs
+            state_vector[ndim_count: model.ndim_state + ndim_count, :] += model.function(
+                state=temp_state,
+                latents=latents,
+                time_interval=time_interval,
+                noise=noise_loop,
+                **kwargs
             )
             ndim_count += model.ndim_state
 
@@ -264,12 +282,22 @@ class CombinedLevyTransitionModel(TransitionModel, LevyModel):
             noise = 0
         return state_vector + noise
 
-    def sample_latents(self, time_interval: timedelta, num_samples: int, random_state: Optional[np.random.RandomState]=None) -> Latents:
+    def sample_latents(
+        self,
+        time_interval: timedelta,
+        num_samples: int,
+        random_state: Optional[np.random.RandomState] = None,
+    ) -> Latents:
         dt = time_interval.total_seconds()
         latents = Latents(num_samples=num_samples)
         for m in self.model_list:
-            if m.driver and isinstance(m.driver, ConditionallyGaussianDriver) and not latents.exists(m.driver):
-                jsizes, jtimes = m.driver.sample_latents(dt=dt, num_samples=num_samples, random_state=random_state)
+            if (
+                m.driver
+                and isinstance(m.driver, ConditionallyGaussianDriver)
+                and not latents.exists(m.driver)
+            ):
+                jsizes, jtimes = m.driver.sample_latents(
+                    dt=dt, num_samples=num_samples, random_state=random_state
+                )
                 latents.add(driver=m.driver, jsizes=jsizes, jtimes=jtimes)
         return latents
-

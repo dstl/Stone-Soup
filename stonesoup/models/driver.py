@@ -1,15 +1,21 @@
-from typing import Callable, Generator, Optional, Union, override
+from typing import Callable, Generator, Optional, Union
 
 import numpy as np
-from numpy.typing import NDArray
 from scipy.special import gamma as gammafnc
 from scipy.special import gammainc
 
 from stonesoup.base import Property
-from stonesoup.models.base_driver import (ConditionallyGaussianDriver,
-                                          LevyDriver, NoiseCase, NormalSigmaMeanDriver, NormalVarianceMeanDriver)
-from stonesoup.types.array import (CovarianceMatrices, CovarianceMatrix,
-                                   StateVector, StateVectors)
+from stonesoup.models.base_driver import (
+    LevyDriver,
+    NormalSigmaMeanDriver,
+    NormalVarianceMeanDriver,
+)
+from stonesoup.types.array import (
+    CovarianceMatrices,
+    CovarianceMatrix,
+    StateVector,
+    StateVectors,
+)
 
 
 def incgammal(s: float, x: float) -> float:  # Helper function
@@ -17,13 +23,11 @@ def incgammal(s: float, x: float) -> float:  # Helper function
 
 
 class GaussianDriver(LevyDriver):
+    """Implements Gaussian noise driver to be used with :class:`~.LevyModel`."""
 
     mu_W: float = Property(default=0.0, doc="Default Gaussian mean")
     sigma_W2: float = Property(default=1.0, doc="Default Gaussian variance")
 
-    def sample_latents(self, dt: float, num_samples: int, random_state: Optional[Generator] = None) -> np.array:
-        return np.zeros((1, num_samples)), np.zeros(1, num_samples)
-    
     def characteristic_func(
         self, mu_W: Optional[float] = None, sigma_W2: Optional[float] = None, **kwargs
     ) -> Callable[[float], complex]:
@@ -44,7 +48,22 @@ class GaussianDriver(LevyDriver):
         mu_W: Optional[float] = None,
         num_samples: int = 1,
         **kwargs
-    ) -> StateVector:
+    ) -> Union[StateVector, StateVectors]:
+        """Computes mean vectors. The number of mean vectors is dependent on the
+        number of samples in the jump sizes/times. Each jump sequence results in
+        an unique mean vector.
+
+        Args:
+            e_ft_func (Callable[..., np.ndarray]): The expectation of ft_func.
+            dt (float): The time interval.
+            mu_W (Optional[float], optional): The conditionally Gaussian mean vector.
+                Defaults to None and the default mu_W specified during initialisation
+                is used.
+            num_samples (int): Number of mean vectors to generate.
+
+        Returns:
+            Union[StateVector, StateVectors]: The resulting mean vectors.
+        """
         mu_W = np.atleast_2d(self.mu_W) if mu_W is None else np.atleast_2d(mu_W)
         e_ft = e_ft_func(dt=dt)
         mean = mu_W * e_ft
@@ -61,7 +80,22 @@ class GaussianDriver(LevyDriver):
         sigma_W2: Optional[float] = None,
         num_samples: int = 1,
         **kwargs
-    ) -> CovarianceMatrix:
+    ) -> Union[CovarianceMatrix,  CovarianceMatrices]:
+        """Computes covariance matrices. The number of covariance matrices is dependent
+        on the number of samples in the jump sizes/times. Each jump sequence results
+        in an unique covariance matrix.
+
+        Args:
+            e_ft_func (Callable[..., np.ndarray]): The expectation of ft_func.
+            dt (float): The time interval.
+            sigma_W2 (Optional[float], optional): The conditionally Gaussian variance.
+                Defaults to None and the default sigma_W2 specified during initialisation
+                is used.
+            num_samples (int): Number of covariance matrices to generate.
+
+        Returns:
+            Union[CovarianceMatrix, CovarianceMatrices]: The resulting covariance matrices.
+        """
         e_ft = e_ft_func(dt=dt)
         sigma_W2 = (
             np.atleast_2d(self.sigma_W2) if sigma_W2 is None else np.atleast_2d(sigma_W2)
@@ -73,7 +107,6 @@ class GaussianDriver(LevyDriver):
             covar = np.tile(covar, (num_samples, 1, 1))
             return covar.view(CovarianceMatrices)
 
-
     def rvs(
         self,
         mean: StateVector,
@@ -82,19 +115,17 @@ class GaussianDriver(LevyDriver):
         num_samples: int = 1,
         **kwargs
     ) -> Union[StateVector, StateVectors]:
-        """Returns the noise sampled via the Levy driving process.
+        """Computes the driving noise term given the mean and covariance matrix specified.
+
 
         Args:
-            mean (StateVector): Mean of the conditionally Gaussian Levy density.
-            covar (CovarianceMatrix): Covariance of the conditionally Gaussian
-                                      Levy density.
-            random_state (Generator, optional): Random state (seed) to use. Defaults
-                                                to None.
-            num_samples (int, optional): Number of noise samples to generate.
-                                         Defaults to 1.
+            mean (StateVector): The Gaussian mean vector.
+            covar (CovarianceMatrices): The Gaussian covariance matrix.
+            random_state (Optional[np.random.RandomState], optional): RNG to use. Defaults to None.
+            num_samples (int, optional): Number of driving noise samples. Defaults to 1.
 
         Returns:
-            Union[StateVector, StateVectors]: Single or multiple noise term as vectors.
+            Union[StateVector, StateVectors]: Driving noise samples.
         """
         if random_state is None:
             random_state = self.random_state
@@ -107,6 +138,8 @@ class GaussianDriver(LevyDriver):
 
 
 class AlphaStableNSMDriver(NormalSigmaMeanDriver):
+    """Implements the Alpha Stable NSM noise driver to be used with :class:`~.LevyModel`."""
+
     alpha: float = Property(doc="Alpha parameter.")
 
     def __init__(self, *args, **kwargs) -> None:
@@ -152,6 +185,8 @@ class AlphaStableNSMDriver(NormalSigmaMeanDriver):
 
 
 class GammaNVMDriver(NormalVarianceMeanDriver):
+    """Implements the Gamma NVM noise driver to be used with :class:`~.LevyModel`."""
+
     nu: float = Property(doc="Scale parameter")
     beta: float = Property(doc="Shape parameter")
 
@@ -164,7 +199,6 @@ class GammaNVMDriver(NormalVarianceMeanDriver):
     def _second_moment(self, truncation: float) -> float:
         return (self.nu / self.beta**2) * incgammal(2.0, self.beta * truncation)
 
-    @override
     def _thinning_probabilities(self, jsizes: np.ndarray) -> np.ndarray:
         return (1.0 + self.beta * jsizes) * np.exp(
             -self.beta * jsizes
@@ -191,6 +225,8 @@ class GammaNVMDriver(NormalVarianceMeanDriver):
 
 
 class TemperedStableNVMDriver(NormalVarianceMeanDriver):
+    """Implements the Tempered Stable NVM noise driver to be used with :class:`~.LevyModel`."""
+
     alpha: float = Property(doc="Alpha parameter")
     beta: float = Property(doc="Shape parameter")
 
@@ -207,7 +243,6 @@ class TemperedStableNVMDriver(NormalVarianceMeanDriver):
             2.0 - self.alpha, self.beta * truncation
         )
 
-    @override
     def _thinning_probabilities(self, jsizes: np.ndarray) -> np.ndarray:
         return np.exp(-self.beta * jsizes)  # (n_jumps, n_samples)
 
