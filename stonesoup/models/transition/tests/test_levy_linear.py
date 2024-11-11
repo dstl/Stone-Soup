@@ -40,7 +40,7 @@ def conditionally_gaussian_driver(seed):
 
 
 def compare_transition(model: LevyModel, expected_state_vectors: List[StateVector]):
-    start_time = datetime.now(tz=timezone.UTC).replace(microsecond=0)
+    start_time = datetime.now(tz=timezone.utc).replace(microsecond=0)
     timesteps = [start_time]
     truth = GroundTruthPath([GroundTruthState(expected_state_vectors[0], timestamp=timesteps[0])])
 

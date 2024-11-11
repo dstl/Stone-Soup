@@ -220,7 +220,7 @@ def test_marginalised_particle_filter_update(
     expected_state: StateVectors,
     expected_covariance: CovarianceMatrices,
 ):
-    start_time = datetime.now(tz=timezone.UTC).replace(microsecond=0)
+    start_time = datetime.now(tz=timezone.utc).replace(microsecond=0)
     hypothesis.prediction.timestamp = start_time
     hypothesis.measurement.timestamp = start_time
 
