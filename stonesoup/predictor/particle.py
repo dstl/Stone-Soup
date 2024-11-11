@@ -528,7 +528,17 @@ class SMCPHDPredictor(Predictor):
 
 
 class MarginalisedParticlePredictor(ParticlePredictor):
-    """Implementation of the Marginalised Particle Filter predictor"""
+    """Implementation of the Marginalised Particle Filter (MPF) predictor.
+    
+    The MPF which partitions the state into:
+        1. linear Gaussian
+        2. non-linear and possibly non-Gaussian
+
+    It uses a Kalman filter to handle the linear Gaussian states, and
+    a traditional particle filter to infer the non-linear states.
+    
+    See Cappe, Godsill, Moulines (2007) for more details.
+    """
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
