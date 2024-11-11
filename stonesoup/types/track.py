@@ -1,6 +1,6 @@
 import copy
 import uuid
-from typing import MutableSequence, MutableMapping
+from collections.abc import MutableSequence, MutableMapping
 
 from .multihypothesis import MultipleHypothesis
 from .state import State, StateMutableSequence

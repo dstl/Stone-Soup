@@ -1,6 +1,6 @@
 from abc import abstractmethod
 from collections import UserDict
-from typing import Sequence
+from collections.abc import Sequence
 
 import numpy as np
 

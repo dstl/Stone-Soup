@@ -1,5 +1,4 @@
 import datetime
-from typing import Tuple, List
 
 import numpy as np
 import pytest
@@ -57,7 +56,7 @@ def calculate_state(time: datetime.datetime) -> State:
 
 
 @pytest.fixture
-def gen_test_data() -> Tuple[StateMutableSequence, List[datetime.datetime]]:
+def gen_test_data() -> tuple[StateMutableSequence, list[datetime.datetime]]:
 
     sms = StateMutableSequence([calculate_state(time)
                                 for time in time_range(t0, t_max, datetime.timedelta(seconds=0.25))

@@ -2,7 +2,8 @@ import heapq
 import warnings
 from abc import abstractmethod
 from datetime import datetime
-from typing import List, Sequence, Optional
+from collections.abc import Sequence
+from typing import Optional
 
 from .base import BaseMeasure
 from .state import Measure
@@ -17,7 +18,7 @@ class MultipleMeasure(BaseMeasure):
     can be used when comparing objects that contain multiple other objects.
     """
     @abstractmethod
-    def __call__(self, item1, item2) -> List[float]:
+    def __call__(self, item1, item2) -> list[float]:
         raise NotImplementedError
 
 
@@ -30,7 +31,7 @@ class StateSequenceMeasure(MultipleMeasure):
 
     def __call__(self, state_sequence_1: StateMutableSequence,
                  state_sequence_2: StateMutableSequence,
-                 times_to_measure: Sequence[datetime] = None) -> List[float]:
+                 times_to_measure: Sequence[datetime] = None) -> list[float]:
         """
         Compare the states from each state sequence for every time in `times_to_measure`.
 
@@ -49,7 +50,7 @@ class StateSequenceMeasure(MultipleMeasure):
 
         Returns
         -------
-        List[float]
+        list[float]
             a list of distance measures between a states in the state sequence inputs.
 
         """
@@ -80,7 +81,7 @@ class RecentStateSequenceMeasure(MultipleMeasure):
     n_states_to_compare: int = Property(doc="Maximum number of states to be compared.")
 
     def __call__(self, state_sequence_1: StateMutableSequence,
-                 state_sequence_2: StateMutableSequence) -> List[float]:
+                 state_sequence_2: StateMutableSequence) -> list[float]:
         """
         Compare the states from each state sequence for the most recent `n_states_to_compare`
         times.
@@ -121,7 +122,7 @@ class MeanMeasure(BaseMeasure):
     measure: MultipleMeasure = Property()
 
     def __call__(self, *args, **kwargs) -> Optional[float]:
-        measures: List[float] = self.measure(*args, **kwargs)
+        measures: list[float] = self.measure(*args, **kwargs)
 
         if len(measures) == 0:
             return None

@@ -1,6 +1,6 @@
 import copy
+from collections.abc import Sequence
 from enum import Enum
-from typing import Sequence
 
 import numpy as np
 from scipy.special import logsumexp
@@ -11,6 +11,8 @@ from ._utils import predict_lru_cache
 from .kalman import KalmanPredictor, ExtendedKalmanPredictor
 from ..base import Property
 from ..models.transition import TransitionModel
+from ..proposal.base import Proposal
+from ..proposal.simple import PriorAsProposal
 from ..sampler.particle import ParticleSampler
 from ..types.numeric import Probability
 from ..types.prediction import Prediction
@@ -25,9 +27,18 @@ class ParticlePredictor(Predictor):
 
     An implementation of a Particle Filter predictor.
     """
+    proposal: Proposal = Property(
+        default=None,
+        doc="A proposal object that generates samples from the proposal distribution. If `None`,"
+            "the transition model is used to generate samples.")
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        if self.proposal is None:
+            self.proposal = PriorAsProposal(self.transition_model)
 
     @predict_lru_cache()
-    def predict(self, prior, timestamp=None, **kwargs):
+    def predict(self, prior, timestamp=None, measurement=None, **kwargs):
         """Particle Filter prediction step
 
         Parameters
@@ -37,12 +48,17 @@ class ParticlePredictor(Predictor):
         timestamp: :class:`datetime.datetime`, optional
             A timestamp signifying when the prediction is performed
             (the default is `None`)
+        measurement: :class:`~.Detection`, optional
+            measurement used in the Kalman Filter proposal to update
+            the prediction
+            (the default is `None`)
 
         Returns
         -------
         : :class:`~.ParticleStatePrediction`
             The predicted state
         """
+
         # Compute time_interval
         try:
             time_interval = timestamp - prior.timestamp
@@ -50,18 +66,11 @@ class ParticlePredictor(Predictor):
             # TypeError: (timestamp or prior.timestamp) is None
             time_interval = None
 
-        new_state_vector = self.transition_model.function(
-            prior,
-            noise=True,
-            time_interval=time_interval,
-            **kwargs)
-
-        return Prediction.from_state(prior,
-                                     parent=prior,
-                                     state_vector=new_state_vector,
-                                     timestamp=timestamp,
-                                     transition_model=self.transition_model,
-                                     prior=prior)
+        return self.proposal.rvs(prior,
+                                 noise=True,
+                                 time_interval=time_interval,
+                                 measurement=measurement,
+                                 **kwargs)
 
 
 class ParticleFlowKalmanPredictor(ParticlePredictor):
@@ -305,7 +314,7 @@ class BernoulliParticlePredictor(ParticlePredictor):
 
         # Sample from birth distribution
         detections = self.get_detections(prior)
-        birth_state = self.birth_sampler.sample(detections)
+        birth_state = self.birth_sampler.sample(detections, **kwargs)
 
         birth_part = birth_state.state_vector
         nbirth_particles = len(birth_state)
@@ -455,7 +464,7 @@ class SMCPHDPredictor(Predictor):
         self.birth_scheme = SMCPHDBirthSchemeEnum(self.birth_scheme)
 
     @predict_lru_cache()
-    def predict(self, prior, timestamp=None, **kwargs):
+    def predict(self, prior, timestamp=None, random_state=None, **kwargs):
         """ SMC-PHD prediction step
 
         Parameters
@@ -477,7 +486,9 @@ class SMCPHDPredictor(Predictor):
         # Predict surviving particles forward
         pred_particles_sv = self.transition_model.function(prior,
                                                            time_interval=time_interval,
-                                                           noise=True)
+                                                           noise=True,
+                                                           random_state=random_state,
+                                                           **kwargs)
 
         # Calculate probability of survival
         log_prob_survive = -float(self.death_probability) * time_interval.total_seconds()
@@ -490,7 +501,10 @@ class SMCPHDPredictor(Predictor):
 
             # Sample birth particles
             birth_particles = self.birth_sampler.sample(
-                params={self.birth_func_num_samples_field: num_birth}, timestamp=timestamp)
+                params={self.birth_func_num_samples_field: num_birth},
+                timestamp=timestamp,
+                random_state=random_state,
+                **kwargs)
             # Ensure birth weights are uniform and scaled by birth rate
             birth_particles.log_weight = np.full((num_birth,), np.log(self.birth_rate / num_birth))
 
@@ -502,17 +516,22 @@ class SMCPHDPredictor(Predictor):
                 np.concatenate((pred_particles_sv, birth_particles.state_vector), axis=1))
             log_pred_weights = np.concatenate((log_pred_weights, birth_particles.log_weight))
         else:
+            rng = random_state if random_state is not None else np.random
             # Flip a coin for each particle to decide if it gets replaced by a birth particle
             birth_inds = np.flatnonzero(
-                np.random.binomial(1, float(self.birth_probability), num_samples)
+                rng.binomial(1, float(self.birth_probability), num_samples)
             )
 
             # Sample birth particles and replace in original state vector matrix
             num_birth = len(birth_inds)
-            birth_particles = self.birth_sampler.sample(
-                params={self.birth_func_num_samples_field: num_birth}, timestamp=timestamp)
-            # Replace particles in the state vector matrix
-            pred_particles_sv[:, birth_inds] = birth_particles.state_vector
+            if num_birth > 0:
+                birth_particles = self.birth_sampler.sample(
+                    params={self.birth_func_num_samples_field: num_birth},
+                    timestamp=timestamp,
+                    random_state=random_state,
+                    **kwargs)
+                # Replace particles in the state vector matrix
+                pred_particles_sv[:, birth_inds] = birth_particles.state_vector
 
             # Process weights
             prob_survive = np.exp(log_prob_survive)

@@ -1,6 +1,6 @@
 import datetime
+from collections.abc import Iterator
 from copy import copy
-from typing import Iterator
 
 import numpy as np
 

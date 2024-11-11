@@ -1,6 +1,7 @@
 """Mathematical functions used within Stone Soup"""
 import copy
 import warnings
+from functools import lru_cache
 
 import numpy as np
 
@@ -561,7 +562,7 @@ def rotz(theta):
                      [zero, zero, one]])
 
 
-def gm_sample(means, covars, size, weights=None):
+def gm_sample(means, covars, size, weights=None, random_state=None):
     """Sample from a mixture of multi-variate Gaussians
 
     Parameters
@@ -595,8 +596,10 @@ def gm_sample(means, covars, size, weights=None):
     elif weights is None:
         weights = np.array([1 / len(means)] * len(means))
 
-    n_samples = np.random.multinomial(size, weights)
-    samples = np.vstack([np.random.multivariate_normal(mean.ravel(), covar, sample)
+    rng = random_state if random_state is not None else np.random
+
+    n_samples = rng.multinomial(size, weights)
+    samples = np.vstack([rng.multivariate_normal(mean.ravel(), covar, sample)
                          for (mean, covar, sample) in zip(means, covars, n_samples)]).T
 
     return StateVectors(samples)
@@ -671,18 +674,14 @@ def mod_elevation(x):
     float
         Angle in radians in the range math: :math:`-\pi/2` to :math:`+\pi/2`
     """
-    x = x % (2*np.pi)  # limit to 2*pi
+    x = np.asarray(x) % (2*np.pi)  # limit to 2*pi
     N = x // (np.pi / 2)  # Count # of 90 deg multiples
-    if N == 1:
-        x = np.pi - x
-    elif N == 2:
-        x = np.pi - x
-    elif N == 3:
-        x = x - 2.0 * np.pi
-    elif N == 4:
-        # will only occur on occasions when first operation ('x = ..') returns 2pi to floating
-        # point limit.
-        x = 0.0
+
+    x = np.where(N == 1, np.pi - x, x)
+    x = np.where(N == 2, np.pi - x, x)
+    x = np.where(N == 3, x - 2.0 * np.pi, x)
+    x = np.where(N == 4, 0.0, x)  # handle the edge case
+
     return x
 
 
@@ -707,10 +706,12 @@ def build_rotation_matrix(angle_vector: np.ndarray):
         :class:`numpy.ndarray` of shape (3, 3)
             The model (3D) rotation matrix.
     """
-    theta_x = -angle_vector[0, 0]  # roll
-    theta_y = angle_vector[1, 0]  # pitch#elevation
-    theta_z = -angle_vector[2, 0]  # yaw#azimuth
-    return rotx(theta_x) @ roty(theta_y) @ rotz(theta_z)
+    return _build_rotation_matrix(angle_vector[0, 0], angle_vector[1, 0], angle_vector[2, 0])
+
+
+@lru_cache()
+def _build_rotation_matrix(theta_x, theta_y, theta_z):
+    return rotx(-theta_x) @ roty(theta_y) @ rotz(-theta_z)
 
 
 def build_rotation_matrix_xyz(angle_vector: np.ndarray):
@@ -734,10 +735,12 @@ def build_rotation_matrix_xyz(angle_vector: np.ndarray):
         :class:`numpy.ndarray` of shape (3, 3)
             The model (3D) rotation matrix.
     """
-    theta_x = -angle_vector[0, 0]  # roll
-    theta_y = angle_vector[1, 0]  # pitch#elevation
-    theta_z = -angle_vector[2, 0]  # yaw#azimuth
-    return rotz(theta_z) @ roty(theta_y) @ rotx(theta_x)
+    return _build_rotation_matrix_xyz(angle_vector[0, 0], angle_vector[1, 0], angle_vector[2, 0])
+
+
+@lru_cache()
+def _build_rotation_matrix_xyz(theta_x, theta_y, theta_z):
+    return rotz(-theta_z) @ roty(theta_y) @ rotx(-theta_x)
 
 
 def dotproduct(a, b):

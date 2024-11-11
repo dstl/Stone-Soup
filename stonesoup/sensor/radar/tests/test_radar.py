@@ -119,6 +119,8 @@ def test_simple_radar(h, sensorclass, ndim_state, pos_mapping, noise_covar, posi
 
     truth = {target_truth}
 
+    assert radar.is_detectable(target_truth)
+
     # Generate a noiseless measurement for the given target
     measurement = radar.measure(truth, noise=False)
     measurement = next(iter(measurement))  # Get measurement from set
@@ -146,6 +148,7 @@ def test_simple_radar(h, sensorclass, ndim_state, pos_mapping, noise_covar, posi
 
     # Generate a noiseless measurement for each of the given target states
     measurements = radar.measure(truth)
+    assert all(radar.is_detectable(t) for t in truth)
 
     # Two measurements for 2 truth states
     assert len(measurements) == 2
@@ -165,6 +168,7 @@ def test_simple_radar(h, sensorclass, ndim_state, pos_mapping, noise_covar, posi
 
     # Check no detection have been made when target is out of range
     assert (len(measurement3) == 0)
+    assert not radar.is_detectable(target3_truth)
 
 
 def h2d_rr(state, pos_map, vel_map, translation_offset, rotation_offset, velocity):
@@ -259,6 +263,8 @@ def test_range_rate_radar(h, sensorclass, pos_mapping, vel_mapping, noise_covar,
     target_truth = GroundTruthPath([target_state])
     truth = {target_truth}
 
+    assert radar.is_detectable(target_truth)
+
     # Generate a noiseless measurement for the given target
     measurement = radar.measure(truth, noise=False)
     measurement = next(iter(measurement))  # Get measurement from set
@@ -288,6 +294,7 @@ def test_range_rate_radar(h, sensorclass, pos_mapping, vel_mapping, noise_covar,
 
     # Two measurements for 2 truth states
     assert len(measurements) == 2
+    assert all(radar.is_detectable(t) for t in truth)
 
     # Measurements store ground truth paths
     for measurement in measurements:
@@ -391,6 +398,7 @@ def test_rotating_radar(sensorclass, radar_position, radar_orientation, state,
 
     # Assert no measurements since target is not in FOV
     assert len(measurement) == 0
+    assert not radar.is_detectable(target_truth)
 
     # Rotate radar such that the target is in FOV
     timestamp = timestamp + datetime.timedelta(seconds=0.5)
@@ -417,6 +425,7 @@ def test_rotating_radar(sensorclass, radar_position, radar_orientation, state,
         assert (np.equal(measurement.state_vector, eval_m[0]).all())
     else:
         assert (np.equal(measurement.state_vector, eval_m).all())
+    assert radar.is_detectable(target_truth)
 
     # Assert is TrueDetection type
     assert isinstance(measurement, TrueDetection)
@@ -433,6 +442,7 @@ def test_rotating_radar(sensorclass, radar_position, radar_orientation, state,
 
     # Two measurements for 2 truth states
     assert len(measurements) == 2
+    assert all(radar.is_detectable(t) for t in truth)
 
     # Measurements store ground truth paths
     for measurement in measurements:
@@ -491,6 +501,7 @@ def test_raster_scan_radar():
 
     # Assert no measurements since target is not in FOV
     assert len(measurement) == 0
+    assert not radar.is_detectable(target_truth)
 
     # Rotate radar
     timestamp = timestamp + datetime.timedelta(seconds=0.5)
@@ -505,6 +516,7 @@ def test_raster_scan_radar():
 
     # Assert no measurements since target is not in FOV
     assert len(measurement) == 0
+    assert not radar.is_detectable(target_truth)
 
     # Rotate radar such that the target is in FOV
     timestamp = timestamp + datetime.timedelta(seconds=1.0)
@@ -528,6 +540,7 @@ def test_raster_scan_radar():
     # Assert correction of generated measurement
     assert measurement.timestamp == target_state.timestamp
     assert np.array_equal(measurement.state_vector, eval_m)
+    assert radar.is_detectable(target_truth)
 
     # Assert is TrueDetection type
     assert isinstance(measurement, TrueDetection)

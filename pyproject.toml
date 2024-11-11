@@ -3,3 +3,120 @@ requires = ["setuptools>=64", "setuptools_scm>=8"]
 build-backend = "setuptools.build_meta"
 
 [tool.setuptools_scm]
+
+[project]
+name = "stonesoup"
+description = "A tracking and state estimation framework"
+maintainers = [
+    { name = "Defence Science and Technology Laboratory UK", email = "stonesoup@dstl.gov.uk" },
+]
+classifiers = [
+    "Development Status :: 5 - Production/Stable",
+    "Intended Audience :: Science/Research",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3 :: Only",
+    "Topic :: Scientific/Engineering",
+]
+requires-python = ">=3.9"
+dependencies = [
+    "matplotlib",
+    "mergedeep",
+    "numpy>=1.17",
+    "ordered-set",
+    "plotly>=5.0",
+    "pymap3d",
+    "rtree",
+    "ruamel.yaml>=0.16.5",
+    "scipy",
+    "utm",
+]
+dynamic = ["version"]
+
+[project.readme]
+file = "README.md"
+content-type = "text/markdown"
+
+[project.license]
+text = "MIT"
+
+[project.urls]
+Homepage = "https://github.com/dstl/Stone-Soup"
+Documentation = "https://stonesoup.readthedocs.org"
+"Release Notes" = "https://github.com/dstl/Stone-Soup/releases"
+Issues = "https://github.com/dstl/Stone-Soup/issues"
+
+[project.optional-dependencies]
+dev = [
+    "confluent-kafka",
+    "coverage>=7.2",
+    "flake8",
+    "folium",
+    "h5py",
+    "ortools",
+    "pandas",
+    "pillow",
+    "pytest-cov",
+    "pytest-remotedata",
+    "pytest-skip-slow",
+    "Sphinx",
+    "sphinx-gallery>=0.17",
+    "sphinx_rtd_theme>=1.2",
+]
+video = [
+    "ffmpeg-python",
+    "moviepy",
+    "opencv-python",
+]
+tensorflow = [
+    "tensorflow>=2.2.0",
+]
+tensornets = [
+    "tensorflow>=2.2.0",
+    "tensornets",
+]
+orbital = [
+    "astropy",
+]
+mfa = [
+    "ortools",
+]
+ehm = [
+    "pyehm",
+]
+
+[tool.setuptools]
+include-package-data = false
+
+[tool.setuptools.packages.find]
+exclude = [
+    "docs",
+    "*.tests",
+]
+namespaces = false
+
+[tool.pytest.ini_options]
+python_classes = []
+
+[tool.coverage.run]
+branch = true
+parallel = true
+source = [
+    "stonesoup"
+]
+omit = [
+    "*/tests/*"
+]
+
+[tool.coverage.report]
+# Regexes for lines to exclude from consideration
+exclude_also = [
+    # Don't complain if tests don't hit defensive assertion code
+    "raise NotImplementedError",
+
+    # Ignore pass
+    "pass",
+
+    # Ignore type checking
+    "if TYPE_CHECKING:",
+]
