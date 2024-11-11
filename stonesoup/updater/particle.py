@@ -655,36 +655,40 @@ class SMCPHDUpdater(ParticleUpdater):
 
 
 class MarginalisedParticleUpdater(ParticleUpdater):
-    def _measurement_matrix(self, predicted_state=None, measurement_model=None,
-                            **kwargs):
+    """Implementation of the Marginalised Particle Filter updater"""
+
+    def _measurement_matrix(self, predicted_state=None, measurement_model=None, **kwargs):
         # H
-        return self._check_measurement_model(
-            measurement_model).matrix(**kwargs)
+        return self._check_measurement_model(measurement_model).matrix(**kwargs)
 
     def _measurement_cross_covariance(self, predicted_state, measurement_matrix):
         # PH.T
-        return np.einsum('ijk,jm->imk', predicted_state.covariance, measurement_matrix.T)
+        return np.einsum("ijk,jm->imk", predicted_state.covariance, measurement_matrix.T)
 
     def _innovation_covariance(self, m_cross_cov, meas_mat, meas_mod):
-        meas_covar = meas_mod.covar() # R
-        # HPH.T + R        
-        return np.einsum('ij,jkl->ikl', meas_mat, m_cross_cov) + meas_covar[..., np.newaxis]
+        meas_covar = meas_mod.covar()  # R
+        # HPH.T + R
+        return np.einsum("ij,jkl->ikl", meas_mat, m_cross_cov) + meas_covar[..., np.newaxis]
 
     def _posterior_mean(self, predicted_state, kalman_gain, measurement, measurement_prediction):
-        tmp = np.einsum('jkl,kl->jl', kalman_gain, (measurement.state_vector - measurement_prediction.state_vector))
+        tmp = np.einsum(
+            "jkl,kl->jl",
+            kalman_gain,
+            (measurement.state_vector - measurement_prediction.state_vector),
+        )
         post_mean = predicted_state.state_vector + tmp
         return post_mean.view(StateVectors)
-                 
+
     def _posterior_covariance(self, hypothesis):
         predicted_covar = hypothesis.prediction.covariance
         post_cov = np.zeros_like(predicted_covar)
-        mp_covar = hypothesis.measurement_prediction.covariance # M x M X N
-        mp_cross_covar =  hypothesis.measurement_prediction.cross_covar
-        inv = np.linalg.inv(mp_covar.T).T # M x M X N
-        kalman_gain = np.einsum("jki, lki -> jli", mp_cross_covar, inv) # M x M X N
+        mp_covar = hypothesis.measurement_prediction.covariance  # M x M X N
+        mp_cross_covar = hypothesis.measurement_prediction.cross_covar
+        inv = np.linalg.inv(mp_covar.T).T  # M x M X N
+        kalman_gain = np.einsum("jki, lki -> jli", mp_cross_covar, inv)  # M x M X N
         tmp = np.einsum("jki, lki -> jli", mp_covar, kalman_gain)
         post_cov = predicted_covar - np.einsum("jli, lki -> jki", kalman_gain, tmp)
-       
+
         return post_cov.view(CovarianceMatrices), kalman_gain
 
     def update(self, hypothesis, **kwargs):
@@ -695,34 +699,33 @@ class MarginalisedParticleUpdater(ParticleUpdater):
         else:
             measurement_model = hypothesis.measurement.measurement_model
 
-
         if hypothesis.measurement_prediction is None:
             # Attach the measurement prediction to the hypothesis
             hypothesis.measurement_prediction = self.predict_measurement(
-                predicted_state, measurement_model=measurement_model, **kwargs)
-
+                predicted_state, measurement_model=measurement_model, **kwargs
+            )
 
         posterior_covariance, kalman_gain = self._posterior_covariance(hypothesis)
 
         # Posterior mean
-        posterior_mean = self._posterior_mean(predicted_state, kalman_gain,
-                                              hypothesis.measurement,
-                                              hypothesis.measurement_prediction)
+        posterior_mean = self._posterior_mean(
+            predicted_state, kalman_gain, hypothesis.measurement, hypothesis.measurement_prediction
+        )
 
         posterior = Update.from_state(
             state_vector=posterior_mean,
             covariance=posterior_covariance,
             state=hypothesis.prediction,
             hypothesis=hypothesis,
-            timestamp=hypothesis.prediction.timestamp
+            timestamp=hypothesis.prediction.timestamp,
         )
 
         new_weight = posterior.log_weight + measurement_model.logpdf(
-            hypothesis.measurement, posterior, **kwargs)
-
+            hypothesis.measurement, posterior, **kwargs
+        )
 
         # Normalise the weights
-        new_weight -= logsumexp(new_weight) 
+        new_weight -= logsumexp(new_weight)
 
         posterior.log_weight = new_weight
 
@@ -737,24 +740,23 @@ class MarginalisedParticleUpdater(ParticleUpdater):
         if self.regulariser is not None and resample_flag:
             prior = hypothesis.prediction.parent
             posterior = self.regulariser.regularise(prior, posterior)
-        return  posterior
-
+        return posterior
 
     @lru_cache()
-    def predict_measurement(self, predicted_state, measurement_model=None,
-                            **kwargs):
+    def predict_measurement(self, predicted_state, measurement_model=None, **kwargs):
         # If a measurement model is not specified then use the one that's
         # native to the updater
         measurement_model = self._check_measurement_model(measurement_model)
 
-        pred_meas = measurement_model.function(predicted_state, **kwargs)        
-        hh = self._measurement_matrix(predicted_state=predicted_state,
-                                      measurement_model=measurement_model,
-                                      **kwargs)
+        pred_meas = measurement_model.function(predicted_state, **kwargs)
+        hh = self._measurement_matrix(
+            predicted_state=predicted_state, measurement_model=measurement_model, **kwargs
+        )
 
         # The measurement cross covariance and innovation covariance
         meas_cross_cov = self._measurement_cross_covariance(predicted_state, hh)
         innov_cov = self._innovation_covariance(meas_cross_cov, hh, measurement_model)
 
         return MeasurementPrediction.from_state(
-            predicted_state, pred_meas, innov_cov, cross_covar=meas_cross_cov)
+            predicted_state, pred_meas, innov_cov, cross_covar=meas_cross_cov
+        )
