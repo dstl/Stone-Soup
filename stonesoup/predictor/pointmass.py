@@ -10,6 +10,7 @@ from stonesoup.types.state import PointMassState
 from ..base import Property
 from ..types.array import StateVectors
 from .base import Predictor
+from scipy.linalg import inv, sqrtm, eigh
 
 pio.renderers.default = "browser"
 
@@ -39,10 +40,11 @@ class PointMassPredictor(Predictor):
         """
         
         # -------------------------------------------------------------------------------
-        # runGSFversion = kwargs.get("GSF", "0")
+        runGSFversion = kwargs.get("runGSFversion", False)
         
-        # if runGSFversion:
-        #     futureMeas = kwargs.get("futureMeas","None")
+        if runGSFversion:
+            futureMeas = kwargs.get("futureMeas","None")
+            measModel =  kwargs.get("measModel","None")
         # -------------------------------------------------------------------------------
         
         # Compute time_interval
@@ -50,7 +52,7 @@ class PointMassPredictor(Predictor):
 
         time_difference = timedelta(days=0, hours=0, minutes=0, seconds=0)
         if time_interval == time_difference:
-            predGrid = (prior.state_vector,)
+            predGrid = prior.state_vector
             predDensityProb = prior.weight
             GridDelta = prior.grid_delta
             gridDimOld = prior.grid_dim
@@ -64,80 +66,79 @@ class PointMassPredictor(Predictor):
             Q = self.transition_model.covar(time_interval=time_interval, **kwargs)
 
             invF = np.linalg.inv(F)
-            invFT = np.linalg.inv(F.T)
-            FqF = invF @ Q @ invFT
-            matrixForEig = prior.covar() + FqF
             
             # -------------------------------------------------------------------------------
             # # Initialize and normalize
-            # wbark = filtPdf / np.sum(filtPdf)
-        
-            # # Predict
-            # Xbark = F @ predGrid
-            # s, n = Xbark.shape
-            # eye_s = np.eye(s)
-        
-            # # Weighted mean and spread
-            # xbark = Xbark @ wbark
-            # chip_ = Xbark - xbark[:, np.newaxis]
-        
-            # # Covariance Ps with precomputed constants
-            # factor = (4 / (n * (s + 2))) ** (2 / (s + 4))
-            # Ps = factor * (chip_ * wbark) @ chip_.T + Q
-            # Ps = (Ps + Ps.T) / 2
-            # invPs = solve(Ps, np.eye(s))
-        
-            # # Observation matrix H and measurement noise W
-            # H = np.tile(np.array([[0.1, 0.9], [0.8, 0.3]]), (1, 1, n))
-            # Ht = np.transpose(H, (1, 0, 2))
-            # W = np.einsum('ijk,jl,kl->ik', H, Ps, Ht) + R
-        
-            # # Kalman gain K using solve to avoid inversion
-            # K = solve(W, np.einsum('jl,kl->jk', Ps, Ht))
-        
-            # # Measurement residuals
-            # v = z[:, k + 1, np.newaxis] - hfunct(Xbark, np.zeros((Xbark.shape[0], 1)), k + 1)
-            # v = np.reshape(v, (s, 1, n))
-        
-            # # State estimate update XkGSF
-            # XkGSF = Xbark + np.einsum('ij,ijk->jk', K, v)
-        
-            # # Updated covariance PkGSF
-            # KH = np.einsum('ij,ij->ij', K, H)
-            # PkGSF = (eye_s - KH) @ Ps @ (eye_s - KH).T + K @ R @ K.T
-        
-            # # Weight update using stable log-sum-exp and softmax
-            # eigvals_W = np.array([np.prod(eigh(W[..., i], eigvals_only=True)) for i in range(W.shape[2])])
-            # wkGSF_log = np.log(wbark) - 0.5 * np.log(eigvals_W) - 0.5 * np.einsum('ij,ij->ij', v.T, solve(W, v)).sum(axis=0)
-            # wkGSF = softmax(wkGSF_log - np.max(wkGSF_log))
-        
-            # # State estimate xhatk
-            # xhatk = XkGSF @ wkGSF
-        
-            # # Updated covariance Phatk
-            # nuxk = XkGSF - xhatk[:, np.newaxis]
-            # Phatk = np.einsum('ij,jk,kl->il', nuxk, np.diag(wkGSF), nuxk.T) + np.sum(PkGSF * wkGSF[:, np.newaxis, np.newaxis], axis=2)
-            # Phatk = (Phatk + Phatk.T) / 2
-
-            # matrixForEig = inv(F)*(Phatk + Q)*inv(F');
-            # measMean = inv(F)*xhatk;
+            if runGSFversion:
             
-            # measGridNew, GridDeltaOld, gridDimOld, nothing, eigVect = gridCreation(
-            #     measMean,
-            #     matrixForEig,
-            #     self.sFactor,
-            #     len(invF),
-            #     prior.Npa,
-            # )
+                # Normalize weights
+                wbark = prior.weight / np.sum(prior.weight)
+                
+                # Predicted state mean and covariance components
+                Xbark = F @ prior.state_vector
+                s, n = Xbark.shape
+                xbark = Xbark @ wbark
+                chip_ = Xbark - xbark[:, None]
+                
+                # Compute Ps using optimal weighting
+                alpha = 1  # Adjust if needed
+                Ps = alpha * (4 / (n * (s + 2)))**(2 / (s + 4)) * (chip_ * wbark) @ chip_.T + Q
+                Ps = (Ps + Ps.T) / 2
+                
+                # Jacobian and measurement noise
+                H = measModel.jacobian(Xbark)  # Compute Jacobian at predicted state points
+                Ht = np.transpose(H, (1, 0, 2))
+                 
+                W = np.einsum('mnr,nd,nmr->r', H, Ps, Ht) + measModel.covar() # W = H * Ps * Ht + R
+                K = np.einsum('mnr,r->mnr', np.einsum('mn,ndr->mdr', Ps, Ht), 1/W)  # K = Ps * Ht / W - TODO some lines works only for nz = 1
+                
+                # Measurement residual and update
+                v = futureMeas.state_vector - measModel.function(Xbark)
+                XkGSF = Xbark + np.einsum('mnr,dr->mnr', K, v).reshape(4, -1)
+                
+                # Posterior covariance update
+                KH = np.einsum('mnr,ndr->mdr', K, H)
+                eye_s = np.eye(s)
+                Kt = np.transpose(K, (1, 0, 2))
+                PkGSF = np.einsum('ik,kjl->kil', Ps, eye_s[:, :, None] - KH) + np.einsum('klr,ldr->kdr', K, Kt)
+                
+                # Weight update
+                wkGSF = np.log(wbark) - np.log(np.sqrt(W)) + v*(v/W)
+                m = np.max(wkGSF)
+                wkGSF = np.exp(wkGSF - (m + np.log(np.sum(np.exp(wkGSF - m)))));
+                wkGSF = wkGSF / np.sum(wkGSF);
+                
+                # Compute state estimate and covariance
+                xhatk = XkGSF @ wkGSF.T      
+                Phatk =  np.sum(PkGSF * wkGSF.reshape(1, 1, -1),axis=2)
+                nuxk = XkGSF - xhatk
+                
+                Phatk += (nuxk * wkGSF).dot(nuxk.T)
+                Phatk = (Phatk + Phatk.T) / 2  # Symmetrize
+    
+                matrixForEig = inv(F)@(Phatk + Q)@inv(F.T)
+                measMean = inv(F)@xhatk;
+                
+                measGridNew, GridDeltaOld, gridDimOld, nothing, eigVect = gridCreation(
+                    measMean,
+                    matrixForEig,
+                    self.sFactor,
+                    len(invF),
+                    prior.Npa,
+                )
+            else:
+                invFT = np.linalg.inv(F.T)
+                FqF = invF @ Q @ invFT
+                matrixForEig = prior.covar() + FqF
+                measGridNew, GridDeltaOld, gridDimOld, nothing, eigVect = gridCreation(
+                    prior.mean.reshape(-1, 1),
+                    matrixForEig,
+                    self.sFactor,
+                    len(invF),
+                    prior.Npa,
+                )
             # ----------------------------------------------------------------------------------------
 
-            measGridNew, GridDeltaOld, gridDimOld, nothing, eigVect = gridCreation(
-                prior.mean.reshape(-1, 1),
-                matrixForEig,
-                self.sFactor,
-                len(invF),
-                prior.Npa,
-            )
 
             # Interpolation
             Fint = RegularGridInterpolator(
@@ -194,14 +195,13 @@ class PointMassPredictor(Predictor):
             predDensityProb = predDensityProb / (
                 np.sum(predDensityProb) * np.prod(GridDelta)
             )
-
-            xOld = F @ np.vstack(prior.mean)
-            Ppold = F @ eigVect
-            
-            
+                  
+            Ppold = F @ eigVect;
             # ----------------------------------------------------------------------------------------
-            #gridCenter = xhatk;
-            #gridRotation = F @ eigVect;
+            if runGSFversion:
+                xOld = xhatk;
+            else:
+                xOld = F @ np.vstack(prior.mean)
             # ----------------------------------------------------------------------------------------
 
         return PointMassState(

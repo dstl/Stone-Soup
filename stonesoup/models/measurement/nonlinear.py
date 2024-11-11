@@ -43,7 +43,10 @@ class TerrainAidedNavigation():
 
     def function(self, state, noise=False, **kwargs) -> StateVector:
 
-        out = self.interpolator(state.state_vector[self.mapping,:].T)
+        if isinstance(state, np.ndarray):
+            out = self.interpolator(state[self.mapping,:].T)
+        else:      
+            out = self.interpolator(state.state_vector[self.mapping,:].T)
         if isinstance(noise, bool) or noise is None:
             if noise:
                 noise = np.random.normal([0], self.noise_covar, out.size)
@@ -103,6 +106,42 @@ class TerrainAidedNavigation():
             likelihood = likelihood[0]
 
         return likelihood
+    
+    def jacobian(self, x):
+        """
+        Compute the gradient for the Jacobian matrix using central differences.
+        
+        Parameters:
+        x : np.ndarray
+            Input array with shape (2, N), where N is the number of points.
+        vysky : RegularGridInterpolator
+            Interpolating function for gridded data.
+        
+        Returns:
+        J : np.ndarray
+            Jacobian matrix with shape (1, 3, N).
+        """
+        # Small step sizes for finite differences
+        dx = np.cbrt(np.finfo(x[[0, 2],0].dtype).eps * np.abs(x[[0, 2],0]))
+        dx1 = np.array([dx[0], 0])
+        dx2 = np.array([0, dx[1]])
+        
+        # Compute function values for central difference directly using vysky
+        J11 = self.interpolator((x[0, :] + dx1[0], x[2, :]))  # f(x + dx1)
+        J12 = self.interpolator((x[0, :] - dx1[0], x[2, :]))  # f(x - dx1)
+        J21 = self.interpolator((x[0, :], x[2, :] + dx2[1]))  # f(x + dx2)
+        J22 = self.interpolator((x[0, :], x[2, :] - dx2[1]))  # f(x - dx2)
+        
+        # Central difference for gradients
+        J1 = (J11 - J12) / (2 * dx1[0])  # Gradient with respect to x
+        J3 = (J21 - J22) / (2 * dx2[1])  # Gradient with respect to y
+        J2 = np.ones_like(J1)
+        J4 = J3
+        
+        # Reshape the Jacobian into the desired format
+        J = np.reshape(np.array([J1, J2, J3, J4]), (1, 4, -1))
+        
+        return J
 
 
 class CombinedReversibleGaussianMeasurementModel(ReversibleModel, GaussianModel, MeasurementModel):

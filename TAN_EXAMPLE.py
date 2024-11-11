@@ -215,7 +215,7 @@ for mc in range(0,MC):
     start_time = time.time()
     track = Track()
     for measurement in measurements:
-        prediction = pmfPredictor.predict(priorPMF, timestamp=measurement.timestamp, runGSFversion=1,  futureMeas=measurement)
+        prediction = pmfPredictor.predict(priorPMF, timestamp=measurement.timestamp, runGSFversion=True,  futureMeas=measurement, measModel=measurement_model)
         hypothesis = SingleHypothesis(prediction, measurement)
         post = pmfUpdater.update(hypothesis)
         priorPMF = post
