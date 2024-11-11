@@ -5,15 +5,27 @@ from .base import Type
 from .hypothesis import Hypothesis, CompositeHypothesis
 from .mixture import GaussianMixture
 from .state import CreatableFromState, CompositeState, KernelParticleState
-from .state import State, GaussianState, ParticleState, EnsembleState, \
-    SqrtGaussianState, InformationState, CategoricalState, ASDGaussianState, \
-    WeightedGaussianState, TaggedWeightedGaussianState, \
-    MultiModelParticleState, RaoBlackwellisedParticleState, BernoulliParticleState, MarginalisedParticleState
+from .state import (
+    State,
+    GaussianState,
+    ParticleState,
+    EnsembleState,
+    SqrtGaussianState,
+    InformationState,
+    CategoricalState,
+    ASDGaussianState,
+    WeightedGaussianState,
+    TaggedWeightedGaussianState,
+    MultiModelParticleState,
+    RaoBlackwellisedParticleState,
+    BernoulliParticleState,
+    MarginalisedParticleState,
+)
 from ..base import Property
 
 
 class Update(Type, CreatableFromState):
-    """ Update type
+    """Update type
 
     The base update class. Updates are returned by :class:'~.Updater' objects
     and contain the information that was used to perform the updating"""
@@ -22,7 +34,7 @@ class Update(Type, CreatableFromState):
 
 
 class StateUpdate(Update, State):
-    """ StateUpdate type
+    """StateUpdate type
 
     Most simple state update type, where everything only has time
     and a state vector. Requires a prior state that was updated,
@@ -31,7 +43,7 @@ class StateUpdate(Update, State):
 
 
 class GaussianStateUpdate(Update, GaussianState):
-    """ GaussianStateUpdate type
+    """GaussianStateUpdate type
 
     This is a simple Gaussian state update object, which, as the name
     suggests, is described by a Gaussian distribution.
@@ -39,7 +51,7 @@ class GaussianStateUpdate(Update, GaussianState):
 
 
 class SqrtGaussianStateUpdate(Update, SqrtGaussianState):
-    """ SqrtGaussianStateUpdate type
+    """SqrtGaussianStateUpdate type
 
     This is equivalent to a Gaussian state update object, but with the
     covariance of the Gaussian distribution stored in matrix square root
@@ -48,7 +60,7 @@ class SqrtGaussianStateUpdate(Update, SqrtGaussianState):
 
 
 class WeightedGaussianStateUpdate(Update, WeightedGaussianState):
-    """ WeightedGaussianStateUpdate type
+    """WeightedGaussianStateUpdate type
 
     This is a simple Gaussian state update object, which, as the name suggests, is described
     by a Gaussian distribution with an associated weight.
@@ -56,7 +68,7 @@ class WeightedGaussianStateUpdate(Update, WeightedGaussianState):
 
 
 class TaggedWeightedGaussianStateUpdate(Update, TaggedWeightedGaussianState):
-    """ TaggedWeightedGaussianStateUpdate type
+    """TaggedWeightedGaussianStateUpdate type
 
     This is a simple Gaussian state update object, which, as the name suggests, is described
     by a Gaussian distribution, with an associated weight and unique tag.
@@ -64,7 +76,7 @@ class TaggedWeightedGaussianStateUpdate(Update, TaggedWeightedGaussianState):
 
 
 class GaussianMixtureUpdate(Update, GaussianMixture):
-    """ GaussianMixtureUpdate type
+    """GaussianMixtureUpdate type
 
     This is a Gaussian mixture update object, which, as the name
     suggests, is described by a Gaussian mixture.
@@ -72,7 +84,7 @@ class GaussianMixtureUpdate(Update, GaussianMixture):
 
 
 class ASDGaussianStateUpdate(Update, ASDGaussianState):
-    """ ASDGaussianStateUpdate type
+    """ASDGaussianStateUpdate type
 
     This is a simple ASD Gaussian state update object, which, as the name
     suggests, is described by a Gaussian distribution.
@@ -112,8 +124,10 @@ class KernelParticleStateUpdate(Update, KernelParticleState):
 
     This is a Kernel Particle state update object.
     """
-    proposal: StateVectors = Property(default=None,
-                                      doc='Kernel covariance value. Default `None`.')
+
+    proposal: StateVectors = Property(
+        default=None, doc="Kernel covariance value. Default `None`."
+    )
 
 
 class EnsembleStateUpdate(Update, EnsembleState):
@@ -124,7 +138,7 @@ class EnsembleStateUpdate(Update, EnsembleState):
 
 
 class InformationStateUpdate(Update, InformationState):
-    """ InformationUpdate type
+    """InformationUpdate type
 
     This is a simple Information state update object, which, as the name
     suggests, is described by a precision matrix and its corresponding state vector.
@@ -143,7 +157,8 @@ class CompositeUpdate(Update, CompositeState):
 
     sub_states: Sequence[Update] = Property(
         doc="Sequence of sub-updates comprising the composite update. All sub-updates must have "
-            "matching timestamp. Must not be empty.")
+        "matching timestamp. Must not be empty."
+    )
     hypothesis: CompositeHypothesis = Property(doc="Hypothesis used for updating")
 
 
@@ -152,6 +167,7 @@ class MarginalisedParticleStateUpdate(Update, MarginalisedParticleState):
 
     This is a simple MarginalisedParticle state update object.
     """
+
     """Particle Filter update step
 
         Parameters
