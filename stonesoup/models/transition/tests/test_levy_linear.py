@@ -8,7 +8,7 @@ from stonesoup.models.transition.levy_linear import (
 from stonesoup.models.driver import GaussianDriver, AlphaStableNSMDriver
 from stonesoup.models.base_driver import NoiseCase, ConditionallyGaussianDriver
 import numpy as np
-from datetime import datetime, timedelta, UTC
+from datetime import datetime, timedelta, timezone
 from stonesoup.types.groundtruth import GroundTruthPath, GroundTruthState
 from stonesoup.types.array import StateVector
 from typing import Union
@@ -40,7 +40,7 @@ def conditionally_gaussian_driver(seed):
 
 
 def compare_transition(model: LevyModel, expected_state_vectors: list[StateVector]):
-    start_time = datetime.now(tz=UTC).replace(microsecond=0)
+    start_time = datetime.now(tz=timezone.UTC).replace(microsecond=0)
     timesteps = [start_time]
     truth = GroundTruthPath([GroundTruthState(expected_state_vectors[0], timestamp=timesteps[0])])
 

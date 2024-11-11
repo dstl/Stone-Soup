@@ -1,4 +1,4 @@
-from datetime import UTC, datetime, timedelta
+from datetime import timezone, datetime, timedelta
 
 import numpy as np
 import pytest
@@ -277,7 +277,7 @@ def test_marginalised_particle_filter_predict(
     expected_state: StateVectors,
     expected_covariance: CovarianceMatrices,
 ):
-    start_time = datetime.now(tz=UTC).replace(microsecond=0)
+    start_time = datetime.now(tz=timezone.UTC).replace(microsecond=0)
     prior.timestamp = start_time
     model = request.getfixturevalue(model_type)
     predictor = MarginalisedParticlePredictor(transition_model=model)

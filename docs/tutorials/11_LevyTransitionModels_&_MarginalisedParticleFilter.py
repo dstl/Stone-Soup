@@ -1,5 +1,16 @@
 #!/usr/bin/env python
 # coding: utf-8
+"""
+=============================================================
+11 - Tracking linear Levy transition models with the MPF
+=============================================================
+In line with the tutorial examples of the Kalman and particle 
+filters in Stone Soup, a simplified single-target tracking 
+example without clutter is provided here to demonstrate the 
+use of linear transition models driven by non-Gaussian Levy 
+noise, as well as how to perform inference tasks on this class 
+of models using the Marginalized Particle Filter (MPF).
+"""
 
 # Consider the scenario where the target evolves according to the Langevin model, driven by a normal sigma-mean mixture with the mixing distribution being the $\alpha$-stable distribution.
 
