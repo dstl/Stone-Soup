@@ -6,12 +6,12 @@ from typing import Sequence, Iterable, Union, List, Optional, Callable
 from scipy.linalg import block_diag
 import numpy as np
 
-from ..base_driver import Latents
-from ..base import Model, GaussianModel, LinearModel, TimeVariantModel, LevyModel
-from ...base import Property
-from ...types.array import StateVector, StateVectors, CovarianceMatrix, CovarianceMatrices
-from ...types.state import State
-from ...types.numeric import Probability
+from stonesoup.models.base import Model, GaussianModel, LinearModel, TimeVariantModel, LevyModel, Latents
+from stonesoup.base import Property
+from stonesoup.types.array import StateVector, StateVectors, CovarianceMatrix, CovarianceMatrices
+from stonesoup.types.state import State
+from stonesoup.types.numeric import Probability
+from stonesoup.models.base_driver import ConditionallyGaussianDriver
 
 
 class TransitionModel(Model):
@@ -268,7 +268,7 @@ class CombinedLevyTransitionModel(TransitionModel, LevyModel):
         dt = time_interval.total_seconds()
         latents = Latents(num_samples=num_samples)
         for m in self.model_list:
-            if m.driver and not latents.exists(m.driver):
+            if m.driver and isinstance(m.driver, ConditionallyGaussianDriver) and not latents.exists(m.driver):
                 jsizes, jtimes = m.driver.sample_latents(dt=dt, num_samples=num_samples, random_state=random_state)
                 latents.add(driver=m.driver, jsizes=jsizes, jtimes=jtimes)
         return latents

@@ -7,7 +7,7 @@ from scipy.stats import multivariate_normal
 from ....types.state import State
 
 from ..linear import ConstantAcceleration
-from ..levylinear import LevyConstantAcceleration
+from ..levy_linear import LevyConstantAcceleration
 from ...driver import GaussianDriver, AlphaStableNSMDriver
 from ..base import CombinedGaussianTransitionModel
 

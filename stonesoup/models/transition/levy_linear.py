@@ -1,5 +1,5 @@
-from matplotlib.pylab import RandomState
-from stonesoup.models.base_driver import Latents
+from numpy.random import RandomState
+from stonesoup.models.base import Latents
 from stonesoup.types.array import CovarianceMatrices, CovarianceMatrix, StateVector, StateVectors
 from ...base import Property
 from ..base import LevyModel, LinearModel
@@ -219,44 +219,16 @@ class LevyLangevin(LevyNthDerivativeDecay):
         # exp_A_delta_t
         return eAdt  # (m, m)
     
-    def _integrand_f(self, dt: float, jtimes: np.ndarray) -> np.ndarray:
+    def _integrand(self, dt: float, jtimes: np.ndarray) -> np.ndarray:
         v1 = np.array([[1.0 / -self.damping_coeff], [1.0]])  # (m, 1)
         v2 = np.array([[1.0 / self.damping_coeff], [0.0]])
         term1 = np.exp(-self.damping_coeff * (dt - jtimes))[..., None, None]  # (n_jumps, n_samples, 1, 1)
         term2 = np.ones_like(jtimes)[..., None, None]
         return term1 * v1 + term2 * v2  # (n_jumps, n_samples, m, 1)
 
-    def _integral_f(self, dt: float) -> np.ndarray:
+    def _integral(self, dt: float) -> np.ndarray:
         v1 = np.array([[1.0 / -self.damping_coeff], [1.0]])
         v2 = np.array([[1.0 / self.damping_coeff], [0.0]])
-        term1 = (np.exp(-self.damping_coeff * dt) - 1.0) / (-self.theta) * v1
+        term1 = (np.exp(-self.damping_coeff * dt) - 1.0) / (-self.damping_coeff) * v1
         term2 = dt * v2
         return term1 + term2  # (m, 1)
-    
-    def _integrand(self, dt: float, jtimes: np.ndarray) -> np.ndarray:
-        return self._integrand_f
-    
-    def mean(
-        self, latents: Latents, time_interval: timedelta, **kwargs
-    ) -> Union[StateVector, StateVectors]:
-        """Model mean"""
-        dt = time_interval.total_seconds()
-        return self.driver.mean(
-            latents=latents,
-            dt=dt,
-            e_ft_func=self._integral_f,
-            ft_func=self._integrand_f,
-            mu_W=self.mu_W,
-        )
-
-    def covar(self, latents: Latents, time_interval: timedelta, **kwargs) -> Union[CovarianceMatrix, CovarianceMatrices]:
-        """Model covariance"""
-        dt = time_interval.total_seconds()        
-        return self.driver.covar(
-            latents=latents,
-            dt=dt,
-            e_ft_func=self._integral_f,
-            ft_func=self._integrand_f,
-            mu_W=self.mu_W,
-            sigma_W2=self.sigma_W2,
-        )
