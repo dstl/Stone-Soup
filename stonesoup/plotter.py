@@ -11,7 +11,7 @@ from matplotlib import animation as animation
 from matplotlib import pyplot as plt
 from matplotlib.legend_handler import HandlerPatch
 from matplotlib.lines import Line2D
-from matplotlib.patches import Ellipse
+from matplotlib.patches import Ellipse, Patch, Polygon
 from mergedeep import merge
 from scipy.integrate import quad
 from scipy.optimize import brentq
@@ -69,6 +69,10 @@ class _Plotter(ABC):
 
     @abstractmethod
     def plot_sensors(self, sensors, mapping, label="Sensors", **kwargs):
+        raise NotImplementedError
+
+    @abstractmethod
+    def plot_obstacles(self, obstacles, mapping, label="Obstacles", **kwargs):
         raise NotImplementedError
 
     def _conv_measurements(self, measurements, mapping, measurement_model=None,
@@ -562,6 +566,47 @@ class Plotter(_Plotter):
             else:
                 raise NotImplementedError('Unsupported dimension type for sensor plotting')
         self.legend_dict[label] = Line2D([], [], linestyle='', **sensor_kwargs)
+        artists.append(self.ax.legend(handles=self.legend_dict.values(),
+                                      labels=self.legend_dict.keys()))
+        return artists
+
+    def plot_obstacles(self, obstacles, mapping=[0, 1], label='Obstacles', **kwargs):
+        """Plots obstacle(s)
+
+        Plots obstacles. Users can change the colour and marker size of obstacle
+        vertices with keyword arguments. Marker colour determines the fill colour
+        of obstacle patches. Defaults are grey '.' marker and matching fill colour.
+
+        Parameters
+        ----------
+        obstacles : Collection of :class:`~.Obstacle`
+            Obstacles to plot
+        mapping : list
+            List of items specifying the mapping of the position components of the
+            obstacle's position. Default is [0, 1].
+        label: str
+            Label to apply to obstacles for the legend.
+        \\*\\*kwargs: dict
+            Additional arguments to be passed to scatter function for detections. Defaults are
+            ``marker=dict(symbol='circle', size=3, color='grey')``.
+        """
+        artists = []
+        if not isinstance(obstacles, Collection):
+            obstacles = {obstacles}
+
+        if self.dimension == 1 or self.dimension == 3:
+            raise NotImplementedError
+
+        obstacle_kwargs = dict(linestyle='-', marker='.', color='grey')
+        obstacle_kwargs.update(kwargs)
+        for obstacle in obstacles:
+            artists.append(self.ax.scatter(*obstacle.vertices, **obstacle_kwargs))
+            artists.append(self.ax.add_patch(Polygon(obstacle.vertices.T,
+                                                     facecolor=obstacle_kwargs['color'])))
+
+        obstacle_handle = Patch(facecolor=obstacle_kwargs['color'], label=label)
+        self.legend_dict[label] = obstacle_handle
+
         artists.append(self.ax.legend(handles=self.legend_dict.values(),
                                       labels=self.legend_dict.keys()))
         return artists
@@ -2179,6 +2224,9 @@ class AnimationPlotter(_Plotter):
             ))
 
     def plot_sensors(self, sensors, label="Sensors", **kwargs):
+        raise NotImplementedError
+
+    def plot_obstacles(self, obstacles, mapping=[0, 1], label='Obstacles', **kwargs):
         raise NotImplementedError
 
     @classmethod
