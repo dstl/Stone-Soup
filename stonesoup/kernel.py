@@ -32,6 +32,11 @@ class Kernel(Base):
         """
         raise NotImplementedError
 
+    def update_parameters(self, kwargs):
+        for parameter in type(self).properties:
+            if parameter in kwargs.keys():
+                setattr(self, parameter, kwargs[parameter])
+
     @staticmethod
     def _get_state_vectors(state1, state2):
         if isinstance(state1, State):
@@ -93,6 +98,7 @@ class PolynomialKernel(Kernel):
     ialpha: float = Property(default=1e1, doc="Slope. Range is [1e0, 1e4]. Default is 1e1.")
 
     def __call__(self, state1, state2=None, **kwargs):
+        self.update_parameters(kwargs)
         state_vector1, state_vector2 = self._get_state_vectors(state1, state2)
         return (state_vector1.T @ state_vector2 / self.ialpha + self.c) ** self.power
 
@@ -204,6 +210,7 @@ class GaussianKernel(Kernel):
         StateVectors
             Transformed state vector in kernel space.
         """
+        self.update_parameters(kwargs)
         state_vector1, state_vector2 = self._get_state_vectors(state1, state2)
         diff_tilde_x = (state_vector1.T[:, :, None] - state_vector2.T[:, None, :]) ** 2
         diff_tilde_x_sum = np.sum(diff_tilde_x, axis=0)
