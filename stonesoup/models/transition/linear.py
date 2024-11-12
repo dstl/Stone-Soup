@@ -1,11 +1,12 @@
 import math
+from datetime import datetime, timedelta
 from collections.abc import Sequence
 from functools import lru_cache
+from abc import abstractmethod
 
 import numpy as np
 from scipy.integrate import quad
-from scipy.linalg import block_diag
-from typing import Callable
+from scipy.linalg import block_diag, inv, pinv
 
 from .base import TransitionModel, CombinedGaussianTransitionModel
 from ..base import (LinearModel, GaussianModel, TimeVariantModel,
@@ -418,52 +419,44 @@ class OrnsteinUhlenbeck(NthDerivativeDecay):
 class WindowedGaussianProcess(LinearGaussianTransitionModel, TimeVariantModel):
 
     window_size: int = Property(doc="Sliding window size")
-    kernel: Callable[[np.ndarray, np.ndarray], float] = Property(
-        doc="Kernel function",
-    )
 
     @property
     def ndim_state(self):
-        """ndim_state getter method
-
-        Returns
-        -------
-        : :class:`int`
-            The number of model state dimensions.
-        """
-
         return self.window_size
     
+    @abstractmethod
+    def kernel(self, X, Y=None):
+        """Kernel function to compute Gaussian process covariance"""
+        raise NotImplementedError
     
-    def _compute_k_values(self, time_vector, next_time):
-        time_vector = np.array(time_vector).reshape(-1, 1)
-        next_time = np.array([[next_time]])
-        Kt = self.kernel(time_vector, time_vector)
-        kt = self.kernel(time_vector, next_time)
-        kt_1 = self.kernel(next_time, next_time)
-        return Kt, kt, kt_1
+    def _compute_covars(self, t, dt):
+        L = self.window_size
+        t_prior = np.flip(np.arange(t - dt * L, t, dt)).reshape(-1, 1)
+        t = np.array([[t]])
+        K_prior = self.kernel(t_prior, t_prior)
+        K_prior_t = self.kernel(t_prior, t)
+        k_t = self.kernel(t, t)
+        return K_prior, K_prior_t, k_t
 
-    def matrix(self, **kwargs):
-        time_vector = kwargs.get('time_vector')
-        next_time = kwargs.get('next_time')
-        Kt, kt, _ = self._compute_k_values(time_vector, next_time)
+    def matrix(self, pred_time, time_interval, **kwargs):
+        L = self.window_size
+        dt = time_interval.total_seconds()
+        t = pred_time
+        K_prior, K_prior_t, k_t = self._compute_covars(t, dt)
+        inv_K_prior = pinv(K_prior)
+        return np.vstack([K_prior_t.T @ inv_K_prior, 
+                          np.hstack((np.identity(L - 1), np.zeros((L - 1, 1))))])
 
-        inv_Kt = np.linalg.inv(Kt)
-        matrix_block = kt.T @ inv_Kt
-        identity_block = np.identity(self.window_size - 1)
-        zeros_block = np.zeros((self.window_size - 1, 1))
-
-        return np.vstack([matrix_block, np.hstack((identity_block, zeros_block))])
-
-    def covar(self, **kwargs):
-        time_vector = kwargs.get('time_vector')
-        next_time = kwargs.get('next_time')
-        Kt, kt, kt_1 = self._compute_k_values(time_vector, next_time)
-        sigma_w = kt_1 - kt.T @ np.linalg.inv(Kt) @ kt
-        G = np.zeros((self.window_size, self.window_size))
+    def covar(self, pred_time, time_interval, **kwargs):
+        L = self.window_size
+        dt = time_interval.total_seconds()
+        t = pred_time
+        K_prior, K_prior_t, k_t = self._compute_covars(t, dt)
+        inv_K_prior = pinv(K_prior)
+        noise_var = k_t - K_prior_t.T @ inv_K_prior @ K_prior_t
+        G = np.zeros((L, L))
         G[0, 0] = 1
-        sigma_w = min(sigma_w, 1e-10) # avoid issues with sqrt
-        return G * sigma_w
+        return G * noise_var
 
 
 class Singer(NthDerivativeDecay):
