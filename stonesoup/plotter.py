@@ -1951,6 +1951,9 @@ class PolarPlotterly(_Plotter):
     def plot_sensors(self, sensors, label="Sensors", **kwargs):
         raise NotImplementedError
 
+    def plot_obstacles(self, obstacles, mapping=[0, 1], label='Obstacles', **kwargs):
+        raise NotImplementedError
+
 
 class _AnimationPlotterDataClass(Base):
     plotting_data: Iterable[State] = Property()

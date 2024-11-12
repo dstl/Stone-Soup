@@ -1,3 +1,5 @@
-from .base import Platform, MovingPlatform, FixedPlatform, MultiTransitionMovingPlatform
+from .base import Platform, MovingPlatform, FixedPlatform, MultiTransitionMovingPlatform, Obstacle
 
-__all__ = ['Platform', 'MovingPlatform', 'FixedPlatform', 'MultiTransitionMovingPlatform']
+
+__all__ = ['Platform', 'MovingPlatform', 'FixedPlatform', 'MultiTransitionMovingPlatform',
+           'Obstacle']
