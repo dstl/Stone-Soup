@@ -387,3 +387,25 @@ def test_show_plot(labels):
     else:
         assert showing == len(labels)
     assert showing + hidden == 3
+
+
+@pytest.fixture(scope="module", params=[
+    Plotter(), Plotterly(), AnimationPlotter(), AnimatedPlotterly(timesteps=timesteps)])
+def plotters(request):
+    return request.param
+
+
+@pytest.fixture(scope="module", params=[obstacle_list[0], obstacle_list])
+def obstacles(request):
+    return request.param
+
+
+def test_obstacles(plotters, obstacles):
+    if isinstance(plotters, AnimationPlotter):
+        with pytest.raises(NotImplementedError):
+            plotters.plot_obstacles(obstacles)
+    else:
+        plotters.plot_ground_truths(truth, [0, 1])
+        plotters.plot_measurements(all_measurements, [0, 1])
+        plotters.plot_tracks(track, [0, 1])
+        plotters.plot_obstacles(obstacles)
