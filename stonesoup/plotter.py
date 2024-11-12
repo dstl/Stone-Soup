@@ -1571,14 +1571,17 @@ class Plotterly(_Plotter):
     def plot_obstacles(self, obstacles, mapping=[0, 1], label='Obstacles', **kwargs):
         """Plots obstacle(s)
 
-        Plots obstacles.  Users can change the colour and marker size of obstacle
-        vertices with keywork arguments. Marker colour determines the fill colour
-        of obstale patches. Defaults is grey '.' marker and matching fill colour.
+        Plots obstacles. Users can change the colour and marker size of obstacle
+        vertices with keyword arguments. Marker colour determines the fill colour
+        of obstacle patches. Defaults are grey '.' marker and matching fill colour.
 
         Parameters
         ----------
         obstacles : Collection of :class:`~.Obstacle`
             Obstacles to plot
+        mapping : list
+            List of items specifying the mapping of the position components of the
+            obstacle's position. Default is [0, 1].
         label: str
             Label to apply to obstacles for the legend.
         \\*\\*kwargs: dict
@@ -3217,17 +3220,22 @@ class AnimatedPlotterly(_Plotter):
                        **kwargs):
         """Plots obstacle(s)
 
-        Plots obstacles.  Users can change the colour and marker size of obstacle
-        vertices with keywork arguments. Marker colour determines the fill colour
-        of obstale patches. Defaults is grey '.' marker and matching fill colour.
+        Plots obstacles. Users can change the colour and marker size of obstacle
+        vertices with keyword arguments. Marker colour determines the fill colour
+        of obstacle patches. Defaults are grey '.' marker and matching fill colour.
         Currently only works for stationary obstacles.
 
         Parameters
         ----------
         obstacles : Collection of :class:`~.Obstacle`
             Obstacles to plot
+        mapping : list
+            List of items specifying the mapping of the position components of the
+            obstacle's position. Default is [0, 1].
         label: str
             Label to apply to obstacles for the legend.
+        resize : boolean
+            Boolean to reshape figure such that all elements are in view.
         \\*\\*kwargs: dict
             Additional arguments to be passed to scatter function for detections. Defaults are
             ``marker=dict(symbol='circle', size=3, color='grey')``.
