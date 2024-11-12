@@ -209,3 +209,23 @@ def test_additive_kernel(kernel_class):
     state2 = StateVectors([[2, 2, 2], [3, 3, 3], [4, 4, 4], [5, 5, 5]])
     linear_covar = kernel(state1, state2)
     assert np.allclose(linear_covar + linear_covar, additive_kernel(state1, state2))
+
+
+@pytest.mark.parametrize(
+    "kernel_class",
+    [LinearKernel,
+     QuadraticKernel,
+     QuarticKernel,
+     GaussianKernel],
+    ids=["Linear", "Quadratic", "Quartic", "Gaussian"]
+)
+def test_kwargs_kernel(kernel_class):
+    kwargs_list = [{}, {"parameter": 333}, {"c": 333, "ialpha": 333, "variance": 33}]
+    state1 = StateVectors([[1, 1, 1], [2, 2, 2], [3, 3, 3], [4, 4, 4]])
+    state2 = StateVectors([[2, 2, 2], [3, 3, 3], [4, 4, 4], [5, 5, 5]])
+    for kwargs in kwargs_list:
+        kernel = kernel_class()
+        kernel2 = kernel_class(**{k: v for k, v in kwargs.items() if k in type(kernel).properties})
+        covar1 = kernel(state1, state2, **kwargs)
+        covar2 = kernel2(state1, state2)
+        assert np.allclose(covar1, covar2)
