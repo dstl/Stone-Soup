@@ -229,3 +229,27 @@ def test_kwargs_kernel(kernel_class):
         covar1 = kernel(state1, state2, **kwargs)
         covar2 = kernel2(state1, state2)
         assert np.allclose(covar1, covar2)
+
+
+@pytest.mark.parametrize(
+    "kernel_class",
+    [LinearKernel,
+     QuadraticKernel,
+     QuarticKernel,
+     GaussianKernel],
+    ids=["Linear", "Quadratic", "Quartic", "Gaussian"]
+)
+def test_multiple_kwargs(kernel_class):
+    kwargs_list = [{"c": 1, "ialpha": 11, "variance": 11},
+                   {"c": 2, "ialpha": 22, "variance": 22},
+                   {"c": 3, "ialpha": 33, "variance": 33}]
+    state1 = StateVectors([[1, 1, 1], [2, 2, 2], [3, 3, 3], [4, 4, 4]])
+    state2 = StateVectors([[2, 2, 2], [3, 3, 3], [4, 4, 4], [5, 5, 5]])
+    kernel = kernel_class()
+    for kwargs in kwargs_list:
+        print(kernel)
+        kernel2 = kernel_class(**{k: v for k, v in kwargs.items() if k in type(kernel).properties})
+        covar1 = kernel(state1, state2, **kwargs)
+        covar2 = kernel2(state1, state2)
+        print(kernel, kernel2)
+        assert np.allclose(covar1, covar2)
