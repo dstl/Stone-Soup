@@ -180,11 +180,11 @@ class GaussianKernel(Kernel):
     :class:`~.State` objects.
 
     The Gaussian kernel of state vectors :math:`\mathbf{x}` and
-    :math:`\mathbf{x}'` is defined as:
+    :math:`\mathbf{x}^\prime` is defined as:
 
     .. math::
-         \mathtt{k}(\mathbf{x}, \mathbf{x}') =
-         \mathrm{exp}\left(-\frac{||\mathbf{x} - \mathbf{x}'||^{2}}{2\pi\sigma^2}\right)
+         \mathtt{k}(\mathbf{x}, \mathbf{x}^\prime) =
+         \mathrm{exp}\left(-\frac{||\mathbf{x} - \mathbf{x}^\prime||^{2}}{2\pi\sigma^2}\right)
     """
     variance: float = Property(
         default=1e1,
