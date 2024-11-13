@@ -969,7 +969,7 @@ def stochasticCubatureRulePoints(nx, order):
     Parameters
     ==========
     nx : int
-        Number of points, presumably equivilant to state dimension.
+        Number of points, presumably equivalent to state dimension.
     order : int
         Order for stochastic integration. Only orders 1, 3, and 5 are supported.
 
