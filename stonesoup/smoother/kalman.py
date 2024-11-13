@@ -354,11 +354,13 @@ class StochasticIntegrationSmoother(KalmanSmoother):
             The input state
         prediction : :class:`~.GaussianStatePrediction`
             The prediction from the subsequent timestep
+        time_interval: :class:`datetime.time_delta`
+            time interval of the prediction is needed to propagate the states
 
         Returns
         -------
-    :  :class:`numpy.ndarray`
-            The smoothing gain
+        :  :class:`numpy.ndarray`
+                The smoothing gain
 
         """
 
