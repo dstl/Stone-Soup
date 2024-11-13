@@ -1064,7 +1064,7 @@ def cubPointsAndTransfer(nx, order, sqrtCov, mean, transFunct, state):
     Parameters
     ==========
     nx : int
-       Dimension for cubature points, equivilant to state dimension.
+       Dimension for cubature points, equivalent to state dimension.
     order : int
         Order for Stochastic Integration. Only orders 1, 3, and 5 are supported
     sqrtCov : np.ndarray
