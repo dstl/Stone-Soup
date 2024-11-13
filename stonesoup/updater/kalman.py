@@ -948,6 +948,8 @@ class StochasticIntegrationUpdater(KalmanUpdater):
             dependent on the received measurement (the default is `None`, in
             which case the updater will use the measurement model specified on
             initialisation)
+        measurement_noise : bool
+            Include measurement noise or not
 
         Returns
         -------
