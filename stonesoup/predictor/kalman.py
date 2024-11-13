@@ -591,7 +591,7 @@ class StochasticIntegrationPredictor(KalmanPredictor):
 
         Parameters
         ----------
-        prior_state_vector : :class:`~.State`
+        prior_state : :class:`~.State`
             Prior state vector
         **kwargs : various, optional
             These are passed to :class:`~.TransitionModel.function`
