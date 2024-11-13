@@ -1057,7 +1057,7 @@ def stochasticCubatureRulePoints(nx, order):
     return (SCRSigmaPoints, weights)
 
 
-def cubPointsAndTransfer(nx, order, sqrtCov, mean, transFunct, state):
+def cub_points_and_tf(nx, order, sqrtCov, mean, transFunct, state):
     r""" Calculates cubature points for stochastic integration filter and
     puts them through given function (measurement/dynamics)
 
