@@ -222,6 +222,8 @@ class GaussianKernel(Kernel):
 
 class TrackKernel(Kernel):
     kernel: Kernel = Property(doc="Base Kernel class")
+    mapping: list = Property(default=None, doc="List of mappings of the components to be used in "
+                                               "the kernel from the state vector.")
 
     def __call__(self, state1, state2=None, **kwargs):
         r"""
@@ -240,13 +242,15 @@ class TrackKernel(Kernel):
         """
         if state2 is None:
             state2 = state1
-        state1 = StateVectors([state.state_vector for state in state1])
-        state2 = StateVectors([state.state_vector for state in state2])
+        state1 = StateVectors([state.state_vector[self.mapping] for state in state1])
+        state2 = StateVectors([state.state_vector[self.mapping] for state in state2])
         return self.kernel.__call__(state1, state2, **kwargs)
 
 
 class MeasurementKernel(Kernel):
     kernel: Kernel = Property(doc="Base Kernel class")
+    mapping: list = Property(default=None, doc="List of mappings of the components to be used in "
+                                               "the kernel from the state vector.")
 
     def __call__(self, state1, state2=None, **kwargs):
         r"""
@@ -264,6 +268,6 @@ class MeasurementKernel(Kernel):
         """
         if state2 is None:
             state2 = state1
-        state1 = StateVectors([state.state_vector for state in state1])
-        state2 = StateVectors([state.state_vector for state in state2])
+        state1 = StateVectors([state.state_vector[self.mapping] for state in state1])
+        state2 = StateVectors([state.state_vector[self.mapping] for state in state2])
         return self.kernel.__call__(state1, state2, **kwargs)
