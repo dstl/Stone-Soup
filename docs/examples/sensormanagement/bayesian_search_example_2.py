@@ -1,11 +1,13 @@
 #!/usr/bin/env python
 
 """
-Bayesian Search Example 2
+Bayesian Search 2
 =========================
-This example builds on the introduction to Bayesian search given in the first example, found here.
+This example builds on the introduction to Bayesian search given in the first example, found
+:doc:`here <bayesian_search_example_1>`.
 
-The paper '*Open Source Tools for Bayesian Search*' can be found here.
+The paper accompanying this work, '*Open Source Tools for Bayesian Search*' `[1] <#references>`_,
+can be found `here <https://doi.org/10.1117/12.3012763>`_.
 """
 
 # %%
@@ -18,7 +20,7 @@ The paper '*Open Source Tools for Bayesian Search*' can be found here.
 # In the first example we saw how Bayesian search could be implemented in Stone Soup using a
 # single fixed-position rotating sensor. We will now build on this and apply Bayesian search to a
 # slightly more complex scenario, which involves controlling a limited-range sensor on a moving
-# platform. We'll see how Bayesian search can be used to move the platform to the areas most
+# platform. We will see how Bayesian search can be used to move the platform to the areas most
 # likely to contain the target.
 #
 # As in the first example we will be using the class :class:`~.ParticleState` to build our search
@@ -43,13 +45,13 @@ timesteps = [start_time + timedelta(seconds=k) for k in range(0, 12)]
 # ~~~~~~~~~~~~~~~~~~~~~
 # We create the moving platform to which our sensor will be mounted. Rather than defining the
 # movement pattern of the platform in advance, we want the platform to automatically choose an
-# optimal movement at each timestep. We can use a platform with a
+# optimal movement at each timestep. We can use a platform with an
 # :class:`~.NStepDirectionalGridMovable` to achieve this.
 #
 # Platforms with this movement controller can generate a list of actions at each timestep which
 # can then be given to a :class:`~.SensorManager`. The sensor manager chooses the best action(s)
-# for the current timestep. We define the platform's initial position, and configure its
-# parameters such that its movement is limited to a step of three grid cells in a single direction.
+# for the current timestep. We define the platform's initial position, and limit its movement to a
+# step of three grid cells in a single direction.
 
 
 from stonesoup.movable.grid import NStepDirectionalGridMovable
@@ -75,9 +77,9 @@ platform = Platform(
 # :class:`~.RadarRotatingBearingRange` sensor. The sensor has a 360 degree field of view, with a
 # range of 1.6 grid cells.
 #
-# We also define `prob_det`, which is the probability that our sensor will observe a target if it
-# is within its field of view. In this case we choose `prob_det = 0.9`, meaning the sensor will
-# miss a target within its range for 10% of the measurements we attempt.
+# We also define :code:`prob_det`, which is the probability that our sensor will observe a target
+# if it is within its field of view. In this case we choose :code:`prob_det = 0.9`, meaning the
+# sensor will miss a target within its range for 10% of the measurements we attempt.
 
 
 from stonesoup.sensor.radar.radar import RadarRotatingBearingRange
@@ -215,7 +217,20 @@ sensormanager = BruteForceSensorManager(platforms={platform},
 # %%
 # Running the Scenario
 # --------------------
-
+# Aside from the addition of the platform, the search loop here is very similar to that of the 
+# previous example. At each timstep we:
+#
+# #. Get the best action from the sensor manager and move the sensor and platform accordingly.
+# #. Make an observation (in this case we just assume the target was not found).
+# #. Update the probability distribution (based on the target not being found), by looping through
+#    each cell ( *j* ) within the sensor's FOV and:
+#
+#    a. Updating all non-*j* cells (both unobserved cells and other observed cells) to reflect the
+#       lack of detection in *j*. In this case this equates to an increase in probability of the
+#       target being found in all other cells.
+#    b. Updating the probability of *j*. In this case this equates to reducing the probability, as
+#       a relatively unlikely missed detection becomes the only way the target can be there. 
+#
 
 sensor_history = []
 search_cell_info = [prior]
@@ -229,7 +244,7 @@ for timestep in timesteps[1:]:
                                weight=current_state.weight,
                                timestamp=timestep)
 
-    # get best action from sensor manager and move sensors
+    # get best action from sensor manager and move sensor and platform
     chosen_actions = sensormanager.choose_actions(next_state, timestep)
     for chosen_action in chosen_actions:
         for actionable, actions in chosen_action.items():
@@ -271,177 +286,192 @@ for timestep in timesteps[1:]:
 # Visualisation
 # -------------
 # Finally, let's visualise the results...
-
-
-from plotly import graph_objects as go
-
-
-def plot_search_heatmap(plt, x_pos, y_pos, search_cell_history, **kwargs):
-    # initialise heatmap trace
-    trace_base = len(plt.fig.data)
-
-    heatmap_kwargs = dict(x=[], y=[], z=[], colorscale="YlOrRd", opacity=0.6, showlegend=True,
-                          showscale=False, name="heatmap", legendgroup="heatmap")
-    heatmap_kwargs.update(kwargs)
-    plt.fig.add_trace(go.Heatmap(heatmap_kwargs))
-
-    # get number of traces already in plt
-    # add data for each frame
-    for frame in plt.fig.frames:
-
-        data_ = list(frame.data)
-        traces_ = list(frame.traces)
-
-        frame_time = datetime.fromisoformat(frame.name)
-
-        for particle_state in search_cell_history:
-            if frame_time == particle_state.timestamp:
-                weights = [float(w) for w in particle_state.weight]
-                data_.append(go.Heatmap(x=x_pos, y=y_pos, z=weights))
-                traces_.append(trace_base)
-            frame.traces = traces_
-            frame.data = data_
-
-    return plt
-
-
-from typing import Collection
-from stonesoup.types.state import GaussianState
-from stonesoup.plotter import Plotterly
-
-
-def plot_moving_sensor(plt, sensor_history, plot_fov=False, sensor_label="Moving Sensor",
-                       plot_radius=False, resize=True, **kwargs):
-    """Plots the position of a sensor over time. If simulation has multiple sensors, will
-    need to call this function multiple times.
-
-    sensor_history : Collection of :class:`~.Sensor`, ideally a list
-        Sensor information given at each time step
-    sensor_label: str
-        Label to apply to all tracks for legend.
-    \\*\\*kwargs: dict
-        Additional arguments. Defaults are ``marker=dict(symbol='x', color='black')``.
-    """
-
-    # ensure code doesn't break if sensor is only one timestep
-    if not isinstance(sensor_history, Collection):
-        sensor_history = {sensor_history}
-
-    if plot_fov or plot_radius:
-        from stonesoup.functions import pol2cart  # for plotting the sensor
-
-    # we have called a plotting function so update flag (used in _resize)
-    plt.plotting_function_called = True
-
-    # define the layout
-    trace_base = len(plt.fig.data)  # number of traces currently in figure
-    sensor_kwargs = dict(mode='markers', marker=dict(symbol='x', color='black'),
-                         legendgroup=sensor_label, legendrank=50,
-                         name=sensor_label, showlegend=True)
-    sensor_kwargs.update(kwargs)
-
-    plt.fig.add_trace(go.Scatter(sensor_kwargs))  # initialises trace
-
-    # for every frame, if sensor has same timestamp, get its location and add to the data
-
-    for frame in plt.fig.frames:  # the plotting bit
-
-        frame_time = datetime.fromisoformat(frame.name)  # get frame time in correct format
-        traces_ = list(frame.traces)
-        data_ = list(frame.data)
-
-        sensor_xy = np.array([np.inf, np.inf])
-
-        for sensor in sensor_history:
-            if sensor.timestamp == frame_time:  # if sensor is in current timestep
-                sensor_xy = np.array(sensor.position[[0, 1], 0])
-
-        data_.append(go.Scatter(x=[sensor_xy[0]], y=[sensor_xy[1]]))
-        traces_.append(trace_base)
-
-        frame.traces = traces_
-        frame.data = data_
-
-    if plot_fov:
-
-        # define the layout
-        trace_base = len(plt.fig.data)  # number of traces currently in figure
-        sensor_kwargs = dict(mode='lines', line=dict(dash="dash", color="black"),
-                             hoverinfo=None, name="sensor fov", showlegend=True,
-                             legendgroup="sensor fov")
-
-        plt.fig.add_trace(go.Scatter(sensor_kwargs))  # initialises trace
-
-        for frame in plt.fig.frames:
-
-            frame_time = datetime.fromisoformat(frame.name)  # get frame time in correct format
-            traces_ = list(frame.traces)
-            data_ = list(frame.data)
-
-            x = [0, 0]  # for plotting fov if required
-            y = [0, 0]
-
-            for sensor in sensor_history:
-                if sensor.timestamp == frame_time:  # if sensor is in current timestep
-                    for i, fov_side in enumerate((-1, 1)):
-                        range_ = min(getattr(sensor, 'max_range', np.inf), 100)
-
-                        x[i], y[i] = pol2cart(range_, sensor.dwell_centre[0, 0] \
-                                              + sensor.fov_angle / 2 * fov_side) \
-                                     + sensor.position[[0, 1], 0]
-
-            data_.append(go.Scatter(x=[x[0], sensor.position[0], x[1]],
-                                    y=[y[0], sensor.position[1], y[1]]))
-            traces_.append(trace_base)
-
-            frame.traces = traces_
-            frame.data = data_
-
-    # plot radius of sensor
-    if plot_radius and sensor.max_range != np.inf:
-
-        # define the layout
-        trace_base = len(plt.fig.data)  # number of traces currently in figure
-        sensor_kwargs = dict(mode='lines', line=dict(dash="dash", color="black"),
-                             hoverinfo=None, showlegend=True, name="sensor radius",
-                             legendgroup="sensor radius")
-
-        plt.fig.add_trace(go.Scatter(sensor_kwargs))  # initialises trace
-
-        for frame in plt.fig.frames:
-
-            # get frame time in correct format
-            frame_time = datetime.fromisoformat(frame.name)
-            traces_ = list(frame.traces)
-            data_ = list(frame.data)
-
-            for sensor in sensor_history:
-
-                if sensor.timestamp == frame_time:  # if sensor is in current timestep
-                    circle = GaussianState([[sensor.position[0],
-                                             sensor.position[1]]],
-                                           np.diag([sensor.max_range ** 2,
-                                                    sensor.max_range ** 2]))
-
-                    points = Plotterly._generate_ellipse_points(circle, [0, 1])
-
-                    data_.append(go.Scatter(x=points[0, :],
-                                            y=points[1, :]))
-                    traces_.append(trace_base)
-
-            frame.traces = traces_
-            frame.data = data_
-    return plt
-
-
-from stonesoup.plotter import AnimatedPlotterly
-
-plt = AnimatedPlotterly(timesteps, width=550)
-plt = plot_search_heatmap(plt, x_pos, y_pos, search_cell_info)
-plt = plot_moving_sensor(plt, sensor_history, plot_fov=False, plot_radius=True)
-plt.fig.update_xaxes(range=[-0.5, 14.5])
-plt.fig.update_yaxes(range=[-0.5, 14.5])
-plt.fig
-
+#
+# .. raw:: html
+#
+#     <details>
+#     <summary><a>Click to show/hide plotting functions</a></summary>
+#
+# .. code-block:: python
+#
+#     from plotly import graph_objects as go
+#     def plot_search_heatmap(plt, x_pos, y_pos, search_cell_history, **kwargs):
+#    
+#         # initialise heatmap trace
+#         trace_base = len(plt.fig.data)
+#    
+#         heatmap_kwargs = dict(x=[], y=[], z=[], colorscale="YlOrRd", opacity=0.6,
+#                               showlegend=True, showscale=False, name="heatmap",
+#                               legendgroup="heatmap")
+#         heatmap_kwargs.update(kwargs)
+#         plt.fig.add_trace(go.Heatmap(heatmap_kwargs))
+#    
+#         # get number of traces already in plt
+#         # add data for each frame
+#         for frame in plt.fig.frames:
+#        
+#             data_ = list(frame.data)
+#             traces_ = list(frame.traces)
+#        
+#             frame_time = datetime.fromisoformat(frame.name)
+#        
+#             for particle_state in search_cell_history:
+#                 if frame_time == particle_state.timestamp:
+#                     weights = [float(w) for w in particle_state.weight]
+#                     data_.append(go.Heatmap(x=x_pos, y=y_pos, z=weights))
+#                     traces_.append(trace_base)
+#                 frame.traces = traces_
+#                 frame.data = data_
+#        
+#         return plt
+#
+#
+#     from typing import Collection
+#     from stonesoup.types.state import GaussianState
+#     from stonesoup.plotter import Plotterly
+#
+#     def plot_moving_sensor(plt, sensor_history, plot_fov=False, sensor_label="Moving Sensor",
+#                             plot_radius=False, resize=True, **kwargs):
+#         """Plots the position of a sensor over time. If simulation has multiple sensors, will
+#         need to call this function multiple times.
+#
+#         sensor_history : Collection of :class:`~.Sensor`, ideally a list
+#             Sensor information given at each time step
+#         sensor_label: str
+#             Label to apply to all tracks for legend.
+#         \\*\\*kwargs: dict
+#             Additional arguments. Defaults are ``marker=dict(symbol='x', color='black')``.
+#         """
+#
+#         # ensure code doesn't break if sensor is only one timestep
+#         if not isinstance(sensor_history, Collection):
+#             sensor_history = {sensor_history}
+#
+#         if plot_fov or plot_radius:
+#             from stonesoup.functions import pol2cart  # for plotting the sensor
+#
+#         # we have called a plotting function so update flag (used in _resize)
+#         plt.plotting_function_called = True
+#
+#         # define the layout
+#         trace_base = len(plt.fig.data)  # number of traces currently in figure
+#         sensor_kwargs = dict(mode='markers', marker=dict(symbol='x', color='black'),
+#                             legendgroup=sensor_label, legendrank=50,
+#                             name=sensor_label, showlegend=True)
+#         sensor_kwargs.update(kwargs)
+#
+#         plt.fig.add_trace(go.Scatter(sensor_kwargs))  # initialises trace
+#
+#         # for every frame, if sensor has same timestamp, get its location and add to the data
+#
+#         for frame in plt.fig.frames:  # the plotting bit
+#
+#             frame_time = datetime.fromisoformat(frame.name)  # get frame time in correct format
+#             traces_ = list(frame.traces)
+#             data_ = list(frame.data)
+#
+#             sensor_xy = np.array([np.inf, np.inf])
+#
+#             for sensor in sensor_history:
+#                 if sensor.timestamp == frame_time:  # if sensor is in current timestep
+#                     sensor_xy = np.array(sensor.position[[0, 1], 0])
+#
+#             data_.append(go.Scatter(x=[sensor_xy[0]], y=[sensor_xy[1]]))
+#             traces_.append(trace_base)
+#
+#             frame.traces = traces_
+#             frame.data = data_
+#
+#         if plot_fov:
+#
+#             # define the layout
+#             trace_base = len(plt.fig.data)  # number of traces currently in figure
+#             sensor_kwargs = dict(mode='lines', line=dict(dash="dash", color="black"),
+#                                 hoverinfo=None, name="sensor fov", showlegend=True,
+#                                 legendgroup="sensor fov")
+#
+#             plt.fig.add_trace(go.Scatter(sensor_kwargs))  # initialises trace
+#
+#             for frame in plt.fig.frames:
+#
+#                 frame_time = datetime.fromisoformat(frame.name)  # correct frame time format 
+#                 traces_ = list(frame.traces)
+#                 data_ = list(frame.data)
+#
+#                 x = [0, 0]  # for plotting fov if required
+#                 y = [0, 0]
+#
+#                 for sensor in sensor_history:
+#                     if sensor.timestamp == frame_time:  # if sensor is in current timestep
+#                         for i, fov_side in enumerate((-1, 1)):
+#                             range_ = min(getattr(sensor, 'max_range', np.inf), 100)
+#
+#                             x[i], y[i] = pol2cart(range_, sensor.dwell_centre[0, 0] \
+#                                                     + sensor.fov_angle / 2 * fov_side) \
+#                                                   + sensor.position[[0, 1], 0]
+#
+#                 data_.append(go.Scatter(x=[x[0], sensor.position[0], x[1]],
+#                                         y=[y[0], sensor.position[1], y[1]]))
+#                 traces_.append(trace_base)
+#
+#                 frame.traces = traces_
+#                 frame.data = data_
+#
+#         # plot radius of sensor
+#         if plot_radius and sensor.max_range != np.inf:
+#
+#             # define the layout
+#             trace_base = len(plt.fig.data)  # number of traces currently in figure
+#             sensor_kwargs = dict(mode='lines', line=dict(dash="dash", color="black"),
+#                                 hoverinfo=None, showlegend=True, name="sensor radius",
+#                                 legendgroup="sensor radius")
+#
+#             plt.fig.add_trace(go.Scatter(sensor_kwargs))  # initialises trace
+#
+#             for frame in plt.fig.frames:
+#
+#                 # get frame time in correct format
+#                 frame_time = datetime.fromisoformat(frame.name)
+#                 traces_ = list(frame.traces)
+#                 data_ = list(frame.data)
+#
+#             for sensor in sensor_history:
+#
+#                 if sensor.timestamp == frame_time:  # if sensor is in current timestep
+#                         circle = GaussianState([[sensor.position[0],
+#                                                 sensor.position[1]]],
+#                                                 np.diag([sensor.max_range ** 2,
+#                                                         sensor.max_range ** 2]))
+#
+#                         points = Plotterly._generate_ellipse_points(circle, [0, 1])
+#
+#                         data_.append(go.Scatter(x=points[0, :],
+#                                                 y=points[1, :]))
+#                         traces_.append(trace_base)
+#
+#                 frame.traces = traces_
+#                 frame.data = data_
+#         return plt
+#
+#
+#     from stonesoup.plotter import AnimatedPlotterly
+#     plt = AnimatedPlotterly(timesteps, width=550)
+#     plt = plot_search_heatmap(plt, x_pos, y_pos, search_cell_info)
+#     plt = plot_moving_sensor(plt, sensor_history, plot_fov=False, plot_radius=True)
+#     plt.fig.update_xaxes(range=[-0.5, 14.5])
+#     plt.fig.update_yaxes(range=[-0.5, 14.5])
+#
+# .. raw:: html
+#
+#     </details>
+#     <br>  
+#     <video autoplay loop controls width=100% height="auto">
+#       <source src="../../_static/bayesian-search-ex2-plt1.mp4" type="video/mp4">
+#     </video>
+# |
 # As expected, at each timestep the platform and sensor move to the neighbouring group of cells
 # that has the highest total probability of containing the target.
+#
+# References
+# ----------
+# [1] Harris et al. (2024) - Open source tools for Bayesian search - doi:10.1117/12.3012763
