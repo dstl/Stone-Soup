@@ -243,3 +243,27 @@ class TrackKernel(Kernel):
         state1 = StateVectors([state.state_vector for state in state1])
         state2 = StateVectors([state.state_vector for state in state2])
         return self.kernel.__call__(state1, state2, **kwargs)
+
+
+class MeasurementKernel(Kernel):
+    kernel: Kernel = Property(doc="Base Kernel class")
+
+    def __call__(self, state1, state2=None, **kwargs):
+        r"""
+        Compute the kernel state of a pair of lists of measurements as :class:`~.List` objects
+
+        Parameters
+        ----------
+        state1 : :class:`~.List`
+        state2 : :class:`~.List`
+
+        Returns
+        -------
+        StateVectors
+            kernel state of a pair of input :class:`~.State` objects
+        """
+        if state2 is None:
+            state2 = state1
+        state1 = StateVectors([state.state_vector for state in state1])
+        state2 = StateVectors([state.state_vector for state in state2])
+        return self.kernel.__call__(state1, state2, **kwargs)
