@@ -218,3 +218,28 @@ class GaussianKernel(Kernel):
         k_tilde_x = np.exp(-diff_tilde_x_sum/(2*self.variance)) / np.sqrt(2*np.pi*self.variance)
 
         return StateVectors(k_tilde_x)
+
+
+class TrackKernel(Kernel):
+    kernel: Kernel = Property(doc="Base Kernel class")
+
+    def __call__(self, state1, state2=None, **kwargs):
+        r"""
+        Compute the kernel state of a pair of :class:`~.Track` objects
+
+        Parameters
+        ----------
+        state1 : :class:`~.Track`
+        state2 : :class:`~.Track`
+
+        Returns
+        -------
+        StateVectors
+            kernel state of a pair of input :class:`~.State` objects
+
+        """
+        if state2 is None:
+            state2 = state1
+        state1 = StateVectors([state.state_vector for state in state1])
+        state2 = StateVectors([state.state_vector for state in state2])
+        return self.kernel.__call__(state1, state2, **kwargs)
