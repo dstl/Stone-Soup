@@ -4,10 +4,12 @@ import numpy as np
 from scipy.stats import multivariate_normal
 
 from ..types.array import StateVectors
-from ..types.state import KernelParticleState
+from ..types.detection import Detection
+from ..types.state import KernelParticleState, State
 from ..kernel import (Kernel, MultiplicativeKernel, AdditiveKernel,
                       PolynomialKernel, LinearKernel, QuadraticKernel, QuarticKernel,
-                      GaussianKernel)
+                      GaussianKernel, TrackKernel, MeasurementKernel)
+from ..types.track import Track
 
 number_particles = 4
 rng = np.random.RandomState(50)
@@ -253,3 +255,41 @@ def test_multiple_kwargs(kernel_class):
         covar2 = kernel2(state1, state2)
         print(kernel, kernel2)
         assert np.allclose(covar1, covar2)
+
+
+@pytest.mark.parametrize(
+    "kernel_class",
+    [LinearKernel,
+     QuadraticKernel,
+     QuarticKernel,
+     GaussianKernel],
+    ids=["Linear", "Quadratic", "Quartic", "Gaussian"]
+)
+def test_track_kernel(kernel_class):
+    kernel = kernel_class()
+    track_kernel = TrackKernel(kernel)
+    track_state = State(state_vector=[1, 2, 3, 4])
+    state_vectors = StateVectors([[1, 1, 1], [2, 2, 2], [3, 3, 3], [4, 4, 4]])
+    track = Track([track_state, track_state, track_state])
+    track_covar = track_kernel(track)
+    sv_covar = kernel(state_vectors)
+    assert np.allclose(track_covar, sv_covar)
+
+
+@pytest.mark.parametrize(
+    "kernel_class",
+    [LinearKernel,
+     QuadraticKernel,
+     QuarticKernel,
+     GaussianKernel],
+    ids=["Linear", "Quadratic", "Quartic", "Gaussian"]
+)
+def test_measurement_kernel(kernel_class):
+    kernel = kernel_class()
+    measurement_kernel = MeasurementKernel(kernel)
+    measurement = Detection(state_vector=[1, 2, 3, 4])
+    state_vectors = StateVectors([[1, 1, 1], [2, 2, 2], [3, 3, 3], [4, 4, 4]])
+    measurements = [measurement, measurement, measurement]
+    measurement_covar = measurement_kernel(measurements)
+    sv_covar = kernel(state_vectors)
+    assert np.allclose(measurement_covar, sv_covar)
