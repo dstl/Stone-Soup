@@ -113,33 +113,36 @@ class TerrainAidedNavigation():
         
         Parameters:
         x : np.ndarray
-            Input array with shape (2, N), where N is the number of points.
+       
         vysky : RegularGridInterpolator
-            Interpolating function for gridded data.
+      
         
         Returns:
         J : np.ndarray
-            Jacobian matrix with shape (1, 3, N).
+            Jacobian matrix with shape (1, 4, N).
         """
+        # Get the dimensionality of the state
+        state_dim, num_points = x.shape
+        
         # Small step sizes for finite differences
-        dx = np.cbrt(np.finfo(x[[0, 2],0].dtype).eps * np.abs(x[[0, 2],0]))
-        dx1 = np.array([dx[0], 0])
-        dx2 = np.array([0, dx[1]])
+        dx = np.cbrt(np.finfo(x[self.mapping,0].dtype).eps * np.abs(x[self.mapping,0]))
         
         # Compute function values for central difference directly using vysky
-        J11 = self.interpolator((x[0, :] + dx1[0], x[2, :]))  # f(x + dx1)
-        J12 = self.interpolator((x[0, :] - dx1[0], x[2, :]))  # f(x - dx1)
-        J21 = self.interpolator((x[0, :], x[2, :] + dx2[1]))  # f(x + dx2)
-        J22 = self.interpolator((x[0, :], x[2, :] - dx2[1]))  # f(x - dx2)
+        J11 = self.interpolator((x[self.mapping[0], :] + dx[0], x[self.mapping[1], :]))  # f(x + dx1)
+        J12 = self.interpolator((x[self.mapping[0], :] - dx[0], x[self.mapping[1], :]))  # f(x - dx1)
+        J21 = self.interpolator((x[self.mapping[0], :], x[self.mapping[1], :] + dx[1]))  # f(x + dx2)
+        J22 = self.interpolator((x[self.mapping[0], :], x[self.mapping[1], :] - dx[1]))  # f(x - dx2)
         
-        # Central difference for gradients
-        J1 = (J11 - J12) / (2 * dx1[0])  # Gradient with respect to x
-        J3 = (J21 - J22) / (2 * dx2[1])  # Gradient with respect to y
-        J2 = np.ones_like(J1)
-        J4 = J3
-        
-        # Reshape the Jacobian into the desired format
-        J = np.reshape(np.array([J1, J2, J3, J4]), (1, 4, -1))
+        # Central difference for gradients at mapped indices
+        J_map_0 = (J11 - J12) / (2 * dx[0])  # Gradient with respect to the first mapping dimension
+        J_map_1 = (J21 - J22) / (2 * dx[1])  # Gradient with respect to the second mapping dimension
+    
+        # Initialize the Jacobian array with ones for unspecified dimensions
+        J = np.ones((1, state_dim, num_points))
+    
+        # Assign the computed gradients to the specified indices in `self.mapping`
+        J[0, self.mapping[0], :] = J_map_0
+        J[0, self.mapping[1], :] = J_map_1
         
         return J
 

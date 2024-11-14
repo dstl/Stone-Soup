@@ -39,6 +39,7 @@ from stonesoup.resampler.particle import ESSResampler
 from stonesoup.resampler.particle import MultinomialResampler
 from stonesoup.updater.particle import ParticleUpdater
 from stonesoup.functions import gridCreation
+from stonesoup.models.measurement.nonlinear import CartesianToBearingRange
 from numpy.linalg import inv
 from stonesoup.types.state import PointMassState
 from stonesoup.types.hypothesis import SingleHypothesis
@@ -63,7 +64,7 @@ import json
 matrixTruePMF = [] 
 matrixTruePF = []
 matrixTrueKF = []
-MC =  10
+MC =  1
 for mc in range(0,MC):
     print(mc)
     start_time = datetime.now().replace(microsecond=0)
@@ -115,6 +116,17 @@ for mc in range(0,MC):
      
   
     measurement_model = TerrainAidedNavigation(interpolator,noise_covar = 1, mapping=(0, 2))
+    
+    # sensor_x = 36000
+    # sensor_y = 55000
+    
+    # measurement_model = CartesianToBearingRange(
+    #     ndim_state=4,
+    #     mapping=(0, 2),
+    #     noise_covar=np.diag([np.radians(0.1), 0.1]),
+    #     translation_offset=np.array([[sensor_x], [sensor_y]])
+    # )
+    
     # matrix = np.array([
     # [1, 0],
     # [0, 1],
@@ -215,7 +227,7 @@ for mc in range(0,MC):
     start_time = time.time()
     track = Track()
     for measurement in measurements:
-        prediction = pmfPredictor.predict(priorPMF, timestamp=measurement.timestamp, runGSFversion=True,  futureMeas=measurement, measModel=measurement_model)
+        prediction = pmfPredictor.predict(priorPMF, timestamp=measurement.timestamp, runGSFversion=False,  futureMeas=measurement, measModel=measurement_model)
         hypothesis = SingleHypothesis(prediction, measurement)
         post = pmfUpdater.update(hypothesis)
         priorPMF = post
