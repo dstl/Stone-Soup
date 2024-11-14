@@ -614,7 +614,8 @@ tracks_r = particles_to_tracks(search_cell_history_r, simulation_length, n_cells
 #     <video autoplay loop controls width=100% height="auto">
 #       <source src="../../_static/bayesian-search-ex1-plt1.mp4" type="video/mp4">
 #     </video>
-# |
+#     <br>
+#
 # In this plot we see optimised Bayesian search in effect, as the cell probabilities are updated at
 # each timestep, and the sensor moves to observe the next most likely cell.
 

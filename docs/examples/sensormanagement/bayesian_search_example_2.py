@@ -468,7 +468,8 @@ for timestep in timesteps[1:]:
 #     <video autoplay loop controls width=100% height="auto">
 #       <source src="../../_static/bayesian-search-ex2-plt1.mp4" type="video/mp4">
 #     </video>
-# |
+#     <br>
+#
 # As expected, at each timestep the platform and sensor move to the neighbouring group of cells
 # that has the highest total probability of containing the target.
 #
