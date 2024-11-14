@@ -225,6 +225,15 @@ class TrackKernel(Kernel):
     mapping: list = Property(default=None, doc="List of mappings of the components to be used in "
                                                "the kernel from the state vector.")
 
+    def _get_states(self, state1, state2):
+        if state2 is None:
+            state2 = state1
+        if self.mapping is None:
+            self.mapping = list(range(state1[0].state_vector.shape[0]))
+        state1 = StateVectors([state.state_vector[self.mapping] for state in state1])
+        state2 = StateVectors([state.state_vector[self.mapping] for state in state2])
+        return state1, state2
+
     def __call__(self, state1, state2=None, **kwargs):
         r"""
         Compute the kernel state of a pair of :class:`~.Track` objects
@@ -238,19 +247,12 @@ class TrackKernel(Kernel):
         -------
         StateVectors
             kernel state of a pair of input :class:`~.State` objects
-
         """
-        if state2 is None:
-            state2 = state1
-        state1 = StateVectors([state.state_vector[self.mapping] for state in state1])
-        state2 = StateVectors([state.state_vector[self.mapping] for state in state2])
+        state1, state2 = self._get_states(state1, state2)
         return self.kernel.__call__(state1, state2, **kwargs)
 
 
-class MeasurementKernel(Kernel):
-    kernel: Kernel = Property(doc="Base Kernel class")
-    mapping: list = Property(default=None, doc="List of mappings of the components to be used in "
-                                               "the kernel from the state vector.")
+class MeasurementKernel(TrackKernel):
 
     def __call__(self, state1, state2=None, **kwargs):
         r"""
@@ -266,8 +268,5 @@ class MeasurementKernel(Kernel):
         StateVectors
             kernel state of a pair of input :class:`~.State` objects
         """
-        if state2 is None:
-            state2 = state1
-        state1 = StateVectors([state.state_vector[self.mapping] for state in state1])
-        state2 = StateVectors([state.state_vector[self.mapping] for state in state2])
+        state1, state2 = self._get_states(state1, state2)
         return self.kernel.__call__(state1, state2, **kwargs)
