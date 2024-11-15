@@ -268,12 +268,17 @@ def test_multiple_kwargs(kernel_class):
 def test_track_kernel(kernel_class):
     kernel = kernel_class()
     track_kernel = TrackKernel(kernel)
-    track_state = State(state_vector=[1, 2, 3, 4])
-    state_vectors = StateVectors([[1, 1, 1], [2, 2, 2], [3, 3, 3], [4, 4, 4]])
-    track = Track([track_state, track_state, track_state])
-    track_covar = track_kernel(track)
-    sv_covar = kernel(state_vectors)
-    assert np.allclose(track_covar, sv_covar)
+    track_state1 = State(state_vector=[1, 2, 3, 4])
+    track_state2 = State(state_vector=[2, 3, 4, 5])
+    state_vectors1 = StateVectors([[1, 1, 1], [2, 2, 2], [3, 3, 3], [4, 4, 4]])
+    state_vectors2 = StateVectors([[2, 2, 2], [3, 3, 3], [4, 4, 4], [5, 5, 5]])
+    track1 = Track([track_state1, track_state1, track_state1])
+    track2 = Track([track_state2, track_state2, track_state2])
+    for tracks, svs in zip([[track1], [track1, track2]],
+                           [[state_vectors1], [state_vectors1, state_vectors2]]):
+        track_covar = track_kernel(*tracks)
+        sv_covar = kernel(*svs)
+        assert np.allclose(track_covar, sv_covar)
 
 
 @pytest.mark.parametrize(
