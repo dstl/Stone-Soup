@@ -1000,9 +1000,9 @@ class StochasticIntegrationUpdater(KalmanUpdater):
             # -- cubature points and weights computation (for standard normal PDF)
             # -- points transformation for given filtering mean and covariance matrix
             xpoints, w, hpoints = cub_points_and_tf(nx, self.SIorder, Sp,
-                                                       epMean,
-                                                       measurement_model.function,
-                                                       predicted_state)
+                                                    epMean,
+                                                    measurement_model.function,
+                                                    predicted_state)
             # Stochastic integration rule for predictive measurement mean and covariance
             # Matrix and predictive state and measurement covariance matrix
             hpoints_diff = hpoints - zp
