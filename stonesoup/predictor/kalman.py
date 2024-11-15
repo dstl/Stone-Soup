@@ -657,9 +657,9 @@ class StochasticIntegrationPredictor(KalmanPredictor):
             # -- cubature points and weights computation (for standard normal PDF)
             # -- points transformation for given filtering mean and covariance matrix
             xpoints, w, fpoints = cub_points_and_tf(nx, self.SIorder, Sp,
-                                                       prior.mean,
-                                                       transition_and_control_function,
-                                                       prior)
+                                                    prior.mean,
+                                                    transition_and_control_function,
+                                                    prior)
             # Stochastic integration rule for predictive state mean and
             # covariance matrix
             SumRx = np.average(fpoints, axis=1, weights=w)
@@ -679,9 +679,9 @@ class StochasticIntegrationPredictor(KalmanPredictor):
             # -- cubature points and weights computation (for standard normal PDF)
             # -- points transformation for given filtering mean and covariance matrix
             xpoints, w, fpoints = cub_points_and_tf(nx, self.SIorder, Sp,
-                                                       prior.mean,
-                                                       transition_and_control_function,
-                                                       prior)
+                                                    prior.mean,
+                                                    transition_and_control_function,
+                                                    prior)
 
             # -- stochastic integration rule for predictive state mean and covariance
             #    matrix
