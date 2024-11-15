@@ -13,7 +13,7 @@ from ..models.base import LinearModel
 from ..models.measurement.linear import LinearGaussian
 from ..models.measurement import MeasurementModel
 from ..functions import (gauss2sigma, unscented_transform, cubature_transform,
-                         cubPointsAndTransfer)
+                         cub_points_and_tf)
 from ..measures import Measure, Euclidean
 
 
