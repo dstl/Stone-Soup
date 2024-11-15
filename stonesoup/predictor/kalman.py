@@ -656,7 +656,7 @@ class StochasticIntegrationPredictor(KalmanPredictor):
 
             # -- cubature points and weights computation (for standard normal PDF)
             # -- points transformation for given filtering mean and covariance matrix
-            xpoints, w, fpoints = cubPointsAndTransfer(nx, self.SIorder, Sp,
+            xpoints, w, fpoints = cub_points_and_tf(nx, self.SIorder, Sp,
                                                        prior.mean,
                                                        transition_and_control_function,
                                                        prior)
@@ -678,7 +678,7 @@ class StochasticIntegrationPredictor(KalmanPredictor):
             N += 1
             # -- cubature points and weights computation (for standard normal PDF)
             # -- points transformation for given filtering mean and covariance matrix
-            xpoints, w, fpoints = cubPointsAndTransfer(nx, self.SIorder, Sp,
+            xpoints, w, fpoints = cub_points_and_tf(nx, self.SIorder, Sp,
                                                        prior.mean,
                                                        transition_and_control_function,
                                                        prior)
