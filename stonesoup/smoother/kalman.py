@@ -4,7 +4,7 @@ from functools import partial
 import numpy as np
 
 from ..base import Property
-from ..functions import (gauss2sigma, unscented_transform, cubPointsAndTransfer)
+from ..functions import (gauss2sigma, unscented_transform, cub_points_and_tf)
 from ..models.base import LinearModel
 from ..models.transition.base import TransitionModel
 from ..models.transition.linear import LinearGaussianTransitionModel
