@@ -389,7 +389,7 @@ class StochasticIntegrationSmoother(KalmanSmoother):
             N += 1
             # -- cubature points and weights computation (for standard normal PDF)
             # -- points transformation for given filtering mean and covariance matrix
-            xpoints, w, fpoints = cubPointsAndTransfer(nx, self.SIorder, Sf,
+            xpoints, w, fpoints = cub_points_and_tf(nx, self.SIorder, Sf,
                                                        efMean,
                                                        transition_function,
                                                        prediction)
