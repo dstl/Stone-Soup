@@ -156,25 +156,38 @@ def jacobian(fun, x, **kwargs):
         The computed Jacobian
     """
 
-    ndim, _ = np.shape(x.state_vector)
+    state_vector = x.state_vector  # Shape: (ndimX, N)
+    ndimX, N = state_vector.shape
 
-    # For numerical reasons the step size needs to large enough. Aim for 1e-8
-    # relative to spacing between floating point numbers for each dimension
-    delta = 1e8 * np.spacing(x.state_vector.astype(np.float64).ravel())
-    # But at least 1e-8
-    # TODO: Is this needed? If not, note special case at zero.
-    delta[delta < 1e-8] = 1e-8
+    # Step size for finite differences (to avoid division by zero issues)
+    delta = 1e8 * np.spacing(state_vector.astype(np.float64))  # Small step size for finite differences
+    delta[delta < 1e-8] = 1e-8  # Ensure a minimum step size of 1e-8
 
-    x2 = copy.copy(x)  # Create a clone of the input
-    x2.state_vector = (
-        np.tile(x.state_vector, ndim + 1)
-        + np.eye(ndim, ndim + 1) * delta[:, np.newaxis]
-    )
-    x2.state_vector = x2.state_vector.view(StateVectors)
+    # Create perturbed states for each dimension, creating a small perturbation in each state variable
+    perturbations = np.eye(ndimX)[:, :, np.newaxis] * delta[:, np.newaxis, :]
 
-    F = fun(x2, **kwargs)
+    # Generate perturbed states by adding the perturbations
+    x_perturbed = np.repeat(state_vector[:, np.newaxis, :], ndimX, axis=1) + perturbations
 
-    jac = np.divide(F[:, :ndim] - F[:, -1:], delta)
+    # Create a new state object with the perturbed state vector
+    x2 = copy.copy(x)  # Clone the input state
+    x2.state_vector = x_perturbed.reshape(ndimX, -1)  # Flatten the perturbed state for function input
+
+    # Evaluate the function on the perturbed states
+    F = fun(x2, **kwargs)  # Shape: (2, N * ndimX)
+
+    # Reshape the function result for batch processing
+    F_reshaped = F.reshape(2, ndimX, N)  # Shape: (2, ndimX, N)
+
+    # Evaluate the function at the base state (non-perturbed state)
+    base_F = fun(x, **kwargs).reshape(2, 1, N)  # Shape: (2, 1, N)
+
+    # Repeat base function output to match the perturbed output shape
+    base_F_aligned = np.repeat(base_F, ndimX, axis=1)  # Shape: (2, ndimX, N)
+
+    # Compute the Jacobian using finite differences
+    jac = (F_reshaped - base_F_aligned)# / delta[:, np.newaxis]  # Shape: (2, ndimX, N)
+
     return jac.astype(np.float64)
 
 

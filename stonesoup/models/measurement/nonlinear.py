@@ -121,6 +121,9 @@ class TerrainAidedNavigation():
         J : np.ndarray
             Jacobian matrix with shape (1, 4, N).
         """
+        
+        x = x.state_vector
+        
         # Get the dimensionality of the state
         state_dim, num_points = x.shape
         
