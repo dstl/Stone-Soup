@@ -14,7 +14,7 @@ from ..models.transition.linear import LinearGaussianTransitionModel
 from ..models.control import ControlModel
 from ..models.control.linear import LinearControlModel
 from ..functions import (gauss2sigma, unscented_transform, cubature_transform,
-                         cubPointsAndTransfer)
+                         cub_points_and_tf)
 
 
 class KalmanPredictor(Predictor):
