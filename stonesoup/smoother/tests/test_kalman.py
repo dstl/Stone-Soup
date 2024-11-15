@@ -17,7 +17,7 @@ from stonesoup.predictor.kalman import KalmanPredictor
 from stonesoup.types.update import GaussianStateUpdate
 from stonesoup.updater.kalman import KalmanUpdater
 from stonesoup.smoother.kalman import KalmanSmoother, ExtendedKalmanSmoother, \
-    UnscentedKalmanSmoother
+    UnscentedKalmanSmoother, StochasticIntegrationSmoother
 
 
 @pytest.fixture(
@@ -25,8 +25,9 @@ from stonesoup.smoother.kalman import KalmanSmoother, ExtendedKalmanSmoother, \
         KalmanSmoother,  # Standard Kalman
         ExtendedKalmanSmoother,  # Extended Kalman
         UnscentedKalmanSmoother,  # Unscented Kalman
+        StochasticIntegrationSmoother  # Stochastic Integration Smoother
     ],
-    ids=["standard", "extended", "unscented"]
+    ids=["standard", "extended", "unscented", "sif"]
 )
 def smoother_class(request):
     return request.param
