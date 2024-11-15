@@ -281,6 +281,35 @@ def test_track_kernel(kernel_class):
         assert np.allclose(track_covar, sv_covar)
 
 
+@pytest.fixture(scope="module", params=[
+    (None, StateVectors([[1, 1, 1], [2, 2, 2], [3, 3, 3], [4, 4, 4]])),
+    ([0], StateVectors([[1, 1, 1]])),
+    ([0, 1], StateVectors([[1, 1, 1], [2, 2, 2]])),
+    ([0, 1, 2], StateVectors([[1, 1, 1], [2, 2, 2], [3, 3, 3]])),
+    ([0, 1, 2, 3], StateVectors([[1, 1, 1], [2, 2, 2], [3, 3, 3], [4, 4, 4]]))
+])
+def params(request):
+    return request.param
+
+
+@pytest.mark.parametrize(
+    "kernel_class",
+    [LinearKernel,
+     QuadraticKernel,
+     QuarticKernel,
+     GaussianKernel],
+    ids=["Linear", "Quadratic", "Quartic", "Gaussian"]
+)
+def test_track_mapping_kernel(kernel_class, params):
+    kernel = kernel_class()
+    measurement_kernel = MeasurementKernel(kernel, params[0])
+    measurement = Detection(state_vector=[1, 2, 3, 4])
+    measurements = [measurement, measurement, measurement]
+    measurement_covar = measurement_kernel(measurements)
+    sv_covar = kernel(params[1])
+    assert np.allclose(measurement_covar, sv_covar)
+
+
 @pytest.mark.parametrize(
     "kernel_class",
     [LinearKernel,
