@@ -977,7 +977,7 @@ class StochasticIntegrationUpdater(KalmanUpdater):
             N += 1
             # -- cubature points and weights computation (for standard normal PDF)
             # -- points transformation for given filtering mean and covariance matrix
-            xpoints, w, hpoints = cubPointsAndTransfer(nx, self.SIorder, Sp,
+            xpoints, w, hpoints = cub_points_and_tf(nx, self.SIorder, Sp,
                                                        epMean,
                                                        measurement_model.function,
                                                        predicted_state)
@@ -999,7 +999,7 @@ class StochasticIntegrationUpdater(KalmanUpdater):
             N += 1
             # -- cubature points and weights computation (for standard normal PDF)
             # -- points transformation for given filtering mean and covariance matrix
-            xpoints, w, hpoints = cubPointsAndTransfer(nx, self.SIorder, Sp,
+            xpoints, w, hpoints = cub_points_and_tf(nx, self.SIorder, Sp,
                                                        epMean,
                                                        measurement_model.function,
                                                        predicted_state)
