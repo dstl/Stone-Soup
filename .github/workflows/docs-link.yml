@@ -13,11 +13,7 @@ jobs:
     name: Run CircleCI artifacts redirector
     steps:
       - name: GitHub Action step
-<<<<<<< HEAD
         uses: scientific-python/circleci-artifacts-redirector-action@v1
-=======
-        uses: larsoner/circleci-artifacts-redirector-action@v1
->>>>>>> main
         with:
           repo-token: ${{ secrets.GITHUB_TOKEN }}
           api-token: ${{ secrets.CIRCLECI_DOCS_LINK }}

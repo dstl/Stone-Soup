@@ -134,12 +134,9 @@ def base(state_vec, noise_diff_coeffs):
 
     # Evaluate the likelihood of the predicted state, given the prior
     # (with noise)
-    prob = model_obj.pdf(
-        State(new_state_vec_w_enoise),
-        State(state_vec),
-        timestamp=new_timestamp,
-        time_interval=time_interval,
-    )
+    prob = model_obj.pdf(State(new_state_vec_w_enoise), State(state_vec),
+                         timestamp=new_timestamp, time_interval=time_interval)
     assert approx(prob) == multivariate_normal.pdf(
-        new_state_vec_w_enoise.T, mean=np.array(F @ state_vec).ravel(), cov=Q
-    )
+        new_state_vec_w_enoise.T,
+        mean=np.array(F@state_vec).ravel(),
+        cov=Q)
