@@ -25,19 +25,3 @@ def expected_jumps_per_sec() -> int:
 @pytest.fixture
 def mock_e_ft_func() -> np.ndarray:
     return lambda dt: np.array([[1.0], [2.0]])
-
-
-@pytest.fixture
-def mock_jump_times() -> np.ndarray:
-    return np.array([[1, 1], [2, 2], [3, 3]])
-
-
-@pytest.fixture
-def mock_jump_sizes() -> np.ndarray:
-    return np.array([[1.0, 1.0], [0.8, 0.8], [0.6, 0.6]])
-
-
-@pytest.fixture(scope="session")
-def monkey_session():
-    with pytest.MonkeyPatch.context() as mp:
-        yield mp

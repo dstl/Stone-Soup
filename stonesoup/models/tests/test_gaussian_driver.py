@@ -7,13 +7,13 @@ from stonesoup.models.driver import GaussianDriver
 
 
 @pytest.fixture
-def std_normal_driver() -> GaussianDriver:
-    return GaussianDriver(mu_W=0, sigma_W2=1, seed=0)
+def std_normal_driver(seed) -> GaussianDriver:
+    return GaussianDriver(mu_W=0, sigma_W2=1, seed=seed)
 
 
 @pytest.fixture
-def gaussian_driver() -> GaussianDriver:
-    return GaussianDriver(mu_W=1.0, sigma_W2=4.0, seed=0)
+def gaussian_driver(seed) -> GaussianDriver:
+    return GaussianDriver(mu_W=1.0, sigma_W2=4.0, seed=seed)
 
 
 def test_seed(std_normal_driver: GaussianDriver, gaussian_driver: GaussianDriver) -> None:
