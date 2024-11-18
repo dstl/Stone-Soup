@@ -1,5 +1,5 @@
 import math
-from datetime import datetime, timedelta
+from datetime import timedelta
 from collections.abc import Sequence
 from functools import lru_cache
 from abc import abstractmethod
@@ -8,6 +8,7 @@ from typing import Optional
 import numpy as np
 from scipy.integrate import quad
 from scipy.linalg import block_diag, solve
+from scipy.stats import norm
 
 from .base import TransitionModel, CombinedGaussianTransitionModel
 from ..base import (LinearModel, GaussianModel, TimeVariantModel,
@@ -776,6 +777,69 @@ class SlidingWindowGP(LinearGaussianTransitionModel, TimeVariantModel):
                 return np.arange(d * dt, -dt, -dt).reshape(-1, 1)
             else:
                 return np.arange(d, 0, -1).reshape(-1, 1)
+
+
+class IntegratedSlidingWindowGaussianProcess(SlidingWindowGaussianProcess):
+
+    kernel_length_scale: float = Property(doc="Kernel length scale parameter")
+    kernel_output_variance: float = Property(doc="RBF kernel output variance parameter")
+    initial_var: float = Property(doc="Variance of Gaussian distributed initial value", default=0)
+
+    @property
+    def ndim_state(self):
+        return self.window_size + 1
+    
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self._initial_var = self.initial_var
+        self._pred_time = -1  # saves time of last prediction
+
+    def kernel(self, X, Y=None):
+        if Y is None:
+            Y = X
+        return self._integrated_kernel(X, Y)
+
+    def _1d_covar(self, l, var, x, y):
+        s = x * (norm.cdf(x / l) - norm.cdf((x - y) / l))
+        s += y * (norm.cdf(y / l) - norm.cdf((y - x) / l))
+        s += (l ** 2) * (norm.pdf(x, scale=l) + norm.pdf(y, scale=l)
+                         - norm.pdf(x, loc=y, scale=l))
+        s -= var / np.sqrt(2 * np.pi)
+        return np.sqrt(2 * np.pi) * l * var * s + self._initial_var
+
+    def _integrated_kernel(self, X, Y):
+        l = self.kernel_length_scale
+        var = self.kernel_output_variance
+        X = np.atleast_2d(X)
+        Y = np.atleast_2d(Y)
+
+        # Compute element wise
+        cov_matrix = np.zeros((X.shape[0], Y.shape[0]))
+        for k in range(X.shape[1]):
+            x, y = np.meshgrid(X[:, k], Y[:, k], indexing="ij")
+            cov_matrix += self._1d_covar(l, var, x, y)
+        return cov_matrix
+
+    def matrix(self, pred_time, **kwargs):
+        if pred_time > self._pred_time:
+            if self._pred_time == -1:  # first prediction
+                self._initial_var = self.initial_var
+            else:
+                self._initial_var = self._integrated_kernel(pred_time - self.window_size, pred_time - self.window_size)
+            self._pred_time = pred_time
+        elif pred_time < self._pred_time:  # reset
+            self._pred_time = pred_time
+            self._initial_var = self.initial_var
+
+        base_matrix = super().matrix(pred_time=pred_time, **kwargs)
+        padded_matrix = np.pad(base_matrix, ((0,1),(0,1)))
+        padded_matrix[-1, -2] = 1  # update mean to be last element that exited window
+        return padded_matrix
+
+    def covar(self, **kwargs):
+        base_covar = super().covar(**kwargs)
+        covar = np.pad(base_covar, ((0, 1)))
+        return covar
 
 
 class KnownTurnRateSandwich(LinearGaussianTransitionModel, TimeVariantModel):
