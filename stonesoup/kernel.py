@@ -230,8 +230,8 @@ class TrackKernel(Kernel):
             state2 = state1
         if self.mapping is None:
             self.mapping = list(range(state1[0].state_vector.shape[0]))
-        state1 = StateVectors([state.state_vector[self.mapping] for state in state1])
-        state2 = StateVectors([state.state_vector[self.mapping] for state in state2])
+        state1 = np.hstack([state.state_vector[self.mapping] for state in state1])
+        state2 = np.hstack([state.state_vector[self.mapping] for state in state2])
         return state1, state2
 
     def __call__(self, state1, state2=None, **kwargs):
