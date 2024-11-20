@@ -161,8 +161,15 @@ proposal = KernelParticleState(state_vector=StateVectors(samples.T),
          "quartic_prior_as_state_vector", "quartic_proposal_as_state_vector"]
 )
 def test_kernel(kernel_class, output, state1, state2):
-    kernel = kernel_class(state1, state2)
-    assert np.allclose(kernel, output)
+    kernel_covar = kernel_class(state1, state2)
+    sv1 = state1.state_vector if isinstance(state1, State) else state1
+    print(state2, state2 is None)
+    if state2 is not None:
+        sv2 = state2.state_vector if isinstance(state2, State) else state2
+    else:
+        sv2 = sv1
+    assert kernel_covar.shape == (sv1.shape[1], sv2.shape[1])
+    assert np.allclose(kernel_covar, output)
 
 
 def test_not_implemented():
@@ -186,6 +193,7 @@ def test_multiplicative_kernel(power):
     multiplicative_covar = multiplicative_kernel(state1, state2)
     polynomial_covar = polynomial_kernel(state1, state2)
 
+    assert multiplicative_covar.shape == (state1.shape[1], state2.shape[1])
     assert np.allclose(linear_covar, multiplicative_covar)
     assert np.allclose(multiplicative_covar, polynomial_covar)
     assert np.allclose(linear_covar, polynomial_covar)
@@ -220,8 +228,9 @@ def test_additive_kernel(kernel_class):
     kernel_list = [kernel] * 2
     additive_kernel = AdditiveKernel(kernel_list=kernel_list)
     state1 = StateVectors([[1, 1, 1], [2, 2, 2], [3, 3, 3], [4, 4, 4]])
-    state2 = StateVectors([[2, 2, 2], [3, 3, 3], [4, 4, 4], [5, 5, 5]])
+    state2 = StateVectors([[2, 2], [3, 3], [4, 4], [5, 5]])
     linear_covar = kernel(state1, state2)
+    assert linear_covar.shape == (state1.shape[1], state2.shape[1])
     assert np.allclose(linear_covar + linear_covar, additive_kernel(state1, state2))
 
 
