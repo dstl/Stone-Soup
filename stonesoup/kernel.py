@@ -212,7 +212,8 @@ class GaussianKernel(Kernel):
         """
         self.update_parameters(kwargs)
         state_vector1, state_vector2 = self._get_state_vectors(state1, state2)
-        diff_tilde_x = (state_vector1.T[:, :, None] - state_vector2.T[:, None, :]) ** 2
+
+        diff_tilde_x = (state_vector1[:, :, None] - state_vector2[:, None, :]) ** 2
         diff_tilde_x_sum = np.sum(diff_tilde_x, axis=0)
 
         k_tilde_x = np.exp(-diff_tilde_x_sum/(2*self.variance)) / np.sqrt(2*np.pi*self.variance)
