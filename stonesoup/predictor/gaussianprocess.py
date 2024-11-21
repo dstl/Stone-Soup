@@ -36,7 +36,7 @@ class GaussianProcessPredictor(Predictor):
 
         # TODO: figure out how to handle hyperparameters for optimisation
 
-        means, covars = gp.get_posterior(x_train, y_train, timestamp)
+        means, covars = gp.posterior(x_train, y_train, timestamp)
 
         # create state prediction from means and covars
         # return state prediction

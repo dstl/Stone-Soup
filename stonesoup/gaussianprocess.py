@@ -19,7 +19,7 @@ class GaussianProcess:
         # updates kernel parameters using self.kernel.update_parameters
         pass
 
-    def get_posterior(self, x_train, y_train, x_test):
+    def posterior(self, x_train, y_train, x_test):
         # uses kernel to generate covariance matrices
         # implements main predictive GP equations, returning mean and cov of posterior distribution
         pass
