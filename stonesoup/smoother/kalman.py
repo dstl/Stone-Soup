@@ -170,6 +170,11 @@ class KalmanSmoother(Smoother):
         except (ValueError, TypeError):
             start = 1
 
+        if 'latest_time' in kwargs:
+            pred_time = kwargs.get('latest_time')
+        else:
+            pred_time = None
+
         subsq_state = track[-1]
         smoothed_states = [subsq_state]
         for state in reversed(track[start:-1]):
@@ -177,11 +182,15 @@ class KalmanSmoother(Smoother):
             # Delta t
             time_interval = subsq_state.timestamp - state.timestamp
 
+            # Update pred_time for gaussian process models
+            if pred_time is not None:
+                pred_time = pred_time - time_interval.total_seconds()
+            
             # Retrieve the prediction from the subsequent (k+1th) timestep accessed previously
             prediction = self._prediction(subsq_state)
             # The smoothing gain, mean and covariance
             ksmooth_gain = self._smooth_gain(
-                state, prediction, time_interval=time_interval, **kwargs)
+                state, prediction, time_interval=time_interval, pred_time=pred_time, **kwargs)
             smooth_mean = state.state_vector + ksmooth_gain @ (subsq_state.state_vector -
                                                                prediction.state_vector)
             smooth_covar = state.covar + \
