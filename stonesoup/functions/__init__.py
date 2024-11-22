@@ -1,13 +1,78 @@
 """Mathematical functions used within Stone Soup"""
+
 import copy
 import warnings
 from functools import lru_cache
 
 import numpy as np
+from numpy import linalg as LA
 
+from ..types.array import CovarianceMatrix, StateVector, StateVectors
 from ..types.numeric import Probability
-from ..types.array import StateVector, StateVectors, CovarianceMatrix
 from ..types.state import State
+
+
+def grid_creation(xp_aux, Pp_aux, sFactor, nx, Npa):
+    """Grid for point mass filter
+
+    Create a PMF grid based on center, covariance matrix, and sigma probability
+
+    Parameters
+    ==========
+    xp_aux : numpy.ndarray
+        `nx` by `1` center of the grid
+    Pp_aux : numpy.ndarray
+        'nx' by 'nx' covariance matrix
+    sFactor : int
+        Parameter for the size of the grid
+    nx : int
+        Dimension of the grid
+    Npa : numpy.ndarray
+        'nx' by '' number of points per axis of the grid
+
+    Returns
+    =======
+    predGrid : numpy.ndarray
+        'nx' by prod(Npa) predictive grid
+    predGridDelta : list
+        grid step per dimension
+    gridDim : list of numpy.ndarrays
+        grid coordinates per dimension before rotation and translation
+    xp_aux : numpy.ndarray
+        grid center
+    eigVect : numpy.ndarray
+        eigenvectors describing the rotation of the grid
+
+    """
+
+    eigVal, eigVect = LA.eig(
+        Pp_aux
+    )  # eigenvalue and eigenvectors for setting up the grid
+    gridBound = np.sqrt(eigVal) * sFactor  # Boundaries of grid
+
+    # Ensure the grid steps are in the right order
+    sortInd = np.argsort(np.diag(Pp_aux))
+    sortInd = np.argsort(sortInd)
+
+    pom = np.sort(gridBound)
+    Ipom = np.argsort(gridBound)
+    gridBound = pom[sortInd]
+
+    pom2 = eigVect[:, Ipom]
+    eigVect = pom2[:, sortInd]
+    gridDim = []  # Reset gridDim for each cycle
+    gridStep = []  # Reset gridStep for each cycle
+    for ind3 in range(0, nx):  # Creation of propagated grid
+        # New grid with middle in 0
+        gridDim.append(np.linspace(-gridBound[ind3], gridBound[ind3], Npa[ind3]))
+        gridStep.append(np.absolute(gridDim[ind3][0] - gridDim[ind3][1]))  # Grid step
+
+    combvec_predGrid = np.array(np.meshgrid(*gridDim, indexing='ij')).reshape(nx, -1).T
+    predGrid = np.dot(eigVect, combvec_predGrid.T)
+    # Grid rotation by eigenvectors and translation to the counted unscented mean
+    predGrid += xp_aux
+    predGridDelta = gridStep  # Grid step size
+    return predGrid, predGridDelta, gridDim, xp_aux, eigVect
 
 
 def tria(matrix):

@@ -1,15 +1,55 @@
-import pytest
 import numpy as np
+import pytest
 from numpy import deg2rad
-from scipy.linalg import cholesky, LinAlgError
+from numpy import linalg as LA
 from pytest import approx, raises
+from scipy.linalg import LinAlgError, cholesky
 
+from ...types.array import CovarianceMatrix, Matrix, StateVector, StateVectors
+from ...types.state import GaussianState, State
 from .. import (
-    cholesky_eps, jacobian, gm_reduce_single, mod_bearing, mod_elevation, gauss2sigma,
-    rotx, roty, rotz, cart2sphere, cart2angles, pol2cart, sphere2cart, dotproduct, gm_sample,
-    gauss2cubature, cubature2gauss, cubature_transform)
-from ...types.array import StateVector, StateVectors, Matrix, CovarianceMatrix
-from ...types.state import State, GaussianState
+    cart2angles,
+    cart2sphere,
+    cholesky_eps,
+    cubature2gauss,
+    cubature_transform,
+    dotproduct,
+    gauss2cubature,
+    gauss2sigma,
+    gm_reduce_single,
+    gm_sample,
+    grid_creation,
+    jacobian,
+    mod_bearing,
+    mod_elevation,
+    pol2cart,
+    rotx,
+    roty,
+    rotz,
+    sphere2cart,
+)
+
+
+def test_grid_creation():
+    nx = 4
+    meanX0 = np.array([36569, 50, 55581, 50])  # mean value
+    varX0 = np.diag([90, 5, 160, 5])  # variance
+    Npa = np.array([31, 31, 27, 27])  # must be ODD!
+    sFactor = 4  # scaling factor (number of sigmas covered by the grid)
+
+    [predGrid, predGridDelta, gridDimOld, xOld, Ppold] = grid_creation(
+        np.vstack(meanX0), varX0, sFactor, nx, Npa
+    )
+
+    mean_diffs = np.array([np.mean(np.diff(sublist)) for sublist in gridDimOld])
+
+    eigVal, eigVect = LA.eig(varX0)
+
+    assert np.allclose(meanX0, np.mean(predGrid, axis=1), 0, atol=1.0e-1)
+    assert np.all(meanX0 == xOld.ravel())
+    assert np.all(np.argsort(predGridDelta) == np.argsort(np.diag(varX0)))
+    assert np.allclose(mean_diffs, predGridDelta, 0, atol=1e-10)
+    assert np.all(eigVect == Ppold)
 
 
 def test_cholesky_eps():
