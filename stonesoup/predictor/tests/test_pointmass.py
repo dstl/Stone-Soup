@@ -28,7 +28,6 @@ def test_pointmass():
     Npa = np.array(
         [33, 33, 33, 33]
     )  # 33 number of points per axis, for FFT must be ODD!!!!
-    N = np.prod(Npa)  # number of points - total
     sFactor = 4  # scaling factor (number of sigmas covered by the grid)
 
     [predGrid, predGridDelta, gridDimOld, xOld, Ppold] = grid_creation(
