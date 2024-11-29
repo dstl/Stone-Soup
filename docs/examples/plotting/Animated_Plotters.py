@@ -214,7 +214,7 @@ fig.show()
 # ^^^^^^^^^^
 # In conclusion, the Plotterly-derived :class:`~.AnimatedPlotterly` provides a more detailed and
 # interactive user experience than the Matplotlib-derived :class:`~.AnimationPlotter`, so is
-# recommended for most use cases. However, :class:`~.AnimatedPlotterly` may be a better choice if:
+# recommended for most use cases. However, :class:`~.AnimationPlotter` may be a better choice if:
 #
 # 1. the simulation timesteps are non-linear, or cannot be easily extracted
 # 2. many data points are being displayed at once
