@@ -76,7 +76,8 @@ class PointProcessUpdater(Base):
                 )
                 new_weight = self.prob_detection\
                     * prediction.weight * q
-                if prediction.tag != 'birth': new_weight *= self.prob_survival
+                if prediction.tag != 'birth':
+                    new_weight *= self.prob_survival
                 weight_sum += new_weight
                 # Perform single target Kalman Update
                 temp_updated_component = self.updater.update(hypothesis)
