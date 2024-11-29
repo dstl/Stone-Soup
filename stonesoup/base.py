@@ -32,7 +32,7 @@ This is equivalent to the following:
 
         def __init__(self, foo, bar=10):
             self.foo = foo
-            self.bar = 10
+            self.bar = bar
 
 .. note::
 
