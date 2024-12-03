@@ -961,10 +961,8 @@ def cubature_transform(state, fun, points_noise=None, covar_noise=None, alpha=1.
     return mean, covar, cross_covar, cubature_points_t
 
 
-def stochasticCubatureRulePoints(nx, order):
-    """Stochastic cubature rule points
-
-    Computation of cubature points and weights for the stochastic integration.
+def stochastic_cubature_rule_points(nx, order):
+    """Computation of cubature points and weights for the stochastic integration.
 
     Parameters
     ==========
@@ -1088,7 +1086,7 @@ def cub_points_and_tf(nx, order, sqrtCov, mean, transFunct, state):
     """
 
     # -- cubature points and weights computation (for standard normal PDF)
-    SCRSigmaPoints, w = stochasticCubatureRulePoints(nx, order)
+    SCRSigmaPoints, w = stochastic_cubature_rule_points(nx, order)
 
     # -- points transformation for given filtering mean and covariance matrix
     points = StateVectors(sqrtCov@SCRSigmaPoints + mean)
