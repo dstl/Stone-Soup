@@ -7,7 +7,7 @@ from pytest import approx, raises
 from .. import (
     cholesky_eps, jacobian, gm_reduce_single, mod_bearing, mod_elevation, gauss2sigma,
     rotx, roty, rotz, cart2sphere, cart2angles, pol2cart, sphere2cart, dotproduct, gm_sample,
-    gauss2cubature, cubature2gauss, cubature_transform, stochasticCubatureRulePoints)
+    gauss2cubature, cubature2gauss, cubature_transform, stochastic_cubature_rule_points)
 from ...types.array import StateVector, StateVectors, Matrix, CovarianceMatrix
 from ...types.state import State, GaussianState
 
@@ -391,7 +391,7 @@ def test_cubature_transform(mean, covar, alp):
     ]
 )
 def test_stochastic_integration(order, nx):
-    points, weights = stochasticCubatureRulePoints(nx, order)
+    points, weights = stochastic_cubature_rule_points(nx, order)
     # Mean
     assert np.allclose(np.average(points, weights=weights, axis=1),
                        0, atol=1e-5)
@@ -410,4 +410,4 @@ def test_stochastic_integration(order, nx):
 
 def test_stochastic_integration_invalid_order():
     with pytest.raises(ValueError, match="This order of SIF is not supported"):
-        stochasticCubatureRulePoints(5, 2)
+        stochastic_cubature_rule_points(5, 2)
