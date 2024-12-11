@@ -612,13 +612,13 @@ class SlidingWindowGaussianProcess(LinearGaussianTransitionModel, TimeVariantMod
     The state transition equation is:
 
         .. math::
-            x_t = \mathbf{F}x_{t-1} + w_t,
+            \mathbf{x}_t = \mathbf{F}\mathbf{x}_{t-1} + w_t,
             \quad w_t \sim \mathcal{N}(0, \mathbf{Q}),
 
     where:
 
         .. math::
-            x & = & \begin{bmatrix}
+            \mathbf{x}_t & = & \begin{bmatrix}
                         x_t \\
                         x_{t-1} \\
                         \vdots \\
@@ -640,7 +640,7 @@ class SlidingWindowGaussianProcess(LinearGaussianTransitionModel, TimeVariantMod
             \mathbf{0}_{L-1, 1} & \mathbf{0}_{L-1, L-1}
             \end{bmatrix}
 
-    The model assumes a constant time interval (`dt`) between observations. To
+    The model assumes a constant time interval between observations. To
     construct the covariance matrices, a time vector is created based on the
     current prediction timestep (:attr:`pred_time`) and the specified
     :attr:`time_interval`. The time vector spans backward over the sliding
