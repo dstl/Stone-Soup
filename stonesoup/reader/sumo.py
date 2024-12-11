@@ -4,12 +4,17 @@ import os
 import sys
 from typing import Collection, Sequence
 from enum import Enum
+import traci
+from shapely.geometry import Polygon
+from shapely import union_all, is_valid
 
 from .base import GroundTruthReader
 from ..base import Property
 from ..types.array import StateVector
 from ..types.groundtruth import GroundTruthState, GroundTruthPath
+from ..types.state import State
 from ..buffered_generator import BufferedGenerator
+from ..platform.base import Obstacle
 
 
 class SUMOGroundTruthReader(GroundTruthReader):
@@ -112,6 +117,13 @@ class SUMOGroundTruthReader(GroundTruthReader):
                              field in self.vehicle_metadata_fields if field not in
                              [data.name for data in VehicleMetadataEnum])}""")
 
+        if 'SUMO_HOME' in os.environ:
+            # Add SUMO_HOME env variable. Use this for server/config-file paths
+            tools = os.path.join(os.environ['SUMO_HOME'], 'tools')
+            sys.path.append(tools)
+        else:
+            raise RuntimeError("Environment variable 'SUMO_HOME' is not set")
+
     @staticmethod
     def calculate_velocity(speed, angle, radians=False):
         if not radians:
@@ -122,14 +134,6 @@ class SUMOGroundTruthReader(GroundTruthReader):
 
     @BufferedGenerator.generator_method
     def groundtruth_paths_gen(self):
-
-        # Add SUMO_HOME env variable. Use this for server/config-file paths
-        if 'SUMO_HOME' in os.environ:
-            tools = os.path.join(os.environ['SUMO_HOME'], 'tools')
-            sys.path.append(tools)
-            import traci
-        else:
-            raise RuntimeError("Environment variable 'SUMO_HOME' is not set")
 
         traci.start(self.sumoCmd)
         if self.geographic_coordinates:
@@ -171,7 +175,7 @@ class SUMOGroundTruthReader(GroundTruthReader):
                     lon, lat = traci.simulation.convertGeo(*state_vector[self.position_mapping, :])
                     metadata['longitude'] = lon
                     metadata['latitude'] = lat
-                    
+
                 # Add co-ordinates of origin to metadata
                 if self.origin:
                     metadata['origin'] = self.origin
@@ -233,6 +237,73 @@ class SUMOGroundTruthReader(GroundTruthReader):
             yield time, updated_paths
 
         traci.close()
+
+    def obstacle_gen(self, threshold=0.1):
+        """
+        Import polygons from SUMO as Obstacle platforms
+        """
+        traci.start(self.sumoCmd)
+        if self.geographic_coordinates:
+            self.origin = traci.simulation.convertGeo(0, 0)   # lon, lat
+
+        # get polygon IDs
+        polygon_ids = traci.polygon.getIDList()
+
+        # Loop through polygon IDs
+        raw_obstacles = []
+        obstacles = []
+        for id_ in polygon_ids:
+            # Only retain 'building' polygons
+            if traci.polygon.getType(id_).startswith('building'):
+                # Get the shape information
+                shape_ = traci.polygon.getShape(id_)
+                # Check that the polygon is closed (filled), if it has more than two vertices
+                # (excluding the final vertex) and if the shape is valid according to Shapely
+                if traci.polygon.getFilled(id_) and \
+                        len(shape_[:-1]) > 2 and \
+                        is_valid(Polygon(shape_[:-1])):
+                    raw_obstacles.append(Polygon(shape_[:-1]))
+
+        traci.close(wait=False)
+
+        # Merge touching polygons
+        merged_obstalces = union_all(raw_obstacles)
+
+        # Create obstacle platforms from the data
+        for shape in merged_obstalces.geoms:
+            state = State(StateVector(shape.centroid.xy))
+            obstacles.append(Obstacle(shape_data=shape.exterior.xy-state.state_vector,
+                                      states=state,
+                                      orientation=StateVector([0, 0, 0]),
+                                      position_mapping=(0, 1)))
+
+        return obstacles
+
+    def road_network_gen(self):
+        """
+        Import SUMO road network via junction positions and edges connecting junctions
+        """
+        traci.start(self.sumoCmd)
+        if self.geographic_coordinates:
+            self.origin = traci.simulation.convertGeo(0, 0)   # lon, lat
+
+        # Get list of 'edges' that define the road network
+        edge_IDs = traci.edge.getIDList()
+
+        # Initialise output dict
+        road_network = {}
+
+        # Each edge has a single 'FromJunction' and 'ToJunction'. Using
+        # each junction position, line segments constructing the road
+        # network can be defined.
+        for edge_ID in edge_IDs:
+            road_network[edge_ID] = \
+                np.array([traci.junction.getPosition(traci.edge.getFromJunction(edge_ID)),
+                          traci.junction.getPosition(traci.edge.getToJunction(edge_ID))]).T
+
+        traci.close(wait=False)
+
+        return road_network
 
 
 class PersonMetadataEnum(Enum):
