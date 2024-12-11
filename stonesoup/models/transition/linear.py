@@ -3,6 +3,7 @@ from datetime import datetime, timedelta
 from collections.abc import Sequence
 from functools import lru_cache
 from abc import abstractmethod
+from typing import Optional
 
 import numpy as np
 from scipy.integrate import quad
@@ -416,49 +417,6 @@ class OrnsteinUhlenbeck(NthDerivativeDecay):
         return 1
 
 
-class WindowedGaussianProcess(LinearGaussianTransitionModel, TimeVariantModel):
-
-    window_size: int = Property(doc="Sliding window size")
-
-    @property
-    def ndim_state(self):
-        return self.window_size
-    
-    @abstractmethod
-    def kernel(self, X, Y=None):
-        """Kernel function to compute Gaussian process covariance"""
-        raise NotImplementedError
-    
-    def _compute_covars(self, t, dt):
-        L = self.window_size
-        t_prior = np.flip(np.arange(t - dt * L, t, dt)).reshape(-1, 1)
-        t = np.array([[t]])
-        K_prior = self.kernel(t_prior, t_prior)
-        K_prior_t = self.kernel(t_prior, t)
-        k_t = self.kernel(t, t)
-        return K_prior, K_prior_t, k_t
-
-    def matrix(self, pred_time, time_interval, **kwargs):
-        L = self.window_size
-        dt = time_interval.total_seconds()
-        t = pred_time
-        K_prior, K_prior_t, k_t = self._compute_covars(t, dt)
-        inv_K_prior = pinv(K_prior)
-        return np.vstack([K_prior_t.T @ inv_K_prior, 
-                          np.hstack((np.identity(L - 1), np.zeros((L - 1, 1))))])
-
-    def covar(self, pred_time, time_interval, **kwargs):
-        L = self.window_size
-        dt = time_interval.total_seconds()
-        t = pred_time
-        K_prior, K_prior_t, k_t = self._compute_covars(t, dt)
-        inv_K_prior = pinv(K_prior)
-        noise_var = k_t - K_prior_t.T @ inv_K_prior @ K_prior_t
-        G = np.zeros((L, L))
-        G[0, 0] = 1
-        return G * noise_var
-
-
 class Singer(NthDerivativeDecay):
     r"""This is a class implementation of a discrete, time-variant 1D Singer
     Transition Model.
@@ -619,6 +577,134 @@ class SingerApproximate(Singer):
         ) * self.noise_diff_coeff
 
         return CovarianceMatrix(covar)
+
+
+class SlidingWindowGaussianProcess(LinearGaussianTransitionModel, TimeVariantModel):
+    r"""Discrete model implementing a sliding window zero-mean Gaussian process (GP).
+
+    This model defines a GP over a sliding window of states.
+    The window size is set using the :attr:`window_size` parameter. A GP at
+    discrete timesteps is defined by a time vector spanning from the prediction
+    time :math:`t` backward to :math:`t - L + 1`. The states in this window
+    form a multivariate Gaussian distribution:
+
+        .. math::
+            p(\mathbf{x}_{t:t-L+1}) \sim \mathcal{N}(\mathbf{0}, \mathbf{K})
+
+    For prediction, the model computes the conditional Gaussian distribution
+    for the current state :math:`x_t` given the previous states
+    :math:`\mathbf{x}_{t-1:t-L+1}` with time vector :math:`\mathbf{t}_{L-1}`:
+
+        .. math::
+            p(x_t | \mathbf{x}_{t-1:t-L+1}) \sim \mathcal{N}(\mu_t, \sigma^2_t)
+
+    where:
+
+        .. math::
+            \mu_t = \mathbf{k}_{t, \mathbf{t}_{L-1}}
+                    \mathbf{K}_{\mathbf{t}_{L-1}, \mathbf{t}_{L-1}}^{-1}
+                    \mathbf{x}_{\mathbf{t}_{L-1}}
+
+            \sigma^2_t = k_{t,t} - \mathbf{k}_{t, \mathbf{t}_{L-1}}
+                        \mathbf{K}_{\mathbf{t}_{L-1}, \mathbf{t}_{L-1}}^{-1}
+                        \mathbf{k}_{t, \mathbf{t}_{L-1}}^\top
+
+    The state transition equation is:
+
+        .. math::
+            x_t = \mathbf{F}x_{t-1} + w_t,
+            \quad w_t \sim \mathcal{N}(0, \mathbf{Q}),
+
+    where:
+
+        .. math::
+            x & = & \begin{bmatrix}
+                        x_t \\
+                        x_{t-1} \\
+                        \vdots \\
+                        x_{t-L+1}
+                    \end{bmatrix}
+
+        .. math::
+            \mathbf{F} =
+            \begin{bmatrix}
+            \mathbf{k}_{t, \mathbf{t}_{L-1}}^\top
+            \mathbf{K}_{\mathbf{t}_{L-1}, \mathbf{t}_{L-1}}^{-1} \\
+            \mathbf{I}_{L-1} \quad \mathbf{0}_{L-1, 1}
+            \end{bmatrix}
+
+        .. math::
+            \mathbf{Q} =
+            \begin{bmatrix}
+            \sigma_t^2 & \mathbf{0}_{1, L-1} \\
+            \mathbf{0}_{L-1, 1} & \mathbf{0}_{L-1, L-1}
+            \end{bmatrix}
+
+    The model assumes a constant time interval (`dt`) between observations. To
+    construct the covariance matrices, a time vector is created based on the
+    current prediction timestep (:attr:`pred_time`) and the specified
+    :attr:`time_interval`. The time vector spans backward over the sliding
+    window with a total length of :attr:`window_size`.
+
+    :attr:`pred_time` must be supplied to all methods in this model and
+    represents the elapsed duration since the start time (i.e., the time
+    of the initial state).
+    """
+
+    window_size: int = Property(doc="Size of the sliding window :math:`L`")
+
+    @property
+    def ndim_state(self):
+        return self.window_size
+
+    @abstractmethod
+    def kernel(self, X: np.ndarray, Y: np.ndarray, **kwargs) -> np.ndarray:
+        """Covariance function of the GP.
+
+        Parameters
+        ----------
+        X : array-like, shape (n_samples_X,)
+        Y : array-like, shape (n_samples_Y,)
+
+        Returns
+        -------
+        ndarray, shape (n_samples_X, n_samples_Y)
+            The covariance matrix between the input arrays X and Y.
+        """
+
+        raise NotImplementedError
+
+    def _compute_covars(self, t, dt, **kwargs):
+        L = self.window_size
+        t_prior = np.flip(np.arange(t - dt * L, t, dt)).reshape(-1, 1)
+        t = np.atleast_2d(t)
+
+        K_prior = self.kernel(t_prior, t_prior, **kwargs)
+        K_prior_t = self.kernel(t_prior, t, **kwargs)
+        k_t = self.kernel(t, t, **kwargs)
+        return K_prior, K_prior_t, k_t
+
+    def matrix(self, pred_time: timedelta, time_interval: timedelta, **kwargs):
+        L = self.window_size
+        dt = time_interval.total_seconds()
+        t = pred_time.total_seconds()
+
+        K_prior, K_prior_t, k_t = self._compute_covars(t, dt, **kwargs)
+        inv_K_prior = pinv(K_prior)
+        return np.vstack([K_prior_t.T @ inv_K_prior,
+                          np.hstack((np.identity(L-1), np.zeros((L-1, 1))))])
+
+    def covar(self, pred_time: timedelta, time_interval: timedelta, **kwargs):
+        L = self.window_size
+        dt = time_interval.total_seconds()
+        t = pred_time.total_seconds()
+
+        K_prior, K_prior_t, k_t = self._compute_covars(t, dt, **kwargs)
+        inv_K_prior = pinv(K_prior)
+        noise_var = k_t - K_prior_t.T @ inv_K_prior @ K_prior_t
+        G = np.zeros((L, L))
+        G[0, 0] = 1
+        return G * noise_var
 
 
 class KnownTurnRateSandwich(LinearGaussianTransitionModel, TimeVariantModel):
