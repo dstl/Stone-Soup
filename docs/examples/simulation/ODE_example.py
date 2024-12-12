@@ -19,7 +19,7 @@ Using linearised ODEs from non-linear dynamic models in Stone Soup
 # nearly constant heading transition model [2]_.
 #
 # We can use Stone Soup components to create a linearised model and use standard components to
-# perform the tracking. This method can be used in other context such as space domain (i.e.,
+# perform the tracking. This method can be used in other contexts such as the space domain (i.e.,
 # linearisation of gravitational forces acting on a satellite).
 #
 # The (nearly) constant heading model is a dynamical model that acts on a 4D :class:`~.State` vector
@@ -201,7 +201,7 @@ plotter.fig
 # %%
 # 2. Create the linearised function;
 # ----------------------------------
-# We have create a series of detections from a target moving with peculiar dynamics as can be seen
+# We have created a series of detections from a target moving with peculiar dynamics as can be seen
 # in the figure.
 # We can build the constant heading function and the class for the linearisation that would generate
 # a linearised transition model.
