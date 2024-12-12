@@ -495,7 +495,8 @@ def test_rotating_radar_3d(sensorclass, radar_position, radar_orientation, state
                            max_range, fov_angle, vertical_extent, timestamp_flag):
     timestamp = datetime.datetime.now()
 
-    target_state = GroundTruthState(radar_position + np.array([[5], [5], [0]]), timestamp=timestamp)
+    target_state = GroundTruthState(radar_position + np.array([[5], [5], [0]]),
+                                    timestamp=timestamp)
     target_truth = GroundTruthPath([target_state])
 
     truth = {target_truth}
