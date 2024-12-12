@@ -562,7 +562,8 @@ def test_sensor_manager_with_platform(params):
 @pytest.mark.slow
 @pytest.mark.parametrize(
     "predictor_obj, updater_obj, hypothesiser_obj, associator_obj, reward_function_obj, "
-    "track1_state1, track1_state2, track2_state1, track2_state2, best_child_policy",
+    "track1_state1, track1_state2, track2_state1, track2_state2, best_child_policy, "
+    "rollout_depth, search_depth",
     [
         (
             ParticlePredictor,  # predictor_obj
@@ -591,6 +592,8 @@ def test_sensor_manager_with_platform(params):
                 size=100).T),
                           weight=np.array([1/100]*100)),  # track2_state2
             'max_cumulative_reward',  # best_child_policy
+            3,  # rollout_depth
+            None,  # search_depth
         ), (
             ParticlePredictor,  # predictor_obj
             ParticleUpdater,  # updater_obj
@@ -618,6 +621,8 @@ def test_sensor_manager_with_platform(params):
                 size=100).T),
                           weight=np.array([1/100]*100)),  # track2_state2
             'max_visits',  # best_child_policy
+            None,  # rollout_depth
+            3,  # search_depth
         ), (
             KalmanPredictor,  # predictor_obj
             ExtendedKalmanUpdater,  # updater_obj
@@ -637,6 +642,8 @@ def test_sensor_manager_with_platform(params):
                           np.diag([1.5, 0.25, 1.5, 0.25]
                                   + np.random.normal(0, 5e-4, 4))),  # track2_state2
             'max_cumulative_reward',  # best_child_policy
+            3,  # rollout_depth
+            3,  # search_depth
         ), (
             KalmanPredictor,  # predictor_obj
             ExtendedKalmanUpdater,  # updater_obj
@@ -656,6 +663,8 @@ def test_sensor_manager_with_platform(params):
                           np.diag([1.5, 0.25, 1.5, 0.25]
                                   + np.random.normal(0, 5e-4, 4))),  # track2_state2
             'max_average_reward',  # best_child_policy
+            3,  # rollout_depth
+            None,  # search_depth
         ), (
             KalmanPredictor,  # predictor_obj
             ExtendedKalmanUpdater,  # updater_obj
@@ -675,6 +684,8 @@ def test_sensor_manager_with_platform(params):
                           np.diag([1.5, 0.25, 1.5, 0.25]
                                   + np.random.normal(0, 5e-4, 4))),  # track2_state2
             'max_cumulative_reward',  # best_child_policy
+            3,  # rollout_depth
+            None,  # search_depth
         ), (
             KalmanPredictor,  # predictor_obj
             ExtendedKalmanUpdater,  # updater_obj
@@ -694,6 +705,8 @@ def test_sensor_manager_with_platform(params):
                           np.diag([1.5, 0.25, 1.5, 0.25]
                                   + np.random.normal(0, 5e-4, 4))),  # track2_state2
             MCTSBestChildPolicyEnum.MAXCREWARD,  # best_child_policy
+            3,  # rollout_depth
+            None,  # search_depth
         ), (
             ParticlePredictor,  # predictor_obj
             ParticleUpdater,  # updater_obj
@@ -721,6 +734,8 @@ def test_sensor_manager_with_platform(params):
                 size=100).T),
                           weight=np.array([1/100]*100)),  # track2_state2
             'max_cumulative_reward',  # best_child_policy
+            3,  # rollout_depth
+            None,  # search_depth
         )
     ],
     ids=['KLDivergenceMCTSNoAssociation', 'KLDivergenceMCTSAssociation',
@@ -729,7 +744,7 @@ def test_sensor_manager_with_platform(params):
 )
 def test_mcts_sensor_managers(predictor_obj, updater_obj, hypothesiser_obj, associator_obj,
                               reward_function_obj, track1_state1, track1_state2, track2_state1,
-                              track2_state2, best_child_policy):
+                              track2_state2, best_child_policy, rollout_depth, search_depth):
     time_start = datetime.now()
 
     track1_state1.timestamp = time_start
@@ -788,21 +803,57 @@ def test_mcts_sensor_managers(predictor_obj, updater_obj, hypothesiser_obj, asso
     sensor_setA = {sensor}
     sensor_setB = copy.deepcopy(sensor_setA)
 
-    sensor_managerA = MonteCarloTreeSearchSensorManager(
-        sensors=sensor_setA,
-        reward_function=reward_function,
-        exploration_factor=0,
-        best_child_policy=best_child_policy
-    )
-
-    sensor_managerB = MCTSRolloutSensorManager(
-        sensors=sensor_setB,
-        reward_function=reward_function,
-        exploration_factor=0,
-        rollout_depth=3,
-        discount_factor=0.9,
-        best_child_policy=best_child_policy
-    )
+    if rollout_depth and search_depth:
+        sensor_managerA = MonteCarloTreeSearchSensorManager(
+            sensors=sensor_setA,
+            reward_function=reward_function,
+            exploration_factor=0,
+            best_child_policy=best_child_policy,
+            search_depth=search_depth
+        )
+        with pytest.warns(UserWarning, match='`search_depth` and `rollout_depth` have been '
+                          'defined. `search_depth` overrides rollout depth and forces rollout '
+                          'to end at `search_depth`!'):
+            sensor_managerB = MCTSRolloutSensorManager(
+                sensors=sensor_setB,
+                reward_function=reward_function,
+                exploration_factor=0,
+                rollout_depth=rollout_depth,
+                discount_factor=0.9,
+                best_child_policy=best_child_policy,
+                search_depth=search_depth
+            )
+    elif rollout_depth:
+        sensor_managerA = MonteCarloTreeSearchSensorManager(
+            sensors=sensor_setA,
+            reward_function=reward_function,
+            exploration_factor=0,
+            best_child_policy=best_child_policy
+        )
+        sensor_managerB = MCTSRolloutSensorManager(
+            sensors=sensor_setB,
+            reward_function=reward_function,
+            exploration_factor=0,
+            rollout_depth=rollout_depth,
+            discount_factor=0.9,
+            best_child_policy=best_child_policy
+        )
+    elif search_depth:
+        sensor_managerA = MonteCarloTreeSearchSensorManager(
+            sensors=sensor_setA,
+            reward_function=reward_function,
+            exploration_factor=0,
+            best_child_policy=best_child_policy,
+            search_depth=search_depth
+        )
+        sensor_managerB = MCTSRolloutSensorManager(
+            sensors=sensor_setB,
+            reward_function=reward_function,
+            exploration_factor=0,
+            discount_factor=0.9,
+            best_child_policy=best_child_policy,
+            search_depth=search_depth
+        )
 
     sensor_managers = [sensor_managerA, sensor_managerB]
 
@@ -810,12 +861,6 @@ def test_mcts_sensor_managers(predictor_obj, updater_obj, hypothesiser_obj, asso
     for sensor_manager in sensor_managers:
         dwell_centres_over_time = []
         for time in timesteps:
-            # if best_child_policy == 3:
-            #     with pytest.raises(NotImplementedError) as e:
-            #         chosen_action_configs = sensor_manager.choose_actions(tracks, time)
-            #     assert 'Selected best child policy is not a valid option' in \
-            #         str(e.value)
-            #     return
 
             chosen_action_configs = sensor_manager.choose_actions(tracks, time)
 
