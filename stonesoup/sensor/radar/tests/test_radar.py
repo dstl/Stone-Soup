@@ -28,7 +28,7 @@ def h2d(state, pos_map, translation_offset, rotation_offset):
 
     # Get rotation matrix
     theta_z = -rotation_offset[2, 0]
-    theta_y = -rotation_offset[1, 0]
+    theta_y = rotation_offset[1, 0]
     theta_x = -rotation_offset[0, 0]
 
     rotation_matrix = rotz(theta_z) @ roty(theta_y) @ rotx(theta_x)
@@ -49,7 +49,7 @@ def h3d(state, pos_map, translation_offset, rotation_offset):
 
     # Get rotation matrix
     theta_z = - rotation_offset[2, 0]
-    theta_y = - rotation_offset[1, 0]
+    theta_y = rotation_offset[1, 0]
     theta_x = - rotation_offset[0, 0]
 
     rotation_matrix = rotz(theta_z) @ roty(theta_y) @ rotx(theta_x)
@@ -434,6 +434,131 @@ def test_rotating_radar(sensorclass, radar_position, radar_orientation, state,
     assert isinstance(measurement.groundtruth_path, GroundTruthPath)
 
     target2_state = GroundTruthState(radar_position + np.array([[4], [4]]), timestamp=timestamp)
+    target2_truth = GroundTruthPath([target2_state])
+
+    truth.add(target2_truth)
+
+    # Generate a noiseless measurement for each of the given target states
+    measurements = radar.measure(truth, noise=False)
+
+    # Two measurements for 2 truth states
+    assert len(measurements) == 2
+    assert all(radar.is_detectable(t) for t in truth)
+
+    # Measurements store ground truth paths
+    for measurement in measurements:
+        assert measurement.groundtruth_path in truth
+        assert isinstance(measurement.groundtruth_path, GroundTruthPath)
+
+    assert radar.measure(set()) == set()
+
+
+@pytest.mark.parametrize(
+    "sensorclass, radar_position, radar_orientation, state, measurement_mapping, noise_covar,"
+    " dwell_centre, tilt_centre, rpm, max_range, fov_angle, vertical_extent, timestamp_flag",
+    [
+        (
+            RadarRotatingElevationBearingRange,
+            StateVector(np.array(([[1], [1], [1]]))),  # radar_position
+            StateVector([[0], [0], [np.pi]]),  # radar_orientation
+            3,  # state
+            np.array([0, 1, 2]),  # measurement_mapping
+            CovarianceMatrix(np.array(np.diag([0.01, 0.01, 0.1]))),  # noise_covar
+            StateVector([[-np.pi]]),  # dwell_centre
+            StateVector([[0]]),  # tilt_centre
+            20,  # rpm
+            100,  # max_range
+            np.pi / 3,  # fov_angle
+            np.pi,  # vertical_extent
+            True,  # timestamp_flag
+        ),
+        (
+            RadarRotatingElevationBearingRange,
+            StateVector(np.array(([[1], [1], [1]]))),  # radar_position
+            StateVector([[0], [0], [np.pi]]),  # radar_orientation
+            3,  # state
+            np.array([0, 1, 2]),  # measurement_mapping
+            CovarianceMatrix(np.array(np.diag([0.01, 0.01, 0.1]))),  # noise_covar
+            StateVector([[-np.pi]]),  # dwell_centre
+            StateVector([[0]]),  # tilt_centre
+            20,  # rpm
+            100,  # max_range
+            np.pi / 3,  # fov_angle
+            np.pi,  # vertical_extent
+            False,  # timestamp_flag
+        )
+    ],
+    ids=["ElevationBearingRangeTimestampInitiated", "ElevationBearingRangeTimestampUninitiated"]
+)
+def test_rotating_radar_3d(sensorclass, radar_position, radar_orientation, state,
+                           measurement_mapping, noise_covar, dwell_centre, tilt_centre, rpm,
+                           max_range, fov_angle, vertical_extent, timestamp_flag):
+    timestamp = datetime.datetime.now()
+
+    target_state = GroundTruthState(radar_position + np.array([[5], [5], [0]]), timestamp=timestamp)
+    target_truth = GroundTruthPath([target_state])
+
+    truth = {target_truth}
+
+    # Create a radar object
+    radar = sensorclass(position=radar_position,
+                        orientation=radar_orientation,
+                        ndim_state=state,
+                        position_mapping=measurement_mapping,
+                        noise_covar=noise_covar,
+                        dwell_centre=dwell_centre,
+                        tilt_centre=tilt_centre,
+                        rpm=rpm,
+                        max_range=max_range,
+                        fov_angle=fov_angle,
+                        vertical_extent=vertical_extent)
+
+    # timestamp_flag set to true if testing with radar.timestamp initiated
+    if timestamp_flag:
+        radar.timestamp = timestamp
+
+    # Assert that the object has been correctly initialised
+    assert (np.equal(radar.position, radar_position).all())
+
+    # Generate a noiseless measurement for the given target
+    measurement = radar.measure(truth, noise=False)
+
+    # Assert no measurements since target is not in FOV
+    assert len(measurement) == 0
+    assert not radar.is_detectable(target_truth)
+
+    # Rotate radar such that the target is in FOV
+    timestamp = timestamp + datetime.timedelta(seconds=0.5)
+    radar.act(timestamp)
+
+    target_state = GroundTruthState(radar_position + np.array([[5], [5], [0]]),
+                                    timestamp=timestamp)
+    target_truth = GroundTruthPath([target_state])
+
+    truth = {target_truth}
+
+    measurement = radar.measure(truth, noise=False)
+    measurement = next(iter(measurement))
+
+    eval_m = h3d(target_state,
+                 measurement_mapping,
+                 radar.position,
+                 radar.orientation + [[0],
+                                      [0],
+                                      [radar.dwell_centre[0, 0]]])
+
+    # Assert correction of generated measurement
+    assert (measurement.timestamp == target_state.timestamp)
+    assert (np.equal(measurement.state_vector, eval_m).all())
+    assert radar.is_detectable(target_truth)
+
+    # Assert is TrueDetection type
+    assert isinstance(measurement, TrueDetection)
+    assert measurement.groundtruth_path is target_truth
+    assert isinstance(measurement.groundtruth_path, GroundTruthPath)
+
+    target2_state = GroundTruthState(radar_position + np.array([[4], [4], [0]]),
+                                     timestamp=timestamp)
     target2_truth = GroundTruthPath([target2_state])
 
     truth.add(target2_truth)

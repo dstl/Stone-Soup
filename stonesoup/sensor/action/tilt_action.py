@@ -85,7 +85,7 @@ class TiltActionsGenerator(RealNumberActionGenerator):
                                 generator=self,
                                 end_time=self.end_time,
                                 target_value=self.initial_value,
-                                increasing_angle=True)
+                                increasing_angle=None)
 
     def __call__(self, resolution=None, epsilon=None):
         """

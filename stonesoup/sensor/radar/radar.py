@@ -405,8 +405,8 @@ class RadarRotatingElevationBearingRange(RadarElevationBearingRange):
             translation_offset=self.position,
             rotation_offset=rot_offset)
 
-    def measure(self, ground_truths: Set[GroundTruthState], noise: Union[np.ndarray, bool] = True,
-                **kwargs) -> Set[TrueDetection]:
+    def measure(self, ground_truths: set[GroundTruthState], noise: Union[np.ndarray, bool] = True,
+                **kwargs) -> set[TrueDetection]:
 
         if self.timestamp is None:
             # Read timestamp from ground truth
@@ -418,7 +418,9 @@ class RadarRotatingElevationBearingRange(RadarElevationBearingRange):
 
         return super().measure(ground_truths, noise, **kwargs)
 
-    def is_detectable(self, state: GroundTruthState) -> bool:
+    def is_detectable(self, state: GroundTruthState, measurement_model=None) -> bool:
+        if measurement_model is None:
+            measurement_model = self.measurement_model
         measurement_vector = self.measurement_model.function(state, noise=False)
 
         # Check if state falls within sensor's FOV

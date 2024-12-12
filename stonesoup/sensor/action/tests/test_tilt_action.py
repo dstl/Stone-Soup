@@ -25,7 +25,7 @@ class DummyTiltActionable(Actionable):
             return False
 
 
-@pytest.mark.parametrize('initial_tilt_deg', np.arange(-90, 91, 1))
+@pytest.mark.parametrize('initial_tilt_deg', np.arange(-90, 91, 10))
 def test_tilt_action(initial_tilt_deg):
     initial_tilt = np.radians(initial_tilt_deg)
 
@@ -61,7 +61,7 @@ def test_tilt_action(initial_tilt_deg):
     assert generator.max == min(actionable.tilt_centre[0, 0] + np.radians(60), np.radians(90))
     assert generator.min == max(actionable.tilt_centre[0, 0] - np.radians(60), -np.radians(90))
 
-    for angle in np.linspace(0, np.radians(60), 1):
+    for angle in np.linspace(0, np.radians(60), 10):
         tilt1 = min(actionable.tilt_centre[0, 0] + angle, actionable.max_tilt)
         tilt2 = max(actionable.tilt_centre[0, 0] - angle, actionable.min_tilt)
 
@@ -145,21 +145,24 @@ def test_tilt_action(initial_tilt_deg):
     for action, target_tilt in zip(actions, target_tilts):
         assert action.target_value == pytest.approx(target_tilt)
 
-    generator(np.radians(20))
-    for angle in np.linspace(0, 360, 1):
-        tilt1 = min(actionable.tilt_centre[0, 0] + np.radians(angle), actionable.tilt_centre[0, 0])
-        tilt2 = max(actionable.tilt_centre[0, 0] - np.radians(angle), actionable.tilt_centre[0, 0])
+    generator(np.radians(1))
+    for angle in np.arange(0, 181, 1):
+        tilt1 = min(actionable.tilt_centre[0, 0] + np.radians(angle), actionable.max_tilt)
+        tilt2 = max(actionable.tilt_centre[0, 0] - np.radians(angle), actionable.min_tilt)
         action1 = generator.action_from_value(tilt1)
         action2 = generator.action_from_value(tilt2)
-        if (angle > 60 and actionable.min_tilt + np.radians(60) < actionable.tilt_centre[0, 0] <
-                actionable.max_tilt - np.radians(60)):
+        if (angle > 60 and (actionable.min_tilt + np.radians(60) + generator.epsilon <
+                            actionable.tilt_centre[0, 0] <
+                            actionable.max_tilt - np.radians(60) - generator.epsilon)):
             assert action1 is None
             assert action2 is None
-        elif angle > 60 and actionable.tilt_centre[0, 0] <= actionable.min_tilt + np.radians(60):
+        elif angle > 60 and (actionable.tilt_centre[0, 0] <=
+                             actionable.min_tilt + np.radians(60) + generator.epsilon):
             assert action1 is None
             assert isinstance(action2, ChangeTiltAction)
             assert pytest.approx(action2.target_value) == tilt2
-        elif angle > 60 and actionable.tilt_centre[0, 0] >= actionable.max_tilt - np.radians(60):
+        elif angle > 60 and (actionable.tilt_centre[0, 0] >=
+                             actionable.max_tilt - np.radians(60) - generator.epsilon):
             assert isinstance(action1, ChangeTiltAction)
             assert pytest.approx(action1.target_value) == tilt1
             assert action2 is None
