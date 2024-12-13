@@ -31,7 +31,7 @@ def test_optuna_manager(params):
     truths = params['truths']
 
     reward_function = UncertaintyRewardFunction(predictor, updater)
-    greedysensormanager = OptunaSensorManager(sensor_set, reward_function=reward_function,
+    optunasensormanager = OptunaSensorManager(sensor_set, reward_function=reward_function,
                                               timeout=0.1)
 
     hypothesiser = DistanceHypothesiser(predictor, updater, measure=Mahalanobis(),
@@ -42,7 +42,7 @@ def test_optuna_manager(params):
     dwell_centres = dict()
 
     for timestep in timesteps[1:]:
-        chosen_actions = greedysensormanager.choose_actions(tracks, timestep)
+        chosen_actions = optunasensormanager.choose_actions(tracks, timestep)
         measurements = set()
         for chosen_action in chosen_actions:
             for sensor, actions in chosen_action.items():

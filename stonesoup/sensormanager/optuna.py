@@ -1,5 +1,6 @@
 from typing import Iterable
 from collections import defaultdict
+import warnings
 
 try:
     import optuna
@@ -52,9 +53,11 @@ class OptunaSensorManager(SensorManager):
 
                 for j, generator in enumerate(generators):
                     if isinstance(generator, RealNumberActionGenerator):
-                        value = trial.suggest_float(
-                            f'{i}{j}', generator.min, generator.max,
-                            step=getattr(generator, 'resolution', None))
+                        with warnings.catch_warnings():
+                            warnings.simplefilter("ignore", UserWarning)
+                            value = trial.suggest_float(
+                                f'{i}{j}', generator.min, generator.max + generator.epsilon,
+                                step=getattr(generator, 'resolution', None))
                     else:
                         raise TypeError(f"type {type(generator)} not handled yet")
                     action = generator.action_from_value(value)
