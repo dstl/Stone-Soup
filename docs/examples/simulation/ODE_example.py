@@ -219,10 +219,10 @@ def constant_heading(state, **kwargs):
         The states are a bit odd
     """
 
-    (x, vx, s, vy, theta) = state
+    (x, vx, y, vy, theta) = state
     # generate the s component
     s = torch.sqrt(vx*vx + vy*vy)
-    return s * torch.cos(theta), 0 * s, s * torch.sin(theta), 0. * s, 0. * theta
+    return s * torch.cos(theta), 0. * s, s * torch.sin(theta), 0. * s, 0. * theta
 
 
 # Create the linearisation class
