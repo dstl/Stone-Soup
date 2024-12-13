@@ -432,7 +432,7 @@ class RadarRotatingElevationBearingRange(RadarElevationBearingRange):
 
         elevation_t = measurement_vector[0, 0]
         bearing_t = measurement_vector[1, 0]
-        true_range = measurement_vector[1, 0]
+        true_range = measurement_vector[2, 0]
         return (ver_min <= elevation_t <= ver_max and
                 fov_min <= bearing_t <= fov_max and
                 true_range <= self.max_range)
@@ -449,7 +449,7 @@ class RadarRotatingElevationBearingRange(RadarElevationBearingRange):
 
         elevation_t = measurement_vector[0, 0]
         bearing_t = measurement_vector[1, 0]
-        true_range = measurement_vector[1, 0]
+        true_range = measurement_vector[2, 0]
 
         return (ver_min <= elevation_t <= ver_max and
                 fov_min <= bearing_t <= fov_max and
