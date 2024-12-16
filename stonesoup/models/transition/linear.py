@@ -425,7 +425,6 @@ class OrnsteinUhlenbeck(NthDerivativeDecay):
         return 1
 
 
->>>>>>> ddea5a9a (Modified prior mean and covar calculations)
 class Singer(NthDerivativeDecay):
     r"""This is a class implementation of a discrete, time-variant 1D Singer
     Transition Model.
