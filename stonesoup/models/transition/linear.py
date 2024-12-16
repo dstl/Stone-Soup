@@ -658,18 +658,18 @@ class SlidingWindowGaussianProcess(LinearGaussianTransitionModel, TimeVariantMod
         return self.window_size
 
     @abstractmethod
-    def kernel(self, X: np.ndarray, Y: np.ndarray, **kwargs) -> np.ndarray:
+    def kernel(self, x: np.ndarray, y: np.ndarray, **kwargs) -> np.ndarray:
         """Covariance function of the GP.
 
         Parameters
         ----------
-        X : array-like, shape (n_samples_X,)
-        Y : array-like, shape (n_samples_Y,)
+        x : array-like, shape (n_samples_x,)
+        y : array-like, shape (n_samples_y,)
 
         Returns
         -------
-        ndarray, shape (n_samples_X, n_samples_Y)
-            The covariance matrix between the input arrays X and Y.
+        ndarray, shape (n_samples_x, n_samples_y)
+            The covariance matrix between the input arrays x and y.
         """
 
         raise NotImplementedError
