@@ -781,63 +781,63 @@ class SlidingWindowGP(LinearGaussianTransitionModel, TimeVariantModel):
 
 class IntegratedSlidingWindowGaussianProcess(SlidingWindowGaussianProcess):
 
-    kernel_length_scale: float = Property(doc="Kernel length scale parameter")
-    kernel_output_variance: float = Property(doc="RBF kernel output variance parameter")
-    initial_var: float = Property(doc="Variance of Gaussian distributed initial value", default=0)
+    kernel_length_scale: float = Property(doc="SE Kernel length scale parameter")
+    kernel_output_variance: float = Property(doc="SE kernel output variance parameter")
+    prior_var: float = Property(doc="Variance of Gaussian distributed initial value", default=0)
 
     @property
     def ndim_state(self):
         return self.window_size + 1
-    
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        self._initial_var = self.initial_var
-        self._pred_time = -1  # saves time of last prediction
 
-    def kernel(self, X, Y=None):
-        if Y is None:
-            Y = X
-        return self._integrated_kernel(X, Y)
-
-    def _1d_covar(self, l, var, x, y):
-        s = x * (norm.cdf(x / l) - norm.cdf((x - y) / l))
-        s += y * (norm.cdf(y / l) - norm.cdf((y - x) / l))
-        s += (l ** 2) * (norm.pdf(x, scale=l) + norm.pdf(y, scale=l)
-                         - norm.pdf(x, loc=y, scale=l))
-        s -= var / np.sqrt(2 * np.pi)
-        return np.sqrt(2 * np.pi) * l * var * s + self._initial_var
-
-    def _integrated_kernel(self, X, Y):
+    def kernel(self, x, y, **kwargs):
         l = self.kernel_length_scale
         var = self.kernel_output_variance
-        X = np.atleast_2d(X)
-        Y = np.atleast_2d(Y)
+        x = np.atleast_1d(x)
+        y = np.atleast_1d(y)
+        prior_var = kwargs.get('prior_var', self.prior_var)
 
-        # Compute element wise
-        cov_matrix = np.zeros((X.shape[0], Y.shape[0]))
-        for k in range(X.shape[1]):
-            x, y = np.meshgrid(X[:, k], Y[:, k], indexing="ij")
-            cov_matrix += self._1d_covar(l, var, x, y)
-        return cov_matrix
+        K = np.zeros((len(x), len(y)))
+        for i in range(len(x)):
+            for j in range(len(y)):
+                K[i, j] = self._1d_kernel(l, var, float(x[i]), float(y[j])) + prior_var
+        return K
+
+    @staticmethod
+    @lru_cache
+    def _1d_kernel(l, var, x, y):
+        sum_term = x * (norm.cdf(x / l) - norm.cdf((x - y) / l)) \
+                   + y * (norm.cdf(y / l) - norm.cdf((y - x) / l)) \
+                   + (l ** 2) * (norm.pdf(x, scale=l) + norm.pdf(y, scale=l) 
+                                 - norm.pdf(x, loc=y, scale=l)) \
+                   - l / np.sqrt(2 * np.pi)
+        return np.sqrt(2 * np.pi) * l * var * sum_term
+    
+    @lru_cache
+    def _compute_current_prior_var(cls, l, var, L, t):
+        num_windows = t // L  # number of full windows since t = 0
+        re = t % L  # remaining number of seconds not included in a full window
+        return cls.prior_var + cls._1d_kernel(l, var, re, re) + cls._1d_kernel(l, var, L, L) * num_windows
 
     def matrix(self, pred_time, **kwargs):
-        if pred_time > self._pred_time:
-            if self._pred_time == -1:  # first prediction
-                self._initial_var = self.initial_var
-            else:
-                self._initial_var = self._integrated_kernel(pred_time - self.window_size, pred_time - self.window_size)
-            self._pred_time = pred_time
-        elif pred_time < self._pred_time:  # reset
-            self._pred_time = pred_time
-            self._initial_var = self.initial_var
+        l = self.kernel_length_scale
+        var = self.kernel_output_variance
+        L = self.window_size
+        prior_t = pred_time.total_seconds() - L
+        current_prior_var = self._compute_current_prior_var(l, var, L, prior_t)
 
-        base_matrix = super().matrix(pred_time=pred_time, **kwargs)
-        padded_matrix = np.pad(base_matrix, ((0,1),(0,1)))
-        padded_matrix[-1, -2] = 1  # update mean to be last element that exited window
+        base_matrix = super().matrix(pred_time=timedelta(seconds=L), prior_var=current_prior_var, **kwargs)
+        padded_matrix = np.pad(base_matrix, ((0, 1), (0, 1)))
+        padded_matrix[-1, -1] = 1
         return padded_matrix
 
-    def covar(self, **kwargs):
-        base_covar = super().covar(**kwargs)
+    def covar(self, pred_time, **kwargs):
+        l = self.kernel_length_scale
+        var = self.kernel_output_variance
+        L = self.window_size
+        prior_t = pred_time.total_seconds() - L
+        current_prior_var = self._compute_current_prior_var(l, var, L, prior_t)
+
+        base_covar = super().covar(pred_time=timedelta(seconds=L), prior_var=current_prior_var, **kwargs)
         covar = np.pad(base_covar, ((0, 1)))
         return covar
 
