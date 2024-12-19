@@ -83,5 +83,5 @@ wkGSF /= np.sum(wkGSF)
 xhatk  = XkGSF @ wkGSF.T
 Phatk  = np.sum(np.multiply(PkGSF,wkGSF),axis=2)
 nuxk   = XkGSF - xhatk
-Phatk += nuxk @ np.diag(wkGSF[0]) @ nuxk.T
+Phatk += (nuxk*wkGSF) @ nuxk.T
 Phatk  = (Phatk + Phatk.T) / 2
