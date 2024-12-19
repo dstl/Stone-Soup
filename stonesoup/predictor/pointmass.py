@@ -70,70 +70,108 @@ class PointMassPredictor(Predictor):
             # -------------------------------------------------------------------------------
             # # Initialize and normalize
             if runGSFversion:
-            
+        
                 # Normalize weights
-                wbark = prior.weight / np.sum(prior.weight)
+                wbark  = prior.weight / np.sum(prior.weight)
+
+                # Dimensions
+                s,n    = prior.state_vector.shape
+                R      = np.array(np.matrix(measModel.covar()))
+                ny     = R.shape[0]
+                eye_s  = np.eye(s)
                 
                 # Predicted state mean and covariance components
-                Xbark = F @ prior.state_vector
+                Xbark              = F @ prior.state_vector
                 prior.state_vector = Xbark
-                s, n = Xbark.shape
-                xbark = Xbark @ wbark
-                chip_ = Xbark - xbark[:, None]
+                xbark              = Xbark @ wbark
+                chip_              = Xbark - xbark[:, None]
                 
                 # Compute Ps using optimal weighting
-                alpha = 1  # Adjust if needed
-                Ps = alpha * (4 / (n * (s + 2)))**(2 / (s + 4)) * (chip_ * wbark) @ chip_.T + Q
-                Ps = (Ps + Ps.T) / 2
+                alpha = 0.5  # Adjust if needed
+                Ps    = alpha * (4 / (n * (s + 2)))**(2 / (s + 4)) * (chip_ * wbark) @ chip_.T + Q # Silverman's rule of thumb
+                Ps    = (Ps + Ps.T) / 2
                 
                 # Jacobian and measurement noise
-                H = measModel.jacobian(prior)  # Compute Jacobian at predicted state points - TODO STONE SOUP JACOBIAN NOT VECTORIZED
-                Ht = np.transpose(H, (1, 0, 2))
-                 
+                v      = futureMeas.state_vector - measModel.function(prior)
+                H      = measModel.jacobian(prior)  # Compute Jacobian at predicted state points - TODO STONE SOUP JACOBIAN NOT VECTORIZED
 
-                #W = np.einsum('mnr,nd,nmr->r', H, Ps, Ht) + measModel.covar() # W = H * Ps * Ht + R
-                #K = np.einsum('mnr,r->mnr', np.einsum('mn,ndr->mdr', Ps, Ht), 1/W)  # K = Ps * Ht / W - TODO some lines works only for nz = 1
-                
-                
-                
-                W = np.einsum('bar,mn,nkr->bkr', H, Ps, Ht) + measModel.covar()[:, :, np.newaxis]
-                # Assuming all matrices in the array are 2x2, preallocating the inverted array
-                invW = np.empty_like(W)
-                # Inverting matrices using vectorized operations
-                a, b, c, d = W[:, 0, 0], W[:, 0, 1], W[:, 1, 0], W[:, 1, 1]
-                det = a * d - b * c  # Determinant for 2x2 matrices
-                invW[:, 0, 0], invW[:, 0, 1] = d / det, -b / det
-                invW[:, 1, 0], invW[:, 1, 1] = -c / det, a / det
-                K = np.einsum('mn,abr,bjr->ajr', Ps, Ht, invW)
+                # Gaussian sum update
+                Ht     = np.transpose(H,[1,0,2])
+                HPs    = np.einsum('ikn,kj->ijn',H,Ps)
+                HPsHt  = np.einsum('ikn,kjn->ijn',HPs,Ht)
+                W      = HPsHt + R
+                Winv   = np.moveaxis(np.linalg.inv(np.moveaxis(W,-1,0)),0,-1)
+                PsHt   = np.einsum('ik,kjn->ijn',Ps,Ht)
+                K      = np.einsum('ikn,kjn->ijn',PsHt,Winv)
+                Kt     = np.transpose(K,[1,0,2])
+                v      = v.reshape(ny,1,n)
+                vt     = np.transpose(v,[1,0,2])
+                Kv     = np.einsum('ikn,kjn->ijn',K,v)
+                Kv     = Kv.reshape(s,n)
+                XkGSF  = Xbark + Kv
+                KH     = np.einsum('ikn,kjn->ijn',K,H)
+                ImKH   = np.repeat(eye_s,n).reshape(s,s,n) - KH
+                ImKHt  = np.transpose(ImKH,[1,0,2])
+                PkGSF  = np.einsum('ikn,kj->ijn',ImKH,Ps)
+                PkGSF  = np.einsum('ikn,kjn->ijn',PkGSF,ImKHt)
+                KRK    = np.einsum('ikn,kj->ijn',K,R)
+                KRK    = np.einsum('ikn,kjn->ijn',KRK,Kt)
+                PkGSF += KRK
+                detW   = np.moveaxis(np.linalg.det(np.moveaxis(W,-1,0)),0,-1)
+                wkGSF  = np.log(wbark + np.finfo(float).eps) - np.log(np.sqrt(detW.reshape(1,n)))
+                Wv     = np.einsum('ikn,kjn->ijn',Winv,v)
+                vtWv   = np.einsum('ikn,kjn->ijn',vt,Wv)
+                wkGSF += -0.5*vtWv.reshape(1,n)
+                m      = np.max(wkGSF)
+                wkGSF  = np.exp(wkGSF - (m + np.log(np.sum(np.exp(wkGSF - m)))))
+                wkGSF /= np.sum(wkGSF)
+                xhatk  = XkGSF @ wkGSF.T
+                Phatk  = np.sum(np.multiply(PkGSF,wkGSF),axis=2)
+                nuxk   = XkGSF - xhatk
+                Phatk += (nuxk*wkGSF) @ nuxk.T
+                Phatk  = (Phatk + Phatk.T) / 2  
 
+                # Ht = np.transpose(H, (1, 0, 2))
+
+                # #W = np.einsum('mnr,nd,nmr->r', H, Ps, Ht) + measModel.covar() # W = H * Ps * Ht + R
+                # #K = np.einsum('mnr,r->mnr', np.einsum('mn,ndr->mdr', Ps, Ht), 1/W)  # K = Ps * Ht / W - TODO some lines works only for nz = 1
                 
-                # Measurement residual and update
-                v = futureMeas.state_vector - measModel.function(prior)
-                XkGSF = Xbark + np.einsum('abr,br->ar', K, v).reshape(K.shape[0], -1)
+                # W = np.einsum('bar,mn,nkr->bkr', H, Ps, Ht) + measModel.covar()[:, :, np.newaxis]
+                # # Assuming all matrices in the array are 2x2, preallocating the inverted array
+                # invW = np.empty_like(W)
+                # # Inverting matrices using vectorized operations
+                # a, b, c, d = W[:, 0, 0], W[:, 0, 1], W[:, 1, 0], W[:, 1, 1]
+                # det = a * d - b * c  # Determinant for 2x2 matrices
+                # invW[:, 0, 0], invW[:, 0, 1] = d / det, -b / det
+                # invW[:, 1, 0], invW[:, 1, 1] = -c / det, a / det
+                # K = np.einsum('mn,abr,bjr->ajr', Ps, Ht, invW)
+
+                # # Measurement residual and update
+                # v = futureMeas.state_vector - measModel.function(prior)
+                # XkGSF = Xbark + np.einsum('abr,br->ar', K, v).reshape(K.shape[0], -1)
                 
-                # Posterior covariance update
-                KH = np.einsum('mnr,ndr->mdr', K, H)
-                eye_s = np.eye(s)
-                Kt = np.transpose(K, (1, 0, 2))
-                PkGSF = np.einsum('ik,kjl->kil', Ps, eye_s[:, :, None] - KH) + np.einsum('klr,ldr->kdr', K, Kt)
+                # # Posterior covariance update
+                # KH    = np.einsum('mnr,ndr->mdr', K, H)
+                # eye_s = np.eye(s)
+                # Kt    = np.transpose(K, (1, 0, 2))
+                # PkGSF = np.einsum('ik,kjl->kil', Ps, eye_s[:, :, None] - KH) + np.einsum('klr,ldr->kdr', K, Kt)
                 
+                # # Weight update - TODO
+                # wkGSF = np.log(wbark) - np.log(np.sqrt(W)) + v*(v/W)
+                # m     = np.max(wkGSF)
+                # wkGSF = np.exp(wkGSF - (m + np.log(np.sum(np.exp(wkGSF - m)))));
+                # wkGSF = wkGSF / np.sum(wkGSF);
                 
-                # Weight update - TODO
-                wkGSF = np.log(wbark) - np.log(np.sqrt(W)) + v*(v/W)
-                m = np.max(wkGSF)
-                wkGSF = np.exp(wkGSF - (m + np.log(np.sum(np.exp(wkGSF - m)))));
-                wkGSF = wkGSF / np.sum(wkGSF);
+                # # Compute state estimate and covariance
+                # xhatk = XkGSF @ wkGSF.T      
+                # Phatk =  np.sum(PkGSF * wkGSF.reshape(1, 1, -1),axis=2)
+                # nuxk  = XkGSF - xhatk
                 
-                # Compute state estimate and covariance
-                xhatk = XkGSF @ wkGSF.T      
-                Phatk =  np.sum(PkGSF * wkGSF.reshape(1, 1, -1),axis=2)
-                nuxk = XkGSF - xhatk
-                
-                Phatk += (nuxk * wkGSF).dot(nuxk.T)
-                Phatk = (Phatk + Phatk.T) / 2  # Symmetrize
+                # Phatk += (nuxk * wkGSF).dot(nuxk.T)
+                # Phatk  = (Phatk + Phatk.T) / 2  # Symmetrize
     
-                matrixForEig = inv(F)@(Phatk + Q)@inv(F.T)
-                measMean = inv(F)@xhatk;
+                matrixForEig = inv(F) @ (Phatk + Q) @ inv(F.T)
+                measMean     = inv(F) @ xhatk
                 
                 measGridNew, GridDeltaOld, gridDimOld, nothing, eigVect = gridCreation(
                     measMean,
