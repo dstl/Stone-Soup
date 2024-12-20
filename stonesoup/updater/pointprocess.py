@@ -75,7 +75,9 @@ class PointProcessUpdater(Base):
                     cov=measurement_prediction.covar
                 )
                 new_weight = self.prob_detection\
-                    * prediction.weight * q * self.prob_survival
+                    * prediction.weight * q
+                if prediction.tag != 'birth':
+                    new_weight *= self.prob_survival
                 weight_sum += new_weight
                 # Perform single target Kalman Update
                 temp_updated_component = self.updater.update(hypothesis)
@@ -105,7 +107,7 @@ class PointProcessUpdater(Base):
                 component = TaggedWeightedGaussianState(
                     tag=missed_detected_hypotheses.prediction.tag,
                     weight=missed_detected_hypotheses.prediction.weight
-                    * (1-self.prob_detection) * l1,
+                    * (1-self.prob_detection) * l1 * self.prob_survival,
                     state_vector=missed_detected_hypotheses.prediction.mean,
                     covar=missed_detected_hypotheses.prediction.covar,
                     timestamp=missed_detected_hypotheses.prediction.timestamp)
