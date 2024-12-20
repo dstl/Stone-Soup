@@ -87,7 +87,7 @@ class PointMassPredictor(Predictor):
                 chip_              = Xbark - xbark[:, None]
                 
                 # Compute Ps using optimal weighting
-                alpha = 0.5  # Adjust if needed
+                alpha = 0  # Adjust if needed
                 Ps    = alpha * (4 / (n * (s + 2)))**(2 / (s + 4)) * (chip_ * wbark) @ chip_.T + Q # Silverman's rule of thumb
                 Ps    = (Ps + Ps.T) / 2
                 
@@ -99,7 +99,7 @@ class PointMassPredictor(Predictor):
                 Ht     = np.transpose(H,[1,0,2])
                 HPs    = np.einsum('ikn,kj->ijn',H,Ps)
                 HPsHt  = np.einsum('ikn,kjn->ijn',HPs,Ht)
-                W      = HPsHt + R
+                W      = HPsHt + np.repeat(R,n).reshape(ny,ny,n)
                 Winv   = np.moveaxis(np.linalg.inv(np.moveaxis(W,-1,0)),0,-1)
                 PsHt   = np.einsum('ik,kjn->ijn',Ps,Ht)
                 K      = np.einsum('ikn,kjn->ijn',PsHt,Winv)
