@@ -780,10 +780,120 @@ class SlidingWindowGP(LinearGaussianTransitionModel, TimeVariantModel):
 
 
 class IntegratedSlidingWindowGaussianProcess(SlidingWindowGaussianProcess):
+    r"""Discrete time-variant 1D Sliding Window Gaussian Process (GP) model 
+    with integration, where the state :math:`x_t` models the integral of a 
+    zero-mean GP :math:`g(t)`.
 
-    kernel_length_scale: float = Property(doc="SE Kernel length scale parameter")
-    kernel_output_variance: float = Property(doc="SE kernel output variance parameter")
-    prior_var: float = Property(doc="Variance of Gaussian distributed initial value", default=0)
+    The relationship between :math:`x_t` and :math:`g(t)` is defined as:
+
+        .. math::
+            x_t = x_0 + \int_{0}^{t} g(\tau) \, d\tau
+
+    where :math:`g(t)` is a zero-mean GP with a radial basis function (RBF)
+    kernel:
+
+        .. math::
+            K_g(t, t') = \sigma^2 \exp \left(-\frac{(t - t')^2}{2 \ell^2} \right)
+
+    The output variance :math:`\sigma^2` and length scale :math:`\ell` of
+    :math:`g(t)` are set with the keyword arguments :attr:`output_var` and
+    :attr:`length_scale` respectively.
+
+    The initial condition :math:`x_0` is modeled as a Gaussian random variable,
+    assumed independent of :math:`g(t)`:
+
+        .. math::
+            x_0 \sim \mathcal{N}(\mu_x, \sigma^2_x)
+
+    To approximate the integral over a sliding window of size :math:`L`,
+    spanning :math:`t_L = L \cdot \Delta t` in absolute time (:math:`\Delta t`
+    is the constant time interval between observations), the process is
+    reformulated as:
+
+        .. math::
+            x_t = x_{t - t_L} + \int_{t - t_L}^{t} g(\tau) \, d\tau
+
+        .. math::
+            \approx x_{t - t_L} + \int_{0}^{t_L} g(\tau) \, d\tau
+
+    The integral limits are approximated as spanning from :math:`0` to :math:`t_L`,
+    assuming that the contributions from separate windows are independent.
+    This approximation is introduced as the analytical derivation of the kernel
+    for :math:`z(t)` requires integration limits with a fixed starting point :math:`t=0`.
+
+    The prior :math:`x_{t - t_L}` is updated to:
+
+        .. math::
+            x_{t - t_L} \sim \mathcal{N}(\mu_{x}, \sigma^2_{t - t_L})
+
+    To model :math:`x_t` as a zero-mean GP compatible with the state space
+    formulation of the sliding window GP, the prior :math:`x_{t - t_L}` is
+    first set to zero, and its effects on the mean and covariance function
+    of :math:`x_t` are considered separately.
+    
+    :math:`x_{t - t_L}` adds a constant offset :math:`\mu_{x}` to :math:`x_t`.
+    The statevector is augmented with :math:`\mu_{x}` to be included in the
+    observation model. :math:`x_{t - t_L}` also adds an extra term in the
+    covariance function :math:`K_x(t, t')`:
+
+        .. math::
+            K_x(t, t') = \sigma^2_{t - t_L} +
+            \int_{0}^{t} \int_{0}^{t'} K_g(\tau, \tau') \, d\tau \, d\tau'
+
+    The state transition equation for :math:`x_t` is defined as:
+
+        .. math::
+            \mathbf{x}_t = \mathbf{F}\mathbf{x}_{t-1} + w_t,
+            \quad w_t \sim \mathcal{N}(0, \mathbf{Q}),
+
+    where:
+
+        .. math::
+            \mathbf{x}_t & = & \begin{bmatrix}
+                        x_t \\
+                        x_{t-1} \\
+                        \vdots \\
+                        x_{t-L+1} \\
+                        \mu_{t-L}
+                    \end{bmatrix}
+
+        .. math::
+            \mathbf{F} =
+            \begin{bmatrix}
+            \mathbf{F}' & \mathbf{0}_{1, L} \\
+            \mathbf{0}_{L, 1} & \mathbf{0}_{1}
+            \end{bmatrix}
+
+        .. math::
+            \mathbf{Q} =
+            \begin{bmatrix}
+            \sigma_t^2 & \mathbf{0}_{1, L} \\
+            \mathbf{0}_{L, 1} & \mathbf{0}_{L, L}
+            \end{bmatrix}
+
+    where :math:`\mathbf{F}'` and :math:`\sigma_t^2` are computed the same
+    way as the sliding window GP model but with covariance function
+    :math:`K_x(t, t')`.
+
+    The model assumes a constant time interval between observations. To
+    construct the covariance matrices, a time vector is created based on the
+    current prediction timestep (:attr:`pred_time`) and the specified
+    :attr:`time_interval`. The time vector spans backward over the sliding
+    window with a total length of :attr:`window_size`.
+
+    :attr:`pred_time` must be supplied to all methods in this model and
+    represents the elapsed duration since the start time (i.e., the time
+    of the initial state).
+
+    References
+    ----------
+    For a full derivation of the integral and implementation details, see the
+    accompanying paper and documentation.
+    """
+
+    kernel_length_scale: float = Property(doc="RBF Kernel length scale parameter :math:`\ell`")
+    kernel_output_variance: float = Property(doc="RBF kernel output variance parameter :math:`\sigma^2`")
+    prior_var: float = Property(doc="Variance :math:`\sigma^2_x` of Gaussian initial value :math:`x_0`")
 
     @property
     def ndim_state(self):
