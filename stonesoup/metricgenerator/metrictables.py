@@ -1,12 +1,12 @@
+from collections.abc import Collection
 from operator import attrgetter
-from typing import Collection
 
-import numpy as np
 import matplotlib
+import numpy as np
 from matplotlib import pyplot as plt
 
-from .base import MetricTableGenerator, MetricGenerator
 from ..base import Property
+from .base import MetricGenerator, MetricTableGenerator
 
 
 class RedGreenTableGenerator(MetricTableGenerator):
@@ -16,6 +16,9 @@ class RedGreenTableGenerator(MetricTableGenerator):
     values to color code an output table with respect to how
     well the tracker performed in relation to each metric, where
     red is worse and green is better"""
+
+    # needed because of MetricGenerator parent class
+    generator_name: str = ""
 
     metrics: Collection[MetricGenerator] = Property(doc="Set of metrics to put in the table")
 
@@ -84,6 +87,9 @@ class SIAPTableGenerator(RedGreenTableGenerator):
 
     Contains methods to specify the ranges, descriptions and target values specifically for SIAP
     metrics."""
+
+    # needed because of MetricGenerator parent class
+    generator_name: str = ""
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)

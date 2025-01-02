@@ -30,6 +30,17 @@ class MetricGenerator(Base):
         """
         raise NotImplementedError
 
+    @property
+    @abstractmethod
+    def generator_name(self) -> str:
+        """Unique identifier when accessing generated metrics from MultiManager.
+
+        Returns
+        -------
+        : unique identifier as string
+        """
+        raise NotImplementedError
+
 
 class MetricManager(Base):
     """Metric Manager base class

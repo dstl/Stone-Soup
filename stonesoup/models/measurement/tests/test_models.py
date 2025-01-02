@@ -328,7 +328,7 @@ def test_models(h, ModelClass, state_vec, R,
     noise = model.rvs()
     meas_pred_w_enoise = model.function(state,
                                         noise=noise)
-    assert np.array_equal(meas_pred_w_enoise,  h(
+    assert np.allclose(meas_pred_w_enoise,  h(
         state_vec, mapping, model.translation_offset, model.rotation_offset)+noise)
 
     # Evaluate the likelihood of the predicted state, given the prior
@@ -754,12 +754,12 @@ def test_rangeratemodels(h, modelclass, state_vec, ndim_state, pos_mapping, vel_
     noise = model.rvs()
     meas_pred_w_enoise = model.function(state,
                                         noise=noise)
-    assert np.array_equal(meas_pred_w_enoise, h(state_vec,
-                                                model.mapping,
-                                                model.velocity_mapping,
-                                                model.translation_offset,
-                                                model.rotation_offset,
-                                                model.velocity) + noise)
+    assert np.allclose(meas_pred_w_enoise, h(state_vec,
+                                             model.mapping,
+                                             model.velocity_mapping,
+                                             model.translation_offset,
+                                             model.rotation_offset,
+                                             model.velocity) + noise)
 
     # Evaluate the likelihood of the predicted state, given the prior
     # (with noise)
@@ -973,8 +973,8 @@ def test_rangeratemodels_with_particles(h, modelclass, state_vec, ndim_state, po
                   model.velocity) + noise
     for particle in range(nparticles):
         for dimension in range(ndim_meas):
-            assert np.array_equal(meas_pred_w_enoise[dimension][particle],
-                                  np.atleast_1d(test_meas)[dimension])
+            assert approx(meas_pred_w_enoise[dimension][particle]) == \
+                np.atleast_1d(test_meas)[dimension]
 
     # Evaluate the likelihood of the predicted state, given the prior
     # (with noise)

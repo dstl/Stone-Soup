@@ -1,6 +1,6 @@
 from typing import Optional
 import datetime
-from typing import Sequence, Collection
+from collections.abc import Sequence, Collection
 
 import numpy as np
 from ordered_set import OrderedSet

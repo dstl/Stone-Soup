@@ -2,6 +2,7 @@ from operator import attrgetter
 import datetime
 
 import numpy as np
+import pytest
 
 from ..distance import DistanceHypothesiser
 from ...types.detection import Detection
@@ -10,7 +11,8 @@ from ...types.track import Track
 from ... import measures
 
 
-def test_mahalanobis(predictor, updater):
+@pytest.mark.parametrize('predict_with_measurements', [True, False])
+def test_mahalanobis(predictor, updater, predict_with_measurements):
 
     timestamp = datetime.datetime.now()
     track = Track([GaussianState(np.array([[0]]), np.array([[1]]), timestamp)])
@@ -21,7 +23,8 @@ def test_mahalanobis(predictor, updater):
 
     measure = measures.Mahalanobis()
     hypothesiser = DistanceHypothesiser(
-        predictor, updater, measure=measure, missed_distance=3)
+        predictor, updater, measure=measure, missed_distance=3,
+        predict_with_measurements=predict_with_measurements)
 
     hypotheses = hypothesiser.hypothesise(track, detections, timestamp)
 

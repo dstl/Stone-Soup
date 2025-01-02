@@ -1,6 +1,6 @@
 import copy
 import datetime
-from typing import Sequence
+from collections.abc import Sequence
 
 from .array import CovarianceMatrix
 from .base import Type
@@ -11,7 +11,7 @@ from .state import (State, GaussianState, EnsembleState,
                     BernoulliParticleState, KernelParticleState)
 from ..base import Property
 from ..models.transition.base import TransitionModel
-from ..types.state import CreatableFromState, CompositeState
+from ..types.state import CreatableFromState, CompositeState, PointMassState
 
 
 class Prediction(Type, CreatableFromState):
@@ -142,10 +142,24 @@ class ParticleStatePrediction(Prediction, ParticleState):
     """
 
 
+class PointMassStatePrediction(Prediction, PointMassState):
+    """PointMassStatePrediction type
+
+    This is a simple Point mass state prediction object.
+    """
+
+
 class ParticleMeasurementPrediction(MeasurementPrediction, ParticleState):
     """MeasurementStatePrediction type
 
     This is a simple Particle measurement prediction object.
+    """
+
+
+class PointMassMeasurementPrediction(MeasurementPrediction, PointMassState):
+    """MeasurementStatePrediction type
+
+    This is a simple Point mass measurement prediction object.
     """
 
 

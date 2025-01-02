@@ -1,5 +1,6 @@
 from abc import abstractmethod, ABC
-from typing import Set, Union, Sequence
+from collections.abc import Sequence
+from typing import Union
 
 import numpy as np
 
@@ -45,8 +46,8 @@ class Sensor(PlatformMountable, Actionable):
         return True
 
     @abstractmethod
-    def measure(self, ground_truths: Set[GroundTruthState], noise: Union[np.ndarray, bool] = True,
-                **kwargs) -> Set[TrueDetection]:
+    def measure(self, ground_truths: set[GroundTruthState], noise: Union[np.ndarray, bool] = True,
+                **kwargs) -> set[TrueDetection]:
         """Generate a measurement for a given state
 
         Parameters
@@ -82,13 +83,13 @@ class SimpleSensor(Sensor, ABC):
             ":class:`Clutter` objects to the measurements at each time step. "
             "The clutter is simulated according to the provided distribution.")
 
-    def measure(self, ground_truths: Set[GroundTruthState], noise: Union[np.ndarray, bool] = True,
-                **kwargs) -> Set[TrueDetection]:
+    def measure(self, ground_truths: set[GroundTruthState], noise: Union[np.ndarray, bool] = True,
+                **kwargs) -> set[TrueDetection]:
 
         measurement_model = self.measurement_model
 
         detectable_ground_truths = [truth for truth in ground_truths
-                                    if self.is_detectable(truth)]
+                                    if self.is_detectable(truth, measurement_model)]
 
         if noise is True:
             if len(detectable_ground_truths) > 1:
@@ -126,7 +127,7 @@ class SimpleSensor(Sensor, ABC):
         return detections
 
     @abstractmethod
-    def is_detectable(self, state: GroundTruthState) -> bool:
+    def is_detectable(self, state: GroundTruthState, measurement_model=None) -> bool:
         raise NotImplementedError
 
     @abstractmethod
@@ -144,12 +145,12 @@ class SensorSuite(Sensor):
 
     sensors: Sequence[Sensor] = Property(doc="Suite of sensors to get detections from.")
 
-    attributes_inform: Set[str] = Property(
+    attributes_inform: set[str] = Property(
         doc="Names of attributes to store the value of at time of detection."
     )
 
-    def measure(self, ground_truths: Set[GroundTruthState], noise: Union[bool, np.ndarray] = True,
-                **kwargs) -> Set[TrueDetection]:
+    def measure(self, ground_truths: set[GroundTruthState], noise: Union[bool, np.ndarray] = True,
+                **kwargs) -> set[TrueDetection]:
         """Call each sub-sensor's measure method in turn. Key word arguments are passed to the
         measure method of each sensor.
 

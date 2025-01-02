@@ -1,7 +1,8 @@
 import copy
 import datetime
 import warnings
-from typing import Union, List, Iterable, Callable
+from collections.abc import Iterable, Callable
+from typing import Union
 
 import numpy as np
 
@@ -48,7 +49,7 @@ def time_range(start_time: datetime.datetime, end_time: datetime.datetime,
 
 
 def interpolate_state_mutable_sequence(sms: StateMutableSequence,
-                                       times: Union[datetime.datetime, List[datetime.datetime]],
+                                       times: Union[datetime.datetime, list[datetime.datetime]],
                                        ) -> Union[StateMutableSequence, State]:
     """
     This function performs linear interpolation on a :class:`~.StateMutableSequence`. The function
@@ -70,7 +71,7 @@ def interpolate_state_mutable_sequence(sms: StateMutableSequence,
     ----------
     sms: StateMutableSequence
         A :class:`~.StateMutableSequence` that should be interpolated
-    times: Union[datetime.datetime, List[datetime.datetime]]
+    times: Union[datetime.datetime, list[datetime.datetime]]
         a time, or a list of times for ``sms`` to be interpolated to.
 
     Returns
