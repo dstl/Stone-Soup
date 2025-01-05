@@ -9,6 +9,7 @@ import numpy as np
 from scipy.integrate import quad
 from scipy.linalg import block_diag, solve
 from scipy.stats import norm
+from scipy.special import erf
 
 from .base import TransitionModel, CombinedGaussianTransitionModel
 from ..base import (LinearModel, GaussianModel, TimeVariantModel,
@@ -779,7 +780,7 @@ class SlidingWindowGP(LinearGaussianTransitionModel, TimeVariantModel):
                 return np.arange(d, 0, -1).reshape(-1, 1)
 
 
-class IntegratedSlidingWindowGaussianProcess(SlidingWindowGaussianProcess):
+class DynamicsInformedGaussianProcess(SlidingWindowGaussianProcess):
     r"""Discrete time-variant 1D Sliding Window Gaussian Process (GP) model 
     with integration, where the state :math:`x_t` models the integral of a 
     zero-mean GP :math:`g(t)`.
@@ -891,66 +892,98 @@ class IntegratedSlidingWindowGaussianProcess(SlidingWindowGaussianProcess):
     accompanying paper and documentation.
     """
 
-    kernel_length_scale: float = Property(doc="RBF Kernel length scale parameter :math:`\ell`")
-    kernel_output_variance: float = Property(doc="RBF kernel output variance parameter :math:`\sigma^2`")
+    kernel_length_scale: float = Property(doc="Latent Kernel length scale parameter")
+    kernel_output_var: float = Property(doc="Latent Kernel output variance scale parameter")
     prior_var: float = Property(doc="Variance :math:`\sigma^2_x` of Gaussian initial value :math:`x_0`")
+    dynamics_coeff: float = Property(doc="Coefficient a of equation dx/dt = ax + bg(t)")  # if a = 0 use inte gp kernel
+    gp_coeff: float = Property(doc="Coefficient b of equation dx/dt = ax + bg(t)")
 
     @property
     def ndim_state(self):
-        return self.window_size + 1
-
-    def kernel(self, x, y, **kwargs):
-        l = self.kernel_length_scale
-        var = self.kernel_output_variance
-        x = np.atleast_1d(x)
-        y = np.atleast_1d(y)
-        prior_var = kwargs.get('prior_var', self.prior_var)
-
-        K = np.zeros((len(x), len(y)))
-        for i in range(len(x)):
-            for j in range(len(y)):
-                K[i, j] = self._1d_kernel(l, var, float(x[i]), float(y[j])) + prior_var
-        return K
-
+        return self.window_size + 1  # augment with mean
+    
+    def _select_kernel(self):
+        """Select the appropriate kernel based on dynamics_coeff."""
+        return self._integrated_kernel if self.dynamics_coeff == 0 else self._dynamics_informed_kernel
+    
     @staticmethod
     @lru_cache
-    def _1d_kernel(l, var, x, y):
+    def _integrated_kernel(l, var, a, b, x, y):
         sum_term = x * (norm.cdf(x / l) - norm.cdf((x - y) / l)) \
                    + y * (norm.cdf(y / l) - norm.cdf((y - x) / l)) \
                    + (l ** 2) * (norm.pdf(x, scale=l) + norm.pdf(y, scale=l) 
                                  - norm.pdf(x, loc=y, scale=l)) \
                    - l / np.sqrt(2 * np.pi)
-        return np.sqrt(2 * np.pi) * l * var * sum_term
-    
+        return b**2 * np.sqrt(2 * np.pi) * l * var * sum_term
+
+    @staticmethod
     @lru_cache
-    def _compute_current_prior_var(cls, l, var, L, t):
-        num_windows = t // L  # number of full windows since t = 0
-        re = t % L  # remaining number of seconds not included in a full window
-        return cls.prior_var + cls._1d_kernel(l, var, re, re) + cls._1d_kernel(l, var, L, L) * num_windows
-
-    def matrix(self, pred_time, **kwargs):
+    def _dynamics_informed_kernel(l, var, a, b, t1, t2):
+        def _h(a, l, t1, t2):
+            gma = -a*l/2
+            return ((np.exp(gma)**2) / (-2*a)) * (np.exp(a*(t2-t1)) * (erf((t2-t1)/l - gma) + erf(t1/l + gma))
+                                                - np.exp(a*(t2+1)) * (erf((t2/l - gma)) + erf(gma)))
+        
+        return (b**2) * np.exp(a*(t1+t2)) * (b**2)*np.sqrt(np.pi)*l*0.5*(_h(a,l,t2,t1) + _h(a,l,t1,t2))
+    
+    def kernel(self, t1, t2, prior_var, **kwargs):
         l = self.kernel_length_scale
-        var = self.kernel_output_variance
-        L = self.window_size
-        prior_t = pred_time.total_seconds() - L
-        current_prior_var = self._compute_current_prior_var(l, var, L, prior_t)
+        var = self.kernel_output_var
+        a = self.dynamics_coeff
+        b = self.gp_coeff
+        t1 = np.atleast_1d(t1)
+        t2 = np.atleast_1d(t2)
 
-        base_matrix = super().matrix(pred_time=timedelta(seconds=L), prior_var=current_prior_var, **kwargs)
+        selected_kernel = self._select_kernel()
+        K = np.zeros((len(t1), len(t2)))
+        for i in range(len(t1)):
+            for j in range(len(t2)):
+                K[i, j] = selected_kernel(l, var, a, b, float(t1[i]), float(t2[j])) + prior_var
+        return K
+    
+    def _compute_current_prior_var(self, time_interval, prior_time):
+        l = self.kernel_length_scale
+        var = self.kernel_output_var
+        a = self.dynamics_coeff
+        b = self.gp_coeff
+        L = self.window_size
+        prior_secs = prior_time.total_seconds()
+        window_secs = L * time_interval.total_seconds()  # duration of sliding window in seconds
+
+        num_windows = prior_secs // window_secs  # number of full windows since t = 0
+        re = prior_secs % window_secs  # remaining number of seconds not included in a full window
+        selected_kernel = self._select_kernel()
+        return self.prior_var + selected_kernel(l, var, a, b, re, re) + selected_kernel(l, var, a, b, window_secs, window_secs) * num_windows
+
+    def matrix(self, pred_time, time_interval, **kwargs):
+        a = self.dynamics_coeff
+        L = self.window_size
+        time_interval_secs = time_interval.total_seconds()
+        prior_time = pred_time - L * time_interval
+        prior_var = self._compute_current_prior_var(time_interval, prior_time)
+        
+        base_matrix = super().matrix(pred_time=L*time_interval, time_interval=time_interval, prior_var=prior_var, **kwargs)
         padded_matrix = np.pad(base_matrix, ((0, 1), (0, 1)))
-        padded_matrix[-1, -1] = 1
+        padded_matrix[-1, -1] = np.exp(a * time_interval_secs)
         return padded_matrix
 
-    def covar(self, pred_time, **kwargs):
-        l = self.kernel_length_scale
-        var = self.kernel_output_variance
+    def covar(self, pred_time, time_interval, **kwargs):
         L = self.window_size
-        prior_t = pred_time.total_seconds() - L
-        current_prior_var = self._compute_current_prior_var(l, var, L, prior_t)
+        prior_time = pred_time - L * time_interval
+        prior_var = self._compute_current_prior_var(time_interval, prior_time)
 
-        base_covar = super().covar(pred_time=timedelta(seconds=L), prior_var=current_prior_var, **kwargs)
+        # pred_time is window duration in seconds due to shift integral limits
+        base_covar = super().covar(pred_time=L*time_interval, time_interval=time_interval, prior_var=prior_var, **kwargs)
         covar = np.pad(base_covar, ((0, 1)))
         return covar
 
+    
+class IntegratedGaussianProcess(DynamicsInformedGaussianProcess):
+
+    @property
+    def dynamics_coeff(self):
+        return 0
+    
 
 class KnownTurnRateSandwich(LinearGaussianTransitionModel, TimeVariantModel):
     r"""This is a class implementation of a time-variant 2D Constant Turn
