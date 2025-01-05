@@ -908,24 +908,31 @@ class DynamicsInformedGaussianProcess(SlidingWindowGaussianProcess):
     
     @staticmethod
     @lru_cache
-    def _integrated_kernel(l, var, a, b, x, y):
-        sum_term = x * (norm.cdf(x / l) - norm.cdf((x - y) / l)) \
-                   + y * (norm.cdf(y / l) - norm.cdf((y - x) / l)) \
-                   + (l ** 2) * (norm.pdf(x, scale=l) + norm.pdf(y, scale=l) 
-                                 - norm.pdf(x, loc=y, scale=l)) \
-                   - l / np.sqrt(2 * np.pi)
+    def _integrated_kernel(l, var, a, b, t1, t2):
+        sum_term = t1 * (norm.cdf(t1 / l) - norm.cdf((t1 - t2) / l)) \
+                + t2 * (norm.cdf(t2 / l) - norm.cdf((t2 - t1) / l)) \
+                + (l ** 2) * (norm.pdf(t1, scale=l) + norm.pdf(t2, scale=l) 
+                                - norm.pdf(t1, loc=t2, scale=l)) \
+                - l / np.sqrt(2 * np.pi)
         return b**2 * np.sqrt(2 * np.pi) * l * var * sum_term
 
     @staticmethod
     @lru_cache
     def _dynamics_informed_kernel(l, var, a, b, t1, t2):
-        def _h(a, l, t1, t2):
-            gma = -a*l/2
-            return ((np.exp(gma)**2) / (-2*a)) * (np.exp(a*(t2-t1)) * (erf((t2-t1)/l - gma) + erf(t1/l + gma))
-                                                - np.exp(a*(t2+1)) * (erf((t2/l - gma)) + erf(gma)))
-        
-        return (b**2) * np.exp(a*(t1+t2)) * (b**2)*np.sqrt(np.pi)*l*0.5*(_h(a,l,t2,t1) + _h(a,l,t1,t2))
-    
+        return (b**2) * np.sqrt(np.pi / 2) * l * (
+            DynamicsInformedGaussianProcess._h(a, l, t2, t1)
+            + DynamicsInformedGaussianProcess._h(a, l, t1, t2)
+        )
+
+    @staticmethod
+    @lru_cache
+    def _h(a, l, t1, t2):
+        gma = -a * l / np.sqrt(2)
+        return ((np.exp(gma) ** 2) / (-2 * a)) * (
+            np.exp(a * (t1 - t2)) * (erf((t1 - t2) / (np.sqrt(2) * l) - gma) + erf(t2 / (np.sqrt(2) * l) + gma))
+            - np.exp(a * (t1 + t2)) * (erf((t1 / (np.sqrt(2) * l) - gma)) + erf(gma))
+        )
+
     def kernel(self, t1, t2, prior_var, **kwargs):
         l = self.kernel_length_scale
         var = self.kernel_output_var
