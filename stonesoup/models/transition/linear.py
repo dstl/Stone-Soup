@@ -781,14 +781,18 @@ class SlidingWindowGP(LinearGaussianTransitionModel, TimeVariantModel):
 
 
 class DynamicsInformedGaussianProcess(SlidingWindowGaussianProcess):
-    r"""Discrete time-variant 1D Sliding Window Gaussian Process (GP) model 
-    with integration, where the state :math:`x_t` models the integral of a 
-    zero-mean GP :math:`g(t)`.
+    r"""Discrete time-variant 1D Dynamics Informed Gaussian Process (GP) model,
+    implemented with a sliding window approximation. single state (compared to extended version)
 
-    The relationship between :math:`x_t` and :math:`g(t)` is defined as:
+    The model is described by the following SDE:
 
-        .. math::
-            x_t = x_0 + \int_{0}^{t} g(\tau) \, d\tau
+        ..math::
+            dx = axdt + bg(t)dt
+
+    Or equivalently:
+
+        ..math::
+            x_t = e^{at}x_0 + e^{at} \int_{0}^{t} e^{-a\tau} bg(\tau) \, d\tau
 
     where :math:`g(t)` is a zero-mean GP with a radial basis function (RBF)
     kernel:
@@ -800,8 +804,8 @@ class DynamicsInformedGaussianProcess(SlidingWindowGaussianProcess):
     :math:`g(t)` are set with the keyword arguments :attr:`output_var` and
     :attr:`length_scale` respectively.
 
-    The initial condition :math:`x_0` is modeled as a Gaussian random variable,
-    assumed independent of :math:`g(t)`:
+    The initial condition :math:`x_0` is modelled as a Gaussian random variable,
+    independent of :math:`g(t)`:
 
         .. math::
             x_0 \sim \mathcal{N}(\mu_x, \sigma^2_x)
@@ -812,33 +816,34 @@ class DynamicsInformedGaussianProcess(SlidingWindowGaussianProcess):
     reformulated as:
 
         .. math::
-            x_t = x_{t - t_L} + \int_{t - t_L}^{t} g(\tau) \, d\tau
+            x_t = x_{t - t_L} +  e^{at} \int_{t - t_L}^{t} e^{-a\tau} bg(\tau) \, d\tau
 
         .. math::
-            \approx x_{t - t_L} + \int_{0}^{t_L} g(\tau) \, d\tau
+            \approx x_{t - t_L} + e^{at_L} \int_{0}^{t_L} e^{-a\tau} bg(\tau) \, d\tau
 
     The integral limits are approximated as spanning from :math:`0` to :math:`t_L`,
-    assuming that the contributions from separate windows are independent.
+    assuming that the contributions from separate windows are independent. Correction term 
+    added to exponential.
     This approximation is introduced as the analytical derivation of the kernel
     for :math:`z(t)` requires integration limits with a fixed starting point :math:`t=0`.
 
     The prior :math:`x_{t - t_L}` is updated to:
 
         .. math::
-            x_{t - t_L} \sim \mathcal{N}(\mu_{x}, \sigma^2_{t - t_L})
+            x_{t - t_L} \sim \mathcal{N}(\mu_{t - t_L}, \sigma^2_{t - t_L})
 
     To model :math:`x_t` as a zero-mean GP compatible with the state space
     formulation of the sliding window GP, the prior :math:`x_{t - t_L}` is
     first set to zero, and its effects on the mean and covariance function
     of :math:`x_t` are considered separately.
     
-    :math:`x_{t - t_L}` adds a constant offset :math:`\mu_{x}` to :math:`x_t`.
+    :math:`x_{t - t_L}` adds an offset :math:`\mu_{t-t_L}=e^{at}\mu_0` to :math:`x_t`.
     The statevector is augmented with :math:`\mu_{x}` to be included in the
     observation model. :math:`x_{t - t_L}` also adds an extra term in the
     covariance function :math:`K_x(t, t')`:
 
         .. math::
-            K_x(t, t') = \sigma^2_{t - t_L} +
+            K_x(t, t') = \sigma^2_{t - t_L} + e^{}
             \int_{0}^{t} \int_{0}^{t'} K_g(\tau, \tau') \, d\tau \, d\tau'
 
     The state transition equation for :math:`x_t` is defined as:
@@ -945,6 +950,9 @@ class DynamicsInformedGaussianProcess(SlidingWindowGaussianProcess):
         K = np.zeros((len(t1), len(t2)))
         for i in range(len(t1)):
             for j in range(len(t2)):
+                # define scalar kernel as abstract method or something to be overwritten??
+                # then we can implement one integrated version, one dynamic base version, one dynamic extended version
+
                 K[i, j] = selected_kernel(l, var, a, b, float(t1[i]), float(t2[j])) + prior_var
         return K
     
