@@ -57,8 +57,8 @@ class MonteCarloTreeSearchSensorManager(SensorManager):
     predicted future state which is used to calculate the action value of this node.
     This is done by providing a :attr:`reward_function`. Finally, this reward is
     added to the node action value, discounted appropriately according to the
-    depth into the future, and combined withaction values of parent nodes (that
-    were descended durting selection) when completing the backpropagation process.
+    depth into the future, and combined with action values of parent nodes (that
+    were descended during selection) when completing the backpropagation process.
     This creates a tradeoff between future and immediate rewards during the next
     iteration of the search process.
 
@@ -105,7 +105,7 @@ class MonteCarloTreeSearchSensorManager(SensorManager):
     discount_factor: float = Property(
         default=0.9,
         doc="The discount factor is applied to rewards beyond the immidiate future timestep "
-            "to reduce the reward of future nodes to refelct the increasing level of uncertainty "
+            "to reduce the reward of future nodes to reflect the increasing level of uncertainty "
             "the further into the horizon the search progresses. It is applied multiplicatively "
             "such that the factor will be raised by power of the number of timesteps "
             "beyond the immidiate future timestep.")
