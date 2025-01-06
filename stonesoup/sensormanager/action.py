@@ -93,6 +93,10 @@ class RealNumberActionGenerator(ActionGenerator):
     def max(self):
         raise NotImplementedError
 
+    @abstractmethod
+    def action_from_value(self):
+        raise NotImplementedError
+
 
 class ActionableProperty(Property):
     """Property that is modified via an :class:`~.Action` with defined, non-equal start and end
