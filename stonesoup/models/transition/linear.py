@@ -7,7 +7,7 @@ from typing import Optional
 
 import numpy as np
 from scipy.integrate import quad
-from scipy.linalg import block_diag, solve
+from scipy.linalg import block_diag, expm, solve
 from scipy.stats import norm
 from scipy.special import erf
 
@@ -782,7 +782,7 @@ class SlidingWindowGP(LinearGaussianTransitionModel, TimeVariantModel):
 
 class DynamicsInformedGaussianProcess(SlidingWindowGaussianProcess):
     r"""Discrete time-variant 1D Dynamics Informed Gaussian Process (GP) model,
-    implemented with a sliding window approximation. single state (compared to extended version)
+    implemented with a sliding window approximation.
 
     The model is described by the following SDE:
 
@@ -794,7 +794,11 @@ class DynamicsInformedGaussianProcess(SlidingWindowGaussianProcess):
         ..math::
             x_t = e^{at}x_0 + e^{at} \int_{0}^{t} e^{-a\tau} bg(\tau) \, d\tau
 
-    where :math:`g(t)` is a zero-mean GP with a radial basis function (RBF)
+    where :
+
+    a is dynamic coeff, set with dynamic_coeff, b is gp coeff
+    
+    math:`g(t)` is a zero-mean GP with a radial basis function (RBF)
     kernel:
 
         .. math::
@@ -822,15 +826,14 @@ class DynamicsInformedGaussianProcess(SlidingWindowGaussianProcess):
             \approx x_{t - t_L} + e^{at_L} \int_{0}^{t_L} e^{-a\tau} bg(\tau) \, d\tau
 
     The integral limits are approximated as spanning from :math:`0` to :math:`t_L`,
-    assuming that the contributions from separate windows are independent. Correction term 
-    added to exponential.
+    assuming that the contributions from separate windows are independent.
     This approximation is introduced as the analytical derivation of the kernel
     for :math:`z(t)` requires integration limits with a fixed starting point :math:`t=0`.
 
     The prior :math:`x_{t - t_L}` is updated to:
 
         .. math::
-            x_{t - t_L} \sim \mathcal{N}(\mu_{t - t_L}, \sigma^2_{t - t_L})
+            x_{t - t_L} \sim \mathcal{N}(\mu_{x_{t - t_L}}, \sigma^2_{x_{t - t_L}})
 
     To model :math:`x_t` as a zero-mean GP compatible with the state space
     formulation of the sliding window GP, the prior :math:`x_{t - t_L}` is
@@ -887,9 +890,8 @@ class DynamicsInformedGaussianProcess(SlidingWindowGaussianProcess):
     :attr:`time_interval`. The time vector spans backward over the sliding
     window with a total length of :attr:`window_size`.
 
-    :attr:`pred_time` must be supplied to all methods in this model and
-    represents the elapsed duration since the start time (i.e., the time
-    of the initial state).
+    :attr:`pred_time`(as type timedela) must be supplied to all methods in this model and
+    represents the elapsed duration since the start time.
 
     References
     ----------
@@ -998,6 +1000,80 @@ class IntegratedGaussianProcess(DynamicsInformedGaussianProcess):
     @property
     def dynamics_coeff(self):
         return 0
+    
+
+class CoupledDynamicsInformedGaussianProcess(DynamicsInformedGaussianProcess):
+    kernel_length_scale = None
+    kernel_output_var = None
+    # dynamic_coeff = a11, gp_coeff = a12
+
+    driving_process: DynamicsInformedGaussianProcess = Property(doc='Base gp process now acting as g(t) in this new model')
+    # dynamic_coeff = a22, gp_coeff = b
+
+    @property
+    def ndim_state(self):
+        return self.window_size + 1 + self.driving_process.ndim_state
+    
+    # TODO: review structure of kernel and _select_kernel, accounting for different combinations of A and b coeeficients (e.g. if a11 or a12 or b = 0)
+    # compute_prior_var uses _select_kernel. Coupled version has an extra exponential term?
+
+    def _select_kernel(self):
+        """Select the appropriate kernel based on dynamics_coeff."""
+        # return the coupled dynamic kernel here for now
+        return self._coupled_dynamics_informed_kernel
+    
+    @staticmethod
+    def _coupled_dynamics_informed_kernel(l, var, a11, a12, a22, b, t1, t2):
+        gma = -l*a22/np.sqrt(2)
+        return -(np.sqrt(2*np.pi) * ((a12*b)**2) * l * np.exp(a11*(t1+t2) + gma**2))/(4 * a22) \
+               * CoupledDynamicsInformedGaussianProcess._integrated_h(l, a22, t1, t2) \
+               * CoupledDynamicsInformedGaussianProcess._integrated_h(l, a22, t2, t1)
+
+    # TODO: Use SymPy to simplify expressions and check for error in integrals
+    @staticmethod
+    def _integrated_h(l, a22, t1, t2):
+        gma = -l*a22/np.sqrt(2)
+        s1 = -(1/(a22**2)) * (np.exp(a22*(t2-t1))*erf((t2-t1)/(l*np.sqrt(2))-gma) - np.exp(-gma**2)*erf((t2-t1)/(l*np.sqrt(2))-2*gma)
+                              - np.exp(a22*t2)*erf((t2)/(l*np.sqrt(2))-gma) - np.exp(-gma**2)*erf((t2)/(l*np.sqrt(2))-2*gma))
+        s1 += -(1/(a22**2)) * (np.exp(-a22*t1)*erf(-t1/(l*np.sqrt(2))-gma) - np.exp(-gma**2)*erf(-t1/(l*np.sqrt(2))-2*gma)
+                               -erf(-gma) + np.exp(-gma**2)*erf(-2*gma))
+        s1 += -(l*np.sqrt(2)*np.exp(-gma**2)/a22) * (((t2-t1)/(l*np.sqrt(2)))*erf((t2-t1)/(l*np.sqrt(2))) + np.exp(-((t2-t1)/(l*np.sqrt(2)))**2)/np.sqrt(np.pi)
+                                                     - (t2/(l*np.sqrt(2)))*erf(t2/(l*np.sqrt(2))) - np.exp(-((t2)/(l*np.sqrt(2)))**2)/np.sqrt(np.pi))
+        s1 += -(l*np.sqrt(2)*np.exp(-gma**2)/a22) * (((-t1)/(l*np.sqrt(2)))*erf((-t1)/(l*np.sqrt(2))) + np.exp(-(t1/(l*np.sqrt(2)))**2)/np.sqrt(np.pi)
+                                                      - 1/np.sqrt(np.pi))
+        
+        s2 = (1/(a22**2)) * (np.exp(a22*t2)-1) * (-np.exp(-a22*t1)*erf(t1/(l*np.sqrt(2))+gma) + np.exp(-gma**2)*erf(t1/(l*np.sqrt(2)))
+                                                  - erf(gma) - np.exp(-gma**2)*erf(0))
+        
+        s3 = (1/(a22**2)) * (np.exp(a22*t1)-1) * (np.exp(a22*t2)*erf(t2/(l*np.sqrt(2))-gma) - np.exp(-gma**2)*erf(t2/(l*np.sqrt(2)))
+                                                  - erf(-gma) + np.exp(-gma**2)*erf(0))
+        
+        s4 = (1/(a22**2)) * erf(gma) * (np.exp(a22*t2) - 1) * (np.exp(a22*t1) - 1)
+
+        return s1 + s2 + s3 + s4
+
+    def matrix(self, pred_time, time_interval, **kwargs):
+        L = self.window_size
+        dt = time_interval.total_seconds()
+
+        # use scipy.linalg.blockdiag?
+        mat = np.zeros(self.ndim_state, self.ndim_state)
+        mat[:L+1, :L+1] = super().matrix(pred_time, time_interval, **kwargs)
+        mat[L+1:, L+1:] = self.driving_process.matrix(pred_time, time_interval, **kwargs)
+
+        # mean of main process evolves with driving process' mean
+        # consider a 2x2 sub-transition matrix for [mu1, mu2] only
+        transition_matrix = np.array([self.dynamics_coeff, self.gp_coeff],
+                                     [0, self.driving_process.dynamics_coeff])
+        mat[L, -1] = expm(transition_matrix*dt)[0,1]  # use scipy.linalg.expm to compute matrix exponential efficiently
+        return mat
+    
+    def covar(self, pred_time, time_interval, **kwargs):
+        L = self.window_size
+        cov = np.zeros(self.ndim_state, self.ndim_state)
+        cov[:L+1, :L+1] = super().covar(pred_time, time_interval, **kwargs)
+        cov[L+1:, L+1:] = self.driving_process.covar(pred_time, time_interval, **kwargs)
+        return cov
     
 
 class KnownTurnRateSandwich(LinearGaussianTransitionModel, TimeVariantModel):
