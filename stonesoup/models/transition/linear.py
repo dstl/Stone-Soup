@@ -658,18 +658,23 @@ class SlidingWindowGaussianProcess(LinearGaussianTransitionModel, TimeVariantMod
         return self.window_size
 
     @abstractmethod
-    def kernel(self, x: np.ndarray, y: np.ndarray, **kwargs) -> np.ndarray:
-        """Covariance function of the GP.
+    def kernel(self, t1, t2, **kwargs) -> np.ndarray:
+        """Covariance function (kernel) of the Gaussian Process.
+
+        Computes the covariance matrix between two time vectors using a
+        kernel function.
 
         Parameters
         ----------
-        x : array-like, shape (n_samples_x,)
-        y : array-like, shape (n_samples_y,)
+        t1 : array-like, shape (n_samples_1,)
+        
+        t2 : array-like, shape (n_samples_2,)
 
         Returns
         -------
-        ndarray, shape (n_samples_x, n_samples_y)
-            The covariance matrix between the input arrays x and y.
+        np.ndarray, shape (n_samples_1, n_samples_2)
+            The covariance matrix between the input arrays `t1` and `t2`.
+            Each entry (i, j) represents the covariance between `t1[i]` and `t2[j]`.
         """
 
         raise NotImplementedError
@@ -684,17 +689,18 @@ class SlidingWindowGaussianProcess(LinearGaussianTransitionModel, TimeVariantMod
         k_t = self.kernel(t, t, **kwargs)
         return K_prior, K_prior_t, k_t
 
-    def matrix(self, pred_time: timedelta, time_interval: timedelta, **kwargs):
+    def matrix(self, pred_time, time_interval, **kwargs):
         L = self.window_size
         dt = time_interval.total_seconds()
         t = pred_time.total_seconds()
 
         K_prior, K_prior_t, k_t = self._compute_covars(t, dt, **kwargs)
-        inv_K_prior = pinv(K_prior)
+        # add small regularisation matrix or use pseudoinv for numerical stabiltiy
+        inv_K_prior = pinv(K_prior)  
         return np.vstack([K_prior_t.T @ inv_K_prior,
                           np.hstack((np.identity(L-1), np.zeros((L-1, 1))))])
 
-    def covar(self, pred_time: timedelta, time_interval: timedelta, **kwargs):
+    def covar(self, pred_time, time_interval, **kwargs):
         L = self.window_size
         dt = time_interval.total_seconds()
         t = pred_time.total_seconds()
