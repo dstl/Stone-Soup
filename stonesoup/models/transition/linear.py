@@ -926,7 +926,7 @@ class DynamicsInformedGaussianProcess(SlidingWindowGaussianProcess):
     @staticmethod
     @lru_cache
     def _dynamics_informed_kernel(l, var, a, b, t1, t2):
-        return (b**2) * np.sqrt(np.pi / 2) * l * (
+        return (b ** 2) * np.sqrt(np.pi / 2) * l * (
             DynamicsInformedGaussianProcess._h(a, l, t2, t1)
             + DynamicsInformedGaussianProcess._h(a, l, t1, t2)
         )
@@ -934,10 +934,16 @@ class DynamicsInformedGaussianProcess(SlidingWindowGaussianProcess):
     @staticmethod
     @lru_cache
     def _h(a, l, t1, t2):
-        gma = -a * l / np.sqrt(2)
-        return ((np.exp(gma) ** 2) / (-2 * a)) * (
-            np.exp(a * (t1 - t2)) * (erf((t1 - t2) / (np.sqrt(2) * l) - gma) + erf(t2 / (np.sqrt(2) * l) + gma))
-            - np.exp(a * (t1 + t2)) * (erf((t1 / (np.sqrt(2) * l) - gma)) + erf(gma))
+        """Helper function for _dynamics_informed_kernel."""
+        l_s = l * np.sqrt(2)  # l_scaled
+        gma = -a * l_s / 2
+        t1_s = t1 / l_s
+        t2_s = t2 / l_s
+        diff_s = (t1 - t2) / l_s
+        
+        return ((np.exp(gma ** 2)) / (-2 * a)) * (
+            np.exp(a * (t1 - t2)) * (erf(diff_s - gma) + erf(t2_s + gma))
+            - np.exp(a * (t1 + t2)) * (erf(t1_s - gma) + erf(gma))
         )
 
     def kernel(self, t1, t2, prior_var, **kwargs):
