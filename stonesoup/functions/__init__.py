@@ -7,6 +7,8 @@ from functools import lru_cache
 import numpy as np
 from numpy import linalg as LA
 
+from scipy.stats import ortho_group
+
 from ..types.array import CovarianceMatrix, StateVector, StateVectors
 from ..types.numeric import Probability
 from ..types.state import State
@@ -1023,3 +1025,141 @@ def cubature_transform(state, fun, points_noise=None, covar_noise=None, alpha=1.
     cross_covar = cross_covar.view(CovarianceMatrix)
 
     return mean, covar, cross_covar, cubature_points_t
+
+
+def stochastic_cubature_rule_points(nx, order):
+    """Computation of cubature points and weights for the stochastic integration.
+
+    Parameters
+    ==========
+    nx : int
+        Number of points, presumably equivalent to state dimension.
+    order : int
+        Order for stochastic integration. Only orders 1, 3, and 5 are supported.
+
+    Returns
+    =======
+    (numpy.ndarray, numpy.ndarray)
+        Tuple of sigma points and weights
+    """
+
+    if order == 1:
+        X = np.random.randn(nx, 1)
+        SCRSigmaPoints = np.concatenate((X, -X), axis=1)
+        weights = np.array([0.5, 0.5])
+    elif order == 3:
+        CRSigmaPoints = np.concatenate(
+            (np.zeros((nx, 1)), np.eye(nx), -np.eye(nx)), axis=1
+        )
+        rho = np.sqrt(np.random.chisquare(nx + 2))
+        Q = ortho_group.rvs(nx)
+        SCRSigmaPoints = Q * rho @ CRSigmaPoints
+        weights = np.insert(0.5 * np.ones(2 * nx) / rho**2, 0, (1 - nx / rho**2))
+
+    elif order == 5:
+        # generating random values
+        r = np.sqrt(np.random.chisquare(2 * nx + 7))
+
+        q = np.random.beta(nx + 2, 3 / 2)
+
+        rho = r * np.sin(np.arcsin(q) / 2)
+        delta = r * np.cos(np.arcsin(q) / 2)
+
+        # calculating weights
+        c1up = nx + 2 - delta**2
+        c1do = rho**2 * (rho**2 - delta**2)
+        c2up = nx + 2 - rho**2
+        c2do = delta**2 * (delta**2 - rho**2)
+        cdo = 2 * (nx + 1) ** 2 * (nx + 2)
+        c3 = (7 - nx) * nx**2
+        c4 = 4 * (nx - 1) ** 2
+        coef1 = c1up * c3 / cdo / c1do
+        coef2 = c2up * c3 / cdo / c2do
+        coef3 = c1up * c4 / cdo / c1do
+        coef4 = c2up * c4 / cdo / c2do
+
+        pom = np.concatenate(
+            (
+                np.ones(2 * nx + 2) * coef1,
+                np.ones(2 * nx + 2) * coef2,
+                np.ones(nx * (nx + 1)) * coef3,
+                np.ones(nx * (nx + 1)) * coef4,
+            ),
+            axis=0,
+        )
+        weights = np.insert(
+            pom, 0, (1 - nx * (rho**2 + delta**2 - nx - 2) / (rho**2 * delta**2))
+        )
+
+        # Calculating sigma points
+        Q = ortho_group.rvs(nx)
+        v = np.zeros((nx, nx + 1))
+        i_vals, j_vals = np.triu_indices(nx + 1, k=1)
+        v[i_vals, i_vals] = np.sqrt((nx+1) * (nx-i_vals) / (nx * (nx-i_vals+1)))
+        v[i_vals, j_vals] = -np.sqrt((nx+1) / ((nx-i_vals) * nx * (nx-i_vals+1)))
+        v = Q @ v
+        i_vals, j_vals = np.tril_indices(nx + 1, k=-1)
+        comb_v = v[:, i_vals] + v[:, j_vals]
+        y = comb_v / np.linalg.norm(comb_v, axis=0)
+
+        SCRSigmaPoints = np.block(
+            [
+                np.zeros((nx, 1)),
+                -rho * v,
+                rho * v,
+                -delta * v,
+                +delta * v,
+                -rho * y,
+                rho * y,
+                -delta * y,
+                delta * y,
+            ]
+        )
+    else:
+        raise ValueError("This order of SIF is not supported")
+
+    return (SCRSigmaPoints, weights)
+
+
+def cub_points_and_tf(nx, order, sqrtCov, mean, transFunct, state):
+    r""" Calculates cubature points for stochastic integration filter and
+    puts them through given function (measurement/dynamics)
+
+    Parameters
+    ==========
+    nx : int
+       Dimension for cubature points, equivalent to state dimension.
+    order : int
+        Order for Stochastic Integration. Only orders 1, 3, and 5 are supported
+    sqrtCov : np.ndarray
+        Matrix square root array of shape (nx, nx) of the covariance matrix
+    mean : np.ndarray
+        An array of shape (nx, 1) of the state mean
+    transFunct : Callable
+        A function to transfer state vectors
+    state : :class:`~.State`
+        State object used to save function output to
+
+    Returns
+    =======
+    points : numpy.ndarray
+        Array of shape (nx, number of points) of cubature points
+    w : numpy.ndarray
+        Array of shape (number of points) of weights
+    trsfPoints : numpy.ndarray
+        Array of shape (nx, number of points) (based on order and dim) of
+        cubature transformed points
+    """
+
+    # -- cubature points and weights computation (for standard normal PDF)
+    SCRSigmaPoints, w = stochastic_cubature_rule_points(nx, order)
+
+    # -- points transformation for given filtering mean and covariance matrix
+    points = StateVectors(sqrtCov@SCRSigmaPoints + mean)
+
+    # -- points transformation through the function
+    state_copy = copy.copy(state)
+    state_copy.state_vector = points
+    trsfPoints = transFunct(state_copy)
+
+    return points, w, trsfPoints
