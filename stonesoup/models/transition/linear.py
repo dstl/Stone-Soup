@@ -1031,32 +1031,35 @@ class CoupledDynamicsInformedGaussianProcess(DynamicsInformedGaussianProcess):
     @staticmethod
     def _coupled_dynamics_informed_kernel(l, var, a11, a12, a22, b, t1, t2):
         gma = -l*a22/np.sqrt(2)
-        return -(np.sqrt(2*np.pi) * ((a12*b)**2) * l * np.exp(a11*(t1+t2) + gma**2))/(4 * a22) \
-               * CoupledDynamicsInformedGaussianProcess._integrated_h(l, a22, t1, t2) \
-               * CoupledDynamicsInformedGaussianProcess._integrated_h(l, a22, t2, t1)
+        return -((np.sqrt(2*np.pi) * ((a12*b)**2) * l * np.exp(a11*(t1+t2) + gma**2))/(4 * a22)) * np.sqrt(2) \
+                * (CoupledDynamicsInformedGaussianProcess._integrated_h(l, a22, t1, t2) \
+                   + CoupledDynamicsInformedGaussianProcess._integrated_h(l, a22, t2, t1))
 
-    # TODO: Use SymPy to simplify expressions and check for error in integrals
+    # TODO: Make expressions more readable
     @staticmethod
     def _integrated_h(l, a22, t1, t2):
         gma = -l*a22/np.sqrt(2)
         s1 = -(1/(a22**2)) * (np.exp(a22*(t2-t1))*erf((t2-t1)/(l*np.sqrt(2))-gma) - np.exp(-gma**2)*erf((t2-t1)/(l*np.sqrt(2))-2*gma)
-                              - np.exp(a22*t2)*erf((t2)/(l*np.sqrt(2))-gma) - np.exp(-gma**2)*erf((t2)/(l*np.sqrt(2))-2*gma))
-        s1 += -(1/(a22**2)) * (np.exp(-a22*t1)*erf(-t1/(l*np.sqrt(2))-gma) - np.exp(-gma**2)*erf(-t1/(l*np.sqrt(2))-2*gma)
-                               -erf(-gma) + np.exp(-gma**2)*erf(-2*gma))
-        s1 += -(l*np.sqrt(2)*np.exp(-gma**2)/a22) * (((t2-t1)/(l*np.sqrt(2)))*erf((t2-t1)/(l*np.sqrt(2))) + np.exp(-((t2-t1)/(l*np.sqrt(2)))**2)/np.sqrt(np.pi)
-                                                     - (t2/(l*np.sqrt(2)))*erf(t2/(l*np.sqrt(2))) - np.exp(-((t2)/(l*np.sqrt(2)))**2)/np.sqrt(np.pi))
+                                - np.exp(a22*t2)*erf((t2)/(l*np.sqrt(2))-gma) + np.exp(-gma**2)*erf((t2)/(l*np.sqrt(2))-2*gma))
+        
+        s1 -= -(l*np.sqrt(2)*np.exp(-gma**2)/a22) * (((t2-t1)/(l*np.sqrt(2)))*erf((t2-t1)/(l*np.sqrt(2))) + np.exp(-((t2-t1)/(l*np.sqrt(2)))**2)/np.sqrt(np.pi)
+                                                    - (t2/(l*np.sqrt(2)))*erf(t2/(l*np.sqrt(2))) - np.exp(-((t2)/(l*np.sqrt(2)))**2)/np.sqrt(np.pi))
+        
+        s1 -= -(1/(a22**2)) * (np.exp(-a22*t1)*erf(-t1/(l*np.sqrt(2))-gma) - np.exp(-gma**2)*erf(-t1/(l*np.sqrt(2))-2*gma)
+                                -erf(-gma) + np.exp(-gma**2)*erf(-2*gma))
+
         s1 += -(l*np.sqrt(2)*np.exp(-gma**2)/a22) * (((-t1)/(l*np.sqrt(2)))*erf((-t1)/(l*np.sqrt(2))) + np.exp(-(t1/(l*np.sqrt(2)))**2)/np.sqrt(np.pi)
-                                                      - 1/np.sqrt(np.pi))
+                                                        - 1/np.sqrt(np.pi))
         
         s2 = (1/(a22**2)) * (np.exp(a22*t2)-1) * (-np.exp(-a22*t1)*erf(t1/(l*np.sqrt(2))+gma) + np.exp(-gma**2)*erf(t1/(l*np.sqrt(2)))
-                                                  - erf(gma) - np.exp(-gma**2)*erf(0))
+                                                    + erf(gma) - np.exp(-gma**2)*erf(0))
         
         s3 = (1/(a22**2)) * (np.exp(a22*t1)-1) * (np.exp(a22*t2)*erf(t2/(l*np.sqrt(2))-gma) - np.exp(-gma**2)*erf(t2/(l*np.sqrt(2)))
-                                                  - erf(-gma) + np.exp(-gma**2)*erf(0))
+                                                    - erf(-gma) + np.exp(-gma**2)*erf(0))
         
         s4 = (1/(a22**2)) * erf(gma) * (np.exp(a22*t2) - 1) * (np.exp(a22*t1) - 1)
 
-        return s1 + s2 + s3 + s4
+        return s1 + s2 - s3 - s4
 
     def matrix(self, pred_time, time_interval, **kwargs):
         L = self.window_size
