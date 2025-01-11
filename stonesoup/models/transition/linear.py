@@ -1031,7 +1031,7 @@ class CoupledDynamicsInformedGaussianProcess(DynamicsInformedGaussianProcess):
     @staticmethod
     def _coupled_dynamics_informed_kernel(l, var, a11, a12, a22, b, t1, t2):
         gma = -l*a22/np.sqrt(2)
-        return -((np.sqrt(2*np.pi) * ((a12*b)**2) * l * np.exp(a11*(t1+t2) + gma**2))/(4 * a22)) * np.sqrt(2) \
+        return -((np.sqrt(2*np.pi) * ((a12*b)**2) * l * np.exp(a11*(t1+t2) + gma**2))/(4 * a22))\
                 * (CoupledDynamicsInformedGaussianProcess._integrated_h(l, a22, t1, t2) \
                    + CoupledDynamicsInformedGaussianProcess._integrated_h(l, a22, t2, t1))
 
