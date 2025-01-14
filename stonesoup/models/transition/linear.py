@@ -909,23 +909,14 @@ class DynamicsInformedGaussianProcess(SlidingWindowGaussianProcess):
     def ndim_state(self):
         return self.window_size + 1  # augment with mean
     
-    def _select_kernel(self):
-        """Select the appropriate kernel based on dynamics_coeff."""
-        return self._integrated_kernel if self.dynamics_coeff == 0 else self._dynamics_informed_kernel
-    
-    @staticmethod
-    @lru_cache
-    def _integrated_kernel(l, var, a, b, t1, t2):
-        sum_term = t1 * (norm.cdf(t1 / l) - norm.cdf((t1 - t2) / l)) \
-                + t2 * (norm.cdf(t2 / l) - norm.cdf((t2 - t1) / l)) \
-                + (l ** 2) * (norm.pdf(t1, scale=l) + norm.pdf(t2, scale=l) 
-                                - norm.pdf(t1, loc=t2, scale=l)) \
-                - l / np.sqrt(2 * np.pi)
-        return b**2 * np.sqrt(2 * np.pi) * l * var * sum_term
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        if self.dynamics_coeff == 0 and not isinstance(self, IntegratedGaussianProcess):
+            raise ValueError("dynamics_coeff cannot be 0. Use IntegratedGaussianProcess class instead.")
 
     @staticmethod
     @lru_cache
-    def _dynamics_informed_kernel(l, var, a, b, t1, t2):
+    def _scalar_kernel(l, var, a, b, t1, t2):
         return (b ** 2) * np.sqrt(np.pi / 2) * l * (
             DynamicsInformedGaussianProcess._h(a, l, t2, t1)
             + DynamicsInformedGaussianProcess._h(a, l, t1, t2)
@@ -954,14 +945,10 @@ class DynamicsInformedGaussianProcess(SlidingWindowGaussianProcess):
         t1 = np.atleast_1d(t1)
         t2 = np.atleast_1d(t2)
 
-        selected_kernel = self._select_kernel()
         K = np.zeros((len(t1), len(t2)))
         for i in range(len(t1)):
             for j in range(len(t2)):
-                # define scalar kernel as abstract method or something to be overwritten??
-                # then we can implement one integrated version, one dynamic base version, one dynamic extended version
-
-                K[i, j] = selected_kernel(l, var, a, b, float(t1[i]), float(t2[j])) + prior_var
+                K[i, j] = self._scalar_kernel(l, var, a, b, float(t1[i]), float(t2[j])) + prior_var
         return K
     
     def _compute_current_prior_var(self, time_interval, prior_time):
@@ -975,8 +962,7 @@ class DynamicsInformedGaussianProcess(SlidingWindowGaussianProcess):
 
         num_windows = prior_secs // window_secs  # number of full windows since t = 0
         re = prior_secs % window_secs  # remaining number of seconds not included in a full window
-        selected_kernel = self._select_kernel()
-        return self.prior_var + selected_kernel(l, var, a, b, re, re) + selected_kernel(l, var, a, b, window_secs, window_secs) * num_windows
+        return self.prior_var + self._scalar_kernel(l, var, a, b, re, re) + self._scalar_kernel(l, var, a, b, window_secs, window_secs) * num_windows
 
     def matrix(self, pred_time, time_interval, **kwargs):
         a = self.dynamics_coeff
@@ -1007,6 +993,19 @@ class IntegratedGaussianProcess(DynamicsInformedGaussianProcess):
     def dynamics_coeff(self):
         return 0
     
+    @property
+    def gp_coeff(self):
+        return 1
+    
+    @staticmethod
+    @lru_cache
+    def _scalar_kernel(l, var, a, b, t1, t2):
+        sum_term = t1 * (norm.cdf(t1 / l) - norm.cdf((t1 - t2) / l)) \
+                   + t2 * (norm.cdf(t2 / l) - norm.cdf((t2 - t1) / l)) \
+                   + (l ** 2) * (norm.pdf(t1, scale=l) + norm.pdf(t2, scale=l) 
+                   - norm.pdf(t1, loc=t2, scale=l)) \
+                   - l / np.sqrt(2 * np.pi)
+        return np.sqrt(2 * np.pi) * l * var * sum_term
 
 class CoupledDynamicsInformedGaussianProcess(DynamicsInformedGaussianProcess):
     kernel_length_scale = None
