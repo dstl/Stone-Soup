@@ -911,7 +911,7 @@ class DynamicsInformedGaussianProcess(SlidingWindowGaussianProcess):
     
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        if self.dynamics_coeff == 0 and not isinstance(self, IntegratedGaussianProcess):
+        if self.dynamics_coeff == 0 and not isinstance(self, IntegratedGaussianProcess) and not isinstance(self, CoupledDynamicsInformedGaussianProcess):
             raise ValueError("dynamics_coeff cannot be 0. Use IntegratedGaussianProcess class instead.")
 
     @staticmethod
@@ -1007,6 +1007,7 @@ class IntegratedGaussianProcess(DynamicsInformedGaussianProcess):
                    - l / np.sqrt(2 * np.pi)
         return np.sqrt(2 * np.pi) * l * var * sum_term
 
+
 class CoupledDynamicsInformedGaussianProcess(DynamicsInformedGaussianProcess):
     kernel_length_scale = None
     kernel_output_var = None
@@ -1019,66 +1020,85 @@ class CoupledDynamicsInformedGaussianProcess(DynamicsInformedGaussianProcess):
     def ndim_state(self):
         return self.window_size + 1 + self.driving_process.ndim_state
     
-    # TODO: review structure of kernel and _select_kernel, accounting for different combinations of A and b coeeficients (e.g. if a11 or a12 or b = 0)
-    # compute_prior_var uses _select_kernel. Coupled version has an extra exponential term?
-
-    def _select_kernel(self):
-        """Select the appropriate kernel based on dynamics_coeff."""
-        # return the coupled dynamic kernel here for now
-        return self._coupled_dynamics_informed_kernel
+    # TODO: verificartion for different combinations of A and b coeeficients (e.g. if a11 or a12 or b = 0). not implement for a11= 0
+    # compute_prior_var uses _scalar_kernel. Coupled version has an extra exponential term?
     
-    @staticmethod
-    def _coupled_dynamics_informed_kernel(l, var, a11, a12, a22, b, t1, t2):
-        gma = -l*a22/np.sqrt(2)
-        return -((np.sqrt(2*np.pi) * ((a12*b)**2) * l * np.exp(a11*(t1+t2) + gma**2))/(4 * a22))\
-                * (CoupledDynamicsInformedGaussianProcess._integrated_h(l, a22, t1, t2) \
-                   + CoupledDynamicsInformedGaussianProcess._integrated_h(l, a22, t2, t1))
+    def _scalar_kernel(self, l, var, a, b, t1, t2):
+        l = self.driving_process.kernel_length_scale
+        a12 = self.gp_coeff
+        a22 = self.driving_process.dynamics_coeff
+        b = self.driving_process.gp_coeff
+        var = self.driving_process.kernel_output_var
 
-    # TODO: Make expressions more readable
+        gma = -l*a22/np.sqrt(2)
+        return -((np.sqrt(2*np.pi) * ((a12*b)**2) * var * l * np.exp(gma**2))/(4 * a22))\
+                * (self._integrated_h(l, a22, t1, t2) \
+                   + self._integrated_h(l, a22, t2, t1))
+
     @staticmethod
     def _integrated_h(l, a22, t1, t2):
-        gma = -l*a22/np.sqrt(2)
-        s1 = -(1/(a22**2)) * (np.exp(a22*(t2-t1))*erf((t2-t1)/(l*np.sqrt(2))-gma) - np.exp(-gma**2)*erf((t2-t1)/(l*np.sqrt(2))-2*gma)
-                                - np.exp(a22*t2)*erf((t2)/(l*np.sqrt(2))-gma) + np.exp(-gma**2)*erf((t2)/(l*np.sqrt(2))-2*gma))
-        
-        s1 -= -(l*np.sqrt(2)*np.exp(-gma**2)/a22) * (((t2-t1)/(l*np.sqrt(2)))*erf((t2-t1)/(l*np.sqrt(2))) + np.exp(-((t2-t1)/(l*np.sqrt(2)))**2)/np.sqrt(np.pi)
-                                                    - (t2/(l*np.sqrt(2)))*erf(t2/(l*np.sqrt(2))) - np.exp(-((t2)/(l*np.sqrt(2)))**2)/np.sqrt(np.pi))
-        
-        s1 -= -(1/(a22**2)) * (np.exp(-a22*t1)*erf(-t1/(l*np.sqrt(2))-gma) - np.exp(-gma**2)*erf(-t1/(l*np.sqrt(2))-2*gma)
-                                -erf(-gma) + np.exp(-gma**2)*erf(-2*gma))
+        gma = -l * a22 / np.sqrt(2)
+        l_s = l * np.sqrt(2)
+        diff_s = (t2 - t1) / l_s
+        t1_s = t1 / l_s
+        t2_s = t2 / l_s
 
-        s1 += -(l*np.sqrt(2)*np.exp(-gma**2)/a22) * (((-t1)/(l*np.sqrt(2)))*erf((-t1)/(l*np.sqrt(2))) + np.exp(-(t1/(l*np.sqrt(2)))**2)/np.sqrt(np.pi)
-                                                        - 1/np.sqrt(np.pi))
-        
-        s2 = (1/(a22**2)) * (np.exp(a22*t2)-1) * (-np.exp(-a22*t1)*erf(t1/(l*np.sqrt(2))+gma) + np.exp(-gma**2)*erf(t1/(l*np.sqrt(2)))
-                                                    + erf(gma) - np.exp(-gma**2)*erf(0))
-        
-        s3 = (1/(a22**2)) * (np.exp(a22*t1)-1) * (np.exp(a22*t2)*erf(t2/(l*np.sqrt(2))-gma) - np.exp(-gma**2)*erf(t2/(l*np.sqrt(2)))
-                                                    - erf(-gma) + np.exp(-gma**2)*erf(0))
-        
-        s4 = (1/(a22**2)) * erf(gma) * (np.exp(a22*t2) - 1) * (np.exp(a22*t1) - 1)
+        s1 = (
+                diff_s * erf(diff_s) 
+                + t1_s * erf(-t1_s) 
+                - t2_s * erf(t2_s) 
+                + l_s * (norm.pdf(t2 - t1, scale=l) - norm.pdf(t1, scale=l) - norm.pdf(t2, scale=l))
+                + 1 / np.sqrt(np.pi)
+            )
 
-        return s1 + s2 - s3 - s4
+        s2 = (
+            -np.exp(a22 * (t2 - t1)) * erf(diff_s - gma)
+            + np.exp(-a22 * t1) * erf(-t1_s - gma)
+            + np.exp(a22 * t2) * erf(t2_s - gma)
+            + np.exp(-gma**2) * (
+                erf(diff_s - 2 * gma) 
+                - erf(-t1_s - 2 * gma) 
+                - erf(t2_s - 2 * gma) 
+                + erf(2 * gma)
+            )
+            + erf(gma)
+            + (np.exp(a22 * t2) - 1) * (
+                -np.exp(-a22 * t1) * erf(t1_s + gma)
+                + np.exp(-gma**2) * erf(t1_s)
+                + erf(gma)
+            )
+            - (np.exp(a22 * t1) - 1) * (
+                np.exp(a22 * t2) * erf(t2_s - gma)
+                - np.exp(-gma**2) * erf(t2_s)
+                + erf(gma)
+            )
+            - erf(gma) * (
+                (np.exp(a22 * t2) - 1) * (np.exp(a22 * t1) - 1)
+            )
+        )   
+
+        result = (l_s * np.exp(-gma**2) / a22) * s1 + (1 / (a22**2)) * s2
+        return result
 
     def matrix(self, pred_time, time_interval, **kwargs):
         L = self.window_size
         dt = time_interval.total_seconds()
 
         # use scipy.linalg.blockdiag?
-        mat = np.zeros(self.ndim_state, self.ndim_state)
+        mat = np.zeros((self.ndim_state, self.ndim_state))
         mat[:L+1, :L+1] = super().matrix(pred_time, time_interval, **kwargs)
         mat[L+1:, L+1:] = self.driving_process.matrix(pred_time, time_interval, **kwargs)
 
         # mean of main process evolves with driving process' mean
         # consider a 2x2 sub-transition matrix for [mu1, mu2] only
-        transition_matrix = np.array([self.dynamics_coeff, self.gp_coeff],
-                                     [0, self.driving_process.dynamics_coeff])
+        transition_matrix = np.array([[self.dynamics_coeff, self.gp_coeff],
+                                      [0, self.driving_process.dynamics_coeff]])
         mat[L, -1] = expm(transition_matrix*dt)[0,1]  # use scipy.linalg.expm to compute matrix exponential efficiently
         return mat
     
     def covar(self, pred_time, time_interval, **kwargs):
         L = self.window_size
-        cov = np.zeros(self.ndim_state, self.ndim_state)
+        cov = np.zeros((self.ndim_state, self.ndim_state))
         cov[:L+1, :L+1] = super().covar(pred_time, time_interval, **kwargs)
         cov[L+1:, L+1:] = self.driving_process.covar(pred_time, time_interval, **kwargs)
         return cov
