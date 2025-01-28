@@ -1,7 +1,10 @@
 version: 2
 
+sphinx:
+  configuration: docs/source/conf.py
+
 build:
-  os: ubuntu-20.04
+  os: ubuntu-lts-latest
   tools:
     python: "3.12"
 
