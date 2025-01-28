@@ -585,7 +585,6 @@ class SingerApproximate(Singer):
 
         return CovarianceMatrix(covar)
 
-
 class SlidingWindowGP(LinearGaussianTransitionModel, TimeVariantModel):
     r"""Discrete model implementing a sliding window zero-mean Gaussian process (GP).
 
@@ -653,9 +652,7 @@ class SlidingWindowGP(LinearGaussianTransitionModel, TimeVariantModel):
     :attr:`time_interval`. The time vector spans backward over the sliding
     window with a total length of :attr:`window_size`.
 
-    :attr:`pred_time` must be supplied to all methods in this model and
-    represents the elapsed duration since the start time (i.e., the time
-    of the initial state).
+    Pad the state vector with zeros if the prediction time is smaller than time_interval * window_size
     """
 
     window_size: int = Property(doc="Size of the sliding window :math:`L`")
@@ -704,7 +701,7 @@ class SlidingWindowGP(LinearGaussianTransitionModel, TimeVariantModel):
         C = self.kernel(t, t)
         f = solve(C[1:, 1:], C[1:,0])
         Fmat = np.eye(d, k=-1)
-        Fmat[0, :] = f.T
+        Fmat[0, :len(f)] = f.T
         return Fmat
 
     def covar(self, track, time_interval, **kwargs):
@@ -749,7 +746,7 @@ class SlidingWindowGP(LinearGaussianTransitionModel, TimeVariantModel):
         Returns:
             time_vector (ndarray): A 2D array of elapsed times (d+1 x 1).
         """
-        d = self.window_size
+        d = min(self.window_size, len(track.states))
         start_time = track.states[0].timestamp
         prediction_time = track.states[-1].timestamp + time_interval
 
