@@ -7,7 +7,7 @@ from typing import Optional
 
 import numpy as np
 from scipy.integrate import quad
-from scipy.linalg import block_diag, inv, pinv
+from scipy.linalg import block_diag, solve
 
 from .base import TransitionModel, CombinedGaussianTransitionModel
 from ..base import (LinearModel, GaussianModel, TimeVariantModel,
@@ -125,6 +125,13 @@ class ConstantNthDerivative(LinearGaussianTransitionModel, TimeVariantModel):
         return self.constant_derivative + 1
 
     def matrix(self, time_interval, **kwargs):
+        """Model matrix :math:`F`
+
+        Returns
+        -------
+        : :class:`numpy.ndarray` of shape\
+        (:py:attr:`~ndim_state`, :py:attr:`~ndim_state`)
+        """
         time_interval_sec = time_interval.total_seconds()
         N = self.constant_derivative
         Fmat = np.zeros((N + 1, N + 1))
@@ -579,7 +586,7 @@ class SingerApproximate(Singer):
         return CovarianceMatrix(covar)
 
 
-class SlidingWindowGaussianProcess(LinearGaussianTransitionModel, TimeVariantModel):
+class SlidingWindowGP(LinearGaussianTransitionModel, TimeVariantModel):
     r"""Discrete model implementing a sliding window zero-mean Gaussian process (GP).
 
     This model defines a GP over a sliding window of states.
@@ -656,6 +663,10 @@ class SlidingWindowGaussianProcess(LinearGaussianTransitionModel, TimeVariantMod
     @property
     def ndim_state(self):
         return self.window_size
+    
+    @property
+    def requires_track(self):
+        return True
 
     @abstractmethod
     def kernel(self, t1, t2, **kwargs) -> np.ndarray:
@@ -679,38 +690,75 @@ class SlidingWindowGaussianProcess(LinearGaussianTransitionModel, TimeVariantMod
 
         raise NotImplementedError
 
-    def _compute_covars(self, t, dt, **kwargs):
-        L = self.window_size
-        t_prior = np.flip(np.arange(t - dt * L, t, dt)).reshape(-1, 1)
-        t = np.atleast_2d(t)
+    def matrix(self, track, time_interval, **kwargs):
+        """Model matrix :math:`F`
 
-        K_prior = self.kernel(t_prior, t_prior, **kwargs)
-        K_prior_t = self.kernel(t_prior, t, **kwargs)
-        k_t = self.kernel(t, t, **kwargs)
-        return K_prior, K_prior_t, k_t
+        Returns
+        -------
+        : :class:`numpy.ndarray` of shape\
+        (:py:attr:`~ndim_state`, :py:attr:`~ndim_state`)
+        """
+        d = self.window_size
+        t = self._get_time_vector(track, time_interval)
 
-    def matrix(self, pred_time, time_interval, **kwargs):
-        L = self.window_size
-        dt = time_interval.total_seconds()
-        t = pred_time.total_seconds()
+        C = self.kernel(t, t)
+        f = solve(C[1:, 1:], C[1:,0])
+        Fmat = np.eye(d, k=-1)
+        Fmat[0, :] = f.T
+        return Fmat
 
-        K_prior, K_prior_t, k_t = self._compute_covars(t, dt, **kwargs)
-        # add small regularisation matrix or use pseudoinv for numerical stabiltiy
-        inv_K_prior = pinv(K_prior)  
-        return np.vstack([K_prior_t.T @ inv_K_prior,
-                          np.hstack((np.identity(L-1), np.zeros((L-1, 1))))])
+    def covar(self, track, time_interval, **kwargs):
+        """Returns the transition model noise covariance matrix.
 
-    def covar(self, pred_time, time_interval, **kwargs):
-        L = self.window_size
-        dt = time_interval.total_seconds()
-        t = pred_time.total_seconds()
+        Parameters
+        ----------
+        track : :class:`~.Track`
+            The track containing the states to obtain the time vector
+        time_interval : :class:`datetime.timedelta`
+            A time interval :math:`dt`
 
-        K_prior, K_prior_t, k_t = self._compute_covars(t, dt, **kwargs)
-        inv_K_prior = pinv(K_prior)
-        noise_var = k_t - K_prior_t.T @ inv_K_prior @ K_prior_t
-        G = np.zeros((L, L))
-        G[0, 0] = 1
-        return G * noise_var
+        Returns
+        -------
+        :class:`stonesoup.types.state.CovarianceMatrix` of shape\
+        (:py:attr:`~ndim_state`, :py:attr:`~ndim_state`)
+            The process noise covariance.
+        """
+        d = self.window_size
+        t = self._get_time_vector(track, time_interval)
+        
+        C = self.kernel(t, t)
+        f = solve(C[1:, 1:], C[1:,0])
+        noise_var = C[0,0] - C[0,1:] @ f
+        covar = np.zeros((d, d))
+        covar[0, 0] = 1
+        return CovarianceMatrix(covar*noise_var)
+    
+    def _get_time_vector(self, track, time_interval):
+        """
+        Generates a time vector containing the time elapsed (in seconds)
+        from the start time of the track.
+
+        The time vector includes:
+            - The prediction time: (last state timestamp + time_interval)
+            - The timestamps of the last `window_size` states in the track.
+
+        Parameters:
+            track: The track containing the states.
+            time_interval: The time interval for prediction.
+        
+        Returns:
+            time_vector (ndarray): A 2D array of elapsed times (d+1 x 1).
+        """
+        d = self.window_size
+        start_time = track.states[0].timestamp
+        prediction_time = track.states[-1].timestamp + time_interval
+
+        time_vector = np.array([(prediction_time - start_time).total_seconds()])
+        for i in range(0, d):
+            state_time = track.states[-1 - i].timestamp
+            time_vector = np.append(time_vector, (state_time - start_time).total_seconds())
+        
+        return np.atleast_2d(time_vector.reshape(-1, 1))
 
 
 class KnownTurnRateSandwich(LinearGaussianTransitionModel, TimeVariantModel):
