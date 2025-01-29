@@ -710,6 +710,10 @@ class SlidingWindowGP(LinearGaussianTransitionModel, TimeVariantModel):
         if self.markov_approx == 2:
             Fmat[0, len(f)] = 1 - f.sum()
 
+        print(t)
+        print(Fmat)
+        print()
+
         return Fmat
 
     def covar(self, track, time_interval, **kwargs):
@@ -754,8 +758,12 @@ class SlidingWindowGP(LinearGaussianTransitionModel, TimeVariantModel):
         
         Returns:
             time_vector (ndarray): A 2D array of elapsed times (d+1 x 1).
+
+        Markov approx 2 assumes a constatn time interval. 
+        Window spans absolute time time-interval*window_size
         """
         d = min(self.window_size, len(track.states))
+        dt = time_interval.total_seconds()
         start_time = track.states[0].timestamp
 
         if self.markov_approx == 1:
@@ -767,7 +775,11 @@ class SlidingWindowGP(LinearGaussianTransitionModel, TimeVariantModel):
             return time_vector.reshape(-1, 1)
 
         elif self.markov_approx == 2:
-            return np.arange(d, 0, -1).reshape(-1, 1)
+            if len(track.states) < self.window_size:
+                # include prior at t = 0
+                return np.arange(d * dt, -dt, -dt).reshape(-1, 1)
+            else:
+                return np.arange(d, 0, -1).reshape(-1, 1)
 
 
 class KnownTurnRateSandwich(LinearGaussianTransitionModel, TimeVariantModel):
