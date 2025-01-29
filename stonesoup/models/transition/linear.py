@@ -710,10 +710,6 @@ class SlidingWindowGP(LinearGaussianTransitionModel, TimeVariantModel):
         if self.markov_approx == 2:
             Fmat[0, len(f)] = 1 - f.sum()
 
-        print(t)
-        print(Fmat)
-        print()
-
         return Fmat
 
     def covar(self, track, time_interval, **kwargs):
