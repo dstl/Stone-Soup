@@ -7,7 +7,7 @@ from typing import Optional
 
 import numpy as np
 from scipy.integrate import quad
-from scipy.linalg import block_diag, expm, solve
+from scipy.linalg import block_diag, expm, solve, solve
 from scipy.stats import norm
 from scipy.special import erf
 
@@ -780,7 +780,7 @@ class SlidingWindowGP(LinearGaussianTransitionModel, TimeVariantModel):
                 return np.arange(d, 0, -1).reshape(-1, 1)
 
 
-class DynamicsInformedGaussianProcess(SlidingWindowGaussianProcess):
+class DynamicsInformedGP(SlidingWindowGP):
     r"""Discrete time-variant 1D Dynamics Informed Gaussian Process (GP) model,
     implemented with a sliding window approximation.
 
@@ -901,32 +901,32 @@ class DynamicsInformedGaussianProcess(SlidingWindowGaussianProcess):
 
     kernel_length_scale: float = Property(doc="Latent Kernel length scale parameter")
     kernel_output_var: float = Property(doc="Latent Kernel output variance scale parameter")
-    prior_var: float = Property(doc="Variance :math:`\sigma^2_x` of Gaussian initial value :math:`x_0`")
     dynamics_coeff: float = Property(doc="Coefficient a of equation dx/dt = ax + bg(t)")  # if a = 0 use inte gp kernel
     gp_coeff: float = Property(doc="Coefficient b of equation dx/dt = ax + bg(t)")
+    prior_var: float = Property(doc="Variance of prior x_0. Added to covariance function for second markovian approximation only.", default=0)
 
     @property
     def ndim_state(self):
-        return self.window_size + 1  # augment with mean
+        return self.window_size + 1 if self.markov_approx == 1 else self.window_size
     
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        if self.dynamics_coeff == 0 and not isinstance(self, IntegratedGaussianProcess) and not isinstance(self, CoupledDynamicsInformedGaussianProcess):
-            raise ValueError("dynamics_coeff cannot be 0. Use IntegratedGaussianProcess class instead.")
+        if self.dynamics_coeff == 0 and not isinstance(self, IntegratedGP) and not isinstance(self, IntegratedDynamicsInformedGP):
+            raise ValueError("dynamics_coeff cannot be 0. Use IntegratedGP class instead.")
 
     @staticmethod
     @lru_cache
     def _scalar_kernel(l, var, a, b, t1, t2):
-        return (b ** 2) * np.sqrt(np.pi / 2) * l * (
-            DynamicsInformedGaussianProcess._h(a, l, t2, t1)
-            + DynamicsInformedGaussianProcess._h(a, l, t1, t2)
+        return (b ** 2) * var * np.sqrt(np.pi / 2) * l * (
+            DynamicsInformedGP._h(a, l, t2, t1)
+            + DynamicsInformedGP._h(a, l, t1, t2)
         )
 
     @staticmethod
     @lru_cache
     def _h(a, l, t1, t2):
         """Helper function for _dynamics_informed_kernel."""
-        l_s = l * np.sqrt(2)  # l_scaled
+        l_s = l * np.sqrt(2)
         gma = -a * l_s / 2
         t1_s = t1 / l_s
         t2_s = t2 / l_s
@@ -937,7 +937,7 @@ class DynamicsInformedGaussianProcess(SlidingWindowGaussianProcess):
             - np.exp(a * (t1 + t2)) * (erf(t1_s - gma) + erf(gma))
         )
 
-    def kernel(self, t1, t2, prior_var, **kwargs):
+    def kernel(self, t1, t2, **kwargs):
         l = self.kernel_length_scale
         var = self.kernel_output_var
         a = self.dynamics_coeff
@@ -948,46 +948,28 @@ class DynamicsInformedGaussianProcess(SlidingWindowGaussianProcess):
         K = np.zeros((len(t1), len(t2)))
         for i in range(len(t1)):
             for j in range(len(t2)):
-                K[i, j] = self._scalar_kernel(l, var, a, b, float(t1[i]), float(t2[j])) + prior_var
+                K[i, j] = self._scalar_kernel(l, var, a, b, float(t1[i]), float(t2[j]))
+
+        # Include prior variance if the current window includes the prior
+        if t1[-1] == 0:
+            K += self.prior_var
+
         return K
-    
-    def _compute_current_prior_var(self, time_interval, prior_time):
-        l = self.kernel_length_scale
-        var = self.kernel_output_var
+
+    def matrix(self, track, time_interval, **kwargs):
         a = self.dynamics_coeff
-        b = self.gp_coeff
-        L = self.window_size
-        prior_secs = prior_time.total_seconds()
-        window_secs = L * time_interval.total_seconds()  # duration of sliding window in seconds
+        dt = time_interval.total_seconds()
 
-        num_windows = prior_secs // window_secs  # number of full windows since t = 0
-        re = prior_secs % window_secs  # remaining number of seconds not included in a full window
-        return self.prior_var + self._scalar_kernel(l, var, a, b, re, re) + self._scalar_kernel(l, var, a, b, window_secs, window_secs) * num_windows
+        Fmat = super().matrix(track=track, time_interval=time_interval, **kwargs)
 
-    def matrix(self, pred_time, time_interval, **kwargs):
-        a = self.dynamics_coeff
-        L = self.window_size
-        time_interval_secs = time_interval.total_seconds()
-        prior_time = pred_time - L * time_interval
-        prior_var = self._compute_current_prior_var(time_interval, prior_time)
-        
-        base_matrix = super().matrix(pred_time=L*time_interval, time_interval=time_interval, prior_var=prior_var, **kwargs)
-        padded_matrix = np.pad(base_matrix, ((0, 1), (0, 1)))
-        padded_matrix[-1, -1] = np.exp(a * time_interval_secs)
-        return padded_matrix
+        # Add extra dimension for augmented mean
+        if self.markov_approx == 1:
+            Fmat = np.pad(Fmat, ((0, 1), (0, 1)))
+            Fmat[-1, -1] = np.exp(a * dt)
 
-    def covar(self, pred_time, time_interval, **kwargs):
-        L = self.window_size
-        prior_time = pred_time - L * time_interval
-        prior_var = self._compute_current_prior_var(time_interval, prior_time)
-
-        # pred_time is window duration in seconds due to shift integral limits
-        base_covar = super().covar(pred_time=L*time_interval, time_interval=time_interval, prior_var=prior_var, **kwargs)
-        covar = np.pad(base_covar, ((0, 1)))
-        return covar
-
+        return Fmat
     
-class IntegratedGaussianProcess(DynamicsInformedGaussianProcess):
+class IntegratedGP(DynamicsInformedGP):
 
     @property
     def dynamics_coeff(self):
@@ -1000,28 +982,33 @@ class IntegratedGaussianProcess(DynamicsInformedGaussianProcess):
     @staticmethod
     @lru_cache
     def _scalar_kernel(l, var, a, b, t1, t2):
-        sum_term = t1 * (norm.cdf(t1 / l) - norm.cdf((t1 - t2) / l)) \
-                   + t2 * (norm.cdf(t2 / l) - norm.cdf((t2 - t1) / l)) \
-                   + (l ** 2) * (norm.pdf(t1, scale=l) + norm.pdf(t2, scale=l) 
-                   - norm.pdf(t1, loc=t2, scale=l)) \
-                   - l / np.sqrt(2 * np.pi)
-        return np.sqrt(2 * np.pi) * l * var * sum_term
+        return np.sqrt(2 * np.pi) * l * var * (
+            IntegratedGP._h(l, t1, 0) + IntegratedGP._h(l, 0, t2)
+            - IntegratedGP._h(l, t1, t2) - 2 / np.sqrt(2 * np.pi)
+            )
 
-
-class CoupledDynamicsInformedGaussianProcess(DynamicsInformedGaussianProcess):
+    @staticmethod
+    @lru_cache
+    def _h(l, t1, t2):
+        """Helper function for _scalar_kernel."""        
+        return (t1 - t2) * norm.cdf((t1 - t2) / l) + l**2 * norm.pdf(t1, loc=t2, scale=l)
+    
+class IntegratedDynamicsInformedGP(DynamicsInformedGP):
     kernel_length_scale = None
     kernel_output_var = None
     # dynamic_coeff = a11, gp_coeff = a12
 
-    driving_process: DynamicsInformedGaussianProcess = Property(doc='Base gp process now acting as g(t) in this new model')
+    driving_process: DynamicsInformedGP = Property(doc='Base gp process now acting as g(t) in this new model')
     # dynamic_coeff = a22, gp_coeff = b
 
     @property
     def ndim_state(self):
-        return self.window_size + 1 + self.driving_process.ndim_state
+        return self.window_size + 2 if self.markov_approx == 1 else self.window_size
     
-    # TODO: verificartion for different combinations of A and b coeeficients (e.g. if a11 or a12 or b = 0). not implement for a11= 0
-    # compute_prior_var uses _scalar_kernel. Coupled version has an extra exponential term?
+    # TODO: verificartion for different combinations of A and b coeeficients
+    # A = [a11, a12
+    #      a21, a22]
+    # a11 = 0, a12 > 0, a21 = 0, a22 > 0 implemented
     
     def _scalar_kernel(self, l, var, a, b, t1, t2):
         l = self.driving_process.kernel_length_scale
@@ -1084,24 +1071,16 @@ class CoupledDynamicsInformedGaussianProcess(DynamicsInformedGaussianProcess):
         L = self.window_size
         dt = time_interval.total_seconds()
 
-        # use scipy.linalg.blockdiag?
-        mat = np.zeros((self.ndim_state, self.ndim_state))
-        mat[:L+1, :L+1] = super().matrix(pred_time, time_interval, **kwargs)
-        mat[L+1:, L+1:] = self.driving_process.matrix(pred_time, time_interval, **kwargs)
+        Fmat = np.zeros((self.ndim_state, self.ndim_state))
+        Fmat[:L+1, :L+1] = super().matrix(pred_time, time_interval, **kwargs)
 
         # mean of main process evolves with driving process' mean
         # consider a 2x2 sub-transition matrix for [mu1, mu2] only
         transition_matrix = np.array([[self.dynamics_coeff, self.gp_coeff],
                                       [0, self.driving_process.dynamics_coeff]])
-        mat[L, -1] = expm(transition_matrix*dt)[0,1]  # use scipy.linalg.expm to compute matrix exponential efficiently
-        return mat
-    
-    def covar(self, pred_time, time_interval, **kwargs):
-        L = self.window_size
-        cov = np.zeros((self.ndim_state, self.ndim_state))
-        cov[:L+1, :L+1] = super().covar(pred_time, time_interval, **kwargs)
-        cov[L+1:, L+1:] = self.driving_process.covar(pred_time, time_interval, **kwargs)
-        return cov
+        Fmat[L, -2] = expm(transition_matrix*dt)[0,1]
+        Fmat[L, -1] = expm(transition_matrix*dt)[1,1]
+        return Fmat
     
 
 class KnownTurnRateSandwich(LinearGaussianTransitionModel, TimeVariantModel):
