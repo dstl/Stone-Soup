@@ -1067,19 +1067,21 @@ class IntegratedDynamicsInformedGP(DynamicsInformedGP):
         result = (l_s * np.exp(-gma**2) / a22) * s1 + (1 / (a22**2)) * s2
         return result
 
-    def matrix(self, pred_time, time_interval, **kwargs):
+    def matrix(self, track, time_interval, **kwargs):
         L = self.window_size
         dt = time_interval.total_seconds()
 
         Fmat = np.zeros((self.ndim_state, self.ndim_state))
-        Fmat[:L+1, :L+1] = super().matrix(pred_time, time_interval, **kwargs)
+        Fmat[:L+1, :L+1] = super().matrix(track, time_interval, **kwargs)
 
         # mean of main process evolves with driving process' mean
         # consider a 2x2 sub-transition matrix for [mu1, mu2] only
-        transition_matrix = np.array([[self.dynamics_coeff, self.gp_coeff],
-                                      [0, self.driving_process.dynamics_coeff]])
-        Fmat[L, -2] = expm(transition_matrix*dt)[0,1]
-        Fmat[L, -1] = expm(transition_matrix*dt)[1,1]
+
+        if self.markov_approx == 1:
+            transition_matrix = np.array([[self.dynamics_coeff, self.gp_coeff],
+                                        [0, self.driving_process.dynamics_coeff]])
+            Fmat[L, -2] = expm(transition_matrix*dt)[0,1]
+            Fmat[L, -1] = expm(transition_matrix*dt)[1,1]
         return Fmat
     
 
