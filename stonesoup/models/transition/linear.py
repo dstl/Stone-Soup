@@ -702,13 +702,13 @@ class SlidingWindowGP(LinearGaussianTransitionModel, TimeVariantModel):
         t = self._get_time_vector(track, time_interval)
 
         C = self.kernel(t, t)
-        C += np.eye(np.shape(C)[0])*self.epsilon
-        f = solve(C[1:,1:], C[1:,0])
+        C += np.eye(np.shape(C)[0]) * self.epsilon
+        f = solve(C[1:, 1:], C[1:, 0])
         Fmat = np.eye(d, k=-1)
-        Fmat[0,:len(f)] = f.T
+        Fmat[0, :len(f)] = f.T
 
         if self.markov_approx == 2:
-            Fmat[0,len(f)] = 1 - f.sum()
+            Fmat[0, len(f)] = 1 - f.sum()
 
         return Fmat
 
@@ -728,16 +728,16 @@ class SlidingWindowGP(LinearGaussianTransitionModel, TimeVariantModel):
         (:py:attr:`~ndim_state`, :py:attr:`~ndim_state`)
             The process noise covariance.
         """
-        d = self.window_size
+        d = self.ndim_state
         t = self._get_time_vector(track, time_interval)
         
         C = self.kernel(t, t)
-        C += np.eye(np.shape(C)[0])*self.epsilon
-        f = solve(C[1:, 1:], C[1:,0])
-        noise_var = C[0,0] - C[0,1:] @ f
+        C += np.eye(np.shape(C)[0]) * self.epsilon
+        f = solve(C[1:, 1:], C[1:, 0])
+        noise_var = C[0, 0] - C[0, 1:] @ f
         covar = np.zeros((d, d))
         covar[0, 0] = 1
-        return CovarianceMatrix(covar*noise_var)
+        return CovarianceMatrix(covar * noise_var)
     
     def _get_time_vector(self, track, time_interval):
         """
