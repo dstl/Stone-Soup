@@ -656,6 +656,8 @@ class SlidingWindowGP(LinearGaussianTransitionModel, TimeVariantModel):
     """
 
     window_size: int = Property(doc="Size of the sliding window :math:`L`")
+    markov_approx: int = Property(doc="Order of Markov Approximation. 1 or 2", default=1)
+    epsilon: float = Property(doc="Small constant added to diagonal of covariance matrix for numerical stability", default=1e-6)
 
     @property
     def ndim_state(self):
@@ -685,6 +687,7 @@ class SlidingWindowGP(LinearGaussianTransitionModel, TimeVariantModel):
             Each entry (i, j) represents the covariance between `t1[i]` and `t2[j]`.
         """
 
+        # default to RBF kernel (to be implemented in stonesoup.kernel)?
         raise NotImplementedError
 
     def matrix(self, track, time_interval, **kwargs):
@@ -699,9 +702,14 @@ class SlidingWindowGP(LinearGaussianTransitionModel, TimeVariantModel):
         t = self._get_time_vector(track, time_interval)
 
         C = self.kernel(t, t)
-        f = solve(C[1:, 1:], C[1:,0])
+        C += np.eye(np.shape(C)[0])*self.epsilon
+        f = solve(C[1:,1:], C[1:,0])
         Fmat = np.eye(d, k=-1)
-        Fmat[0, :len(f)] = f.T
+        Fmat[0,:len(f)] = f.T
+
+        if self.markov_approx == 2:
+            Fmat[0,len(f)] = 1 - f.sum()
+
         return Fmat
 
     def covar(self, track, time_interval, **kwargs):
@@ -724,6 +732,7 @@ class SlidingWindowGP(LinearGaussianTransitionModel, TimeVariantModel):
         t = self._get_time_vector(track, time_interval)
         
         C = self.kernel(t, t)
+        C += np.eye(np.shape(C)[0])*self.epsilon
         f = solve(C[1:, 1:], C[1:,0])
         noise_var = C[0,0] - C[0,1:] @ f
         covar = np.zeros((d, d))
@@ -748,14 +757,17 @@ class SlidingWindowGP(LinearGaussianTransitionModel, TimeVariantModel):
         """
         d = min(self.window_size, len(track.states))
         start_time = track.states[0].timestamp
-        prediction_time = track.states[-1].timestamp + time_interval
 
-        time_vector = np.array([(prediction_time - start_time).total_seconds()])
-        for i in range(0, d):
-            state_time = track.states[-1 - i].timestamp
-            time_vector = np.append(time_vector, (state_time - start_time).total_seconds())
-        
-        return np.atleast_2d(time_vector.reshape(-1, 1))
+        if self.markov_approx == 1:
+            prediction_time = track.states[-1].timestamp + time_interval
+            time_vector = np.array([(prediction_time - start_time).total_seconds()])
+            for i in range(0, d):
+                state_time = track.states[-1 - i].timestamp
+                time_vector = np.append(time_vector, (state_time - start_time).total_seconds())
+            return time_vector.reshape(-1, 1)
+
+        elif self.markov_approx == 2:
+            return np.arange(d, 0, -1).reshape(-1, 1)
 
 
 class KnownTurnRateSandwich(LinearGaussianTransitionModel, TimeVariantModel):
