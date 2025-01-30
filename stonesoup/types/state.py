@@ -308,13 +308,13 @@ class StateMutableSequence(Type, MutableSequence):
         default=None,
         doc="The initial list of states. Default `None` which initialises with empty list.")
 
-    def __init__(self, states=None, *args, **kwargs):
-        if states is None:
-            states = []
-        elif not isinstance(states, Sequence):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        if self.states is None:
+            self.states = []
+        elif not isinstance(self.states, Sequence):
             # Ensure states is a list
-            states = [states]
-        super().__init__(states, *args, **kwargs)
+            self.states = [self.states]
 
     def __len__(self):
         return self.states.__len__()
