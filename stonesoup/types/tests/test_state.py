@@ -600,6 +600,64 @@ def test_state_mutable_sequence_copy():
     assert sequence2[-1] is not sequence[-1]
 
 
+def test_state_mutable_sequence_subclass():
+    class TestSMS(StateMutableSequence):
+        test_property = Property(cls=int)
+        test_property_with_default = Property(default=2, cls=int)
+
+    state = State(StateVector([[0]]), timestamp=datetime.datetime.now())
+
+    sequence = TestSMS(1)
+    assert sequence.test_property == 1
+    assert sequence.test_property_with_default == 2
+    assert sequence.states == []
+
+    sequence = TestSMS(test_property=1)
+    assert sequence.test_property == 1
+    assert sequence.test_property_with_default == 2
+    assert sequence.states == []
+
+    sequence = TestSMS(1, state)
+    assert sequence.test_property == 1
+    assert sequence.test_property_with_default == 2
+    assert sequence.states == [state]
+
+    sequence = TestSMS(1, states=[state])
+    assert sequence.test_property == 1
+    assert sequence.test_property_with_default == 2
+    assert sequence.states == [state]
+
+    sequence = TestSMS(test_property=1, states=[state])
+    assert sequence.test_property == 1
+    assert sequence.test_property_with_default == 2
+    assert sequence.states == [state]
+
+    sequence = TestSMS(test_property=1, test_property_with_default=3)
+    assert sequence.test_property == 1
+    assert sequence.test_property_with_default == 3
+    assert sequence.states == []
+
+    sequence = TestSMS(1, [state], 3)
+    assert sequence.test_property == 1
+    assert sequence.test_property_with_default == 3
+    assert sequence.states == [state]
+
+    sequence = TestSMS(1, [state], test_property_with_default=3)
+    assert sequence.test_property == 1
+    assert sequence.test_property_with_default == 3
+    assert sequence.states == [state]
+
+    sequence = TestSMS(1, states=[state], test_property_with_default=3)
+    assert sequence.test_property == 1
+    assert sequence.test_property_with_default == 3
+    assert sequence.states == [state]
+
+    sequence = TestSMS(test_property=1, states=[state], test_property_with_default=3)
+    assert sequence.test_property == 1
+    assert sequence.test_property_with_default == 3
+    assert sequence.states == [state]
+
+
 def test_from_state():
     start = datetime.datetime.now()
     kwargs = {"state_vector": np.arange(4), "timestamp": start}
