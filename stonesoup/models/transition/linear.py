@@ -998,7 +998,7 @@ class IntegratedDynamicsInformedGP(DynamicsInformedGP):
     kernel_output_var = None
     # dynamic_coeff = a11, gp_coeff = a12
 
-    driving_process: DynamicsInformedGP = Property(doc='Base gp process now acting as g(t) in this new model')
+    driving_process: DynamicsInformedGP = Property(doc='Base gp process now acting as g(t) in this new model')  # verify markov_approx is consistent
     # dynamic_coeff = a22, gp_coeff = b
 
     @property
@@ -1031,57 +1031,55 @@ class IntegratedDynamicsInformedGP(DynamicsInformedGP):
         t2_s = t2 / l_s
 
         s1 = (
-                diff_s * erf(diff_s) 
-                + t1_s * erf(-t1_s) 
-                - t2_s * erf(t2_s) 
-                + l_s * (norm.pdf(t2 - t1, scale=l) - norm.pdf(t1, scale=l) - norm.pdf(t2, scale=l))
-                + 1 / np.sqrt(np.pi)
-            )
+            diff_s * erf(diff_s) 
+            + t1_s * erf(-t1_s) 
+            - t2_s * erf(t2_s) 
+            + l_s * (norm.pdf(t2 - t1, scale=l) - norm.pdf(t1, scale=l) - norm.pdf(t2, scale=l))
+            + 1 / np.sqrt(np.pi)
+        )
 
         s2 = (
-            -np.exp(a22 * (t2 - t1)) * erf(diff_s - gma)
-            + np.exp(-a22 * t1) * erf(-t1_s - gma)
-            + np.exp(a22 * t2) * erf(t2_s - gma)
+            - np.exp(a22 * (t2 - t1)) * erf(diff_s - gma)#
+            + np.exp(-a22 * t1) * erf(-t1_s - gma)#
+            + np.exp(a22 * t2) * erf(t2_s - gma)#
             + np.exp(-gma**2) * (
-                erf(diff_s - 2 * gma) 
-                - erf(-t1_s - 2 * gma) 
-                - erf(t2_s - 2 * gma) 
-                + erf(2 * gma)
+                erf(diff_s - 2 * gma) #
+                - erf(-t1_s - 2 * gma) #
+                - erf(t2_s - 2 * gma) #
+                - erf(2 * gma)
             )
             + erf(gma)
-            + (np.exp(a22 * t2) - 1) * (
-                -np.exp(-a22 * t1) * erf(t1_s + gma)
-                + np.exp(-gma**2) * erf(t1_s)
-                + erf(gma)
-            )
-            - (np.exp(a22 * t1) - 1) * (
-                np.exp(a22 * t2) * erf(t2_s - gma)
-                - np.exp(-gma**2) * erf(t2_s)
-                + erf(gma)
-            )
-            - erf(gma) * (
-                (np.exp(a22 * t2) - 1) * (np.exp(a22 * t1) - 1)
-            )
-        )   
+        )
 
-        result = (l_s * np.exp(-gma**2) / a22) * s1 + (1 / (a22**2)) * s2
+        s3 = (np.exp(a22 * t2) - 1) * (
+            - np.exp(-a22 * t1)*erf(t1_s + gma)
+            + np.exp(-gma**2)*erf(t1_s)
+            + erf(gma)
+            )
+        
+        s4 = (np.exp(a22 * t1) - 1) * (
+            np.exp(a22 * t2) * erf(t2_s - gma)
+            - np.exp(-gma**2) * erf(t2_s)
+            - erf(-gma))
+
+        s5 = erf(gma) * (np.exp(a22 * t2) - 1) * (np.exp(a22 * t1) - 1)
+
+        result = (l_s * np.exp(-gma**2) / a22) * s1  + (1 / (a22**2)) * (s2 + s3 - s4 - s5)
         return result
 
     def matrix(self, track, time_interval, **kwargs):
-        L = self.window_size
+        d = self.window_size
         dt = time_interval.total_seconds()
 
         Fmat = np.zeros((self.ndim_state, self.ndim_state))
-        Fmat[:L+1, :L+1] = super().matrix(track, time_interval, **kwargs)
-
+        Fmat[:d, :d] = super().matrix(track, time_interval, **kwargs)[:d, :d]
         # mean of main process evolves with driving process' mean
-        # consider a 2x2 sub-transition matrix for [mu1, mu2] only
-
+        # consider a 2x2 sub-transition matrix for [mu1, mu2]
         if self.markov_approx == 1:
-            transition_matrix = np.array([[self.dynamics_coeff, self.gp_coeff],
+            A_mean = np.array([[self.dynamics_coeff, self.gp_coeff],
                                         [0, self.driving_process.dynamics_coeff]])
-            Fmat[L, -2] = expm(transition_matrix*dt)[0,1]
-            Fmat[L, -1] = expm(transition_matrix*dt)[1,1]
+            Fmat_mean = expm(A_mean * dt)
+            Fmat[d:, d:] = Fmat_mean
         return Fmat
     
 
