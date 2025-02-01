@@ -992,7 +992,8 @@ class IntegratedGP(DynamicsInformedGP):
     def _h(l, t1, t2):
         """Helper function for _scalar_kernel."""        
         return (t1 - t2) * norm.cdf((t1 - t2) / l) + l**2 * norm.pdf(t1, loc=t2, scale=l)
-    
+
+
 class IntegratedDynamicsInformedGP(DynamicsInformedGP):
     kernel_length_scale = None
     kernel_output_var = None
@@ -1025,17 +1026,17 @@ class IntegratedDynamicsInformedGP(DynamicsInformedGP):
             Fmat[d:, d:] = Fmat_mean
         return Fmat
     
+    @lru_cache
     def _scalar_kernel(self, l, var, a, b, t1, t2):
         l = self.driving_process.kernel_length_scale
+        var = self.driving_process.kernel_output_var
         a12 = self.gp_coeff
         a22 = self.driving_process.dynamics_coeff
         b = self.driving_process.gp_coeff
-        var = self.driving_process.kernel_output_var
-
         gma = -l*a22/np.sqrt(2)
-        return -((np.sqrt(2*np.pi) * ((a12*b)**2) * var * l * np.exp(gma**2))/(4 * a22))\
-                * (self._h(l, a22, t1, t2) \
-                   + self._h(l, a22, t2, t1))
+        return -((np.sqrt(2 * np.pi) * ((a12 * b)**2) * var * l * np.exp(gma**2))/(4 * a22))\
+                * (IntegratedDynamicsInformedGP._h(l, a22, t1, t2)
+                   + IntegratedDynamicsInformedGP._h(l, a22, t2, t1))
 
     @staticmethod
     @lru_cache
@@ -1059,24 +1060,26 @@ class IntegratedDynamicsInformedGP(DynamicsInformedGP):
             + np.exp(-a22 * t1) * erf(-t1_s - gma)#
             + np.exp(a22 * t2) * erf(t2_s - gma)#
             + np.exp(-gma**2) * (
-                erf(diff_s - 2 * gma) #
-                - erf(-t1_s - 2 * gma) #
-                - erf(t2_s - 2 * gma) #
-                - erf(2 * gma)
+                erf(diff_s)
+                - erf(-t1_s)
+                - erf(t2_s)
             )
             + erf(gma)
         )
 
-        s3 = (np.exp(a22 * t2) - 1) * (
+        s3 = (
+            np.exp(a22 * t2) - 1) * (
             - np.exp(-a22 * t1)*erf(t1_s + gma)
             + np.exp(-gma**2)*erf(t1_s)
             + erf(gma)
-            )
+        )
         
-        s4 = (np.exp(a22 * t1) - 1) * (
+        s4 = (
+            np.exp(a22 * t1) - 1) * (
             np.exp(a22 * t2) * erf(t2_s - gma)
             - np.exp(-gma**2) * erf(t2_s)
-            - erf(-gma))
+            - erf(-gma)
+        )
 
         s5 = erf(gma) * (np.exp(a22 * t2) - 1) * (np.exp(a22 * t1) - 1)
 
