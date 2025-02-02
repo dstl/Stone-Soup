@@ -709,7 +709,8 @@ class SlidingWindowGP(LinearGaussianTransitionModel, TimeVariantModel):
         Fmat = np.eye(d, k=-1)
         Fmat[0, :len(f)] = f.T
 
-        if self.markov_approx == 2:
+        # add contribution from x_(t-d) if t >= d
+        if self.markov_approx == 2 and len(f) == d:
             Fmat[0, len(f)] = 1 - f.sum()
 
         return Fmat
@@ -780,7 +781,7 @@ class SlidingWindowGP(LinearGaussianTransitionModel, TimeVariantModel):
                 return np.arange(d, 0, -1).reshape(-1, 1)
 
 
-class DynamicsInformedGP(SlidingWindowGP):
+class DynamicsInformedIntegratedGP(SlidingWindowGP):
     r"""Discrete time-variant 1D Dynamics Informed Gaussian Process (GP) model,
     implemented with a sliding window approximation.
 
@@ -911,7 +912,7 @@ class DynamicsInformedGP(SlidingWindowGP):
     
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        if self.dynamics_coeff == 0 and not isinstance(self, IntegratedGP) and not isinstance(self, IntegratedDynamicsInformedGP):
+        if self.dynamics_coeff == 0 and not isinstance(self, IntegratedGP) and not isinstance(self, DoubleIntegratedGP):
             raise ValueError("dynamics_coeff cannot be 0. Use IntegratedGP class instead.")
 
     def kernel(self, t1, t2, **kwargs):
@@ -950,8 +951,8 @@ class DynamicsInformedGP(SlidingWindowGP):
     @lru_cache
     def _scalar_kernel(l, var, a, b, t1, t2):
         return (b ** 2) * var * np.sqrt(np.pi / 2) * l * (
-            DynamicsInformedGP._h(a, l, t2, t1)
-            + DynamicsInformedGP._h(a, l, t1, t2)
+            DynamicsInformedIntegratedGP._h(a, l, t2, t1)
+            + DynamicsInformedIntegratedGP._h(a, l, t1, t2)
         )
 
     @staticmethod
@@ -968,8 +969,94 @@ class DynamicsInformedGP(SlidingWindowGP):
             np.exp(a * (t1 - t2)) * (erf(diff_s - gma) + erf(t2_s + gma))
             - np.exp(a * (t1 + t2)) * (erf(t1_s - gma) + erf(gma))
         )
+
+
+class DynamicsInformedTwiceIntegratedGP(DynamicsInformedIntegratedGP):
+
+    @property
+    def ndim_state(self):
+        return self.window_size + 2 if self.markov_approx == 1 else self.window_size
     
-class IntegratedGP(DynamicsInformedGP):
+    # TODO: verificartion for different combinations of A and b coeeficients
+    # A = [a11, a12
+    #      a21, a22]
+    # a11 = 0, a12 > 0, a21 = 0, a22 > 0 implemented
+    # a22 = 0 implemented in DoubleIntegratedGP
+    # a12 must be 1
+
+    def matrix(self, track, time_interval, **kwargs):
+        d = self.window_size
+        dt = time_interval.total_seconds()
+
+        Fmat = np.zeros((self.ndim_state, self.ndim_state))
+        Fmat[:d, :d] = super().matrix(track, time_interval, **kwargs)[:d, :d]
+        # mean of main process evolves with driving process' mean
+        # consider a 2x2 sub-transition matrix for [mu1, mu2]
+        if self.markov_approx == 1:
+            A_mean = np.array([[0, 1],
+                               [0, self.dynamics_coeff]])
+            Fmat_mean = expm(A_mean * dt)
+            Fmat[d:, d:] = Fmat_mean
+        return Fmat
+    
+    @staticmethod
+    @lru_cache
+    def _scalar_kernel(l, var, a, b, t1, t2):
+        gma = -l * a / np.sqrt(2)
+        return -((np.sqrt(2 * np.pi) * (b**2) * var * l * np.exp(gma**2))/(4 * a))\
+                * (DynamicsInformedTwiceIntegratedGP._h(l, a, t1, t2)
+                   + DynamicsInformedTwiceIntegratedGP._h(l, a, t2, t1))
+
+    @staticmethod
+    @lru_cache
+    def _h(l, a, t1, t2):
+        gma = -l * a / np.sqrt(2)
+        l_s = l * np.sqrt(2)
+        diff_s = (t2 - t1) / l_s
+        t1_s = t1 / l_s
+        t2_s = t2 / l_s
+
+        s1 = (
+            diff_s * erf(diff_s) 
+            + t1_s * erf(-t1_s) 
+            - t2_s * erf(t2_s) 
+            + l_s * (norm.pdf(t2 - t1, scale=l) - norm.pdf(t1, scale=l) - norm.pdf(t2, scale=l))
+            + 1 / np.sqrt(np.pi)
+        )
+
+        s2 = (
+            - np.exp(a * (t2 - t1)) * erf(diff_s - gma)
+            + np.exp(-a * t1) * erf(-t1_s - gma)
+            + np.exp(a * t2) * erf(t2_s - gma)
+            + np.exp(-gma**2) * (
+                erf(diff_s)
+                - erf(-t1_s)
+                - erf(t2_s)
+            )
+            + erf(gma)
+        )
+
+        s3 = (
+            np.exp(a * t2) - 1) * (
+            - np.exp(-a * t1)*erf(t1_s + gma)
+            + np.exp(-gma**2)*erf(t1_s)
+            + erf(gma)
+        )
+        
+        s4 = (
+            np.exp(a * t1) - 1) * (
+            np.exp(a * t2) * erf(t2_s - gma)
+            - np.exp(-gma**2) * erf(t2_s)
+            - erf(-gma)
+        )
+
+        s5 = erf(gma) * (np.exp(a * t2) - 1) * (np.exp(a * t1) - 1)
+
+        result = (l_s * np.exp(-gma**2) / a) * s1  + (1 / (a**2)) * (s2 + s3 - s4 - s5)
+        return result
+
+    
+class IntegratedGP(DynamicsInformedIntegratedGP):
 
     @property
     def dynamics_coeff(self):
@@ -994,98 +1081,39 @@ class IntegratedGP(DynamicsInformedGP):
         return (t1 - t2) * norm.cdf((t1 - t2) / l) + l**2 * norm.pdf(t1, loc=t2, scale=l)
 
 
-class IntegratedDynamicsInformedGP(DynamicsInformedGP):
-    kernel_length_scale = None
-    kernel_output_var = None
-    # dynamic_coeff = a11, gp_coeff = a12
-
-    driving_process: DynamicsInformedGP = Property(doc='Base gp process now acting as g(t) in this new model')  # verify markov_approx is consistent
-    # dynamic_coeff = a22, gp_coeff = b
+class TwiceIntegratedGP(DynamicsInformedTwiceIntegratedGP):
 
     @property
-    def ndim_state(self):
-        return self.window_size + 2 if self.markov_approx == 1 else self.window_size
+    def dynamics_coeff(self):
+        return 0
     
-    # TODO: verificartion for different combinations of A and b coeeficients
-    # A = [a11, a12
-    #      a21, a22]
-    # a11 = 0, a12 > 0, a21 = 0, a22 > 0 implemented
-
-    def matrix(self, track, time_interval, **kwargs):
-        d = self.window_size
-        dt = time_interval.total_seconds()
-
-        Fmat = np.zeros((self.ndim_state, self.ndim_state))
-        Fmat[:d, :d] = super().matrix(track, time_interval, **kwargs)[:d, :d]
-        # mean of main process evolves with driving process' mean
-        # consider a 2x2 sub-transition matrix for [mu1, mu2]
-        if self.markov_approx == 1:
-            A_mean = np.array([[self.dynamics_coeff, self.gp_coeff],
-                                        [0, self.driving_process.dynamics_coeff]])
-            Fmat_mean = expm(A_mean * dt)
-            Fmat[d:, d:] = Fmat_mean
-        return Fmat
+    @property
+    def gp_coeff(self):
+        return 1
     
+    @staticmethod
     @lru_cache
-    def _scalar_kernel(self, l, var, a, b, t1, t2):
-        l = self.driving_process.kernel_length_scale
-        var = self.driving_process.kernel_output_var
-        a12 = self.gp_coeff
-        a22 = self.driving_process.dynamics_coeff
-        b = self.driving_process.gp_coeff
-        gma = -l*a22/np.sqrt(2)
-        return -((np.sqrt(2 * np.pi) * ((a12 * b)**2) * var * l * np.exp(gma**2))/(4 * a22))\
-                * (IntegratedDynamicsInformedGP._h(l, a22, t1, t2)
-                   + IntegratedDynamicsInformedGP._h(l, a22, t2, t1))
+    def _scalar_kernel(l, var, a, b, t1, t2):
+        s1 = 0.5 * t2 * TwiceIntegratedGP._h2(l, t1)
+        s2 = -0.5 * t1 * TwiceIntegratedGP._h2(l, -t2)
+        
+        s3_1 = (1/6) * ((t1-t2)**2 * IntegratedGP._h(l, t1, t2) - t1**2 * IntegratedGP._h(l, t1, 0)
+        - l**4 * norm.pdf(t1, loc=t2, scale=l) + l**4 * norm.pdf(t1, loc=0, scale=l))
+
+        s3_2 = (1/6)* (- t2**2 * IntegratedGP._h(l, 0, t2) + l**4 * norm.pdf(0, loc=t2, scale=l) - l**4 / (np.sqrt(2*np.pi) * l))
+        s3_3 = 0.5 * l**2 * (IntegratedGP._h(l, t1, t2) - IntegratedGP._h(l, 0, t2)
+        - IntegratedGP._h(l, t1, 0) + l/np.sqrt(2*np.pi))
+
+        s4 = t1 * t2 * l / np.sqrt(2 * np.pi)
+
+        return np.sqrt(2 * np.pi) * l * var * (s1 + s2 + s3_1 + s3_2 + s3_3 - s4)
 
     @staticmethod
     @lru_cache
-    def _h(l, a22, t1, t2):
-        gma = -l * a22 / np.sqrt(2)
-        l_s = l * np.sqrt(2)
-        diff_s = (t2 - t1) / l_s
-        t1_s = t1 / l_s
-        t2_s = t2 / l_s
+    def _h2(l, t):
+        """Helper function for _scalar_kernel."""        
+        return t * IntegratedGP._h(l, t, 0) + l**2 * norm.cdf(t / l) - l**2 * norm.cdf(0)
 
-        s1 = (
-            diff_s * erf(diff_s) 
-            + t1_s * erf(-t1_s) 
-            - t2_s * erf(t2_s) 
-            + l_s * (norm.pdf(t2 - t1, scale=l) - norm.pdf(t1, scale=l) - norm.pdf(t2, scale=l))
-            + 1 / np.sqrt(np.pi)
-        )
-
-        s2 = (
-            - np.exp(a22 * (t2 - t1)) * erf(diff_s - gma)#
-            + np.exp(-a22 * t1) * erf(-t1_s - gma)#
-            + np.exp(a22 * t2) * erf(t2_s - gma)#
-            + np.exp(-gma**2) * (
-                erf(diff_s)
-                - erf(-t1_s)
-                - erf(t2_s)
-            )
-            + erf(gma)
-        )
-
-        s3 = (
-            np.exp(a22 * t2) - 1) * (
-            - np.exp(-a22 * t1)*erf(t1_s + gma)
-            + np.exp(-gma**2)*erf(t1_s)
-            + erf(gma)
-        )
-        
-        s4 = (
-            np.exp(a22 * t1) - 1) * (
-            np.exp(a22 * t2) * erf(t2_s - gma)
-            - np.exp(-gma**2) * erf(t2_s)
-            - erf(-gma)
-        )
-
-        s5 = erf(gma) * (np.exp(a22 * t2) - 1) * (np.exp(a22 * t1) - 1)
-
-        result = (l_s * np.exp(-gma**2) / a22) * s1  + (1 / (a22**2)) * (s2 + s3 - s4 - s5)
-        return result
-    
 
 class KnownTurnRateSandwich(LinearGaussianTransitionModel, TimeVariantModel):
     r"""This is a class implementation of a time-variant 2D Constant Turn
