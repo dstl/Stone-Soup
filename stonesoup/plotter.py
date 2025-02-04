@@ -443,7 +443,7 @@ class Plotter(_Plotter):
                         artists.append(ellipse)
 
                 # Generate legend items for uncertainty ellipses
-                ellipse_handle = Ellipse((0.5, 0.5), 0.5, 0.5, alpha=track_kwargs['alpha'],
+                ellipse_handle = Ellipse((0.5, 0.5), 0.5, 0.5, alpha=tracks_kwargs['alpha'],
                                          color=tracks_kwargs['color'])
                 ellipse_label = "Uncertainty"
                 self.legend_dict[ellipse_label] = ellipse_handle
