@@ -369,7 +369,7 @@ class Plotter(_Plotter):
            may be removed in the future.
         """
         label = kwargs.pop('track_label', None) or label
-        tracks_kwargs = dict(linestyle='-', marker="s", color=None)
+        tracks_kwargs = dict(linestyle='-', marker="s", color=None, alpha=0.2)
         tracks_kwargs.update(kwargs)
         if not isinstance(tracks, Collection) or isinstance(tracks, StateMutableSequence):
             tracks = {tracks}  # Make a set of length 1
@@ -437,13 +437,13 @@ class Plotter(_Plotter):
                         ellipse = Ellipse(xy=state.mean[mapping[:2], 0],
                                           width=2 * np.sqrt(w[max_ind]),
                                           height=2 * np.sqrt(w[min_ind]),
-                                          angle=np.rad2deg(orient), alpha=0.2,
+                                          angle=np.rad2deg(orient), alpha=track_kwargs['alpha'],
                                           color=track_colors[track])
                         self.ax.add_artist(ellipse)
                         artists.append(ellipse)
 
                 # Generate legend items for uncertainty ellipses
-                ellipse_handle = Ellipse((0.5, 0.5), 0.5, 0.5, alpha=0.2,
+                ellipse_handle = Ellipse((0.5, 0.5), 0.5, 0.5, alpha=track_kwargs['alpha'],
                                          color=tracks_kwargs['color'])
                 ellipse_label = "Uncertainty"
                 self.legend_dict[ellipse_label] = ellipse_handle
