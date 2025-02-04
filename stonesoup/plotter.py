@@ -437,7 +437,7 @@ class Plotter(_Plotter):
                         ellipse = Ellipse(xy=state.mean[mapping[:2], 0],
                                           width=2 * np.sqrt(w[max_ind]),
                                           height=2 * np.sqrt(w[min_ind]),
-                                          angle=np.rad2deg(orient), alpha=track_kwargs['alpha'],
+                                          angle=np.rad2deg(orient), alpha=tracks_kwargs['alpha'],
                                           color=track_colors[track])
                         self.ax.add_artist(ellipse)
                         artists.append(ellipse)
