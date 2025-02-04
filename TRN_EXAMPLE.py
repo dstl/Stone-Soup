@@ -40,11 +40,11 @@ from stonesoup.types.array import StateVectors
 import json
 
 #### Problem Setup ####
-turnRate = np.deg2rad(30)
-deltaT   = 1
-nTime    = 20
-X0       = np.array([36569,50,55581,50])
-P0       = np.diag([90,5,160,5])
+turnRate = -np.deg2rad(0.25)
+deltaT   = 2
+nTime    = 100
+X0       = np.array([80000,75,35000,0])
+P0       = np.diag([120,20,120,20])
 nS       = X0.shape[0]
 MC       = 100
 
@@ -66,6 +66,18 @@ neesPF   = np.zeros(shape = (1,nTime,MC))
 
 errorKF  = np.zeros(shape = (nS,nTime,MC))
 
+#### Measurement Model: Map ####
+data              = loadmat('/Users/dopestmmac/Desktop/MapTAN.mat')
+map_x             = np.array(data['map_m'][0][0][0])
+map_y             = np.array(data['map_m'][0][0][1])
+map_z             = np.matrix(data['map_m'][0][0][2])
+interpolator      = RegularGridInterpolator((map_x[:,0],map_y[0,:]),map_z) 
+Rmap              = 1
+measurement_model = TerrainAidedNavigation(interpolator,noise_covar = Rmap, mapping=(0, 2))
+# plt.figure()
+# plt.contourf(map_x,map_y,map_z)
+# plt.colorbar()
+
 #### Monte Carlo Runs ####
 for mc in range(0,MC):
     
@@ -75,47 +87,29 @@ for mc in range(0,MC):
 
     #### Define Settings ####
     start_time       = datetime.now().replace(microsecond=0)
-    transition_model = KnownTurnRate(turn_noise_diff_coeffs = [2,2], turn_rate = turnRate)
-    # This needs to be done in other way
-    time_difference  = timedelta(days = 0, hours = 0, minutes = 0, seconds = deltaT)
+    transition_model = KnownTurnRate(turn_noise_diff_coeffs = [0.001,0.001], turn_rate = turnRate)
     timesteps        = [start_time]
     truth            = GroundTruthPath([GroundTruthState(np.random.multivariate_normal(X0,P0), timestamp = start_time)])
     # Create the truth path
     for k in range(1,nTime):
-        timesteps.append(start_time + timedelta(seconds = k))
+        timesteps.append(start_time + deltaT*timedelta(seconds = k))
         truth.append(GroundTruthState(transition_model.function(truth[k - 1], noise = True, time_interval = timedelta(seconds = deltaT)),timestamp = timesteps[k]))
-    
-    #### Measurement Model: Map ####
-    data              = loadmat('/Users/dopestmmac/Desktop/MapTAN.mat')
-    map_x             = np.array(data['map_m'][0][0][0])
-    map_y             = np.array(data['map_m'][0][0][1])
-    map_z             = np.matrix(data['map_m'][0][0][2])
-    interpolator      = RegularGridInterpolator((map_x[:,0],map_y[0,:]),map_z) 
-    Rmap              = 0.1
-    measurement_model = TerrainAidedNavigation(interpolator,noise_covar = Rmap, mapping=(0, 2))
-
-    #### Measurement Model: Range and Bearing ####
-    # sensor_x          = 36000
-    # sensor_y          = 55000
-    # RrangeBearing     = np.diag([np.radians(0.1),0.1])
-    # measurement_model = CartesianToBearingRange(ndim_state = nS, mapping = (0,2), noise_covar = RrangeBearing, translation_offset = np.array([[sensor_x],[sensor_y]]))
-    
-    #### Measurement Model: Linear ####
-    # matrix            = np.array([[1,0],[0,1],])
-    # measurement_model = LinearGaussian(ndim_state = nS, mapping = (0,2), noise_covar = matrix)
     
     # Populate the measurement array
     measurements = []
     for state in truth:
         measurement = measurement_model.function(state, noise = True)
         measurements.append(Detection(measurement, timestamp = state.timestamp, measurement_model = measurement_model))
+    #     plt.scatter(state.state_vector[0],state.state_vector[2])
+
+    # plt.show()
 
     #### Initialise Point Mass Filter - GSF ####
     predictorGMF    = PointMassPredictor(transition_model)
     updaterGMF      = PointMassUpdater(measurement_model)
-    Npa             = np.array([7, 7, 7, 7]) # for FFT must be ODD!!!!
+    Npa             = np.array([7, 5, 7, 5]) # for FFT must be ODD!!!!
     N               = np.prod(Npa) # number of points - total
-    sFactor         = 4 # scaling factor (number of sigmas covered by the grid)
+    sFactor         = 6 # scaling factor (number of sigmas covered by the grid)
     [predGrid, predGridDelta, gridDimOld, xOld, Ppold] = gridCreation(np.vstack(X0),P0,sFactor,nS,Npa)
     meanX0          = np.vstack(X0)
     pom             = predGrid - np.matlib.repmat(meanX0,1,N)
@@ -136,9 +130,9 @@ for mc in range(0,MC):
     #### Initialise Point Mass Filter - No GSF ####
     predictorPMF    = PointMassPredictor(transition_model)
     updaterPMF      = PointMassUpdater(measurement_model)
-    Npa             = np.array([7, 7, 7, 7]) # for FFT must be ODD!!!!
+    Npa             = np.array([7, 5, 7, 5]) # for FFT must be ODD!!!!
     N               = np.prod(Npa) # number of points - total
-    sFactor         = 4 # scaling factor (number of sigmas covered by the grid)
+    sFactor         = 6 # scaling factor (number of sigmas covered by the grid)
     [predGrid, predGridDelta, gridDimOld, xOld, Ppold] = gridCreation(np.vstack(X0),P0,sFactor,nS,Npa)
     meanX0          = np.vstack(X0)
     pom             = predGrid - np.matlib.repmat(meanX0,1,N)
@@ -163,15 +157,6 @@ for mc in range(0,MC):
     nParticles  = N
     samplesPF   = multivariate_normal.rvs(X0, P0, size = nParticles)
     priorPF     = ParticleState(state_vector = StateVectors(samplesPF.T), weight = np.array([Probability(1/nParticles)]*nParticles), timestamp = start_time)
-    
-    # #### Initialise Kalman Filter ####
-    # predictorKF = KalmanPredictor(transition_model)
-    # updaterKF   = KalmanUpdater(measurement_model)
-    # priorKF     = GaussianState(X0, P0, timestamp = start_time)
-    
-    #### Dynamics ####
-    F = transition_model.matrix(prior = priorPF, time_interval = time_difference)
-    Q = transition_model.covar(time_interval = time_difference)
 
     #### Run Point Mass Filter - GSF ####
     start_time = time.time()
@@ -184,9 +169,11 @@ for mc in range(0,MC):
         errorGMF[:,kTime,mc] = np.array(truth.states[kTime].state_vector).T - post.mean
         stateGMF[:,kTime,mc] = post.mean
         covGMF[:,:,kTime,mc] = np.matrix(post.covar())
-        neesGMF[:,kTime,mc]  = errorGMF[:,kTime,mc].reshape(1,nS) @ np.linalg.inv(covGMF[:,:,kTime,mc]) @ errorGMF[:,kTime,mc].reshape(nS,1)
+        neesGMF[:,kTime,mc]  = errorGMF[:,kTime,mc].reshape(1,nS) @ np.linalg.pinv(covGMF[:,:,kTime,mc]) @ errorGMF[:,kTime,mc].reshape(nS,1)
         kTime               += 1
     end_time = time.time()
+
+    del prediction, hypothesis, post, priorGMF
     
     #### Run Point Mass Filter - No GSF ####
     start_time = time.time()
@@ -199,9 +186,11 @@ for mc in range(0,MC):
         errorPMF[:,kTime,mc] = np.array(truth.states[kTime].state_vector).T - post.mean
         statePMF[:,kTime,mc] = post.mean
         covPMF[:,:,kTime,mc] = np.matrix(post.covar())
-        neesPMF[:,kTime,mc]  = errorPMF[:,kTime,mc].reshape(1,nS) @ np.linalg.inv(covPMF[:,:,kTime,mc]) @ errorPMF[:,kTime,mc].reshape(nS,1)
+        neesPMF[:,kTime,mc]  = errorPMF[:,kTime,mc].reshape(1,nS) @ np.linalg.pinv(covPMF[:,:,kTime,mc]) @ errorPMF[:,kTime,mc].reshape(nS,1)
         kTime               += 1
     end_time = time.time()
+
+    del prediction, hypothesis, post, priorPMF
 
     #### Run Particle Filter ####
     start_time = time.time()
@@ -214,71 +203,137 @@ for mc in range(0,MC):
         errorPF[:,kTime,mc] = np.array(truth.states[kTime].state_vector).T - np.array(post.mean).T
         statePF[:,kTime,mc] = np.array(post.mean).T
         covPF[:,:,kTime,mc] = np.matrix(post.covar)
-        neesPF[:,kTime,mc]  = errorPF[:,kTime,mc].reshape(1,nS) @ np.linalg.inv(covPF[:,:,kTime,mc]) @ errorPF[:,kTime,mc].reshape(nS,1)
+        neesPF[:,kTime,mc]  = errorPF[:,kTime,mc].reshape(1,nS) @ np.linalg.pinv(covPF[:,:,kTime,mc]) @ errorPF[:,kTime,mc].reshape(nS,1)
         kTime              += 1
     end_time = time.time()
 
+    del prediction, hypothesis, post, priorPF
+
 #### Plotting ####
-plt.figure()
-for iS in range(0,nS):
-    plt.subplot(2,2,iS + 1)
-    plt.plot(np.linspace(1,20,nTime),errorGMF[iS,:,:],'k',alpha = 0.1)
-    plt.plot(np.linspace(1,20,nTime),np.mean(errorGMF[iS,:,:],1),'k')
-    plt.plot(np.linspace(1,20,nTime),+3*np.sqrt(np.mean(covGMF[iS,iS,:,:],1)),'r')
-    plt.plot(np.linspace(1,20,nTime),-3*np.sqrt(np.mean(covGMF[iS,iS,:,:],1)),'r')
-    plt.plot(np.linspace(1,20,nTime),+3*np.std(errorGMF[iS,:,:],1),'b')
-    plt.plot(np.linspace(1,20,nTime),-3*np.std(errorGMF[iS,:,:],1),'b')
+plt.rc('font', family='serif', serif=['Computer Modern'])
+plt.rc('text', usetex=True)
+plt.rcParams['axes.linewidth']   = 2 # Thicker axes
+plt.rcParams['lines.linewidth']  = 2 # Thicker lines
+plt.rcParams['xtick.major.size'] = 7 # Major tick length
+plt.rcParams['ytick.major.size'] = 7
+plt.rcParams['xtick.minor.size'] = 4 # Minor tick length
+plt.rcParams['ytick.minor.size'] = 4
+x_vals                           = np.linspace(1,nTime,nTime)
+translucent_blue                 = (0/255,114/255,178/255,0.3)
+y_labels                         = [r'$\tilde{r}_x$ (m)',r'$\tilde{v}_x$ (m/s)',r'$\tilde{r}_y$ (m)',r'$\tilde{v}_y$ (m/s)']
+cb_colors = {
+    'neutral': '#000000',  # black/neutral
+    'mean':    '#000000',  # black
+    'upper':   '#D55E00',  # red
+    'lower':   '#D55E00',  # same for lower bound
+    'std':     '#0072B2'   # blue
+}
 
+# GMF plots
 plt.figure()
-for iS in range(0,nS):
-    plt.subplot(2,2,iS + 1)
-    plt.plot(np.linspace(1,20,nTime),errorPMF[iS,:,:],'k',alpha = 0.1)
-    plt.plot(np.linspace(1,20,nTime),np.mean(errorPMF[iS,:,:],1),'k')
-    plt.plot(np.linspace(1,20,nTime),+3*np.sqrt(np.mean(covPMF[iS,iS,:,:],1)),'r')
-    plt.plot(np.linspace(1,20,nTime),-3*np.sqrt(np.mean(covPMF[iS,iS,:,:],1)),'r')
-    plt.plot(np.linspace(1,20,nTime),+3*np.std(errorPMF[iS,:,:],1),'b')
-    plt.plot(np.linspace(1,20,nTime),-3*np.std(errorPMF[iS,:,:],1),'b')
+for iS in range(nS):
+    ax = plt.subplot(2,2,iS + 1)
+    ax.plot(x_vals,errorGMF[iS,:,:],color = cb_colors['neutral'],alpha = 0.1)
+    ax.plot(x_vals,np.mean(errorGMF[iS,:,:],axis = 1),color = cb_colors['mean'])
+    ax.plot(x_vals,+3*np.sqrt(np.mean(covGMF[iS,iS,:,:],axis = 1)),color = cb_colors['upper'])
+    ax.plot(x_vals,-3*np.sqrt(np.mean(covGMF[iS,iS,:,:],axis = 1)),color = cb_colors['upper'])
+    ax.plot(x_vals,+3*np.std(errorGMF[iS,:,:],axis = 1),color = cb_colors['std'])
+    ax.plot(x_vals,-3*np.std(errorGMF[iS,:,:],axis = 1),color = cb_colors['std'])
+    ax.set_xlabel(r'Time (s)')
+    ax.set_ylabel(y_labels[iS])
+    ax.minorticks_on()
+    ax.tick_params(which = 'both',width = 2)
+    ax.tick_params(which = 'major',length = 7)
+    ax.tick_params(which = 'minor',length = 4)
+plt.tight_layout(pad = 0.5,w_pad = 0.5,h_pad = 0.5)
 
+# PMF plots
 plt.figure()
-for iS in range(0,nS):
-    plt.subplot(2,2,iS + 1)
-    plt.plot(np.linspace(1,20,nTime),errorPF[iS,:,:],'k',alpha = 0.1)
-    plt.plot(np.linspace(1,20,nTime),np.mean(errorPF[iS,:,:],1),'k')
-    plt.plot(np.linspace(1,20,nTime),+3*np.sqrt(np.mean(covPF[iS,iS,:,:],1)),'r')
-    plt.plot(np.linspace(1,20,nTime),-3*np.sqrt(np.mean(covPF[iS,iS,:,:],1)),'r')
-    plt.plot(np.linspace(1,20,nTime),+3*np.std(errorPF[iS,:,:],1),'b')
-    plt.plot(np.linspace(1,20,nTime),-3*np.std(errorPF[iS,:,:],1),'b')
+for iS in range(nS):
+    ax = plt.subplot(2,2,iS + 1)
+    ax.plot(x_vals,errorPMF[iS,:,:],color = cb_colors['neutral'],alpha = 0.1)
+    ax.plot(x_vals,np.mean(errorPMF[iS,:,:],axis = 1),color = cb_colors['mean'])
+    ax.plot(x_vals,+3*np.sqrt(np.mean(covPMF[iS,iS,:,:],axis = 1)),color = cb_colors['upper'])
+    ax.plot(x_vals,-3*np.sqrt(np.mean(covPMF[iS,iS,:,:],axis = 1)),color = cb_colors['upper'])
+    ax.plot(x_vals,+3*np.std(errorPMF[iS,:,:],axis = 1),color = cb_colors['std'])
+    ax.plot(x_vals,-3*np.std(errorPMF[iS,:,:],axis = 1),color = cb_colors['std'])
+    ax.set_xlabel(r'Time (s)')
+    ax.set_ylabel(y_labels[iS])
+    ax.minorticks_on()
+    ax.tick_params(which = 'both',width = 2)
+    ax.tick_params(which = 'major',length = 7)
+    ax.tick_params(which = 'minor',length = 4)
+plt.tight_layout(pad = 0.5,w_pad = 0.5,h_pad = 0.5)
+
+# PF plots
+plt.figure()
+for iS in range(nS):
+    ax = plt.subplot(2,2,iS + 1)
+    ax.plot(x_vals,errorPF[iS,:,:],color = cb_colors['neutral'],alpha = 0.1)
+    ax.plot(x_vals,np.mean(errorPF[iS,:,:],axis = 1),color = cb_colors['mean'])
+    ax.plot(x_vals,+3*np.sqrt(np.mean(covPF[iS,iS,:,:],axis = 1)),color = cb_colors['upper'])
+    ax.plot(x_vals,-3*np.sqrt(np.mean(covPF[iS,iS,:,:],axis = 1)),color = cb_colors['upper'])
+    ax.plot(x_vals,+3*np.std(errorPF[iS,:,:],axis = 1),color = cb_colors['std'])
+    ax.plot(x_vals,-3*np.std(errorPF[iS,:,:],axis = 1),color = cb_colors['std'])
+    ax.set_xlabel(r'Time (s)')
+    ax.set_ylabel(y_labels[iS])
+    ax.minorticks_on()
+    ax.tick_params(which = 'both',width = 2)
+    ax.tick_params(which = 'major',length = 7)
+    ax.tick_params(which = 'minor',length = 4)
+plt.tight_layout(pad = 0.5,w_pad = 0.5,h_pad = 0.5)
+
+fig, axs = plt.subplots(1,3)
+# RMSE Position
+data_1 =  np.mean(np.sqrt(np.mean(errorGMF[[0,2],:,:]**2,axis = 0)),axis  =  0)
+data_2 =  np.mean(np.sqrt(np.mean(errorPMF[[0,2],:,:]**2,axis = 0)),axis = 0)
+data_3 =  np.mean(np.sqrt(np.mean(errorPF[[0,2],:,:]**2,axis = 0)),axis = 0)
+data   =  [data_1,data_2,data_3]
+bp     =  axs[0].boxplot(data,patch_artist = True,
+                    boxprops = dict(facecolor = translucent_blue,color = cb_colors['neutral'],linewidth = 2),
+                    medianprops = dict(color = cb_colors['upper'],linewidth = 2))
+axs[0].minorticks_on()
+axs[0].tick_params(which = 'both',width = 2)
+axs[0].tick_params(which = 'major',length = 7)
+axs[0].tick_params(which = 'minor',length = 4)
+axs[0].set_xticks([1,2,3])
+axs[0].set_xticklabels(['LbPMF+GSF','LbPMF','PF'])
+axs[0].set_ylabel(r'\textbf{RMSE} Position (m)')
+axs[0].set_ylim([0,50])
+
+# RMSE Velocity
+data_1 =  np.mean(np.sqrt(np.mean(errorGMF[[1,3],:,:]**2,axis = 0)),axis = 0)
+data_2 =  np.mean(np.sqrt(np.mean(errorPMF[[1,3],:,:]**2,axis = 0)),axis = 0)
+data_3 =  np.mean(np.sqrt(np.mean(errorPF[[1,3],:,:]**2,axis = 0)),axis = 0)
+data   =  [data_1,data_2,data_3]
+bp     =  axs[1].boxplot(data,patch_artist = True,
+                    boxprops = dict(facecolor = translucent_blue,color = cb_colors['neutral'],linewidth = 2),
+                    medianprops = dict(color = cb_colors['upper'],linewidth = 2))
+axs[1].minorticks_on()
+axs[1].tick_params(which = 'both',width = 2)
+axs[1].tick_params(which = 'major',length = 7)
+axs[1].tick_params(which = 'minor',length = 4)
+axs[1].set_xticks([1,2,3])
+axs[1].set_xticklabels(['LbPMF+GSF','LbPMF','PF'])
+axs[1].set_ylabel(r'\textbf{RMSE} Velocity (m/s)')
+axs[1].set_ylim([0,1.5])
+
+# SNEES
+data_1 =  np.median(neesGMF,axis = 1)[0]/nS
+data_2 =  np.median(neesPMF,axis = 1)[0]/nS
+data_3 =  np.median(neesPF,axis = 1)[0]/nS
+data   =  [data_1,data_2,data_3]
+bp     =  axs[2].boxplot(data,patch_artist = True,
+                boxprops = dict(facecolor = translucent_blue,color = cb_colors['neutral'],linewidth = 2),
+                medianprops = dict(color = cb_colors['upper'],linewidth = 2))
+axs[2].minorticks_on()
+axs[2].tick_params(which = 'both',width = 2)
+axs[2].tick_params(which = 'major',length = 7)
+axs[2].tick_params(which = 'minor',length = 4)
+axs[2].set_xticks([1,2,3])
+axs[2].set_xticklabels(['LbPMF+GSF','LbPMF','PF'])
+axs[2].set_ylabel(r'\textbf{SNEES} (a.u)')
+axs[2].set_ylim([0,10])
+plt.tight_layout(pad = 0.5,w_pad = 0.5,h_pad = 0.5)
+
 plt.show()
-
-#### Results ####
-
-print('\n')
-
-print('Position RMSE GMF:')
-print(np.sqrt(np.mean(errorGMF[[0,2],:,:]**2,0)).mean())
-print('Position RMSE PMF:') 
-print(np.sqrt(np.mean(errorPMF[[0,2],:,:]**2,0)).mean())
-print('Position RMSE PF:')     
-print(np.sqrt(np.mean(errorPF[[0,2],:,:]**2,0)).mean())
-
-print('\n')
-
-print('Velocity RMSE GMF:') 
-print(np.sqrt(np.mean(errorGMF[[1,3],:,:]**2,0)).mean())
-print('Velocity RMSE PMF:') 
-print(np.sqrt(np.mean(errorPMF[[1,3],:,:]**2,0)).mean())
-print('Velocity RMSE PF:')     
-print(np.sqrt(np.mean(errorPF[[1,3],:,:]**2,0)).mean())
-
-print('\n')
-
-print('SNEES GMF:') 
-print(np.mean(neesGMF,1).mean()/nS)
-print('SNEES PMF:') 
-print(np.mean(neesPMF,1).mean()/nS)
-print('SNEES PF:')     
-print(np.mean(neesPF,1).mean()/nS)
-
-
-
-
