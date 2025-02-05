@@ -321,7 +321,7 @@ class Plotter(_Plotter):
         return artists
 
     def plot_tracks(self, tracks, mapping, uncertainty=False, particle=False, label="Tracks",
-                    err_freq=1, same_color=False, **kwargs):
+                    err_freq=1, same_color=False, uncertainty_alpha=0.2, **kwargs):
         """Plots track(s)
 
         Plots each track generated, generating a legend automatically. If ``uncertainty=True``
@@ -351,6 +351,8 @@ class Plotter(_Plotter):
         err_freq: int
             Frequency of error bar plotting on tracks. Default value is 1, meaning
             error bars are plotted at every track step.
+        uncertainty_alpha: float
+            The alpha value used when plotting the uncertainty ellipse. Defaults to 0.2.
         same_color: bool
             Should all the tracks have the same color. Default False
         \\*\\*kwargs: dict
@@ -369,7 +371,7 @@ class Plotter(_Plotter):
            may be removed in the future.
         """
         label = kwargs.pop('track_label', None) or label
-        tracks_kwargs = dict(linestyle='-', marker="s", color=None, alpha=0.2)
+        tracks_kwargs = dict(linestyle='-', marker="s", color=None)
         tracks_kwargs.update(kwargs)
         if not isinstance(tracks, Collection) or isinstance(tracks, StateMutableSequence):
             tracks = {tracks}  # Make a set of length 1
@@ -437,13 +439,13 @@ class Plotter(_Plotter):
                         ellipse = Ellipse(xy=state.mean[mapping[:2], 0],
                                           width=2 * np.sqrt(w[max_ind]),
                                           height=2 * np.sqrt(w[min_ind]),
-                                          angle=np.rad2deg(orient), alpha=tracks_kwargs['alpha'],
+                                          angle=np.rad2deg(orient), alpha=uncertainty_alpha,
                                           color=track_colors[track])
                         self.ax.add_artist(ellipse)
                         artists.append(ellipse)
 
                 # Generate legend items for uncertainty ellipses
-                ellipse_handle = Ellipse((0.5, 0.5), 0.5, 0.5, alpha=tracks_kwargs['alpha'],
+                ellipse_handle = Ellipse((0.5, 0.5), 0.5, 0.5, alpha=uncertainty_alpha,
                                          color=tracks_kwargs['color'])
                 ellipse_label = "Uncertainty"
                 self.legend_dict[ellipse_label] = ellipse_handle
