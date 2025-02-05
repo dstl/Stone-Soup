@@ -274,6 +274,8 @@ class ASDState(Type):
     def states(self):
         return [self[i] for i in range(self.nstep)]
 
+    from_state = State.from_state
+
 
 State.register(ASDState)
 
