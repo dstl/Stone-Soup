@@ -3,6 +3,7 @@ from .base import Hypothesiser
 from ..base import Property
 from ..types.multihypothesis import MultipleHypothesis
 from ..types.prediction import TaggedWeightedGaussianStatePrediction
+from ..types.numeric import Probability
 
 
 class MFAHypothesiser(Hypothesiser):
@@ -50,6 +51,8 @@ class MFAHypothesiser(Hypothesiser):
             raise ValueError("All detections must have the same timestamp")
 
         hypotheses = list()
+        component_weight_sum = Probability.sum(
+                component.weight for component in track.state.components)
         for component in track.state.components:
             # Get hypotheses for that component for all measurements
             component_hypotheses = self.hypothesiser.hypothesise(
@@ -57,7 +60,8 @@ class MFAHypothesiser(Hypothesiser):
             for hypothesis in component_hypotheses:
                 # Update component tag and weight
                 det_idx = detections_tuple.index(hypothesis.measurement) + 1 if hypothesis else 0
-                new_weight = component.weight * hypothesis.weight
+                new_weight = Probability(component.weight * hypothesis.weight)
+                new_weight /= component_weight_sum
                 hypothesis.prediction = \
                     TaggedWeightedGaussianStatePrediction(
                         tag=[*component.tag, det_idx],  # TODO: Avoid dependency on indexes
