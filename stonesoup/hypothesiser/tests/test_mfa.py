@@ -121,9 +121,16 @@ def test_mfa_bad_timestamp(hypothesiser):
     hypothesiser = MFAHypothesiser(hypothesiser)
 
     timestamp = datetime.datetime.now()
+    track = Track([GaussianMixture(
+        [TaggedWeightedGaussianState(
+            state_vector=[[0]],
+            covar=[[1]],
+            weight=Probability(1),
+            tag=[],
+            timestamp=timestamp)])])
     detection1 = Detection(np.array([[2]]), timestamp)
     detection2 = Detection(np.array([[8]]), timestamp - datetime.timedelta(seconds=1))
     detections = {detection1, detection2}
 
-    with pytest.raises(ValueError, match="All detections must have the same timestamp"):
-        hypothesiser.hypothesise({}, detections, timestamp, tuple(detections))
+    with pytest.warns(match="All detections should have the same timestamp"):
+        hypothesiser.hypothesise(track, detections, timestamp, tuple(detections))

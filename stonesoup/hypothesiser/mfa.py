@@ -1,4 +1,5 @@
-# -*- coding: utf-8 -*-
+import warnings
+
 from .base import Hypothesiser
 from ..base import Property
 from ..types.multihypothesis import MultipleHypothesis
@@ -48,7 +49,7 @@ class MFAHypothesiser(Hypothesiser):
         # Check to make sure all detections are obtained from the same time
         timestamps = {detection.timestamp for detection in detections}
         if len(timestamps) > 1:
-            raise ValueError("All detections must have the same timestamp")
+            warnings.warn("All detections should have the same timestamp")
 
         hypotheses = list()
         component_weight_sum = Probability.sum(
