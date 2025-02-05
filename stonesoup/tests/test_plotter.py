@@ -12,7 +12,7 @@ from stonesoup.models.measurement.linear import LinearGaussian
 from stonesoup.models.transition.linear import CombinedLinearGaussianTransitionModel, \
     ConstantVelocity
 from stonesoup.plotter import Plotter, Dimension, AnimatedPlotterly, AnimationPlotter, Plotterly, \
-    PolarPlotterly
+    PolarPlotterly, AnimatedPolarPlotterly
 from stonesoup.predictor.kalman import KalmanPredictor
 from stonesoup.sensor.radar.radar import RadarElevationBearingRange
 from stonesoup.types.detection import TrueDetection, Clutter
@@ -115,17 +115,17 @@ def plotter_class(request):
 
     plotter_class = request.param
     assert plotter_class in {Plotter, Plotterly, AnimationPlotter,
-                             PolarPlotterly, AnimatedPlotterly}
+                             PolarPlotterly, AnimatedPlotterly, AnimatedPolarPlotterly}
 
     def _generate_animated_plotterly(*args, **kwargs):
-        return AnimatedPlotterly(*args, timesteps=timesteps, **kwargs)
+        return plotter_class(*args, timesteps=timesteps, **kwargs)
 
     def _generate_plotter(*args, **kwargs):
         return plotter_class(*args, **kwargs)
 
     if plotter_class in {Plotter, Plotterly, AnimationPlotter, PolarPlotterly}:
         yield _generate_plotter
-    elif plotter_class is AnimatedPlotterly:
+    elif plotter_class in {AnimatedPlotterly, AnimatedPolarPlotterly}:
         yield _generate_animated_plotterly
     else:
         raise ValueError("Invalid Plotter type.")
@@ -152,7 +152,8 @@ def test_plot_sensors():
 
 @pytest.mark.parametrize(
     "plotter_class",
-    [Plotter, Plotterly, AnimationPlotter, PolarPlotterly, AnimatedPlotterly], indirect=True)
+    [Plotter, Plotterly, AnimationPlotter, PolarPlotterly, AnimatedPlotterly,
+     AnimatedPolarPlotterly], indirect=True)
 def test_empty_tracks(plotter_class):
     plotter = plotter_class()
     plotter.plot_tracks(set(), [0, 2])
@@ -404,7 +405,8 @@ def test_show_plot(labels):
 
 @pytest.mark.parametrize(
     "plotter_class",
-    [Plotter, Plotterly, AnimationPlotter, PolarPlotterly, AnimatedPlotterly], indirect=True)
+    [Plotter, Plotterly, AnimationPlotter, PolarPlotterly, AnimatedPlotterly,
+     AnimatedPolarPlotterly], indirect=True)
 @pytest.mark.parametrize(
     "_measurements",
     [true_measurements, clutter_measurements, all_measurements,
@@ -417,7 +419,8 @@ def test_plotters_plot_measurements_2d(plotter_class, _measurements):
 
 @pytest.mark.parametrize(
     "plotter_class",
-    [Plotter, Plotterly, AnimationPlotter, PolarPlotterly, AnimatedPlotterly], indirect=True)
+    [Plotter, Plotterly, AnimationPlotter, PolarPlotterly, AnimatedPlotterly,
+     AnimatedPolarPlotterly], indirect=True)
 def test_plotters_plot_tracks(plotter_class):
     plotter = plotter_class()
     plotter.plot_tracks(track, [0, 2])
@@ -429,7 +432,8 @@ def test_plotters_plot_tracks(plotter_class):
      Plotterly,
      pytest.param(AnimationPlotter, marks=pytest.mark.xfail(raises=NotImplementedError)),
      pytest.param(PolarPlotterly, marks=pytest.mark.xfail(raises=NotImplementedError)),
-     AnimatedPlotterly],
+     AnimatedPlotterly,
+     pytest.param(AnimatedPolarPlotterly, marks=pytest.mark.xfail(raises=NotImplementedError))],
     indirect=True
 )
 def test_plotters_plot_track_uncertainty(plotter_class):
@@ -441,8 +445,9 @@ def test_plotters_plot_track_uncertainty(plotter_class):
 @pytest.mark.parametrize(
     "plotter_class",
     [AnimationPlotter,
-     PolarPlotterly]
-)
+     PolarPlotterly,
+     AnimatedPolarPlotterly],
+    indirect=True)
 def test_plotters_plot_track_particle(plotter_class):
     plotter = plotter_class()
     plotter.plot_tracks(track, [0, 2], particle=True)
@@ -450,7 +455,8 @@ def test_plotters_plot_track_particle(plotter_class):
 
 @pytest.mark.parametrize(
     "plotter_class",
-    [Plotter, Plotterly, AnimationPlotter, PolarPlotterly, AnimatedPlotterly], indirect=True)
+    [Plotter, Plotterly, AnimationPlotter, PolarPlotterly, AnimatedPlotterly,
+     AnimatedPolarPlotterly], indirect=True)
 def test_plotters_plot_truths(plotter_class):
     plotter = plotter_class()
     plotter.plot_ground_truths(truth, [0, 2])
@@ -462,7 +468,9 @@ def test_plotters_plot_truths(plotter_class):
      Plotterly,
      pytest.param(AnimationPlotter, marks=pytest.mark.xfail(raises=NotImplementedError)),
      pytest.param(PolarPlotterly, marks=pytest.mark.xfail(raises=NotImplementedError)),
-     AnimatedPlotterly], indirect=True
+     AnimatedPlotterly,
+     pytest.param(AnimatedPolarPlotterly, marks=pytest.mark.xfail(raises=NotImplementedError))],
+    indirect=True
 )
 def test_plotters_plot_sensors(plotter_class):
     plotter = plotter_class()
@@ -470,7 +478,8 @@ def test_plotters_plot_sensors(plotter_class):
 
 
 @pytest.mark.parametrize("plotter_class",
-                         [Plotterly, PolarPlotterly, AnimatedPlotterly], indirect=True)
+                         [Plotterly, PolarPlotterly, AnimatedPlotterly, PolarPlotterly],
+                         indirect=True)
 @pytest.mark.parametrize("_measurements, expected_labels",
                          [(true_measurements, {'Measurements'}),
                           (clutter_measurements, {'Measurements<br>(Clutter)'}),
