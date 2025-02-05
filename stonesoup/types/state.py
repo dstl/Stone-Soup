@@ -655,6 +655,20 @@ class ASDWeightedGaussianState(ASDGaussianState):
     weight: Probability = Property(default=0, doc="Weight of the Gaussian State.")
 
 
+class ASDTaggedWeightedGaussianState(ASDWeightedGaussianState):
+    tag: str = Property(default=None, doc="Unique tag of the Gaussian State.")
+
+    BIRTH = 'birth'
+    '''Tag value used to signify birth component'''
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        if self.tag is None:
+            self.tag = str(uuid.uuid4())
+
+TaggedWeightedGaussianState.register(ASDTaggedWeightedGaussianState)  # noqa: E305
+
+
 class ParticleState(State):
     """Particle State type
 

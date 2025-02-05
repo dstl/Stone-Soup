@@ -18,6 +18,7 @@ from ..state import (
     ASDGaussianState,
     ASDState,
     ASDWeightedGaussianState,
+    ASDTaggedWeightedGaussianState,
     BernoulliParticleState,
     CategoricalState,
     CompositeState,
@@ -934,6 +935,21 @@ def test_asd_weighted_gaussian_state():
     a = ASDWeightedGaussianState(
         mean, multi_covar=covar, weight=weight, timestamps=[timestamp])
     assert a.weight == weight
+
+
+def test_asd_tagged_weighted_gaussian_state():
+    mean = np.array([[1], [2], [3], [4]])  # 4D
+    covar = np.diag([1, 2, 3])  # 3D
+    weight = 0.3
+    timestamp = datetime.datetime.now()
+
+    a = ASDTaggedWeightedGaussianState(
+        mean, multi_covar=covar, weight=weight, tag='abc123', timestamps=[timestamp])
+    assert a.weight == weight
+    assert a.tag == 'abc123'
+    a = ASDTaggedWeightedGaussianState(
+        mean, multi_covar=covar, weight=weight, timestamps=[timestamp])
+    assert isinstance(a.tag, str)  # Should be auto-generated UUID
 
 
 def test_pointmassstate():
