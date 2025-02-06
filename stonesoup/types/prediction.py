@@ -80,6 +80,7 @@ class ASDGaussianStatePrediction(Prediction, ASDGaussianState):
 
 
 class ASDTaggedWeightedGaussianStatePrediction(Prediction, ASDTaggedWeightedGaussianState):
+    """ASD Tagged Weighted Gaussian Prediction"""
     act_timestamp: datetime.datetime = Property(
         doc="The timestamp for which the state is predicted")
 
@@ -142,6 +143,7 @@ class ASDGaussianMeasurementPrediction(MeasurementPrediction, ASDGaussianState):
 
 class ASDTaggedWeightedGaussianMeasurementPrediction(
         MeasurementPrediction, ASDTaggedWeightedGaussianState):
+    """ASD Tagged Weighted Gaussian Measurement Prediction"""
     cross_covar: CovarianceMatrix = Property(
         doc="The state-measurement cross covariance matrix", default=None)
 

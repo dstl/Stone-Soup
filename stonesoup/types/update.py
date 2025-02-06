@@ -80,7 +80,7 @@ class ASDGaussianStateUpdate(Update, ASDGaussianState):
 
 
 class ASDTaggedWeightedGaussianStateUpdate(Update, ASDTaggedWeightedGaussianState):
-    pass
+    """ASDTaggedWeightedGaussianStateUpdate type"""
 
 
 class ParticleStateUpdate(Update, ParticleState):
