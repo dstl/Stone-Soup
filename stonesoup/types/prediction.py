@@ -8,7 +8,7 @@ from .state import (State, GaussianState, EnsembleState,
                     ParticleState, MultiModelParticleState, RaoBlackwellisedParticleState,
                     SqrtGaussianState, InformationState, TaggedWeightedGaussianState,
                     WeightedGaussianState, CategoricalState, ASDGaussianState,
-                    BernoulliParticleState, KernelParticleState)
+                    BernoulliParticleState, KernelParticleState, ASDTaggedWeightedGaussianState)
 from ..base import Property
 from ..models.transition.base import TransitionModel
 from ..types.state import CreatableFromState, CompositeState, PointMassState
@@ -85,6 +85,12 @@ class ASDGaussianStatePrediction(Prediction, ASDGaussianState):
         doc="The timestamp for which the state is predicted")
 
 
+class ASDTaggedWeightedGaussianStatePrediction(Prediction, ASDTaggedWeightedGaussianState):
+    """ASD Tagged Weighted Gaussian Prediction"""
+    act_timestamp: datetime.datetime = Property(
+        doc="The timestamp for which the state is predicted")
+
+
 class SqrtGaussianStatePrediction(Prediction, SqrtGaussianState):
     """ SqrtGaussianStatePrediction type
 
@@ -137,6 +143,13 @@ CreatableFromState.class_mapping[MeasurementPrediction][SqrtGaussianState] = \
 
 class ASDGaussianMeasurementPrediction(MeasurementPrediction, ASDGaussianState):
     """ASD Gaussian Measurement Prediction"""
+    cross_covar: CovarianceMatrix = Property(
+        doc="The state-measurement cross covariance matrix", default=None)
+
+
+class ASDTaggedWeightedGaussianMeasurementPrediction(
+        MeasurementPrediction, ASDTaggedWeightedGaussianState):
+    """ASD Tagged Weighted Gaussian Measurement Prediction"""
     cross_covar: CovarianceMatrix = Property(
         doc="The state-measurement cross covariance matrix", default=None)
 

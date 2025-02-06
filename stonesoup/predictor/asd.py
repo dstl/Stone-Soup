@@ -6,7 +6,7 @@ import numpy as np
 
 from ._utils import predict_lru_cache
 from .kalman import KalmanPredictor
-from ..types.prediction import ASDGaussianStatePrediction
+from ..types.prediction import Prediction
 from ..types.state import GaussianState
 
 
@@ -235,10 +235,11 @@ class ASDKalmanPredictor(KalmanPredictor):
         timestamps = sorted(prior.timestamps + [timestamp], reverse=True)
         # the act_timestamp parameter is used for the updater to
         # know for which timestamp the prediction is calculated
-        predicted_state = ASDGaussianStatePrediction(
+        predicted_state = Prediction.from_state(
+            prior,
             multi_state_vector=x_pred, multi_covar=p_pred,
             correlation_matrices=correlation_matrices, timestamps=timestamps,
-            max_nstep=prior.max_nstep, act_timestamp=timestamp)
+            act_timestamp=timestamp, prior=prior)
         self.prune_state(predicted_state)
         return predicted_state
 

@@ -3,8 +3,8 @@ from functools import lru_cache
 import numpy as np
 
 from .kalman import KalmanUpdater
-from ..types.prediction import ASDGaussianMeasurementPrediction
-from ..types.update import ASDGaussianStateUpdate
+from ..types.prediction import MeasurementPrediction
+from ..types.update import Update
 
 
 class ASDKalmanUpdater(KalmanUpdater):
@@ -62,7 +62,8 @@ class ASDKalmanUpdater(KalmanUpdater):
         t2t_plus = slice(t_index * predicted_state.ndim, (t_index+1) * predicted_state.ndim)
         meas_cross_cov = predicted_state.multi_covar[:, t2t_plus] @ hh.T
 
-        return ASDGaussianMeasurementPrediction(
+        return MeasurementPrediction.from_state(
+            predicted_state,
             multi_state_vector=pred_meas, multi_covar=innov_cov,
             timestamps=[predicted_state.act_timestamp],
             cross_covar=meas_cross_cov)
@@ -141,9 +142,9 @@ class ASDKalmanUpdater(KalmanUpdater):
         except KeyError:
             pass
 
-        return ASDGaussianStateUpdate(multi_state_vector=posterior_mean,
-                                      multi_covar=posterior_covariance,
-                                      hypothesis=hypothesis,
-                                      timestamps=predicted_state.timestamps,
-                                      correlation_matrices=correlation_matrices,
-                                      max_nstep=predicted_state.max_nstep)
+        return Update.from_state(
+            predicted_state,
+            multi_state_vector=posterior_mean,
+            multi_covar=posterior_covariance,
+            hypothesis=hypothesis,
+            correlation_matrices=correlation_matrices)

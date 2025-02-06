@@ -274,6 +274,8 @@ class ASDState(Type):
     def states(self):
         return [self[i] for i in range(self.nstep)]
 
+    from_state = State.from_state
+
 
 State.register(ASDState)
 
@@ -647,10 +649,29 @@ class TaggedWeightedGaussianState(WeightedGaussianState):
 class ASDWeightedGaussianState(ASDGaussianState):
     """ASD Weighted Gaussian State Type
 
-    ASD Gaussian State object with an associated weight.  Used as components
+    ASD Gaussian State object with an associated weight. Used as components
     for a GaussianMixtureState.
     """
     weight: Probability = Property(default=0, doc="Weight of the Gaussian State.")
+
+
+class ASDTaggedWeightedGaussianState(ASDWeightedGaussianState):
+    """ASD Tagged Weighted Gaussian State Type
+
+    ASD Gaussian State object with an associated weight and tag. Used as components
+    for a GaussianMixtureState.
+    """
+    tag: str = Property(default=None, doc="Unique tag of the ASD Gaussian State.")
+
+    BIRTH = 'birth'
+    '''Tag value used to signify birth component'''
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        if self.tag is None:
+            self.tag = str(uuid.uuid4())
+
+TaggedWeightedGaussianState.register(ASDTaggedWeightedGaussianState)  # noqa: E305
 
 
 class ParticleState(State):
