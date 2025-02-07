@@ -127,7 +127,7 @@ class GOSPAMetric(MetricGenerator):
         state_list = StateMutableSequence()
         ids = []
         for i, element in enumerate(list(object_with_states)):
-            if isinstance(element, StateMutableSequence):
+            if isinstance(element, StateMutableSequence) and not isinstance(element, State):
                 states = list(element.last_timestamp_generator())
                 state_list.extend(states)
                 ids.extend([i]*len(states))

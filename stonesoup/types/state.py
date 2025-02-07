@@ -63,7 +63,7 @@ class State(Type):
             on the `state` parameter.
         """
         # Handle being initialised with state sequence
-        if isinstance(state, StateMutableSequence):
+        if isinstance(state, StateMutableSequence) and not isinstance(state, State):
             state = state.state
 
         if target_type is None:
@@ -155,7 +155,7 @@ class CreatableFromState:
             those on the ``state`` parameter.
         """
         # Handle being initialised with state sequence
-        if isinstance(state, StateMutableSequence):
+        if isinstance(state, StateMutableSequence) and not isinstance(state, State):
             state = state.state
         try:
             state_type = next(type_ for type_ in type(state).mro()
