@@ -378,6 +378,10 @@ def unscented_transform(
                 )
             ]
         )
+        
+        
+    if np.size(sigma_points_t,axis=1) == 1:
+        sigma_points_t = sigma_points_t.T
 
     # Calculate mean and covariance approximation
     mean, covar = sigma2gauss(sigma_points_t, mean_weights, covar_weights, covar_noise)
