@@ -710,8 +710,8 @@ class SlidingWindowGP(LinearGaussianTransitionModel, TimeVariantModel):
         Fmat[0, :len(f)] = f.T
 
         # add contribution from x_(t-d) if t >= d
-        if self.markov_approx == 2 and len(f) == d:
-            Fmat[0, len(f)] = 1 - f.sum()
+        if self.markov_approx == 2 and len(track) >= d:
+            Fmat[0, -1] = 1 - f.sum()
 
         return Fmat
 
@@ -776,9 +776,9 @@ class SlidingWindowGP(LinearGaussianTransitionModel, TimeVariantModel):
         elif self.markov_approx == 2:
             if len(track.states) < self.window_size:
                 # include prior at t = 0
-                return np.arange(d * dt, -dt, -dt).reshape(-1, 1)
+                return np.linspace(d * dt, 0, d + 1).reshape(-1, 1)
             else:
-                return np.arange(d, 0, -1).reshape(-1, 1)
+                return np.linspace(d * dt, dt, d).reshape(-1, 1)
 
 
 class DynamicsInformedIntegratedGP(SlidingWindowGP):
@@ -905,6 +905,7 @@ class DynamicsInformedIntegratedGP(SlidingWindowGP):
     dynamics_coeff: float = Property(doc="Coefficient a of equation dx/dt = ax + bg(t)")  # if a = 0 use inte gp kernel
     gp_coeff: float = Property(doc="Coefficient b of equation dx/dt = ax + bg(t)")
     prior_var: float = Property(doc="Variance of prior x_0. Added to covariance function for second markovian approximation only.", default=0)
+    # obtain from GaussianState?
 
     @property
     def ndim_state(self):
@@ -912,7 +913,7 @@ class DynamicsInformedIntegratedGP(SlidingWindowGP):
     
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        if self.dynamics_coeff == 0 and not isinstance(self, IntegratedGP) and not isinstance(self, DoubleIntegratedGP):
+        if self.dynamics_coeff == 0 and not isinstance(self, IntegratedGP) and not isinstance(self, TwiceIntegratedGP):
             raise ValueError("dynamics_coeff cannot be 0. Use IntegratedGP class instead.")
 
     def kernel(self, t1, t2, **kwargs):
