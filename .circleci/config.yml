@@ -28,7 +28,7 @@ jobs:
             python -m venv venv
             . venv/bin/activate
             pip install --upgrade pip
-            pip install -e .[dev,orbital] opencv-python-headless pyehm
+            pip install -e .[dev,ehm,optuna,orbital] opencv-python-headless
       - save_cache:
           paths:
             - ./venv
@@ -75,7 +75,7 @@ jobs:
             python -m venv venv
             . venv/bin/activate
             pip install --upgrade pip
-            pip install -e .[orbital] opencv-python-headless plotly pytest-cov pytest-remotedata pytest-skip-slow pyehm confluent-kafka h5py pandas
+            pip install -e .[ehm,optuna,orbital] opencv-python-headless plotly pytest-cov pytest-remotedata pytest-skip-slow pyehm confluent-kafka h5py pandas
       - save_cache:
           paths:
             - ./venv
