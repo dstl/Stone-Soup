@@ -1,6 +1,9 @@
 from abc import abstractmethod, ABC
+from functools import lru_cache
 from collections.abc import Sequence
-from typing import Set, Union, List, TYPE_CHECKING
+from typing import Union, List, TYPE_CHECKING
+from shapely import STRtree
+from shapely.geometry import Polygon, Point, MultiPoint, LineString, MultiLineString
 
 import numpy as np
 
@@ -188,42 +191,104 @@ class SensorSuite(Sensor):
 
 class VisibilityInformed2DSensor(SimpleSensor):
     """The base class of 2D sensors that evaluate the visibility of
-    targets in known cluttered environments.
+    targets in known cluttered environments. Two different techniques
+    are adopted for visibility checking. The first is a ray casting
+    approach that is used with small to modest numbers of obstacles.
+    The second adopts the STR Tree algorithm which is more efficient
+    for large numbers of obstacles.
     """
+    # TODO: Establish the suitable number of obstacles to use when
+    # switching between STR Tree and ray casting.
 
     obstacles: List['Obstacle'] = Property(default=None,
                                            doc="list of :class:`~.Obstacle` type platforms "
                                            "that represent obstacles in the environment")
 
-    def is_visible(self, state, obstacle_check=False):
+    moving_obstacle_flag: bool = Property(default=False,
+                                          doc="Boolean flag indicating is obstacles are mobile")
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+
+        if self.obstacles is not None and len(self.obstacles) > 100:
+            self._str_tree_is_visible_trigger = True
+        else:
+            self._str_tree_is_visible_trigger = False
+
+        self._relevant_obs = []
+        self._relevant_obs_idx = []
+
+        if self.obstacles:
+            self._obstacle_tree = \
+                STRtree([Polygon(obstacle.vertices.T) for obstacle in self.obstacles])
+            self._all_verts = [obstacle.vertices for obstacle in self.obstacles]
+            self._all_rel_edges = [obstacle.relative_edges for obstacle in self.obstacles]
+        else:
+            self._all_verts = []
+            self._all_rel_edges = []
+
+    @lru_cache(maxsize=None)
+    def _position_cache(self):
+        # Cache for position allows for vertices and relative edges to be
+        # calculated only when necessary. Maxsize set to unlimited as it
+        # is cleared before assigning a new value
+        return self.position
+
+    @property
+    def _relevant_obstacles(self):
+        self._get_relevant_obstacles()
+        # return self._relevant_obs
+        return self._relevant_obs_idx
+
+    def _get_relevant_obstacles(self):
+
+        if self.moving_obstacle_flag:
+            # Call vertices for each obstacle to update self._all_verts and self._all_rel_edges
+            _ = [obstacle.vertices for obstacle in self.obstacles]
+
+        if self.max_range < np.inf and (np.any(self._position_cache() != self.position) or
+                                        not self._relevant_obs):
+
+            if self._str_tree_is_visible_trigger:
+                b_box = Polygon(self.position[0:2].T +
+                                self.max_range*np.array([[-1, -1], [1, -1], [1, 1], [-1, 1]]))
+                self._relevant_obs_idx = self._obstacle_tree.query(b_box)
+            else:
+
+                self._relevant_obs_idx = \
+                    np.where([np.any(np.sqrt(
+                                     np.sum((vertices[0:2, :]-self.position[0:2])**2, axis=0))
+                                     < self.max_range)
+                             for vertices in self._all_verts])[0].astype(int)
+        else:
+            self._relevant_obs_idx = \
+                np.linspace(0, len(self.obstacles)-1, len(self.obstacles)).astype(int)
+
+    def get_obstacle_tree(self):
+
+        if self.moving_obstacle_flag:
+            return STRtree([Polygon(obstacle.vertices.T) for obstacle in self.obstacles])
+        else:
+            return self._obstacle_tree
+
+    def is_visible(self, state):
         """Function for evaluating the visibility of states in the
         environment based on a 2D line of sight intersection check with
         obstacles edges. Note that this method does not check sensor field of
         view in evaluating visibility. If no obstacles are provided, the
-        method will return `True`.
+        method will return `True` or `True` array of equivalent shape of state.
 
         Parameters
         ----------
         state : :class:`~.State`
             A state object that describes `n` positions to check line of sight to from
             the sensor position.
-        obstacle_check : bool, optional
-            A flag for returning a second output that indicates if the state is
-            inside an obstacle. Defaults to `False`.
 
         Returns
         -------
         : :class:`~numpy.ndarray`
             (1, n) array of booleans indicating the visibility of `state`. True represents
-            that the state is visible.
-        : :class:`~numpy.ndarray`
-            (1, n) array of booleans indicating whether `state` is inside an obstacle
-            and is true when a state is inside an obstacle. Only returned when
-            `obstacle_check` is `True` and :attr:`obstacles` is not `None`."""
-
-        # Check if visibility calculations should be run
-        if not self.obstacles:
-            return True
+            that the state is visible."""
 
         # Check number of states if `state` is `ParticleState`
         if isinstance(state, ParticleState):
@@ -231,52 +296,120 @@ class VisibilityInformed2DSensor(SimpleSensor):
         else:
             nstates = 1
 
-        # Get relative edges from obstacle list
-        relative_edges = np.concatenate([obstacle.relative_edges
-                                         for obstacle in self.obstacles], axis=1)
+        if not self.obstacles:
+            return np.full(nstates, True)
 
-        # Calculate relative vector between sensor position and state position
-        if isinstance(state, StateVector):
-            relative_ray = np.array([state[self.position_mapping[0], :]
-                                    - self.position[0, 0],
-                                    state[self.position_mapping[1], :]
-                                    - self.position[1, 0]])
-        else:
-            relative_ray = np.array([state.state_vector[self.position_mapping[0], :]
-                                    - self.position[0, 0],
-                                    state.state_vector[self.position_mapping[1], :]
-                                    - self.position[1, 0]])
+        if self._str_tree_is_visible_trigger:
 
-        # Calculate relative vector between sensor and all obstacle edge positions
-        relative_sensor_to_edge = self.position[0:2] - \
-            np.concatenate([obstacle.vertices for obstacle in self.obstacles], axis=1)
+            if isinstance(state, StateVector):
+                line_segments = \
+                    [LineString([self.position[0:2], state[self.position_mapping[0:2], :]])]
+            else:
+                if isinstance(state, ParticleState):
+                    position_concat = np.tile(self.position, [nstates]).T
+                    line_segments = \
+                        MultiLineString(
+                            [[*position_concat[:]],
+                             [*state.state_vector[self.position_mapping[0:2], :]]]).geoms
+                else:
+                    nstates = 1
+                    line_segments = \
+                        [LineString([self.position[0:2],
+                                     state.state_vector[self.position_mapping[0:2], :]])]
 
-        # Initialise the intersection vector
-        intersections = np.full((relative_edges.shape[1], nstates), False)
+            intersections = np.full((nstates,), True)
 
-        # Perform intersection check
-        for n in range(relative_edges.shape[1]):
-            denom = relative_ray[1, :]*relative_edges[0, n] \
-                - relative_ray[0, :]*relative_edges[1, n]
-            alpha = (relative_edges[1, n]*relative_sensor_to_edge[0, n]
-                     - relative_edges[0, n]*relative_sensor_to_edge[1, n])/denom
-            beta = (relative_ray[0, :]*relative_sensor_to_edge[1, n]
-                    - relative_ray[1, :]*relative_sensor_to_edge[0, n])/denom
+            obstacle_tree = self.get_obstacle_tree()
 
-            intersections[n, :] = np.logical_and.reduce((alpha >= 0,
-                                                        alpha <= 1,
-                                                        beta >= 0,
-                                                        beta <= 1))
+            non_vis_rays = obstacle_tree.query(line_segments, predicate='intersects')[0, :]
+            intersections[np.unique(non_vis_rays)] = False
 
-        # Count intersections. If the number of intersections is odd then the state
-        # is inside an obstacle. If the number of intersections is even, the
-        # state is in free space.
-        intersection_count = sum(intersections, 0)
-        intersections = np.invert(np.any(intersections, 0))
-        if nstates == 1:
-            intersections = intersections[0]
-
-        if obstacle_check:
-            return intersections, intersection_count % 2 != 0
-        else:
             return intersections
+
+        else:
+
+            relevant_obstacle_idx = self._relevant_obstacles
+
+            relative_edges = np.hstack([self._all_rel_edges[n] for n in relevant_obstacle_idx])
+
+            # Calculate relative vector between sensor position and state position
+            if isinstance(state, StateVector):
+                relative_ray = np.array([state[self.position_mapping[0], :]
+                                        - self.position[0, 0],
+                                        state[self.position_mapping[1], :]
+                                        - self.position[1, 0]])
+            else:
+                relative_ray = np.array([state.state_vector[self.position_mapping[0], :]
+                                        - self.position[0, 0],
+                                        state.state_vector[self.position_mapping[1], :]
+                                        - self.position[1, 0]])
+
+            relative_sensor_to_edge = self.position[0:2] - \
+                np.hstack([self._all_verts[n] for n in relevant_obstacle_idx])
+
+            # Initialise the intersection vector
+            intersections = np.full((relative_edges.shape[1], nstates), False)
+
+            # Perform intersection check
+            for n in range(relative_edges.shape[1]):
+                denom = relative_ray[1, :]*relative_edges[0, n] \
+                    - relative_ray[0, :]*relative_edges[1, n]
+                alpha = (relative_edges[1, n]*relative_sensor_to_edge[0, n]
+                         - relative_edges[0, n]*relative_sensor_to_edge[1, n])/denom
+                beta = (relative_ray[0, :]*relative_sensor_to_edge[1, n]
+                        - relative_ray[1, :]*relative_sensor_to_edge[0, n])/denom
+
+                intersections[n, :] = np.logical_and.reduce((alpha >= 0,
+                                                             alpha <= 1,
+                                                             beta >= 0,
+                                                             beta <= 1))
+                intersections[n, :] = (alpha >= 0) & (alpha <= 1) & (beta >= 0) & (beta <= 1)
+
+            # Count intersections. If the number of intersections is odd then the state
+            # is inside an obstacle. If the number of intersections is even, the
+            # state is in free space.
+            intersections = np.invert(np.any(intersections, 0))
+            if nstates == 1:
+                intersections = intersections[0]
+
+            return intersections
+
+    def in_obstacle(self, state):
+        """Function for evaluating whether states are inside the boundry of obstacles
+        in the environment. If no obstacles are provided, the method will return
+        `True` or `True` array of equivalent shape of state.
+
+        Parameters
+        ----------
+        state : :class:`~.State`
+            A state object that describes `n` positions to check line of sight to from
+            the sensor position.
+
+        Returns
+        -------
+        : :class:`~numpy.ndarray`
+            (1, n) array of booleans indicating whether `state` is inside an obstacle
+            and is `True` when a state is inside an obstacle."""
+
+        if isinstance(state, StateVector):
+            nstates = 1
+            point_sequence = [Point(state[self.position_mapping[0:2], :].T)]
+        else:
+            if isinstance(state, ParticleState):
+                nstates = len(state)
+                point_sequence = \
+                    MultiPoint(state.state_vector[self.position_mapping[0:2], :].T).geoms
+            else:
+                nstates = 1
+                point_sequence = [Point(state.state_vector[self.position_mapping[0:2], :].T)]
+
+        in_obstacles = np.full((nstates), False)
+        if not self.obstacles:
+            return in_obstacles
+
+        obstacle_tree = self.get_obstacle_tree()
+
+        in_obs_states = obstacle_tree.query(point_sequence, predicate='within')[0, :]
+        in_obstacles[in_obs_states] = True
+
+        return in_obstacles

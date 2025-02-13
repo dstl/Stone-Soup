@@ -283,8 +283,8 @@ class Obstacle(Platform):
 
             self._orientation_cache.cache_clear()
             self._position_cache.cache_clear()
-            self._vertices = self._calculate_verts()
-            self._relative_edges = self._calculate_relative_edges()
+            self._vertices[:] = self._calculate_verts()
+            self._relative_edges[:] = self._calculate_relative_edges()
 
     def _calculate_verts(self) -> np.ndarray:
         # Calculates the vertices based on the defined `shape_data`,

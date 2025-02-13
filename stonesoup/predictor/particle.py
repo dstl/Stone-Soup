@@ -451,8 +451,7 @@ class VisibilityInformedBernoulliParticlePredictor(BernoulliParticlePredictor):
                                                              **kwargs)
 
         visible_parts = self.sensor.is_detectable(predicted_state)
-        _, parts_in_obs = self.sensor.is_visible(predicted_state,
-                                                 obstacle_check=True)
+        parts_in_obs = self.sensor.in_obstacle(predicted_state)
 
         transition_likelihood_mod = copy.copy(transition_likelihood)
         transition_likelihood_mod[:surv_part_size][parts_in_obs[:surv_part_size]] = \
