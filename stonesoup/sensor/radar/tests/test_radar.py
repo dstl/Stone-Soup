@@ -1052,7 +1052,8 @@ def test_detectable(pan, tilt, ans):
                                  'position_mapping': [0, 1],
                                  'noise_covar': np.array([[np.radians(0.5) ** 2]]),
                                  'position': np.array([[0], [1]]),
-                                 'max_range': np.inf}),
+                                 'max_range': np.inf,
+                                 'moving_obstacle_flag': True}),
                             (RadarRotatingBearingRange,
                                 {'ndim_state': 2,
                                  'position_mapping': [0, 1],
@@ -1080,12 +1081,22 @@ def test_is_visible_sensors(sensor, params):
 
     obs_state = State(StateVector([[0], [75]]))
     shape = np.array([[-5, -5, 5, 5], [-5, 5, 5, -5]])
-    obstacles = [Obstacle(states=obs_state,
-                          shape_data=shape,
-                          position_mapping=(0, 1))]
+    obs_configs = [[Obstacle(states=obs_state,
+                             shape_data=shape,
+                             position_mapping=(0, 1))]]
 
-    params['obstacles'] = obstacles
-    vis_informed_sensor = sensor(**params)
+    shape_2 = np.array([[-0.5, -0.5, 0.5, 0.5], [-0.5, 0.5, 0.5, -0.5]])
+    obstacle_grid_positions = np.meshgrid(np.linspace(-12, 12, 11),
+                                          np.linspace(50.75, 99, 11))
+    obstacle_grid_positions = np.vstack([np.hstack(obstacle_grid_positions[0]),
+                                         np.hstack(obstacle_grid_positions[1])])
+
+    obs_configs.append([Obstacle(states=State(StateVector(obstacle_grid_positions[:, 0])),
+                                 shape_data=shape_2,
+                                 position_mapping=(0, 1))])
+    for obs_pos in obstacle_grid_positions[:, 1:].T:
+        obs_configs[1].append(Obstacle.from_obstacle(obs_configs[1][0],
+                                                     states=State(StateVector(obs_pos))))
 
     states = [GroundTruthState(StateVector([[25], [50]])),
               GroundTruthState(StateVector([[0], [50]])),
@@ -1103,14 +1114,19 @@ def test_is_visible_sensors(sensor, params):
     # states not visible
     not_vis_set_2 = [StateVector([[0], [99]])]
 
-    for state in states:
-        measurement = vis_informed_sensor.measure({state}, noise=False)
+    for obs_config in obs_configs:
 
-        if ((isinstance(vis_informed_sensor, RadarRotatingBearing) or
-             isinstance(vis_informed_sensor, RadarRotatingBearingRange))
-            and np.any(np.all(state.state_vector == not_vis_set_1, axis=1)))\
-                or np.any(np.all(state.state_vector == not_vis_set_2, axis=1)):
-            assert len(measurement) == 0
-        else:
-            assert np.all(measurement.pop().state_vector ==
-                          vis_informed_sensor.measurement_model.function(state))
+        params['obstacles'] = obs_config
+        vis_informed_sensor = sensor(**params)
+
+        for state in states:
+            measurement = vis_informed_sensor.measure({state}, noise=False)
+
+            if ((isinstance(vis_informed_sensor, RadarRotatingBearing) or
+                isinstance(vis_informed_sensor, RadarRotatingBearingRange))
+                and np.any(np.all(state.state_vector == not_vis_set_1, axis=1)))\
+                    or np.any(np.all(state.state_vector == not_vis_set_2, axis=1)):
+                assert len(measurement) == 0
+            else:
+                assert np.all(measurement.pop().state_vector ==
+                              vis_informed_sensor.measurement_model.function(state))
