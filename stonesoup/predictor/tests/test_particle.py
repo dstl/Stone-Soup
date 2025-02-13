@@ -168,7 +168,7 @@ def test_bernoulli_particle_no_detection(predictor, extra_params):
         # since the noise of the model is 0, logpdf is assumed to be 1e10
         original_log_likelihood = np.full((18,), 1e10)
         visible_parts = sensor.is_detectable(eval_prediction)
-        _, parts_in_obs = sensor.is_visible(eval_prediction, obstacle_check=True)
+        parts_in_obs = sensor.in_obstacle(eval_prediction)
         log_likelihood = copy.copy(original_log_likelihood)
         log_likelihood[:9][parts_in_obs[:9]] = np.log(1e-20)
         log_likelihood[9:][~visible_parts[9:]] = np.log(1e-20)
@@ -313,7 +313,7 @@ def test_bernoulli_particle_detection(predictor, extra_params):
         # since the noise of the model is 0, logpdf is assumed to be 1e10
         original_log_likelihood = np.full((18,), 1e10)
         visible_parts = sensor.is_detectable(eval_prediction)
-        _, parts_in_obs = sensor.is_visible(eval_prediction, obstacle_check=True)
+        parts_in_obs = sensor.in_obstacle(eval_prediction)
         log_likelihood = copy.copy(original_log_likelihood)
         log_likelihood[:9][parts_in_obs[:9]] = np.log(1e-20)
         log_likelihood[9:][~visible_parts[9:]] = np.log(1e-20)
