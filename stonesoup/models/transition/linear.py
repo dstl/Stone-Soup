@@ -658,7 +658,6 @@ class SlidingWindowGP(LinearGaussianTransitionModel, TimeVariantModel):
     """
 
     window_size: int = Property(doc="Size of the sliding window :math:`L`")
-    markov_approx: int = Property(doc="Order of Markov Approximation. 1 or 2", default=1)
     epsilon: float = Property(doc="Small constant added to diagonal of covariance matrix for numerical stability", default=1e-6)
 
     @property
@@ -709,10 +708,6 @@ class SlidingWindowGP(LinearGaussianTransitionModel, TimeVariantModel):
         Fmat = np.eye(d, k=-1)
         Fmat[0, :len(f)] = f.T
 
-        # add contribution from x_(t-d) if t >= d
-        if self.markov_approx == 2 and len(track) >= d:
-            Fmat[0, -1] = 1 - f.sum()
-
         return Fmat
 
     def covar(self, track, time_interval, **kwargs):
@@ -743,6 +738,9 @@ class SlidingWindowGP(LinearGaussianTransitionModel, TimeVariantModel):
         return CovarianceMatrix(covar * noise_var)
     
     def _get_time_vector(self, track, time_interval):
+        return self._get_time_vector_markov1(track, time_interval)
+    
+    def _get_time_vector_markov1(self, track, time_interval):
         """
         Generates a time vector containing the time elapsed (in seconds)
         from the start time of the track.
@@ -765,20 +763,12 @@ class SlidingWindowGP(LinearGaussianTransitionModel, TimeVariantModel):
         dt = time_interval.total_seconds()
         start_time = track.states[0].timestamp
 
-        if self.markov_approx == 1:
-            prediction_time = track.states[-1].timestamp + time_interval
-            time_vector = np.array([(prediction_time - start_time).total_seconds()])
-            for i in range(0, d):
-                state_time = track.states[-1 - i].timestamp
-                time_vector = np.append(time_vector, (state_time - start_time).total_seconds())
-            return time_vector.reshape(-1, 1)
-
-        elif self.markov_approx == 2:
-            if len(track.states) < self.window_size:
-                # include prior at t = 0
-                return np.linspace(d * dt, 0, d + 1).reshape(-1, 1)
-            else:
-                return np.linspace(d * dt, dt, d).reshape(-1, 1)
+        prediction_time = track.states[-1].timestamp + time_interval
+        time_vector = np.array([(prediction_time - start_time).total_seconds()])
+        for i in range(0, d):
+            state_time = track.states[-1 - i].timestamp
+            time_vector = np.append(time_vector, (state_time - start_time).total_seconds())
+        return time_vector.reshape(-1, 1)
 
 
 class DynamicsInformedIntegratedGP(SlidingWindowGP):
@@ -899,13 +889,13 @@ class DynamicsInformedIntegratedGP(SlidingWindowGP):
     For a full derivation of the integral and implementation details, see the
     accompanying paper and documentation.
     """
-
+    
+    markov_approx: int = Property(doc="Order of Markov Approximation. 1 or 2", default=1)
     kernel_length_scale: float = Property(doc="Latent Kernel length scale parameter")
     kernel_output_var: float = Property(doc="Latent Kernel output variance scale parameter")
-    dynamics_coeff: float = Property(doc="Coefficient a of equation dx/dt = ax + bg(t)")  # if a = 0 use inte gp kernel
+    dynamics_coeff: float = Property(doc="Coefficient a of equation dx/dt = ax + bg(t)")
     gp_coeff: float = Property(doc="Coefficient b of equation dx/dt = ax + bg(t)")
-    prior_var: float = Property(doc="Variance of prior x_0. Added to covariance function for second markovian approximation only.", default=0)
-    # obtain from GaussianState?
+    prior_var: float = Property(doc="Variance of prior x_0. Added to covariance function during initialisation", default=0)  # not obtained from track as we don't know which dimension (eg x or y) this model will be tracking
 
     @property
     def ndim_state(self):
@@ -915,8 +905,27 @@ class DynamicsInformedIntegratedGP(SlidingWindowGP):
         super().__init__(*args, **kwargs)
         if self.dynamics_coeff == 0 and not isinstance(self, IntegratedGP) and not isinstance(self, TwiceIntegratedGP):
             raise ValueError("dynamics_coeff cannot be 0. Use IntegratedGP class instead.")
+        
+    def _get_time_vector(self, track, time_interval):
+        if self.markov_approx == 1:
+            return self._get_time_vector_markov1(track, time_interval)
+        return self._get_time_vector_markov2(track, time_interval)
+    
+    def _get_time_vector_markov2(self, track, time_interval):
+        d = min(self.window_size, len(track.states))
+        dt = time_interval.total_seconds()
+    
+        if len(track.states) < self.window_size:
+            # include prior at t = 0
+            return np.linspace(d * dt, 0, d + 1).reshape(-1, 1)
+        else:
+            return np.linspace(d * dt, dt, d).reshape(-1, 1)
 
-    def kernel(self, t1, t2, **kwargs):
+    def kernel(self, t1, t2, scalar_kernel=None, **kwargs):
+
+        if scalar_kernel is None:
+            scalar_kernel = self._scalar_kernel
+
         l = self.kernel_length_scale
         var = self.kernel_output_var
         a = self.dynamics_coeff
@@ -927,7 +936,7 @@ class DynamicsInformedIntegratedGP(SlidingWindowGP):
         K = np.zeros((len(t1), len(t2)))
         for i in range(len(t1)):
             for j in range(len(t2)):
-                K[i, j] = self._scalar_kernel(l, var, a, b, float(t1[i]), float(t2[j]))
+                K[i, j] = scalar_kernel(l, var, a, b, float(t1[i]), float(t2[j]))
 
         # Include prior variance if the current window includes the prior
         if t1[-1] == 0:
@@ -937,6 +946,7 @@ class DynamicsInformedIntegratedGP(SlidingWindowGP):
 
     def matrix(self, track, time_interval, **kwargs):
         a = self.dynamics_coeff
+        d = self.window_size
         dt = time_interval.total_seconds()
 
         Fmat = super().matrix(track=track, time_interval=time_interval, **kwargs)
@@ -945,6 +955,11 @@ class DynamicsInformedIntegratedGP(SlidingWindowGP):
         if self.markov_approx == 1:
             Fmat = np.pad(Fmat, ((0, 1), (0, 1)))
             Fmat[-1, -1] = np.exp(a * dt)
+        else:
+            # Compute term for x_{k-d} (after initialisation)
+            t_d = self._get_time_vector_markov2(track, time_interval)
+            if len(track.states) >= self.window_size:
+                Fmat[0, -1] = np.exp(a * dt * d) - np.dot(Fmat[0, :-1], np.exp(a * t_d[1:]))
 
         return Fmat
     
@@ -975,15 +990,12 @@ class DynamicsInformedIntegratedGP(SlidingWindowGP):
 class DynamicsInformedTwiceIntegratedGP(DynamicsInformedIntegratedGP):
 
     @property
+    def markov_approx(self):
+        return 1  # markov_approx = 2 not implemented
+
+    @property
     def ndim_state(self):
-        return self.window_size + 2 if self.markov_approx == 1 else self.window_size
-    
-    # TODO: verificartion for different combinations of A and b coeeficients
-    # A = [a11, a12
-    #      a21, a22]
-    # a11 = 0, a12 > 0, a21 = 0, a22 > 0 implemented
-    # a22 = 0 implemented in DoubleIntegratedGP
-    # a12 must be 1
+        return self.window_size + 2
 
     def matrix(self, track, time_interval, **kwargs):
         d = self.window_size
@@ -991,13 +1003,11 @@ class DynamicsInformedTwiceIntegratedGP(DynamicsInformedIntegratedGP):
 
         Fmat = np.zeros((self.ndim_state, self.ndim_state))
         Fmat[:d, :d] = super().matrix(track, time_interval, **kwargs)[:d, :d]
-        # mean of main process evolves with driving process' mean
-        # consider a 2x2 sub-transition matrix for [mu1, mu2]
-        if self.markov_approx == 1:
-            A_mean = np.array([[0, 1],
-                               [0, self.dynamics_coeff]])
-            Fmat_mean = expm(A_mean * dt)
-            Fmat[d:, d:] = Fmat_mean
+
+        A_mean = np.array([[0, 1],
+                            [0, self.dynamics_coeff]])
+        Fmat_mean = expm(A_mean * dt)  # 2x2 sub-transition matrix for means [mean_pos, mean_vel]
+        Fmat[d:, d:] = Fmat_mean
         return Fmat
     
     @staticmethod
@@ -1106,8 +1116,9 @@ class TwiceIntegratedGP(DynamicsInformedTwiceIntegratedGP):
         - IntegratedGP._h(l, t1, 0) + l/np.sqrt(2*np.pi))
 
         s4 = t1 * t2 * l / np.sqrt(2 * np.pi)
-
-        return np.sqrt(2 * np.pi) * l * var * (s1 + s2 + s3_1 + s3_2 + s3_3 - s4)
+        res = np.sqrt(2 * np.pi) * l * var * (s1 + s2 + s3_1 + s3_2 + s3_3 - s4)
+        # print(res, t1, t2)
+        return res
 
     @staticmethod
     @lru_cache

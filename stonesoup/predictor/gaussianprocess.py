@@ -1,6 +1,6 @@
 from ..types.state import StateMutableSequence
 
-class GPPredictor:
+class GPPredictorWrapper:
     """Wrapper class for GP transition models."""
     
     def __init__(self, predictor):
