@@ -14,5 +14,9 @@ Models
 .. automodule:: stonesoup.models.base
     :show-inheritance:
 
-
-
+.. automodule:: stonesoup.models.base_driver
+    :show-inheritance:
+    
+.. automodule:: stonesoup.models.driver
+    :show-inheritance:
+    
