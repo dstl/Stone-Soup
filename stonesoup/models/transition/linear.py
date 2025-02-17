@@ -760,7 +760,6 @@ class SlidingWindowGP(LinearGaussianTransitionModel, TimeVariantModel):
         Window spans absolute time time-interval*window_size
         """
         d = min(self.window_size, len(track.states))
-        dt = time_interval.total_seconds()
         start_time = track.states[0].timestamp
 
         prediction_time = track.states[-1].timestamp + time_interval
@@ -891,8 +890,8 @@ class DynamicsInformedIntegratedGP(SlidingWindowGP):
     """
     
     markov_approx: int = Property(doc="Order of Markov Approximation. 1 or 2", default=1)
-    kernel_length_scale: float = Property(doc="Latent Kernel length scale parameter")
-    kernel_output_var: float = Property(doc="Latent Kernel output variance scale parameter")
+    length_scale: float = Property(doc="Integrated SE Kernel length scale parameter")
+    kernel_variance: float = Property(doc="Integrated SE Kernel output variance scale parameter")
     dynamics_coeff: float = Property(doc="Coefficient a of equation dx/dt = ax + bg(t)")
     gp_coeff: float = Property(doc="Coefficient b of equation dx/dt = ax + bg(t)")
     prior_var: float = Property(doc="Variance of prior x_0. Added to covariance function during initialisation", default=0)  # not obtained from track as we don't know which dimension (eg x or y) this model will be tracking
@@ -926,8 +925,8 @@ class DynamicsInformedIntegratedGP(SlidingWindowGP):
         if scalar_kernel is None:
             scalar_kernel = self._scalar_kernel
 
-        l = self.kernel_length_scale
-        var = self.kernel_output_var
+        l = self.length_scale
+        var = self.kernel_variance
         a = self.dynamics_coeff
         b = self.gp_coeff
         t1 = np.atleast_1d(t1)
