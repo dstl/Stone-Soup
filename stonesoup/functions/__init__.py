@@ -201,8 +201,8 @@ def gauss2sigma(state, alpha=1.0, beta=2.0, kappa=None):
 
     Returns
     -------
-    : :class:`list` of length `2*Ns+1`
-        An list of States containing the locations of the sigma points.
+    : :class:`~.State` with state vector of shape (`Ns`, `2*Ns+1`)
+        An State containing the locations of the sigma points.
         Note that only the :attr:`state_vector` attribute in these
         States will be meaningful. Other quantities, like :attr:`covar`
         will be inherited from the input and don't really make sense
@@ -244,11 +244,8 @@ def gauss2sigma(state, alpha=1.0, beta=2.0, kappa=None):
         sigma_points[:, (ndim_state + 1):] - sqrt_sigma*np.sqrt(c)
 
     # Put these sigma points into s State object list
-    sigma_points_states = []
-    for sigma_point in sigma_points:
-        state_copy = copy.copy(state)
-        state_copy.state_vector = StateVector(sigma_point)
-        sigma_points_states.append(state_copy)
+    sigma_points_states = copy.copy(state)
+    sigma_points_states.state_vector = sigma_points
 
     # Calculate weights
     mean_weights = np.ones(2 * ndim_state + 1)
@@ -304,8 +301,8 @@ def unscented_transform(sigma_points_states, mean_weights, covar_weights,
 
     Parameters
     ----------
-    sigma_points_states : :class:`~.StateVectors` of shape `(Ns, 2*Ns+1)`
-        An array containing the locations of the sigma points
+    sigma_points_states : :class:`~.State` with state vector of shape `(Ns, 2*Ns+1)`
+        An state containing the locations of the sigma points
     mean_weights : :class:`numpy.ndarray` of shape `(2*Ns+1,)`
         An array containing the sigma point mean weights
     covar_weights : :class:`numpy.ndarray` of shape `(2*Ns+1,)`
@@ -337,17 +334,10 @@ def unscented_transform(sigma_points_states, mean_weights, covar_weights,
         An array containing the transformed sigma point covariance weights
     """
     # Reconstruct the sigma_points matrix
-    sigma_points = StateVectors([
-        sigma_points_state.state_vector for sigma_points_state in sigma_points_states])
+    sigma_points = sigma_points_states.state_vector
 
     # Transform points through f
-    if points_noise is None:
-        sigma_points_t = StateVectors([
-            fun(sigma_points_state) for sigma_points_state in sigma_points_states])
-    else:
-        sigma_points_t = StateVectors([
-            fun(sigma_points_state, points_noise)
-            for sigma_points_state, point_noise in zip(sigma_points_states, points_noise.T)])
+    sigma_points_t = fun(sigma_points_states, points_noise)
 
     # Calculate mean and covariance approximation
     mean, covar = sigma2gauss(sigma_points_t, mean_weights, covar_weights, covar_noise)
