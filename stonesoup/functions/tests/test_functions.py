@@ -214,8 +214,8 @@ def test_gauss2sigma(mean):
 
     sigma_points_states, mean_weights, covar_weights = gauss2sigma(state, kappa=0)
 
-    for n, sigma_point_state in zip((0, 1, -1), sigma_points_states):
-        assert sigma_point_state.state_vector[0, 0] == approx(mean + n*covar**0.5)
+    for n, sigma_point_state_vector in zip((0, 1, -1), sigma_points_states.state_vector):
+        assert sigma_point_state_vector[0, 0] == approx(mean + n*covar**0.5)
 
 
 def test_gauss2sigma_bad_covar():

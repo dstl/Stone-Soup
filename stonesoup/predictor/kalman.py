@@ -313,7 +313,7 @@ class UnscentedKalmanPredictor(KalmanPredictor):
         doc="Secondary spread scaling parameter. Default is calculated as "
             "3-Ns")
 
-    def _transition_and_control_function(self, prior_state, **kwargs):
+    def _transition_and_control_function(self, prior_state, noise=None, **kwargs):
         r"""Returns the result of applying the transition and control functions
         for the unscented transform
 
@@ -331,8 +331,8 @@ class UnscentedKalmanPredictor(KalmanPredictor):
             control
         """
 
-        return self.transition_model.function(prior_state, **kwargs) + \
-            self.control_model.function(**kwargs)
+        return self.transition_model.function(prior_state, noise, **kwargs) \
+            + self.control_model.function(**kwargs)
 
     @predict_lru_cache()
     def predict(self, prior, timestamp=None, control_input=None, **kwargs):
