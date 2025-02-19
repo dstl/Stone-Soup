@@ -302,7 +302,7 @@ def unscented_transform(sigma_points_states, mean_weights, covar_weights,
     Parameters
     ----------
     sigma_points_states : :class:`~.State` with state vector of shape `(Ns, 2*Ns+1)`
-        An state containing the locations of the sigma points
+        A state containing the locations of the sigma points
     mean_weights : :class:`numpy.ndarray` of shape `(2*Ns+1,)`
         An array containing the sigma point mean weights
     covar_weights : :class:`numpy.ndarray` of shape `(2*Ns+1,)`
