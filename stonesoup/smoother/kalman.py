@@ -9,8 +9,9 @@ from ..models.base import LinearModel
 from ..models.transition.base import TransitionModel
 from ..models.transition.linear import LinearGaussianTransitionModel
 from ..types.multihypothesis import MultipleHypothesis
-from ..types.prediction import GaussianStatePrediction
-from ..types.update import GaussianStateUpdate
+from ..types.prediction import Prediction
+from ..types.state import GaussianState
+from ..types.update import Update
 from .base import Smoother
 
 
@@ -73,9 +74,9 @@ class KalmanSmoother(Smoother):
             The prediction associated with the prediction (i.e. itself), or the prediction from the
             hypothesis used to generate an update.
         """
-        if isinstance(state, GaussianStatePrediction):
+        if isinstance(state, Prediction) and isinstance(state, GaussianState):
             return state
-        elif isinstance(state, GaussianStateUpdate):
+        elif isinstance(state, Update) and isinstance(state, GaussianState):
             if isinstance(state.hypothesis, MultipleHypothesis):
                 predictions = {hypothesis.prediction for hypothesis in state.hypothesis}
                 if len(predictions) == 1:
