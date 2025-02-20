@@ -170,7 +170,7 @@ class KalmanSmoother(Smoother):
         Returns
         -------
          : :class:`~.Track`
-            Smoothed track
+            Shallow copy of input track with smoothed states
 
         """
         try:
@@ -209,10 +209,9 @@ class KalmanSmoother(Smoother):
         if start == 1:
             smoothed_states.insert(0, track[0])
 
-        # Deep copy existing track, but avoid copying original states, as this would be super
-        # expensive. This works by informing deepcopy that the smoothed states are the
-        # replacement object for the original track states.
-        smoothed_track = copy.deepcopy(track, {id(track.states): smoothed_states})
+        # Shallow copy existing track, overwriting states
+        smoothed_track = copy.copy(track)
+        smoothed_track.states = smoothed_states
         return smoothed_track
 
 
