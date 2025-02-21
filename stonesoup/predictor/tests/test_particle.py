@@ -90,7 +90,7 @@ def test_particle(predictor_class):
             (BernoulliParticlePredictor,  # predictor
              {},),  # extra_params
             (VisibilityInformedBernoulliParticlePredictor,  # predictor
-             {'sensor': RadarBearingRange(
+             {'sensors': {RadarBearingRange(
                  position=StateVector([[0], [0]]),
                  position_mapping=(0, 1),
                  noise_covar=np.array([[np.radians(1)**2, 0],
@@ -99,7 +99,7 @@ def test_particle(predictor_class):
                  obstacles=[Obstacle(states=State(StateVector([[20], [15]])),
                                      shape_data=np.array([[-2.5, -2.5, 2.5, 2.5],
                                                           [-2.5, 2.5, 2.5, -2.5]]),
-                                     position_mapping=(0, 1))])})  # extra_params
+                                     position_mapping=(0, 1))])}})  # extra_params
         ],
         ids=["standard_bernoulli", "vis_informed_bernoulli"]
      )
@@ -165,11 +165,15 @@ def test_bernoulli_particle_no_detection(predictor, extra_params):
     eval_weight = eval_prior.weight
 
     if len(extra_params) > 0:
-        sensor = extra_params['sensor']
+        sensors = extra_params['sensors']
         # since the noise of the model is 0, logpdf is assumed to be 1e10
+        visible_parts = np.full(18, False)
+        parts_in_obs = np.full(18, False)
         original_log_likelihood = np.full((18,), 1e10)
-        visible_parts = sensor.is_detectable(eval_prediction)
-        parts_in_obs = sensor.in_obstacle(eval_prediction)
+        for sensor in sensors:
+            visible_parts = np.logical_or(visible_parts, sensor.is_detectable(eval_prediction))
+            parts_in_obs = np.logical_or(parts_in_obs, sensor.in_obstacle(eval_prediction))
+
         log_likelihood = copy.copy(original_log_likelihood)
         log_likelihood[:9][parts_in_obs[:9]] = np.log(1e-20)
         log_likelihood[9:][~visible_parts[9:]] = np.log(1e-20)
@@ -218,7 +222,7 @@ def test_bernoulli_particle_no_detection(predictor, extra_params):
             (BernoulliParticlePredictor,  # predictor
              {},),  # extra_params
             (VisibilityInformedBernoulliParticlePredictor,  # predictor
-             {'sensor': RadarBearingRange(
+             {'sensors': {RadarBearingRange(
                  position=StateVector([[0], [0]]),
                  position_mapping=(0, 1),
                  noise_covar=np.array([[np.radians(1)**2, 0],
@@ -227,7 +231,7 @@ def test_bernoulli_particle_no_detection(predictor, extra_params):
                  obstacles=[Obstacle(states=State(StateVector([[20], [15]])),
                                      shape_data=np.array([[-2.5, -2.5, 2.5, 2.5],
                                                           [-2.5, 2.5, 2.5, -2.5]]),
-                                     position_mapping=(0, 1))])})  # extra_params
+                                     position_mapping=(0, 1))])}})  # extra_params
         ],
         ids=["standard_bernoulli", "vis_informed_bernoulli"]
      )
@@ -311,11 +315,15 @@ def test_bernoulli_particle_detection(predictor, extra_params):
     eval_weight = eval_prior.weight
 
     if len(extra_params) > 0:
-        sensor = extra_params['sensor']
+        sensors = extra_params['sensors']
         # since the noise of the model is 0, logpdf is assumed to be 1e10
+        visible_parts = np.full(18, False)
+        parts_in_obs = np.full(18, False)
         original_log_likelihood = np.full((18,), 1e10)
-        visible_parts = sensor.is_detectable(eval_prediction)
-        parts_in_obs = sensor.in_obstacle(eval_prediction)
+        for sensor in sensors:
+            visible_parts = np.logical_or(visible_parts, sensor.is_detectable(eval_prediction))
+            parts_in_obs = np.logical_or(parts_in_obs, sensor.in_obstacle(eval_prediction))
+
         log_likelihood = copy.copy(original_log_likelihood)
         log_likelihood[:9][parts_in_obs[:9]] = np.log(1e-20)
         log_likelihood[9:][~visible_parts[9:]] = np.log(1e-20)

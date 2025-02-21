@@ -2,8 +2,12 @@ from abc import abstractmethod, ABC
 from functools import lru_cache
 from collections.abc import Sequence
 from typing import Union, List, TYPE_CHECKING
-from shapely import STRtree
-from shapely.geometry import Polygon, Point, MultiPoint, LineString, MultiLineString
+try:
+    from shapely import STRtree
+    from shapely.geometry import Polygon, Point, MultiPoint, LineString, MultiLineString
+    shapely = True
+except ImportError:
+    shapely = False
 
 import numpy as np
 
@@ -210,8 +214,10 @@ class VisibilityInformed2DSensor(SimpleSensor):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
-        if self.obstacles is not None and len(self.obstacles) > 100:
+        if self.obstacles is not None and shapely and len(self.obstacles) > 100:
             self._str_tree_is_visible_trigger = True
+            self._obstacle_tree = \
+                STRtree([Polygon(obstacle.vertices.T) for obstacle in self.obstacles])
         else:
             self._str_tree_is_visible_trigger = False
 
@@ -219,8 +225,6 @@ class VisibilityInformed2DSensor(SimpleSensor):
         self._relevant_obs_idx = []
 
         if self.obstacles:
-            self._obstacle_tree = \
-                STRtree([Polygon(obstacle.vertices.T) for obstacle in self.obstacles])
             self._all_verts = [obstacle.vertices for obstacle in self.obstacles]
             self._all_rel_edges = [obstacle.relative_edges for obstacle in self.obstacles]
         else:
@@ -322,46 +326,8 @@ class VisibilityInformed2DSensor(SimpleSensor):
 
         else:
 
-            relevant_obstacle_idx = self._relevant_obstacles
+            intersections = self._ray_cast_check(state, nstates)
 
-            relative_edges = np.hstack([self._all_rel_edges[n] for n in relevant_obstacle_idx])
-
-            # Calculate relative vector between sensor position and state position
-            if isinstance(state, StateVector):
-                relative_ray = np.array([state[self.position_mapping[0], :]
-                                        - self.position[0, 0],
-                                        state[self.position_mapping[1], :]
-                                        - self.position[1, 0]])
-            else:
-                relative_ray = np.array([state.state_vector[self.position_mapping[0], :]
-                                        - self.position[0, 0],
-                                        state.state_vector[self.position_mapping[1], :]
-                                        - self.position[1, 0]])
-
-            relative_sensor_to_edge = self.position[0:2] - \
-                np.hstack([self._all_verts[n] for n in relevant_obstacle_idx])
-
-            # Initialise the intersection vector
-            intersections = np.full((relative_edges.shape[1], nstates), False)
-
-            # Perform intersection check
-            for n in range(relative_edges.shape[1]):
-                denom = relative_ray[1, :]*relative_edges[0, n] \
-                    - relative_ray[0, :]*relative_edges[1, n]
-                alpha = (relative_edges[1, n]*relative_sensor_to_edge[0, n]
-                         - relative_edges[0, n]*relative_sensor_to_edge[1, n])/denom
-                beta = (relative_ray[0, :]*relative_sensor_to_edge[1, n]
-                        - relative_ray[1, :]*relative_sensor_to_edge[0, n])/denom
-
-                intersections[n, :] = np.logical_and.reduce((alpha >= 0,
-                                                             alpha <= 1,
-                                                             beta >= 0,
-                                                             beta <= 1))
-                intersections[n, :] = (alpha >= 0) & (alpha <= 1) & (beta >= 0) & (beta <= 1)
-
-            # Count intersections. If the number of intersections is odd then the state
-            # is inside an obstacle. If the number of intersections is even, the
-            # state is in free space.
             intersections = np.invert(np.any(intersections, 0))
             if nstates == 1:
                 intersections = intersections[0]
@@ -385,25 +351,79 @@ class VisibilityInformed2DSensor(SimpleSensor):
             (1, n) array of booleans indicating whether `state` is inside an obstacle
             and is `True` when a state is inside an obstacle."""
 
-        if isinstance(state, StateVector):
-            nstates = 1
-            point_sequence = [Point(state[self.position_mapping[0:2], :].T)]
+        if isinstance(state, ParticleState):
+            nstates = len(state)
         else:
-            if isinstance(state, ParticleState):
-                nstates = len(state)
-                point_sequence = \
-                    MultiPoint(state.state_vector[self.position_mapping[0:2], :].T).geoms
-            else:
-                nstates = 1
-                point_sequence = [Point(state.state_vector[self.position_mapping[0:2], :].T)]
+            nstates = 1
 
-        in_obstacles = np.full((nstates), False)
         if not self.obstacles:
-            return in_obstacles
+            return np.full(nstates, True)
 
-        obstacle_tree = self.get_obstacle_tree()
+        if self._str_tree_is_visible_trigger:
 
-        in_obs_states = obstacle_tree.query(point_sequence, predicate='within')[0, :]
-        in_obstacles[in_obs_states] = True
+            if isinstance(state, StateVector):
+                point_sequence = [Point(state[self.position_mapping[0:2], :].T)]
+            else:
+                if isinstance(state, ParticleState):
+                    point_sequence = \
+                        MultiPoint(state.state_vector[self.position_mapping[0:2], :].T).geoms
+                else:
+                    point_sequence = [Point(state.state_vector[self.position_mapping[0:2], :].T)]
+
+            in_obstacles = np.full((nstates), False)
+            if not self.obstacles:
+                return in_obstacles
+
+            obstacle_tree = self.get_obstacle_tree()
+
+            in_obs_states = obstacle_tree.query(point_sequence, predicate='within')[0, :]
+            in_obstacles[in_obs_states] = True
+        else:
+
+            intersections = self._ray_cast_check(state, nstates)
+
+            in_obstacles = sum(intersections, 0) % 2 != 0
 
         return in_obstacles
+
+    def _ray_cast_check(self, state, nstates):
+        # method for performing raycast visibility check.
+
+        relevant_obstacle_idx = self._relevant_obstacles
+
+        relative_edges = np.hstack([self._all_rel_edges[n] for n in relevant_obstacle_idx])
+
+        # Calculate relative vector between sensor position and state position
+        if isinstance(state, StateVector):
+            relative_ray = np.array([state[self.position_mapping[0], :]
+                                    - self.position[0, 0],
+                                    state[self.position_mapping[1], :]
+                                    - self.position[1, 0]])
+        else:
+            relative_ray = np.array([state.state_vector[self.position_mapping[0], :]
+                                    - self.position[0, 0],
+                                    state.state_vector[self.position_mapping[1], :]
+                                    - self.position[1, 0]])
+
+        relative_sensor_to_edge = self.position[0:2] - \
+            np.hstack([self._all_verts[n] for n in relevant_obstacle_idx])
+
+        # Initialise the intersection vector
+        intersections = np.full((relative_edges.shape[1], nstates), False)
+
+        # Perform intersection check
+        for n in range(relative_edges.shape[1]):
+            denom = relative_ray[1, :]*relative_edges[0, n] \
+                - relative_ray[0, :]*relative_edges[1, n]
+            alpha = (relative_edges[1, n]*relative_sensor_to_edge[0, n]
+                     - relative_edges[0, n]*relative_sensor_to_edge[1, n])/denom
+            beta = (relative_ray[0, :]*relative_sensor_to_edge[1, n]
+                    - relative_ray[1, :]*relative_sensor_to_edge[0, n])/denom
+
+            intersections[n, :] = np.logical_and.reduce((alpha >= 0,
+                                                         alpha <= 1,
+                                                         beta >= 0,
+                                                         beta <= 1))
+            intersections[n, :] = (alpha >= 0) & (alpha <= 1) & (beta >= 0) & (beta <= 1)
+
+        return intersections

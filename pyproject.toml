@@ -84,6 +84,9 @@ mfa = [
 ehm = [
     "pyehm",
 ]
+shapely = [
+    "shapely"
+]
 
 [tool.setuptools]
 include-package-data = false
