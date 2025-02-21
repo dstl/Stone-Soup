@@ -5,8 +5,12 @@ import sys
 from typing import Collection, Sequence
 from enum import Enum
 import traci
-from shapely.geometry import Polygon
-from shapely import union_all, is_valid
+try:
+    from shapely.geometry import Polygon
+    from shapely import union_all, is_valid
+    shapely = True
+except ImportError:
+    shapely = False
 
 from .base import GroundTruthReader
 from ..base import Property
@@ -108,8 +112,8 @@ class SUMOGroundTruthReader(GroundTruthReader):
         if set(self.person_metadata_fields) & {data.name for data in PersonMetadataEnum} != set(
                self.person_metadata_fields):
             raise ValueError(f"""Invalid person metadata field(s): {', '.join(str(field) for
-                            field in self.person_metadata_fields if field not in
-                            [data.name for data in PersonMetadataEnum])}""")
+                             field in self.person_metadata_fields if field not in
+                             [data.name for data in PersonMetadataEnum])}""")
 
         if set(self.vehicle_metadata_fields) & {data.name for data in VehicleMetadataEnum} != set(
                self.vehicle_metadata_fields):
@@ -251,6 +255,11 @@ class SUMOGroundTruthReader(GroundTruthReader):
         : list[Obstacle],
             List of :class:`~.Obstacle` platforms.
         """
+        if not shapely:
+            raise RuntimeError("""Shapely, a required package for `obstacle_gen`,
+            is not installed on the system. Please install it
+            to process obstacles with the SUMOGrounTruthReader""")
+
         traci.start(self.sumoCmd)
         if self.geographic_coordinates:
             self.origin = traci.simulation.convertGeo(0, 0)   # lon, lat
