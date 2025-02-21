@@ -187,22 +187,29 @@ class CircleSamplePositionActionGenerator(SamplePositionActionGenerator):
                                  end_time=self.end_time,
                                  target_value=self.current_value)
 
-        generated_samples = 0
+        radius_angle_samples = np.random.uniform([0, 0], [1, 2*np.pi], (self.n_samples, 2))
 
-        while generated_samples < self.n_samples:
+        values = self.maximum_travel*np.sqrt(radius_angle_samples[:, 0]) *\
+            np.array([np.sin(radius_angle_samples[:, 1]), np.cos(radius_angle_samples[:, 1])])
 
-            radius_angle_sample = np.random.uniform([0, 0], [1, 2*np.pi], 2)
+        target_values = self.current_value + values
 
-            value = self.maximum_travel*np.sqrt(radius_angle_sample[0]) *\
-                np.array([[np.sin(radius_angle_sample[1])], [np.cos(radius_angle_sample[1])]])
+        if self.action_space is not None:
+            while (np.any(target_values[(0, 1), :] < self.action_space[:, [0]])
+                    or np.any(target_values[(0, 1), :] > self.action_space[:, [1]])):
 
-            target_value = self.current_value + value
+                _, idx = np.where(
+                    np.logical_or(target_values[(0, 1), :] > self.action_space[:, [1]],
+                                  target_values[(0, 1), :] < self.action_space[:, [0]]))
+                radius_angle_samples = np.random.uniform([0, 0], [1, 2*np.pi], (len(idx), 2))
+                values = self.maximum_travel*np.sqrt(radius_angle_samples[:, 0]) *\
+                    np.array([np.sin(radius_angle_samples[:, 1]),
+                              np.cos(radius_angle_samples[:, 1])])
+                target_values[:, idx] = self.current_value + values
 
-            if self.action_space is None or \
-                (np.all(target_value[self.action_mapping, :] >= self.action_space[:, [0]])
-                 and np.all(target_value[self.action_mapping, :] <= self.action_space[:, [1]])):
+                np.where(target_values[self.action_mapping, :] < self.action_space[:, [0]])
 
-                generated_samples += 1
-                yield MovePositionAction(generator=self,
-                                         end_time=self.end_time,
-                                         target_value=target_value)
+        for target_value in target_values.T:
+            yield MovePositionAction(generator=self,
+                                     end_time=self.end_time,
+                                     target_value=StateVector(target_value))
