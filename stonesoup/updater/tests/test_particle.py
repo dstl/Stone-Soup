@@ -114,7 +114,7 @@ def test_particle(updater):
             (BernoulliParticleUpdater,  # predictor
              {},),  # extra_params
             (VisibilityInformedBernoulliParticleUpdater,  # predictor
-             {'sensor': RadarBearingRange(
+             {'sensors': {RadarBearingRange(
                  position=StateVector([[0], [0]]),
                  position_mapping=(0, 1),
                  noise_covar=np.array([[np.radians(1)**2, 0],
@@ -123,7 +123,7 @@ def test_particle(updater):
                  obstacles=[Obstacle(states=State(StateVector([[20], [15]])),
                                      shape_data=np.array([[-2.5, -2.5, 2.5, 2.5],
                                                           [-2.5, 2.5, 2.5, -2.5]]),
-                                     position_mapping=(0, 1))])})  # extra_params
+                                     position_mapping=(0, 1))])}})  # extra_params
         ],
         ids=["standard_bernoulli", "vis_informed_bernoulli"]
      )

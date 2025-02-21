@@ -1,6 +1,6 @@
 import copy
 from functools import lru_cache
-from typing import Callable
+from typing import Callable, Collection
 import warnings
 
 import numpy as np
@@ -546,9 +546,9 @@ class VisibilityInformedBernoulliParticleUpdater(BernoulliParticleUpdater):
        2022, 25th International Conference on Information Fusion (FUSION), 1-8.
     """
 
-    sensor: Sensor = Property(
+    sensors: Collection[Sensor] = Property(
         default=None,
-        doc="Sensor providing measurements for update stages. "
+        doc="Collection of sensors providing measurements for update stages. "
         "Used here to evaluate visibility of particles.")
     obstacle_detection_probability: float = Property(
         default=1e-20,
@@ -557,8 +557,11 @@ class VisibilityInformedBernoulliParticleUpdater(BernoulliParticleUpdater):
 
     def get_detection_probability(self, prediction):
 
-        log_detection_probability = np.full(len(prediction), np.log(self.detection_probability))
-        visible_parts = self.sensor.is_detectable(prediction)
+        n_parts = len(prediction)
+        log_detection_probability = np.full(n_parts, np.log(self.detection_probability))
+        visible_parts = np.full(n_parts, False)
+        for sensor in self.sensors:
+            visible_parts = np.logical_or(visible_parts, sensor.is_detectable(prediction))
         log_detection_probability[~visible_parts] = np.log(self.obstacle_detection_probability)
 
         return log_detection_probability

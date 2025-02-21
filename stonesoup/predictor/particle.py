@@ -1,6 +1,6 @@
 import copy
 from enum import Enum
-from typing import Sequence
+from typing import Sequence, Collection
 
 import numpy as np
 from scipy.special import logsumexp
@@ -420,8 +420,8 @@ class VisibilityInformedBernoulliParticlePredictor(BernoulliParticlePredictor):
        2022, 25th International Conference on Information Fusion (FUSION), 1-8.
     """
 
-    sensor: Sensor = Property(
-        default=None, doc="Sensor providing measurements for update stages. "
+    sensors: Collection[Sensor] = Property(
+        default=None, doc="Collection of sensors providing measurements for update stages. "
         "Used here to evaluate visibility of particles.")
     obstacle_transition_likelihood: float = Property(
         default=1e-20, doc="Transition likelihood of particles that are propagated into obstacles "
@@ -440,9 +440,12 @@ class VisibilityInformedBernoulliParticlePredictor(BernoulliParticlePredictor):
         transition_likelihood = self.transition_model.logpdf(predicted_state,
                                                              prior_state,
                                                              **kwargs)
-
-        visible_parts = self.sensor.is_detectable(predicted_state)
-        parts_in_obs = self.sensor.in_obstacle(predicted_state)
+        n_parts = len(predicted_state)
+        visible_parts = np.full(n_parts, False)
+        parts_in_obs = np.full(n_parts, False)
+        for sensor in self.sensors:
+            visible_parts = np.logical_or(visible_parts, sensor.is_detectable(predicted_state))
+            parts_in_obs = np.logical_or(parts_in_obs, sensor.in_obstacle(predicted_state))
 
         transition_likelihood_mod = copy.copy(transition_likelihood)
         transition_likelihood_mod[:surv_part_size][parts_in_obs[:surv_part_size]] = \

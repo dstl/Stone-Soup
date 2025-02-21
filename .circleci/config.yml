@@ -28,7 +28,7 @@ jobs:
             python -m venv venv
             . venv/bin/activate
             pip install --upgrade pip
-            pip install -e .[dev,orbital] opencv-python-headless pyehm
+            pip install -e .[dev,orbital,shapely] opencv-python-headless pyehm
       - save_cache:
           paths:
             - ./venv
@@ -42,7 +42,7 @@ jobs:
       - store_test_results:
           path: test-reports/junit.xml
       - store_artifacts:
-          path: test-reports 
+          path: test-reports
       - run:
           name: Upload Coverage Results
           command: |
