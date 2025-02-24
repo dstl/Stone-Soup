@@ -587,6 +587,7 @@ class SingerApproximate(Singer):
 
         return CovarianceMatrix(covar)
 
+
 class SlidingWindowGP(LinearGaussianTransitionModel, TimeVariantModel):
     r"""Discrete model implementing a sliding window zero-mean Gaussian process (GP).
 
@@ -890,11 +891,10 @@ class DynamicsInformedIntegratedGP(SlidingWindowGP):
     """
     
     markov_approx: int = Property(doc="Order of Markov Approximation. 1 or 2", default=1)
-    length_scale: float = Property(doc="Integrated SE Kernel length scale parameter")
-    kernel_variance: float = Property(doc="Integrated SE Kernel output variance scale parameter")
     dynamics_coeff: float = Property(doc="Coefficient a of equation dx/dt = ax + bg(t)")
     gp_coeff: float = Property(doc="Coefficient b of equation dx/dt = ax + bg(t)")
     prior_var: float = Property(doc="Variance of prior x_0. Added to covariance function during initialisation", default=0)  # not obtained from track as we don't know which dimension (eg x or y) this model will be tracking
+    kernel_params: dict = Property(doc="Dictionary containing the keyword arguments for the covariance function.")
 
     @property
     def ndim_state(self):
@@ -902,40 +902,21 @@ class DynamicsInformedIntegratedGP(SlidingWindowGP):
     
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
+        # Ensure kernel_params is a dictionary with required keys
+        default_kernel_params = {"length_scale": 1.0, "kernel_variance": 1.0}
+        self.kernel_params = {**default_kernel_params, **(self.kernel_params or {})}
+
         if self.dynamics_coeff == 0 and not isinstance(self, IntegratedGP) and not isinstance(self, TwiceIntegratedGP):
             raise ValueError("dynamics_coeff cannot be 0. Use IntegratedGP class instead.")
-        
-    def _get_time_vector(self, track, time_interval):
-        if self.markov_approx == 1:
-            return self._get_time_vector_markov1(track, time_interval)
-        return self._get_time_vector_markov2(track, time_interval)
-    
-    def _get_time_vector_markov2(self, track, time_interval):
-        d = min(self.window_size, len(track.states))
-        dt = time_interval.total_seconds()
-    
-        if len(track.states) < self.window_size:
-            # include prior at t = 0
-            return np.linspace(d * dt, 0, d + 1).reshape(-1, 1)
-        else:
-            return np.linspace(d * dt, dt, d).reshape(-1, 1)
 
-    def kernel(self, t1, t2, scalar_kernel=None, **kwargs):
-
-        if scalar_kernel is None:
-            scalar_kernel = self._scalar_kernel
-
-        l = self.length_scale
-        var = self.kernel_variance
-        a = self.dynamics_coeff
-        b = self.gp_coeff
+    def kernel(self, t1, t2, **kwargs):
         t1 = np.atleast_1d(t1)
         t2 = np.atleast_1d(t2)
 
         K = np.zeros((len(t1), len(t2)))
         for i in range(len(t1)):
             for j in range(len(t2)):
-                K[i, j] = scalar_kernel(l, var, a, b, float(t1[i]), float(t2[j]))
+                K[i, j] = self._scalar_kernel(float(t1[i]), float(t2[j]))
 
         # Include prior variance if the current window includes the prior
         if t1[-1] == 0:
@@ -962,13 +943,35 @@ class DynamicsInformedIntegratedGP(SlidingWindowGP):
 
         return Fmat
     
+    def _get_time_vector(self, track, time_interval):
+        if self.markov_approx == 1:
+            return self._get_time_vector_markov1(track, time_interval)
+        return self._get_time_vector_markov2(track, time_interval)
+    
+    def _get_time_vector_markov2(self, track, time_interval):
+        d = min(self.window_size, len(track.states))
+        dt = time_interval.total_seconds()
+    
+        if len(track.states) < self.window_size:
+            # include prior at t = 0
+            return np.linspace(d * dt, 0, d + 1).reshape(-1, 1)
+        else:
+            return np.linspace(d * dt, dt, d).reshape(-1, 1)
+    
+    def _scalar_kernel(self, t1, t2):
+        l = self.kernel_params["length_scale"]
+        var = self.kernel_params["kernel_variance"]
+        a = self.dynamics_coeff
+        b = self.gp_coeff
+        return self._cached_scalar_kernel(l, var, a, b, t1, t2)
+    
     @staticmethod
     @lru_cache
-    def _scalar_kernel(l, var, a, b, t1, t2):
+    def _cached_scalar_kernel(l, var, a, b, t1, t2):
         return (b ** 2) * var * np.sqrt(np.pi / 2) * l * (
-            DynamicsInformedIntegratedGP._h(a, l, t2, t1)
-            + DynamicsInformedIntegratedGP._h(a, l, t1, t2)
-        )
+                    DynamicsInformedIntegratedGP._h(a, l, t2, t1)
+                    + DynamicsInformedIntegratedGP._h(a, l, t1, t2)
+                )
 
     @staticmethod
     @lru_cache
@@ -1011,7 +1014,7 @@ class DynamicsInformedTwiceIntegratedGP(DynamicsInformedIntegratedGP):
     
     @staticmethod
     @lru_cache
-    def _scalar_kernel(l, var, a, b, t1, t2):
+    def _cached_scalar_kernel(l, var, a, b, t1, t2):
         gma = -l * a / np.sqrt(2)
         return -((np.sqrt(2 * np.pi) * (b**2) * var * l * np.exp(gma**2))/(4 * a))\
                 * (DynamicsInformedTwiceIntegratedGP._h(l, a, t1, t2)
@@ -1078,11 +1081,11 @@ class IntegratedGP(DynamicsInformedIntegratedGP):
     
     @staticmethod
     @lru_cache
-    def _scalar_kernel(l, var, a, b, t1, t2):
+    def _cached_scalar_kernel(l, var, a, b, t1, t2):
         return np.sqrt(2 * np.pi) * l * var * (
-            IntegratedGP._h(l, t1, 0) + IntegratedGP._h(l, 0, t2)
-            - IntegratedGP._h(l, t1, t2) - 2 / np.sqrt(2 * np.pi)
-            )
+                    IntegratedGP._h(l, t1, 0) + IntegratedGP._h(l, 0, t2)
+                    - IntegratedGP._h(l, t1, t2) - 2 / np.sqrt(2 * np.pi)
+                )
 
     @staticmethod
     @lru_cache
@@ -1103,7 +1106,7 @@ class TwiceIntegratedGP(DynamicsInformedTwiceIntegratedGP):
     
     @staticmethod
     @lru_cache
-    def _scalar_kernel(l, var, a, b, t1, t2):
+    def _cached_scalar_kernel(l, var, a, b, t1, t2):
         s1 = 0.5 * t2 * TwiceIntegratedGP._h2(l, t1)
         s2 = -0.5 * t1 * TwiceIntegratedGP._h2(l, -t2)
         
@@ -1116,7 +1119,6 @@ class TwiceIntegratedGP(DynamicsInformedTwiceIntegratedGP):
 
         s4 = t1 * t2 * l / np.sqrt(2 * np.pi)
         res = np.sqrt(2 * np.pi) * l * var * (s1 + s2 + s3_1 + s3_2 + s3_3 - s4)
-        # print(res, t1, t2)
         return res
 
     @staticmethod
