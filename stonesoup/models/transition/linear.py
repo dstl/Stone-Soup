@@ -12,7 +12,8 @@ from scipy.stats import norm
 from scipy.special import erf
 
 from .base import (TransitionModel, CombinedGaussianTransitionModel,
-                   SlidingWindowGP, DynamicsInformedIntegratedGP,
+                   SlidingWindowGP, IntegratedGP, TwiceIntegratedGP,
+                   DynamicsInformedIntegratedGP,
                    DynamicsInformedTwiceIntegratedGP)
 from ..base import (LinearModel, GaussianModel, TimeVariantModel,
                     TimeInvariantModel)
@@ -592,20 +593,33 @@ class SingerApproximate(Singer):
 
 class SlidingWindowGPSE(SlidingWindowGP):
 
-    def kernel(self, t1, t2, **kwargs):
+    def kernel(self, t1, t2):
         l = self.kernel_params["length_scale"]
         var = self.kernel_params["kernel_variance"]
         t1 = t1.reshape(-1, 1)
         t2 = t2.reshape(1, -1)
         return var * np.exp(-0.5 * ((t1 - t2)/l) ** 2)
 
+
+class IntegratedGPSE(IntegratedGP):
+    @staticmethod
+    @lru_cache
+    def _scalar_kernel(t1, t2, length_scale, kernel_variance):
+        l = length_scale
+        var = kernel_variance
+        return np.sqrt(2 * np.pi) * l * var * (
+                    IntegratedGPSE._h(l, t1, 0) + IntegratedGPSE._h(l, 0, t2)
+                    - IntegratedGPSE._h(l, t1, t2) - 2 / np.sqrt(2 * np.pi)
+                    ) 
+
+    @staticmethod
+    @lru_cache
+    def _h(l, t1, t2):
+        """Helper function for _scalar_kernel."""        
+        return (t1 - t2) * norm.cdf((t1 - t2) / l) + l**2 * norm.pdf(t1, loc=t2, scale=l)
+
+
 class DynamicsInformedIntegratedGPSE(DynamicsInformedIntegratedGP):
-
-    # def __init__(self, *args, **kwargs):
-    #     super().__init__(*args, **kwargs)
-
-    #     if self.dynamics_coeff == 0 and not isinstance(self, IntegratedGP) and not isinstance(self, TwiceIntegratedGP):
-    #         raise ValueError("dynamics_coeff cannot be 0. Use IntegratedGP class instead.")
 
     @staticmethod
     @lru_cache
@@ -636,30 +650,33 @@ class DynamicsInformedIntegratedGPSE(DynamicsInformedIntegratedGP):
             - np.exp(a * (t1 + t2)) * (erf(t1_s - gma) + erf(gma))
         )
 
-class IntegratedGPSE(DynamicsInformedIntegratedGP):
-    @property
-    def dynamics_coeff(self):
-        return 0
-    
-    @property
-    def gp_coeff(self):
-        return 1
+class TwiceIntegratedGPSE(TwiceIntegratedGP):
     
     @staticmethod
     @lru_cache
-    def _scalar_kernel(t1, t2, dynamics_coeff, gp_coeff, length_scale, kernel_variance):
+    def _scalar_kernel(t1, t2, length_scale, kernel_variance):
         l = length_scale
         var = kernel_variance
-        return np.sqrt(2 * np.pi) * l * var * (
-                    IntegratedGPSE._h(l, t1, 0) + IntegratedGPSE._h(l, 0, t2)
-                    - IntegratedGPSE._h(l, t1, t2) - 2 / np.sqrt(2 * np.pi)
-                    ) 
+
+        s1 = 0.5 * t2 * TwiceIntegratedGPSE._h2(l, t1)
+        s2 = -0.5 * t1 * TwiceIntegratedGPSE._h2(l, -t2)
+        
+        s3_1 = (1/6) * ((t1-t2)**2 * IntegratedGPSE._h(l, t1, t2) - t1**2 * IntegratedGPSE._h(l, t1, 0)
+        - l**4 * norm.pdf(t1, loc=t2, scale=l) + l**4 * norm.pdf(t1, loc=0, scale=l))
+
+        s3_2 = (1/6)* (- t2**2 * IntegratedGPSE._h(l, 0, t2) + l**4 * norm.pdf(0, loc=t2, scale=l) - l**4 / (np.sqrt(2*np.pi) * l))
+        s3_3 = 0.5 * l**2 * (IntegratedGPSE._h(l, t1, t2) - IntegratedGPSE._h(l, 0, t2)
+        - IntegratedGPSE._h(l, t1, 0) + l/np.sqrt(2*np.pi))
+
+        s4 = t1 * t2 * l / np.sqrt(2 * np.pi)
+        res = np.sqrt(2 * np.pi) * l * var * (s1 + s2 + s3_1 + s3_2 + s3_3 - s4)
+        return res
 
     @staticmethod
     @lru_cache
-    def _h(l, t1, t2):
+    def _h2(l, t):
         """Helper function for _scalar_kernel."""        
-        return (t1 - t2) * norm.cdf((t1 - t2) / l) + l**2 * norm.pdf(t1, loc=t2, scale=l)
+        return t * IntegratedGPSE._h(l, t, 0) + l**2 * norm.cdf(t / l) - l**2 * norm.cdf(0)
 
 
 class DynamicsInformedTwiceIntegratedGPSE(DynamicsInformedTwiceIntegratedGP):
@@ -722,43 +739,6 @@ class DynamicsInformedTwiceIntegratedGPSE(DynamicsInformedTwiceIntegratedGP):
 
         result = (l_s * np.exp(-gma**2) / a) * s1  + (1 / (a**2)) * (s2 + s3 - s4 - s5)
         return result
-
-
-class TwiceIntegratedGPSE(DynamicsInformedTwiceIntegratedGP):
-
-    @property
-    def dynamics_coeff(self):
-        return 0
-    
-    @property
-    def gp_coeff(self):
-        return 1
-    
-    @staticmethod
-    @lru_cache
-    def _scalar_kernel(t1, t2, dynamics_coeff, gp_coeff, length_scale, kernel_variance):
-        l = length_scale
-        var = kernel_variance
-
-        s1 = 0.5 * t2 * TwiceIntegratedGPSE._h2(l, t1)
-        s2 = -0.5 * t1 * TwiceIntegratedGPSE._h2(l, -t2)
-        
-        s3_1 = (1/6) * ((t1-t2)**2 * IntegratedGPSE._h(l, t1, t2) - t1**2 * IntegratedGPSE._h(l, t1, 0)
-        - l**4 * norm.pdf(t1, loc=t2, scale=l) + l**4 * norm.pdf(t1, loc=0, scale=l))
-
-        s3_2 = (1/6)* (- t2**2 * IntegratedGPSE._h(l, 0, t2) + l**4 * norm.pdf(0, loc=t2, scale=l) - l**4 / (np.sqrt(2*np.pi) * l))
-        s3_3 = 0.5 * l**2 * (IntegratedGPSE._h(l, t1, t2) - IntegratedGPSE._h(l, 0, t2)
-        - IntegratedGPSE._h(l, t1, 0) + l/np.sqrt(2*np.pi))
-
-        s4 = t1 * t2 * l / np.sqrt(2 * np.pi)
-        res = np.sqrt(2 * np.pi) * l * var * (s1 + s2 + s3_1 + s3_2 + s3_3 - s4)
-        return res
-
-    @staticmethod
-    @lru_cache
-    def _h2(l, t):
-        """Helper function for _scalar_kernel."""        
-        return t * IntegratedGPSE._h(l, t, 0) + l**2 * norm.cdf(t / l) - l**2 * norm.cdf(0)
 
 
 class KnownTurnRateSandwich(LinearGaussianTransitionModel, TimeVariantModel):

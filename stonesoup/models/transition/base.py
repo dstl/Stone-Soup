@@ -246,7 +246,7 @@ class SlidingWindowGP(TransitionModel, GaussianModel, LinearModel, TimeVariantMo
         d = self.window_size
         t = self._get_time_vector(track, time_interval)
 
-        C = self.kernel(t, t, **kwargs)
+        C = self.kernel(t, t)
         C += np.eye(np.shape(C)[0]) * self.epsilon
         f = solve(C[1:, 1:], C[1:, 0])
         Fmat = np.eye(d, k=-1)
@@ -441,6 +441,12 @@ class DynamicsInformedIntegratedGP(SlidingWindowGP):
     @property
     def ndim_state(self):
         return self.window_size + 1 if self.markov_approx == 1 else self.window_size
+    
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+
+        if self.dynamics_coeff == 0 and not isinstance(self, IntegratedGP) and not isinstance(self, TwiceIntegratedGP):
+            raise ValueError("dynamics_coeff cannot be 0. Use IntegratedGP or TwiceIntegratedGP classes instead.")
 
     def matrix(self, track, time_interval, **kwargs):
         a = self.dynamics_coeff
@@ -476,7 +482,7 @@ class DynamicsInformedIntegratedGP(SlidingWindowGP):
         else:
             return np.linspace(d * dt, dt, d).reshape(-1, 1)
     
-    def kernel(self, t1, t2, **kwargs):
+    def kernel(self, t1, t2):
         "Computes 2D covariance matrix element-wise"
         t1 = np.atleast_1d(t1)
         t2 = np.atleast_1d(t2)
@@ -484,7 +490,7 @@ class DynamicsInformedIntegratedGP(SlidingWindowGP):
         K = np.zeros((len(t1), len(t2)))
         for i in range(len(t1)):
             for j in range(len(t2)):
-                K[i, j] = self._invoke_scalar_kernel(float(t1[i]), float(t2[j]), **kwargs)
+                K[i, j] = self._invoke_scalar_kernel(float(t1[i]), float(t2[j]))
 
         # Include prior variance if the current window includes the prior
         if t1[-1] == 0:
@@ -492,9 +498,12 @@ class DynamicsInformedIntegratedGP(SlidingWindowGP):
 
         return K
     
-    def _invoke_scalar_kernel(self, t1, t2, **kwargs):
+    def _invoke_scalar_kernel(self, t1, t2):
         """Unpacks kernel paramaters and passes it to kernel method to enable caching"""
-        return self._scalar_kernel(t1, t2, self.dynamics_coeff, self.gp_coeff, **self.kernel_params)
+        if isinstance(self, (IntegratedGP, TwiceIntegratedGP)):
+            return self._scalar_kernel(t1, t2, **self.kernel_params)
+
+        return self._scalar_kernel(t1, t2, dynamics_coeff=self.dynamics_coeff, gp_coeff=self.gp_coeff, **self.kernel_params)
 
     @staticmethod
     @abstractmethod
@@ -524,3 +533,23 @@ class DynamicsInformedTwiceIntegratedGP(DynamicsInformedIntegratedGP):
         Fmat_mean = expm(A_mean * dt)  # 2x2 sub-transition matrix for means [mean_pos, mean_vel]
         Fmat[d:, d:] = Fmat_mean
         return Fmat
+    
+
+class IntegratedGP(DynamicsInformedIntegratedGP):
+    @property
+    def dynamics_coeff(self):
+        return 0
+    
+    @property
+    def gp_coeff(self):
+        return 1
+    
+
+class TwiceIntegratedGP(DynamicsInformedTwiceIntegratedGP):
+    @property
+    def dynamics_coeff(self):
+        return 0
+    
+    @property
+    def gp_coeff(self):
+        return 1
