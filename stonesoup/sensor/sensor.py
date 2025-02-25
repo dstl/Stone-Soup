@@ -304,11 +304,12 @@ class VisibilityInformed2DSensor(SimpleSensor):
                     [LineString([self.position[0:2], state[self.position_mapping[0:2], :]])]
             else:
                 if isinstance(state, ParticleState):
-                    position_concat = np.tile(self.position, [nstates]).T
+                    position_concat = np.tile(self.position, [nstates])
                     line_segments = \
                         MultiLineString(
-                            [[*position_concat[:]],
-                             [*state.state_vector[self.position_mapping[0:2], :]]]).geoms
+                            [*np.array([position_concat,
+                                        state.state_vector[self.position_mapping[0:2], :]])
+                             .transpose(2, 0, 1)]).geoms
                 else:
                     nstates = 1
                     line_segments = \
