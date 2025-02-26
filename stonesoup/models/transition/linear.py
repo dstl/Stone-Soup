@@ -705,39 +705,19 @@ class DynamicsInformedTwiceIntegratedGPSE(DynamicsInformedTwiceIntegratedGP):
             diff_s * erf(diff_s) 
             + t1_s * erf(-t1_s) 
             - t2_s * erf(t2_s) 
-            + l_s * (norm.pdf(t2 - t1, scale=l) - norm.pdf(t1, scale=l) - norm.pdf(t2, scale=l))
+            + l_s * (norm.pdf(t2, t1, scale=l) - norm.pdf(t1, scale=l) - norm.pdf(t2, scale=l))
             + 1 / np.sqrt(np.pi)
         )
 
-        s2 = (
-            - np.exp(a * (t2 - t1)) * erf(diff_s - gma)
-            + np.exp(-a * t1) * erf(-t1_s - gma)
-            + np.exp(a * t2) * erf(t2_s - gma)
-            + np.exp(-gma**2) * (
-                erf(diff_s)
-                - erf(-t1_s)
-                - erf(t2_s)
+        s2 = (- np.exp(a*(t2 - t1)) * (erf(diff_s - gma) + erf(t1_s + gma))
+            + (2*np.exp(a * t2) - np.exp(a * (t1 + t2)) ) * (erf(t2_s - gma) + erf(gma))
+            + np.exp(-gma**2) * ((np.exp(a * t1) - 2) * erf(t2_s)
+                                + np.exp(a * t2) * erf(t1_s)
+                                + erf(diff_s)                              
+                                )
             )
-            + erf(gma)
-        )
 
-        s3 = (
-            np.exp(a * t2) - 1) * (
-            - np.exp(-a * t1)*erf(t1_s + gma)
-            + np.exp(-gma**2)*erf(t1_s)
-            + erf(gma)
-        )
-        
-        s4 = (
-            np.exp(a * t1) - 1) * (
-            np.exp(a * t2) * erf(t2_s - gma)
-            - np.exp(-gma**2) * erf(t2_s)
-            - erf(-gma)
-        )
-
-        s5 = erf(gma) * (np.exp(a * t2) - 1) * (np.exp(a * t1) - 1)
-
-        result = (l_s * np.exp(-gma**2) / a) * s1  + (1 / (a**2)) * (s2 + s3 - s4 - s5)
+        result = (l_s * np.exp(-gma**2) / a) * s1  + (1 / (a**2)) * (s2)
         return result
 
 
