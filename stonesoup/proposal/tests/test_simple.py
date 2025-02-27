@@ -4,7 +4,7 @@ import datetime
 import numpy as np
 
 # Import the proposals
-from stonesoup.proposal.simple import PriorAsProposal, KFasProposal
+from stonesoup.proposal.simple import DynamicsProposal, KalmanProposal
 from stonesoup.models.transition.linear import ConstantVelocity
 from stonesoup.types.particle import Particle
 from stonesoup.types.prediction import ParticleStatePrediction
@@ -39,7 +39,7 @@ def test_prior_proposal():
 
     # predictors prior and standard stone soup
     predictor_prior = ParticlePredictor(cv,
-                                        proposal=PriorAsProposal(cv))
+                                        proposal=DynamicsProposal(cv))
 
     # Check that the predictor without prior specified works with the prior as
     # proposal
@@ -119,8 +119,7 @@ def test_kf_proposal():
 
     eval_state = kf_updater.update(SingleHypothesis(prediction, detection))
 
-    proposal = KFasProposal(KalmanPredictor(cv),
-                            KalmanUpdater(lg))
+    proposal = KalmanProposal(KalmanPredictor(cv), KalmanUpdater(lg))
     # particle proposal
     particle_proposal = proposal.rvs(prior, measurement=detection, time_interval=time_interval)
 
