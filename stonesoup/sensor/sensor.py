@@ -253,6 +253,7 @@ class VisibilityInformed2DSensor(SimpleSensor):
         if self.max_range < np.inf and (np.any(self._position_cache() != self.position) or
                                         not self._relevant_obs):
 
+            self._position_cache.cache_clear()
             self._relevant_obs_idx = \
                 np.where([np.any(np.sqrt(
                                          np.sum((vertices[0:2, :]-self.position[0:2])**2, axis=0))
