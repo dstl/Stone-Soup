@@ -552,11 +552,11 @@ class InformationCoverageReward(RewardFunction):
 
                 # Predict track if it passes the track_thresh_func
                 if self.track_thresh_func(predicted_track):
-                    predicted_track.append(Prediction.from_state(track[-1],
-                                                                 timestamp=metric_time))
-                else:
                     predicted_track.append(self.predictor.predict(predicted_track,
                                                                   timestamp=metric_time))
+                else:
+                    predicted_track.append(Prediction.from_state(track[-1],
+                                                                 timestamp=metric_time))
                 predicted_tracks.add(predicted_track)
 
             for sensor in predicted_sensors:
