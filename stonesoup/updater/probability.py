@@ -3,9 +3,10 @@ import numpy as np
 from copy import copy
 
 from .kalman import ExtendedKalmanUpdater
-from ..types.update import Update
-from ..types.array import StateVectors
+from ..base import Property
 from ..functions import gm_reduce_single
+from ..types.array import StateVectors
+from ..types.update import Update
 
 
 class PDAUpdater(ExtendedKalmanUpdater):
@@ -55,7 +56,12 @@ class PDAUpdater(ExtendedKalmanUpdater):
            Control Systems Magazine
     .. [#] https://gist.github.com/jmbarr/92dc83e28c04026136d4f8706a1159c1
     """
-    def update(self, hypotheses, gm_method=False, **kwargs):
+    gm_method: bool = Property(
+        default=False,
+        doc="Use the innovation-based update method if False (default), "
+            "or the GM-reduction (True).")
+
+    def update(self, hypotheses, gm_method=None, **kwargs):
         r"""The update step.
 
         Parameters
@@ -68,8 +74,9 @@ class PDAUpdater(ExtendedKalmanUpdater):
 
             In a single case (the missed detection hypothesis), the hypothesis will not have an
             associated measurement or measurement prediction.
-        gm_method : bool
-            Use the innovation-based update method if False (default), or the GM-reduction (True).
+        gm_method : bool or None
+            Use the innovation-based update method (False), or the GM-reduction (True). Default
+            is ``None`` where the current instance value is used.
         **kwargs : various
             These are passed to :meth:`predict_measurement`
 
@@ -79,7 +86,7 @@ class PDAUpdater(ExtendedKalmanUpdater):
             The update, :math:`\mathbf{x}_{k|k}, P_{k|k}`
 
         """
-        if gm_method:
+        if (gm_method is not None and gm_method) or (gm_method is None and self.gm_method):
             posterior_mean, posterior_covariance = self._update_via_GM_reduction(hypotheses,
                                                                                  **kwargs)
         else:
