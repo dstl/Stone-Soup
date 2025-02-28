@@ -12,7 +12,7 @@ from .kalman import KalmanPredictor, ExtendedKalmanPredictor
 from ..base import Property
 from ..models.transition import TransitionModel
 from ..proposal.base import Proposal
-from ..proposal.simple import PriorAsProposal
+from ..proposal.simple import DynamicsProposal
 from ..sampler.particle import ParticleSampler
 from ..types.numeric import Probability
 from ..types.prediction import Prediction
@@ -35,7 +35,7 @@ class ParticlePredictor(Predictor):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         if self.proposal is None:
-            self.proposal = PriorAsProposal(self.transition_model)
+            self.proposal = DynamicsProposal(self.transition_model)
 
     @predict_lru_cache()
     def predict(self, prior, timestamp=None, measurement=None, **kwargs):
