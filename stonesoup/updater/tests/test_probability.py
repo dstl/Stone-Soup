@@ -1,8 +1,9 @@
 """Test for updater.kalman module"""
 
-import numpy as np
-
 from datetime import datetime, timedelta
+
+import numpy as np
+import pytest
 
 from stonesoup.models.transition.linear import ConstantVelocity
 from stonesoup.models.measurement.linear import LinearGaussian
@@ -16,7 +17,8 @@ from stonesoup.types.state import GaussianState
 from stonesoup.updater.probability import PDAUpdater
 
 
-def test_pda():
+@pytest.mark.parametrize('gm_method', [True, False])
+def test_pda(gm_method):
     start_time = datetime.now()
     track = Track([GaussianState(np.array([[-6.45], [0.7]]),
                                  np.array([[0.41123, 0.0013], [0.0013, 0.0365]]), start_time)])
@@ -39,9 +41,13 @@ def test_pda():
     hypotheses = data_associator.associate({track}, detections, start_time + timedelta(seconds=1))
     hypotheses = hypotheses[track]
 
-    pdaupdater = PDAUpdater(measurement_model)
+    pdaupdater = PDAUpdater(measurement_model, gm_method=gm_method)
 
     posterior_state = pdaupdater.update(hypotheses, gm_method=True)
     posterior_state2 = pdaupdater.update(hypotheses, gm_method=False)
+    posterior_state3 = pdaupdater.update(hypotheses)
     assert np.allclose(posterior_state.state_vector, posterior_state2.state_vector)
     assert np.allclose(posterior_state.covar, posterior_state2.covar)
+
+    assert np.allclose(posterior_state.state_vector, posterior_state3.state_vector)
+    assert np.allclose(posterior_state.covar, posterior_state3.covar)
