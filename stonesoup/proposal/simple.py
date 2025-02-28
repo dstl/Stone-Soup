@@ -16,7 +16,7 @@ from stonesoup.predictor.kalman import SqrtKalmanPredictor
 from stonesoup.types.hypothesis import SingleHypothesis
 
 
-class PriorAsProposal(Proposal):
+class DynamicsProposal(Proposal):
     """Proposal that uses the dynamics model as the importance density.
     This proposal uses the dynamics model to predict the next state, and then
     uses the predicted state as the prior for the measurement model.
@@ -61,7 +61,7 @@ class PriorAsProposal(Proposal):
                                      prior=prior)
 
 
-class KFasProposal(Proposal):
+class KalmanProposal(Proposal):
     """This proposal uses the Kalman filter prediction and update steps to
     generate new set of particles and weights
     """
