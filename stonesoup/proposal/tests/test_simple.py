@@ -2,6 +2,7 @@ import itertools
 
 import datetime
 import numpy as np
+import pytest
 
 # Import the proposals
 from stonesoup.proposal.simple import DynamicsProposal, KalmanProposal
@@ -15,6 +16,20 @@ from stonesoup.predictor.particle import ParticlePredictor
 from stonesoup.types.detection import Detection
 from stonesoup.models.measurement.linear import LinearGaussian
 from stonesoup.types.hypothesis import SingleHypothesis
+
+
+def test_deprecated_names():
+    # Test handling of deprecated class names
+
+    # Test the deprecation warnings
+    with pytest.warns(DeprecationWarning):
+        from stonesoup.proposal.simple import PriorAsProposal
+    with pytest.warns(DeprecationWarning):
+        from stonesoup.proposal.simple import KFasProposal
+
+    # Ensure the deprecated names are still available and point to the new names
+    assert PriorAsProposal == DynamicsProposal
+    assert KFasProposal == KalmanProposal
 
 
 def test_prior_proposal():
