@@ -13,7 +13,7 @@ from stonesoup.types.detection import Detection
 from stonesoup.types.prediction import Prediction
 
 
-class NUTS(Proposal):
+class NUTSProposal(Proposal):
     """No-U Turn Sampler proposal
 
         This implementation follows the papers:
