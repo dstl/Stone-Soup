@@ -162,6 +162,8 @@ class PDAUpdater(ExtendedKalmanUpdater):
         : :class:`~.CovarianceMatrix`
             The covariance of the reduced/single Gaussian
         """
+        sum_of_innovations = 0
+        sum_of_weighted_cov = 0
 
         for n, hypothesis in enumerate(hypotheses):
             # Check for the existence of an associated measurement. Because of the way the
@@ -181,15 +183,8 @@ class PDAUpdater(ExtendedKalmanUpdater):
                 innovation = hypothesis.measurement.state_vector - \
                              hypothesis.measurement_prediction.state_vector
 
-            # probably exists a less clunky way of doing this using exists() or overwritten +=
-            # All these floats should be redundant if/when the bug in Probability.__mult__() is
-            # fixed.
-            if n == 0:
-                sum_of_innovations = float(hypothesis.probability) * innovation
-                sum_of_weighted_cov = float(hypothesis.probability) * (innovation @ innovation.T)
-            else:
-                sum_of_innovations += float(hypothesis.probability) * innovation
-                sum_of_weighted_cov += float(hypothesis.probability) * (innovation @ innovation.T)
+            sum_of_innovations += hypothesis.probability * innovation
+            sum_of_weighted_cov += hypothesis.probability * (innovation @ innovation.T)
 
         posterior_mean += kalman_gain @ sum_of_innovations
         posterior_covariance += \
