@@ -657,20 +657,19 @@ class TwiceIntegratedGPSE(TwiceIntegratedGP):
     def _scalar_kernel(t1, t2, length_scale, kernel_variance):
         l = length_scale
         var = kernel_variance
+        h = IntegratedGPSE._h
+        h2 = TwiceIntegratedGPSE._h2
+    
+        s1 = 0.5 * t2 * h2(l, t1) - 0.5 * t1 * h2(l, -t2)
 
-        s1 = 0.5 * t2 * TwiceIntegratedGPSE._h2(l, t1)
-        s2 = -0.5 * t1 * TwiceIntegratedGPSE._h2(l, -t2)
-        
-        s3_1 = (1/6) * ((t1-t2)**2 * IntegratedGPSE._h(l, t1, t2) - t1**2 * IntegratedGPSE._h(l, t1, 0)
-        - l**4 * norm.pdf(t1, loc=t2, scale=l) + l**4 * norm.pdf(t1, loc=0, scale=l))
+        s2 = (1 / 6) * ((t1 - t2) ** 2 * h(l, t1, t2) - t1 ** 2 * h(l, t1, 0) - t2 ** 2 * h(l, 0, t2)
+                        + l ** 4 * (norm.pdf(0, t2, l) + norm.pdf(t1, 0, l) - norm.pdf(t1, t2, l)))
 
-        s3_2 = (1/6)* (- t2**2 * IntegratedGPSE._h(l, 0, t2) + l**4 * norm.pdf(0, loc=t2, scale=l) - l**4 / (np.sqrt(2*np.pi) * l))
-        s3_3 = 0.5 * l**2 * (IntegratedGPSE._h(l, t1, t2) - IntegratedGPSE._h(l, 0, t2)
-        - IntegratedGPSE._h(l, t1, 0) + l/np.sqrt(2*np.pi))
+        s3 = 0.5 * l ** 2 * (h(l, t1, t2) - h(l, 0, t2) - h(l, t1, 0))
 
-        s4 = t1 * t2 * l / np.sqrt(2 * np.pi)
-        res = np.sqrt(2 * np.pi) * l * var * (s1 + s2 + s3_1 + s3_2 + s3_3 - s4)
-        return res
+        s4 = (l / np.sqrt(2 * np.pi)) * (t1 * t2 - l ** 2 / 3)
+
+        return np.sqrt(2 * np.pi) * l * var * (s1 + s2 + s3 - s4)
 
     @staticmethod
     @lru_cache
@@ -705,7 +704,7 @@ class DynamicsInformedTwiceIntegratedGPSE(DynamicsInformedTwiceIntegratedGP):
             diff_s * erf(diff_s) 
             + t1_s * erf(-t1_s) 
             - t2_s * erf(t2_s) 
-            + l_s * (norm.pdf(t2, t1, scale=l) - norm.pdf(t1, scale=l) - norm.pdf(t2, scale=l))
+            + l_s * (norm.pdf(t2, t1, l) - norm.pdf(t1, 0, l) - norm.pdf(t2, 0, l))
             + 1 / np.sqrt(np.pi)
         )
 

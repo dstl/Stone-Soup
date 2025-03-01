@@ -488,9 +488,20 @@ class DynamicsInformedIntegratedGP(SlidingWindowGP):
         t2 = np.atleast_1d(t2)
 
         K = np.zeros((len(t1), len(t2)))
-        for i in range(len(t1)):
-            for j in range(len(t2)):
-                K[i, j] = self._invoke_scalar_kernel(float(t1[i]), float(t2[j]))
+
+        # if t1 == t2, compute upper triangular matrix only
+        if np.array_equal(t1, t2):
+            for i in range(len(t1)):
+                for j in range(i, len(t2)):
+                    K[i, j] = self._invoke_scalar_kernel(float(t1[i]), float(t2[j]))
+                    if i != j:
+                        K[j, i] = K[i, j]
+        
+        # Compute full matrix
+        else:
+            for i in range(len(t1)):
+                for j in range(len(t2)):
+                    K[i, j] = self._invoke_scalar_kernel(float(t1[i]), float(t2[j]))
 
         # Include prior variance if the current window includes the prior
         if t1[-1] == 0:
