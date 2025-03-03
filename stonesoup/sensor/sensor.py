@@ -358,8 +358,9 @@ class VisibilityInformed2DSensor(SimpleSensor):
         else:
             nstates = 1
 
+        in_obstacles = np.full((nstates), False)
         if not self.obstacles:
-            return np.full(nstates, True)
+            return in_obstacles
 
         if self._str_tree_is_visible_trigger:
 
@@ -371,10 +372,6 @@ class VisibilityInformed2DSensor(SimpleSensor):
                         MultiPoint(state.state_vector[self.position_mapping[0:2], :].T).geoms
                 else:
                     point_sequence = [Point(state.state_vector[self.position_mapping[0:2], :].T)]
-
-            in_obstacles = np.full((nstates), False)
-            if not self.obstacles:
-                return in_obstacles
 
             obstacle_tree = self.get_obstacle_tree()
 
