@@ -1,13 +1,80 @@
 """Mathematical functions used within Stone Soup"""
+
 import copy
 import warnings
 from functools import lru_cache
 
 import numpy as np
+from numpy import linalg as LA
 
+from scipy.stats import ortho_group
+
+from ..types.array import CovarianceMatrix, StateVector, StateVectors
 from ..types.numeric import Probability
-from ..types.array import StateVector, StateVectors, CovarianceMatrix
 from ..types.state import State
+
+
+def grid_creation(xp_aux, Pp_aux, sFactor, nx, Npa):
+    """Grid for point mass filter
+
+    Create a PMF grid based on center, covariance matrix, and sigma probability
+
+    Parameters
+    ==========
+    xp_aux : numpy.ndarray
+        `nx` by `1` center of the grid
+    Pp_aux : numpy.ndarray
+        'nx' by 'nx' covariance matrix
+    sFactor : int
+        Parameter for the size of the grid
+    nx : int
+        Dimension of the grid
+    Npa : numpy.ndarray
+        'nx' by '' number of points per axis of the grid
+
+    Returns
+    =======
+    predGrid : numpy.ndarray
+        'nx' by prod(Npa) predictive grid
+    predGridDelta : list
+        grid step per dimension
+    gridDim : list of numpy.ndarrays
+        grid coordinates per dimension before rotation and translation
+    xp_aux : numpy.ndarray
+        grid center
+    eigVect : numpy.ndarray
+        eigenvectors describing the rotation of the grid
+
+    """
+
+    eigVal, eigVect = LA.eig(
+        Pp_aux
+    )  # eigenvalue and eigenvectors for setting up the grid
+    gridBound = np.sqrt(eigVal) * sFactor  # Boundaries of grid
+
+    # Ensure the grid steps are in the right order
+    sortInd = np.argsort(np.diag(Pp_aux))
+    sortInd = np.argsort(sortInd)
+
+    pom = np.sort(gridBound)
+    Ipom = np.argsort(gridBound)
+    gridBound = pom[sortInd]
+
+    pom2 = eigVect[:, Ipom]
+    eigVect = pom2[:, sortInd]
+    gridDim = []  # Reset gridDim for each cycle
+    gridStep = []  # Reset gridStep for each cycle
+    for ind3 in range(0, nx):  # Creation of propagated grid
+        # New grid with middle in 0
+        gridDim.append(np.linspace(-gridBound[ind3], gridBound[ind3], Npa[ind3]))
+        gridStep.append(np.absolute(gridDim[ind3][0] - gridDim[ind3][1]))  # Grid step
+
+    combvec_predGrid = np.array(np.meshgrid(*gridDim, indexing='ij')).reshape(nx, -1).T
+    predGrid = np.dot(eigVect, combvec_predGrid.T)
+    # Grid rotation by eigenvectors and translation to the counted unscented mean
+    predGrid += xp_aux
+    predGridDelta = gridStep  # Grid step size
+    return predGrid, predGridDelta, gridDim, xp_aux, eigVect
 
 
 def tria(matrix):
@@ -134,8 +201,8 @@ def gauss2sigma(state, alpha=1.0, beta=2.0, kappa=None):
 
     Returns
     -------
-    : :class:`list` of length `2*Ns+1`
-        An list of States containing the locations of the sigma points.
+    : :class:`~.State` with state vector of shape (`Ns`, `2*Ns+1`)
+        An State containing the locations of the sigma points.
         Note that only the :attr:`state_vector` attribute in these
         States will be meaningful. Other quantities, like :attr:`covar`
         will be inherited from the input and don't really make sense
@@ -177,11 +244,8 @@ def gauss2sigma(state, alpha=1.0, beta=2.0, kappa=None):
         sigma_points[:, (ndim_state + 1):] - sqrt_sigma*np.sqrt(c)
 
     # Put these sigma points into s State object list
-    sigma_points_states = []
-    for sigma_point in sigma_points:
-        state_copy = copy.copy(state)
-        state_copy.state_vector = StateVector(sigma_point)
-        sigma_points_states.append(state_copy)
+    sigma_points_states = copy.copy(state)
+    sigma_points_states.state_vector = sigma_points
 
     # Calculate weights
     mean_weights = np.ones(2 * ndim_state + 1)
@@ -237,8 +301,8 @@ def unscented_transform(sigma_points_states, mean_weights, covar_weights,
 
     Parameters
     ----------
-    sigma_points_states : :class:`~.StateVectors` of shape `(Ns, 2*Ns+1)`
-        An array containing the locations of the sigma points
+    sigma_points_states : :class:`~.State` with state vector of shape `(Ns, 2*Ns+1)`
+        A state containing the locations of the sigma points
     mean_weights : :class:`numpy.ndarray` of shape `(2*Ns+1,)`
         An array containing the sigma point mean weights
     covar_weights : :class:`numpy.ndarray` of shape `(2*Ns+1,)`
@@ -270,17 +334,10 @@ def unscented_transform(sigma_points_states, mean_weights, covar_weights,
         An array containing the transformed sigma point covariance weights
     """
     # Reconstruct the sigma_points matrix
-    sigma_points = StateVectors([
-        sigma_points_state.state_vector for sigma_points_state in sigma_points_states])
+    sigma_points = sigma_points_states.state_vector
 
     # Transform points through f
-    if points_noise is None:
-        sigma_points_t = StateVectors([
-            fun(sigma_points_state) for sigma_points_state in sigma_points_states])
-    else:
-        sigma_points_t = StateVectors([
-            fun(sigma_points_state, points_noise)
-            for sigma_points_state, point_noise in zip(sigma_points_states, points_noise.T)])
+    sigma_points_t = fun(sigma_points_states, points_noise)
 
     # Calculate mean and covariance approximation
     mean, covar = sigma2gauss(sigma_points_t, mean_weights, covar_weights, covar_noise)
@@ -958,3 +1015,141 @@ def cubature_transform(state, fun, points_noise=None, covar_noise=None, alpha=1.
     cross_covar = cross_covar.view(CovarianceMatrix)
 
     return mean, covar, cross_covar, cubature_points_t
+
+
+def stochastic_cubature_rule_points(nx, order):
+    """Computation of cubature points and weights for the stochastic integration.
+
+    Parameters
+    ==========
+    nx : int
+        Number of points, presumably equivalent to state dimension.
+    order : int
+        Order for stochastic integration. Only orders 1, 3, and 5 are supported.
+
+    Returns
+    =======
+    (numpy.ndarray, numpy.ndarray)
+        Tuple of sigma points and weights
+    """
+
+    if order == 1:
+        X = np.random.randn(nx, 1)
+        SCRSigmaPoints = np.concatenate((X, -X), axis=1)
+        weights = np.array([0.5, 0.5])
+    elif order == 3:
+        CRSigmaPoints = np.concatenate(
+            (np.zeros((nx, 1)), np.eye(nx), -np.eye(nx)), axis=1
+        )
+        rho = np.sqrt(np.random.chisquare(nx + 2))
+        Q = ortho_group.rvs(nx)
+        SCRSigmaPoints = Q * rho @ CRSigmaPoints
+        weights = np.insert(0.5 * np.ones(2 * nx) / rho**2, 0, (1 - nx / rho**2))
+
+    elif order == 5:
+        # generating random values
+        r = np.sqrt(np.random.chisquare(2 * nx + 7))
+
+        q = np.random.beta(nx + 2, 3 / 2)
+
+        rho = r * np.sin(np.arcsin(q) / 2)
+        delta = r * np.cos(np.arcsin(q) / 2)
+
+        # calculating weights
+        c1up = nx + 2 - delta**2
+        c1do = rho**2 * (rho**2 - delta**2)
+        c2up = nx + 2 - rho**2
+        c2do = delta**2 * (delta**2 - rho**2)
+        cdo = 2 * (nx + 1) ** 2 * (nx + 2)
+        c3 = (7 - nx) * nx**2
+        c4 = 4 * (nx - 1) ** 2
+        coef1 = c1up * c3 / cdo / c1do
+        coef2 = c2up * c3 / cdo / c2do
+        coef3 = c1up * c4 / cdo / c1do
+        coef4 = c2up * c4 / cdo / c2do
+
+        pom = np.concatenate(
+            (
+                np.ones(2 * nx + 2) * coef1,
+                np.ones(2 * nx + 2) * coef2,
+                np.ones(nx * (nx + 1)) * coef3,
+                np.ones(nx * (nx + 1)) * coef4,
+            ),
+            axis=0,
+        )
+        weights = np.insert(
+            pom, 0, (1 - nx * (rho**2 + delta**2 - nx - 2) / (rho**2 * delta**2))
+        )
+
+        # Calculating sigma points
+        Q = ortho_group.rvs(nx)
+        v = np.zeros((nx, nx + 1))
+        i_vals, j_vals = np.triu_indices(nx + 1, k=1)
+        v[i_vals, i_vals] = np.sqrt((nx+1) * (nx-i_vals) / (nx * (nx-i_vals+1)))
+        v[i_vals, j_vals] = -np.sqrt((nx+1) / ((nx-i_vals) * nx * (nx-i_vals+1)))
+        v = Q @ v
+        i_vals, j_vals = np.tril_indices(nx + 1, k=-1)
+        comb_v = v[:, i_vals] + v[:, j_vals]
+        y = comb_v / np.linalg.norm(comb_v, axis=0)
+
+        SCRSigmaPoints = np.block(
+            [
+                np.zeros((nx, 1)),
+                -rho * v,
+                rho * v,
+                -delta * v,
+                +delta * v,
+                -rho * y,
+                rho * y,
+                -delta * y,
+                delta * y,
+            ]
+        )
+    else:
+        raise ValueError("This order of SIF is not supported")
+
+    return (SCRSigmaPoints, weights)
+
+
+def cub_points_and_tf(nx, order, sqrtCov, mean, transFunct, state):
+    r""" Calculates cubature points for stochastic integration filter and
+    puts them through given function (measurement/dynamics)
+
+    Parameters
+    ==========
+    nx : int
+       Dimension for cubature points, equivalent to state dimension.
+    order : int
+        Order for Stochastic Integration. Only orders 1, 3, and 5 are supported
+    sqrtCov : np.ndarray
+        Matrix square root array of shape (nx, nx) of the covariance matrix
+    mean : np.ndarray
+        An array of shape (nx, 1) of the state mean
+    transFunct : Callable
+        A function to transfer state vectors
+    state : :class:`~.State`
+        State object used to save function output to
+
+    Returns
+    =======
+    points : numpy.ndarray
+        Array of shape (nx, number of points) of cubature points
+    w : numpy.ndarray
+        Array of shape (number of points) of weights
+    trsfPoints : numpy.ndarray
+        Array of shape (nx, number of points) (based on order and dim) of
+        cubature transformed points
+    """
+
+    # -- cubature points and weights computation (for standard normal PDF)
+    SCRSigmaPoints, w = stochastic_cubature_rule_points(nx, order)
+
+    # -- points transformation for given filtering mean and covariance matrix
+    points = StateVectors(sqrtCov@SCRSigmaPoints + mean)
+
+    # -- points transformation through the function
+    state_copy = copy.copy(state)
+    state_copy.state_vector = points
+    trsfPoints = transFunct(state_copy)
+
+    return points, w, trsfPoints

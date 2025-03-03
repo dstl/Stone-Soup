@@ -32,7 +32,7 @@ def test_empty_state_error():
                       velocity_mapping=[1, 2, 5],
                       transition_model=None,
                       )
-    with pytest.raises(ValueError, match='States must not be empty'):
+    with pytest.raises(TypeError, match="MovingMovable is missing a required argument: 'states'"):
         _ = MovingMovable(position_mapping=[0, 2, 4],
                           velocity_mapping=[1, 2, 5],
                           transition_model=None,

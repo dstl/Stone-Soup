@@ -4,6 +4,7 @@ import numpy as np
 import pytest
 from scipy.stats import multivariate_normal
 
+from ..hypothesis import SingleHypothesis
 from ..prediction import (
     Prediction, MeasurementPrediction,
     StatePrediction, StateMeasurementPrediction,
@@ -14,6 +15,7 @@ from ..prediction import (
 from ..state import (
     State, GaussianState, SqrtGaussianState, TaggedWeightedGaussianState, ParticleState)
 from ..track import Track
+from ..update import StateUpdate
 from ..array import StateVectors
 
 
@@ -29,6 +31,23 @@ def test_stateprediction():
     state_prediction = StatePrediction(state_vector, timestamp)
     assert np.array_equal(state_vector, state_prediction.state_vector)
     assert timestamp == state_prediction.timestamp
+
+
+def test_prediction_prior():
+    state0 = State([[1, 2, 3]])
+    pred1 = StatePrediction([[2, 3, 1]], prior=state0)
+    update1 = StateUpdate([[2, 3, 1]], hypothesis=SingleHypothesis(pred1, None))
+    pred2 = StatePrediction([[3, 1, 2]], prior=update1)
+
+    assert pred1.prior is state0
+    assert update1.hypothesis.prediction.prior is state0
+    assert pred2.prior is update1
+
+    del state0
+
+    assert pred1.prior is None
+    assert update1.hypothesis.prediction.prior is None
+    assert pred2.prior is update1
 
 
 def test_statemeasurementprediction():

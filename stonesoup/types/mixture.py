@@ -1,4 +1,5 @@
 import copy
+import warnings
 from collections.abc import MutableSequence
 
 import numpy as np
@@ -34,7 +35,7 @@ class GaussianMixture(Type, MutableSequence):
             raise ValueError("Cannot form GaussianMixtureState out of "
                              "non-WeightedGaussianState inputs!")
         if len({component.timestamp for component in self.components}) > 1:
-            raise ValueError("All components must have the same timestamp")
+            warnings.warn("All components should have the same timestamp")
 
     def __contains__(self, index):
         # check if 'components' contains any WeightedGaussianState

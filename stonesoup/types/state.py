@@ -63,7 +63,7 @@ class State(Type):
             on the `state` parameter.
         """
         # Handle being initialised with state sequence
-        if isinstance(state, StateMutableSequence):
+        if isinstance(state, StateMutableSequence) and not isinstance(state, State):
             state = state.state
 
         if target_type is None:
@@ -155,7 +155,7 @@ class CreatableFromState:
             those on the ``state`` parameter.
         """
         # Handle being initialised with state sequence
-        if isinstance(state, StateMutableSequence):
+        if isinstance(state, StateMutableSequence) and not isinstance(state, State):
             state = state.state
         try:
             state_type = next(type_ for type_ in type(state).mro()
@@ -166,6 +166,49 @@ class CreatableFromState:
             target_type = CreatableFromState.class_mapping[cls][state_type]
 
         return target_type.from_state(state, *args, **kwargs, target_type=target_type)
+
+
+class PointMassState(State):
+    """PointMassState State type
+
+    For the Lagrangina Point Mass filter.
+    """
+
+    state_vector: StateVectors = Property(doc="State vectors.")
+    weight: MutableSequence[Probability] = Property(
+        default=None, doc="Masses of grid points"
+    )
+    grid_delta: np.ndarray = Property(default=None, doc="Grid step per dim")
+    grid_dim: np.ndarray = Property(
+        default=None,
+        doc="Grid coordinates per dimension before rotation and translation",
+    )
+    center: np.ndarray = Property(default=None, doc="Center of the grid")
+    eigVec: np.ndarray = Property(default=None, doc="Eigenvectors of the grid")
+    Npa: np.ndarray = Property(default=None, doc="Points per dim")
+
+    def __len__(self):
+        return self.state_vector.shape[1]
+
+    @property
+    def ndim(self):
+        """The number of dimensions represented by the state."""
+        return self.state_vector.shape[0]
+
+    @clearable_cached_property("state_vector")
+    def mean(self):
+        """Sample mean for particles"""
+        return np.hstack(self.state_vector @ self.weight * np.prod(self.grid_delta))
+
+    def covar(self):
+        # Measurement update covariance
+        chip_ = self.state_vector - self.mean[:, np.newaxis]
+        chip_w = chip_ * self.weight.reshape(1, -1, order="C")
+        measVar = (chip_w @ chip_.T) * np.prod(self.grid_delta)
+        measVar = CovarianceMatrix(measVar)
+        return measVar
+
+State.register(PointMassState)  # noqa: E305
 
 
 class ASDState(Type):
@@ -231,6 +274,8 @@ class ASDState(Type):
     def states(self):
         return [self[i] for i in range(self.nstep)]
 
+    from_state = State.from_state
+
 
 State.register(ASDState)
 
@@ -265,13 +310,13 @@ class StateMutableSequence(Type, MutableSequence):
         default=None,
         doc="The initial list of states. Default `None` which initialises with empty list.")
 
-    def __init__(self, states=None, *args, **kwargs):
-        if states is None:
-            states = []
-        elif not isinstance(states, Sequence):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        if self.states is None:
+            self.states = []
+        elif not isinstance(self.states, Sequence):
             # Ensure states is a list
-            states = [states]
-        super().__init__(states, *args, **kwargs)
+            self.states = [self.states]
 
     def __len__(self):
         return self.states.__len__()
@@ -604,10 +649,29 @@ class TaggedWeightedGaussianState(WeightedGaussianState):
 class ASDWeightedGaussianState(ASDGaussianState):
     """ASD Weighted Gaussian State Type
 
-    ASD Gaussian State object with an associated weight.  Used as components
+    ASD Gaussian State object with an associated weight. Used as components
     for a GaussianMixtureState.
     """
     weight: Probability = Property(default=0, doc="Weight of the Gaussian State.")
+
+
+class ASDTaggedWeightedGaussianState(ASDWeightedGaussianState):
+    """ASD Tagged Weighted Gaussian State Type
+
+    ASD Gaussian State object with an associated weight and tag. Used as components
+    for a GaussianMixtureState.
+    """
+    tag: str = Property(default=None, doc="Unique tag of the ASD Gaussian State.")
+
+    BIRTH = 'birth'
+    '''Tag value used to signify birth component'''
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        if self.tag is None:
+            self.tag = str(uuid.uuid4())
+
+TaggedWeightedGaussianState.register(ASDTaggedWeightedGaussianState)  # noqa: E305
 
 
 class ParticleState(State):

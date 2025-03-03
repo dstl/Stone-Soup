@@ -4,19 +4,38 @@ import datetime
 import numpy as np
 import pytest
 import scipy.linalg
+from numpy.linalg import inv
 from scipy.stats import multivariate_normal
 
+from ...base import Property
+from ...functions import grid_creation
 from ..angle import Bearing
-from ..array import StateVector, StateVectors, CovarianceMatrix
+from ..array import CovarianceMatrix, StateVector, StateVectors
 from ..groundtruth import GroundTruthState
 from ..numeric import Probability
 from ..particle import Particle
-from ..state import CreatableFromState, KernelParticleState
-from ..state import State, GaussianState, ParticleState, EnsembleState, \
-    StateMutableSequence, WeightedGaussianState, SqrtGaussianState, CategoricalState, \
-    CompositeState, InformationState, ASDState, ASDGaussianState, ASDWeightedGaussianState, \
-    MultiModelParticleState, RaoBlackwellisedParticleState, BernoulliParticleState
-from ...base import Property
+from ..state import (
+    ASDGaussianState,
+    ASDState,
+    ASDWeightedGaussianState,
+    ASDTaggedWeightedGaussianState,
+    BernoulliParticleState,
+    CategoricalState,
+    CompositeState,
+    CreatableFromState,
+    EnsembleState,
+    GaussianState,
+    InformationState,
+    KernelParticleState,
+    MultiModelParticleState,
+    ParticleState,
+    PointMassState,
+    RaoBlackwellisedParticleState,
+    SqrtGaussianState,
+    State,
+    StateMutableSequence,
+    WeightedGaussianState,
+)
 
 
 def test_state():
@@ -582,6 +601,64 @@ def test_state_mutable_sequence_copy():
     assert sequence2[-1] is not sequence[-1]
 
 
+def test_state_mutable_sequence_subclass():
+    class TestSMS(StateMutableSequence):
+        test_property = Property(cls=int)
+        test_property_with_default = Property(default=2, cls=int)
+
+    state = State(StateVector([[0]]), timestamp=datetime.datetime.now())
+
+    sequence = TestSMS(1)
+    assert sequence.test_property == 1
+    assert sequence.test_property_with_default == 2
+    assert sequence.states == []
+
+    sequence = TestSMS(test_property=1)
+    assert sequence.test_property == 1
+    assert sequence.test_property_with_default == 2
+    assert sequence.states == []
+
+    sequence = TestSMS(1, state)
+    assert sequence.test_property == 1
+    assert sequence.test_property_with_default == 2
+    assert sequence.states == [state]
+
+    sequence = TestSMS(1, states=[state])
+    assert sequence.test_property == 1
+    assert sequence.test_property_with_default == 2
+    assert sequence.states == [state]
+
+    sequence = TestSMS(test_property=1, states=[state])
+    assert sequence.test_property == 1
+    assert sequence.test_property_with_default == 2
+    assert sequence.states == [state]
+
+    sequence = TestSMS(test_property=1, test_property_with_default=3)
+    assert sequence.test_property == 1
+    assert sequence.test_property_with_default == 3
+    assert sequence.states == []
+
+    sequence = TestSMS(1, [state], 3)
+    assert sequence.test_property == 1
+    assert sequence.test_property_with_default == 3
+    assert sequence.states == [state]
+
+    sequence = TestSMS(1, [state], test_property_with_default=3)
+    assert sequence.test_property == 1
+    assert sequence.test_property_with_default == 3
+    assert sequence.states == [state]
+
+    sequence = TestSMS(1, states=[state], test_property_with_default=3)
+    assert sequence.test_property == 1
+    assert sequence.test_property_with_default == 3
+    assert sequence.states == [state]
+
+    sequence = TestSMS(test_property=1, states=[state], test_property_with_default=3)
+    assert sequence.test_property == 1
+    assert sequence.test_property_with_default == 3
+    assert sequence.states == [state]
+
+
 def test_from_state():
     start = datetime.datetime.now()
     kwargs = {"state_vector": np.arange(4), "timestamp": start}
@@ -858,6 +935,64 @@ def test_asd_weighted_gaussian_state():
     a = ASDWeightedGaussianState(
         mean, multi_covar=covar, weight=weight, timestamps=[timestamp])
     assert a.weight == weight
+
+
+def test_asd_tagged_weighted_gaussian_state():
+    mean = np.array([[1], [2], [3], [4]])  # 4D
+    covar = np.diag([1, 2, 3])  # 3D
+    weight = 0.3
+    timestamp = datetime.datetime.now()
+
+    a = ASDTaggedWeightedGaussianState(
+        mean, multi_covar=covar, weight=weight, tag='abc123', timestamps=[timestamp])
+    assert a.weight == weight
+    assert a.tag == 'abc123'
+    a = ASDTaggedWeightedGaussianState(
+        mean, multi_covar=covar, weight=weight, timestamps=[timestamp])
+    assert isinstance(a.tag, str)  # Should be auto-generated UUID
+
+
+def test_pointmassstate():
+    nx = 4
+    meanX0 = np.array([36569, 50, 55581, 50])  # mean value
+    varX0 = np.diag([90, 5, 160, 5])  # variance
+    Npa = np.array(
+        [31, 31, 27, 27]
+    )  # 33 number of points per axis, for FFT must be ODD!!!!
+    N = np.prod(Npa)  # number of points - total
+    sFactor = 4  # scaling factor (number of sigmas covered by the grid)
+
+    [predGrid, predGridDelta, gridDimOld, xOld, Ppold] = grid_creation(
+        np.vstack(meanX0), varX0, sFactor, nx, Npa
+    )
+
+    meanX0 = np.vstack(meanX0)
+    pom = predGrid - meanX0
+    denominator = np.sqrt((2 * np.pi) ** nx) * np.linalg.det(varX0)
+    pompom = np.sum(
+        -0.5 * np.multiply(pom.T @ inv(varX0), pom.T), 1
+    )  # elementwise multiplication
+    pomexp = np.exp(pompom)
+    predDensityProb = pomexp / denominator  # Adding probabilities to points
+    predDensityProb = predDensityProb / (sum(predDensityProb) * np.prod(predGridDelta))
+
+    start_time = datetime.datetime.now()
+
+    priorPMF = PointMassState(
+        state_vector=StateVectors(predGrid),
+        weight=predDensityProb,
+        grid_delta=predGridDelta,
+        grid_dim=gridDimOld,
+        center=xOld,
+        eigVec=Ppold,
+        Npa=Npa,
+        timestamp=start_time,
+    )
+
+    assert np.allclose(priorPMF.mean, meanX0.ravel(), 0, 1e-2)
+    assert np.allclose(priorPMF.covar(), varX0, 0, 1e-1)
+    assert priorPMF.ndim == nx
+    assert len(priorPMF) == N
 
 
 def test_kernel_particle_state():
