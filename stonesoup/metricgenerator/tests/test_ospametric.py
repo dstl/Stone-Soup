@@ -8,7 +8,7 @@ from ..manager import MultiManager
 from ..ospametric import GOSPAMetric, OSPAMetric, _SwitchingLoss
 from ...types.detection import Detection
 from ...types.groundtruth import GroundTruthPath, GroundTruthState
-from ...types.state import State
+from ...types.state import State, ParticleState
 from ...types.track import Track
 
 
@@ -132,7 +132,8 @@ def test_gospametric_compute_gospa_metric():
     assert (gospa_metric['false'] == 0.0)
 
 
-def test_gospametric_computemetric():
+@pytest.mark.parametrize("state_type", [State, ParticleState])
+def test_gospametric_computemetric(state_type):
     """Test GOSPA compute metric."""
     generator = GOSPAMetric(
         c=10.0,
@@ -140,10 +141,10 @@ def test_gospametric_computemetric():
     )
     time = datetime.datetime.now()
     # Multiple tracks and truths present at two timesteps
-    tracks = {Track(states=[State(state_vector=[[i + 0.5]], timestamp=time),
-                            State(state_vector=[[i + 1]],
-                                  timestamp=time + datetime.timedelta(
-                                  seconds=1))])
+    tracks = {Track(states=[state_type(state_vector=[[i + 0.5]], timestamp=time),
+                            state_type(state_vector=[[i + 1]],
+                                       timestamp=time + datetime.timedelta(
+                                       seconds=1))])
               for i in range(5)}
     truths = {GroundTruthPath(
         states=[State(state_vector=[[i]], timestamp=time),

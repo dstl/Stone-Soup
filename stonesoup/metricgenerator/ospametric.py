@@ -167,7 +167,10 @@ class GOSPAMetric(MetricGenerator):
         )
         meas_order = np.argsort(all_meas_timestamps)
         all_meas_timestamps = all_meas_timestamps[meas_order]
-        all_meas_points = np.array(measured_states)[meas_order]
+        # np.array doesn't work for ParticleState
+        all_meas_points = np.empty(len(measured_states), dtype="O")
+        all_meas_points[:] = measured_states
+        all_meas_points = all_meas_points[meas_order]
         all_meas_ids = np.array(measured_state_ids)[meas_order]
 
         all_truth_timestamps = np.fromiter(
