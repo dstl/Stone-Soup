@@ -134,77 +134,12 @@ class CombinedGaussianTransitionModel(TransitionModel, GaussianModel):
 
 class SlidingWindowGP(TransitionModel, GaussianModel, LinearModel, TimeVariantModel):
     r"""Discrete model implementing a sliding window zero-mean Gaussian process (GP).
-
-    This model defines a GP over a sliding window of states.
-    The window size is set using the :attr:`window_size` parameter. A GP at
-    discrete timesteps is defined by a time vector spanning from the prediction
-    time :math:`t` backward to :math:`t - L + 1`. The states in this window
-    form a multivariate Gaussian distribution:
-
-        .. math::
-            p(\mathbf{x}_{t:t-L+1}) \sim \mathcal{N}(\mathbf{0}, \mathbf{K})
-
-    For prediction, the model computes the conditional Gaussian distribution
-    for the current state :math:`x_t` given the previous states
-    :math:`\mathbf{x}_{t-1:t-L+1}` with time vector :math:`\mathbf{t}_{L-1}`:
-
-        .. math::
-            p(x_t | \mathbf{x}_{t-1:t-L+1}) \sim \mathcal{N}(\mu_t, \sigma^2_t)
-
-    where:
-
-        .. math::
-            \mu_t = \mathbf{k}_{t, \mathbf{t}_{L-1}}
-                    \mathbf{K}_{\mathbf{t}_{L-1}, \mathbf{t}_{L-1}}^{-1}
-                    \mathbf{x}_{\mathbf{t}_{L-1}}
-
-            \sigma^2_t = k_{t,t} - \mathbf{k}_{t, \mathbf{t}_{L-1}}
-                        \mathbf{K}_{\mathbf{t}_{L-1}, \mathbf{t}_{L-1}}^{-1}
-                        \mathbf{k}_{t, \mathbf{t}_{L-1}}^\top
-
-    The state transition equation is:
-
-        .. math::
-            \mathbf{x}_t = \mathbf{F}\mathbf{x}_{t-1} + w_t,
-            \quad w_t \sim \mathcal{N}(0, \mathbf{Q}),
-
-    where:
-
-        .. math::
-            \mathbf{x}_t & = & \begin{bmatrix}
-                        x_t \\
-                        x_{t-1} \\
-                        \vdots \\
-                        x_{t-L+1}
-                    \end{bmatrix}
-
-        .. math::
-            \mathbf{F} =
-            \begin{bmatrix}
-            \mathbf{k}_{t, \mathbf{t}_{L-1}}^\top
-            \mathbf{K}_{\mathbf{t}_{L-1}, \mathbf{t}_{L-1}}^{-1} \\
-            \mathbf{I}_{L-1} \quad \mathbf{0}_{L-1, 1}
-            \end{bmatrix}
-
-        .. math::
-            \mathbf{Q} =
-            \begin{bmatrix}
-            \sigma_t^2 & \mathbf{0}_{1, L-1} \\
-            \mathbf{0}_{L-1, 1} & \mathbf{0}_{L-1, L-1}
-            \end{bmatrix}
-
-    The model assumes a constant time interval between observations. To
-    construct the covariance matrices, a time vector is created based on the
-    current prediction timestep (:attr:`pred_time`) and the specified
-    :attr:`time_interval`. The time vector spans backward over the sliding
-    window with a total length of :attr:`window_size`.
-
-    Pad the state vector with zeros if the prediction time is smaller than time_interval * window_size
     """
 
     window_size: int = Property(doc="Size of the sliding window :math:`L`")
-    epsilon: float = Property(doc="Small constant added to diagonal of covariance matrix for numerical stability", default=1e-6)
-    kernel_params: dict = Property(doc="Dictionary containing the keyword arguments for the covariance function.")
+    epsilon: float = Property(
+        doc="Small constant added to diagonal of covariance matrix", default=1e-6)
+    kernel_params: dict = Property(doc="Dictionary containing the keyword arguments for the kernel.")
 
     @property
     def requires_track(self):
@@ -315,128 +250,15 @@ class SlidingWindowGP(TransitionModel, GaussianModel, LinearModel, TimeVariantMo
 
 
 class DynamicsInformedIntegratedGP(SlidingWindowGP):
-    r"""Discrete time-variant 1D Dynamics Informed Gaussian Process (GP) model,
-    implemented with a sliding window approximation.
-
-    The model is described by the following SDE:
-
-        ..math::
-            dx = axdt + bg(t)dt
-
-    Or equivalently:
-
-        ..math::
-            x_t = e^{at}x_0 + e^{at} \int_{0}^{t} e^{-a\tau} bg(\tau) \, d\tau
-
-    where :
-
-    a is dynamic coeff, set with dynamic_coeff, b is gp coeff
-    
-    math:`g(t)` is a zero-mean GP with a radial basis function (RBF)
-    kernel:
-
-        .. math::
-            K_g(t, t') = \sigma^2 \exp \left(-\frac{(t - t')^2}{2 \ell^2} \right)
-
-    The output variance :math:`\sigma^2` and length scale :math:`\ell` of
-    :math:`g(t)` are set with the keyword arguments :attr:`output_var` and
-    :attr:`length_scale` respectively.
-
-    The initial condition :math:`x_0` is modelled as a Gaussian random variable,
-    independent of :math:`g(t)`:
-
-        .. math::
-            x_0 \sim \mathcal{N}(\mu_x, \sigma^2_x)
-
-    To approximate the integral over a sliding window of size :math:`L`,
-    spanning :math:`t_L = L \cdot \Delta t` in absolute time (:math:`\Delta t`
-    is the constant time interval between observations), the process is
-    reformulated as:
-
-        .. math::
-            x_t = x_{t - t_L} +  e^{at} \int_{t - t_L}^{t} e^{-a\tau} bg(\tau) \, d\tau
-
-        .. math::
-            \approx x_{t - t_L} + e^{at_L} \int_{0}^{t_L} e^{-a\tau} bg(\tau) \, d\tau
-
-    The integral limits are approximated as spanning from :math:`0` to :math:`t_L`,
-    assuming that the contributions from separate windows are independent.
-    This approximation is introduced as the analytical derivation of the kernel
-    for :math:`z(t)` requires integration limits with a fixed starting point :math:`t=0`.
-
-    The prior :math:`x_{t - t_L}` is updated to:
-
-        .. math::
-            x_{t - t_L} \sim \mathcal{N}(\mu_{x_{t - t_L}}, \sigma^2_{x_{t - t_L}})
-
-    To model :math:`x_t` as a zero-mean GP compatible with the state space
-    formulation of the sliding window GP, the prior :math:`x_{t - t_L}` is
-    first set to zero, and its effects on the mean and covariance function
-    of :math:`x_t` are considered separately.
-    
-    :math:`x_{t - t_L}` adds an offset :math:`\mu_{t-t_L}=e^{at}\mu_0` to :math:`x_t`.
-    The statevector is augmented with :math:`\mu_{x}` to be included in the
-    observation model. :math:`x_{t - t_L}` also adds an extra term in the
-    covariance function :math:`K_x(t, t')`:
-
-        .. math::
-            K_x(t, t') = \sigma^2_{t - t_L} + e^{}
-            \int_{0}^{t} \int_{0}^{t'} K_g(\tau, \tau') \, d\tau \, d\tau'
-
-    The state transition equation for :math:`x_t` is defined as:
-
-        .. math::
-            \mathbf{x}_t = \mathbf{F}\mathbf{x}_{t-1} + w_t,
-            \quad w_t \sim \mathcal{N}(0, \mathbf{Q}),
-
-    where:
-
-        .. math::
-            \mathbf{x}_t & = & \begin{bmatrix}
-                        x_t \\
-                        x_{t-1} \\
-                        \vdots \\
-                        x_{t-L+1} \\
-                        \mu_{t-L}
-                    \end{bmatrix}
-
-        .. math::
-            \mathbf{F} =
-            \begin{bmatrix}
-            \mathbf{F}' & \mathbf{0}_{1, L} \\
-            \mathbf{0}_{L, 1} & \mathbf{0}_{1}
-            \end{bmatrix}
-
-        .. math::
-            \mathbf{Q} =
-            \begin{bmatrix}
-            \sigma_t^2 & \mathbf{0}_{1, L} \\
-            \mathbf{0}_{L, 1} & \mathbf{0}_{L, L}
-            \end{bmatrix}
-
-    where :math:`\mathbf{F}'` and :math:`\sigma_t^2` are computed the same
-    way as the sliding window GP model but with covariance function
-    :math:`K_x(t, t')`.
-
-    The model assumes a constant time interval between observations. To
-    construct the covariance matrices, a time vector is created based on the
-    current prediction timestep (:attr:`pred_time`) and the specified
-    :attr:`time_interval`. The time vector spans backward over the sliding
-    window with a total length of :attr:`window_size`.
-
-    :attr:`pred_time`(as type timedela) must be supplied to all methods in this model and
-    represents the elapsed duration since the start time.
-
-    References
-    ----------
-    For a full derivation of the integral and implementation details, see the
-    accompanying paper and documentation.
+    r"""Discrete time-variant 1D Dynamics Informed Integrated Gaussian Process (iDGP) model,
+    where velocity is modelled as a first order DE, with a GP as driving noise.
     """
-    
+
     markov_approx: int = Property(doc="Order of Markov Approximation. 1 or 2", default=1)
     dynamics_coeff: float = Property(doc="Coefficient a of equation dx/dt = ax + bg(t)")
     gp_coeff: float = Property(doc="Coefficient b of equation dx/dt = ax + bg(t)")
-    prior_var: float = Property(doc="Variance of prior x_0. Added to covariance function during initialisation", default=0)  # not obtained from track as we don't know which dimension (eg x or y) this model will be tracking
+    prior_var: float = Property(
+        doc="Variance of prior x_0. Added to covariance function during initialisation", default=0)
 
     @property
     def ndim_state(self):
@@ -510,11 +332,12 @@ class DynamicsInformedIntegratedGP(SlidingWindowGP):
         return K
     
     def _invoke_scalar_kernel(self, t1, t2):
-        """Unpacks kernel paramaters and passes it to kernel method to enable caching"""
+        """Unpacks kernel paramaters and passes it to kernel method to enable caching."""
         if isinstance(self, (IntegratedGP, TwiceIntegratedGP)):
             return self._scalar_kernel(t1, t2, **self.kernel_params)
 
-        return self._scalar_kernel(t1, t2, dynamics_coeff=self.dynamics_coeff, gp_coeff=self.gp_coeff, **self.kernel_params)
+        return self._scalar_kernel(
+            t1, t2, dynamics_coeff=self.dynamics_coeff, gp_coeff=self.gp_coeff, **self.kernel_params)
 
     @staticmethod
     @abstractmethod
@@ -523,6 +346,10 @@ class DynamicsInformedIntegratedGP(SlidingWindowGP):
 
 
 class DynamicsInformedTwiceIntegratedGP(DynamicsInformedIntegratedGP):
+    r"""Discrete time-variant 1D Dynamics Informed Twice Integrated Gaussian Process (iiDGP) model,
+    where acceleration is modelled as a first order DE, with a GP as driving noise.
+    This model is implemented with the first Markovian approximation only.
+    """
 
     @property
     def markov_approx(self):
@@ -530,7 +357,7 @@ class DynamicsInformedTwiceIntegratedGP(DynamicsInformedIntegratedGP):
 
     @property
     def ndim_state(self):
-        return self.window_size + 2  # 2 prior means
+        return self.window_size + 2
 
     def matrix(self, track, time_interval, **kwargs):
         d = self.window_size
@@ -541,12 +368,16 @@ class DynamicsInformedTwiceIntegratedGP(DynamicsInformedIntegratedGP):
 
         A_mean = np.array([[0, 1],
                             [0, self.dynamics_coeff]])
-        Fmat_mean = expm(A_mean * dt)  # 2x2 sub-transition matrix for means [mean_pos, mean_vel]
+        Fmat_mean = expm(A_mean * dt)  # 2x2 sub-transition matrix for [mean_pos, mean_vel]
         Fmat[d:, d:] = Fmat_mean
         return Fmat
     
 
 class IntegratedGP(DynamicsInformedIntegratedGP):
+    r"""Discrete time-variant 1D Integrated Gaussian Process (iGP) model,
+    where velocity is modelled with a GP as driving noise.
+    """
+
     @property
     def dynamics_coeff(self):
         return 0
@@ -557,6 +388,10 @@ class IntegratedGP(DynamicsInformedIntegratedGP):
     
 
 class TwiceIntegratedGP(DynamicsInformedTwiceIntegratedGP):
+    r""""Discrete time-variant 1D Twice Integrated Gaussian Process (iiGP) model,
+    where acceleration is modelled with a GP as driving noise.
+    """
+
     @property
     def dynamics_coeff(self):
         return 0

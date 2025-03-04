@@ -592,7 +592,12 @@ class SingerApproximate(Singer):
 
 
 class SlidingWindowGPSE(SlidingWindowGP):
+    r"""Class implementation of a zero-mean sliding window GP transition model,
+    with the Squared Exponential (SE) covariance function (kernel).
 
+    Specify hyperparameters for the SE kernel through :py:attr:`kernel_params`.
+    For SE-based models, the hyperparameters are length_scale and kernel_variance.
+    """
     def kernel(self, t1, t2):
         l = self.kernel_params["length_scale"]
         var = self.kernel_params["kernel_variance"]
@@ -602,6 +607,10 @@ class SlidingWindowGPSE(SlidingWindowGP):
 
 
 class IntegratedGPSE(IntegratedGP):
+    r"""Class implementation of the iGP model,
+    where the driving GP has the Squared Exponential (SE) covariance function (kernel).
+    """
+
     @staticmethod
     @lru_cache
     def _scalar_kernel(t1, t2, length_scale, kernel_variance):
@@ -620,6 +629,9 @@ class IntegratedGPSE(IntegratedGP):
 
 
 class DynamicsInformedIntegratedGPSE(DynamicsInformedIntegratedGP):
+    r"""Class implementation of the iDGP model,
+    where the driving GP has the Squared Exponential (SE) covariance function (kernel).
+    """
 
     @staticmethod
     @lru_cache
@@ -651,7 +663,10 @@ class DynamicsInformedIntegratedGPSE(DynamicsInformedIntegratedGP):
         )
 
 class TwiceIntegratedGPSE(TwiceIntegratedGP):
-    
+    r"""Class implementation of the iiGP model,
+    where the driving GP has the Squared Exponential (SE) covariance function (kernel).
+    """
+
     @staticmethod
     @lru_cache
     def _scalar_kernel(t1, t2, length_scale, kernel_variance):
@@ -679,6 +694,9 @@ class TwiceIntegratedGPSE(TwiceIntegratedGP):
 
 
 class DynamicsInformedTwiceIntegratedGPSE(DynamicsInformedTwiceIntegratedGP):
+    r"""Class implementation of the iiDGP model,
+    where the driving GP has the Squared Exponential (SE) covariance function (kernel).
+    """
     @staticmethod
     @lru_cache
     def _scalar_kernel(t1, t2, dynamics_coeff, gp_coeff, length_scale, kernel_variance):
