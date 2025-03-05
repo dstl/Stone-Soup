@@ -590,6 +590,12 @@ class SingerApproximate(Singer):
 
 class SlidingWindowGP(LinearGaussianTransitionModel, TimeVariantModel):
     r"""Discrete model implementing a sliding window zero-mean Gaussian process (GP).
+
+    By default, the GP has the Squared Exponential (SE) covariance function (kernel).
+    The :py:meth:`kernel` can be overridden to implement different kernels.
+
+    Specify hyperparameters for the SE kernel through :py:attr:`kernel_params`.
+    For SE-based models, the hyperparameters are length_scale and kernel_variance.
     """
 
     window_size: int = Property(doc="Size of the sliding window :math:`L`")
@@ -605,12 +611,12 @@ class SlidingWindowGP(LinearGaussianTransitionModel, TimeVariantModel):
     def ndim_state(self):
         return self.window_size
 
-    @abstractmethod
     def kernel(self, t1, t2, **kwargs) -> np.ndarray:
-        """Covariance function (kernel) of the Gaussian Process.
+        """SE Covariance function (kernel) of the Gaussian Process.
 
         Computes the covariance matrix between two time vectors using a
         kernel function.
+        Override this method to implement different kernels.
 
         Parameters
         ----------
@@ -624,7 +630,11 @@ class SlidingWindowGP(LinearGaussianTransitionModel, TimeVariantModel):
             The covariance matrix between the input arrays `t1` and `t2`.
             Each entry (i, j) represents the covariance between `t1[i]` and `t2[j]`.
         """
-        raise NotImplementedError
+        l = self.kernel_params["length_scale"]
+        var = self.kernel_params["kernel_variance"]
+        t1 = t1.reshape(-1, 1)
+        t2 = t2.reshape(1, -1)
+        return var * np.exp(-0.5 * ((t1 - t2)/l) ** 2)
 
     def matrix(self, track, time_interval, **kwargs):
         """Model matrix :math:`F`
@@ -708,6 +718,10 @@ class SlidingWindowGP(LinearGaussianTransitionModel, TimeVariantModel):
 class DynamicsInformedIntegratedGP(SlidingWindowGP):
     r"""Discrete time-variant 1D Dynamics Informed Integrated Gaussian Process (iDGP) model,
     where velocity is modelled as a first order DE, with a GP as driving noise.
+
+    By default, the driving GP has the SE covariance function.
+    :py:meth:`scalar_kernel()` can be overridden to implement different kernels for cases where
+    the driving GP has a different kernel.
     """
 
     markov_approx: int = Property(doc="Order of Markov Approximation. 1 or 2", default=1)
@@ -783,13 +797,38 @@ class DynamicsInformedIntegratedGP(SlidingWindowGP):
     
     def _invoke_scalar_kernel(self, t1, t2):
         """Unpacks kernel paramaters and passes it to kernel method to enable caching."""
-        return self._scalar_kernel(
+        return self.scalar_kernel(
             t1, t2, dynamics_coeff=self.dynamics_coeff, gp_coeff=self.gp_coeff, **self.kernel_params)
 
     @staticmethod
-    @abstractmethod
-    def _scalar_kernel(t1, t2, **kwargs):
-        raise NotImplementedError
+    @lru_cache
+    def scalar_kernel(t1, t2, dynamics_coeff, gp_coeff, length_scale, kernel_variance):
+        """iDSE kernel."""
+        # length_scale and kernel_variance are from the dictionary self.kernel_params
+        # the dict is unpacked in _invoke_kernel in DynamicsInformedIntegratedGP
+        a = dynamics_coeff
+        b = gp_coeff
+        l = length_scale
+        var = kernel_variance
+        return (b ** 2) * var * np.sqrt(np.pi / 2) * l * (
+                    DynamicsInformedIntegratedGP._h(a, l, t2, t1)
+                    + DynamicsInformedIntegratedGP._h(a, l, t1, t2)
+                )
+
+    @staticmethod
+    @lru_cache
+    def _h(a, l, t1, t2):
+        """Helper function for iDSE kernel."""
+        l_s = l * np.sqrt(2)
+        gma = -a * l_s / 2
+        t1_s = t1 / l_s
+        t2_s = t2 / l_s
+        diff_s = (t1 - t2) / l_s
+        
+        return ((np.exp(gma ** 2)) / (-2 * a)) * (
+            np.exp(a * (t1 - t2)) * (erf(diff_s - gma) + erf(t2_s + gma))
+            - np.exp(a * (t1 + t2)) * (erf(t1_s - gma) + erf(gma))
+        )
 
 
 class DynamicsInformedTwiceIntegratedGP(DynamicsInformedIntegratedGP):
@@ -818,145 +857,24 @@ class DynamicsInformedTwiceIntegratedGP(DynamicsInformedIntegratedGP):
         Fmat_mean = expm(A_mean * dt)  # 2x2 sub-transition matrix for [mean_pos, mean_vel]
         Fmat[d:, d:] = Fmat_mean
         return Fmat
-
-
-class SlidingWindowGPSE(SlidingWindowGP):
-    r"""Class implementation of a zero-mean sliding window GP transition model,
-    with the Squared Exponential (SE) covariance function (kernel).
-
-    Specify hyperparameters for the SE kernel through :py:attr:`kernel_params`.
-    For SE-based models, the hyperparameters are length_scale and kernel_variance.
-    """
-    def kernel(self, t1, t2):
-        l = self.kernel_params["length_scale"]
-        var = self.kernel_params["kernel_variance"]
-        t1 = t1.reshape(-1, 1)
-        t2 = t2.reshape(1, -1)
-        return var * np.exp(-0.5 * ((t1 - t2)/l) ** 2)
-
-
-class IntegratedGPSE(DynamicsInformedIntegratedGP):
-    r"""Class implementation of the iGP model,
-    where the driving GP has the Squared Exponential (SE) covariance function (kernel).
-    """
-
-    @property
-    def dynamics_coeff(self):
-        return 0
     
-    @property
-    def gp_coeff(self):
-        return 1
-
     @staticmethod
     @lru_cache
-    def _scalar_kernel(t1, t2, dynamics_coeff, gp_coeff, length_scale, kernel_variance):
-        l = length_scale
-        var = kernel_variance
-        return np.sqrt(2 * np.pi) * l * var * (
-                    IntegratedGPSE._h(l, t1, 0) + IntegratedGPSE._h(l, 0, t2)
-                    - IntegratedGPSE._h(l, t1, t2) - 2 / np.sqrt(2 * np.pi)
-                    ) 
-
-    @staticmethod
-    @lru_cache
-    def _h(l, t1, t2):
-        """Helper function for _scalar_kernel."""        
-        return (t1 - t2) * norm.cdf((t1 - t2) / l) + l**2 * norm.pdf(t1, loc=t2, scale=l)
-
-
-class DynamicsInformedIntegratedGPSE(DynamicsInformedIntegratedGP):
-    r"""Class implementation of the iDGP model,
-    where the driving GP has the Squared Exponential (SE) covariance function (kernel).
-    """
-
-    @staticmethod
-    @lru_cache
-    def _scalar_kernel(t1, t2, dynamics_coeff, gp_coeff, length_scale, kernel_variance):
-        # length_scale and kernel_variance are from the dictionary self.kernel_params
-        # the dict is unpacked in _invoke_kernel in DynamicsInformedIntegratedGP
-        a = dynamics_coeff
-        b = gp_coeff
-        l = length_scale
-        var = kernel_variance
-        return (b ** 2) * var * np.sqrt(np.pi / 2) * l * (
-                    DynamicsInformedIntegratedGPSE._h(a, l, t2, t1)
-                    + DynamicsInformedIntegratedGPSE._h(a, l, t1, t2)
-                )
-
-    @staticmethod
-    @lru_cache
-    def _h(a, l, t1, t2):
-        """Helper function for _dynamics_informed_kernel."""
-        l_s = l * np.sqrt(2)
-        gma = -a * l_s / 2
-        t1_s = t1 / l_s
-        t2_s = t2 / l_s
-        diff_s = (t1 - t2) / l_s
-        
-        return ((np.exp(gma ** 2)) / (-2 * a)) * (
-            np.exp(a * (t1 - t2)) * (erf(diff_s - gma) + erf(t2_s + gma))
-            - np.exp(a * (t1 + t2)) * (erf(t1_s - gma) + erf(gma))
-        )
-
-class TwiceIntegratedGPSE(DynamicsInformedTwiceIntegratedGP):
-    r"""Class implementation of the iiGP model,
-    where the driving GP has the Squared Exponential (SE) covariance function (kernel).
-    """
-
-    @property
-    def dynamics_coeff(self):
-        return 0
-    
-    @property
-    def gp_coeff(self):
-        return 1
-
-    @staticmethod
-    @lru_cache
-    def _scalar_kernel(t1, t2, dynamics_coeff, gp_coeff, length_scale, kernel_variance):
-        l = length_scale
-        var = kernel_variance
-        h = IntegratedGPSE._h
-        h2 = TwiceIntegratedGPSE._h2
-    
-        s1 = 0.5 * t2 * h2(l, t1) - 0.5 * t1 * h2(l, -t2)
-
-        s2 = (1 / 6) * ((t1 - t2) ** 2 * h(l, t1, t2) - t1 ** 2 * h(l, t1, 0) - t2 ** 2 * h(l, 0, t2)
-                        + l ** 4 * (norm.pdf(0, t2, l) + norm.pdf(t1, 0, l) - norm.pdf(t1, t2, l)))
-
-        s3 = 0.5 * l ** 2 * (h(l, t1, t2) - h(l, 0, t2) - h(l, t1, 0))
-
-        s4 = (l / np.sqrt(2 * np.pi)) * (t1 * t2 - l ** 2 / 3)
-
-        return np.sqrt(2 * np.pi) * l * var * (s1 + s2 + s3 - s4)
-
-    @staticmethod
-    @lru_cache
-    def _h2(l, t):
-        """Helper function for _scalar_kernel."""        
-        return t * IntegratedGPSE._h(l, t, 0) + l**2 * norm.cdf(t / l) - l**2 * norm.cdf(0)
-
-
-class DynamicsInformedTwiceIntegratedGPSE(DynamicsInformedTwiceIntegratedGP):
-    r"""Class implementation of the iiDGP model,
-    where the driving GP has the Squared Exponential (SE) covariance function (kernel).
-    """
-    @staticmethod
-    @lru_cache
-    def _scalar_kernel(t1, t2, dynamics_coeff, gp_coeff, length_scale, kernel_variance):
+    def scalar_kernel(t1, t2, dynamics_coeff, gp_coeff, length_scale, kernel_variance):
+        """iiDSE kernel."""
         a = dynamics_coeff
         b = gp_coeff
         l = length_scale
         var = kernel_variance
         gma = -l * a / np.sqrt(2)
         return -((np.sqrt(2 * np.pi) * (b**2) * var * l * np.exp(gma**2))/(4 * a))\
-                * (DynamicsInformedTwiceIntegratedGPSE._h(l, a, t1, t2)
-                   + DynamicsInformedTwiceIntegratedGPSE._h(l, a, t2, t1))
+                * (DynamicsInformedTwiceIntegratedGP._h(l, a, t1, t2)
+                   + DynamicsInformedTwiceIntegratedGP._h(l, a, t2, t1))
 
     @staticmethod
     @lru_cache
     def _h(l, a, t1, t2):
+        """Helper function for iiDSE kernel."""
         gma = -l * a / np.sqrt(2)
         l_s = l * np.sqrt(2)
         diff_s = (t2 - t1) / l_s
@@ -981,6 +899,80 @@ class DynamicsInformedTwiceIntegratedGPSE(DynamicsInformedTwiceIntegratedGP):
 
         result = (l_s * np.exp(-gma**2) / a) * s1  + (1 / (a**2)) * (s2)
         return result
+
+
+class IntegratedGP(DynamicsInformedIntegratedGP):
+    r"""Class implementation of the iGP model,
+    where the driving GP has the Squared Exponential (SE) covariance function (kernel).
+
+    To implement driving GPs with differnet kernels, override scalar_kernel() with covariance function of
+    GP modelling position.
+    """
+
+    @property
+    def dynamics_coeff(self):
+        return 0
+    
+    @property
+    def gp_coeff(self):
+        return 1
+
+    @staticmethod
+    @lru_cache
+    def scalar_kernel(t1, t2, dynamics_coeff, gp_coeff, length_scale, kernel_variance):
+        """iSE kernel."""
+        l = length_scale
+        var = kernel_variance
+        return np.sqrt(2 * np.pi) * l * var * (
+                    IntegratedGP._h(l, t1, 0) + IntegratedGP._h(l, 0, t2)
+                    - IntegratedGP._h(l, t1, t2) - 2 / np.sqrt(2 * np.pi)
+                    ) 
+
+    @staticmethod
+    @lru_cache
+    def _h(l, t1, t2):
+        """Helper function for iSE kernel."""        
+        return (t1 - t2) * norm.cdf((t1 - t2) / l) + l**2 * norm.pdf(t1, loc=t2, scale=l)
+
+
+class TwiceIntegratedGP(DynamicsInformedTwiceIntegratedGP):
+    r"""Class implementation of the iiGP model,
+    where the driving GP has the Squared Exponential (SE) covariance function (kernel).
+    """
+
+    @property
+    def dynamics_coeff(self):
+        return 0
+    
+    @property
+    def gp_coeff(self):
+        return 1
+
+    @staticmethod
+    @lru_cache
+    def scalar_kernel(t1, t2, dynamics_coeff, gp_coeff, length_scale, kernel_variance):
+        """iiSE kernel."""
+        l = length_scale
+        var = kernel_variance
+        h = IntegratedGP._h
+        h2 = TwiceIntegratedGP._h2
+    
+        s1 = 0.5 * t2 * h2(l, t1) - 0.5 * t1 * h2(l, -t2)
+
+        s2 = (1 / 6) * ((t1 - t2) ** 2 * h(l, t1, t2) - t1 ** 2 * h(l, t1, 0) - t2 ** 2 * h(l, 0, t2)
+                        + l ** 4 * (norm.pdf(0, t2, l) + norm.pdf(t1, 0, l) - norm.pdf(t1, t2, l)))
+
+        s3 = 0.5 * l ** 2 * (h(l, t1, t2) - h(l, 0, t2) - h(l, t1, 0))
+
+        s4 = (l / np.sqrt(2 * np.pi)) * (t1 * t2 - l ** 2 / 3)
+
+        return np.sqrt(2 * np.pi) * l * var * (s1 + s2 + s3 - s4)
+
+    @staticmethod
+    @lru_cache
+    def _h2(l, t):
+        """Helper function for iiSE kernel."""        
+        return t * IntegratedGP._h(l, t, 0) + l**2 * norm.cdf(t / l) - l**2 * norm.cdf(0)
 
 
 class KnownTurnRateSandwich(LinearGaussianTransitionModel, TimeVariantModel):
