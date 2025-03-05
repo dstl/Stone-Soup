@@ -1,4 +1,5 @@
 import datetime
+import pickle
 
 import numpy as np
 import pytest
@@ -11,6 +12,8 @@ from ..prediction import (
     GaussianStatePrediction, GaussianMeasurementPrediction,
     SqrtGaussianStatePrediction, TaggedWeightedGaussianStatePrediction,
     ParticleStatePrediction, ParticleMeasurementPrediction,
+    RaoBlackwellisedParticleStatePrediction, MultiModelParticleStatePrediction,
+    BernoulliParticleStatePrediction,
     ASDGaussianStatePrediction, ASDGaussianMeasurementPrediction, KernelParticleStatePrediction)
 from ..state import (
     State, GaussianState, SqrtGaussianState, TaggedWeightedGaussianState, ParticleState)
@@ -48,6 +51,23 @@ def test_prediction_prior():
     assert pred1.prior is None
     assert update1.hypothesis.prediction.prior is None
     assert pred2.prior is update1
+
+    pickle.dumps(pred1)
+
+
+@pytest.mark.parametrize(
+    'particle_class', [ParticleStatePrediction, MultiModelParticleStatePrediction,
+                       RaoBlackwellisedParticleStatePrediction, BernoulliParticleStatePrediction])
+def test_particle_parent_parent(particle_class):
+    state1 = particle_class([[1, 2, 3]], weight=np.full((3, ), 1/3))
+    state2 = particle_class([[2, 3, 1]], weight=np.full((3, ), 1/3), parent=state1)
+    state3 = particle_class([[3, 1, 2]], weight=np.full((3, ), 1/3), prior=state2, parent=state2)
+
+    del state1  # All remaining references should be weak
+
+    assert state3.prior.parent is None
+
+    pickle.dumps(state3)
 
 
 def test_statemeasurementprediction():

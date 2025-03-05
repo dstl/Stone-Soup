@@ -1,3 +1,5 @@
+import pickle
+
 import numpy as np
 
 from ..particle import Particle
@@ -19,3 +21,5 @@ def test_particle():
 
     assert particle3.parent is particle2
     assert particle3.parent.parent is None
+
+    pickle.dumps(particle3)

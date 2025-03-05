@@ -54,6 +54,7 @@ This is equivalent to the following:
 
 """
 import inspect
+import sys
 import textwrap
 from reprlib import Repr
 from abc import ABCMeta
@@ -461,3 +462,7 @@ class Base(metaclass=BaseMeta):
         fillvalue = Base._repr.fillvalue
         truncate = f'\n{fillvalue}\n{fillvalue}  (truncated due to length)\n{fillvalue}'
         return ''.join([rep[:max_out], truncate]) if len(rep) > max_out else rep
+
+    if sys.version_info < (3, 11):
+        def __getstate__(self):
+            return self.__dict__.copy()
