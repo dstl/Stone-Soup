@@ -15,8 +15,29 @@ from stonesoup.predictor.base import Predictor
 from stonesoup.predictor.kalman import SqrtKalmanPredictor
 from stonesoup.types.hypothesis import SingleHypothesis
 
+import warnings
 
-class PriorAsProposal(Proposal):
+__all__ = ["DynamicsProposal", "KalmanProposal"]
+
+DEPRECATED_NAMES = [("PriorAsProposal", "DynamicsProposal"), ("KFasProposal", "KalmanProposal")]
+
+
+def __getattr__(name):
+    for old_name, new_name in DEPRECATED_NAMES:
+        if name == old_name:
+            warnings.warn(f"The '{old_name}' class or function has renamed to '{new_name}' "
+                          f"and will be removed in a future release.",
+                          DeprecationWarning,
+                          stacklevel=2)
+            return globals()[new_name]
+    raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
+
+
+def __dir__():
+    return sorted(__all__ + [names[0] for names in DEPRECATED_NAMES])
+
+
+class DynamicsProposal(Proposal):
     """Proposal that uses the dynamics model as the importance density.
     This proposal uses the dynamics model to predict the next state, and then
     uses the predicted state as the prior for the measurement model.
@@ -61,7 +82,7 @@ class PriorAsProposal(Proposal):
                                      prior=prior)
 
 
-class KFasProposal(Proposal):
+class KalmanProposal(Proposal):
     """This proposal uses the Kalman filter prediction and update steps to
     generate new set of particles and weights
     """
