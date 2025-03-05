@@ -1,9 +1,6 @@
 import math
-from datetime import timedelta
 from collections.abc import Sequence
 from functools import lru_cache
-from abc import abstractmethod
-from typing import Optional
 
 import numpy as np
 from scipy.integrate import quad
@@ -11,7 +8,7 @@ from scipy.linalg import block_diag, expm, solve
 from scipy.stats import norm
 from scipy.special import erf
 
-from .base import (TransitionModel, CombinedGaussianTransitionModel)
+from .base import TransitionModel, CombinedGaussianTransitionModel
 from ..base import (LinearModel, GaussianModel, TimeVariantModel,
                     TimeInvariantModel)
 from ...base import Property
