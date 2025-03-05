@@ -127,13 +127,6 @@ class ConstantNthDerivative(LinearGaussianTransitionModel, TimeVariantModel):
         return self.constant_derivative + 1
 
     def matrix(self, time_interval, **kwargs):
-        """Model matrix :math:`F`
-
-        Returns
-        -------
-        : :class:`numpy.ndarray` of shape\
-        (:py:attr:`~ndim_state`, :py:attr:`~ndim_state`)
-        """
         time_interval_sec = time_interval.total_seconds()
         N = self.constant_derivative
         Fmat = np.zeros((N + 1, N + 1))
