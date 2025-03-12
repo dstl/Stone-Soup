@@ -793,7 +793,7 @@ class CartesianToElevationBearingRangeRate(_AngleNonLinearGaussianMeasurement, R
     Note
     ----
     This class implementation assuming at 3D cartesian space, it therefore \
-    expects a 6D state space.
+    expects a 6D or 9D state space.
     """
 
     translation_offset: StateVector = Property(
@@ -867,7 +867,7 @@ class CartesianToElevationBearingRangeRate(_AngleNonLinearGaussianMeasurement, R
 
         inv_rotation_matrix = inv(self.rotation_matrix)
 
-        out_vector = StateVector([[0.], [0.], [0.], [0.], [0.], [0.]])
+        out_vector = StateVector(np.zeros((self.ndim_state)))
         out_vector[self.mapping, 0] = x, y, z
         out_vector[self.velocity_mapping, 0] = x_rate, y_rate, z_rate
 
@@ -910,7 +910,7 @@ class CartesianToElevationBearingRangeRate(_AngleNonLinearGaussianMeasurement, R
         xyz_pos = self.rotation_matrix @ xyz_pos
         xyz_vel = self.rotation_matrix @ xyz_vel
 
-        jac = np.zeros((4, 6), dtype=np.float64)
+        jac = np.zeros((4, self.ndim_state), dtype=np.float64)
 
         x, y, z = xyz_pos
         vx, vy, vz = xyz_vel
@@ -923,45 +923,45 @@ class CartesianToElevationBearingRangeRate(_AngleNonLinearGaussianMeasurement, R
 
         # Jacobian encodes partial derivatives of measurement vector components
         # Y = <theta, phi, r, rdot> against state vector
-        # X = <x, vx, y, vy, z, vz>.
+        # X = <x, vx, y, vy, z, vz> or <x, vx, ax, y, vy, ay, z, vz, az>.
 
         # dtheta/dx
         sqrt_x2_y2r2 = sqrt_x2_y2*r2
-        jac[0, 0] = -(x*z)/(sqrt_x2_y2r2)
+        jac[0, self.mapping[0]] = -(x*z)/(sqrt_x2_y2r2)
 
         # dtheta/dy
-        jac[0, 2] = -(y*z)/(sqrt_x2_y2r2)
+        jac[0, self.mapping[1]] = -(y*z)/(sqrt_x2_y2r2)
 
-        # dthtea/dz
-        jac[0, 4] = sqrt_x2_y2/r2
+        # dtheta/dz
+        jac[0, self.mapping[2]] = sqrt_x2_y2/r2
 
         # dphi/dx
-        jac[1, 0] = - y/(x2y2)
+        jac[1, self.mapping[0]] = - y/(x2y2)
 
         # dphi/dy
-        jac[1, 2] = x/(x2y2)
+        jac[1, self.mapping[1]] = x/(x2y2)
 
         # dphi/dz = 0
 
         # dr/dx and drdot/dvx
-        jac[2, 0] = jac[3, 1] = x/r
+        jac[2, self.mapping[0]] = jac[3, self.velocity_mapping[0]] = x/r
 
-        # dr/dx and drdot/dvy
-        jac[2, 2] = jac[3, 3] = y/r
+        # dr/dy and drdot/dvy
+        jac[2, self.mapping[1]] = jac[3, self.velocity_mapping[1]] = y/r
 
-        # dr/dx and drdot/dvz
-        jac[2, 4] = jac[3, 5] = z/r
+        # dr/dz and drdot/dvz
+        jac[2, self.mapping[2]] = jac[3, self.velocity_mapping[2]] = z/r
 
         vx_x, vy_y, vz_z = vx*x, vy*y, vz*z
 
         # drdot/dx
-        jac[3, 0] = (-x*(vy_y + vz_z) + vx*(y2 + z2))/r32
+        jac[3, self.mapping[0]] = (-x*(vy_y + vz_z) + vx*(y2 + z2))/r32
 
         # drdot/dy
-        jac[3, 2] = (vy*(x2 + z2) - y*(vx_x + vz_z))/r32
+        jac[3, self.mapping[1]] = (vy*(x2 + z2) - y*(vx_x + vz_z))/r32
 
         # drdot/dz
-        jac[3, 4] = (vz*(x2y2) - (vx_x + vy_y)*z)/r32
+        jac[3, self.mapping[2]] = (vz*(x2y2) - (vx_x + vy_y)*z)/r32
 
         # Up to this point, the Jacobian has been with respect to the state
         # vector after rotating into the RADAR coordinate system. However, we
