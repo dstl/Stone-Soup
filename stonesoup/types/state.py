@@ -766,6 +766,12 @@ class ParticleState(State):
         else:
             return self._property_parent
 
+    def __getstate__(self):
+        state = super().__getstate__().copy()
+        # Resolve weakref
+        state['_property_parent'] = self.parent
+        return state
+
     @classmethod
     def from_state(cls, state: 'State', *args: Any, target_type: Optional[typing.Type] = None,
                    **kwargs: Any) -> 'State':

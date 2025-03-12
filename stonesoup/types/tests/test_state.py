@@ -1,5 +1,6 @@
 import copy
 import datetime
+import pickle
 
 import numpy as np
 import pytest
@@ -372,9 +373,9 @@ def test_particlestate_cache():
     'particle_class', [ParticleState, MultiModelParticleState, RaoBlackwellisedParticleState,
                        BernoulliParticleState])
 def test_particle_parent_parent(particle_class):
-    state1 = ParticleState([[1, 2, 3]], weight=np.full((3, ), 1/3))
-    state2 = ParticleState([[2, 3, 1]], weight=np.full((3, ), 1/3), parent=state1)
-    state3 = ParticleState([[3, 1, 2]], weight=np.full((3, ), 1/3), parent=state2)
+    state1 = particle_class([[1, 2, 3]], weight=np.full((3, ), 1/3))
+    state2 = particle_class([[2, 3, 1]], weight=np.full((3, ), 1/3), parent=state1)
+    state3 = particle_class([[3, 1, 2]], weight=np.full((3, ), 1/3), parent=state2)
 
     assert state2.parent is state1
     assert state3.parent is state2
@@ -384,6 +385,8 @@ def test_particle_parent_parent(particle_class):
 
     assert state3.parent is state2
     assert state3.parent.parent is None
+
+    pickle.dumps(state3)
 
 
 def test_ensemblestate():

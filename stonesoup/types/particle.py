@@ -34,6 +34,12 @@ class Particle(Type):
         else:
             return self._property_parent
 
+    def __getstate__(self):
+        state = super().__getstate__().copy()
+        # Resolve weakref
+        state['_property_parent'] = self.parent
+        return state
+
 
 class MultiModelParticle(Particle):
     """
