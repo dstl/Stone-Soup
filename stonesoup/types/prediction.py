@@ -39,7 +39,7 @@ class Prediction(Type, CreatableFromState):
             return self._property_prior
 
     def __getstate__(self):
-        state = super().__getstate__()
+        state = super().__getstate__().copy()
         # Resolve weakref
         state['_property_prior'] = self.prior
         return state

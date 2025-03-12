@@ -465,4 +465,4 @@ class Base(metaclass=BaseMeta):
 
     if sys.version_info < (3, 11):
         def __getstate__(self):
-            return self.__dict__.copy()
+            return self.__dict__
