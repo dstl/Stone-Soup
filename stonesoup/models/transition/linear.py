@@ -578,17 +578,20 @@ class SingerApproximate(Singer):
         return CovarianceMatrix(covar)
 
 
-class SlidingWindowGP(LinearGaussianTransitionModel, TimeVariantModel):
-    r"""Discrete model implementing a sliding window zero-mean Gaussian process (GP).
+class SimpleMarkovianGP(LinearGaussianTransitionModel, TimeVariantModel):
+    r"""Discrete model implementing a Markovian zero-mean Gaussian process (GP).
 
     By default, the GP has the Squared Exponential (SE) covariance function (kernel).
     The :py:meth:`kernel` can be overridden to implement different kernels.
+
+    We apply the Markovian approximation :math:`P(x_t \mid x_{1:t-1}) \approx P(x_t \mid \mathbf{x}_{t-1})`,
+    limiting the state vector to length :math:`d`, containing the last :math:`d` states.
 
     Specify hyperparameters for the SE kernel through :py:attr:`kernel_params`.
     For SE-based models, the hyperparameters are length_scale and kernel_variance.
     """
 
-    window_size: int = Property(doc="Size of the sliding window :math:`L`")
+    window_size: int = Property(doc="Size of the state vector :math:`d`")
     epsilon: float = Property(
         doc="Small constant added to diagonal of covariance matrix", default=1e-6)
     kernel_params: dict = Property(doc="Dictionary containing the keyword arguments for the kernel.")
@@ -705,7 +708,7 @@ class SlidingWindowGP(LinearGaussianTransitionModel, TimeVariantModel):
         return time_vector.reshape(-1, 1)
 
 
-class DynamicsInformedIntegratedGP(SlidingWindowGP):
+class DynamicsInformedIntegratedGP(SimpleMarkovianGP):
     r"""Discrete time-variant 1D Dynamics Informed Integrated Gaussian Process (iDGP) model,
     where velocity is modelled as a first order DE, with a GP as driving noise.
 
