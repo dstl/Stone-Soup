@@ -70,7 +70,7 @@ class FIFOMultiDataFeeder(_QueueMultiDataFeeder):
     """FIFO Multi-data Feeder
 
     This returns data from multiple data readers as a single stream,
-    where each reader is consumed in separate thread and put into a
+    where each reader is consumed in a separate thread and put into a
     queue. The data is consumed first in, first out.
 
     This is aimed at sources of data that are real-time streams, for
@@ -86,7 +86,7 @@ class LIFOMultiDataFeeder(_QueueMultiDataFeeder):
     """LIFO Multi-data Feeder
 
     This returns data from multiple data readers as a single stream,
-    where each reader is consumed in separate thread and put into a
+    where each reader is consumed in a separate thread and put into a
     queue. The data is consumed last in, first out.
 
     This is aimed at sources of data that are real-time streams, for
@@ -102,7 +102,7 @@ class PriorityMultiDataFeeder(_QueueMultiDataFeeder):
     """Priority Multi-data Feeder
 
     This returns data from multiple data readers as a single stream,
-    where each reader is consumed in separate thread and put into a
+    where each reader is consumed in a separate thread and put into a
     queue. The data is consumed prioritised by time, earlier to later.
 
     This is aimed at sources of data that are real-time streams, for
@@ -137,7 +137,7 @@ class MaxSizePriorityMultiDataFeeder(_QueueMultiDataFeeder):
     """Max Size Priority Multi-data Feeder
 
     This returns data from multiple data readers as a single stream,
-    where each reader is consumed in separate thread and put into a
+    where each reader is consumed in a separate thread and put into a
     queue. The data is consumed prioritised by time, earlier to later.
 
     Unlike :class:`~.PriorityMultiDataFeeder`, rather than blocking
