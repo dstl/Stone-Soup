@@ -25,7 +25,7 @@ from ..updater.kalman import ExtendedKalmanUpdater
 class SinglePointInitiator(GaussianInitiator):
     """SinglePointInitiator class
 
-    This uses an :class:`~.ExtendedKalmanUpdater` to carry out an update using
+    This uses an :class:`~.Updater` to carry out an update using
     provided :attr:`prior_state` for each unassociated detection.
     """
 
@@ -34,6 +34,14 @@ class SinglePointInitiator(GaussianInitiator):
         default=None,
         doc="Measurement model. Can be left as None if all detections have a "
             "valid measurement model.")
+    updater: Updater = Property(
+        default=None,
+        doc="Updater to use. Defaults to `None` where EKF will be used.")
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        if self.updater is None:
+            self.updater = ExtendedKalmanUpdater(self.measurement_model)
 
     def initiate(self, detections, timestamp, **kwargs):
         """Initiates tracks given unassociated measurements
@@ -51,13 +59,11 @@ class SinglePointInitiator(GaussianInitiator):
             A list of new tracks with an initial :class:`~.GaussianState`
         """
 
-        updater = ExtendedKalmanUpdater(self.measurement_model)
-
         tracks = set()
         for detection in detections:
-            measurement_prediction = updater.predict_measurement(
+            measurement_prediction = self.updater.predict_measurement(
                 self.prior_state, detection.measurement_model)
-            track_state = updater.update(SingleHypothesis(
+            track_state = self.updater.update(SingleHypothesis(
                 self.prior_state, detection, measurement_prediction))
             track = Track([track_state])
             tracks.add(track)
