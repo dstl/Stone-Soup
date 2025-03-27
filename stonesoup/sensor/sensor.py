@@ -1,7 +1,6 @@
 from abc import abstractmethod, ABC
 from collections.abc import Sequence
-from typing import Union
-
+from typing import Union, Optional
 import numpy as np
 
 from ..sensormanager.action import Actionable
@@ -77,14 +76,19 @@ class Sensor(PlatformMountable, Actionable):
 
 class SimpleSensor(Sensor, ABC):
 
+    seed: Optional[int] = Property(default=None, doc="Seed for random number generation")
     clutter_model: ClutterModel = Property(
         default=None,
         doc="An optional clutter generator that adds a set of simulated "
             ":class:`Clutter` objects to the measurements at each time step. "
             "The clutter is simulated according to the provided distribution.")
 
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.random_state = np.random.RandomState(self.seed) if self.seed is not None else None
+
     def measure(self, ground_truths: set[GroundTruthState], noise: Union[np.ndarray, bool] = True,
-                **kwargs) -> set[TrueDetection]:
+                random_state=None, **kwargs) -> set[TrueDetection]:
 
         measurement_model = self.measurement_model
 
@@ -92,11 +96,14 @@ class SimpleSensor(Sensor, ABC):
                                     if self.is_detectable(truth, measurement_model)]
 
         if noise is True:
+            random_state = random_state if random_state is not None else self.random_state
             if len(detectable_ground_truths) > 1:
                 noise_vectors_iter = iter(measurement_model.rvs(len(detectable_ground_truths),
+                                                                random_state=random_state,
                                                                 **kwargs))
             else:
-                noise_vectors_iter = iter([measurement_model.rvs(**kwargs)])
+                noise_vectors_iter = iter([measurement_model.rvs(random_state=random_state,
+                                                                 **kwargs)])
 
         detections = set()
         for truth in detectable_ground_truths:
