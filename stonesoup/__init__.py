@@ -9,12 +9,12 @@ except PackageNotFoundError:
     pass
 
 __copyright__ = '''\
-© Crown Copyright 2017-2024 Defence Science and Technology Laboratory UK
-© Crown Copyright 2018-2024 Defence Research and Development Canada / Recherche et développement pour la défense Canada
-© Copyright 2018-2024 University of Liverpool UK
-© Copyright 2020-2024 Fraunhofer FKIE
-© Copyright 2020-2024 John Hiles
-© Copyright 2021-2024 Roke Manor Research Ltd UK
-© Copyright 2023-2024 Loughborough University UK
+© Crown Copyright 2017-2025 Defence Science and Technology Laboratory UK
+© Crown Copyright 2018-2025 Defence Research and Development Canada / Recherche et développement pour la défense Canada
+© Copyright 2018-2025 University of Liverpool UK
+© Copyright 2020-2025 Fraunhofer FKIE
+© Copyright 2020-2025 John Hiles
+© Copyright 2021-2025 Roke Manor Research Ltd UK
+© Copyright 2023-2025 Loughborough University UK
 '''  # noqa: E501
 __license__ = 'MIT'
