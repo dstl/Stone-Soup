@@ -1,6 +1,7 @@
 import datetime
 
 from pytest import approx
+import pytest
 import numpy as np
 from scipy.stats import multivariate_normal
 
@@ -8,20 +9,21 @@ from ..linear import RandomWalk
 from ....types.state import State
 
 
-def test_rwodel():
+@pytest.mark.parametrize('sign', [1, -1])
+def test_rwodel(sign):
     """ RandomWalk Transition Model test """
 
     # State related variables
     state = State(np.array([[3.0]]))
     old_timestamp = datetime.datetime.now()
-    timediff = 1  # 1sec
+    timediff = 1 * sign  # 1sec
     new_timestamp = old_timestamp + datetime.timedelta(seconds=timediff)
     time_interval = new_timestamp - old_timestamp
 
     # Model-related components
     noise_diff_coeff = 0.001  # m/s^2
     F = np.array([[1]])
-    Q = np.array([[timediff]]) * noise_diff_coeff
+    Q = np.array([[abs(timediff)]]) * noise_diff_coeff
 
     # Create and a Random Walk model object
     rw = RandomWalk(noise_diff_coeff=noise_diff_coeff)
