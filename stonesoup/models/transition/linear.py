@@ -648,8 +648,8 @@ class KnownTurnRateSandwich(LinearGaussianTransitionModel, TimeVariantModel):
         covar_list = [model.covar(time_interval) for model in self.model_list]
         ctc1 = np.array([[q1*dt**3/3, q1*dt**2/2],
                          [q1*dt**2/2, q1*dt]])
-        ctc2 = np.array([[q1*dt**3/3, q1*dt**2/2],
-                         [q1*dt**2/2, q1*dt]])
+        ctc2 = np.array([[q2*dt**3/3, q2*dt**2/2],
+                         [q2*dt**2/2, q2*dt]])
         return CovarianceMatrix(block_diag(ctc1, *covar_list, ctc2))
 
 

@@ -11,7 +11,7 @@ from ....types.state import State
 def test_ctmodel():
     """ KnownTurnRate Transition Model test """
     state = State(np.array([[3.0], [1.0], [2.0], [1.0]]))
-    turn_noise_diff_coeffs = np.array([0.01, 0.01])
+    turn_noise_diff_coeffs = np.array([0.01, 0.02])
     turn_rate = 0.1
     base(KnownTurnRate, state, turn_noise_diff_coeffs, turn_rate)
 
