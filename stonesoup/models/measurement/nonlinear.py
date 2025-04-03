@@ -58,6 +58,9 @@ class CombinedReversibleGaussianMeasurementModel(ReversibleModel, GaussianModel,
         return np.vstack([model.function(state, **kwargs)
                           for model in self.model_list]).view(StateVector)
 
+    def jacobian(self, state, **kwargs):
+        return np.vstack([model.jacobian(state, **kwargs) for model in self.model_list])
+
     @staticmethod
     def _linear_inverse_function(model, state, **kwargs):
         model_matrix = model.matrix(**kwargs)
