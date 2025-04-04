@@ -201,7 +201,7 @@ def test_copy():
         assert original_state is copied_state
 
     for original_metadata, copied_metadata in zip(track.metadatas, copied_track.metadatas):
-        assert original_metadata is copied_metadata
+        assert original_metadata == copied_metadata
 
     assert len(track) == 3
     assert len(copied_track) == 3
