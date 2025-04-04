@@ -94,7 +94,7 @@ class RealNumberActionGenerator(ActionGenerator):
         raise NotImplementedError
 
     @abstractmethod
-    def action_from_value(self):
+    def action_from_value(self, value):
         raise NotImplementedError
 
 
