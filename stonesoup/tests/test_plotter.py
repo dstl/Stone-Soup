@@ -419,6 +419,85 @@ def test_plotters_plot_measurements_2d(plotter_class, _measurements):
 
 @pytest.mark.parametrize(
     "plotter_class",
+    [Plotterly, AnimationPlotter, PolarPlotterly, AnimatedPlotterly,
+     AnimatedPolarPlotterly], indirect=True)
+@pytest.mark.parametrize(
+    "_measurements, _show_clutter",
+    [(list(), True), (list(), False), (clutter_measurement_set, False)])
+def test_plotters_plot_measurements_empty_silent(plotter_class, _measurements, _show_clutter):
+    plotter = plotter_class()
+    plotter.plot_measurements(_measurements, [0, 2], show_clutter=_show_clutter)
+
+
+@pytest.mark.parametrize(
+    "_measurements, _show_clutter",
+    [(list(), True), (list(), False), (clutter_measurement_set, False)])
+def test_plotters_plot_measurements_empty_warn(_measurements, _show_clutter):
+    with pytest.warns(UserWarning, match="No artists with labels found to put in legend"):
+        plotter = Plotter()
+        plotter.plot_measurements(_measurements, [0, 2], show_clutter=_show_clutter)
+
+
+@pytest.mark.parametrize(
+    "_measurements, _show_clutter, expected_plot_truths_length",
+    [(true_measurements, True, len(true_measurements)),
+     (true_measurements, False, len(true_measurements)),
+     (all_measurements, False, len(true_measurements)),
+     (clutter_measurements, False, None)])
+# Ignore this warning which occurs when there is no data to plot (e.g. last test case here)
+@pytest.mark.filterwarnings("ignore:.*No artists with labels found to put in legend.*:UserWarning")
+def test_plotters_plot_measurements_count_no_clutter(_measurements, _show_clutter,
+                                                     expected_plot_truths_length):
+    plotter = Plotter()
+    artist_list = plotter.plot_measurements(_measurements, [0, 2], show_clutter=_show_clutter)
+
+    expected_number_of_artists = 1  # there is always a legend artist at the end
+    if expected_plot_truths_length is not None:
+        expected_number_of_artists += 1
+    assert len(artist_list) == expected_number_of_artists
+
+    if expected_plot_truths_length is not None:
+        truths_artist = artist_list[0]
+        actual_plot_truths_length = len(truths_artist.get_offsets())
+        assert actual_plot_truths_length == expected_plot_truths_length
+
+
+@pytest.mark.parametrize(
+    "_measurements, _show_clutter, expected_plot_truths_length, expected_plot_clutter_length",
+    [(all_measurements, True, len(true_measurements), len(clutter_measurements)),
+     (clutter_measurements, True, None, len(clutter_measurements))])
+def test_plotters_plot_measurements_count_with_clutter(_measurements, _show_clutter,
+                                                       expected_plot_truths_length,
+                                                       expected_plot_clutter_length):
+    plotter = Plotter()
+    artist_list = plotter.plot_measurements(_measurements, [0, 2], show_clutter=_show_clutter)
+
+    truths_expected = expected_plot_truths_length is not None
+    clutter_expected = expected_plot_clutter_length is not None
+    expected_number_of_artists = 1  # there is always a legend artist at the end
+    if truths_expected:
+        expected_number_of_artists += 1
+    if clutter_expected:
+        expected_number_of_artists += 1
+    assert len(artist_list) == expected_number_of_artists
+
+    if truths_expected:
+        # If truths are present in the plot, they are always the first artist
+        actual_plot_truths_length = len(artist_list[0].get_offsets())
+        assert actual_plot_truths_length == expected_plot_truths_length
+    elif clutter_expected:
+        # If no truths but clutter is present, clutter will be the first artist
+        actual_plot_clutter_length = len(artist_list[0].get_offsets())
+        assert actual_plot_clutter_length == expected_plot_clutter_length
+
+    if truths_expected and clutter_expected:
+        # If both are present, clutter will be the second artist (and we already checked truths)
+        actual_plot_clutter_length = len(artist_list[1].get_offsets())
+        assert actual_plot_clutter_length == expected_plot_clutter_length
+
+
+@pytest.mark.parametrize(
+    "plotter_class",
     [Plotter, Plotterly, AnimationPlotter, PolarPlotterly, AnimatedPlotterly,
      AnimatedPolarPlotterly], indirect=True)
 def test_plotters_plot_tracks(plotter_class):
@@ -493,6 +572,26 @@ def test_plotterlys_plot_measurements_label(plotter_class, _measurements, expect
     assert actual_labels == expected_labels
 
 
+@pytest.mark.parametrize("plotter_class",
+                         [Plotterly, PolarPlotterly, AnimatedPlotterly, PolarPlotterly],
+                         indirect=True)
+@pytest.mark.parametrize("_measurements, _show_clutter, expected_labels",
+                         [(true_measurements, True, {'Measurements'}),
+                          (true_measurements, False, {'Measurements'}),
+                          (clutter_measurements, True, {'Measurements<br>(Clutter)'}),
+                          (clutter_measurements, False, set()),
+                          (all_measurements, True, {'Measurements<br>(Detections)',
+                                                    'Measurements<br>(Clutter)'}),
+                          (all_measurements, False, {'Measurements'})
+                          ])
+def test_plotterlys_plot_measurements_label_adjust_clutter(plotter_class, _measurements,
+                                                           _show_clutter, expected_labels):
+    plotter = plotter_class()
+    plotter.plot_measurements(_measurements, [0, 2], show_clutter=_show_clutter)
+    actual_labels = {fig_data.legendgroup for fig_data in plotter.fig.data}
+    assert actual_labels == expected_labels
+
+
 @pytest.mark.parametrize("_measurements, expected_labels",
                          [(true_measurements, {'Measurements'}),
                           (clutter_measurements, {'Measurements\n(Clutter)'}),
@@ -502,5 +601,25 @@ def test_plotterlys_plot_measurements_label(plotter_class, _measurements, expect
 def test_plotter_plot_measurements_label(_measurements, expected_labels):
     plotter = Plotter()
     plotter.plot_measurements(_measurements, [0, 2])
+    actual_labels = set(plotter.legend_dict.keys())
+    assert actual_labels == expected_labels
+
+
+@pytest.mark.parametrize("_measurements, _show_clutter, expected_labels",
+                         [(true_measurements, True, {'Measurements'}),
+                          (true_measurements, False, {'Measurements'}),
+                          (clutter_measurements, True, {'Measurements\n(Clutter)'}),
+                          (clutter_measurements, False, set()),
+                          (all_measurements, True, {'Measurements\n(Detections)',
+                                                    'Measurements\n(Clutter)'}),
+                          (all_measurements, False, {'Measurements'})
+                          ])
+@pytest.mark.filterwarnings("ignore:.*No artists with labels found to put in legend.*:UserWarning")
+# Ignore this warning which occurs when there is no data to plot
+def test_plotter_plot_measurements_label_adjust_clutter(_measurements,
+                                                        _show_clutter,
+                                                        expected_labels):
+    plotter = Plotter()
+    plotter.plot_measurements(_measurements, [0, 2], show_clutter=_show_clutter)
     actual_labels = set(plotter.legend_dict.keys())
     assert actual_labels == expected_labels
