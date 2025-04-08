@@ -2,7 +2,7 @@
 
 """
 Bayesian Search with a Moving Platform
-=========================
+======================================
 This example builds on the introduction to Bayesian search given in the first example, found
 :doc:`here <bayesian_search_example_1>`.
 
@@ -449,7 +449,8 @@ for timestep in timesteps[1:]:
 #     </video>
 #     <br>
 #
-# |
+# | 
+#
 # As expected, at each timestep the platform and sensor move to the neighbouring group of cells
 # that has the highest total probability of containing the target.
 #

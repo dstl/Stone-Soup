@@ -2,7 +2,7 @@
 
 """
 Introduction to Bayesian Search - A Simple 1D Example
-=========================
+=====================================================
 This scenario provides the simplest example of using Bayesian search in Stone Soup.
  
 The paper accompanying this work, '*Open Source Tools for Bayesian Search*' `[1] <#references>`_,
@@ -589,7 +589,8 @@ sensor_history_s, search_cell_history_s, probs_s = search_loop(prior, sensor3, N
 #     <br>
 
 # %%
-# |
+# | 
+# 
 # In this plot we see optimised Bayesian search in effect, as the cell probabilities are updated at
 # each timestep and the sensor moves to observe the next most likely cell.
 
