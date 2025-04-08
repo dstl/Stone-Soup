@@ -206,8 +206,8 @@ sensormanager = BruteForceSensorManager(platforms={platform},
 # %%
 # Running the Scenario
 # --------------------
-# Aside from the addition of the platform, the search loop here is very similar to that of the 
-# previous example. At each timstep we move the sensor and platform, make an observation and update
+# Aside from the addition of the platform, the search loop here is very similar to that of the
+# previous example. At each timestep we move the sensor and platform, make an observation and update
 # the particle weights accordingly.
 
 

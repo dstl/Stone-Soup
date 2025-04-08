@@ -32,10 +32,10 @@ can be found `here <https://doi.org/10.1117/12.3012763>`_.
 # #.  Repeat steps 2 and 3 until all targets are found.
 #
 # There are many ways of extending this base process. For example, other parameters, such as
-# information gain, search effort or physical contraints, could be inlcuded in the objective
+# information gain, search effort or physical constraints, could be included in the objective
 # function. There is also scope to change how the action space is represented (discretely or
 # continuously), and how the process of action selection is performed and optimised (e.g. myopic
-# vs. non-myopic, brute force vs. heurisitc algorithms, application of machine learning).
+# vs. non-myopic, brute force vs. heuristic algorithms, application of machine learning).
 #
 # When implementing Bayesian search, it is mathematically convenient to divide the search space
 # into a number of discrete cells. Each cell can then be assigned a probability of containing a
@@ -47,15 +47,17 @@ can be found `here <https://doi.org/10.1117/12.3012763>`_.
 # cell, respectively. :math:`p_d` is used to represent the probability of actually detecting a
 # target when looking in the correct cell.
 #
-# After each observation, assuming the target is not found, we update our cell probabilties such
+# After each observation, assuming the target is not found, we update our cell probabilities such
 # that:
-# 
-# .. math:: `w_k^{C} = w_{k-1}^{C}{\frac {1-p_d} {1-w_{k-1}^{C} p_d}}`
+#
+# .. math::
+#           w_k^{C} = w_{k-1}^{C}{\frac {1-p_d} {1-w_{k-1}^{C} p_d}}
 #   :label: eq_1
 #  
 # if a cell is within our field of view, and:
-# 
-# .. math:: `w_k^{¬C} = {\frac {w_{k-1}^{¬C}} {1-w_{k-1}^{C} p_d}}`
+#
+# .. math::
+#           w_k^{¬C} = {\frac {w_{k-1}^{¬C}} {1-w_{k-1}^{C} p_d}}
 #   :label: eq_2
 #  
 # if it is not.
@@ -107,8 +109,7 @@ can be found `here <https://doi.org/10.1117/12.3012763>`_.
 # We begin with some generic imports and simulation variables that will be used throughout the
 # notebook.
 
-
-import copy
+from copy import copy, deepcopy
 from datetime import datetime, timedelta
 import numpy as np
 import plotly.graph_objects as go
@@ -169,9 +170,7 @@ sensor.timestamp = start_time
 # within the sensor's FOV.
 
 
-from copy import copy, deepcopy
 def sumofweightsreward(config, undetectmap, timestamp):
-    
     predicted_sensors = set()
     # for each sensor and action in our prospective configuration
     for sensor, actions in config.items():
@@ -207,7 +206,7 @@ def sumofweightsreward(config, undetectmap, timestamp):
 # To compare Bayesian search to some other approaches, we will employ three different sensor
 # management algorithms:
 #
-# *  for **Bayesian search** we will use the :class:`~.OptimizedBruteSensorManager`, which uses an
+# *  for **Bayesian search** we will use the :class:`~.OptimizeBruteSensorManager`, which uses an
 #    exhaustive, brute force algorithm to calculate the probability of target detection
 #    corresponding to each action from a subset of those available to the sensor.
 # 
@@ -241,17 +240,16 @@ sensor3 = deepcopy(sensor)  # doesn't require a sensor manager
 # origin. Though possible to represent this continuously, it is more mathematically convenient to
 # split our simulation space into discrete cells and populate each cell with a probability of
 # target existence. Here, we choose to split the search space around the sensor into 24 cells.
-# 
+#
 # To showcase the power of Bayesian search, we must ensure our target prior probability
 # distribution is not uniform. By using a uniform distribution, we claim to have no prior knowledge
 # of target location - it could be anywhere. This leads to the Bayesian search pattern being the
 # same as a heuristic linear sweep. From this, we could naively conclude that Bayesian search is
 # the same as using set search patterns, which is not true.
-# 
+#
 # Ideally, contextual information about the search environment would be used to create a prior
-# probability distribution. However in this case we will simply generate and store a bimodal
+# probability distribution. However, in this case we will simply generate and store a bimodal
 # probability distribution for our prior estimate of the target's location.
-
 
 # find angles from sensor (located at origin) to each cell
 angles = np.linspace(0, 2*np.pi, n_cells, endpoint=False)
@@ -361,8 +359,8 @@ def search_loop(prior, sensor, sensormanager, timesteps, prob_det, seq_flag=Fals
                 next_state.weight = next_state.weight/(1-weight*prob_det)
                 # then correct the probability for cell j (eq. 4)
                 next_state.weight[j] = weight * (1-prob_det)/(1-weight*prob_det)
-        
-        # updated search cell states becomes prior for next time step
+
+        # updated search cell states becomes the prior for next time step
         current_state = next_state
         
         # save search cell state
@@ -384,14 +382,13 @@ def search_loop(prior, sensor, sensormanager, timesteps, prob_det, seq_flag=Fals
 
 
 sensor_history_b, search_cell_history_b, probs_b = search_loop(prior, sensor1,
-                                                                 optbrutesensormanager, timesteps, 
-                                                                 prob_det)
+                                                               optbrutesensormanager, timesteps,
+                                                               prob_det)
 sensor_history_r, search_cell_history_r, probs_r = search_loop(prior, sensor2,
-                                                                 randomsensormanager, timesteps,
-                                                                 prob_det)
+                                                               randomsensormanager, timesteps,
+                                                               prob_det)
 sensor_history_s, search_cell_history_s, probs_s = search_loop(prior, sensor3, None, timesteps,
-                                                                 prob_det, seq_flag=True)
-
+                                                               prob_det, seq_flag=True)
 
 # %%
 # Visualising the Simulations
@@ -420,8 +417,8 @@ sensor_history_s, search_cell_history_s, probs_s = search_loop(prior, sensor3, N
 #     def particles_to_tracks(search_cell_history, sim_length, n_cells, x_pos, y_pos, timesteps):
 #    
 #         weights = [[float(weight) for weight in cell_group.weight]
-#                for cell_group in search_cell_history] 
-#    
+#                for cell_group in search_cell_history]
+#
 #         tracks = [Track(
 #             [GaussianState(state_vector=[30*x_pos[i], 0, 30*y_pos[i], 0],
 #                             covar=np.diag([400*weights[j][i], 0,
@@ -602,8 +599,7 @@ prob_found_plot.add_trace(go.Scatter(y=probs_r, name="Random"))
 prob_found_plot.update_layout(title="Expected probability of finding target vs search effort",
                               xaxis_title="Search effort (no. actions taken)",
                               yaxis_title="Probability of having detected target",
-                              xaxis_range=[0,16])
-
+                              xaxis_range=[0, 16])
 
 # %%
 # The second plot allows us to compare the performance of the three search strategies. Both
