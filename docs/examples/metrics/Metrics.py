@@ -322,8 +322,6 @@ hypothesiser_PF = DistanceHypothesiser(predictor_PF, updater_PF,
                                        measure=Mahalanobis(), missed_distance=4)
 data_associator_PF = GNNWith2DAssignment(hypothesiser_PF)
 
-init_predictor_PF = ParticlePredictor(init_transition_model)
-
 from stonesoup.initiator.simple import GaussianParticleInitiator
 from stonesoup.types.state import GaussianState
 from stonesoup.initiator.simple import SimpleMeasurementInitiator

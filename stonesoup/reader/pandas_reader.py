@@ -62,10 +62,10 @@ class _DataFrameReader(Reader):
 class DataFrameGroundTruthReader(GroundTruthReader, _DataFrameReader):
     """A custom reader for pandas DataFrames containing truth data.
 
-    The DataFrame must have colums containing all fields needed to generate the
+    The DataFrame must have columns containing all fields needed to generate the
     ground truth state. Those states with the same ID will be put into
-    a :class:`~.GroundTruthPath` in sequence, and all paths that are updated at the same time
-    are yielded together, and such assumes file is in time order.
+    a :class:`~.GroundTruthPath` in sequence. All paths that are updated at the same time
+    are yielded together. Assume DataFrame is in time order.
 
     Parameters
     ----------
@@ -106,14 +106,13 @@ class DataFrameGroundTruthReader(GroundTruthReader, _DataFrameReader):
 class DataFrameDetectionReader(DetectionReader, _DataFrameReader):
     """A custom detection reader for DataFrames containing detections.
 
-    DataFrame must have headers with the appropriate fields needed to generate
-    the detection. Detections at the same time are yielded together, and such assume file is in
-    time order.
+    The DataFrame must have columns containing all fields needed to generate the detection.
+    Detections at the same time are yielded together. Assume DataFrame is in time order.
 
     Parameters
     ----------
     """
-    dataframe: pd.DataFrame = Property(doc="DataFrame containing the ground truth data.")
+    dataframe: pd.DataFrame = Property(doc="DataFrame containing the detections data.")
 
     @BufferedGenerator.generator_method
     def detections_gen(self):
