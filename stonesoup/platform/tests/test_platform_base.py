@@ -831,9 +831,23 @@ gt = GroundTruthPath(
      for i in range(2)])
 
 
-def test_path():
-    platform = PathBasedPlatform(path=GroundTruthPath(states=gt),
-                                 states=[gt[0]],
+@pytest.mark.parametrize("states", [None, [gt[0]]])
+def test_path(states):
+    platform = PathBasedPlatform(path=gt,
+                                 states=states,
+                                 position_mapping=[0],
+                                 transition_model=None)
+    platform.move(timestamp=start_time + datetime.timedelta(seconds=1))
+    assert len(platform.states) == 2
+    assert np.allclose(platform.states[-1].state_vector, GroundTruthState([-0.5, 1]).state_vector)
+
+    with pytest.raises(
+            IndexError, match="timestamp not found in states"):
+        gt[platform.states[-1].timestamp]
+
+
+def test_path_no_states():
+    platform = PathBasedPlatform(path=gt,
                                  position_mapping=[0],
                                  transition_model=None)
     platform.move(timestamp=start_time + datetime.timedelta(seconds=1))
