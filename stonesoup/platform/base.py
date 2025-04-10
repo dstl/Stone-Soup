@@ -199,5 +199,10 @@ class PathBasedPlatform(MovingPlatform):
                                      "This is for use in cases when platform paths are imported "
                                      "from external data, e.g., from a CSV file")
 
+    def __init__(self, *args, **kwargs):
+        if "states" not in kwargs.keys() or kwargs["states"] is None:
+            kwargs["states"] = [kwargs["path"][0]]
+        super().__init__(*args, **kwargs)
+
     def move(self, timestamp: datetime):
         self.states.append(interpolate_state_mutable_sequence(self.path, [timestamp]))
