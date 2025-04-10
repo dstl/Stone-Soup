@@ -1,7 +1,10 @@
 import uuid
 from collections.abc import MutableSequence
+from datetime import datetime
+
 
 from ..base import Property, Base
+from ..functions.interpolate import interpolate_state_mutable_sequence
 from ..movable import Movable, FixedMovable, MovingMovable, MultiTransitionMovable
 from ..sensor.sensor import Sensor
 from ..types.groundtruth import GroundTruthPath
@@ -189,3 +192,19 @@ class MovingPlatform(Platform):
 
 class MultiTransitionMovingPlatform(Platform):
     _default_movable_class = MultiTransitionMovable
+
+
+class PathBasedPlatform(MovingPlatform):
+    path: GroundTruthPath = Property(doc="Ground truth path used for the platform. "
+                                     "This is for use in cases when platform paths are imported "
+                                     "from external data, e.g., from a CSV file")
+
+    def __init__(self, *args, **kwargs):
+        if "states" not in kwargs.keys() or kwargs["states"] is None:
+            kwargs["states"] = [kwargs["path"][0]]
+        if "transition_model" not in kwargs.keys():
+            kwargs["transition_model"] = None
+        super().__init__(*args, **kwargs)
+
+    def move(self, timestamp: datetime):
+        self.states.append(interpolate_state_mutable_sequence(self.path, [timestamp]))
