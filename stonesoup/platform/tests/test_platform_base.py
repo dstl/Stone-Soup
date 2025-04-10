@@ -10,9 +10,10 @@ from stonesoup.movable import FixedMovable, MovingMovable
 from stonesoup.sensor.sensor import Sensor
 from stonesoup.types.angle import Bearing
 from stonesoup.types.array import StateVector
-from stonesoup.platform import MovingPlatform, FixedPlatform, MultiTransitionMovingPlatform
+from stonesoup.platform import MovingPlatform, FixedPlatform, \
+    MultiTransitionMovingPlatform, PathBasedPlatform
 from ...types.state import State
-from ...types.groundtruth import GroundTruthPath
+from ...types.groundtruth import GroundTruthPath, GroundTruthState
 
 
 def test_base():
@@ -822,3 +823,23 @@ def test_setting_movement_controller_sensors():
     platform.movement_controller = moving
 
     assert platform.movement_controller is sensor.movement_controller
+
+
+start_time = datetime.datetime.now().replace(second=0, microsecond=0)
+gt = GroundTruthPath(
+    [GroundTruthState([-i, 1], timestamp=start_time + datetime.timedelta(seconds=2*i))
+     for i in range(2)])
+
+
+def test_path():
+    platform = PathBasedPlatform(path=GroundTruthPath(states=gt),
+                                 states=[gt[0]],
+                                 position_mapping=[0],
+                                 transition_model=None)
+    platform.move(timestamp=start_time + datetime.timedelta(seconds=1))
+    assert len(platform.states) == 2
+    assert np.allclose(platform.states[-1].state_vector, GroundTruthState([-0.5, 1]).state_vector)
+
+    with pytest.raises(
+            IndexError, match="timestamp not found in states"):
+        gt[platform.states[-1].timestamp]
