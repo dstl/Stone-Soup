@@ -202,6 +202,8 @@ class PathBasedPlatform(MovingPlatform):
     def __init__(self, *args, **kwargs):
         if "states" not in kwargs.keys() or kwargs["states"] is None:
             kwargs["states"] = [kwargs["path"][0]]
+        if "transition_model" not in kwargs.keys():
+            kwargs["transition_model"] = None
         super().__init__(*args, **kwargs)
 
     def move(self, timestamp: datetime):

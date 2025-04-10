@@ -846,10 +846,9 @@ def test_path(states):
         gt[platform.states[-1].timestamp]
 
 
-def test_path_no_states():
+def test_path_no_states_no_tm():
     platform = PathBasedPlatform(path=gt,
-                                 position_mapping=[0],
-                                 transition_model=None)
+                                 position_mapping=[0])
     platform.move(timestamp=start_time + datetime.timedelta(seconds=1))
     assert len(platform.states) == 2
     assert np.allclose(platform.states[-1].state_vector, GroundTruthState([-0.5, 1]).state_vector)
