@@ -12,24 +12,25 @@ can be found `here <https://doi.org/10.1117/12.3012763>`_.
 # %%
 # Bayesian Search
 # ---------------
-# Implementations of sensor management often rely on the assumption that we have some knowledge
-# of a target's prior location. However, in a real scenario this is unlikely to be the case. It may
+# Implementations of sensor management often rely on the assumption that we have knowledge
+# of targets' prior states. However, in a real scenario this is unlikely to be the case. It may
 # be necessary to first search an environment in order to discover targets before we can start
-# tracking them. Bayesian search is one approach to this problem of searching for targets
+# tracking them. Bayesian search is one approach to the problem of searching for undetected targets
 # `[2] <#references>`_, and there are
 # `many examples <https://en.wikipedia.org/wiki/Bayesian_search_theory>`_ of its application in the
 # real world.
 # 
-# Bayesian search makes use of Bayesian statistics to incorporate prior beliefs about a target,
-# represented as a probability distribution, into the calculation of optimal search behaviours.
+# Bayesian search makes use of Bayesian statistics to incorporate prior beliefs about targets,
+# represented as a probability distributions, into the calculation of optimal search behaviours.
 # The process is as follows:
 # 
 # #.  Apply an initial probability distribution to the search space according to any prior beliefs
-#     we hold about the target's location.
+#     we hold about the target locations.
 # #.  Take the action that corresponds to the maximisation of some parameter of interest (e.g.
 #     probability of target detection).
 # #.  Update the probability distribution based on what we observe.
-# #.  Repeat steps 2 and 3 until all targets are found.
+# #.  Repeat steps 2 and 3 until the probability of targets remaining undetected drops below a 
+#     threshold.
 #
 # There are many ways of extending this base process. For example, other parameters, such as
 # information gain, search effort or physical constraints, could be included in the objective
@@ -43,11 +44,11 @@ can be found `here <https://doi.org/10.1117/12.3012763>`_.
 # 
 # Two equations are used to perform the update step (step 3). Adapting the notation from
 # `[1] <#references>`_, we will here use :math:`w_{k}^{C}` and :math:`w_{k}^{¬C}` to represent the
-# cell probabilities at timestep :math:`k` for an observed (:math:`C`) and unobserved (:math:`¬C`)
-# cell, respectively. :math:`p_d` is used to represent the probability of actually detecting a
-# target when looking in the correct cell.
+# probability that a cell contains a target at timestep :math:`k` for an observed (:math:`C`) and 
+# unobserved (:math:`¬C`) cell, respectively. :math:`p_d` is used to represent the probability of 
+# detecting a target when looking in a cell containing a target.
 #
-# After each observation, assuming the target is not found, we update our cell probabilities such
+# If, after observation, a target is not detected, we update each cell's probabilities such
 # that:
 #
 # .. math::
@@ -63,13 +64,13 @@ can be found `here <https://doi.org/10.1117/12.3012763>`_.
 # if it is not.
 #
 # Assuming an accurate but imperfect method of observation (:math:`0 < p_d < 1`), this has the
-# effect of increasing the probability of the target's existence in unobserved cells, while
+# effect of increasing the probability of target existence in unobserved cells, while
 # decreasing it in observed cells. Note that for an imperfect observation method, the probability
 # of existence will not drop to 0 after a target is not observed in a cell. This is because the
-# lack of a detection may be due to sensor noise/error (represented by :math: `p_d`), as opposed
+# lack of a detection may be due to sensor noise/error (represented by :math:`p_d`), as opposed
 # to the absence of the target.
 #
-# It should also be noted that this implementation of Bayesian search assumes a correct prior
+# It should also be noted that this implementation of Bayesian search assumes correct prior
 # knowledge of the expected number of targets. We also assume that false alarms are not
 # present.
 
@@ -128,7 +129,7 @@ timesteps = [start_time + timedelta(seconds=k) for k in range(simulation_length)
 # Initialise the Sensor
 # ---------------------
 # In this example we will be using a bearings-only sensor, with a fixed position, a 45 degree field
-# of view (FOV) and a rotation speed of 180 degrees per second.
+# of view (FOV) and a maximum rotation speed of 180 degrees per second.
 # 
 # We also define our probability of detection here, which will be used later when updating the
 # probability distribution in our search space at each timestep.
@@ -206,8 +207,10 @@ def sumofweightsreward(config, undetectmap, timestamp):
 # To compare Bayesian search to some other approaches, we will employ three different sensor
 # management algorithms:
 #
-# *  for **Bayesian search** we will use the :class:`~.OptimizeBruteSensorManager`, which uses an
-#    exhaustive, brute force algorithm to calculate the probability of target detection
+# *  for **Bayesian search** we will use the :class:`~.OptimizeBruteSensorManager`, which uses a
+#    brute force search over a defined input grid (see 
+#    [scipy.optimze.brute()](https://docs.scipy.org/doc/scipy/reference/generated/scipy.optimize.
+#    brute.html#scipy.optimize.brute)) to calculate the probability of target detection
 #    corresponding to each action from a subset of those available to the sensor.
 # 
 # We will compare Bayesian search with:
@@ -239,13 +242,13 @@ sensor3 = deepcopy(sensor)  # doesn't require a sensor manager
 # case the prior probability distribution will be spread around our sensor, which is located at the
 # origin. Though possible to represent this continuously, it is more mathematically convenient to
 # split our simulation space into discrete cells and populate each cell with a probability of
-# target existence. Here, we choose to split the search space around the sensor into 24 cells.
+# target existence. Here, we have choosen to split the search space around the sensor into 24 cells.
 #
 # To showcase the power of Bayesian search, we must ensure our target prior probability
 # distribution is not uniform. By using a uniform distribution, we claim to have no prior knowledge
 # of target location - it could be anywhere. This leads to the Bayesian search pattern being the
 # same as a heuristic linear sweep. From this, we could naively conclude that Bayesian search is
-# the same as using set search patterns, which is not true.
+# the same as using set search patterns.
 #
 # Ideally, contextual information about the search environment would be used to create a prior
 # probability distribution. However, in this case we will simply generate and store a bimodal
@@ -278,7 +281,7 @@ prior_weights = prior_weights / np.sum(prior_weights)
 # can be used to represent our probability distribution at each timestep.
 
 
-# create an x pos, y pos and velocity for each of the 24 cells in our search space
+# create an x pos, y pos and zero velocities for each of the 24 cells in our search space
 x_pos = np.cos(angles)
 y_pos = np.sin(angles)
 vel = [0] * n_cells
@@ -301,14 +304,14 @@ prior = ParticleState(state_vector=state_vectors,
 # The final thing we need to do is define our search loop.
 # At each timestep we:
 #
-# #. Get the best action from the sensor manager and move the sensor accordingly.
-# #. Make an observation (in this case we just assume the target was not found).
+# #. Get the action from the sensor manager and move the sensor accordingly.
+# #. Make an observation (in this case we assume the target was not found).
 # #. Update the probability distribution (based on the target not being found), by looping through
 #    each cell ( *j* ) within the sensor's FOV and:
 #
 #    a. Updating all non-*j* cells (both unobserved cells and other observed cells) to reflect the
 #       lack of detection in *j*. In this case, this increases the probability of the target being
-#       found in all other cells.
+#       in non-*j* cells.
 #    b. Updating the probability of *j*. In this case, this reduces the probability, as a
 #       relatively unlikely missed detection becomes the only way the target can be there.
 
@@ -351,13 +354,13 @@ def search_loop(prior, sensor, sensormanager, timesteps, prob_det, seq_flag=Fals
             pstate = ParticleState(particle)
             weight = next_state.weight[j]
             
-            # update particles according to eq. 4 and 5 of paper
+            # update particles according to eq. 1 and 2 above
             if sensor.is_detectable(pstate):
                 weight_in_view += weight 
                 # all other particles adjusted according to probability of not finding target in
-                # cell j (eq.5)
+                # cell j (eq.2)
                 next_state.weight = next_state.weight/(1-weight*prob_det)
-                # then correct the probability for cell j (eq. 4)
+                # then correct the probability for cell j (eq. 1)
                 next_state.weight[j] = weight * (1-prob_det)/(1-weight*prob_det)
 
         # updated search cell states becomes the prior for next time step
