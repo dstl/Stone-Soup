@@ -348,3 +348,44 @@ def test_measurement_kernel(kernel_class):
     measurement_covar = measurement_kernel(measurements)
     sv_covar = kernel(state_vectors)
     assert np.allclose(measurement_covar, sv_covar)
+
+
+@pytest.mark.parametrize(
+        "kernel_class,parameters,new_parameters",
+        [
+            (LinearKernel, dict(), dict()),
+            (QuadraticKernel, dict(c=1, ialpha=10), dict(c=2, ialpha=10)),
+            (QuarticKernel, dict(c=1, ialpha=10), dict(c=2, ialpha=10)),
+            (GaussianKernel, dict(variance=10), dict(variance=20))
+        ],
+        ids=["Linear", "Quadratic", "Quartic", "Gaussian"]
+        )
+def test_parameters(kernel_class, parameters, new_parameters):
+    kernel = kernel_class()
+    for k, v in kernel.parameters.items():
+        assert k in parameters.keys()
+        assert v == parameters[k]
+    kernel.update_parameters(new_parameters)
+    for k, v in new_parameters.items():
+        assert kernel.parameters[k] == v
+
+
+@pytest.mark.parametrize(
+        "kernel_class,primary_kernel_class,parameters,new_parameters",
+        [
+            (TrackKernel, LinearKernel, dict(), dict()),
+            (TrackKernel, QuadraticKernel, dict(c=1, ialpha=10), dict(c=2, ialpha=10)),
+            (MeasurementKernel, QuarticKernel, dict(c=1, ialpha=10), dict(c=2, ialpha=10)),
+            (MeasurementKernel, GaussianKernel, dict(variance=10), dict(variance=20))
+        ],
+        ids=["Linear", "Quadratic", "Quartic", "Gaussian"]
+        )
+def test_nested_parameters(kernel_class, primary_kernel_class, parameters, new_parameters):
+    kernel = primary_kernel_class()
+    kernel = kernel_class(kernel)
+    for k, v in kernel.parameters.items():
+        assert k in parameters.keys()
+        assert v == parameters[k]
+    kernel.update_parameters(new_parameters)
+    for k, v in new_parameters.items():
+        assert kernel.parameters[k] == v
