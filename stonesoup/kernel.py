@@ -37,6 +37,10 @@ class Kernel(Base):
             if parameter in kwargs.keys():
                 setattr(self, parameter, kwargs[parameter])
 
+    @property
+    def parameters(self):
+        return {parameter: getattr(self, parameter) for parameter in type(self).properties}
+
     @staticmethod
     def _get_state_vectors(state1, state2):
         if isinstance(state1, State):
@@ -225,6 +229,13 @@ class TrackKernel(Kernel):
     kernel: Kernel = Property(doc="Base Kernel class")
     mapping: list = Property(default=None, doc="List of mappings of the components to be used in "
                                                "the kernel from the state vector.")
+
+    @property
+    def parameters(self):
+        return self.kernel.parameters
+
+    def update_parameters(self, kwargs):
+        return self.kernel.update_parameters(kwargs)
 
     def _get_states(self, state1, state2):
         if state2 is None:
