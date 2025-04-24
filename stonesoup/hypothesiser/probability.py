@@ -148,7 +148,7 @@ class PDAHypothesiser(Hypothesiser):
             # Calculate difference before to handle custom types (mean defaults to zero)
             # This is required as log pdf coverts arrays to floats
             log_prob = multivariate_normal.logpdf(
-                (detection.state_vector - measurement_prediction.state_vector).ravel(),
+                (detection.state_vector - measurement_prediction.mean).ravel(),
                 cov=measurement_prediction.covar)
             probability = Probability(log_prob, log_value=True)
 
