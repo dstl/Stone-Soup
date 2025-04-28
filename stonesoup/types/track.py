@@ -1,6 +1,7 @@
 import copy
 import uuid
 from collections.abc import MutableSequence, MutableMapping
+from typing import Collection
 
 from .multihypothesis import MultipleHypothesis
 from .state import State, StateMutableSequence
@@ -31,6 +32,10 @@ class Track(StateMutableSequence):
         default={}, doc="Initial dictionary of metadata items for track. Default `None` which "
                         "initialises track metadata as an empty dictionary.")
 
+    sub_tracks: set = Property(
+        default=None,
+        doc="The initial sub tracks of the track. Default ``None`` will initialise an empty set.")
+
     def __init__(self, *args, **kwargs):
 
         super().__init__(*args, **kwargs)
@@ -41,6 +46,13 @@ class Track(StateMutableSequence):
             self._update_metadata_from_state(state)
         if self.id is None:
             self.id = str(uuid.uuid4())
+
+        if self.sub_tracks is None:
+            self.sub_tracks = set()
+        elif isinstance(self.sub_tracks, Track):
+            self.sub_tracks = set([self.sub_tracks])
+        elif isinstance(self.sub_tracks, Collection):
+            self.sub_tracks = set(self.sub_tracks)
 
     def __setitem__(self, index, value):
         super().__setitem__(index, value)
