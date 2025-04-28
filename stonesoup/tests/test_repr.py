@@ -38,7 +38,8 @@ def test_repr():
                                                  [15. ]]),
                        timestamp=1)],
             id=1,
-            init_metadata={})''')
+            init_metadata={},
+            sub_tracks=set())''')
     act_repr2 = repr(track)
     assert exp_repr2 == act_repr2
     too_big = State([0] * 500000)  # This should not print in its entirety as it is far too large
