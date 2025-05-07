@@ -32,9 +32,10 @@ class Track(StateMutableSequence):
         default={}, doc="Initial dictionary of metadata items for track. Default `None` which "
                         "initialises track metadata as an empty dictionary.")
 
-    sub_tracks: set = Property(
+    source_tracks: set = Property(
         default=None,
-        doc="The initial sub tracks of the track. Default ``None`` will initialise an empty set.")
+        doc="The initial source tracks for the track. Default ``None`` which initialises an empty"
+            "set.")
 
     def __init__(self, *args, **kwargs):
 
@@ -47,12 +48,12 @@ class Track(StateMutableSequence):
         if self.id is None:
             self.id = str(uuid.uuid4())
 
-        if self.sub_tracks is None:
-            self.sub_tracks = set()
-        elif isinstance(self.sub_tracks, Track):
-            self.sub_tracks = set([self.sub_tracks])
-        elif isinstance(self.sub_tracks, Collection):
-            self.sub_tracks = set(self.sub_tracks)
+        if self.source_tracks is None:
+            self.source_tracks = set()
+        elif isinstance(self.source_tracks, Track):
+            self.source_tracks = set([self.source_tracks])
+        elif isinstance(self.source_tracks, Collection):
+            self.source_tracks = set(self.source_tracks)
 
     def __setitem__(self, index, value):
         super().__setitem__(index, value)
