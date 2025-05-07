@@ -1,6 +1,7 @@
 import copy
 import uuid
 from collections.abc import MutableSequence, MutableMapping
+from typing import Collection
 
 from .multihypothesis import MultipleHypothesis
 from .state import State, StateMutableSequence
@@ -31,6 +32,11 @@ class Track(StateMutableSequence):
         default={}, doc="Initial dictionary of metadata items for track. Default `None` which "
                         "initialises track metadata as an empty dictionary.")
 
+    source_tracks: set = Property(
+        default=None,
+        doc="The initial source tracks for the track. Default ``None`` which initialises an empty"
+            "set.")
+
     def __init__(self, *args, **kwargs):
 
         super().__init__(*args, **kwargs)
@@ -41,6 +47,13 @@ class Track(StateMutableSequence):
             self._update_metadata_from_state(state)
         if self.id is None:
             self.id = str(uuid.uuid4())
+
+        if self.source_tracks is None:
+            self.source_tracks = set()
+        elif isinstance(self.source_tracks, Track):
+            self.source_tracks = set([self.source_tracks])
+        elif isinstance(self.source_tracks, Collection):
+            self.source_tracks = set(self.source_tracks)
 
     def __setitem__(self, index, value):
         super().__setitem__(index, value)
@@ -140,3 +153,13 @@ class Track(StateMutableSequence):
                 hypothesis = state.hypothesis
                 if hypothesis and hypothesis.measurement.metadata is not None:
                     self.metadata.update(hypothesis.measurement.metadata)
+
+    @property
+    def root_tracks(self) -> set:
+        """The set of tracks that have been used to create this track."""
+        root_tracks = set()
+        for track in self.source_tracks:
+            root_tracks.update(track.root_tracks)
+        if len(root_tracks) == 0:
+            root_tracks = set(self.source_tracks)
+        return root_tracks
