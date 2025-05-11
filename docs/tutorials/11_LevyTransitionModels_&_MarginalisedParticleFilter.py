@@ -4,11 +4,11 @@
 =============================================================
 11 - Tracking linear Levy transition models with the MPF
 =============================================================
-In line with the tutorial examples of the Kalman and particle 
-filters in Stone Soup, a simplified single-target tracking 
-example without clutter is provided here to demonstrate the 
-use of linear transition models driven by non-Gaussian Levy 
-noise, as well as how to perform inference tasks on this class 
+In line with the tutorial examples of the Kalman and particle
+filters in Stone Soup, a simplified single-target tracking
+example without clutter is provided here to demonstrate the
+use of linear transition models driven by non-Gaussian Levy
+noise, as well as how to perform inference tasks on this class
 of models using the Marginalized Particle Filter (MPF).
 """
 
@@ -22,7 +22,7 @@ import numpy as np
 from datetime import datetime, timedelta
 from stonesoup.types.groundtruth import GroundTruthPath, GroundTruthState
 from stonesoup.models.base_driver import NoiseCase
-from stonesoup.models.driver import AlphaStableNSMDriver 
+from stonesoup.models.driver import AlphaStableNSMDriver
 from stonesoup.models.transition.levy_linear import LevyLangevin, CombinedLinearLevyTransitionModel
 
 start_time = datetime.now().replace(microsecond=0)
@@ -60,7 +60,7 @@ start_time = datetime.now().replace(microsecond=0)
 # %%
 
 # Random seem for reproducibility
-seed = 1 
+seed = 1
 
 # Driving process parameters
 mu_W = 0
@@ -103,7 +103,7 @@ for k in range(1, num_steps + 1):
 # Note that the animated plotter requires a list of timesteps as an input, and that ``tail_length``
 # is set to 0.3. This means that each data point will be on display for 30% of the total
 # simulation time. The mapping argument is ``[0, 2]`` because those are the :math:`x` and
-# :math:`y` position indices from our state vector.
+# :math:`y` position indices from our state vector/Users/chongzhenyuen/Documents/iib-project/stonesoup/stonesoup/models.
 # If a static plotter is preferred, the :class:`Plotterly` class can be used instead.
 
 # from stonesoup.plotter import AnimatedPlotterly
@@ -238,8 +238,3 @@ plotter.fig
 # .. [#] Lemke, Tatjana, and Simon J. Godsill, 'Inference for models with asymmetric α -stable noise processes', in Siem Jan Koopman, and Neil Shephard (eds), Unobserved Components and Time Series Econometrics (Oxford, 2015; online edn, Oxford Academic, 21 Jan. 2016)
 # 
 # .. [#] S. Godsill, M. Riabiz, and I. Kontoyiannis, “The L ́evy state space model,” in 2019 53rd Asilomar Conference on Signals, Systems, and Computers, 2019, pp. 487–494.
-
-
-
-
-

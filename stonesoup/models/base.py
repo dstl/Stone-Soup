@@ -436,8 +436,7 @@ class Latents:
 
 class LevyModel(Model):
     """
-    Class to be derived from for Levy models.
-    For now, we consider only conditionally Gaussian ones
+    Class to be derived from for conditionally Gaussian Levy models.
     """
 
     driver: Union[ConditionallyGaussianDriver, GaussianDriver] = Property(

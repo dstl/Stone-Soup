@@ -145,7 +145,7 @@ class CombinedGaussianTransitionModel(TransitionModel, GaussianModel):
 class CombinedLevyTransitionModel(TransitionModel, LevyModel):
     r"""Combine multiple models into a single model by stacking them.
 
-    The assumption is that all models are Gaussian.
+    The assumption is that all models are conditionally Gaussian Levy.
     Time Variant, and Time Invariant models can be combined together.
     If any of the models are time variant the keyword argument "time_interval"
     must be supplied to all methods

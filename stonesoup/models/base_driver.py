@@ -51,7 +51,9 @@ class LevyDriver(Driver):
 class ConditionallyGaussianDriver(LevyDriver):
     """Conditional Gaussian Levy noise driver.
 
-    Noise samples are generated according to the Levy State-Space Model by Godsill et al.
+    Noise samples are generated according to the Levy State-Space Model, which are Gaussian
+    when conditioned on latent variables in the form of jump times and sizes. The
+    latent variables may be non-Gaussian.
     """
 
     c: np.double = Property(doc="Truncation parameter, expected no. jumps per unit time.")
