@@ -3,9 +3,11 @@ from operator import attrgetter
 from textwrap import dedent
 
 import numpy as np
+
 import pytest
 
-from ..generic import CSVDetectionReader, CSVGroundTruthReader
+from ...types.array import StateVector
+from ..generic import CSVDetectionReader, CSVGroundTruthReader, DictionaryGroundTruthReader
 
 
 @pytest.fixture()
@@ -295,3 +297,43 @@ def test_tsv(tmpdir):
         assert 'identifier' in detection.metadata.keys()
         assert int(detection.metadata['z']) == 30 + n
         assert detection.metadata['identifier'] == '22018332'
+
+
+def test_dict_gt_reader():
+    gt_dict_test = [
+        dict(name="Red Ten", x=0, y=0, t=datetime.datetime(2025, 5, 12, 0, 0, 0)),
+        dict(name="Red Ten", x=0, y=1, t=datetime.datetime(2025, 5, 12, 0, 0, 1)),
+        dict(name="Red Five", x=1, y=0, t=datetime.datetime(2025, 5, 12, 0, 0, 1)),
+        dict(name="Red Ten", x=0, y=2, t=datetime.datetime(2025, 5, 12, 0, 0, 2)),
+        dict(name="Red Five", x=2, y=0, t=datetime.datetime(2025, 5, 12, 0, 0, 2)),
+    ]
+
+    gt_reader = DictionaryGroundTruthReader(
+        dictionaries=gt_dict_test,
+        state_vector_fields=["x", "y"],
+        time_field="t",
+        path_id_field="name"
+    )
+
+    gt_reader_iter = iter(gt_reader)
+
+    time, gts = next(gt_reader_iter)
+    assert time == datetime.datetime(2025, 5, 12, 0, 0, 0)
+    assert len(gts) == 1
+    gt = next(iter(gts))
+    assert gt.id == 'Red Ten'
+    assert np.array_equal(gt.state_vector, StateVector([0, 0]))
+
+    time, gts = next(gt_reader_iter)
+    assert time == datetime.datetime(2025, 5, 12, 0, 0, 1)
+    assert len(gts) == 2
+
+    time, gts = next(gt_reader_iter)
+    assert time == datetime.datetime(2025, 5, 12, 0, 0, 2)
+    assert len(gts) == 2
+
+    r5, r10 = sorted(gts, key=len)
+    assert len(r5) == 2
+    r5.id = 'Red Five'
+    assert len(r10) == 3
+    r5.id = 'Red Ten'

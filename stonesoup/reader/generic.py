@@ -76,6 +76,15 @@ class _DictReader(Reader):
         return time_field_value
 
 
+class _DictionaryReader(_DictReader):
+    dictionaries: Iterator[dict] = Property(
+        doc='A source of :class:`dict` data that contains state information.')
+
+    @property
+    def dict_reader(self) -> Iterator[dict]:
+        yield from self.dictionaries
+
+
 class _CSVReader(_DictReader, TextFileReader):
     csv_options: Mapping = Property(
         default={}, doc='Keyword arguments for the underlying csv reader')
@@ -139,6 +148,10 @@ class _DictGroundTruthReader(GroundTruthReader, _DictReader):
         return {self.path_id_field} | super()._default_metadata_fields_to_ignore
 
 
+class DictionaryGroundTruthReader(_DictGroundTruthReader, _DictionaryReader):
+    """TODO"""
+
+
 class CSVGroundTruthReader(_DictGroundTruthReader, _CSVReader):
     """A simple reader for csv files of truth data.
 
@@ -181,6 +194,10 @@ class _DictDetectionReader(DetectionReader, _DictReader):
 
         # Yield remaining
         yield previous_time, detections
+
+
+class DictionaryDetectionReader(_DictDetectionReader, _DictionaryReader):
+    """TODO"""
 
 
 class CSVDetectionReader(_DictDetectionReader, _CSVReader):
