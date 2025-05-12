@@ -152,7 +152,17 @@ class _DictGroundTruthReader(GroundTruthReader, _DictReader):
 
 
 class DictionaryGroundTruthReader(_DictGroundTruthReader, _DictionaryReader):
-    """TODO"""
+    """A :class:`GroundTruthReader` class for reading in :class:`GroundTruthPath`ss from a sequence
+    of dictionaries.
+
+    The dictionaries must contain all fields needed to generate the
+    ground truth states. Those states with the same ID will be put into
+    a :class:`~.GroundTruthPath` in sequence. All paths that are updated at the same time
+    are yielded together. It is assumed that the input dictionaries are in time order.
+
+    Parameters
+    ----------
+    """
 
 
 class CSVGroundTruthReader(_DictGroundTruthReader, _CSVReader):
@@ -200,7 +210,16 @@ class _DictDetectionReader(DetectionReader, _DictReader):
 
 
 class DictionaryDetectionReader(_DictDetectionReader, _DictionaryReader):
-    """TODO"""
+    """A :class:`DetectionReader` class for reading in :class:`Detection`s from a sequence of
+    dictionaries.
+
+    The dictionaries must contain all fields needed to generate the
+    detections. Detections with the same timestamp are yielded together. It is assumed that the
+    input detection dictionaries are in time order.
+
+    Parameters
+    ----------
+    """
 
 
 class CSVDetectionReader(_DictDetectionReader, _CSVReader):
@@ -215,30 +234,23 @@ class CSVDetectionReader(_DictDetectionReader, _CSVReader):
     """
 
 
-
-
-
-class DictTrackReader(TrackReader, _DictReader):
+class _DictTrackReader(TrackReader, _DictReader):
+    """A :class:`TrackReader` class for reading in :class:`Track`s from a sequence of
+    dictionaries. The source of the dictionaries is not set in this class. See subclasses for a
+    useable class."""
 
     track_id_field: str = Property(doc='Name of column to be used as path ID')
-    covar_fields_or_values: np.ndarray = Property()
+    default_covar: np.ndarray = Property(doc="Default covariance matrix for the state.")
+    covar_fields_index: dict[str, tuple[int]] = Property(
+        doc="Dictionary mapping covariance field names to their indices in the covariance matrix.")
 
-    def _get_metadata(self, row):
-        if self.metadata_fields is None:
-            local_metadata = dict(row)
-            for key in list(local_metadata):
-                if (key == self.time_field or key in self.state_vector_fields or
-                    np.isin(self.covar_fields_or_values, key).any()):
-
-                    del local_metadata[key]
-        else:
-            local_metadata = {field: row[field]
-                              for field in self.metadata_fields
-                              if field in row}
-        return local_metadata
+    @property
+    def _default_metadata_fields_to_ignore(self) -> set[str]:
+        return {self.path_id_field, *self.covar_fields_index.keys(),
+                *super()._default_metadata_fields_to_ignore}
 
     @BufferedGenerator.generator_method
-    def track_paths_gen(self):
+    def track_paths_gen(self) -> Iterator[tuple[datetime, set[Track]]]:
 
         track_dict = {}
         updated_tracks = set()
@@ -254,10 +266,10 @@ class DictTrackReader(TrackReader, _DictReader):
             state_vector = np.array([[row[col_name]] for col_name in self.state_vector_fields],
                                     dtype=np.float64)
 
-            covar = self.covar_fields_or_values.copy()
-            for index, covar_element in np.ndenumerate(covar):
-                if isinstance(covar_element, str):
-                    covar[index] = row[covar_element]
+            covar = self.default_covar.copy()
+            for covar_field_name, index in self.covar_fields_index:
+                covar_field_value = row[covar_field_name]
+                covar[index] = covar_field_value
 
             state = GaussianState(
                 state_vector=state_vector,
@@ -276,3 +288,30 @@ class DictTrackReader(TrackReader, _DictReader):
         # Yield remaining
         yield previous_time, updated_tracks
 
+
+class DictionaryTrackReader(_DictTrackReader, _DictionaryReader):
+    """A :class:`TrackReader` class for reading in :class:`Track`s from a sequence of from
+    dictionaries.
+
+    The dictionaries must contain all fields needed to generate the
+    track states. Those states with the same ID will be put into
+    a :class:`~.Track` in sequence. All paths that are updated at the same time
+    are yielded together. It is assumed that the input dictionaries track states are in time order.
+
+    Parameters
+    ----------
+    """
+
+
+class CSVTrackReader(_DictTrackReader, _CSVReader):
+    """A :class:`TrackReader` class for reading in :class:`Track`s from a sequence of a csv file.
+
+
+    The csv must contain all fields needed to generate the
+    track states. Those states with the same ID will be put into
+    a :class:`~.Track` in sequence. All paths that are updated at the same time
+    are yielded together. Assume that the Track states are in time order.
+
+    Parameters
+    ----------
+    """
