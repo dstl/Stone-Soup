@@ -7,6 +7,9 @@ of data that is in common formats.
 import csv
 from datetime import datetime, timedelta, timezone
 from collections.abc import Collection, Mapping, Sequence, Iterable, Iterator
+from ..reader.base import TrackReader
+from ..types.state import GaussianState
+from ..types.track import Track
 
 from math import modf
 
@@ -210,3 +213,66 @@ class CSVDetectionReader(_DictDetectionReader, _CSVReader):
     Parameters
     ----------
     """
+
+
+
+
+
+class DictTrackReader(TrackReader, _DictReader):
+
+    track_id_field: str = Property(doc='Name of column to be used as path ID')
+    covar_fields_or_values: np.ndarray = Property()
+
+    def _get_metadata(self, row):
+        if self.metadata_fields is None:
+            local_metadata = dict(row)
+            for key in list(local_metadata):
+                if (key == self.time_field or key in self.state_vector_fields or
+                    np.isin(self.covar_fields_or_values, key).any()):
+
+                    del local_metadata[key]
+        else:
+            local_metadata = {field: row[field]
+                              for field in self.metadata_fields
+                              if field in row}
+        return local_metadata
+
+    @BufferedGenerator.generator_method
+    def track_paths_gen(self):
+
+        track_dict = {}
+        updated_tracks = set()
+        previous_time = None
+        for row in self.dict_reader:
+
+            time = self._get_time(row)
+            if previous_time is not None and previous_time != time:
+                yield previous_time, updated_tracks
+                updated_tracks = set()
+            previous_time = time
+
+            state_vector = np.array([[row[col_name]] for col_name in self.state_vector_fields],
+                                    dtype=np.float64)
+
+            covar = self.covar_fields_or_values.copy()
+            for index, covar_element in np.ndenumerate(covar):
+                if isinstance(covar_element, str):
+                    covar[index] = row[covar_element]
+
+            state = GaussianState(
+                state_vector=state_vector,
+                covar=covar,
+                timestamp=time
+            )
+
+            track_id = row[self.path_id_field]
+            if track_id not in track_dict:
+                track_dict[track_id] = Track(id=track_id)
+            track = track_dict[track_id]
+            track.append(state)
+            track.metadata.update(self._get_metadata(row))
+            updated_tracks.add(track)
+
+        # Yield remaining
+        yield previous_time, updated_tracks
+
