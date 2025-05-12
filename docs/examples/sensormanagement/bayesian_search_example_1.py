@@ -86,7 +86,7 @@ can be found `here <https://doi.org/10.1117/12.3012763>`_.
 # :attr:`~.ParticleState.state_vector` attribute can be used to represent the location of search
 # cells and the :attr:`~.ParticleState.weight` attribute can be used to represent their probability
 # of containing the target. This also allows us to easily check which cells are able to be observed
-# by a sensor at any given time using the :meth:`~.SimpleSensor.is_detectable` method.
+# by a sensor at any given time using the :meth:`~.RadarRotatingBearingRange.is_detectable` method.
 #
 # To choose optimal actions, the :class:`~.SensorManager` also requires an objective
 # (reward) function adapted to return high reward when the sensor is looking toward regions with a
@@ -115,13 +115,18 @@ from datetime import datetime, timedelta
 import numpy as np
 import plotly.graph_objects as go
 import time
+import random
+
+# use fixed seed for random number generators
+np.random.seed(123)
+random.seed(123)
 
 # number of timesteps
 simulation_length = 16
 # number of cells in our search grid
 n_cells = 24
 
-start_time = datetime.now().replace(second=0, microsecond=0)
+start_time = datetime(2025, 5, 9, 14, 15)
 timesteps = [start_time + timedelta(seconds=k) for k in range(simulation_length)]
 
 
@@ -208,11 +213,11 @@ def sumofweightsreward(config, undetectmap, timestamp):
 # management algorithms:
 #
 # *  for **Bayesian search** we will use the :class:`~.OptimizeBruteSensorManager`, which uses a
-#    brute force search over a defined input grid (see 
-#    [scipy.optimze.brute()](https://docs.scipy.org/doc/scipy/reference/generated/scipy.optimize.
-#    brute.html#scipy.optimize.brute)) to calculate the probability of target detection
-#    corresponding to each action from a subset of those available to the sensor.
-# 
+#    brute force search over a defined input grid (see `scipy.optimze.brute()
+#    <https://docs.scipy.org/doc/scipy/reference/generated/scipy.optimize.brute.html#brute>`_) to
+#    calculate the probability of target detection corresponding to each action from a subset of
+#    those available to the sensor.
+#
 # We will compare Bayesian search with:
 #
 # *  a **random search**, which uses the :class:`~.RandomSensorManager` and chooses a random action
@@ -242,7 +247,7 @@ sensor3 = deepcopy(sensor)  # doesn't require a sensor manager
 # case the prior probability distribution will be spread around our sensor, which is located at the
 # origin. Though possible to represent this continuously, it is more mathematically convenient to
 # split our simulation space into discrete cells and populate each cell with a probability of
-# target existence. Here, we have choosen to split the search space around the sensor into 24 cells.
+# target existence. Here, we have chosen to split the search space around the sensor into 24 cells.
 #
 # To showcase the power of Bayesian search, we must ensure our target prior probability
 # distribution is not uniform. By using a uniform distribution, we claim to have no prior knowledge
@@ -332,7 +337,7 @@ def search_loop(prior, sensor, sensormanager, timesteps, prob_det, seq_flag=Fals
         # if running sequential search, perform this now
         if seq_flag:
             sensor.timestamp = timestep
-            sensor.dwell_centre = sensor.dwell_centre + sensor.fov_angle/3
+            sensor.dwell_centre = sensor.dwell_centre + sensor.fov_angle
             
         else:
             chosen_actions = sensormanager.choose_actions(next_state, timestep)
@@ -490,8 +495,8 @@ sensor_history_s, search_cell_history_s, probs_s = search_loop(prior, sensor3, N
 #                 if sensor.timestamp == frame_time:  # if sensor is in current timestep
 #                     sensor_xy = np.array(sensor.position[[0, 1], 0])
 #
-#             data_.append(go.Scatter(x=[sensor_xy[0]], y=[sensor_xy[1]]))
-#             traces_.append(trace_base)
+#                     data_.append(go.Scatter(x=[sensor_xy[0]], y=[sensor_xy[1]]))
+#                     traces_.append(trace_base)
 #
 #             frame.traces = traces_
 #             frame.data = data_
@@ -524,9 +529,9 @@ sensor_history_s, search_cell_history_s, probs_s = search_loop(prior, sensor3, N
 #                                                 + sensor.fov_angle / 2 * fov_side) \
 #                                         + sensor.position[[0, 1], 0]
 #
-#                 data_.append(go.Scatter(x=[x[0], sensor.position[0], x[1]],
-#                                     y=[y[0], sensor.position[1], y[1]]))
-#                 traces_.append(trace_base)
+#                         data_.append(go.Scatter(x=[x[0], sensor.position[0], x[1]],
+#                                             y=[y[0], sensor.position[1], y[1]]))
+#                         traces_.append(trace_base)
 #
 #                 frame.traces = traces_
 #                 frame.data = data_
@@ -584,7 +589,7 @@ sensor_history_s, search_cell_history_s, probs_s = search_loop(prior, sensor3, N
 #     </details>
 #     <br>
 #     <video autoplay loop controls width=100% height="auto">
-#       <source src="../../_static/bayesian-search-ex1-plt1.mp4" type="video/mp4">
+#       <source src="../../_static/bayesian_search_ex1_plt1.webm" type="video/webm">
 #     </video>
 #     <br>
 
@@ -608,7 +613,7 @@ prob_found_plot.update_layout(title="Expected probability of finding target vs s
 # The second plot allows us to compare the performance of the three search strategies. Both
 # optimised Bayesian and sequential search outperform the random search by achieving a higher
 # probability of having detected the target throughout the scenario. Bayesian search also reaches a
-# near conclusive outcome much quicker than the sequential method.
+# near conclusive outcome quicker than the sequential method.
 #
 # This example showcased the benefits of the Bayesian search approach in a relatively simple
 # scenario. To see how Bayesian search can be applied in a more complex setting, continue to the
