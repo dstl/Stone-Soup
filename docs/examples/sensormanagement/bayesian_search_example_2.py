@@ -25,14 +25,19 @@ can be found `here <https://doi.org/10.1117/12.3012763>`_.
 # %%
 # Setup
 # -----
-# We begin with some generic imports, and then start the clock...
+# We begin with some generic imports, and then set the start time...
 
 
 import copy
 from datetime import datetime, timedelta
 import numpy as np
+import random
 
-start_time = datetime.now().replace(microsecond=0)
+# use fixed seed for random number generators
+np.random.seed(123)
+random.seed(123)
+
+start_time = datetime(2025, 5, 9, 14, 15)
 timesteps = [start_time + timedelta(seconds=k) for k in range(0, 12)]
 
 
@@ -45,9 +50,9 @@ timesteps = [start_time + timedelta(seconds=k) for k in range(0, 12)]
 # :class:`~.NStepDirectionalGridMovable` to achieve this.
 #
 # Platforms with this movement controller can generate a list of actions at each timestep which
-# can then be given to a :class:`~.SensorManager`. The sensor manager chooses the best action(s)
-# for the current timestep. We define the platform's initial position, and limit its movement to a
-# step of three grid cells in a single direction.
+# can then be given to a :class:`~.SensorManager`. The sensor manager chooses the action(s) with
+# the greatest reward for the current timestep. We define the platform's initial position, and
+# limit its movement to a step of three grid cells along either of the grid's axes.
 
 
 from stonesoup.movable.grid import NStepDirectionalGridMovable
@@ -131,7 +136,7 @@ from scipy.stats import multivariate_normal
 
 # parameterise our prior probability distribution
 mu = np.array([7, 8])  # mean(x, y)
-sigma = np.array([[10, 0], [3, 6]])  # covariance matrix [[var(x), covar(xy)], [covar(xy), var(y)]]
+sigma = np.array([[10, 0], [0, 6]])  # covariance matrix [[var(x), covar(xy)], [covar(xy), var(y)]]
 
 prior = multivariate_normal.pdf(np.vstack((x_pos, y_pos)).T, mu, sigma)
 
@@ -193,7 +198,8 @@ def sumofweightsreward(config, undetectmap, timestamp):
 # Creating a Sensor Manager
 # ~~~~~~~~~~~~~~~~~~~~~~~~~
 # Finally, we create a :class:`~.BruteForceSensorManager`, which will evaluate every possible
-# movement of our platform using the custom reward function and return the best one.
+# movement of our platform using the custom reward function and return the one with the highest
+# reward value.
 
 
 from stonesoup.sensormanager import BruteForceSensorManager
@@ -207,11 +213,12 @@ sensormanager = BruteForceSensorManager(platforms={platform},
 # Running the Scenario
 # --------------------
 # Aside from the addition of the platform, the search loop here is very similar to that of the
-# previous example. At each timestep we move the sensor and platform, make an observation and update
-# the particle weights accordingly.
+# previous example. At each timestep we move the sensor and platform, make an observation and
+# update the particle weights accordingly.
 
 
 sensor_history = []
+sensor_history.append(copy.deepcopy(mounted_sensor))  #  initial state
 search_cell_info = [prior]
 current_state = prior
 prob_found_list = [0]
@@ -223,7 +230,7 @@ for timestep in timesteps[1:]:
                                weight=current_state.weight,
                                timestamp=timestep)
 
-    # get best action from sensor manager and move sensor and platform
+    # get highest rewarded action from sensor manager and move sensor and platform
     chosen_actions = sensormanager.choose_actions(next_state, timestep)
     for chosen_action in chosen_actions:
         for actionable, actions in chosen_action.items():
@@ -355,8 +362,8 @@ for timestep in timesteps[1:]:
 #                 if sensor.timestamp == frame_time:  # if sensor is in current timestep
 #                     sensor_xy = np.array(sensor.position[[0, 1], 0])
 #
-#             data_.append(go.Scatter(x=[sensor_xy[0]], y=[sensor_xy[1]]))
-#             traces_.append(trace_base)
+#                     data_.append(go.Scatter(x=[sensor_xy[0]], y=[sensor_xy[1]]))
+#                     traces_.append(trace_base)
 #
 #             frame.traces = traces_
 #             frame.data = data_
@@ -389,9 +396,9 @@ for timestep in timesteps[1:]:
 #                                                     + sensor.fov_angle / 2 * fov_side) \
 #                                                   + sensor.position[[0, 1], 0]
 #
-#                 data_.append(go.Scatter(x=[x[0], sensor.position[0], x[1]],
-#                                         y=[y[0], sensor.position[1], y[1]]))
-#                 traces_.append(trace_base)
+#                         data_.append(go.Scatter(x=[x[0], sensor.position[0], x[1]],
+#                                                 y=[y[0], sensor.position[1], y[1]]))
+#                         traces_.append(trace_base)
 #
 #                 frame.traces = traces_
 #                 frame.data = data_
@@ -414,19 +421,19 @@ for timestep in timesteps[1:]:
 #                 traces_ = list(frame.traces)
 #                 data_ = list(frame.data)
 #
-#             for sensor in sensor_history:
+#                 for sensor in sensor_history:
 #
-#                 if sensor.timestamp == frame_time:  # if sensor is in current timestep
-#                         circle = GaussianState([[sensor.position[0],
-#                                                 sensor.position[1]]],
-#                                                 np.diag([sensor.max_range ** 2,
-#                                                         sensor.max_range ** 2]))
+#                     if sensor.timestamp == frame_time:  # if sensor is in current timestep
+#                             circle = GaussianState([[sensor.position[0],
+#                                                     sensor.position[1]]],
+#                                                     np.diag([sensor.max_range ** 2,
+#                                                             sensor.max_range ** 2]))
 #
-#                         points = Plotterly._generate_ellipse_points(circle, [0, 1])
+#                             points = Plotterly._generate_ellipse_points(circle, [0, 1])
 #
-#                         data_.append(go.Scatter(x=points[0, :],
-#                                                 y=points[1, :]))
-#                         traces_.append(trace_base)
+#                             data_.append(go.Scatter(x=points[0, :],
+#                                                     y=points[1, :]))
+#                             traces_.append(trace_base)
 #
 #                 frame.traces = traces_
 #                 frame.data = data_
@@ -445,7 +452,7 @@ for timestep in timesteps[1:]:
 #     </details>
 #     <br>  
 #     <video autoplay loop controls width=100% height="auto">
-#       <source src="../../_static/bayesian-search-ex2-plt1.mp4" type="video/mp4">
+#       <source src="../../_static/bayesian_search_ex2_plt1.webm" type="video/webm">
 #     </video>
 #     <br>
 #
