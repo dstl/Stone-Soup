@@ -22,6 +22,12 @@ from ..types.groundtruth import GroundTruthPath, GroundTruthState
 
 
 class _DictReader(Reader):
+    """Abstract reader for reading dictionaries and outputing :class:`~State`
+
+    This class provides an abstract base for reading dictionaries and converting them into
+    state vectors and metadata. It handles the extraction of time fields and metadata fields
+    from the input dictionaries.
+    """
 
     state_vector_fields: Sequence[str] = Property(
         doc='List of columns names to be used in state vector')
@@ -33,7 +39,6 @@ class _DictReader(Reader):
         default=False, doc='Treat time field as a timestamp from epoch')
     metadata_fields: Collection[str] = Property(
         default=None, doc='List of columns to be saved as metadata, default all')
-
 
     @property
     def _default_metadata_fields_to_ignore(self) -> set[str]:
@@ -82,17 +87,25 @@ class _CSVReader(_DictReader, TextFileReader):
 
 
 class _DictGroundTruthReader(GroundTruthReader, _DictReader):
-    """A simple reader for dictionaries of truth data.
+    """An abstract reader for dictionaries containing truth data."""
 
-    TODO
-
-    Parameters
-    ----------
-    """
     path_id_field: str = Property(doc='Name of column to be used as path ID')
 
     @BufferedGenerator.generator_method
     def groundtruth_paths_gen(self) -> Iterator[tuple[datetime, set[GroundTruthPath]]]:
+
+        """
+        Generator method that yields :class:`~.GroundTruthPath`s.
+
+        This method reads rows from the dictionary reader, processes them into ground truth states,
+        and groups them into ground truth paths based on the path ID field. It yields the paths
+        at each unique timestamp.
+
+        Yields
+        ------
+        tuple[datetime, set[GroundTruthPath]]
+            A tuple containing the timestamp and a set of updated ground truth paths.
+        """
 
         groundtruth_dict = {}
         updated_paths = set()
@@ -140,14 +153,16 @@ class CSVGroundTruthReader(_DictGroundTruthReader, _CSVReader):
 
 
 class _DictDetectionReader(DetectionReader, _DictReader):
-    """TODO
-
-    Parameters
-    ----------
-    """
+    """An abstract reader for dictionaries containing detections."""
 
     @BufferedGenerator.generator_method
     def detections_gen(self) -> Iterator[tuple[datetime, set[Detection]]]:
+        """Generator method that yields detections.
+
+        This method reads rows (:class:`dict`) from the input source, processes them into
+        detections, and groups them by unique timestamps. It yields the detections at each unique
+        timestamp.
+        """
         detections = set()
         previous_time = None
         for row in self.dict_reader:
