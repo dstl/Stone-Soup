@@ -26,7 +26,7 @@ from .file import TextFileReader
 
 
 class _DictReader(Reader):
-    """Abstract reader for reading dictionaries and outputing :class:`~State`
+    """Abstract reader for reading dictionaries and outputing :class:`~.State`
 
     This class provides an abstract base for reading dictionaries and converting them into
     state vectors and metadata. It handles the extraction of time fields and metadata fields
@@ -108,7 +108,7 @@ class _DictGroundTruthReader(GroundTruthReader, _DictReader):
     def groundtruth_paths_gen(self) -> Iterator[tuple[datetime, set[GroundTruthPath]]]:
 
         """
-        Generator method that yields :class:`~.GroundTruthPath`s.
+        Generator method that yields :class:`~.GroundTruthPath`.
 
         This method reads rows from the dictionary reader, processes them into ground truth states,
         and groups them into ground truth paths based on the path ID field. It yields the paths
@@ -149,8 +149,8 @@ class _DictGroundTruthReader(GroundTruthReader, _DictReader):
 
 
 class DictionaryGroundTruthReader(_DictGroundTruthReader, _DictionaryReader):
-    """A :class:`GroundTruthReader` class for reading in :class:`GroundTruthPath`ss from a sequence
-    of dictionaries.
+    """A :class:`~.GroundTruthReader` class for reading in :class:`~.GroundTruthPath` from a
+    sequence of dictionaries.
 
     The dictionaries must contain all fields needed to generate the
     ground truth states. Those states with the same ID will be put into
@@ -207,7 +207,7 @@ class _DictDetectionReader(DetectionReader, _DictReader):
 
 
 class DictionaryDetectionReader(_DictDetectionReader, _DictionaryReader):
-    """A :class:`DetectionReader` class for reading in :class:`Detection`s from a sequence of
+    """A :class:`DetectionReader` class for reading in :class:`~.Detection` from a sequence of
     dictionaries.
 
     The dictionaries must contain all fields needed to generate the
@@ -232,7 +232,7 @@ class CSVDetectionReader(_DictDetectionReader, _CSVReader):
 
 
 class _DictTrackReader(TrackReader, _DictReader):
-    """A :class:`TrackReader` class for reading in :class:`Track`s from a sequence of
+    """A :class:`TrackReader` class for reading in :class:`~.Track` from a sequence of
     dictionaries. The source of the dictionaries is not set in this class. See subclasses for a
     useable class."""
 
@@ -291,7 +291,7 @@ class _DictTrackReader(TrackReader, _DictReader):
 
 
 class DictionaryTrackReader(_DictTrackReader, _DictionaryReader):
-    """A :class:`TrackReader` class for reading in :class:`Track`s from a sequence of from
+    """A :class:`~.TrackReader` class for reading in :class:`~.Track` from a sequence of from
     dictionaries.
 
     The dictionaries must contain all fields needed to generate the
@@ -305,7 +305,8 @@ class DictionaryTrackReader(_DictTrackReader, _DictionaryReader):
 
 
 class CSVTrackReader(_DictTrackReader, _CSVReader):
-    """A :class:`TrackReader` class for reading in :class:`Track`s from a sequence of a csv file.
+    """A :class:`~.TrackReader` class for reading in :class:`~.Track` from a sequence of a csv
+    file.
 
     The csv must contain all fields needed to generate the
     track states. Those states with the same ID will be put into
