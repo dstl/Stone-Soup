@@ -7,10 +7,13 @@ import numpy as np
 import pytest
 
 from ...types.array import StateVector
-from ..generic import CSVDetectionReader, CSVGroundTruthReader, DictionaryGroundTruthReader
+from ...types.state import GaussianState
+from ...types.track import Track
+from ..generic import CSVDetectionReader, CSVGroundTruthReader, DictionaryGroundTruthReader, \
+    DictionaryTrackReader
 
 
-@pytest.fixture()
+@pytest.fixture
 def csv_gt_filename(tmpdir):
     csv_filename = tmpdir.join("test.csv")
     with csv_filename.open('w') as csv_file:
@@ -337,3 +340,56 @@ def test_dict_gt_reader():
     r5.id = 'Red Five'
     assert len(r10) == 3
     r5.id = 'Red Ten'
+
+
+@pytest.fixture
+def dictionary_track_reader():
+    return DictionaryTrackReader(
+        track_id_field='track_id',
+        default_covar=np.eye(2),
+        covar_fields_index={'covar_00': (0, 0), 'covar_11': (1, 1)},
+        state_vector_fields=['x', 'y'],
+        time_field='time',
+        dictionaries=[
+            {'track_id': '1', 'x': 1.0, 'y': 2.0, 'covar_00': 0.1, 'covar_11': 0.2, 'time': '2025-05-13T10:00:00'},
+            {'track_id': '1', 'x': 1.5, 'y': 2.5, 'covar_00': 0.1, 'time': '2025-05-13T10:01:00'},
+            {'track_id': '2', 'x': 3.0, 'y': 4.0, 'time': '2025-05-13T10:01:00'}
+        ]
+    )
+
+
+def test_get_time(dictionary_track_reader: DictionaryTrackReader):
+    row = {'time': '2025-05-13T10:00:00'}
+    expected_time = datetime.datetime(2025, 5, 13, 10, 0, 0)
+    assert dictionary_track_reader._get_time(row) == expected_time  # noqa: SLF001
+
+
+def test_get_metadata(dictionary_track_reader: DictionaryTrackReader):
+    row = {'track_id': '1', 'x': 1.0, 'y': 2.0, 'covar_00': 0.1, 'covar_11': 0.2, 'time': '2025-05-13T10:00:00', 'meta': 'data'}
+    dictionary_track_reader.metadata_fields = ['meta']
+    expected_metadata = {'meta': 'data'}
+    assert dictionary_track_reader._get_metadata(row) == expected_metadata  # noqa: SLF001
+
+
+def test_track_gen(dictionary_track_reader: DictionaryTrackReader):
+    track_gen = iter(dictionary_track_reader)
+    time, tracks = next(track_gen)
+    assert time == datetime.datetime(2025, 5, 13, 10, 0, 0)
+    assert len(tracks) == 1
+    assert isinstance(next(iter(tracks)), Track)
+
+    with pytest.warns(UserWarning):  # Covar missing warning
+        time, tracks = next(track_gen)
+    assert time == datetime.datetime(2025, 5, 13, 10, 1, 0)
+    assert len(tracks) == 2
+
+    for track in tracks:
+        assert isinstance(track, Track)
+        for state in track.states:
+            assert isinstance(state, GaussianState)
+
+    # Test Covar
+    track_1, track_2 = sorted(tracks, key=lambda track: track.id)
+    assert np.array_equal(track_1[0].covar, np.diag([0.1, 0.2]))
+    assert np.array_equal(track_1[1].covar, np.diag([0.1, 1]))
+    assert np.array_equal(track_2[0].covar, np.eye(2))

@@ -5,6 +5,7 @@ of data that is in common formats.
 """
 
 import csv
+import warnings
 from collections.abc import Collection, Iterator, Mapping, Sequence
 from datetime import datetime, timedelta, timezone
 from math import modf
@@ -246,11 +247,11 @@ class _DictTrackReader(TrackReader, _DictReader):
 
     @property
     def _default_metadata_fields_to_ignore(self) -> set[str]:
-        return {self.path_id_field, *self.covar_fields_index.keys(),
+        return {self.track_id_field, *self.covar_fields_index.keys(),
                 *super()._default_metadata_fields_to_ignore}
 
     @BufferedGenerator.generator_method
-    def track_paths_gen(self) -> Iterator[tuple[datetime, set[Track]]]:
+    def tracks_gen(self) -> Iterator[tuple[datetime, set[Track]]]:
 
         track_dict = {}
         updated_tracks = set()
@@ -267,9 +268,13 @@ class _DictTrackReader(TrackReader, _DictReader):
                                     dtype=np.float64)
 
             covar = self.default_covar.copy()
-            for covar_field_name, index in self.covar_fields_index:
-                covar_field_value = row[covar_field_name]
-                covar[index] = covar_field_value
+            for covar_field_name, index in self.covar_fields_index.items():
+                if covar_field_name in row:
+                    covar_field_value = row[covar_field_name]
+                    covar[index] = covar_field_value
+                else:
+                    warning_str = f"'{covar_field_name}' could not be found in the dictionary."
+                    warnings.warn(warning_str, stacklevel=3)
 
             state = GaussianState(
                 state_vector=state_vector,
@@ -277,7 +282,7 @@ class _DictTrackReader(TrackReader, _DictReader):
                 timestamp=time
             )
 
-            track_id = row[self.path_id_field]
+            track_id = row[self.track_id_field]
             if track_id not in track_dict:
                 track_dict[track_id] = Track(id=track_id)
             track = track_dict[track_id]
