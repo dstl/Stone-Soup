@@ -351,7 +351,8 @@ def dictionary_track_reader():
         state_vector_fields=['x', 'y'],
         time_field='time',
         dictionaries=[
-            {'track_id': '1', 'x': 1.0, 'y': 2.0, 'covar_00': 0.1, 'covar_11': 0.2, 'time': '2025-05-13T10:00:00'},
+            {'track_id': '1', 'x': 1.0, 'y': 2.0, 'covar_00': 0.1, 'covar_11': 0.2,
+             'time': '2025-05-13T10:00:00'},
             {'track_id': '1', 'x': 1.5, 'y': 2.5, 'covar_00': 0.1, 'time': '2025-05-13T10:01:00'},
             {'track_id': '2', 'x': 3.0, 'y': 4.0, 'time': '2025-05-13T10:01:00'}
         ]
@@ -365,7 +366,8 @@ def test_get_time(dictionary_track_reader: DictionaryTrackReader):
 
 
 def test_get_metadata(dictionary_track_reader: DictionaryTrackReader):
-    row = {'track_id': '1', 'x': 1.0, 'y': 2.0, 'covar_00': 0.1, 'covar_11': 0.2, 'time': '2025-05-13T10:00:00', 'meta': 'data'}
+    row = {'track_id': '1', 'x': 1.0, 'y': 2.0, 'covar_00': 0.1, 'covar_11': 0.2,
+           'time': '2025-05-13T10:00:00', 'meta': 'data'}
     dictionary_track_reader.metadata_fields = ['meta']
     expected_metadata = {'meta': 'data'}
     assert dictionary_track_reader._get_metadata(row) == expected_metadata  # noqa: SLF001
