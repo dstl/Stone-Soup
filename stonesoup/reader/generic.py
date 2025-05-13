@@ -147,10 +147,6 @@ class _DictGroundTruthReader(GroundTruthReader, _DictReader):
         # Yield remaining
         yield previous_time, updated_paths
 
-    @property
-    def _default_metadata_fields_to_ignore(self) -> set[str]:
-        return {self.path_id_field} | super()._default_metadata_fields_to_ignore
-
 
 class DictionaryGroundTruthReader(_DictGroundTruthReader, _DictionaryReader):
     """A :class:`GroundTruthReader` class for reading in :class:`GroundTruthPath`ss from a sequence
@@ -247,7 +243,7 @@ class _DictTrackReader(TrackReader, _DictReader):
 
     @property
     def _default_metadata_fields_to_ignore(self) -> set[str]:
-        return {self.track_id_field, *self.covar_fields_index.keys(),
+        return {*self.covar_fields_index.keys(),
                 *super()._default_metadata_fields_to_ignore}
 
     @BufferedGenerator.generator_method
