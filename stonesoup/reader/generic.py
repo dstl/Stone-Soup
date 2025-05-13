@@ -5,23 +5,23 @@ of data that is in common formats.
 """
 
 import csv
+from collections.abc import Collection, Iterator, Mapping, Sequence
 from datetime import datetime, timedelta, timezone
-from collections.abc import Collection, Mapping, Sequence, Iterable, Iterator
-from ..reader.base import TrackReader
-from ..types.state import GaussianState
-from ..types.track import Track
-
 from math import modf
 
 import numpy as np
+
 from dateutil.parser import parse
 
-from .base import GroundTruthReader, DetectionReader, Reader
-from .file import TextFileReader
 from ..base import Property
 from ..buffered_generator import BufferedGenerator
+from ..reader.base import TrackReader
 from ..types.detection import Detection
 from ..types.groundtruth import GroundTruthPath, GroundTruthState
+from ..types.state import GaussianState
+from ..types.track import Track
+from .base import DetectionReader, GroundTruthReader, Reader
+from .file import TextFileReader
 
 
 class _DictReader(Reader):
@@ -195,7 +195,7 @@ class _DictDetectionReader(DetectionReader, _DictReader):
 
             time = self._get_time(row)
             if previous_time is not None and previous_time != time:
-                yield previous_time, detections
+                yield previous_time, detections  # noqa: DOC402
                 detections = set()
             previous_time = time
 
@@ -305,7 +305,6 @@ class DictionaryTrackReader(_DictTrackReader, _DictionaryReader):
 
 class CSVTrackReader(_DictTrackReader, _CSVReader):
     """A :class:`TrackReader` class for reading in :class:`Track`s from a sequence of a csv file.
-
 
     The csv must contain all fields needed to generate the
     track states. Those states with the same ID will be put into
