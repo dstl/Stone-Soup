@@ -731,6 +731,7 @@ def mod_elevation(x):
     float
         Angle in radians in the range math: :math:`-\pi/2` to :math:`+\pi/2`
     """
+    isscalar = np.isscalar(x)
     x = np.asarray(x) % (2*np.pi)  # limit to 2*pi
     N = x // (np.pi / 2)  # Count # of 90 deg multiples
 
@@ -739,7 +740,7 @@ def mod_elevation(x):
     x = np.where(N == 3, x - 2.0 * np.pi, x)
     x = np.where(N == 4, 0.0, x)  # handle the edge case
 
-    return x
+    return x.item() if isscalar else x
 
 
 def build_rotation_matrix(angle_vector: np.ndarray):
