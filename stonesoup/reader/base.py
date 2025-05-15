@@ -1,8 +1,14 @@
 """Base classes for different Readers."""
+import datetime
 from abc import abstractmethod
+from collections.abc import Iterator
 
 from ..base import Base
 from ..buffered_generator import BufferedGenerator
+from ..types.detection import Detection
+from ..types.groundtruth import GroundTruthPath
+from ..types.track import Track
+from ..types.sensordata import SensorData, ImageFrame
 
 
 class Reader(Base, BufferedGenerator):
@@ -13,12 +19,12 @@ class DetectionReader(Reader):
     """Detection Reader base class"""
 
     @property
-    def detections(self):
+    def detections(self) -> set[Detection]:
         return self.current[1]
 
     @abstractmethod
     @BufferedGenerator.generator_method
-    def detections_gen(self):
+    def detections_gen(self) -> Iterator[tuple[datetime.datetime, set[Detection]]]:
         """Returns a generator of detections for each time step.
 
         Yields
@@ -35,12 +41,12 @@ class GroundTruthReader(Reader):
     """Ground Truth Reader base class"""
 
     @property
-    def groundtruth_paths(self):
+    def groundtruth_paths(self) -> set[GroundTruthPath]:
         return self.current[1]
 
     @abstractmethod
     @BufferedGenerator.generator_method
-    def groundtruth_paths_gen(self):
+    def groundtruth_paths_gen(self) -> Iterator[tuple[datetime.datetime, set[GroundTruthPath]]]:
         """Returns a generator of ground truth paths for each time step.
 
         Yields
@@ -57,12 +63,12 @@ class SensorDataReader(Reader):
     """Sensor Data Reader base class"""
 
     @property
-    def sensor_data(self):
+    def sensor_data(self) -> set[SensorData]:
         return self.current[1]
 
     @abstractmethod
     @BufferedGenerator.generator_method
-    def sensor_data_gen(self):
+    def sensor_data_gen(self) -> Iterator[tuple[datetime.datetime, set[SensorData]]]:
         """Returns a generator of sensor data for each time step.
 
         Yields
@@ -83,12 +89,12 @@ class FrameReader(SensorDataReader):
     """
 
     @property
-    def frame(self):
+    def frame(self) -> set[ImageFrame]:
         return self.sensor_data
 
     @abstractmethod
     @BufferedGenerator.generator_method
-    def frames_gen(self):
+    def frames_gen(self) -> Iterator[tuple[datetime.datetime, set[ImageFrame]]]:
         """Returns a generator of frames for each time step.
 
         Yields
@@ -101,7 +107,7 @@ class FrameReader(SensorDataReader):
         raise NotImplementedError
 
     @BufferedGenerator.generator_method
-    def sensor_data_gen(self):
+    def sensor_data_gen(self) -> Iterator[tuple[datetime.datetime, set[ImageFrame]]]:
         """Returns a generator of frames for each time step.
 
         Note
@@ -117,3 +123,25 @@ class FrameReader(SensorDataReader):
             Generated frame in the time step
         """
         yield from self.frames_gen()
+
+
+class TrackReader(Reader):
+    """Track Reader base class"""
+
+    @property
+    def tracks(self) -> set[Track]:
+        return self.current[1]
+
+    @abstractmethod
+    @BufferedGenerator.generator_method
+    def tracks_gen(self) -> Iterator[tuple[datetime.datetime, set[Track]]]:
+        """Returns a generator of ground truth paths for each time step.
+
+        Yields
+        ------
+        : :class:`datetime.datetime`
+            Datetime of current time step
+        : set of :class:`~.Track`
+            Tracks existing in the time step
+        """
+        raise NotImplementedError
