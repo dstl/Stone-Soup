@@ -421,7 +421,7 @@ class RadarRotatingElevationBearingRange(RadarElevationBearingRange):
     def is_detectable(self, state: GroundTruthState, measurement_model=None) -> bool:
         if measurement_model is None:
             measurement_model = self.measurement_model
-        measurement_vector = self.measurement_model.function(state, noise=False)
+        measurement_vector = measurement_model.function(state, noise=False)
 
         # Check if state falls within sensor's FOV
         ver_min = -self.vertical_extent / 2
