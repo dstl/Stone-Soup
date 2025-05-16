@@ -25,7 +25,7 @@ def test_bearing_init(class_, func):
     assert approx(b1) == func(3.14)
     assert approx(b2) == func(deg2rad(-20))
     assert b1 == b1
-    assert b1 == b1
+    assert b2 == b2
     assert b1 != b2
 
 
