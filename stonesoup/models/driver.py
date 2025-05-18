@@ -57,8 +57,8 @@ class GaussianDriver(LevyDriver):
             e_ft_func (Callable[..., np.ndarray]): The expectation of ft_func.
             dt (float): The time interval.
             mu_W (Optional[float], optional): The conditionally Gaussian mean vector.
-                Defaults to None and the default mu_W specified during initialisation
-                is used.
+            Defaults to None and the default mu_W specified during initialisation
+            is used.
             num_samples (int): Number of mean vectors to generate.
 
         Returns:
@@ -89,8 +89,8 @@ class GaussianDriver(LevyDriver):
             e_ft_func (Callable[..., np.ndarray]): The expectation of ft_func.
             dt (float): The time interval.
             sigma_W2 (Optional[float], optional): The conditionally Gaussian variance.
-                Defaults to None and the default sigma_W2 specified during initialisation
-                is used.
+            Defaults to None and the default sigma_W2 specified during initialisation
+            is used.
             num_samples (int): Number of covariance matrices to generate.
 
         Returns:

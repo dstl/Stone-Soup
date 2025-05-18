@@ -14,7 +14,7 @@ of models using the Marginalized Particle Filter (MPF).
 
 # %%
 # 2D Alpha-stable Langevin Model
-# ----------
+# ------------------------------
 # Consider the scenario where the target evolves according to the Langevin model, driven by a normal sigma-mean mixture with the mixing distribution being the :math:`\alpha`-stable distribution.
 # The state of the target can be represented as 2D Cartesian coordinates, :math:`\left[x, \dot x, y, \dot y\right]^{\top}`, modelling both its position and velocity.
 
@@ -235,6 +235,8 @@ plotter.fig
 # %%
 # References
 # ^^^^^^^^^^
-# .. [#] Lemke, Tatjana, and Simon J. Godsill, 'Inference for models with asymmetric α -stable noise processes', in Siem Jan Koopman, and Neil Shephard (eds), Unobserved Components and Time Series Econometrics (Oxford, 2015; online edn, Oxford Academic, 21 Jan. 2016)
+# .. [#] Lemke, Tatjana, and Simon J. Godsill, 'Inference for models with asymmetric α -stable noise processes', in Siem Jan Koopman, and Neil Shephard (eds), Unobserved Components and Time Series Econometrics.
+#        (https://doi.org/10.1093/acprof:oso/9780199683666.003.0009)
 # 
 # .. [#] S. Godsill, M. Riabiz, and I. Kontoyiannis, “The L ́evy state space model,” in 2019 53rd Asilomar Conference on Signals, Systems, and Computers, 2019, pp. 487–494.
+#        (https://arxiv.org/pdf/1912.12524)

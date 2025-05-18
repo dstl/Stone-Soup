@@ -94,8 +94,8 @@ class ConditionallyGaussianDriver(LevyDriver):
         Args:
             dt (float): _description_
             num_samples (int): Number of different jump sequences to sample. Each jump sequence
-                               consist of a multiple jumps where the number of jumps depends
-                               on the truncation parameter `self.c`
+            consist of a multiple jumps where the number of jumps depends on the truncation 
+            parameter `self.c`
             random_state (Optional[Generator], optional): Random state to use. Defaults to None.
 
         Returns:
@@ -244,13 +244,13 @@ class ConditionallyGaussianDriver(LevyDriver):
             jsizes (np.array): Latents corresponding to jump sizes.
             jtimes (np.array): Latents corresponding to jump times.
             ft_func (Callable[..., np.ndarray]): The function f consisting of the
-                state transtion matrix multiplied by the control matrix h as denoted
-                by Godstill et. al. (2020).
+            state transtion matrix multiplied by the control matrix h as denoted
+            by Godstill et. al. (2020).
             e_ft_func (Callable[..., np.ndarray]): The expectation of ft_func.
             dt (float): The time interval.
             mu_W (Optional[float], optional): The conditionally Gaussian mean vector.
-                Defaults to None and the default mu_W specified during initialisation
-                is used.
+            Defaults to None and the default mu_W specified during initialisation
+            is used.
 
         Returns:
             Union[StateVector, StateVectors]: The resulting mean vectors.
@@ -295,16 +295,16 @@ class ConditionallyGaussianDriver(LevyDriver):
             jsizes (np.array): Latents corresponding to jump sizes.
             jtimes (np.array): Latents corresponding to jump times.
             ft_func (Callable[..., np.ndarray]): The function f consisting of the
-                state transtion matrix multiplied by the control matrix h as denoted
-                by Godstill et. al. (2020).
+            state transtion matrix multiplied by the control matrix h as denoted
+            by Godstill et. al. (2020).
             e_ft_func (Callable[..., np.ndarray]): The expectation of ft_func.
             dt (float): The time interval.
             mu_W (Optional[float], optional): The conditionally Gaussian mean.
-                Defaults to None and the default mu_W specified during initialisation
-                is used.
+            Defaults to None and the default mu_W specified during initialisation
+            is used.
             sigma_W2 (Optional[float], optional): The conditionally Gaussian variance.
-                Defaults to None and the default sigma_W2 specified during initialisation
-                is used.
+            Defaults to None and the default sigma_W2 specified during initialisation
+            is used.
 
         Returns:
             Union[CovarianceMatrix, CovarianceMatrices]: The resulting covariance matrices.
