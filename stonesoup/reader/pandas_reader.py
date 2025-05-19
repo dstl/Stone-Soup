@@ -44,7 +44,7 @@ class DataFrameDetectionReader(_DictDetectionReader, _DataFrameReader):
 
 
 class DataFrameTrackReader(_DictTrackReader, _DataFrameReader):
-    """A :class:`~.TrackReader` class for reading in :class:`~.Track` from a sequence of from
+    """A :class:`~.TrackReader` class for reading in :class:`~.Track` from
     a pandas DataFrame.
 
     The DataFrame must have columns containing all fields needed to generate the

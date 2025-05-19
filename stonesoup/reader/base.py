@@ -135,7 +135,7 @@ class TrackReader(Reader):
     @abstractmethod
     @BufferedGenerator.generator_method
     def tracks_gen(self) -> Iterator[tuple[datetime.datetime, set[Track]]]:
-        """Returns a generator of ground truth paths for each time step.
+        """Returns a generator of tracks for each time step.
 
         Yields
         ------
