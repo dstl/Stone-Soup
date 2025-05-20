@@ -57,8 +57,7 @@ class InformationArchitectureGenerator(Base):
             "False by default",
         default=False)
     n_archs: int = Property(
-        doc="Tuple containing a minimum and maximum value for the number of routes created in the "
-            "network architecture to represent a single edge in the information architecture.",
+        doc="How many architectures should be generated.",
         default=2)
 
     def __init__(self, *args, **kwargs):
@@ -199,8 +198,8 @@ class InformationArchitectureGenerator(Base):
                 for f_node in ['f' + str(i) for i in range(self.n_fusion_nodes)]:
                     if g.in_degree(f_node) == 0:
                         break
-                    else:
-                        valid = True
+                else:
+                    valid = True
 
         else:
 
@@ -227,8 +226,8 @@ class InformationArchitectureGenerator(Base):
                 for f_node in ['f' + str(i) for i in range(self.n_fusion_nodes)]:
                     if g.in_degree(f_node) == 0:
                         break
-                    else:
-                        valid = True
+                else:
+                    valid = True
 
         return edges, nodes
 

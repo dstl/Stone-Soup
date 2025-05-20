@@ -64,6 +64,7 @@ def test_info_generate_hierarchical(generator_params):
         # Check node types
         assert len(arch.fusion_nodes) == sum([2, 1])
         assert len(arch.sensor_nodes) == sum([2, 2])
+        assert arch.is_hierarchical
 
         assert len(arch.edges) == sum([2, 2, 1]) - 1
 

@@ -26,7 +26,7 @@ class Architecture(Base):
         doc="An Edges object containing all edges. For A to be connected to B we would have an "
             "Edge with edge_pair=(A, B) in this object.")
     current_time: datetime = Property(
-        default=datetime.now(),
+        default=None,
         doc="The time which the instance is at for the purpose of simulation. "
             "This is increased by the propagate method. This should be set to the earliest "
             "timestep from the ground truth")
@@ -145,7 +145,7 @@ class Architecture(Base):
 
     def number_of_leaves(self, node: Node):
         """Returns the number of leaf nodes which are connected to the node given as a parameter
-        by apath from the leaf node to the parameter node.
+        by a path from the leaf node to the parameter node.
 
         Args:
             node (Node): Node of which to calculate number of leaf nodes.
@@ -154,18 +154,16 @@ class Architecture(Base):
             int: Number of leaf nodes that are connected to a given node.
         """
         node_leaves = set()
-        non_leaves = 0
 
         for leaf_node in self.leaf_nodes:
             try:
-                shortest_path = self.shortest_path_dict[leaf_node][node]
-                if node != leaf_node or shortest_path != 0:
-                    node_leaves.add(leaf_node)
-                else:
-                    return 1
+                self.shortest_path_dict[leaf_node][node]
             except KeyError:
-                non_leaves += 1
-
+                continue
+            if node != leaf_node:
+                node_leaves.add(leaf_node)
+            else:
+                return 1
         return len(node_leaves)
 
     @property
@@ -428,7 +426,7 @@ class InformationArchitecture(Architecture):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
-        if any([isinstance(node, RepeaterNode) for node in self.all_nodes]):
+        if len(self.repeater_nodes) != 0:
             raise TypeError("Information architecture should not contain any repeater "
                             "nodes")
 

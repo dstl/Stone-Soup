@@ -122,7 +122,6 @@ def test_edges(edges, nodes):
     edges_list.add(Edge((nodes['a'], nodes['b'])))
     assert len(edges_list) == 4
     assert (nodes['a'], nodes['b']) in edges_list.edge_list
-    assert (nodes['a'], nodes['b']) in edges_list.edge_list
 
     empty_edges = Edges()
     assert len(empty_edges) == 0
