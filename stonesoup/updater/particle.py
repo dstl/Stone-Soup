@@ -299,11 +299,25 @@ class MultiModelParticleUpdater(ParticleUpdater):
             + measurement_model.logpdf(hypothesis.measurement, update, **kwargs) \
             + np.log(transition_matrix[update.parent.dynamic_model, update.dynamic_model])
 
+        # Apply constraints if defined
+        if self.constraint_func is not None:
+            part_indx = self.constraint_func(update)
+            update.log_weight[part_indx] = -1*np.inf
+
         # Normalise the weights
         update.log_weight -= logsumexp(update.log_weight)
 
-        if self.resampler:
-            update = self.resampler.resample(update)
+        # Resample
+        resample_flag = True
+        if self.resampler is not None:
+            resampled_state = self.resampler.resample(update)
+            if resampled_state == update:
+                resample_flag = False
+            update = resampled_state
+
+        if self.regulariser is not None and resample_flag:
+            update = self.regulariser.regularise(update.parent, update)
+
         return update
 
 
@@ -335,7 +349,6 @@ class RaoBlackwellisedParticleUpdater(MultiModelParticleUpdater):
 
         update = Update.from_state(
             hypothesis.prediction,
-            log_weight=copy.copy(hypothesis.prediction.log_weight),
             hypothesis=hypothesis,
             timestamp=hypothesis.measurement.timestamp,
         )
@@ -347,11 +360,25 @@ class RaoBlackwellisedParticleUpdater(MultiModelParticleUpdater):
                                                                          update,
                                                                          **kwargs)
 
+        # Apply constraints if defined
+        if self.constraint_func is not None:
+            part_indx = self.constraint_func(update)
+            update.log_weight[part_indx] = -1*np.inf
+
         # Normalise the weights
         update.log_weight -= logsumexp(update.log_weight)
 
-        if self.resampler:
-            update = self.resampler.resample(update)
+        # Resample
+        resample_flag = True
+        if self.resampler is not None:
+            resampled_state = self.resampler.resample(update)
+            if resampled_state == update:
+                resample_flag = False
+            update = resampled_state
+
+        if self.regulariser is not None and resample_flag:
+            update = self.regulariser.regularise(update.parent, update)
+
         return update
 
     @staticmethod
@@ -496,6 +523,14 @@ class BernoulliParticleUpdater(ParticleUpdater):
                 + updated_state.log_weight
 
             # Normalise weights
+            updated_state.log_weight -= logsumexp(updated_state.log_weight)
+
+        # Apply constraints if defined
+        if self.constraint_func is not None:
+            part_indx = self.constraint_func(updated_state)
+            updated_state.log_weight[part_indx] = -1*np.inf
+            if not any(hypotheses):
+                updated_state.log_weight = copy.copy(updated_state.log_weight)
             updated_state.log_weight -= logsumexp(updated_state.log_weight)
 
         # Resampling
