@@ -10,7 +10,7 @@ from ..types.numeric import Probability
 import itertools
 import numpy as np
 
-from ..dataassociator.ehm2 import EHMTree, TrackClusterer
+from ._ehm import EHMTree, TrackClusterer
 
 
 class PDA(DataAssociator):
