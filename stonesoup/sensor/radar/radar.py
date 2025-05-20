@@ -472,7 +472,7 @@ class RadarBearingRangeRate(RadarBearingRange):
         default=(1, 3, 5),
         doc="Mapping to the target's velocity information within its state space")
     ndim_state: int = Property(
-        default=3,
+        default=6,
         doc="Number of state dimensions. This is utilised by (and follows in format) "
             "the underlying :class:`~.CartesianToBearingRangeRate` model")
     noise_covar: CovarianceMatrix = Property(
@@ -510,11 +510,11 @@ class RadarBearingRangeRate2D(RadarBearingRange):
 
     """
 
-    velocity_mapping: Tuple[int, int] = Property(
+    velocity_mapping: tuple[int, int] = Property(
         default=(1, 3),
         doc="Mapping to the target's velocity information within its state space")
     ndim_state: int = Property(
-        default=2,
+        default=4,
         doc="Number of state dimensions. This is utilised by (and follows in format) "
             "the underlying :class:`~.CartesianToBearingRangeRate2D` model")
     noise_covar: CovarianceMatrix = Property(
@@ -533,8 +533,10 @@ class RadarBearingRangeRate2D(RadarBearingRange):
             velocity=self.velocity,
             rotation_offset=self.orientation)
 
-    def is_detectable(self, state: GroundTruthState) -> bool:
-        measurement_vector = self.measurement_model.function(state, noise=False)
+    def is_detectable(self, state: GroundTruthState, measurement_model=None) -> bool:
+        if measurement_model is None:
+            measurement_model = self.measurement_model
+        measurement_vector = measurement_model.function(state, noise=False)
         true_range = measurement_vector[1, 0]  # Bearing(0), Range(1), Range-Rate(2)
         return true_range <= self.max_range
        
