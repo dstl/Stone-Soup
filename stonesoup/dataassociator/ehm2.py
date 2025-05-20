@@ -8,15 +8,18 @@ class EHMTree:
     Construct a tree for Efficient Hypothesis Management / EHM 2 algorithms
     """
 
-    def __init__(self, track_hypotheses, make_tree = True):
+    def __init__(self, track_hypotheses, make_tree=True):
         """ Construct the EHMTree object from a list of track hypotheses
 
         Parameters
         ----------
-        track_hypotheses: list of pairs of Track and list of Hypothesis. Each Hypothesis should have a .measurement
-            and .probability variable where probability is of type stonesoup.types.numeric.Probability and
-            (not measurement) is True for null measurement assignments
-        make_tree: If True, branch the tree according to the EHM 2 algorithm, otherwise have a list of tracks as in EHM
+        track_hypotheses: list of (track, list of hypotheses)
+            Each Hypothesis should have a .measurement and .probability variable where probability
+            is of type stonesoup.types.numeric.Probability and (not measurement) is True for null
+            measurement assignments
+        make_tree: bool
+            If True, branch the tree according to the EHM 2 algorithm, otherwise have a list of
+            tracks as in EHM
         """
         # Dict of track -> level
         self.levels = {}
@@ -38,11 +41,14 @@ class EHMTree:
     def get_posterior_hypotheses(self):
 
         """
-        Get the hypotheses of each track along with their revised probabilities under the Mutual Exclusion constraint.
+        Get the hypotheses of each track along with their revised probabilities under the Mutual
+        Exclusion constraint.
 
-        Output
-        ------
-        Dict of Track to list of (Hypothesis, Probability) pairs, where the Probability is the revised probability
+        Returns
+        -------
+        dict of track -> list of (hypothesis, probability)
+            Dict of Track to list of (Hypothesis, Probability) pairs, where the Probability is the
+            revised probability
         """
         # Get posterior hypothesis for each track
         posterior_hypotheses = {}
@@ -56,9 +62,10 @@ class EHMTree:
         """
         return sum([len(level.nodes) for level in self.levels.values()])
 
-    # Build the conditional dependence tree
     def _make_tree(self, track_hypotheses, make_tree):
-
+        """
+        Build up the tree from the track hypotheses
+        """
         # Build up tree from the roots
         for track, measurement_hypotheses in reversed(track_hypotheses):
 
@@ -72,9 +79,9 @@ class EHMTree:
             # Go through each of the existing roots
             for root_track in self.root_tracks:
 
-                if meas.intersection(self.levels[root_track].accumulated_measurements) or (not make_tree):
-                    # If this track's measurements intersect with the root, make the root a child of this track
-                    # and gather the measurement set
+                if meas & self.levels[root_track].accumulated_measurements or (not make_tree):
+                    # If this track's measurements intersect with the root, make the root a child
+                    # of this track and gather the measurement set
                     # If make_tree is False, always place the previous root below the current track
                     child_tracks.append(root_track)
                     accmeas = accmeas.union(self.levels[root_track].accumulated_measurements)
@@ -85,18 +92,16 @@ class EHMTree:
             self.levels[track] = EHMLevel(accmeas, measurement_hypotheses, child_tracks)
             self.root_tracks = new_root_tracks
 
-    # Make the tree nodes
     def _make_nodes(self):
-
+        # Make the tree nodes
         for root_track in self.root_tracks:
             # Create a node with no used measurements
             self.levels[root_track].nodes[frozenset()] = EHMNode()
             # Make descendent nodes of this root
             self._make_child_nodes(self.levels[root_track])
 
-    # Make the child nodes for this level, and recursively for its children
     def _make_child_nodes(self, level):
-
+        # Make the child nodes for this level, and recursively for its children
         for child_track in level.child_tracks:
 
             # Add nodes to children of this level
@@ -108,8 +113,8 @@ class EHMTree:
                 for hypothesis in level.measurement_hypotheses:
 
                     if hypothesis.measurement not in usedmeas:
-                        # If the hypothesis doesn't conflict with already used measurements, get the new used
-                        # measurement set
+                        # If the hypothesis doesn't conflict with already used measurements, get
+                        # the new used measurement set
                         newusedmeas = child_level._get_new_used_measurements(usedmeas, hypothesis)
                         # If a node for this set doesn't exist, make one
                         if newusedmeas not in child_level.nodes:
@@ -119,7 +124,6 @@ class EHMTree:
             self._make_child_nodes(child_level)
 
     def _set_backward_weights(self):
-
         for root_track in self.root_tracks:
             self._set_backward_weights_level(self.levels[root_track])
 
@@ -140,8 +144,8 @@ class EHMTree:
                 # If hypothesis doesn't conflict with previously used measurements:
                 if hypothesis.measurement not in usedmeas:
 
-                    # Get product of this hypothesis probability and the backward weights of child nodes and
-                    # add on to backward weights
+                    # Get product of this hypothesis probability and the backward weights of child
+                    # nodes and add on to backward weights
                     thisprob = hypothesis.probability
                     for child_track in level.child_tracks:
                         child_level = self.levels[child_track]
@@ -150,7 +154,6 @@ class EHMTree:
                     node.backward_weight += thisprob
 
     def _set_forward_weights(self):
-
         for root_track in self.root_tracks:
             # Set forward weight of root node to 1.0
             for node in self.levels[root_track].nodes.values():
@@ -169,18 +172,20 @@ class EHMTree:
                 # If hypothesis doesn't conflict with the previously used measurements
                 if hypothesis.measurement not in usedmeas:
 
-                    # Get backward weights of child nodes (so we can get product of sibling nodes later)
+                    # Get backward weights of child nodes (so we can get product of sibling nodes
+                    # later)
                     child_backward_weights = {}
                     for child_track in level.child_tracks:
                         child_level = self.levels[child_track]
                         newusedmeas = child_level._get_new_used_measurements(usedmeas, hypothesis)
-                        child_backward_weights[child_track] = child_level.nodes[newusedmeas].backward_weight
+                        child_backward_weights[child_track] = \
+                            child_level.nodes[newusedmeas].backward_weight
 
                     # For each child level
                     for child_track in level.child_tracks:
 
-                        # Get product of hypothesis probability, this node's forward weight and child node's
-                        # sibling weights
+                        # Get product of hypothesis probability, this node's forward weight and
+                        # child node's sibling weights
                         thisprob = hypothesis.probability * node.forward_weight
                         for sibling_track in level.child_tracks:
                             if sibling_track != child_track:
@@ -210,8 +215,8 @@ class EHMTree:
                 # If the hypothesis doesn't conflict with previously used measurements:
                 if hypothesis.measurement not in usedmeas:
 
-                    # Get the product of the backward weights of the children and the forward weight and add to
-                    # thisprob
+                    # Get the product of the backward weights of the children and the forward
+                    # weight and add to thisprob
                     backprod = Probability(1.0)
                     for child_track in level.child_tracks:
                         child_level = self.levels[child_track]
@@ -238,10 +243,10 @@ class EHMNode:
         self.forward_weight = Probability(0.0)
         self.backward_weight = Probability(0.0)
 
+
 class EHMLevel:
 
     def __init__(self, accumulated_measurements, measurement_hypotheses, child_tracks):
-
         # Set of measurement hypotheses used by this level or a descendant
         self.accumulated_measurements = accumulated_measurements
         # List of measurement hypotheses and probabilities (None = null assignment)
@@ -252,7 +257,6 @@ class EHMLevel:
         self.nodes = {}
 
     def _get_new_used_measurements(self, previous_used_measurements, hypothesis):
-
         # Return measurements which might conflict with assignments at this level or
         # descendants, given parent hypothesis and set of previously used measurements
         return previous_used_measurements.union({hypothesis.measurement}).intersection(
@@ -284,20 +288,23 @@ class TrackClusterer:
             del self.clusters[maxj]
 
             # Compute new intersection table
-            nintersect_table = np.delete(np.delete(nintersect_table, (maxj), axis=0), (maxj), axis=1)
+            nintersect_table = np.delete(
+                np.delete(nintersect_table, maxj, axis=0), maxj, axis=1
+            )
             for j in range(maxi):
-                nintersect_table[j, maxi] = len(self.clusters[maxi][1].intersection(self.clusters[j][1]))
-            for j in range(maxi+1,nintersect_table.shape[0]):
-                nintersect_table[maxi, j] = len(self.clusters[maxi][1].intersection(self.clusters[j][1]))
+                nintersect_table[j, maxi] = len(self.clusters[maxi][1] & self.clusters[j][1])
+            for j in range(maxi+1, nintersect_table.shape[0]):
+                nintersect_table[maxi, j] = len(self.clusters[maxi][1] & self.clusters[j][1])
 
         # Get clustered hypotheses
         self.clustered_hypotheses = []
         for cluster_tracks, _ in self.clusters:
-            self.clustered_hypotheses.append([(track, hypotheses[track]) for track in cluster_tracks])
+            self.clustered_hypotheses.append([(track, hypotheses[track])
+                                              for track in cluster_tracks])
 
     def _get_num_intersect_table(self):
-
-        # Get table nintersect_table[i1, i2] = number of measurements in both clusters i1 and i2, where i2 > i1
+        # Get table nintersect_table[i1, i2] = number of measurements in both clusters i1 and i2,
+        # where i2 > i1
         nclusters = len(self.clusters)
         nintersect_table = np.zeros((nclusters, nclusters)).astype('int')
         for i1, c1 in enumerate(self.clusters):

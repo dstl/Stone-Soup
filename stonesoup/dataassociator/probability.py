@@ -392,25 +392,16 @@ class JPDAwithLBP(JPDA):
 
 
 class JPDAwithEHM(JPDA):
-    r"""Efficient Hypothesis Management (EHM)
+    r"""Joint Probabilistic Data Association with Efficient Hypothesis Management (EHM)
 
-    Given a set of Detections and a set of Tracks, each Detection has a
-    probability that it is associated with each specific Track. Rather than
-    associate specific Detections/Tracks, JPDA calculates the new state of a
-    Track based on its possible association with ALL Detections.  The new
-    state is a Gaussian Mixture, reduced to a single Gaussian.
+    This is a faster alternative of the standard :class:`~.JPDA` algorithm, which makes use of
+    Efficient Hypothesis Management (EHM) to compute the exact marginal association probabilities
+    of tracks to measurements. See [#]_ for further details.
 
-    The output should be the same as for JPDA, but with a more efficient
-    algorithm to avoid enumerating all possible joint assigments over all
-    tracks
-    EHM does not take advantage of the conditional independence structure
-    between targets in the same cluster, so JPDAwithEHM2 might be still more
-    efficient
-
-    Reference
+    References
     ----------
-    S. Maskell, M. Briers, and R. Wright. "Fast mutual exclusion." Signal and Data Processing of Small Targets 2004.
-    Vol. 5428. SPIE, 2004.
+    .. [#] S. Maskell, M. Briers, and R. Wright. "Fast mutual exclusion." Signal and Data
+       Processing of Small Targets 2004. Vol. 5428. SPIE, 2004.
     """
 
     def associate(self, tracks, detections, timestamp, **kwargs):
@@ -418,14 +409,6 @@ class JPDAwithEHM(JPDA):
         # Calculate MultipleHypothesis for each Track over all
         # available Detections
         hypotheses = self.generate_hypotheses(tracks, detections, timestamp, **kwargs)
-
-        # Get list of associations for each track
-        possible_assoc = {}
-        for track in tracks:
-            track_possible_assoc = list()
-            for hypothesis in hypotheses[track]:
-                track_possible_assoc.append(hypothesis)
-            possible_assoc[track] = track_possible_assoc
 
         # Partition tracks into independent clusters and order tracks in each cluster
         clusters = TrackClusterer(hypotheses)
@@ -456,30 +439,25 @@ class JPDAwithEHM(JPDA):
 
     @staticmethod
     def _get_tree(cluster):
-        return EHMTree(cluster, make_tree = False)
+        return EHMTree(cluster, make_tree=False)
+
 
 class JPDAwithEHM2(JPDAwithEHM):
-    r"""Efficient Hypothesis Management 2 (EHM2)
+    r"""Joint Probabilistic Data Association with Efficient Hypothesis Management 2 (EHM2)
 
-    Given a set of Detections and a set of Tracks, each Detection has a
-    probability that it is associated with each specific Track. Rather than
-    associate specific Detections/Tracks, JPDA calculates the new state of a
-    Track based on its possible association with ALL Detections.  The new
-    state is a Gaussian Mixture, reduced to a single Gaussian.
+    This is a faster alternative of the standard :class:`~.JPDA` algorithm, which makes use of
+    Efficient Hypothesis Management 2 (EHM2) to compute the exact marginal association
+    probabilities of tracks to measurements. EHM2 takes advantage of conditional independence of
+    track-measurement pairs to achieve better computational performance than EHM in certain
+    scenarios. See [#]_ for further details.
 
-    The output should be the same as for JPDA, but with a more efficient
-    algorithm to avoid enumerating all possible joint assigments over all
-    tracks
-    EHM2 takes advantage of the conditional independence structure
-    between targets in the same cluster, so JPDAwithEHM2 might be more
-    efficient than JPDAwithEHM
-
-    Reference
+    References
     ----------
-    P. Horridge and S. Maskell, "Real-Time Tracking Of Hundreds Of Targets With Efficient Exact JPDAF Implementation,"
-    2006 9th International Conference on Information Fusion, Florence, Italy, 2006, pp. 1-8
+    .. [#] P. Horridge and S. Maskell, "Real-Time Tracking Of Hundreds Of Targets With Efficient
+       Exact JPDAF Implementation," 2006 9th International Conference on Information Fusion,
+       Florence, Italy, 2006, pp. 1-8
     """
 
     @staticmethod
     def _get_tree(cluster):
-        return EHMTree(cluster, make_tree = True)
+        return EHMTree(cluster, make_tree=True)
