@@ -293,8 +293,6 @@ plotter.fig
 # This enables greater accuracy compared with standard probabilistic data association
 # when dealing with tracking in cluttered environments with non-linear detections.
 
-# By comparing a simpler distance based particle filter performances, the ELPF implementation
-# provides more consistent tracks, even in a simplistic scenario as the one considered.
 
 # %%
 # References
