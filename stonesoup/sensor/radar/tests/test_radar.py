@@ -9,7 +9,7 @@ from pytest import approx
 from ..beam_pattern import StationaryBeam
 from ..beam_shape import Beam2DGaussian
 from ..radar import RadarBearingRange, RadarElevationBearingRange, RadarRotatingBearingRange, \
-    AESARadar, RadarRasterScanBearingRange, RadarBearingRangeRate, \
+    AESARadar, RadarRasterScanBearingRange, RadarBearingRangeRate, RadarBearingRangeRate2D, \
     RadarElevationBearingRangeRate, RadarBearing, RadarRotatingBearing, \
     RadarRotatingElevationBearingRange
 from ....functions import rotz, rotx, roty, cart2sphere
@@ -237,6 +237,16 @@ def h3d_rr(state, pos_map, vel_map, translation_offset, rotation_offset, velocit
                 StateVector([[100], [0], [0]])  # position
         ),
         (
+                h2d_rr,  # h
+                RadarBearingRangeRate2D,  # sensorclass
+                np.array([0, 2]),  # pos_mapping
+                np.array([1, 3]),  # vel_mapping
+                np.array([[0.05, 0, 0],
+                          [0, 0.015, 0],
+                          [0, 0, 10]]),  # noise_covar
+                StateVector([[100], [0]])  # position
+        ),
+        (
                 h3d_rr,
                 RadarElevationBearingRangeRate,
                 np.array([0, 2, 4]),  # pos_mapping
@@ -248,7 +258,7 @@ def h3d_rr(state, pos_map, vel_map, translation_offset, rotation_offset, velocit
                 StateVector([[100], [0], [0]])  # position
         )
     ],
-    ids=["RadarBearingRangeRate", "RadarElevationBearingRangeRate"]
+    ids=["RadarBearingRangeRate", "RadarBearingRangeRate2D", "RadarElevationBearingRangeRate"]
 )
 def test_range_rate_radar(h, sensorclass, pos_mapping, vel_mapping, noise_covar, position):
     # Instantiate the rotating radar

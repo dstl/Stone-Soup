@@ -498,6 +498,7 @@ class RadarBearingRangeRate(RadarBearingRange):
         true_range = measurement_vector[1, 0]  # Bearing(0), Range(1), Range-Rate(2)
         return true_range <= self.max_range
 
+
 class RadarBearingRangeRate2D(RadarBearingRange):
     """ A radar sensor that generates measurements of targets, using a
     :class:`~.CartesianToBearingRangeRate` model, relative to its position
@@ -539,7 +540,8 @@ class RadarBearingRangeRate2D(RadarBearingRange):
         measurement_vector = measurement_model.function(state, noise=False)
         true_range = measurement_vector[1, 0]  # Bearing(0), Range(1), Range-Rate(2)
         return true_range <= self.max_range
-       
+
+
 class RadarElevationBearingRangeRate(RadarBearingRangeRate):
     """ A radar sensor that generates measurements of targets, using a
     :class:`~.CartesianToElevationBearingRangeRate` model, relative to its position

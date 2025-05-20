@@ -863,7 +863,7 @@ class CartesianToBearingRangeRate2D(_AngleNonLinearGaussianMeasurement):
         xy_rot = self.rotation_matrix[:len(self.mapping), :len(self.mapping)] @ xy_pos
 
         # Convert to Polar
-        rho, phi= cart2pol(xy_rot[0, :], xy_rot[1, :])
+        rho, phi = cart2pol(xy_rot[0, :], xy_rot[1, :])
 
         # Determine the net velocity component in the engagement
         xy_vel = state.state_vector[self.velocity_mapping, :] - self.velocity
@@ -876,6 +876,7 @@ class CartesianToBearingRangeRate2D(_AngleNonLinearGaussianMeasurement):
     @staticmethod
     def _typed_vector():
         return np.array([[Bearing(0.)], [0.], [0.]])
+
 
 class CartesianToElevationBearingRangeRate(_AngleNonLinearGaussianMeasurement, ReversibleModel):
     r"""This is a class implementation of a time-invariant measurement model, \
