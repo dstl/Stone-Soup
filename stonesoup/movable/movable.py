@@ -277,7 +277,7 @@ class MovingMovable(Movable):
         if not self.is_moving:
             self._property_orientation = StateVector([0, 0, 0])
             warnings.warn('A default initial orientation has been set as StateVector([0, 0, 0])')
-        
+
         # For low velocity platforms, calculate orientation based on previous position
         if len(self) >= 2 and np.linalg.norm(self.velocity) < 1e-6 and 2 <= self.ndim <= 3:
             c_pos = self.position
