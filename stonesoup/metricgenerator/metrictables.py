@@ -137,15 +137,15 @@ class SIAPTableGenerator(RedGreenTableGenerator):
         }
 
 
-class SIAPDiffTableGenerator(Base):
+class SIAPDiffTableGenerator(SIAPTableGenerator):
     """
-    Given two sets of metric generators, the SiapDiffTableGenerator returns a table displaying the
-    difference between two sets of metrics. Allows quick comparison of two sets of metrics.
+    Returns a table displaying the difference between two or more sets of metrics, 
+    allowing quick comparison. 
     """
     metrics: Collection[Collection[MetricGenerator]] = Property(doc="Set of metrics to put in the "
                                                                     "table")
 
-    metrics_labels: Collection[str] = Property(doc='List of titles for ',
+    metrics_labels: Collection[str] = Property(doc='List of titles for metrics',
                                                default=None)
 
     def __init__(self, *args, **kwargs):
@@ -164,7 +164,7 @@ class SIAPDiffTableGenerator(Base):
         Returns a matplotlib Table of metrics for two sets of values. Table contains metric
         descriptions, target values and a coloured value cell for each set of metrics.
         The colour of each value cell represents how the pair of values of the metric compare to
-        eachother, with the better value showing in green. Table also contains a 'Diff' value
+        each other, with the better value showing in green. Table also contains a 'Diff' value
         displaying the difference between the pair of metric values."""
 
         white = (1, 1, 1)
@@ -214,33 +214,3 @@ class SIAPDiffTableGenerator(Base):
         table.scale(*scale)
 
         return table
-
-    def set_default_targets(self):
-        self.targets = {
-            "SIAP Completeness": 1,
-            "SIAP Ambiguity": 1,
-            "SIAP Spuriousness": 0,
-            "SIAP Position Accuracy": 0,
-            "SIAP Velocity Accuracy": 0,
-            "SIAP Rate of Track Number Change": 0,
-            "SIAP Longest Track Segment": 1,
-            "SIAP ID Completeness": 1,
-            "SIAP ID Correctness": 1,
-            "SIAP ID Ambiguity": 0
-        }
-
-    def set_default_descriptions(self):
-        self.descriptions = {
-            "SIAP Completeness": "Fraction of true objects being tracked",
-            "SIAP Ambiguity": "Number of tracks assigned to a true object",
-            "SIAP Spuriousness": "Fraction of tracks that are unassigned to a true object",
-            "SIAP Position Accuracy": "Positional error of associated tracks to their respective "
-                                      "truths",
-            "SIAP Velocity Accuracy": "Velocity error of associated tracks to their respective "
-                                      "truths",
-            "SIAP Rate of Track Number Change": "Rate of number of track changes per truth",
-            "SIAP Longest Track Segment": "Duration of longest associated track segment per truth",
-            "SIAP ID Completeness": "Fraction of true objects with an assigned ID",
-            "SIAP ID Correctness": "Fraction of true objects with correct ID assignment",
-            "SIAP ID Ambiguity": "Fraction of true objects with ambiguous ID assignment"
-        }
