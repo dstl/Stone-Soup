@@ -872,7 +872,7 @@ class CartesianToBearingRangeRate2D(_AngleNonLinearGaussianMeasurement, Reversib
         rr = np.einsum('ij,ij->j', xy_pos, xy_vel) / np.linalg.norm(xy_pos, axis=0)
 
         return StateVectors([phi, rho, rr]) + noise
-    
+
     def inverse_function(self, detection, **kwargs) -> StateVector:
         phi, rho, rho_rate = detection.state_vector
 
@@ -893,7 +893,7 @@ class CartesianToBearingRangeRate2D(_AngleNonLinearGaussianMeasurement, Reversib
         out_vector[self.mapping, :] = out_vector[self.mapping, :] + self.translation_offset
 
         return out_vector
-    
+
     @staticmethod
     def _typed_vector():
         return np.array([[Bearing(0.)], [0.], [0.]])
