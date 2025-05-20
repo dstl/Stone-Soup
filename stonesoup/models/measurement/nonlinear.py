@@ -736,7 +736,7 @@ class CartesianToBearingRangeRate(_AngleNonLinearGaussianMeasurement):
         return np.array([[Bearing(0)], [0.], [0.]])
 
 
-class CartesianToBearingRangeRate2D(_AngleNonLinearGaussianMeasurement, ReversibleModel):
+class CartesianToBearingRangeRate2D(_AngleNonLinearGaussianMeasurement):
     r"""This is a class implementation of a time-invariant measurement model, \
     where measurements are assumed to be received in the form of bearing \
     (:math:`\phi`), range (:math:`r`) and range-rate (:math:`\dot{r}`),
@@ -872,27 +872,6 @@ class CartesianToBearingRangeRate2D(_AngleNonLinearGaussianMeasurement, Reversib
         rr = np.einsum('ij,ij->j', xy_pos, xy_vel) / np.linalg.norm(xy_pos, axis=0)
 
         return StateVectors([phi, rho, rr]) + noise
-
-    def inverse_function(self, detection, **kwargs) -> StateVector:
-        phi, rho, rho_rate = detection.state_vector
-
-        x, y = pol2cart(rho, phi)
-        # only rho_rate is known - only the components in x,y of the range rate can be found.
-        x_rate = np.cos(phi) * rho_rate
-        y_rate = np.sin(phi) * rho_rate
-
-        inv_rotation_matrix = inv(self.rotation_matrix)[:len(self.mapping), :len(self.mapping)]
-        out_vector = StateVector(np.zeros((self.ndim_state)))
-        out_vector[self.mapping, 0] = x, y
-        out_vector[self.velocity_mapping, 0] = x_rate, y_rate
-
-        out_vector[self.mapping, :] = inv_rotation_matrix @ out_vector[self.mapping, :]
-        out_vector[self.velocity_mapping, :] = \
-            inv_rotation_matrix @ out_vector[self.velocity_mapping, :]
-
-        out_vector[self.mapping, :] = out_vector[self.mapping, :] + self.translation_offset
-
-        return out_vector
 
     @staticmethod
     def _typed_vector():
