@@ -6,7 +6,7 @@ import matplotlib
 from matplotlib import pyplot as plt
 
 from .base import MetricTableGenerator, MetricGenerator
-from ..base import Property, Base
+from ..base import Property
 
 
 class RedGreenTableGenerator(MetricTableGenerator):
@@ -139,8 +139,8 @@ class SIAPTableGenerator(RedGreenTableGenerator):
 
 class SIAPDiffTableGenerator(SIAPTableGenerator):
     """
-    Returns a table displaying the difference between two or more sets of metrics, 
-    allowing quick comparison. 
+    Returns a table displaying the difference between two or more sets of metrics,
+     allowing quick comparison.
     """
     metrics: Collection[Collection[MetricGenerator]] = Property(doc="Set of metrics to put in the "
                                                                     "table")
