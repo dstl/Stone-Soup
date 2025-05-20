@@ -225,7 +225,7 @@ class GaussianKernel(Kernel):
         return StateVectors(k_tilde_x)
 
 
-class TrackKernel(Kernel):
+class _StateKernel(Kernel):
     kernel: Kernel = Property(doc="Base Kernel class")
     mapping: list = Property(default=None, doc="List of mappings of the components to be used in "
                                                "the kernel from the state vector.")
@@ -248,6 +248,25 @@ class TrackKernel(Kernel):
 
     def __call__(self, state1, state2=None, **kwargs):
         r"""
+        Compute the kernel state of a pair of objects containing States
+
+        Parameters
+        ----------
+        state1 : :class:`~.Track`
+        state2 : :class:`~.Track`
+
+        Returns
+        -------
+        StateVectors
+            kernel state of a pair of input :class:`~.State` objects
+        """
+        state1, state2 = self._get_states(state1, state2)
+        return self.kernel.__call__(state1, state2, **kwargs)
+
+
+class TrackKernel(_StateKernel):
+    def __call__(self, state1, state2=None, **kwargs):
+        r"""
         Compute the kernel state of a pair of :class:`~.Track` objects
 
         Parameters
@@ -264,8 +283,7 @@ class TrackKernel(Kernel):
         return self.kernel.__call__(state1, state2, **kwargs)
 
 
-class MeasurementKernel(TrackKernel):
-
+class MeasurementKernel(_StateKernel):
     def __call__(self, state1, state2=None, **kwargs):
         r"""
         Compute the kernel state of a pair of lists of measurements as :class:`~.List` objects
