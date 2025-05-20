@@ -736,7 +736,7 @@ class CartesianToBearingRangeRate(_AngleNonLinearGaussianMeasurement):
         return np.array([[Bearing(0)], [0.], [0.]])
 
 
-class CartesianToBearingRangeRate2D(NonLinearGaussianMeasurement, ReversibleModel):
+class CartesianToBearingRangeRate2D(_AngleNonLinearGaussianMeasurement, ReversibleModel):
     r"""This is a class implementation of a time-invariant measurement model, \
     where measurements are assumed to be received in the form of bearing \
     (:math:`\phi`), range (:math:`r`) and range-rate (:math:`\dot{r}`),
@@ -800,7 +800,7 @@ class CartesianToBearingRangeRate2D(NonLinearGaussianMeasurement, ReversibleMode
     translation_offset: StateVector = Property(
         default=None,
         doc="A 2x1 array specifying the origin offset in terms of :math:`x,y` coordinates.")
-    velocity_mapping: Tuple[int, int] = Property(
+    velocity_mapping: tuple[int, int] = Property(
         default=(1, 3),
         doc="Mapping to the targets velocity within its state space")
     velocity: StateVector = Property(
@@ -831,7 +831,7 @@ class CartesianToBearingRangeRate2D(NonLinearGaussianMeasurement, ReversibleMode
 
         return 3
 
-    def function(self, state, noise=False, **kwargs) -> StateVector:
+    def _function(self, state, noise=False, **kwargs) -> StateVector:
         r"""Model function :math:`h(\vec{x}_t,\vec{v}_t)`
 
         Parameters
@@ -871,22 +871,18 @@ class CartesianToBearingRangeRate2D(NonLinearGaussianMeasurement, ReversibleMode
         # Use polar to calculate range rate
         rr = np.einsum('ij,ij->j', xy_pos, xy_vel) / np.linalg.norm(xy_pos, axis=0)
 
-        # Convert to bearings
-        bearings = [Bearing(i) for i in phi]
-
-        return StateVectors([bearings, rho, rr]) + noise
+        return StateVectors([phi, rho, rr]) + noise
     
     def inverse_function(self, detection, **kwargs) -> StateVector:
         phi, rho, rho_rate = detection.state_vector
 
         x, y = pol2cart(rho, phi)
-        # because only rho_rate is known, only the components in
-        # x,y of the range rate can be found.
+        # only rho_rate is known - only the components in x,y of the range rate can be found.
         x_rate = np.cos(phi) * rho_rate
         y_rate = np.sin(phi) * rho_rate
 
         inv_rotation_matrix = inv(self.rotation_matrix)[:len(self.mapping), :len(self.mapping)]
-        out_vector = StateVector([[0.], [0.], [0.], [0.]])
+        out_vector = StateVector(np.zeros((self.ndim_state)))
         out_vector[self.mapping, 0] = x, y
         out_vector[self.velocity_mapping, 0] = x_rate, y_rate
 
@@ -897,11 +893,10 @@ class CartesianToBearingRangeRate2D(NonLinearGaussianMeasurement, ReversibleMode
         out_vector[self.mapping, :] = out_vector[self.mapping, :] + self.translation_offset
 
         return out_vector
-
-    def rvs(self, num_samples=1, **kwargs) -> Union[StateVector, StateVectors]:
-        out = super().rvs(num_samples, **kwargs)
-        out = np.array([[Bearing(0)], [0.], [0.]]) + out
-        return out
+    
+    @staticmethod
+    def _typed_vector():
+        return np.array([[Bearing(0.)], [0.], [0.]])
 
 class CartesianToElevationBearingRangeRate(_AngleNonLinearGaussianMeasurement, ReversibleModel):
     r"""This is a class implementation of a time-invariant measurement model, \
