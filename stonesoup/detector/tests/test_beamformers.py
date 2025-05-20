@@ -47,8 +47,8 @@ def test_fixed_target_beamformer(detector):
     for timestep, detections in detector:
         for detection in detections:
             # check beamformer accuracy
-            assert(np.abs(detection.state_vector[0] - truth[0]) < 0.4)
-            assert(np.abs(detection.state_vector[1] - truth[1]) < 0.1)
+            assert np.abs(detection.state_vector[0] - truth[0]) < 0.4
+            assert np.abs(detection.state_vector[1] - truth[1]) < 0.1
             prediction = predictor.predict(prior, timestamp=detection.timestamp)
             hypothesis = SingleHypothesis(prediction, detection)  # Group prediction + measurement
             post = updater.update(hypothesis)
