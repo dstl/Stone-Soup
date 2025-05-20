@@ -48,18 +48,19 @@ class Node(Base):
 
     def update(self, time_pertaining, time_arrived, data_piece, category, track=None,
                use_arrival_time=False):
-        """Updates this :class:`~.Node`'s :attr:`~.data_held` using a new data piece. 
+        """Updates this :class:`~.Node`'s :attr:`~.data_held` using a new data piece.
 
         Args:
-            time_pertaining (datetime): Time the data is relevant to, when it was created. 
-            time_arrived (datetime): Time the data arrived at this node. 
-            data_piece (DataPiece): The specific data piece, containing for example a Detection. 
-            category (str): A string matching either "fused", "created", "unfused", to describe the data piece. 
-            track (Track): Track to which the data piece is assigned, if it contains a Hypothesis. Default is None. 
-            use_arrival_time (bool): If True, make `data.timestamp` equal to `time_arrived`. 
+            time_pertaining (datetime): Time the data is relevant to, when it was created.
+            time_arrived (datetime): Time the data arrived at this node.
+            data_piece (DataPiece): The specific data piece, containing for example a Detection.
+            category (str): A string matching either "fused", "created", "unfused".
+            track (Track): Track to which the data piece is assigned,
+             if it contains a Hypothesis. Default is None.
+            use_arrival_time (bool): If True, make `data.timestamp` equal to `time_arrived`.
 
         Returns:
-            bool: True if new data has been added. 
+            bool: True if new data has been added.
         """
         if not (isinstance(time_pertaining, datetime) and isinstance(time_arrived, datetime)):
             raise TypeError("Times must be datetime objects")
@@ -118,7 +119,8 @@ class FusionNode(Node):
         doc="Tracker used by this Node to fuse together Tracks and Detections")
     fusion_queue: FusionQueue = Property(
         default=None,
-        doc="The queue from which this node draws data to be fused. Default is a standard FusionQueue")
+        doc="The queue from which this node draws data to be fused. Default is a standard "
+            "FusionQueue")
     tracks: set = Property(default=None,
                            doc="Set of tracks tracked by the fusion node")
     colour: str = Property(
