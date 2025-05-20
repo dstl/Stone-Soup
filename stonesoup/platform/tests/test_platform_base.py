@@ -325,39 +325,33 @@ def test_platform_orientation_2d(state, orientation):
     assert np.allclose(platform.orientation, orientation)
 
 
-def test_orientation_error():
-    # moving platform without velocity defined
+def test_low_velocity_orientation():
     timestamp = datetime.datetime.now()
-    platform_state = State(np.array([[2],
-                                     [2],
-                                     [0]]),
-                           timestamp)
-    platform = MovingPlatform(states=platform_state, transition_model=None,
-                              position_mapping=[0, 1, 2])
-    with pytest.raises(AttributeError):
-        _ = platform.orientation
-    platform_state = State(np.array([[2],
-                                     [0],
-                                     [2],
-                                     [0],
-                                     [2],
-                                     [0]]),
-                           timestamp)
-    platform = MovingPlatform(states=platform_state, transition_model=None,
-                              position_mapping=[0, 2, 4])
-    with pytest.raises(AttributeError):
-        _ = platform.orientation
 
-    platform_state = State(np.array([[2],
-                                     [0],
-                                     [2],
-                                     [0]]),
-                           timestamp)
+    platform_state_vector = StateVector([0, 0, 0, 0, 0, 0])
+    platform_state = State(platform_state_vector, timestamp)
+
+    transition_model = CombinedLinearGaussianTransitionModel(
+        [ConstantVelocity(0.), ConstantVelocity(0.), ConstantVelocity(0.)])
+    
     platform = MovingPlatform(states=platform_state,
-                              transition_model=None,
-                              position_mapping=[0, 2])
-    with pytest.raises(AttributeError):
-        _ = platform.orientation
+                              position_mapping=(0, 2, 4),
+                              velocity_mapping=(1, 3, 5),
+                              transition_model=transition_model)
+    assert np.allclose(platform.orientation, [[0],[0],[0]])
+    
+    timediff = 2  # 2sec
+    new_timestamp = timestamp + datetime.timedelta(seconds=timediff)
+    platform.move(new_timestamp)
+    # platform has moved diagonally, velocity is low
+    platform.state.state_vector = StateVector([1, 1e-7, 1, 0, 0, 0])
+    assert np.allclose(platform.orientation, [[0],[0],[0.78539816]])
+
+    new_timestamp2 = timestamp + datetime.timedelta(seconds=timediff)
+    platform.move(new_timestamp2)
+    # platform has moved in x direction by small distance, velocity is low
+    platform.state.state_vector = StateVector([1+1e-7, 1e-7, 1, 0, 0, 0])
+    assert np.allclose(platform.orientation, [[0],[0],[0.78539816]])
 
 
 # noinspection PyPropertyAccess
