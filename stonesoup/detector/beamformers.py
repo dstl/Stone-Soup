@@ -14,13 +14,13 @@ lists the Cartesian coordinates for each time window.
 
 import copy
 import csv
-import math
 from collections.abc import Sequence
 from datetime import datetime, timedelta
 from itertools import islice, zip_longest
 from pathlib import Path
 
 import numpy as np
+from scipy.special import factorial
 from scipy.stats import norm, uniform
 
 from ..base import Property
@@ -181,7 +181,7 @@ class RJMCMCBeamformer(DetectionReader):
             windows = grouper(reader, self.window_size)
             sensor_loc = grouper(reader_loc, self.num_sensors)
 
-            bin_steps = [math.pi/(2*self.nbins), 2*math.pi/self.nbins]
+            bin_steps = [np.pi/(2*self.nbins), 2*np.pi/self.nbins]
 
             for (window, sensor_pos) in zip(windows, sensor_loc):
                 # Grab the next `window_size` lines from the reader and read it into y (also
@@ -212,8 +212,8 @@ class RJMCMCBeamformer(DetectionReader):
 
                 for k in range(0, self.num_sensors):
                     for t in range(0, self.window_size):
-                        sinTy[k] = sinTy[k] + math.sin(2*math.pi*t*self.omega/self.fs)*y[t, k]
-                        cosTy[k] = cosTy[k] + math.cos(2*math.pi*t*self.omega/self.fs)*y[t, k]
+                        sinTy[k] = sinTy[k] + np.sin(2*np.pi*t*self.omega/self.fs)*y[t, k]
+                        cosTy[k] = cosTy[k] + np.cos(2*np.pi*t*self.omega/self.fs)*y[t, k]
                         yTy = yTy + y[t, k]*y[t, k]
 
                 sumsinsq = 0
@@ -222,14 +222,14 @@ class RJMCMCBeamformer(DetectionReader):
 
                 for t in range(0, self.window_size):
                     sumsinsq = sumsinsq \
-                        + math.sin(2*math.pi*t*self.omega/self.fs) \
-                        * math.sin(2*math.pi*t*self.omega/self.fs)
+                        + np.sin(2*np.pi*t*self.omega/self.fs) \
+                        * np.sin(2*np.pi*t*self.omega/self.fs)
                     sumcossq = sumcossq \
-                        + math.cos(2*math.pi*t*self.omega/self.fs) \
-                        * math.cos(2*math.pi*t*self.omega/self.fs)
+                        + np.cos(2*np.pi*t*self.omega/self.fs) \
+                        * np.cos(2*np.pi*t*self.omega/self.fs)
                     sumsincos = sumsincos \
-                        + math.sin(2*math.pi*t*self.omega/self.fs) \
-                        * math.cos(2*math.pi*t*self.omega/self.fs)
+                        + np.sin(2*np.pi*t*self.omega/self.fs) \
+                        * np.cos(2*np.pi*t*self.omega/self.fs)
                 sumsincos = 0
                 old_logp = self.log_prob(params, K, sinTy, cosTy, yTy,
                                          sumsinsq, sumcossq, sumsincos, N)
@@ -250,18 +250,18 @@ class RJMCMCBeamformer(DetectionReader):
                             K = copy.deepcopy(p_K)
                             for k in range(0, K):
                                 # correct for mirrored DOAs in elevation
-                                if ((params[k][0] > math.pi/2) & (params[k][0] <= math.pi)):
-                                    params[k][0] = math.pi - params[k][0]
-                                elif ((params[k][0] > math.pi) & (params[k][0] <= 3*math.pi/2)):
-                                    params[k][0] = params[k][0] - math.pi
-                                    params[k][1] = params[k][1] - math.pi
-                                elif ((params[k][0] > 3*math.pi/2) & (params[k][0] <= 2*math.pi)):
-                                    params[k][0] = 2*math.pi - params[k][0]
-                                    params[k][1] = params[k][1] - math.pi
+                                if ((params[k][0] > np.pi/2) & (params[k][0] <= np.pi)):
+                                    params[k][0] = np.pi - params[k][0]
+                                elif ((params[k][0] > np.pi) & (params[k][0] <= 3*np.pi/2)):
+                                    params[k][0] = params[k][0] - np.pi
+                                    params[k][1] = params[k][1] - np.pi
+                                elif ((params[k][0] > 3*np.pi/2) & (params[k][0] <= 2*np.pi)):
+                                    params[k][0] = 2*np.pi - params[k][0]
+                                    params[k][1] = params[k][1] - np.pi
                                 if (params[k][1] < 0):
-                                    params[k][1] += 2*math.pi
-                                elif (params[k][1] > 2*math.pi):
-                                    params[k][1] -= 2*math.pi
+                                    params[k][1] += 2*np.pi
+                                elif (params[k][1] > 2*np.pi):
+                                    params[k][1] -= 2*np.pi
                         for k in range(0, K):
                             bin_ind = [0, 0]
                             for ind in range(0, 2):
@@ -412,20 +412,18 @@ class RJMCMCBeamformer(DetectionReader):
         for k in range(0, p_K):
             # calculate phase offsets relative to first sensor in the array
             for sensor_ind in range(0, self.num_sensors):
-                alpha = 2*math.pi*self.omega*((self.sensor_pos[sensor_ind, 1]
-                                               - self.sensor_pos[0, 1]) * math.sin(p_params[k][1])
-                                              * math.sin(p_params[k][0])
-                                              + (self.sensor_pos[sensor_ind, 0]
-                                                 - self.sensor_pos[0, 0])
-                                              * math.cos(p_params[k][1])
-                                              * math.sin(p_params[k][0])
-                                              + (self.sensor_pos[sensor_ind, 2]
-                                                 - self.sensor_pos[0, 2])
-                                              * math.sin(p_params[k][0])) / self.wave_speed
-                DTy[k] = DTy[k] + math.cos(alpha) * sinTy[sensor_ind] \
-                    + math.sin(alpha) * cosTy[sensor_ind]
-                sinalpha[k, sensor_ind] = math.sin(alpha)
-                cosalpha[k, sensor_ind] = math.cos(alpha)
+                alpha = 2*np.pi*self.omega*(
+                    (self.sensor_pos[sensor_ind, 1] - self.sensor_pos[0, 1])
+                    * np.sin(p_params[k][1])
+                    * np.sin(p_params[k][0])
+                    + (self.sensor_pos[sensor_ind, 0] - self.sensor_pos[0, 0])
+                    * np.cos(p_params[k][1])
+                    * np.sin(p_params[k][0])
+                    + (self.sensor_pos[sensor_ind, 2] - self.sensor_pos[0, 2])
+                    * np.sin(p_params[k][0])) / self.wave_speed
+                DTy[k] = DTy[k] + np.cos(alpha)*sinTy[sensor_ind] + np.sin(alpha)*cosTy[sensor_ind]
+                sinalpha[k, sensor_ind] = np.sin(alpha)
+                cosalpha[k, sensor_ind] = np.cos(alpha)
 
         for k1 in range(0, p_K):
             DTD[k1, k1] = N/2
@@ -443,9 +441,9 @@ class RJMCMCBeamformer(DetectionReader):
 
         Dterm = np.matmul(np.linalg.solve(1001*DTD, DTy), np.transpose(DTy))
         log_posterior = - (p_K * np.log(1.001) / 2) - (N / 2) * np.log((yTy - Dterm) / 2) \
-            + p_K * np.log(self.Lambda) - np.log(np.math.factorial(p_K)) \
-            - p_K*np.log(math.pi * math.pi)
-        # note: math.pi*math.pi comes from area of parameter space in one dimension (i.e. range of
+            + p_K * np.log(self.Lambda) - np.log(factorial(p_K)) \
+            - p_K*np.log(np.pi * np.pi)
+        # note: np.pi*np.pi comes from area of parameter space in one dimension (i.e. range of
         # azimuth * range of elevation)
 
         return log_posterior
@@ -471,14 +469,14 @@ class RJMCMCBeamformer(DetectionReader):
 
         for k in range(0, p_K):
             # transform to first mode
-            if p_params[k][0] > 3*math.pi/2:
-                p_params[k][0] = 2*math.pi - p_params[k][0]
-                p_params[k][1] = p_params[k][1] - math.pi
-            elif p_params[k][0] > math.pi:
-                p_params[k][0] = p_params[k][0] - math.pi
-                p_params[k][1] = p_params[k][1] - math.pi
-            elif p_params[k][0] > math.pi/2:
-                p_params[k][0] = math.pi - p_params[k][0]
+            if p_params[k][0] > 3*np.pi/2:
+                p_params[k][0] = 2*np.pi - p_params[k][0]
+                p_params[k][1] = p_params[k][1] - np.pi
+            elif p_params[k][0] > np.pi:
+                p_params[k][0] = p_params[k][0] - np.pi
+                p_params[k][1] = p_params[k][1] - np.pi
+            elif p_params[k][0] > np.pi/2:
+                p_params[k][0] = np.pi - p_params[k][0]
 
             # do coin toss to decide mode to jump to
             toss = uniform.rvs(random_state=self.random_state)
@@ -487,25 +485,25 @@ class RJMCMCBeamformer(DetectionReader):
                 pass
             elif toss < 0.5:
                 # second mode
-                p_params[k][0] = math.pi - p_params[k][0]
+                p_params[k][0] = np.pi - p_params[k][0]
             elif toss < 0.75:
                 # third mode
-                p_params[k][0] = p_params[k][0] + math.pi
-                p_params[k][1] = p_params[k][1] + math.pi
+                p_params[k][0] = p_params[k][0] + np.pi
+                p_params[k][1] = p_params[k][1] + np.pi
             else:
                 # fourth mode
-                p_params[k][0] = 2*math.pi - p_params[k][0]
-                p_params[k][1] = p_params[k][1] + math.pi
+                p_params[k][0] = 2*np.pi - p_params[k][0]
+                p_params[k][1] = p_params[k][1] + np.pi
 
             # wrap angles
             if p_params[k][0] < 0:
-                p_params[k][0] = p_params[k][0] + 2*math.pi
-            elif p_params[k][0] > 2*math.pi:
-                p_params[k][0] = p_params[k][0] - 2*math.pi
+                p_params[k][0] = p_params[k][0] + 2*np.pi
+            elif p_params[k][0] > 2*np.pi:
+                p_params[k][0] = p_params[k][0] - 2*np.pi
             if p_params[k][1] < 0:
-                p_params[k][1] = p_params[k][1] + 2*math.pi
-            elif p_params[k][1] > 2*math.pi:
-                p_params[k][1] = p_params[k][1] - 2*math.pi
+                p_params[k][1] = p_params[k][1] + 2*np.pi
+            elif p_params[k][1] > 2*np.pi:
+                p_params[k][1] = p_params[k][1] - 2*np.pi
 
         return p_params
 
@@ -535,24 +533,24 @@ class RJMCMCBeamformer(DetectionReader):
         p_K = 0
         # choose random phase (assuming constant frequency)
         if len(params) == 0:
-            p_params[0] = StateVector([2*math.pi*uniform.rvs(random_state=self.random_state),
-                                      2*math.pi*uniform.rvs(random_state=self.random_state)])
+            p_params[0] = StateVector([2*np.pi*uniform.rvs(random_state=self.random_state),
+                                      2*np.pi*uniform.rvs(random_state=self.random_state)])
             p_K = 1
         else:
             for k in range(0, K):
-                epsilon = norm.rvs(0, 0.125, 1, random_state=self.random_state)
+                epsilon = norm.rvs(scale=0.125, random_state=self.random_state)
                 rand_val = params[k][0]+epsilon
-                if rand_val > 2*math.pi:
-                    rand_val = rand_val-2*math.pi
+                if rand_val > 2*np.pi:
+                    rand_val = rand_val-2*np.pi
                 elif rand_val < 0:
-                    rand_val = rand_val+2*math.pi
+                    rand_val = rand_val+2*np.pi
                 p_params[k][0] = rand_val
-                epsilon = norm.rvs(0, 0.5, 1, random_state=self.random_state)
+                epsilon = norm.rvs(scale=0.5, random_state=self.random_state)
                 rand_val = params[k][1]+epsilon
-                if rand_val > 2*math.pi:
-                    rand_val = rand_val-2*math.pi
+                if rand_val > 2*np.pi:
+                    rand_val = rand_val-2*np.pi
                 elif rand_val < 0:
-                    rand_val = rand_val+2*math.pi
+                    rand_val = rand_val+2*np.pi
                 p_params[k][1] = rand_val
             p_K = copy.deepcopy(K)
         return p_params, p_K
