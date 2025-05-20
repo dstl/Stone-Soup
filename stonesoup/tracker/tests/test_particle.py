@@ -47,4 +47,5 @@ def test_multi_target_expected_likelihood_tracker(
         previous_time = time
 
     assert max_tracks >= 3  # Should have had at least 3 tracks in single step
+
     assert len(total_tracks) >= 6  # Should have had at least 6 over all steps
