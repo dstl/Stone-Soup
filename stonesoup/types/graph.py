@@ -1,5 +1,5 @@
 import itertools
-from typing import Sequence, Iterable
+from typing import Iterable
 
 import numpy as np
 
@@ -18,8 +18,8 @@ class RoadNetwork(nx.DiGraph):
     """Road network type
 
     A road network is a directed graph, where nodes represent intersections and edges represent
-    roads. Nodes must have a 'pos' attribute, which is a tuple of (x, y) coordinates. Edges must
-    have a `'weight'` attribute, which is a float representing the weight of the edges
+    roads. Nodes must have a ``'pos'`` attribute, which is a tuple of (x, y) coordinates. Edges
+    must have a ``'weight'`` attribute, which is a float representing the weight of the edges
     (e.g. length).
 
     The underlying data structure is a :class:`networkx.DiGraph`, with some limitations on the
@@ -55,8 +55,8 @@ class RoadNetwork(nx.DiGraph):
         n : int
             A node identifier
         attr
-            Node attributes to update. Must contain a 'pos' attribute, that is a tuple of (x, y)
-            coordinates.
+            Node attributes to update. Must contain a ``'pos'`` attribute, that is a tuple of
+            (x, y) coordinates.
         """
         if not isinstance(n, int) or n <= 0:
             raise TypeError("Road network nodes must be positive integers")
@@ -116,7 +116,7 @@ class RoadNetwork(nx.DiGraph):
         v : int
             End node identifier
         attr
-            Edge attributes to update. Must contain a 'weight' attribute, that is a float.
+            Edge attributes to update. Must contain a ``'weight'`` attribute, that is a float.
         """
         if "weight" not in attr:
             raise ValueError("Road network edges must have a 'weight' attribute that is a float")
@@ -131,7 +131,7 @@ class RoadNetwork(nx.DiGraph):
         ----------
         ebunch : Sequence[Tuple[int, int, Dict]]
             An iterable of edges. Edges must be specified as tuples (u, v, d) where d
-            is a dict of edge attributes (must contain a 'weight' attribute that is a float).
+            is a dict of edge attributes (must contain a ``'weight'`` attribute that is a float).
         kwargs
             Update attributes for all edges in ebunch. Edge attributes specified in ebunch as a
             tuple take precedence over attributes specified via keyword arguments.
@@ -223,9 +223,9 @@ class RoadNetwork(nx.DiGraph):
         Parameters
         ----------
         dct : dict
-            A dictionary with keys 'nodes' and 'edges'. The value of 'nodes' is a dictionary
-            mapping node identifiers to a dictionary of node attributes. The value of 'edges' is
-            a dictionary mapping edge identifiers to edge attributes.
+            A dictionary with keys ``'nodes'`` and ``'edges'``. The value of ``'nodes'`` is a
+            dictionary mapping node identifiers to a dictionary of node attributes. The value of
+            ``'edges'`` is a dictionary mapping edge identifiers to edge attributes.
 
         Returns
         -------
@@ -257,8 +257,8 @@ class RoadNetwork(nx.DiGraph):
                       path_type='node'):
         """Compute the shortest path(s) between source and target.
 
-        This method is a wrapper around the NetworkX `nx.shortest_path()` function, that adds some
-        additional functionality:
+        This method is a wrapper around the NetworkX :func:`networkx.shortest_path` function, that
+        adds some additional functionality:
 
             - While the NetworkX function only allows to compute the shortest path(s) between a
               single source and a single target, this method allows to compute the shortest
@@ -274,22 +274,23 @@ class RoadNetwork(nx.DiGraph):
 
         Parameters
         ----------
-        source : int or list[int] or None
-            A node identifier, or a list of node identifiers. If `None`, the shortest path(s) from
-            all nodes to the specified target node(s) are computed.
-        target : int or list[int] or None
-            A node identifier, or a list of node identifiers. If `None`, the shortest path(s) to
-            all nodes from the specified source node(s) are computed.
+        source : int or Iterable[int] or None
+            A node identifier, or an iterable of node identifiers. If `None`, the shortest path(s)
+            from all nodes to the specified target node(s) are computed.
+        target : int or Iterable[int] or None
+            A node identifier, or an iterable of node identifiers. If `None`, the shortest path(s)
+            to all nodes from the specified source node(s) are computed.
         weight : str
-            The edge attribute to use as edge weights. Must be a float. Default is `'weight'`.
+            The edge attribute to use as edge weights. Attribute values must be floats. Default is
+            ``'weight'``.
         method : str
-            The method to use to compute the shortest path(s). Must be one of `'dijkstra'` or
-            `'bellman-ford'`. Default is `'dijkstra'`.
+            The method to use to compute the shortest path(s). Must be one of ``'dijkstra'`` or
+            ``'bellman-ford'``. Default is ``'dijkstra'``.
         path_type : str
-            The type of path to return. Must be one of `'node'`, `'edge'` or `'both'`. If `'node'`,
-            each shortest path is a list of node identifiers. If `'edge'`, each shortest path is a
-            list of edges. If `'both'`, then both types of paths are returned (see bellow). Default
-            is `'node'`.
+            The type of path to return. Must be one of ``'node'``, ``'edge'`` or ``'both'``. If
+            ``'node'``, each shortest path is a list of node identifiers. If ``'edge'``, each
+            shortest path is a list of edges. If ``'both'``, then both types of paths are returned
+            (see bellow). Default is ``'node'``.
 
         Returns
         -------
@@ -297,12 +298,12 @@ class RoadNetwork(nx.DiGraph):
             The shortest path(s) between source and target. The format depends on the value of
             `path_type`:
 
-                - If `path_type` is `'node'`, return a dict whose keys are tuples (source, target)
-                  and values are lists of node identifiers.
-                - If `path_type` is `'edge'`, return a dict whose keys are tuples (source, target)
-                  and values are lists of edge identifiers.
-                - If `path_type` is `'both'`, return a dict with keys `'node'` and `'edge'`, where
-                  the values follow the same format as above.
+                - If ``path_type`` is ``'node'``, return a dict whose keys are tuples
+                  (source, target) and values are lists of node identifiers.
+                - If ``path_type`` is ``'edge'``, return a dict whose keys are tuples
+                  (source, target) and values are lists of edge identifiers.
+                - If ``path_type`` is ``'both'``, return a dict with keys ``'node'`` and
+                  ``'edge'``, where the values follow the same format as above.
 
         """
 
