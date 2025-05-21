@@ -64,6 +64,8 @@ class Track(StateMutableSequence):
     def __copy__(self):
         inst = super().__copy__()
         inst.__dict__['metadatas'] = copy.copy(self.__dict__['metadatas'])
+        inst.__dict__['_property_source_tracks'] = copy.copy(
+            self.__dict__['_property_source_tracks'])
         return inst
 
     def insert(self, index, value):
