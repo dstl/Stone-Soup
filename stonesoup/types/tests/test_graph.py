@@ -76,7 +76,7 @@ def test_road_network_building(nodes, edges, mode):
     # Query the edge_list property and check it is as expected
     edge_list = network.edge_list
     assert len(edge_list) == len(edges)
-    assert np.alltrue(edge_list == np.array([edge[0:2] for edge in edges]))
+    assert np.all(edge_list == np.array([edge[0:2] for edge in edges]))
 
     # Test we can remove nodes and edges
     # Note that removing a node will also remove all edges connected to that node
