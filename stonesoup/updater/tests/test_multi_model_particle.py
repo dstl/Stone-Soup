@@ -79,7 +79,7 @@ def test_multi_model(
 
     state_vector = StateVectors(multivariate_normal.rvs(
         [1, 1, 0.5, 1, 1, 0.5],
-        np.diag([0.1, 0.05, 0.01]*2),
+        np.diag([0.2, 0.07, 0.02]*2),
         3000).T)
 
     timestamp = datetime.datetime.now()
@@ -99,7 +99,7 @@ def test_multi_model(
 
     assert isinstance(prediction, MultiModelParticleStatePrediction)
 
-    measurement_model = LinearGaussian(6, [0, 3], np.diag([1, 1]))
+    measurement_model = LinearGaussian(6, [0, 3], np.diag([2, 2]))
     updater = MultiModelParticleUpdater(
         measurement_model, predictor, resampler=resampler, regulariser=regulariser,
         constraint_func=constraint_func)
