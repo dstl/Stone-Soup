@@ -233,7 +233,7 @@ short_paths = road_net.shortest_path(source, all_destinations, path_type='both')
 from stonesoup.models.transition.linear import ConstantVelocity
 from stonesoup.models.transition.graph import OptimalPathToDestinationTransitionModel
 # Transition model
-cv_model = ConstantVelocity(0.01)
+cv_model = ConstantVelocity(0.0001)
 transition_model = OptimalPathToDestinationTransitionModel(cv_model, road_net,
                                                            possible_destinations=all_destinations)
 
@@ -539,8 +539,8 @@ def update(i):
     ax1.legend(loc='upper right', bbox_to_anchor=(1., 0.5),fontsize='x-small')
 
 # %%
-# Plotting
-# ~~~~~~~~~~~~~~~~
+# Animation
+# ~~~~~~~~~
 # We create a figure with 3 subplots:
 #
 #   - The first subplot shows the global view of the road network, with the true path and confuser paths highlighted.
