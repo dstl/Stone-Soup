@@ -9,7 +9,8 @@ Probabilistic Multi-Hypothesis Tracker
 # %%
 # The Probabilistic Multi-Hypothesis Tracker (PMHT) is an advanced tracking algorithm designed to
 # handle multiple hypotheses in a tracking scenario. Originally introduced by Streit and
-# Luginbuhl [#]_, the PMHT is particularly useful when dealing with complex scenarios.
+# Luginbuhl [#]_, [#]_ and [#]_, the PMHT is particularly useful when dealing with complex
+# scenarios.
 # Such scenarios include the presence of multiple potential targets and uncertainties in
 # measurements.
 #
