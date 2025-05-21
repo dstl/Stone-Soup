@@ -60,7 +60,7 @@ class EHMTree:
         """
         Get the total number of nodes in the tree
         """
-        return sum([len(level.nodes) for level in self.levels.values()])
+        return sum(len(level.nodes) for level in self.levels.values())
 
     def _make_tree(self, track_hypotheses, make_tree):
         """
