@@ -18,11 +18,6 @@ Particle
 .. automodule:: stonesoup.tracker.particle
     :show-inheritance:
 
-Particle
---------
-
-.. automodule:: stonesoup.tracker.particle
-    :show-inheritance:
 
 Point Process
 -------------
