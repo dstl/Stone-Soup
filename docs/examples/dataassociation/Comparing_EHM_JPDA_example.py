@@ -8,38 +8,35 @@ Comparing Efficient Hypothesis Management (EHM) with probability associators
 """
 
 # %%
-# In this example, we compare the performances between efficient hypothesis management
-# (EHM) and standard joint probabilistic data association.
-# The problem we face when dealing with multi-target tracking is the potential
-# association of measurements to predictions, which can be ambiguous and
-# that could lead to a combinatorial explosion. To reduce the computational
-# cost of the operations, a number of algorithms have been developed to
-# match measurements and predictions to tracks. One of these methods is the
-# efficient hypothesis management, explained in detail in [#]_, [#]_ and under
-# patent in [#]_; this algorithm improves the joint probability data association,
-# which is a brute force approach, with improved capability of hypothesis matching
-# and rejection with, significantly, cost reduction.
+# In this example, we compare the performances between Efficient Hypothesis Management
+# (EHM) and standard (brute-force) joint probabilistic data association. The problem
+# faced when dealing with multi-target tracking is the ambiguity present in the joint
+# association events between tracks to measurements, enumeration of which can often lead
+# to a combinatorial explosion.
 #
-# A plugin Stone Soup implementation of EHM is available, under patent license agreement,
-# using the Python package PyEHM developed by Dr. Lyudmil Vladimirov 'PyEHM <https://github.com/sglvladi/pyehm>`_.
-#
+# One method that avoids this problem is the Efficient Hypothesis Management (EHM) algorithm,
+# explained in detail in [#]_, [#]_. EHM makes use of a net structure to represent the
+# association hypotheses and avoids duplicate enumeration of the same set of hypotheses.
 #
 # This example follows the usual setup:
-# 1) Generate a simple multi-target scenario simulation;
-# 2) Prepare the trackers components with the different data associators;
-# 3) Run the trackers to collect the tracks;
-# 4) Compare the trackers performances;
 #
-
-# %%
-# 1) Generate a simple multi-target scenario simulation;
+#   1) Generate a simple multi-target scenario simulation;
+#   2) Prepare the trackers components with the different data associators;
+#   3) Run the trackers to collect the tracks;
+#   4) Compare the trackers performances;
+#
+# .. note::
+#   Stone Soup provides native Python implementations of the :class:`~.JPDAwithEHM` and
+#   :class:`~.JPDAwithEHM2` data associators, which are the implementations that will
+#   be compared in this example. Faster implementations of these algorithms, written in C++ with
+#   Python bindings, are available through the
+#   `pyehm <https://pyehm.readthedocs.io/en/latest/reference.html#stone-soup>`_ package.
+#
+#
+# 1) Generate a simple multi-target scenario simulation
 # ------------------------------------------------------
-# To start with this example we align a typical
-# case of multi-target scenario with some level of
-# clutter. Then, we set up the various components
-# of the trackers. To use this example there is the
-# need to install the independent package PyEHM
-# using "pip install pyehm".
+# We begin by constructing a typical multi-target scenario with some level of clutter, followed by
+# the instantiation of simulation components.
 
 # %%
 # General imports
@@ -49,9 +46,6 @@ import numpy as np
 from datetime import datetime, timedelta
 from copy import deepcopy
 from time import perf_counter
-
-# Load the pyehm plugins
-from stonesoup.plugins.pyehm import JPDAWithEHM, JPDAWithEHM2
 
 # %%
 # Stone Soup Imports
@@ -135,17 +129,15 @@ from itertools import tee
 detection, *detection_sims = tee(detection_sim, 4)
 
 # %%
-# 2) Prepare the trackers components with the different data associators;
+# 2) Prepare the trackers components with the different data associators
 # -----------------------------------------------------------------------
-# We have set up the multi-target scenario, we instantiate all
-# the relevant tracker components. We consider the
-# :class:`~.UnscentedKalmanPredictor` and :class:`~.UnscentedKalmanUpdater`
-# components for the tracker. Then, for the data association we
-# use the :class:`~.JPDA` data associator implementation
-# present in Stone Soup and the JPDA PyEHM implementation to
-# gather relevant comparisons. Please note that we have to
-# create multiple copies of the same detector simulator
-# to provide each tracker with the same set of detections for
+# We have set up the multi-target scenario; now we instantiate all the relevant tracking
+# components. Since all our models are linear and Gaussian, we can use the
+# :class:`~.KalmanPredictor` and :class:`~.KalmanUpdater` components for filtering.
+# For the data association, we use the :class:`~.JPDA`, :class:`~.JPDAwithEHM` and
+# :class:`~.JPDAwithEHM2` data associator implementations to gather relevant
+# comparisons. Please note that we have create multiple copies of the same detector
+# simulator to provide each tracker with the same set of detections for
 # a fairer comparison.
 
 # %%
@@ -153,12 +145,12 @@ detection, *detection_sims = tee(detection_sim, 4)
 # ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 # Load the Kalman predictor and updater
-from stonesoup.predictor.kalman import UnscentedKalmanPredictor
-from stonesoup.updater.kalman import UnscentedKalmanUpdater
+from stonesoup.predictor.kalman import KalmanPredictor
+from stonesoup.updater.kalman import KalmanUpdater
 
 # Instantiate the components
-predictor = UnscentedKalmanPredictor(transition_model)
-updater = UnscentedKalmanUpdater(measurement_model)
+predictor = KalmanPredictor(transition_model)
+updater = KalmanUpdater(measurement_model)
 
 # Load the Initiator, Deleter and compose the trackers
 from stonesoup.deleter.time import UpdateTimeStepsDeleter
@@ -169,7 +161,7 @@ from stonesoup.initiator.simple import MultiMeasurementInitiator
 # Load the probabilistic data associator and the tracker
 from stonesoup.dataassociator.neighbour import GlobalNearestNeighbour
 from stonesoup.hypothesiser.probability import PDAHypothesiser
-from stonesoup.dataassociator.probability import JPDA
+from stonesoup.dataassociator.probability import JPDA, JPDAwithEHM, JPDAwithEHM2
 from stonesoup.tracker.simple import MultiTargetMixtureTracker
 
 # %%
@@ -201,41 +193,29 @@ JPDA_tracker = MultiTargetMixtureTracker(
                                          prob_detect=probability_detection)),
     updater=updater)
 
-# Now we load the EHMJPDA, please note that the initiator is the same as the JPDA
-EHM_initiator = MultiMeasurementInitiator(
-    prior_state=GaussianState(np.array([0, 0, 0, 0]),
-                              np.diag([5, 0.5, 5, 0.5]) ** 2,
-                              timestamp=simulation_start_time),
-    measurement_model=None,
-    deleter=deleter,
-    data_associator=GlobalNearestNeighbour(PDAHypothesiser(predictor=predictor,
-                                         updater=updater,
-                                         clutter_spatial_density=clutter_spatial_density,
-                                         prob_detect=probability_detection,)),
-    updater=updater,
-    min_points=2)
+# Now we load the EHM, note that the initiator is the same as the JPDA
+EHM_initiator = deepcopy(initiator)
 
 # In this tracker we use the JPDA with EHM
 EHM1_tracker = MultiTargetMixtureTracker(
     initiator=EHM_initiator,
     deleter=deleter,
     detector=detection_sims[1],
-    data_associator=JPDAWithEHM(PDAHypothesiser(predictor=predictor,
+    data_associator=JPDAwithEHM(PDAHypothesiser(predictor=predictor,
                                          updater=updater,
                                          clutter_spatial_density=clutter_spatial_density,
                                          prob_detect=probability_detection)),
     updater=updater)
 
-# Copy the same initiator for EHM
-EHM2_initiator = deepcopy(EHM_initiator)
+# Copy the same initiator for EHM2
+EHM2_initiator = deepcopy(initiator)
 
-# This tracker uses the second implementation
-# of EHM.
+# This tracker uses the second implementation of EHM.
 EHM2_tracker = MultiTargetMixtureTracker(
     initiator=EHM2_initiator,
     deleter=deleter,
     detector=detection_sims[2],
-    data_associator=JPDAWithEHM2(PDAHypothesiser(predictor=predictor,
+    data_associator=JPDAwithEHM2(PDAHypothesiser(predictor=predictor,
                                                 updater=updater,
                                                 clutter_spatial_density=clutter_spatial_density,
                                                 prob_detect=probability_detection)),
@@ -243,23 +223,15 @@ EHM2_tracker = MultiTargetMixtureTracker(
 
 
 # %%
-# 3) Run the trackers to generate the tracks;
+# 3) Run the trackers to generate the tracks
 # -------------------------------------------
-# We have instantiated the three versions of the
-# trackers, one with the brute force JPDA hypothesis
-# management, one with the EHM implementation [1]_ and
-# one with the EHM2 implementation  [2]_.
-# Now, we can run the trackers and gather the
-# final tracks as well as the detections,
-# clutter and define a metric plotter to evaluate
-# the track accuracy using the metric manager.
-# As the three methods will use the same hypothesis
-# we will obtain the same tracks, we verify such
-# claim by comparing the OSPA metric between
-# each hyphotesiser.
-# To measure the significant difference in
-# computing time we measure the time while running the
-# three different trackers.
+# We have instantiated the three versions of the trackers, one with the brute force JPDA hypothesis
+# management, one with the EHM implementation [1]_ and one with the EHM2 implementation  [2]_.
+# Now, we can run the trackers and gather the final tracks as well as the detections, clutter and
+# define a metric plotter to evaluate the track accuracy using the metric manager. As the three
+# methods will use the same hypothesis we will obtain the same tracks, we verify such claim by
+# comparing the OSPA metric between each hyphotesiser. To measure the significant difference in
+# computing time we measure the time while running the three different trackers.
 
 # %%
 # Stone Soup Metrics imports
@@ -356,26 +328,19 @@ metric_manager.add_data({'EHM2_tracks': EHM2_tracks}, overwrite=False)
 
 
 # %%
-# 4) Compare the trackers performances;
+# 4) Compare the trackers performances
 # -------------------------------------
-# We have set up the trackers as well as
-# the metric manager, to conclude this
-# tutorial we show the results of the
-# computing time needed for each tracker,
-# the overall tracks generated and
-# the differences between the tracks,
-# if any. We start presenting the time
-# performances of the different trackers along
-# with the performance improvement obtained by the
-# EHM data associators.
+# We have set up the trackers as well as the metric manager, to conclude this tutorial we show the
+# results of the computing time needed for each tracker, the overall tracks generated and the
+# differences between the tracks, if any. We start presenting the time performances of the
+# different trackers along with the performance improvement obtained by the EHM data associators.
 
 print('Comparisons between the trackers performances')
 print(f'JPDA computing time: {jpda_time:.2f} seconds')
 print(f'EHM1 computing time: {ehm1_time:.2f} seconds, {(jpda_time/ehm1_time-1)*100:.2f} % quicker than JPDA')
 print(f'EHM2 computing time: {ehm2_time:.2f} seconds, {(jpda_time/ehm2_time-1)*100:.2f} % quicker than JPDA')
 
-# Load the plotter package to plot the
-# detections, tracks and detections.
+# Load the plotter package to plot the detections, tracks and detections.
 from stonesoup.plotter import Plotterly
 
 plotter = Plotterly()
@@ -414,14 +379,11 @@ graph.fig
 # %%
 # Conclusion
 # ----------
-# In this example we have shown how the
-# performances of the tracker changes
-# by employing or not an efficient management
-# system. We measure a significant improvement (depending on
-# the number of simulation steps, number of tracks and
-# clutter rate) in the computation time in using EHM approaches
-# compared to the brute force JPDA. The tracks
-# obtained by the three trackers are perfectly aligned.
+# In this example we have shown how the performances of the tracker changes by employing or not an
+# efficient management system. We measure a significant improvement (depending on the number of
+# simulation steps, number of tracks and clutter rate) in the computation time in using EHM
+# approaches compared to the brute force JPDA. The tracks obtained by the three trackers are
+# perfectly aligned.
 
 # %%
 # References
@@ -432,6 +394,4 @@ graph.fig
 # .. [#] Horridge, P. and Maskell, S., 2006, July. Real-time tracking of hundreds of
 #        targets with efficient exact JPDAF implementation. In 2006 9th International
 #        Conference on Information Fusion (pp. 1-8). IEEE
-# .. [#] Maskell, S., 2003, July. Signal Processing with Reduced Combinatorial
-#        Complexity. Patent Reference:0315349.1
 #
