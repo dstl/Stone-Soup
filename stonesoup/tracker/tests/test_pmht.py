@@ -8,14 +8,13 @@ from ...predictor.kalman import KalmanPredictor
 from ...smoother.kalman import KalmanSmoother
 from ...updater.kalman import KalmanUpdater
 from ...models.transition.linear import CombinedLinearGaussianTransitionModel, ConstantVelocity
-from ..pmht_tracker import PMHTTracker
+from ..pmht import PMHTTracker
 
 
 def test_pmht(detector):
 
-    start_time = datetime.datetime(2018,1, 1, 14, 0)
+    start_time = datetime.datetime(2018, 1, 1, 14, 0)
     timestamp = datetime.datetime.now().replace(microsecond=0)
-    timestep_size = datetime.timedelta(minutes=1)
 
     # Initial truth states for fixed number of targets
     preexisting_states = [[-20, 5, 0, 10], [20, -5, 0, 10]]
@@ -23,7 +22,8 @@ def test_pmht(detector):
     # Initial estimate for tracks
     init_means = preexisting_states
     init_cov = np.diag([1.0, 1.0, 1.0, 1.0])
-    init_priors = [GaussianState(StateVector(init_mean), init_cov, timestamp=timestamp) for init_mean in init_means]
+    init_priors = [GaussianState(StateVector(init_mean), init_cov, timestamp=timestamp)
+                   for init_mean in init_means]
 
     measurement_model = LinearGaussian(
         ndim_state=4,  # Number of state dimensions (position and velocity in 2D)
@@ -36,7 +36,6 @@ def test_pmht(detector):
     q_y = 1.0
     transition_model = CombinedLinearGaussianTransitionModel([ConstantVelocity(q_x),
                                                               ConstantVelocity(q_y)])
-
 
     updater = KalmanUpdater(measurement_model)
 
@@ -59,8 +58,8 @@ def test_pmht(detector):
     # Number of scans to overlap between batches
     overlap_len = 5
 
-    # Maximum number of iterations to run each batch over (currently there is no convergence test so this is the actual
-    # number of iterations)
+    # Maximum number of iterations to run each batch over (currently there is no convergence test
+    # so this is the actual number of iterations)
     max_num_iterations = 10
 
     # Whether to update the prior data association values during iterations (True or False)
@@ -81,6 +80,6 @@ def test_pmht(detector):
         update_log_pi=update_log_pi)
 
     for time, ctracks in pmht:
-        assert(time > start_time)
-        assert(len(ctracks)==2)
+        assert time > start_time
+        assert len(ctracks) == 2
         start_time = time

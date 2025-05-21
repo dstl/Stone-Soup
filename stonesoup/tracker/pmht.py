@@ -1,17 +1,15 @@
 import copy
+from collections.abc import Collection
+
 import numpy as np
 from scipy.special import logsumexp
 from scipy.stats import multivariate_normal
-from typing import Sequence, Collection
 
 from .base import Tracker
 from ..base import Property
 from ..reader import DetectionReader
 from ..updater import Updater
-from ..types.array import StateVectors
 from ..types.state import GaussianState
-from ..types.prediction import GaussianStatePrediction
-from ..types.update import GaussianStateUpdate
 from ..types.numeric import Probability
 from ..predictor import Predictor
 from ..smoother import Smoother
@@ -19,6 +17,7 @@ from ..smoother import Smoother
 from ..types.track import Track
 from ..types.hypothesis import SingleHypothesis
 from ..types.detection import Detection
+
 
 class PMHTTracker(Tracker):
     """
@@ -38,18 +37,29 @@ class PMHTTracker(Tracker):
     Parameters
     ----------
     """
-    detector: DetectionReader = Property(doc="Detector used to generate detection objects.")
-    predictor: Predictor = Property(doc="Predictor used to predict the prior target state")
-    smoother: Smoother = Property(doc="Smoother to smooth the batch track estimates")
-    updater: Updater = Property(doc="Updater used to update the track object to the new state.")
-    meas_range: np.ndarray = Property(doc="Region measurements appear in to calculate the clutter volume")
-    clutter_rate: float = Property(doc="Mean number of clutter measurements per scan")
 
-    detection_probability: Probability = Property(default=0.9, doc="Detection probability")
+    detector: DetectionReader = Property(
+        doc="Detector used to generate detection objects."
+    )
+    predictor: Predictor = Property(
+        doc="Predictor used to predict the prior target state"
+    )
+    smoother: Smoother = Property(doc="Smoother to smooth the batch track estimates")
+    updater: Updater = Property(
+        doc="Updater used to update the track object to the new state."
+    )
+    meas_range: np.ndarray = Property(
+        doc="Region measurements appear in to calculate the clutter volume"
+    )
+    clutter_rate: float = Property(doc="Mean number of clutter measurements per scan")
     batch_len: int = Property(doc="Number of measurement scans to consider per batch")
     overlap_len: int = Property(doc="Number of scans to overlap between batches")
-    update_log_pi: int = Property(doc="Whether to update the prior data association values during iterations"
-                                      "(True or False)")
+    update_log_pi: bool = Property(
+        doc="Whether to update the prior data association values during iterations"
+    )
+    detection_probability: Probability = Property(
+        default=0.9, doc="Detection probability"
+    )
     init_priors: Collection[GaussianState] = Property(doc="Initial prior distributions")
     max_num_iterations: int = Property(default=10, doc="Max number of iterations")
 
@@ -63,14 +73,11 @@ class PMHTTracker(Tracker):
             this_track.append(init_prior)
             self._tracks.add(this_track)
 
-        """
-        log_pi[k][m] = prior log probability of target hypothesis m at time step k in the measurement history
-        (where m = 0 is the null hypothesis and m = t + 1 is target t)
-        """
+        # log_pi[k][m] = prior log probability of target hypothesis m at time step k in the
+        # measurement history (where m = 0 is the null hypothesis and m = t + 1 is target t)
         self._log_pi = []  # estimate of assignment probs
-        """
+
         # History of measurements and measurement times being considered
-        """
         self._measurement_history = []
         self._measurement_history_times = []
 
@@ -92,18 +99,21 @@ class PMHTTracker(Tracker):
 
     def _extend_log_pi(self, detections):
         """
-        Initialise prior prob that measurement is from each target (or clutter) using the number of detections in the
-        current scan - eqn (17) from
+        Initialise prior prob that measurement is from each target (or clutter) using the number
+        of detections in the current scan - eqn (17) from
         1. Willett, Ruan and Streit, ``PMHT: Problems and some solutions'', IEEE, 2002
 
         Parameters
         ==========
-        self: :class:`PMHTTracker`
-        detections: collection of Detection objects representing a scan of measurements
+        detections: collection of Detection
+            objects representing a scan of measurements
         """
 
-        null_logweight = np.log(1 - self.detection_probability) + np.log(self.clutter_spatial_density) + \
-                         np.log(self.clutter_spatial_volume)
+        null_logweight = (
+            np.log(1 - self.detection_probability)
+            + np.log(self.clutter_spatial_density)
+            + np.log(self.clutter_spatial_volume)
+        )
         meas_logweight = np.log(self.detection_probability)
         ntargets = len(self.tracks)
 
@@ -112,22 +122,22 @@ class PMHTTracker(Tracker):
             tot_logweight = null_logweight
         else:
             tot_logweight = logsumexp([null_logweight, np.log(nmeas) + meas_logweight])
-        this_log_pi = np.zeros((ntargets+ 1,))
+        this_log_pi = np.zeros((ntargets + 1,))
         this_log_pi[0] = null_logweight - tot_logweight
-        for m in range(ntargets):
-            this_log_pi[m + 1] = meas_logweight - tot_logweight
+        this_log_pi[1:] = meas_logweight - tot_logweight
         self._log_pi.append(this_log_pi)
 
     def _extend_track_priors(self, detections, time):
         """
-        Extend the prior distribution on the tracks, and also the estimates of log_pi with the number of detections
-        in the current scan
+        Extend the prior distribution on the tracks, and also the estimates of log_pi with the
+        number of detections in the current scan
 
         Parameters
         ==========
-        self: :class:`PMHTTracker`
-        detections: collection of Detection objects representing a scan of measurements
-        time: time to predict track priors to
+        detections: collection of Detection
+            objects representing a scan of measurements
+        time: datetime.datetime
+            time to predict track priors to
         """
 
         for track in self._tracks:
@@ -137,16 +147,13 @@ class PMHTTracker(Tracker):
 
     def _add_measurements(self):
         """
-        Run the detection simulator to obtain the new batch of detection scans, and add them to the history to be
-        processed
-
-        Parameters
-        ==========
-        self: :class:`PMHTTracker`
+        Run the detection simulator to obtain the new batch of detection scans, and add them to
+        the history to be processed
 
         Returns
         =======
-        time: time of last scan
+        datetime.datetime
+            time of last scan
         """
 
         # Keep measurement history for overlap
@@ -155,31 +162,21 @@ class PMHTTracker(Tracker):
         # Keep logpi for overlap
         self._log_pi = self._log_pi[-self.overlap_len:]
         # Add new measurements to batch
-        time = None
         for _ in range(self.batch_len - self.overlap_len):
-            try:
-                time, detections = next(self.detector_iter)
-                self._measurement_history_times.append(time)
-                self._measurement_history.append(detections)
-                self._extend_track_priors(detections, time)
-            except StopIteration:  # Stop early if the detector has ended
-                break
-        if time is None:
-            raise StopIteration
+            time, detections = next(self.detector_iter)
+            self._measurement_history_times.append(time)
+            self._measurement_history.append(detections)
+            self._extend_track_priors(detections, time)
         return time
 
     def _compute_log_weights(self):
         """
         Compute measurement assignment weights
 
-        Parameters
-        ==========
-        self: :class:`PMHTTracker`
-
         Returns
         =======
-        logweights: list of np.array where logweights[k][m, r] is log probability that target hypothesis m relates to
-        measurement r (normalised over measurements)
+        list of np.array
+            where logweights[k][m, r] is log probability that target
         """
 
         # weights for all time steps
@@ -189,24 +186,27 @@ class PMHTTracker(Tracker):
         start_logpi_index = len(self._log_pi) - ntimesteps
 
         for k, scan in enumerate(self._measurement_history):
-
             nmeas = len(scan)
             these_logweights = np.zeros((ntargets + 1, nmeas))
-            these_logweights[0, :] = self._log_pi[start_logpi_index][0] - np.log(self.clutter_spatial_volume)
+            these_logweights[0, :] = \
+                self._log_pi[start_logpi_index][0] - np.log(self.clutter_spatial_volume)
 
-            for m, track in enumerate(self._tracks):
-
+            for m, track in enumerate(self._tracks, 1):
                 this_track_index = len(track) - ntimesteps + k
 
-                measurement_prediction = self.updater.predict_measurement(track[this_track_index])
+                measurement_prediction = self.updater.predict_measurement(
+                    track[this_track_index]
+                )
                 for r, z in enumerate(scan):
                     log_pdf = multivariate_normal.logpdf(
                         (z.state_vector - measurement_prediction.mean).ravel(),
-                        cov = self.updater.measurement_model.noise_covar)
-                    these_logweights[m + 1, r] = self._log_pi[start_logpi_index + k][m + 1] + log_pdf
+                        cov=self.updater.measurement_model.noise_covar,
+                    )
+                    these_logweights[m, r] = (
+                        self._log_pi[start_logpi_index + k][m] + log_pdf
+                    )
 
-            for r in range(nmeas):
-                these_logweights[:, r] -= logsumexp(these_logweights[:, r])
+            these_logweights -= logsumexp(these_logweights, axis=0, keepdims=True)
 
             logweights.append(these_logweights)
 
@@ -222,23 +222,22 @@ class PMHTTracker(Tracker):
 
         Returns
         =======
-        pseudomeasurements: pseudomeasurements[m][k] is a Detection object representing the pseudomeasurement for
-        target m for scan k
+        list of list of detection
+            pseudomeasurement for target m for scan k
         """
-        
+
         logweights = self._compute_log_weights()
         meas_history_len = len(self._measurement_history)
         if self.update_log_pi:
             self._update_log_pi(logweights)
 
-        pseudomeasurements = [[] for x in self.tracks]
+        pseudomeasurements = [[] for _ in self.tracks]
         logweightsum = np.zeros((len(self.tracks), meas_history_len))
 
         logweightsum_thresh = -100.0
 
         for k, scan in enumerate(self._measurement_history):
             for m in range(len(self._tracks)):
-
                 these_logweights = logweights[k][m + 1, :]
                 if len(scan) > 0:
                     this_logweightsum = logsumexp(these_logweights)
@@ -248,34 +247,37 @@ class PMHTTracker(Tracker):
                 # Get pseudomeasurement
                 this_pseudomeas = np.zeros((self.updater.measurement_model.ndim,))
                 for r, z in enumerate(scan):
-                    this_pseudomeas += z.state_vector.ravel() * np.exp(these_logweights[r] - this_logweightsum)
+                    this_pseudomeas += z.state_vector.ravel() * np.exp(
+                        these_logweights[r] - this_logweightsum
+                    )
 
-                # # PRH: Would be nice if we could use precision matrices in place of noise and it just work - doesn't
-                # # seem to currently
-                #this_measmodel = copy.deepcopy()
-                #this_measmodel.noise_covar = PrecisionMatrix(np.linalg.inv(this_measmodel.noise_covar) *
-                #   np.exp(this_logweightsum))
-
-                # Append pseudomeasurement and pseudocovariance - hack to ensure that the covariance isn't too large
-                # (should use information Gaussians)
+                # Append pseudomeasurement and pseudocovariance - hack to ensure that the
+                # covariance isn't too large (should use information Gaussians)
                 if this_logweightsum < logweightsum_thresh:
                     this_logweightsum = logweightsum_thresh
-                this_measmodel = copy.deepcopy(self.updater.measurement_model)
-                this_measmodel.noise_covar = this_measmodel.noise_covar * np.exp(-this_logweightsum)
+                this_measmodel = copy.copy(self.updater.measurement_model)
+                this_measmodel.noise_covar = this_measmodel.noise_covar * np.exp(
+                    -this_logweightsum
+                )
 
                 # Append pseudomeasurement with pseudocovariance
-                pseudomeasurements[m].append(Detection(this_pseudomeas, timestamp=self._measurement_history_times[k],
-                                                       measurement_model=this_measmodel))
+                pseudomeasurements[m].append(
+                    Detection(
+                        this_pseudomeas,
+                        timestamp=self._measurement_history_times[k],
+                        measurement_model=this_measmodel,
+                    )
+                )
                 logweightsum[m][k] = this_logweightsum
 
-        return pseudomeasurements, logweights
+        return pseudomeasurements
 
     def _update_log_pi(self, logweights):
         """
         Get new estimates of log_pi
         """
         # Get new pi ests
-        #ntimesteps = len(self._log_pi)
+        # ntimesteps = len(self._log_pi)
         for k, _ in enumerate(self._log_pi):
             (nmodels, nmeas) = logweights[k].shape
             if nmeas == 0:
@@ -285,35 +287,27 @@ class PMHTTracker(Tracker):
                     self._log_pi[k][m] = logsumexp(logweights[k][m, :]) - np.log(nmeas)
 
     def _iterate(self):
-
-        pseudomeasurements, logweights = self._get_pseudomeasurements()
+        pseudomeasurements = self._get_pseudomeasurements()
         meas_history_len = len(self._measurement_history)
-        these_tracks = []
 
-        for m, old_track in enumerate(self._tracks):
-
-            k0 = len(old_track) - meas_history_len # index to get initial mean and covariance
+        for track_pseudomeasurements, track in zip(pseudomeasurements, self._tracks):
+            k0 = (len(track) - meas_history_len)  # index to get initial mean and covariance
             this_track = Track()
-            prior = self.predictor.predict(old_track[k0], timestamp=self._measurement_history_times[0])
+            prior = self.predictor.predict(track[k0], timestamp=self._measurement_history_times[0])
 
-            for measurement in pseudomeasurements[m]:
+            for measurement in track_pseudomeasurements:
                 prediction = self.predictor.predict(prior, timestamp=measurement.timestamp)
-                hypothesis = SingleHypothesis(prediction, measurement)  # Group a prediction and measurement
+                # Group a prediction and measurement
+                hypothesis = SingleHypothesis(prediction, measurement)
                 post = self.updater.update(hypothesis)
                 this_track.append(post)
                 prior = this_track[-1]
 
             this_track = self.smoother.smooth(this_track)
-            these_tracks.append(this_track)
-
-        # Modify tracks to have new state values
-        for m, track in enumerate(self._tracks):
-            k0 = len(track) - meas_history_len
-            for k, newstate in enumerate(these_tracks[m]):
+            for k, newstate in enumerate(this_track):
                 track[k0 + k] = newstate
 
     def __next__(self):
-
         time = self._add_measurements()
 
         # TODO: have convergence test here?

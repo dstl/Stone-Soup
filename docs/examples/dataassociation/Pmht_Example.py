@@ -65,7 +65,7 @@ Probabilistic Multi-Hypothesis Tracker
 # mathematical and timing functions.
 #
 # General imports
-# ^^^^^^^^^^^^
+# ^^^^^^^^^^^^^^^
 # Import the necessary libraries
 
 import numpy as np
@@ -208,7 +208,7 @@ max_num_iterations = 10
 # Whether to update the prior data association values during iterations (True or False)
 update_log_pi = True
 
-from stonesoup.tracker.pmht_tracker import PMHTTracker
+from stonesoup.tracker.pmht import PMHTTracker
 
 pmht = PMHTTracker(
     detector=detection_sim,
@@ -230,13 +230,21 @@ pmht = PMHTTracker(
 from stonesoup.plotter import AnimatedPlotterly
 
 groundtruth = set()
+detections = set()
 tracks = set()
 
-TimeStamps = [time for time, _ in pmht]
-plotter = AnimatedPlotterly(TimeStamps, tail_length=0.3)
+timestamps = []
+for time, ctracks in pmht:
+    timestamps.append(time)
+    tracks |= ctracks
+    detections |= detection_sim.detections
+    groundtruth |= groundtruth_sim.groundtruth_paths
 
-plotter.plot_tracks(groundtruth, [0, 2])
-plotter.plot_tracks(pmht.tracks, [0, 2])
+plotter = AnimatedPlotterly(timestamps, tail_length=0.3)
+
+plotter.plot_ground_truths(groundtruth, [0, 2])
+plotter.plot_tracks(tracks, [0, 2])
+plotter.plot_measurements(detections, [0, 2], measurement_model=measurement_model)
 plotter.fig
 # %%
 # Key points
