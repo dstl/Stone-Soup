@@ -1,5 +1,5 @@
 import itertools
-from typing import Sequence
+from typing import Sequence, Iterable
 
 import numpy as np
 
@@ -307,8 +307,8 @@ class RoadNetwork(nx.DiGraph):
         """
 
         # Source and target must be lists, or None
-        source = [source] if (source is not None and not isinstance(source, Sequence)) else source
-        target = [target] if (target is not None and not isinstance(target, Sequence)) else target
+        source = [source] if (source is not None and not isinstance(source, Iterable)) else source
+        target = [target] if (target is not None and not isinstance(target, Iterable)) else target
 
         # First attempt to get the shortest path(s) from cache
         try:
