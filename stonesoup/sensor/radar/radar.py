@@ -13,7 +13,7 @@ from ...models.measurement.base import MeasurementModel
 from ...models.measurement.nonlinear import \
     (CartesianToBearingRange, CartesianToElevationBearingRange,
      CartesianToBearingRangeRate, CartesianToElevationBearingRangeRate,
-     Cartesian2DToBearing)
+     Cartesian2DToBearing, CartesianToBearingRangeRate2D)
 from ...sensor.action.dwell_action import DwellActionsGenerator
 from ...sensor.action.tilt_action import TiltActionsGenerator
 from ...sensormanager.action import ActionableProperty
@@ -472,7 +472,7 @@ class RadarBearingRangeRate(RadarBearingRange):
         default=(1, 3, 5),
         doc="Mapping to the target's velocity information within its state space")
     ndim_state: int = Property(
-        default=3,
+        default=6,
         doc="Number of state dimensions. This is utilised by (and follows in format) "
             "the underlying :class:`~.CartesianToBearingRangeRate` model")
     noise_covar: CovarianceMatrix = Property(
@@ -483,6 +483,49 @@ class RadarBearingRangeRate(RadarBearingRange):
     @property
     def measurement_model(self):
         return CartesianToBearingRangeRate(
+            ndim_state=self.ndim_state,
+            mapping=self.position_mapping,
+            velocity_mapping=self.velocity_mapping,
+            noise_covar=self.noise_covar,
+            translation_offset=self.position,
+            velocity=self.velocity,
+            rotation_offset=self.orientation)
+
+    def is_detectable(self, state: GroundTruthState, measurement_model=None) -> bool:
+        if measurement_model is None:
+            measurement_model = self.measurement_model
+        measurement_vector = measurement_model.function(state, noise=False)
+        true_range = measurement_vector[1, 0]  # Bearing(0), Range(1), Range-Rate(2)
+        return true_range <= self.max_range
+
+
+class RadarBearingRangeRate2D(RadarBearingRange):
+    """ A radar sensor that generates measurements of targets, using a
+    :class:`~.CartesianToBearingRangeRate` model, relative to its position
+    and velocity.
+
+    Note
+    ----
+    This class implementation assumes a 2D cartesian space and therefore\
+     expects a 4D state space.
+
+    """
+
+    velocity_mapping: tuple[int, int] = Property(
+        default=(1, 3),
+        doc="Mapping to the target's velocity information within its state space")
+    ndim_state: int = Property(
+        default=4,
+        doc="Number of state dimensions. This is utilised by (and follows in format) "
+            "the underlying :class:`~.CartesianToBearingRangeRate2D` model")
+    noise_covar: CovarianceMatrix = Property(
+        doc="The sensor noise covariance matrix. This is utilised by "
+            "(and follows in format) the underlying "
+            ":class:`~.CartesianToBearingRangeRate2D` model")
+
+    @property
+    def measurement_model(self):
+        return CartesianToBearingRangeRate2D(
             ndim_state=self.ndim_state,
             mapping=self.position_mapping,
             velocity_mapping=self.velocity_mapping,

@@ -736,6 +736,148 @@ class CartesianToBearingRangeRate(_AngleNonLinearGaussianMeasurement):
         return np.array([[Bearing(0)], [0.], [0.]])
 
 
+class CartesianToBearingRangeRate2D(_AngleNonLinearGaussianMeasurement):
+    r"""This is a class implementation of a time-invariant measurement model, \
+    where measurements are assumed to be received in the form of bearing \
+    (:math:`\phi`), range (:math:`r`) and range-rate (:math:`\dot{r}`),
+    with Gaussian noise in each dimension.
+
+    The model is described by the following equations:
+
+    .. math::
+
+      \vec{y}_t = h(\vec{x}_t, \vec{v}_t)
+
+    where:
+
+    * :math:`\vec{y}_t` is a measurement vector of the form:
+
+    .. math::
+
+      \vec{y}_t = \begin{bmatrix}
+                \phi \\
+                r \\
+                \dot{r}
+            \end{bmatrix}
+
+    * :math:`h` is a non-linear model function of the form:
+
+    .. math::
+
+      h(\vec{x}_t,\vec{v}_t) = \begin{bmatrix}
+                atan2(\mathcal{y},\mathcal{x}) \\
+                \sqrt{\mathcal{x}^2 + \mathcal{y}^2} \\
+                (x\dot{x} + y\dot{y})/\sqrt{x^2 + y^2}
+                \end{bmatrix} + \vec{v}_t
+
+    * :math:`\vec{v}_t` is Gaussian distributed with covariance
+      :math:`R`, i.e.:
+
+    .. math::
+
+      \vec{v}_t \sim \mathcal{N}(0,R)
+
+    .. math::
+
+      R = \begin{bmatrix}
+            \sigma_{\phi}^2 & 0 & 0\\
+            0 & \sigma_{r}^2 & 0 \\
+            0 & 0 & \sigma_{\dot{r}}^2
+            \end{bmatrix}
+
+    The :py:attr:`mapping` property of the model is a 2 element vector, \
+    whose first (i.e. :py:attr:`mapping[0]`) and second (i.e. \
+    :py:attr:`mapping[1]`) elements \
+    contain the state index of the :math:`x` and :math:`y`  \
+    coordinates, respectively.
+
+    Note
+    ----
+    This class implementation assuming a 2D cartesian space, it therefore \
+    expects a 4D state space.
+    """
+
+    translation_offset: StateVector = Property(
+        default=None,
+        doc="A 2x1 array specifying the origin offset in terms of :math:`x,y` coordinates.")
+    velocity_mapping: tuple[int, int] = Property(
+        default=(1, 3),
+        doc="Mapping to the targets velocity within its state space")
+    velocity: StateVector = Property(
+        default=None,
+        doc="A 2x1 array specifying the sensor velocity in terms of :math:`x,y` coordinates.")
+
+    def __init__(self, *args, **kwargs):
+        """
+        Ensure that the translation offset is initiated
+        """
+        super().__init__(*args, **kwargs)
+        # Set values to defaults if not provided
+        if self.translation_offset is None:
+            self.translation_offset = StateVector([0] * 2)
+
+        if self.velocity is None:
+            self.velocity = StateVector([0] * 2)
+
+    @property
+    def ndim_meas(self) -> int:
+        """ndim_meas getter method
+
+        Returns
+        -------
+        :class:`int`
+            The number of measurement dimensions
+        """
+
+        return 3
+
+    def _function(self, state, noise=False, **kwargs) -> StateVector:
+        r"""Model function :math:`h(\vec{x}_t,\vec{v}_t)`
+
+        Parameters
+        ----------
+        state: :class:`~.State`
+            An input state
+        noise: :class:`numpy.ndarray` or bool
+            An externally generated random process noise sample (the default is
+            `False`, in which case no noise will be added
+            if 'True', the output of :meth:`~.Model.rvs` is added)
+
+        Returns
+        -------
+        :class:`numpy.ndarray` of shape (:py:attr:`~ndim_state`, 1)
+            The model function evaluated given the provided time interval.
+
+        """
+
+        if isinstance(noise, bool) or noise is None:
+            if noise:
+                noise = self.rvs(num_samples=state.state_vector.shape[1], **kwargs)
+            else:
+                noise = 0
+
+        # Account for origin offset in position to enable range and angles to be determined
+        xy_pos = state.state_vector[self.mapping, :] - self.translation_offset
+
+        # Rotate coordinates based upon the sensor_velocity
+        xy_rot = self.rotation_matrix[:len(self.mapping), :len(self.mapping)] @ xy_pos
+
+        # Convert to Polar
+        rho, phi = cart2pol(xy_rot[0, :], xy_rot[1, :])
+
+        # Determine the net velocity component in the engagement
+        xy_vel = state.state_vector[self.velocity_mapping, :] - self.velocity
+
+        # Use polar to calculate range rate
+        rr = np.einsum('ij,ij->j', xy_pos, xy_vel) / np.linalg.norm(xy_pos, axis=0)
+
+        return StateVectors([phi, rho, rr]) + noise
+
+    @staticmethod
+    def _typed_vector():
+        return np.array([[Bearing(0.)], [0.], [0.]])
+
+
 class CartesianToElevationBearingRangeRate(_AngleNonLinearGaussianMeasurement, ReversibleModel):
     r"""This is a class implementation of a time-invariant measurement model, \
     where measurements are assumed to be received in the form of elevation \
