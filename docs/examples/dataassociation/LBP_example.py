@@ -234,7 +234,7 @@ measurement_model = LinearGaussian(
 )
 
 prob_detect = 0.9  # 90% chance of detection.
-for k in range(20):
+for k in range(1, 21):
     measurement_set = set()
 
     for truth in truths:
@@ -301,7 +301,7 @@ prior2 = GaussianState([[0], [1], [20], [-1]], np.diag([1.5, 0.5, 1.5, 0.5]), ti
 tracks = {Track([prior1]), Track([prior2])}
 
 # Initialise an empty list to store the arrays
-for n, measurements in enumerate(all_measurements):
+for n, measurements in enumerate(all_measurements, 1):
 
     hypotheses = data_associator.associate(tracks, measurements,
                                            start_time + timedelta(seconds=n))
