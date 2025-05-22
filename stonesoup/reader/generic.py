@@ -6,6 +6,7 @@ of data that is in common formats.
 
 import csv
 import warnings
+from abc import abstractmethod
 from collections.abc import Collection, Iterator, Mapping, Sequence
 from datetime import datetime, timedelta, timezone
 from math import modf
@@ -43,6 +44,11 @@ class _DictReader(Reader):
         default=False, doc='Treat time field as a timestamp from epoch')
     metadata_fields: Collection[str] = Property(
         default=None, doc='List of columns to be saved as metadata, default all')
+
+    @property
+    @abstractmethod
+    def dict_reader(self) -> Iterator[dict]:
+        ...
 
     @property
     def _default_metadata_fields_to_ignore(self) -> set[str]:
