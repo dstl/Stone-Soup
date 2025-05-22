@@ -34,6 +34,11 @@ Detection Types
 .. automodule:: stonesoup.types.detection
     :show-inheritance:
 
+Graph Types
+-----------
+.. automodule:: stonesoup.types.graph
+    :show-inheritance:
+
 Ground Truth Types
 ------------------
 

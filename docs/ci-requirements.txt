@@ -5,3 +5,6 @@ kaleido
 pyehm
 # Additional requirement for ODE example
 torch
+# Additional requirement for RoadNet example
+geopandas
+networkx

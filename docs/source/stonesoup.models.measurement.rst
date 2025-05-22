@@ -30,3 +30,9 @@ Gas
 .. automodule:: stonesoup.models.measurement.gas
     :show-inheritance:
     :inherited-members:
+
+Graph
+-----
+.. automodule:: stonesoup.models.measurement.graph
+    :show-inheritance:
+    :inherited-members:
