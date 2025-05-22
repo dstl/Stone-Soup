@@ -511,12 +511,13 @@ class ImmutableMixIn(metaclass=ImmutableMeta):
     will have *all* their properties readonly, even ones defined by the subclass.
     """
     def __eq__(self, other):
+        if self is other:
+            return True
         if self._is_hashable:
             return (type(self) is type(other)
                     and all(getattr(self, name) == getattr(other, name)
                             for name in type(self).properties))
-        else:
-            return self is other
+        return False
 
     def __hash__(self):
         if self._is_hashable:
