@@ -38,7 +38,7 @@ Data Association with Loopy Belief Propagation
 # The graphical model formulation presented in [1]_ elucidates the association problem through a
 # bipartite graph featuring target/measurement nodes interconnected by association variable links
 # :math:`a^i_{t}`.
-# BP operates on this graphical structure, facilitating message passing between neighboring nodes
+# BP operates on this graphical structure, facilitating message passing between neighbouring nodes
 # to iteratively update beliefs/marginals pertaining to the association variables.
 # Each iteration involves sending a message from each of the target association variables to each
 # of the measurement association variables (and vice versa).
@@ -54,7 +54,7 @@ Data Association with Loopy Belief Propagation
 # marginal probabilities :math:`p(a^i_{t}|Z_{1:t})` without exhaustive enumeration.
 # Optimal inference is facilitated on tree-structured graphs, where BP orchestrates message
 # passing between nodes, iteratively refining beliefs/marginals based on received messages
-# from neighbors.
+# from neighbours.
 #
 # A pivotal distinction lies in BP's ability to approximate marginals without explicit enumeration
 # and summation over all joint events, leveraging the factorisation of the joint distribution
@@ -74,7 +74,7 @@ Data Association with Loopy Belief Propagation
 # 2. **Message Passing and Iterative Updates**: LBP operates by exchanging messages among
 #    neighbouring nodes within the graph. Each message embodies the belief or marginal probability
 #    estimate from one node to another and is iteratively refined based on the product of received
-#    messages from neighbors, adhering to prescribed update
+#    messages from neighbours, adhering to prescribed update
 #    rules derived from the graphical model factorisation.
 #    For instance, let :math:`\mu_{i\rightarrow j}` denote the message from target node :math:`i`
 #    to measurement node :math:`j`, and :math:`\nu_{j \rightarrow i}` denote the message in the
@@ -87,7 +87,7 @@ Data Association with Loopy Belief Propagation
 #        \rightarrow i}}
 #
 # .. math::
-#        \nu_{j\rightarrow i} = \frac{1}{1+\sum_{i' \neq i, i'>0}\mu_{i \rightarrow j'}}
+#        \nu_{j\rightarrow i} = \frac{1}{1+\sum_{i' \neq i, i'>0}\mu_{i' \rightarrow j}}
 #
 # 3. **Belief Calculation**: Upon convergence, LBP approximates the marginal as:
 #
@@ -149,8 +149,8 @@ Data Association with Loopy Belief Propagation
 # passing algorithm. An illustrative LBP graph of this toy example is depicted in left-hand side
 # of the above figure. The main steps of the LBP algorithm are:
 #
-# 1.  **Formulate the graphical model**: with nodes for tracks (A, B) and measurements
-#     (:math:`x`, :math:`y`, :math:`z`), connected by association variable links
+# 1.  **Formulate the graphical model**: with nodes for tracks (:math:`A`, :math:`B`) and
+#     measurements (:math:`x`, :math:`y`, :math:`z`), connected by association variable links
 #     (:math:`a^A_{t}= x`,
 #     :math:`a^A_{t} = y`, :math:`a^A_{t} = z`, :math:`a^B_{t} = x`, :math:`a^B_{t} = y`,
 #     :math:`a^B_{t} = z`).
@@ -361,4 +361,4 @@ plotter.fig
 #        Systems, 50(4):2942–2959, 2014
 # .. [2] Thomas E Fortmann, Yaakov Bar-Shalom, and Molly Scheffe. Multi-target tracking
 #        using joint probabilistic data association. In 1980 19th IEEE Conference on Decision
-#        and Control including the Symposium on Adaptive Processes, pages 807–812. IEEE,1980.
+#        and Control including the Symposium on Adaptive Processes, pages 807–812. IEEE, 1980.
