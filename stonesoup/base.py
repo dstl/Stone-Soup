@@ -609,7 +609,7 @@ def freeze(self, **kwargs):
 # noinspection PyPep8Naming
 def Freezable(cls: type):
     """This function is designed a decorator to a class. If a class (``MyClass(Base)``) is
-    decorated :class:Freezable` two things happen to the class:
+    decorated :func:`~.Freezable` two things happen to the class:
 
     First, a new class is created
     called ``FrozenMyClass`` which has all the same :class:`Property` fields as ``MyClass`` but

@@ -10,5 +10,5 @@ Declarative Base
 .. autoclass:: stonesoup.base.Base
 .. autoclass:: stonesoup.base.ImmutableMeta
 .. autoclass:: stonesoup.base.ImmutableMixIn
-.. autoclass:: stonesoup.base.Freezable
+.. autofunction:: stonesoup.base.Freezable
 
