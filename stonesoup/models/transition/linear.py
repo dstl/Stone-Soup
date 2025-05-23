@@ -10,7 +10,8 @@ from .base import TransitionModel, CombinedGaussianTransitionModel
 from ..base import (LinearModel, GaussianModel, TimeVariantModel,
                     TimeInvariantModel)
 from ...base import Property
-from ...types.array import CovarianceMatrix
+from ...types.array import Matrix, CovarianceMatrix
+from ...types.state import StateVector
 
 
 class LinearGaussianTransitionModel(
@@ -723,56 +724,21 @@ class KnownTurnRate(KnownTurnRateSandwich):
         return []
 
 
-from stonesoup.types.array import Matrix
-from stonesoup.types.state import StateVector
+class LinearTransitionModel(LinearGaussianTimeInvariantTransitionModel):
+    r"""Linear Gaussian Time Invariant Transition Model with bias."""
 
-
-class LinearTransitionModel(LinearGaussianTransitionModel, TimeVariantModel):
-    transition_matrix: Matrix = Property(doc="Measurement matrix")
     bias_value: StateVector = Property(doc="Bias value")
-    noise_covar: CovarianceMatrix = Property(doc="Noise covariance")
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        if not isinstance(self.transition_matrix, Matrix):
-            self.transition_matrix = Matrix(self.transition_matrix)
         if not isinstance(self.bias_value, StateVector):
             self.bias_value = StateVector(self.bias_value)
-        if not isinstance(self.noise_covar, CovarianceMatrix):
-            self.noise_covar = CovarianceMatrix(self.noise_covar)
-
-    @property
-    def ndim_state(self):
-        """ndim_state getter method
-
-        Returns
-        -------
-        : :class:`int`
-            The number of model state dimensions.
-        """
-
-        return self.matrix().shape[0]
-
-    def matrix(self, **kwargs):
-        return self.transition_matrix
 
     def bias(self, **kwargs):
         return self.bias_value
 
-    def covar(self, **kwargs):
-        """Returns the measurement model noise covariance matrix.
-
-        Returns
-        -------
-        :class:`~.CovarianceMatrix` of shape\
-        (:py:attr:`~ndim_meas`, :py:attr:`~ndim_meas`)
-            The measurement noise covariance.
-        """
-
-        return self.noise_covar
-
     def function(self, state, noise=False, **kwargs):
-        """Model function :math:`h(t,x(t),w(t))`
+        """Model function :math:`F_k*x(t)+b_k+w_k`
 
         Parameters
         ----------
@@ -795,4 +761,4 @@ class LinearTransitionModel(LinearGaussianTransitionModel, TimeVariantModel):
             else:
                 noise = 0
 
-        return self.matrix(**kwargs) @ state.state_vector + self.bias_value + noise
+        return self.matrix(**kwargs) @ state.state_vector + self.bias(**kwargs) + noise

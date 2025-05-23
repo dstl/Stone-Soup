@@ -8,7 +8,7 @@ from .state import (State, GaussianState, EnsembleState,
                     ParticleState, MultiModelParticleState, RaoBlackwellisedParticleState,
                     SqrtGaussianState, InformationState, TaggedWeightedGaussianState,
                     WeightedGaussianState, CategoricalState, ASDGaussianState,
-                    BernoulliParticleState)
+                    BernoulliParticleState, AugmentedGaussianState)
 from ..base import Property
 from ..models.transition.base import TransitionModel
 from ..types.state import CreatableFromState, CompositeState
@@ -218,15 +218,6 @@ class CompositeMeasurementPrediction(MeasurementPrediction, CompositeState):
 
 
 MeasurementPrediction.register(CompositeState)  # noqa: E305
-
-
-class AugmentedGaussianState(GaussianState):
-    """ This is a new GaussianState class that can also store information on cross-covariance
-    between the two uncertain kinematic states. We need it report augmented predictions which is otherwise not
-    possible."""
-    cross_covar: CovarianceMatrix = Property(
-        default=None, doc='Cross-covariance for the SLR algorithm')
-
 
 class AugmentedGaussianStatePrediction(Prediction, AugmentedGaussianState):
     """ Prediction class for AugmentedGaussianState. The existence of this class harmonises how state predictions

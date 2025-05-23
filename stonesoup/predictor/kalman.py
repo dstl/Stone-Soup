@@ -500,24 +500,10 @@ class AugmentedKalmanPredictor(KalmanPredictor):
         return self.transition_model.matrix(**kwargs) @ prior.state_vector + self.transition_model.bias(**kwargs)
 
 class AugmentedUnscentedKalmanPredictor(UnscentedKalmanPredictor):
-    transition_model: TransitionModel = Property(doc="The transition model to be used.")
-    control_model: ControlModel = Property(
-        default=None,
-        doc="The control model to be used. Default `None` where the predictor "
-            "will create a zero-effect linear :class:`~.ControlModel`.")
-    alpha: float = Property(
-        default=0.5,
-        doc="Primary sigma point spread scaling parameter. Default is 0.5.")
-    beta: float = Property(
-        default=2,
-        doc="Used to incorporate prior knowledge of the distribution. If the "
-            "true distribution is Gaussian, the value of 2 is optimal. "
-            "Default is 2")
-    kappa: float = Property(
-        default=0,
-        doc="Secondary spread scaling parameter. Default is calculated as "
-            "3-Ns")
+    """UnscentedKalmanFilter class
 
+    This extends :class:`~.UnscentedKalmanPredictor` to include cross covariance information in the output.
+    """
     @predict_lru_cache()
     def predict(self, prior, timestamp=None, control_input=None, transition_noise=True, **kwargs):
         r"""The unscented version of the predict step

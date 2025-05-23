@@ -97,50 +97,40 @@ class LinearGaussian(MeasurementModel, LinearModel, GaussianModel):
 
         return self.noise_covar
 
-class GeneralLinearGaussian(MeasurementModel, LinearModel, GaussianModel):
+class GeneralLinearGaussian(LinearGaussian):
+    r"""This is an implementation of a time-invariant Linear-Gaussian Measurement Model,
+    which allows for an explicitly specified measurement matrix and a bias term.
+
+    The model is described by the following equations:
+
+    .. math::
+
+      y_t = H_k*x_t + b_k + v_k,\ \ \ \   v(k)\sim \mathcal{N}(0,R)
+
+    where ``H_k`` is a (:py:attr:`~ndim_meas`, :py:attr:`~ndim_state`) \
+    matrix and ``v_k`` is Gaussian distributed.
+
+    """
+
     meas_matrix: Matrix = Property(doc="Measurement matrix")
     bias_value: StateVector = Property(doc="Bias value")
-    noise_covar: CovarianceMatrix = Property(doc="Noise covariance")
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
+
         if not isinstance(self.meas_matrix, Matrix):
             self.meas_matrix = Matrix(self.meas_matrix)
         if not isinstance(self.bias_value, StateVector):
             self.bias_value = StateVector(self.bias_value)
-        if not isinstance(self.noise_covar, CovarianceMatrix):
-            self.noise_covar = CovarianceMatrix(self.noise_covar)
 
-    @property
-    def ndim_meas(self):
-        """ndim_meas getter method
+    def matrix(self, **kwargs):
+        return self.meas_matrix
 
-        Returns
-        -------
-        :class:`int`
-            The number of measurement dimensions
-        """
-
-        return len(self.mapping)
-
-    def matrix(self, **kwargs): return self.meas_matrix
-
-    def bias(self, **kwargs): return self.bias_value
-
-    def covar(self, **kwargs):
-        """Returns the measurement model noise covariance matrix.
-
-        Returns
-        -------
-        :class:`~.CovarianceMatrix` of shape\
-        (:py:attr:`~ndim_meas`, :py:attr:`~ndim_meas`)
-            The measurement noise covariance.
-        """
-
-        return self.noise_covar
+    def bias(self, **kwargs):
+        return self.bias_value
 
     def function(self, state, noise=False, **kwargs):
-        """Model function :math:`h(t,x(t),w(t))`
+        """Model function :math:`H_k*x_t + b_k + v_k`
 
         Parameters
         ----------
@@ -163,4 +153,4 @@ class GeneralLinearGaussian(MeasurementModel, LinearModel, GaussianModel):
             else:
                 noise = 0
 
-        return self.matrix(**kwargs)@state.state_vector + self.bias_value + noise
+        return self.matrix(**kwargs)@state.state_vector + self.bias(**kwargs) + noise

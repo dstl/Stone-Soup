@@ -318,20 +318,7 @@ from ..models.measurement.base import MeasurementModel
 class IPLSKalmanSmoother(UnscentedKalmanSmoother):
     r"""The unscented implementation of the IPLS algorithm."""
 
-    transition_model: TransitionModel = Property(doc="The transition model to be used.")
     measurement_model: MeasurementModel = Property(default=None, doc="The measurement model to be used.")
-    alpha: float = Property(
-        default=0.5,
-        doc="Primary sigma point spread scaling parameter. Default is 0.5.")
-    beta: float = Property(
-        default=2,
-        doc="Used to incorporate prior knowledge of the distribution. If the "
-            "true distribution is Gaussian, the value of 2 is optimal. "
-            "Default is 2")
-    kappa: float = Property(
-        default=0,
-        doc="Secondary spread scaling parameter. Default is calculated as "
-            "3-Ns")
     n_iterations: int = Property(
         default=5,
         doc="Number of smoothing iterations.")
@@ -353,7 +340,7 @@ class IPLSKalmanSmoother(UnscentedKalmanSmoother):
             measurement_noise=False
         )
 
-    def smooth(self, track):
+    def smooth(self, track, **kwargs):
         """
         Execute the IPLS algorithm.
 
@@ -379,14 +366,11 @@ class IPLSKalmanSmoother(UnscentedKalmanSmoother):
         # measurement_model = track[-1].hypothesis.measurement.measurement_model
         smoothed_tracks = []
 
-        while True:
-            # we have no test of convergence, but limited the number of iterations
-            if len(smoothed_tracks) >= self.n_iterations:
-                # warnings.warn("IPLS reached pre-specified number of iterations.")
-                break
-            print(f'IPLS iteration {len(smoothed_tracks) + 1} out of {self.n_iterations}')
+        for iteration in range(self.n_iterations):
 
-            if not smoothed_tracks:
+            print(f'IPLS iteration {iteration + 1} out of {self.n_iterations}')
+
+            if iteration == 0:
                 # initialising by performing sigma-point smoothing via the UKF smoother
                 smoothed_track = UnscentedKalmanSmoother(transition_model=self.transition_model,
                                                          alpha=self.alpha,
@@ -394,9 +378,11 @@ class IPLSKalmanSmoother(UnscentedKalmanSmoother):
                                                          kappa=self.kappa).smooth(track)
                 smoothed_tracks.append(smoothed_track)
                 continue
+            else:
+                smoothed_track = smoothed_tracks[-1]
 
             track_forward = Track(track[0])  # starting the new forward track to be
-            print(len(smoothed_track))
+
             for i, current_state in enumerate(smoothed_track):
 
                 if i == 0:
@@ -417,18 +403,8 @@ class IPLSKalmanSmoother(UnscentedKalmanSmoother):
                     transition_model=transition_model,
                     timestamp=current_state.timestamp
                 )
-                print(i)
-                f_matrix, a_vector, lambda_cov_matrix = slr_definition(previous_state, trans_fun, force_symmetry=True)
 
-                if not isinstance(current_state, Prediction):
-                    measurement_model = current_state.hypothesis.measurement.measurement_model
-                    if measurement_model is None:
-                        measurement_model = self.measurement_model
-                    meas_fun = partial(
-                        self.measurement_prediction_no_noise,
-                        measurement_model=measurement_model
-                    )
-                    h_matrix, b_vector, omega_cov_matrix = slr_definition(current_state, meas_fun, force_symmetry=True)
+                f_matrix, a_vector, lambda_cov_matrix = slr_definition(previous_state, trans_fun, force_symmetry=True)
 
                 "Perform linear time update"
                 time_interval = current_state.timestamp-previous_state.timestamp
@@ -449,8 +425,17 @@ class IPLSKalmanSmoother(UnscentedKalmanSmoother):
                     track_forward[-1], timestamp=current_state.timestamp
                 )
 
-                "Perform linear data update"
                 if not isinstance(current_state, Prediction):
+                    "Perform linear data update"
+                    measurement_model = current_state.hypothesis.measurement.measurement_model
+                    if measurement_model is None:
+                        measurement_model = self.measurement_model
+                    meas_fun = partial(
+                        self.measurement_prediction_no_noise,
+                        measurement_model=measurement_model
+                    )
+                    h_matrix, b_vector, omega_cov_matrix = slr_definition(current_state, meas_fun, force_symmetry=True)
+
                     r_matrix = measurement_model.covar()
                     measurement_model_linearized = GeneralLinearGaussian(
                         ndim_state=measurement_model.ndim_state,
@@ -468,10 +453,9 @@ class IPLSKalmanSmoother(UnscentedKalmanSmoother):
                     # restores the model (ensures visualisation is OK)
                     update_linear.hypothesis.measurement.measurement_model = measurement_model
                 else:
+                    "Use prediction instead of data update"
                     update_linear = prediction_linear
 
-
-                # update_linear.hypothesis.prediction.transition_model = transition_model
                 # append the track with an update (that contains hypothesis and info needed for the backwards go)
                 track_forward.append(update_linear)
 

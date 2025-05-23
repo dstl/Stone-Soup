@@ -6,7 +6,6 @@ from scipy.stats import multivariate_normal
 
 from ..linear import KnownTurnRateSandwich
 from ..linear import ConstantVelocity
-from ..linear import LinearTransitionModel
 from ....types.state import State
 
 
