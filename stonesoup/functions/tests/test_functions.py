@@ -1,19 +1,60 @@
-import pytest
 import numpy as np
-from numpy import deg2rad
-from scipy.linalg import cholesky, LinAlgError
-from pytest import approx, raises
+import pytest
 import datetime
+from numpy import deg2rad
+from numpy import linalg as LA
+from pytest import approx, raises
+from scipy.linalg import LinAlgError, cholesky
 
-from .. import (
-    cholesky_eps, jacobian, gm_reduce_single, mod_bearing, mod_elevation, gauss2sigma,
-    rotx, roty, rotz, cart2sphere, cart2angles, pol2cart, sphere2cart, dotproduct, gm_sample,
-    slr_definition)
-from ...types.array import StateVector, StateVectors, Matrix, CovarianceMatrix
-from ...types.state import State, GaussianState
+from ...types.array import CovarianceMatrix, Matrix, StateVector, StateVectors
+from ...types.state import GaussianState, State
 from ...types.prediction import GaussianMeasurementPrediction
 from ...types.update import GaussianStateUpdate
-from functools import partial
+from .. import (
+    cart2angles,
+    cart2sphere,
+    cholesky_eps,
+    cubature2gauss,
+    cubature_transform,
+    dotproduct,
+    gauss2cubature,
+    gauss2sigma,
+    gm_reduce_single,
+    gm_sample,
+    grid_creation,
+    jacobian,
+    mod_bearing,
+    mod_elevation,
+    pol2cart,
+    rotx,
+    roty,
+    rotz,
+    slr_definition,
+    sphere2cart,
+    stochastic_cubature_rule_points,
+)
+
+
+def test_grid_creation():
+    nx = 4
+    meanX0 = np.array([36569, 50, 55581, 50])  # mean value
+    varX0 = np.diag([90, 5, 160, 5])  # variance
+    Npa = np.array([31, 31, 27, 27])  # must be ODD!
+    sFactor = 4  # scaling factor (number of sigmas covered by the grid)
+
+    [predGrid, predGridDelta, gridDimOld, xOld, Ppold] = grid_creation(
+        np.vstack(meanX0), varX0, sFactor, nx, Npa
+    )
+
+    mean_diffs = np.array([np.mean(np.diff(sublist)) for sublist in gridDimOld])
+
+    eigVal, eigVect = LA.eig(varX0)
+
+    assert np.allclose(meanX0, np.mean(predGrid, axis=1), 0, atol=1.0e-1)
+    assert np.all(meanX0 == xOld.ravel())
+    assert np.all(np.argsort(predGridDelta) == np.argsort(np.diag(varX0)))
+    assert np.allclose(mean_diffs, predGridDelta, 0, atol=1e-10)
+    assert np.all(eigVect == Ppold)
 
 
 def test_cholesky_eps():
@@ -176,8 +217,8 @@ def test_gauss2sigma(mean):
 
     sigma_points_states, mean_weights, covar_weights = gauss2sigma(state, kappa=0)
 
-    for n, sigma_point_state in zip((0, 1, -1), sigma_points_states):
-        assert sigma_point_state.state_vector[0, 0] == approx(mean + n * covar ** 0.5)
+    for n, sigma_point_state_vector in zip((0, 1, -1), sigma_points_states.state_vector):
+        assert sigma_point_state_vector[0, 0] == approx(mean + n*covar**0.5)
 
 
 def test_gauss2sigma_bad_covar():
@@ -377,3 +418,68 @@ def test_slr_definition():
     assert np.allclose(omega_cov_matrix,
                        np.array([[4.32261080e+00, -8.39869232e-01],
                                  [-8.39869232e-01, -4.50359965e+15]]))
+
+@pytest.mark.parametrize(
+    "mean, covar, alp",
+    [
+        (StateVector([0]), CovarianceMatrix([[1]]), None),
+        (StateVector([-7, 5]), CovarianceMatrix([[1.1, -0.04], [-0.04, 1.2]]), 2.0),
+        (StateVector([12, -4, 0, 5]), CovarianceMatrix([[0.7, 0.04, -0.02, 0],
+                                                        [0.04, 1.1, 0.09, 0.06],
+                                                        [-0.02, 0.09, 0.9, -0.01],
+                                                        [0, 0.06, -0.01, 1.1]]), 0.7)
+    ]
+)
+def test_cubature_transform(mean, covar, alp):
+
+    instate = GaussianState(mean, covar)
+
+    def identity_function(inpu):
+        return inpu.state_vector
+
+    # First test the cubature points conversions
+    if alp is None:
+        cub_pts = gauss2cubature(instate)
+        outsv, outcovar = cubature2gauss(cub_pts)
+        mean, covar, cross_covar, cubature_points = cubature_transform(instate, identity_function)
+    else:
+        cub_pts = gauss2cubature(instate, alpha=alp)
+        outsv, outcovar = cubature2gauss(cub_pts, alpha=alp)
+        mean, covar, cross_covar, cubature_points = cubature_transform(instate, identity_function,
+                                                                       alpha=alp)
+
+    assert np.allclose(outsv, instate.state_vector)
+    assert np.allclose(outcovar, instate.covar)
+    assert np.allclose(mean, instate.state_vector)
+    assert np.allclose(covar, instate.covar)
+
+
+@pytest.mark.parametrize(
+    "order, nx",
+    [
+        (3, 3),
+        (5, 4),
+        (1, 2)
+    ]
+)
+def test_stochastic_integration(order, nx):
+    points, weights = stochastic_cubature_rule_points(nx, order)
+    # Mean
+    assert np.allclose(np.average(points, weights=weights, axis=1),
+                       0, atol=1e-5)
+    # Weights
+    assert np.isclose(np.sum(weights), 1, atol=1e-5)
+    if order != 1:  # For order 1 it does not make sense to check variance of points
+        # Covariance
+        var = ((weights * points) @ points.T)
+        # Check if diagonal elements are close to 1
+        diagonal_elements = np.diag(var)
+        assert np.allclose(diagonal_elements, 1, atol=1e-5)
+        # Check if off-diagonal elements are close to 0
+        off_diagonal_elements = var[~np.eye(nx, dtype=bool)]
+        assert np.allclose(off_diagonal_elements, 0, atol=1e-5)
+
+
+def test_stochastic_integration_invalid_order():
+    with pytest.raises(ValueError, match="This order of SIF is not supported"):
+        stochastic_cubature_rule_points(5, 2)

@@ -2,8 +2,9 @@ import datetime
 
 import numpy as np
 import pytest
+from scipy.stats import multivariate_normal
 
-from ..array import StateVector
+from ..array import StateVector, StateVectors
 from ..detection import Detection
 from ..hypothesis import SingleHypothesis
 from ..particle import Particle
@@ -11,13 +12,15 @@ from ..prediction import (
     GaussianStatePrediction, GaussianMeasurementPrediction,
     StatePrediction, StateMeasurementPrediction,
     ParticleStatePrediction, ParticleMeasurementPrediction,
-    ASDGaussianStatePrediction, ASDGaussianMeasurementPrediction)
+    ASDGaussianStatePrediction, ASDGaussianMeasurementPrediction, KernelParticleStatePrediction,
+    KernelParticleStateMeasurementPrediction)
 from ..state import (
-    State, GaussianState, SqrtGaussianState, TaggedWeightedGaussianState, ParticleState)
+    State, GaussianState, SqrtGaussianState, TaggedWeightedGaussianState, ParticleState,
+    KernelParticleState)
 from ..track import Track
 from ..update import (
     Update, StateUpdate, GaussianStateUpdate, SqrtGaussianStateUpdate, ParticleStateUpdate,
-    ASDGaussianStateUpdate, TaggedWeightedGaussianStateUpdate)
+    ASDGaussianStateUpdate, TaggedWeightedGaussianStateUpdate, KernelParticleStateUpdate)
 
 
 def test_stateupdate():
@@ -216,3 +219,45 @@ def test_from_state_sequence():
     assert update.timestamp == sequence.timestamp
     assert update.state_vector[0] == 1
     assert update.covar[0] == 3
+
+
+def test_kernel_particle_state_update():
+    number_particles = 4
+    samples = multivariate_normal.rvs([0, 0, 0, 0],
+                                      np.diag([0.01, 0.005, 0.1, 0.5]) ** 2,
+                                      size=number_particles)
+    state_vector = StateVectors(samples.T)
+    weights = np.array([1 / number_particles] * number_particles)
+    timestamp = datetime.datetime.now()
+    samples = multivariate_normal.rvs([0, 0, 0, 0],
+                                      np.diag([0.01, 0.005, 0.1, 0.5]) ** 2,
+                                      size=number_particles)
+    proposal = KernelParticleState(state_vector=StateVectors(samples.T),
+                                   weight=np.array([1 / number_particles] * number_particles),
+                                   )
+    prediction = KernelParticleStatePrediction(state_vector,
+                                               weight=weights,
+                                               timestamp=timestamp)
+    meas_pred = KernelParticleStateMeasurementPrediction(
+        state_vector=state_vector,
+        timestamp=timestamp,
+        weight=weights,
+    )
+    measurement = Detection(state_vector=np.array([[5], [7]]),
+                            timestamp=timestamp)
+    update = KernelParticleStateUpdate(
+        state_vector=state_vector,
+        hypothesis=SingleHypothesis(
+            prediction=prediction,
+            measurement=measurement,
+            measurement_prediction=meas_pred),
+        proposal=proposal,
+        timestamp=timestamp)
+
+    assert np.array_equal(state_vector, update.state_vector)
+    assert np.array_equal(np.diag(weights), update.kernel_covar)
+    assert np.array_equal(prediction, update.hypothesis.prediction)
+    assert np.array_equal(meas_pred, update.hypothesis.measurement_prediction)
+    assert np.array_equal(measurement, update.hypothesis.measurement)
+    assert np.array_equal(proposal, update.proposal)
+    assert np.array_equal(timestamp, update.timestamp)

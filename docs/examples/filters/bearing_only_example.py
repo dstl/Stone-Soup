@@ -54,14 +54,14 @@ start_time = datetime.now()
 # Firstly, we create the initial state of the platform, including the origin point and the
 # cartesian (x, y) movement direction. Then, we create a transition model (in 2D cartesian coordinates)
 # of the platform.
-# At this point, we can setup the Radar which receives only the bearing measurements from the targets using the
+# At this point, we can set up the Radar which receives only the bearing measurements from the targets using the
 # :class:`~.RadarBearing` sensor.
 
 # Import the platform to place the sensor
 from stonesoup.platform.base import MovingPlatform
 
 # Define the platform location, place it in the origin, and define its Cartesian movements.
-# In addition specify the position and velocity mapping. This is done in 2D Cartesian coordinates.
+# In addition, specify the position and velocity mapping. This is done in 2D Cartesian coordinates.
 
 platform_state_vector = StateVector([[0], [-5], [0], [-7]])
 position_mapping = (0, 2)
@@ -174,7 +174,7 @@ initiator = SinglePointInitiator(
     measurement_model=meas_model)
 
 # %%
-# Add the hypothesiser components. We use a distance based hypothesiser using a Malahonobis
+# Add the hypothesiser components. We use a distance based hypothesiser using a Mahalanobis
 # distance to do the data association between the detections and the tracks.
 # Since we consider a single target case a simple nearest neighbour will be enough for the data associator.
 
@@ -230,7 +230,7 @@ from stonesoup.plotter import AnimatedPlotterly, AnimationPlotter
 plotter = AnimationPlotter(legend_kwargs=dict(loc='upper left'))
 plotter.plot_ground_truths(groundtruth_paths, (0,2))
 plotter.plot_tracks(kalman_tracks, (0,2))
-plotter.plot_ground_truths(platform, (0,2), truths_label="Sensor Platform")
+plotter.plot_ground_truths(platform, (0,2), label="Sensor Platform")
 plotter.run()
 
 # %%

@@ -1,8 +1,9 @@
 import copy
 import operator
+from collections.abc import MutableSequence, Sequence
 from itertools import combinations
 from numbers import Real
-from typing import Sequence, Union, MutableSequence, Tuple
+from typing import Union
 
 from ..base import Property
 from ..types import Type
@@ -173,7 +174,7 @@ class Intervals(Type):
         if self.intervals is None:
             self.intervals = list()
         elif not isinstance(self.intervals, MutableSequence):
-            if isinstance(self.intervals, (Interval, Tuple)):
+            if isinstance(self.intervals, (Interval, tuple)):
                 self.intervals = [self.intervals]
             elif isinstance(self.intervals, Intervals):
                 self.intervals = self.intervals.intervals
@@ -218,7 +219,7 @@ class Intervals(Type):
 
     @staticmethod
     def get_merged_intervals(intervals):
-        """Merge all intervals. Ie. combine any intervals that overlap, returning a new list of
+        """Merge all intervals. I.e., combine any intervals that overlap, returning a new list of
         disjoint intervals."""
 
         new_intervals = copy.copy(intervals)

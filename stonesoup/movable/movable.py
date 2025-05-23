@@ -1,18 +1,20 @@
 import datetime
 from abc import abstractmethod, ABC
 from functools import lru_cache
-from typing import Sequence, Tuple, MutableSequence, Optional
+from collections.abc import Sequence, MutableSequence
+from typing import Optional
+import warnings
 
 import numpy as np
 from math import cos, sin
 from scipy.linalg import expm
 
-from stonesoup.base import Property
-from stonesoup.functions import cart2sphere, cart2pol, build_rotation_matrix, rotz
-from stonesoup.models.transition import TransitionModel
-from stonesoup.types.array import StateVector
-from stonesoup.types.state import State, StateMutableSequence
-from stonesoup.sensormanager.action import Actionable
+from ..base import Property
+from ..functions import cart2sphere, cart2pol, build_rotation_matrix, rotz
+from ..models.transition import TransitionModel
+from ..types.array import StateVector
+from ..types.state import State, StateMutableSequence
+from ..sensormanager.action import Actionable
 
 
 class Movable(StateMutableSequence, Actionable, ABC):
@@ -145,7 +147,7 @@ class Movable(StateMutableSequence, Actionable, ABC):
         else:
             return offset
 
-    def range_and_angles_to_other(self, other: 'Movable') -> Tuple[float, float, float]:
+    def range_and_angles_to_other(self, other: 'Movable') -> tuple[float, float, float]:
         """ Calculate the range, azimuth and elevation of a given Movable relative to current
         Movable.
 
@@ -266,22 +268,44 @@ class MovingMovable(Movable):
 
         Notes
         -----
-        A non-moving platform (``self.is_moving == False``) does not have a defined orientation in
-        this approximations and so raises an :class:`AttributeError`
+        Where the velocity of the platform is small, the orientation is calculated based
+        on the direction it travelled from its previous position.
+        Where the platform has only moved a small distance, and for a non-moving platform
+        (``self.is_moving == False``) the orientation from the previous
+        time step is used.
         """
-        if not self.is_moving:
-            raise AttributeError('Orientation of a zero-velocity moving platform is not defined')
-        velocity = self.velocity
 
-        if self.ndim == 3:
-            _, bearing, elevation = cart2sphere(*velocity.flat)
-            return StateVector([0, elevation, bearing])
-        elif self.ndim == 2:
-            _, bearing = cart2pol(*velocity.flat)
-            return StateVector([0, 0, bearing])
-        else:
-            raise NotImplementedError('Orientation of a moving platform is only implemented for 2'
-                                      'and 3 dimensions')
+        if not self.is_moving:
+            self._property_orientation = StateVector([0, 0, 0])
+            warnings.warn('A default initial orientation has been set as StateVector([0, 0, 0])')
+
+        # For low velocity platforms, calculate orientation based on previous position
+        if len(self) >= 2 and np.linalg.norm(self.velocity) < 1e-6 and 2 <= self.ndim <= 3:
+            c_pos = self.position
+            p_pos = self[-2].state_vector[self.position_mapping, ]
+            # If change in position is very small, return previous orientation
+            if np.linalg.norm(c_pos - p_pos) < 1e-6:
+                return self._property_orientation
+            if self.ndim == 2:
+                _, bearing = cart2pol(*(c_pos - p_pos))
+                elevation = 0
+            else:
+                _, bearing, elevation = cart2sphere(*(c_pos - p_pos))
+            self._property_orientation = StateVector([0, elevation, bearing])
+
+        elif self.is_moving:
+            velocity = self.velocity
+            if self.ndim == 3:
+                _, bearing, elevation = cart2sphere(*velocity.flat)
+                self._property_orientation = StateVector([0, elevation, bearing])
+            elif self.ndim == 2:
+                _, bearing = cart2pol(*velocity.flat)
+                self._property_orientation = StateVector([0, 0, bearing])
+            else:
+                raise NotImplementedError('Orientation of a moving platform is only'
+                                          'implemented for 2 and 3 dimensions')
+
+        return self._property_orientation
 
     @property
     def is_moving(self) -> bool:
@@ -354,7 +378,7 @@ class MultiTransitionMovable(MovingMovable):
     movement behaviour of the platform for given durations.
     """
 
-    transition_models: Sequence[TransitionModel] = Property(doc="List of transition models")
+    transition_models: Sequence[TransitionModel] = Property(doc="list of transition models")
     transition_times: Sequence[datetime.timedelta] = Property(doc="Durations for each listed "
                                                                   "transition model")
 
@@ -488,8 +512,8 @@ def _get_angle(vec: StateVector, axis: np.ndarray) -> float:
     Angle : float
         Angle, in radians, between the two vectors
     """
-    vel_norm = vec / np.linalg.norm(vec)
-    axis_norm = axis / np.linalg.norm(axis)
+    vel_norm = (vec / np.linalg.norm(vec)).ravel()
+    axis_norm = (axis / np.linalg.norm(axis)).ravel()
 
     return np.arccos(np.clip(np.dot(axis_norm, vel_norm), -1.0, 1.0))
 

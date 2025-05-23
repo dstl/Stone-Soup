@@ -1,8 +1,9 @@
+from collections.abc import Callable
+
 import numpy as np
 
 from .base import Sampler
 from ..base import Property
-from typing import Callable
 from ..types.state import ParticleState
 from ..types.array import StateVectors
 
@@ -23,7 +24,7 @@ class ParticleSampler(Sampler):
     ndim_state: int = Property(
         doc="Number of dimensions in each sample.")
 
-    def sample(self, params=None, timestamp=None):
+    def sample(self, params=None, timestamp=None, **kwargs):
         """Samples from the desired distribution and returns as a :class:`~.ParticleState`
 
         Parameters

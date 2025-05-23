@@ -1,18 +1,17 @@
 from operator import attrgetter
-from typing import Set
 
 from ordered_set import OrderedSet
 
-from ._assignment import multidimensional_deconfliction
-from .base import TwoTrackToTrackAssociator
-from .general import OneToOneAssociator
 from ..base import Property
-from ..measures import Measure, Euclidean, EuclideanWeighted
+from ..measures import Euclidean, EuclideanWeighted, Measure
 from ..measures.base import TrackMeasure
-from ..types.association import AssociationSet, TimeRangeAssociation, Association
+from ..types.association import Association, AssociationSet, TimeRangeAssociation
 from ..types.groundtruth import GroundTruthPath
 from ..types.time import TimeRange
 from ..types.track import Track
+from ._assignment import multidimensional_deconfliction
+from .base import TwoTrackToTrackAssociator
+from .general import OneToOneAssociator
 
 
 class TrackToTrackCounting(TwoTrackToTrackAssociator):
@@ -88,7 +87,7 @@ class TrackToTrackCounting(TwoTrackToTrackAssociator):
             "at the same time"
     )
 
-    def associate_tracks(self, tracks_set_1: Set[Track], tracks_set_2: Set[Track]):
+    def associate_tracks(self, tracks_set_1: set[Track], tracks_set_2: set[Track]):
         """Associate two sets of tracks together.
 
         Parameters
@@ -201,7 +200,7 @@ class TrackToTruth(TwoTrackToTrackAssociator):
 
     Compares two sets of :class:`~.Track`, each formed of a sequence of
     :class:`~.State` objects and returns an :class:`~.Association` object for
-    each time at which a the two :class:`~.State` within the :class:`~.Track`
+    each time at which two :class:`~.State` objects within the :class:`~.Track`
     are assessed to be associated. Tracks are considered to be associated with
     the Truth if the true :class:`~.State` is the closest to the track and
     within the specified distance for a specified number of time steps.
@@ -237,7 +236,7 @@ class TrackToTruth(TwoTrackToTrackAssociator):
         default=Euclidean(),
         doc="Distance measure to use. Default :class:`~.measures.Euclidean()`")
 
-    def associate_tracks(self, tracks_set: Set[Track], truth_set: Set[GroundTruthPath]):
+    def associate_tracks(self, tracks_set: set[Track], truth_set: set[GroundTruthPath]):
         """Associate Tracks
 
         Method compares to sets of :class:`~.Track` objects and will determine
@@ -258,6 +257,10 @@ class TrackToTruth(TwoTrackToTrackAssociator):
 
         associations = set()
 
+        # Remove tracks and truths with zero length
+        tracks_set = {track for track in tracks_set if len(track) > 0}
+        truth_set = {truth for truth in truth_set if len(truth) > 0}
+
         for track in tracks_set:
 
             current_truth = None
@@ -275,7 +278,7 @@ class TrackToTruth(TwoTrackToTrackAssociator):
 
             for track_state in Track.last_timestamp_generator(track):
 
-                min_dist = None
+                min_dist = self.association_threshold
                 min_truth = None
 
                 for truth in truth_set:
@@ -290,11 +293,7 @@ class TrackToTruth(TwoTrackToTrackAssociator):
                         continue
 
                     distance = self.measure(track_state, truth_state)
-                    if min_dist and distance < min_dist:
-                        min_dist = distance
-                        min_truth = truth
-                    elif not min_dist \
-                            and distance < self.association_threshold:
+                    if distance < min_dist:
                         min_dist = distance
                         min_truth = truth
 
@@ -313,7 +312,7 @@ class TrackToTruth(TwoTrackToTrackAssociator):
                         n_potential_successes = 1
                         potential_start_timestep = track_state.timestamp
 
-                    # Otherwise increse the number of times
+                    # Otherwise increase the number of times
                     # this truth appears in a row
                     else:
                         n_potential_successes += 1
@@ -382,9 +381,9 @@ class TrackToTruth(TwoTrackToTrackAssociator):
 class TrackIDbased(TwoTrackToTrackAssociator):
     """Track ID based associator
 
-        Compares set of :class:`~.Track` objects to set of :class:`~.GroundTruth` objects,
+        Compares a set of :class:`~.Track` objects to a set of :class:`~.GroundTruth` objects,
         each formed of a sequence of :class:`~.State` objects and returns an
-        :class:`~.Association` object for each time at which a the two :class:`~.State`
+        :class:`~.Association` object for each time at which two :class:`~.State` objects
         within the :class:`~.Track` and :class:`~.GroundTruthPath` are assessed to be associated.
         Tracks are considered to be associated with the Ground Truth if the ID of the Track
         is the same as the ID of the Ground Truth.
@@ -431,7 +430,7 @@ class OneToOneTrackAssociator(TwoTrackToTrackAssociator, OneToOneAssociator):
 
     measure: TrackMeasure = Property()
 
-    def associate_tracks(self, *tracks_sets: Set[Track]) -> AssociationSet:
+    def associate_tracks(self, *tracks_sets: set[Track]) -> AssociationSet:
         if len(tracks_sets) != 2:  # Should have two sets of tracks
             raise ValueError("There should be two sources of tracks to compare")
 

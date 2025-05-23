@@ -1,12 +1,13 @@
-from typing import Sequence
+from collections.abc import Sequence
 
+from .array import StateVectors
 from .base import Type
 from .hypothesis import Hypothesis, CompositeHypothesis
 from .mixture import GaussianMixture
-from .state import CreatableFromState, CompositeState
+from .state import CreatableFromState, CompositeState, KernelParticleState
 from .state import State, GaussianState, ParticleState, EnsembleState, \
     SqrtGaussianState, InformationState, CategoricalState, ASDGaussianState, \
-    WeightedGaussianState, TaggedWeightedGaussianState, \
+    WeightedGaussianState, TaggedWeightedGaussianState, ASDTaggedWeightedGaussianState, \
     MultiModelParticleState, RaoBlackwellisedParticleState, BernoulliParticleState
 from ..base import Property
 
@@ -78,6 +79,10 @@ class ASDGaussianStateUpdate(Update, ASDGaussianState):
     """
 
 
+class ASDTaggedWeightedGaussianStateUpdate(Update, ASDTaggedWeightedGaussianState):
+    """ASDTaggedWeightedGaussianStateUpdate type"""
+
+
 class ParticleStateUpdate(Update, ParticleState):
     """ParticleStateUpdate type
 
@@ -104,6 +109,15 @@ class BernoulliParticleStateUpdate(Update, BernoulliParticleState):
 
     This is a simple Bernoulli Particle state update object.
     """
+
+
+class KernelParticleStateUpdate(Update, KernelParticleState):
+    """KernelParticleStateUpdate type
+
+    This is a Kernel Particle state update object.
+    """
+    proposal: StateVectors = Property(default=None,
+                                      doc='Kernel covariance value. Default `None`.')
 
 
 class EnsembleStateUpdate(Update, EnsembleState):

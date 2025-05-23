@@ -1,11 +1,80 @@
 """Mathematical functions used within Stone Soup"""
+
 import copy
 import warnings
+from functools import lru_cache
 
 import numpy as np
+from numpy import linalg as LA
 
+from scipy.stats import ortho_group
+
+from ..types.array import CovarianceMatrix, StateVector, StateVectors
 from ..types.numeric import Probability
-from ..types.array import StateVector, StateVectors, CovarianceMatrix
+from ..types.state import State
+
+
+def grid_creation(xp_aux, Pp_aux, sFactor, nx, Npa):
+    """Grid for point mass filter
+
+    Create a PMF grid based on center, covariance matrix, and sigma probability
+
+    Parameters
+    ==========
+    xp_aux : numpy.ndarray
+        `nx` by `1` center of the grid
+    Pp_aux : numpy.ndarray
+        'nx' by 'nx' covariance matrix
+    sFactor : int
+        Parameter for the size of the grid
+    nx : int
+        Dimension of the grid
+    Npa : numpy.ndarray
+        'nx' by '' number of points per axis of the grid
+
+    Returns
+    =======
+    predGrid : numpy.ndarray
+        'nx' by prod(Npa) predictive grid
+    predGridDelta : list
+        grid step per dimension
+    gridDim : list of numpy.ndarrays
+        grid coordinates per dimension before rotation and translation
+    xp_aux : numpy.ndarray
+        grid center
+    eigVect : numpy.ndarray
+        eigenvectors describing the rotation of the grid
+
+    """
+
+    eigVal, eigVect = LA.eig(
+        Pp_aux
+    )  # eigenvalue and eigenvectors for setting up the grid
+    gridBound = np.sqrt(eigVal) * sFactor  # Boundaries of grid
+
+    # Ensure the grid steps are in the right order
+    sortInd = np.argsort(np.diag(Pp_aux))
+    sortInd = np.argsort(sortInd)
+
+    pom = np.sort(gridBound)
+    Ipom = np.argsort(gridBound)
+    gridBound = pom[sortInd]
+
+    pom2 = eigVect[:, Ipom]
+    eigVect = pom2[:, sortInd]
+    gridDim = []  # Reset gridDim for each cycle
+    gridStep = []  # Reset gridStep for each cycle
+    for ind3 in range(0, nx):  # Creation of propagated grid
+        # New grid with middle in 0
+        gridDim.append(np.linspace(-gridBound[ind3], gridBound[ind3], Npa[ind3]))
+        gridStep.append(np.absolute(gridDim[ind3][0] - gridDim[ind3][1]))  # Grid step
+
+    combvec_predGrid = np.array(np.meshgrid(*gridDim, indexing='ij')).reshape(nx, -1).T
+    predGrid = np.dot(eigVect, combvec_predGrid.T)
+    # Grid rotation by eigenvectors and translation to the counted unscented mean
+    predGrid += xp_aux
+    predGridDelta = gridStep  # Grid step size
+    return predGrid, predGridDelta, gridDim, xp_aux, eigVect
 
 
 def tria(matrix):
@@ -70,7 +139,7 @@ def cholesky_eps(A, lower=False):
         return L.T
 
 
-def jacobian(fun, x,  **kwargs):
+def jacobian(fun, x, **kwargs):
     """Compute Jacobian through finite difference calculation
 
     Parameters
@@ -132,8 +201,8 @@ def gauss2sigma(state, alpha=1.0, beta=2.0, kappa=None):
 
     Returns
     -------
-    : :class:`list` of length `2*Ns+1`
-        An list of States containing the locations of the sigma points.
+    : :class:`~.State` with state vector of shape (`Ns`, `2*Ns+1`)
+        An State containing the locations of the sigma points.
         Note that only the :attr:`state_vector` attribute in these
         States will be meaningful. Other quantities, like :attr:`covar`
         will be inherited from the input and don't really make sense
@@ -175,11 +244,8 @@ def gauss2sigma(state, alpha=1.0, beta=2.0, kappa=None):
         sigma_points[:, (ndim_state + 1):] - sqrt_sigma*np.sqrt(c)
 
     # Put these sigma points into s State object list
-    sigma_points_states = []
-    for sigma_point in sigma_points:
-        state_copy = copy.copy(state)
-        state_copy.state_vector = StateVector(sigma_point)
-        sigma_points_states.append(state_copy)
+    sigma_points_states = copy.copy(state)
+    sigma_points_states.state_vector = sigma_points
 
     # Calculate weights
     mean_weights = np.ones(2 * ndim_state + 1)
@@ -218,7 +284,7 @@ def sigma2gauss(sigma_points, mean_weights, covar_weights, covar_noise=None):
 
     points_diff = sigma_points - mean
 
-    covar = points_diff@(np.diag(covar_weights))@(points_diff.T)
+    covar = points_diff @ np.diag(covar_weights) @ (points_diff.T)
     if covar_noise is not None:
         covar = covar + covar_noise
     return mean.view(StateVector), covar.view(CovarianceMatrix)
@@ -235,8 +301,8 @@ def unscented_transform(sigma_points_states, mean_weights, covar_weights,
 
     Parameters
     ----------
-    sigma_points : :class:`~.StateVectors` of shape `(Ns, 2*Ns+1)`
-        An array containing the locations of the sigma points
+    sigma_points_states : :class:`~.State` with state vector of shape `(Ns, 2*Ns+1)`
+        A state containing the locations of the sigma points
     mean_weights : :class:`numpy.ndarray` of shape `(2*Ns+1,)`
         An array containing the sigma point mean weights
     covar_weights : :class:`numpy.ndarray` of shape `(2*Ns+1,)`
@@ -268,17 +334,10 @@ def unscented_transform(sigma_points_states, mean_weights, covar_weights,
         An array containing the transformed sigma point covariance weights
     """
     # Reconstruct the sigma_points matrix
-    sigma_points = StateVectors([
-        sigma_points_state.state_vector for sigma_points_state in sigma_points_states])
+    sigma_points = sigma_points_states.state_vector
 
     # Transform points through f
-    if points_noise is None:
-        sigma_points_t = StateVectors([
-            fun(sigma_points_state) for sigma_points_state in sigma_points_states])
-    else:
-        sigma_points_t = StateVectors([
-            fun(sigma_points_state, points_noise)
-            for sigma_points_state, point_noise in zip(sigma_points_states, points_noise.T)])
+    sigma_points_t = fun(sigma_points_states, points_noise)
 
     # Calculate mean and covariance approximation
     mean, covar = sigma2gauss(sigma_points_t, mean_weights, covar_weights, covar_noise)
@@ -335,7 +394,7 @@ def cart2sphere(x, y, z):
 
     rho = np.sqrt(x**2 + y**2 + z**2)
     phi = np.arctan2(y, x)
-    theta = np.arcsin(z/rho)
+    theta = np.arcsin(z / rho)
     return (rho, phi, theta)
 
 
@@ -449,7 +508,7 @@ def az_el_rg2cart(phi, theta, rho):
     """
     x = rho * np.sin(phi)
     y = rho * np.sin(theta)
-    z = rho * np.sqrt(1.0 - np.sin(theta) ** 2 - np.sin(phi) ** 2)
+    z = rho * np.sqrt(1.0 - np.sin(theta)**2 - np.sin(phi)**2)
     return x, y, z
 
 
@@ -560,7 +619,7 @@ def rotz(theta):
                      [zero, zero, one]])
 
 
-def gm_sample(means, covars, size, weights=None):
+def gm_sample(means, covars, size, weights=None, random_state=None):
     """Sample from a mixture of multi-variate Gaussians
 
     Parameters
@@ -590,12 +649,14 @@ def gm_sample(means, covars, size, weights=None):
         means = means.view(StateVectors)
 
     if isinstance(means, StateVectors) and weights is None:
-        weights = np.array([1/means.shape[1]]*means.shape[1])
+        weights = np.array([1 / means.shape[1]] * means.shape[1])
     elif weights is None:
-        weights = np.array([1/len(means)]*len(means))
+        weights = np.array([1 / len(means)] * len(means))
 
-    n_samples = np.random.multinomial(size, weights)
-    samples = np.vstack([np.random.multivariate_normal(mean.ravel(), covar, sample)
+    rng = random_state if random_state is not None else np.random
+
+    n_samples = rng.multinomial(size, weights)
+    samples = np.vstack([rng.multivariate_normal(mean.ravel(), covar, sample)
                          for (mean, covar, sample) in zip(means, covars, n_samples)]).T
 
     return StateVectors(samples)
@@ -621,7 +682,7 @@ def gm_reduce_single(means, covars, weights):
         The covariance of the reduced/single Gaussian
     """
     # Normalise weights such that they sum to 1
-    weights = weights/Probability.sum(weights)
+    weights = weights / Probability.sum(weights)
 
     # Cast means as a StateVectors, so this works with ndarray types
     means = means.view(StateVectors)
@@ -670,19 +731,16 @@ def mod_elevation(x):
     float
         Angle in radians in the range math: :math:`-\pi/2` to :math:`+\pi/2`
     """
-    x = x % (2*np.pi)  # limit to 2*pi
-    N = x//(np.pi/2)   # Count # of 90 deg multiples
-    if N == 1:
-        x = np.pi - x
-    elif N == 2:
-        x = np.pi - x
-    elif N == 3:
-        x = x - 2.0 * np.pi
-    elif N == 4:
-        # will only occur on occasions when first operation ('x = ..') returns 2pi to floating
-        # point limit.
-        x = 0.0
-    return x
+    isscalar = np.isscalar(x)
+    x = np.asarray(x) % (2*np.pi)  # limit to 2*pi
+    N = x // (np.pi / 2)  # Count # of 90 deg multiples
+
+    x = np.where(N == 1, np.pi - x, x)
+    x = np.where(N == 2, np.pi - x, x)
+    x = np.where(N == 3, x - 2.0 * np.pi, x)
+    x = np.where(N == 4, 0.0, x)  # handle the edge case
+
+    return x.item() if isscalar else x
 
 
 def build_rotation_matrix(angle_vector: np.ndarray):
@@ -706,10 +764,12 @@ def build_rotation_matrix(angle_vector: np.ndarray):
         :class:`numpy.ndarray` of shape (3, 3)
             The model (3D) rotation matrix.
     """
-    theta_x = -angle_vector[0, 0]  # roll
-    theta_y = angle_vector[1, 0]  # pitch#elevation
-    theta_z = -angle_vector[2, 0]  # yaw#azimuth
-    return rotx(theta_x) @ roty(theta_y) @ rotz(theta_z)
+    return _build_rotation_matrix(angle_vector[0, 0], angle_vector[1, 0], angle_vector[2, 0])
+
+
+@lru_cache()
+def _build_rotation_matrix(theta_x, theta_y, theta_z):
+    return rotx(-theta_x) @ roty(theta_y) @ rotz(-theta_z)
 
 
 def build_rotation_matrix_xyz(angle_vector: np.ndarray):
@@ -733,10 +793,12 @@ def build_rotation_matrix_xyz(angle_vector: np.ndarray):
         :class:`numpy.ndarray` of shape (3, 3)
             The model (3D) rotation matrix.
     """
-    theta_x = -angle_vector[0, 0]  # roll
-    theta_y = angle_vector[1, 0]  # pitch#elevation
-    theta_z = -angle_vector[2, 0]  # yaw#azimuth
-    return rotz(theta_z) @ roty(theta_y) @ rotx(theta_x)
+    return _build_rotation_matrix_xyz(angle_vector[0, 0], angle_vector[1, 0], angle_vector[2, 0])
+
+
+@lru_cache()
+def _build_rotation_matrix_xyz(theta_x, theta_y, theta_z):
+    return rotz(-theta_z) @ roty(theta_y) @ rotx(-theta_x)
 
 
 def dotproduct(a, b):
@@ -762,9 +824,9 @@ def dotproduct(a, b):
 
     # Decide whether this is a StateVector or a StateVectors
     if type(a) is StateVector and type(b) is StateVector:
-        return np.sum(a*b)
+        return np.sum(a * b)
     elif type(a) is StateVectors and type(b) is StateVectors:
-        return np.atleast_2d(np.asarray(np.sum(a*b, axis=0)))
+        return np.atleast_2d(np.asarray(np.sum(a * b, axis=0)))
     else:
         raise ValueError("Inputs must be `StateVector` or `StateVectors` and of the same type")
 
@@ -797,6 +859,7 @@ def sde_euler_maruyama_integration(fun, t_values, state_x0):
         state_x.state_vector = state_x.state_vector + a*delta_t + b@delta_w
     return state_x.state_vector
 
+
 def slr_definition(state, fun, force_symmetry=False):
     """ Statistical linear regression (SLR), adapts the definition (9)-(11) as found in
     Á. F. García-Fernández, L. Svensson and S. Särkkä, "Iterated Posterior Linearization Smoother,"
@@ -828,3 +891,298 @@ def slr_definition(state, fun, force_symmetry=False):
 
     # The output is the function's SLR with respect to the state_pdf
     return H_plus, b_plus, Omega_plus
+
+def gauss2cubature(state, alpha=1.0):
+    r"""Evaluate the cubature points for an input Gaussian state. This is done under the assumption
+    that the input state is :math:`\mathcal{N}(\mathbf{\mu}, \Sigma)` of dimension :math:`n`. We
+    calculate the square root of the covariance (via Cholesky factorization), and find the cubature
+    points, :math:`X`, as,
+
+    .. math::
+
+        \Sigma &= S S^T
+
+        X_i &= S \xi_i + \mathbf{\mu}
+
+    for :math:`i = 1,...,2n`, where :math:`\xi_i = \sqrt{ \alpha n} [\pm \mathbf{1}]_i` and
+    :math:`[\pm \mathbf{1}]_i` are the positive and negative unit vectors in each dimension. We
+    include a scaling parameter :math:`\alpha` to allow the selection of cubature points closer to
+    the mean or more in the tails, as a potentially useful free parameter.
+
+    Parameters
+    ----------
+    state : :class:`~.GaussianState`
+        A Gaussian state with mean and covariance
+    alpha : float, optional
+        scaling parameter allowing the selection of cubature points closer to the mean (lower
+        values) or further from the mean (higher values)
+
+    Returns
+    -------
+     : :class:`~.StateVectors`
+        Cubature points (as a :class:`~.StateVectors` of dimension :math:`n \times 2n`)
+
+    """
+    ndim_state = np.shape(state.state_vector)[0]
+
+    sqrt_covar = np.linalg.cholesky(state.covar)
+    cuba_points = np.sqrt(alpha*ndim_state) * np.hstack((np.identity(ndim_state),
+                                                         -np.identity(ndim_state)))
+
+    if np.issubdtype(cuba_points.dtype, np.integer):
+        cuba_points = cuba_points.astype(float)
+
+    cuba_points = sqrt_covar@cuba_points + state.mean
+
+    return StateVectors(cuba_points)
+
+
+def cubature2gauss(cubature_points, covar_noise=None, alpha=1.0):
+    r"""Get the predicted Gaussian mean and covariance from the cubature points. For dimension
+    :math:`n` there are :math:`m = 2n` cubature points. The mean is,
+
+    .. math::
+
+        \mu = \frac{1}{m} \sum\limits_{i=1}^{m} X_i
+
+    and the covariance
+
+    .. math::
+
+        \Sigma = \frac{1}{\alpha}\left(\frac{1}{m} \sum\limits_{i=1}^{m} X_i X_i^T -
+        \mathbf{\mu}\mathbf{\mu}^T\right) + Q
+
+    where :math:`Q` is an optional additive noise matrix. The scaling parameter :math:`\alpha`
+    allow the for cubature points closer to the mean or more in the tails,
+
+    Parameters
+    ----------
+    cubature_points : :class:`~.StateVectors`
+        Cubature points (as a :class:`~.StateVectors` of dimension :math:`n \times 2n`)
+    covar_noise : :class:`~.CovarianceMatrix` of shape `(Ns, Ns)`, optional
+        Additive noise covariance matrix
+        (default is `None`)
+    alpha : float, optional
+        scaling parameter allowing the nomination of cubature points closer to the mean (lower
+        values) or further from the mean (higher values)
+
+    Returns
+    -------
+     : :class:`~.GaussianState`
+        A Gaussian state with mean and covariance
+
+    """
+
+    m = np.shape(cubature_points)[1]
+    mean = np.average(cubature_points, axis=1)
+    sigma_mult = cubature_points @ cubature_points.T
+    mean_mult = mean @ mean.T
+    covar = (1/alpha)*((1/m)*sigma_mult - mean_mult)
+
+    if covar_noise is not None:
+        covar = covar + covar_noise
+
+    return mean.view(StateVector), covar.view(CovarianceMatrix)
+
+
+def cubature_transform(state, fun, points_noise=None, covar_noise=None, alpha=1.0):
+    r"""Undertakes the cubature transform as described in [#f]_
+
+    Given a Gaussian distribution, calculates the set of cubature points using
+    :meth:`gauss2cubature`, then passes these through the given function and reconstructs the
+    Gaussian using :meth:`cubature2gauss`. Returns the mean, covariance, cross covariance and
+    transformed cubature points. This instance includes a scaling parameter :math:`\alpha`, not
+    included in the reference detailed above, which allows for the selection of cubature points
+    closer to, or further from, tne mean.
+
+    Parameters
+    ----------
+    state : :class:`~.GaussianState`
+        A Gaussian state with mean and covariance
+    fun : function handle
+        A (non-linear) transition function
+        Must be of the form "y = fun(x,w)", where y can be a scalar or \
+        :class:`numpy.ndarray` of shape `(Ns, 1)` or `(Ns,)`
+    covar_noise : :class:`~.CovarianceMatrix` of shape `(Ns, Ns)`, optional
+        Additive noise covariance matrix
+        (default is `None`)
+    points_noise : :class:`numpy.ndarray` of shape `(Ns, 2*Ns+1,)`, optional
+        points to pass into f's second argument
+        (default is `None`)
+    alpha : float, optional
+        scaling parameter allowing the selection of cubature points closer to the mean (lower
+        values) or further from the mean (higher values)
+
+    Returns
+    -------
+    : :class:`~.StateVector` of shape `(Ns, 1)`
+        Transformed mean
+    : :class:`~.CovarianceMatrix` of shape `(Ns, Ns)`
+        Transformed covariance
+    : :class:`~.CovarianceMatrix` of shape `(Ns,Nm)`
+        Calculated cross-covariance matrix
+    : :class:`~.StateVectors` of shape `(Ns, 2*Ns)`
+        An array containing the locations of the transformed cubature points
+
+    References
+    ----------
+    .. [#f] I. Arasaratnam and S. Haykin, “Cubature Kalman Filters,” in IEEE Transactions on
+           Automatic Control, vol. 54, no. 6, pp. 1254-1269, June 2009,
+           doi: 10.1109/TAC.2009.2019800.
+
+    """
+    ndim_state = np.shape(state.state_vector)[0]
+    cubature_points = gauss2cubature(state)
+
+    if points_noise is None:
+        cubature_points_t = StateVectors([fun(State(cub_point)) for cub_point in cubature_points])
+    else:
+        cubature_points_t = StateVectors([
+            fun(State(cub_point), points_noise)
+            for cub_point, point_noise in zip(cubature_points, points_noise)])
+
+    mean, covar = cubature2gauss(cubature_points_t, covar_noise)
+
+    cross_covar = (1/alpha)*((1./(2*ndim_state))*cubature_points@cubature_points_t.T
+                             - np.average(cubature_points, axis=1)@mean.T)
+    cross_covar = cross_covar.view(CovarianceMatrix)
+
+    return mean, covar, cross_covar, cubature_points_t
+
+
+def stochastic_cubature_rule_points(nx, order):
+    """Computation of cubature points and weights for the stochastic integration.
+
+    Parameters
+    ==========
+    nx : int
+        Number of points, presumably equivalent to state dimension.
+    order : int
+        Order for stochastic integration. Only orders 1, 3, and 5 are supported.
+
+    Returns
+    =======
+    (numpy.ndarray, numpy.ndarray)
+        Tuple of sigma points and weights
+    """
+
+    if order == 1:
+        X = np.random.randn(nx, 1)
+        SCRSigmaPoints = np.concatenate((X, -X), axis=1)
+        weights = np.array([0.5, 0.5])
+    elif order == 3:
+        CRSigmaPoints = np.concatenate(
+            (np.zeros((nx, 1)), np.eye(nx), -np.eye(nx)), axis=1
+        )
+        rho = np.sqrt(np.random.chisquare(nx + 2))
+        Q = ortho_group.rvs(nx)
+        SCRSigmaPoints = Q * rho @ CRSigmaPoints
+        weights = np.insert(0.5 * np.ones(2 * nx) / rho**2, 0, (1 - nx / rho**2))
+
+    elif order == 5:
+        # generating random values
+        r = np.sqrt(np.random.chisquare(2 * nx + 7))
+
+        q = np.random.beta(nx + 2, 3 / 2)
+
+        rho = r * np.sin(np.arcsin(q) / 2)
+        delta = r * np.cos(np.arcsin(q) / 2)
+
+        # calculating weights
+        c1up = nx + 2 - delta**2
+        c1do = rho**2 * (rho**2 - delta**2)
+        c2up = nx + 2 - rho**2
+        c2do = delta**2 * (delta**2 - rho**2)
+        cdo = 2 * (nx + 1) ** 2 * (nx + 2)
+        c3 = (7 - nx) * nx**2
+        c4 = 4 * (nx - 1) ** 2
+        coef1 = c1up * c3 / cdo / c1do
+        coef2 = c2up * c3 / cdo / c2do
+        coef3 = c1up * c4 / cdo / c1do
+        coef4 = c2up * c4 / cdo / c2do
+
+        pom = np.concatenate(
+            (
+                np.ones(2 * nx + 2) * coef1,
+                np.ones(2 * nx + 2) * coef2,
+                np.ones(nx * (nx + 1)) * coef3,
+                np.ones(nx * (nx + 1)) * coef4,
+            ),
+            axis=0,
+        )
+        weights = np.insert(
+            pom, 0, (1 - nx * (rho**2 + delta**2 - nx - 2) / (rho**2 * delta**2))
+        )
+
+        # Calculating sigma points
+        Q = ortho_group.rvs(nx)
+        v = np.zeros((nx, nx + 1))
+        i_vals, j_vals = np.triu_indices(nx + 1, k=1)
+        v[i_vals, i_vals] = np.sqrt((nx+1) * (nx-i_vals) / (nx * (nx-i_vals+1)))
+        v[i_vals, j_vals] = -np.sqrt((nx+1) / ((nx-i_vals) * nx * (nx-i_vals+1)))
+        v = Q @ v
+        i_vals, j_vals = np.tril_indices(nx + 1, k=-1)
+        comb_v = v[:, i_vals] + v[:, j_vals]
+        y = comb_v / np.linalg.norm(comb_v, axis=0)
+
+        SCRSigmaPoints = np.block(
+            [
+                np.zeros((nx, 1)),
+                -rho * v,
+                rho * v,
+                -delta * v,
+                +delta * v,
+                -rho * y,
+                rho * y,
+                -delta * y,
+                delta * y,
+            ]
+        )
+    else:
+        raise ValueError("This order of SIF is not supported")
+
+    return (SCRSigmaPoints, weights)
+
+
+def cub_points_and_tf(nx, order, sqrtCov, mean, transFunct, state):
+    r""" Calculates cubature points for stochastic integration filter and
+    puts them through given function (measurement/dynamics)
+
+    Parameters
+    ==========
+    nx : int
+       Dimension for cubature points, equivalent to state dimension.
+    order : int
+        Order for Stochastic Integration. Only orders 1, 3, and 5 are supported
+    sqrtCov : np.ndarray
+        Matrix square root array of shape (nx, nx) of the covariance matrix
+    mean : np.ndarray
+        An array of shape (nx, 1) of the state mean
+    transFunct : Callable
+        A function to transfer state vectors
+    state : :class:`~.State`
+        State object used to save function output to
+
+    Returns
+    =======
+    points : numpy.ndarray
+        Array of shape (nx, number of points) of cubature points
+    w : numpy.ndarray
+        Array of shape (number of points) of weights
+    trsfPoints : numpy.ndarray
+        Array of shape (nx, number of points) (based on order and dim) of
+        cubature transformed points
+    """
+
+    # -- cubature points and weights computation (for standard normal PDF)
+    SCRSigmaPoints, w = stochastic_cubature_rule_points(nx, order)
+
+    # -- points transformation for given filtering mean and covariance matrix
+    points = StateVectors(sqrtCov@SCRSigmaPoints + mean)
+
+    # -- points transformation through the function
+    state_copy = copy.copy(state)
+    state_copy.state_vector = points
+    trsfPoints = transFunct(state_copy)
+
+    return points, w, trsfPoints

@@ -1,9 +1,9 @@
-from abc import abstractmethod
 import copy
-from typing import Sequence
+from abc import abstractmethod
+from collections.abc import Sequence
 
-from scipy.linalg import block_diag
 import numpy as np
+from scipy.linalg import block_diag
 
 from ..base import Model, GaussianModel
 from ...base import Property
@@ -33,6 +33,11 @@ class CombinedGaussianTransitionModel(TransitionModel, GaussianModel):
     must be supplied to all methods
     """
     model_list: Sequence[GaussianModel] = Property(doc="List of Transition Models.")
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        if not isinstance(self.model_list, Sequence):
+            raise TypeError("model_list must be Sequence.")
 
     def function(self, state, noise=False, **kwargs) -> StateVector:
         """Applies each transition model in :py:attr:`~model_list` in turn to the state's

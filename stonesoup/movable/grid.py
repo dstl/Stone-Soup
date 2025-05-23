@@ -1,10 +1,11 @@
-from typing import Sequence
-import numpy as np
-from ..base import Property
+from collections.abc import Sequence
 
-from stonesoup.movable import FixedMovable
-from stonesoup.movable.action.move_position_action import NStepDirectionalGridActionGenerator
-from stonesoup.types.state import State
+import numpy as np
+
+from ..base import Property
+from ..types.state import State
+from . import FixedMovable
+from .action.move_position_action import NStepDirectionalGridActionGenerator
 
 
 class _GridActionableMovable(FixedMovable):
@@ -34,7 +35,6 @@ class _GridActionableMovable(FixedMovable):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self._next_action = None
-        self._generator_kwargs = _GridActionableMovable._generator_kwargs
 
     def actions(self, timestamp, start_timestamp=None):
         """Method to return a set of grid action generators available up to a provided timestamp.
@@ -59,7 +59,7 @@ class _GridActionableMovable(FixedMovable):
             attribute="position",
             start_time=start_timestamp,
             end_time=timestamp,
-            **{name: getattr(self, name) for name in self._generator_kwargs}))
+            **{name: getattr(self, name) for name in type(self)._generator_kwargs}))
 
         return generators
 
@@ -88,8 +88,7 @@ class NStepDirectionalGridMovable(_GridActionableMovable):
     of each axis. This movable implements the :class:`~.NStepDirectionalGridActionGenerator`"""
 
     generator = NStepDirectionalGridActionGenerator
-    _generator_kwargs = _GridActionableMovable._generator_kwargs.update({'n_steps',
-                                                                         'step_size'})
+    _generator_kwargs = _GridActionableMovable._generator_kwargs | {'n_steps', 'step_size'}
 
     n_steps: int = Property(
         default=1,

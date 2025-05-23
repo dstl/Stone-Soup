@@ -1,21 +1,42 @@
 import copy
 import datetime
+import pickle
 
 import numpy as np
 import pytest
 import scipy.linalg
+from numpy.linalg import inv
+from scipy.stats import multivariate_normal
 
+from ...base import Property
+from ...functions import grid_creation
 from ..angle import Bearing
-from ..array import StateVector, StateVectors, CovarianceMatrix
+from ..array import CovarianceMatrix, StateVector, StateVectors
 from ..groundtruth import GroundTruthState
 from ..numeric import Probability
 from ..particle import Particle
-from ..state import CreatableFromState
-from ..state import State, GaussianState, ParticleState, EnsembleState, \
-    StateMutableSequence, WeightedGaussianState, SqrtGaussianState, CategoricalState, \
-    CompositeState, InformationState, ASDState, ASDGaussianState, ASDWeightedGaussianState, \
-    MultiModelParticleState, RaoBlackwellisedParticleState, BernoulliParticleState
-from ...base import Property
+from ..state import (
+    ASDGaussianState,
+    ASDState,
+    ASDWeightedGaussianState,
+    ASDTaggedWeightedGaussianState,
+    BernoulliParticleState,
+    CategoricalState,
+    CompositeState,
+    CreatableFromState,
+    EnsembleState,
+    GaussianState,
+    InformationState,
+    KernelParticleState,
+    MultiModelParticleState,
+    ParticleState,
+    PointMassState,
+    RaoBlackwellisedParticleState,
+    SqrtGaussianState,
+    State,
+    StateMutableSequence,
+    WeightedGaussianState,
+)
 
 
 def test_state():
@@ -348,6 +369,26 @@ def test_particlestate_cache():
     assert np.allclose(state.covar, CovarianceMatrix([[2]]))
 
 
+@pytest.mark.parametrize(
+    'particle_class', [ParticleState, MultiModelParticleState, RaoBlackwellisedParticleState,
+                       BernoulliParticleState])
+def test_particle_parent_parent(particle_class):
+    state1 = particle_class([[1, 2, 3]], weight=np.full((3, ), 1/3))
+    state2 = particle_class([[2, 3, 1]], weight=np.full((3, ), 1/3), parent=state1)
+    state3 = particle_class([[3, 1, 2]], weight=np.full((3, ), 1/3), parent=state2)
+
+    assert state2.parent is state1
+    assert state3.parent is state2
+    assert state3.parent.parent is state1
+
+    del state1  # All remaining references should be weak
+
+    assert state3.parent is state2
+    assert state3.parent.parent is None
+
+    pickle.dumps(state3)
+
+
 def test_ensemblestate():
 
     # 1D
@@ -561,6 +602,64 @@ def test_state_mutable_sequence_copy():
     assert sequence2[-1] is sequence[-1]
     sequence2.remove(sequence[-1])
     assert sequence2[-1] is not sequence[-1]
+
+
+def test_state_mutable_sequence_subclass():
+    class TestSMS(StateMutableSequence):
+        test_property = Property(cls=int)
+        test_property_with_default = Property(default=2, cls=int)
+
+    state = State(StateVector([[0]]), timestamp=datetime.datetime.now())
+
+    sequence = TestSMS(1)
+    assert sequence.test_property == 1
+    assert sequence.test_property_with_default == 2
+    assert sequence.states == []
+
+    sequence = TestSMS(test_property=1)
+    assert sequence.test_property == 1
+    assert sequence.test_property_with_default == 2
+    assert sequence.states == []
+
+    sequence = TestSMS(1, state)
+    assert sequence.test_property == 1
+    assert sequence.test_property_with_default == 2
+    assert sequence.states == [state]
+
+    sequence = TestSMS(1, states=[state])
+    assert sequence.test_property == 1
+    assert sequence.test_property_with_default == 2
+    assert sequence.states == [state]
+
+    sequence = TestSMS(test_property=1, states=[state])
+    assert sequence.test_property == 1
+    assert sequence.test_property_with_default == 2
+    assert sequence.states == [state]
+
+    sequence = TestSMS(test_property=1, test_property_with_default=3)
+    assert sequence.test_property == 1
+    assert sequence.test_property_with_default == 3
+    assert sequence.states == []
+
+    sequence = TestSMS(1, [state], 3)
+    assert sequence.test_property == 1
+    assert sequence.test_property_with_default == 3
+    assert sequence.states == [state]
+
+    sequence = TestSMS(1, [state], test_property_with_default=3)
+    assert sequence.test_property == 1
+    assert sequence.test_property_with_default == 3
+    assert sequence.states == [state]
+
+    sequence = TestSMS(1, states=[state], test_property_with_default=3)
+    assert sequence.test_property == 1
+    assert sequence.test_property_with_default == 3
+    assert sequence.states == [state]
+
+    sequence = TestSMS(test_property=1, states=[state], test_property_with_default=3)
+    assert sequence.test_property == 1
+    assert sequence.test_property_with_default == 3
+    assert sequence.states == [state]
 
 
 def test_from_state():
@@ -839,3 +938,85 @@ def test_asd_weighted_gaussian_state():
     a = ASDWeightedGaussianState(
         mean, multi_covar=covar, weight=weight, timestamps=[timestamp])
     assert a.weight == weight
+
+
+def test_asd_tagged_weighted_gaussian_state():
+    mean = np.array([[1], [2], [3], [4]])  # 4D
+    covar = np.diag([1, 2, 3])  # 3D
+    weight = 0.3
+    timestamp = datetime.datetime.now()
+
+    a = ASDTaggedWeightedGaussianState(
+        mean, multi_covar=covar, weight=weight, tag='abc123', timestamps=[timestamp])
+    assert a.weight == weight
+    assert a.tag == 'abc123'
+    a = ASDTaggedWeightedGaussianState(
+        mean, multi_covar=covar, weight=weight, timestamps=[timestamp])
+    assert isinstance(a.tag, str)  # Should be auto-generated UUID
+
+
+def test_pointmassstate():
+    nx = 4
+    meanX0 = np.array([36569, 50, 55581, 50])  # mean value
+    varX0 = np.diag([90, 5, 160, 5])  # variance
+    Npa = np.array(
+        [31, 31, 27, 27]
+    )  # 33 number of points per axis, for FFT must be ODD!!!!
+    N = np.prod(Npa)  # number of points - total
+    sFactor = 4  # scaling factor (number of sigmas covered by the grid)
+
+    [predGrid, predGridDelta, gridDimOld, xOld, Ppold] = grid_creation(
+        np.vstack(meanX0), varX0, sFactor, nx, Npa
+    )
+
+    meanX0 = np.vstack(meanX0)
+    pom = predGrid - meanX0
+    denominator = np.sqrt((2 * np.pi) ** nx) * np.linalg.det(varX0)
+    pompom = np.sum(
+        -0.5 * np.multiply(pom.T @ inv(varX0), pom.T), 1
+    )  # elementwise multiplication
+    pomexp = np.exp(pompom)
+    predDensityProb = pomexp / denominator  # Adding probabilities to points
+    predDensityProb = predDensityProb / (sum(predDensityProb) * np.prod(predGridDelta))
+
+    start_time = datetime.datetime.now()
+
+    priorPMF = PointMassState(
+        state_vector=StateVectors(predGrid),
+        weight=predDensityProb,
+        grid_delta=predGridDelta,
+        grid_dim=gridDimOld,
+        center=xOld,
+        eigVec=Ppold,
+        Npa=Npa,
+        timestamp=start_time,
+    )
+
+    assert np.allclose(priorPMF.mean, meanX0.ravel(), 0, 1e-2)
+    assert np.allclose(priorPMF.covar(), varX0, 0, 1e-1)
+    assert priorPMF.ndim == nx
+    assert len(priorPMF) == N
+
+
+def test_kernel_particle_state():
+    number_particles = 5
+    weights = np.array([1 / number_particles] * number_particles)
+
+    samples = multivariate_normal.rvs([0, 0, 0, 0],
+                                      np.diag([0.01, 0.005, 0.1, 0.5]) ** 2,
+                                      size=number_particles)
+    state_vector = StateVectors(samples.T)
+    prior = KernelParticleState(state_vector=state_vector,
+                                weight=weights,
+                                )
+    prior_w_kernel_covar = KernelParticleState(
+        state_vector=state_vector,
+        weight=weights,
+        kernel_covar=CovarianceMatrix(np.diag(weights)))
+
+    assert np.array_equal(prior.weight, weights)
+    assert np.array_equal(prior.kernel_covar, prior_w_kernel_covar.kernel_covar)
+    assert number_particles == len(prior)
+    assert 4 == prior.ndim
+    assert np.array_equal(state_vector @ weights[:, np.newaxis], prior.mean)
+    assert np.array_equal(state_vector @ np.diag(weights) @ state_vector.T, prior.covar)

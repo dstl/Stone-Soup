@@ -1,7 +1,8 @@
-from typing import Sequence, Union
+from collections.abc import Sequence
+from typing import Union
 
-from math import sqrt
 import numpy as np
+from scipy.stats import norm
 from scipy.special import erf
 
 from ...base import Property
@@ -123,8 +124,8 @@ class IsotropicPlume(GaussianModel, MeasurementModel):
     def ndim_meas(self) -> int:
         return 1
 
-    def function(self, state: State, noise: Union[bool, np.ndarray] = False, **kwargs) -> Union[
-                 StateVector, StateVectors]:
+    def function(self, state: State, noise: Union[bool, np.ndarray] = False, random_state=None,
+                 **kwargs) -> Union[StateVector, StateVectors]:
         r"""Model function :math:`h(\vec{x}_t,\vec{v}_t)`
 
         Parameters
@@ -164,11 +165,13 @@ class IsotropicPlume(GaussianModel, MeasurementModel):
         if noise:
             C += self.rvs(state=C.view(StateVectors),
                           num_samples=state.state_vector.shape[1],
+                          random_state=random_state,
                           **kwargs)
             # measurement thresholding
             C[C < self.sensing_threshold] = 0
             # missed detections
-            flag = np.random.uniform(size=state.state_vector.shape[1]) \
+            rng = random_state or self.random_state or np.random
+            flag = rng.uniform(size=state.state_vector.shape[1]) \
                 > (1 - self.missed_detection_probability)
             C[:, flag] = 0
 
@@ -199,7 +202,7 @@ class IsotropicPlume(GaussianModel, MeasurementModel):
         pred_meas = self.function(state2, **kwargs)
         if state1.state_vector[0] <= self.sensing_threshold:
             pdf = p_m + ((1-p_m) * 1/2 * (1+erf((self.sensing_threshold - pred_meas)
-                                                / (nd_sigma * sqrt(2)))))
+                                                / (nd_sigma * np.sqrt(2)))))
             likelihood = np.atleast_1d(np.log(pdf)).view(np.ndarray)
 
         else:
@@ -291,10 +294,10 @@ class IsotropicPlume(GaussianModel, MeasurementModel):
 
         random_state = random_state if random_state is not None else self.random_state
 
-        generator = np.random.RandomState(random_state)
-        noise = generator.normal(np.zeros(self.ndim_meas),
-                                 np.ravel(state*self.standard_deviation_percentage),
-                                 num_samples)
+        noise = norm.rvs(loc=np.zeros(self.ndim_meas),
+                         scale=np.ravel(state*self.standard_deviation_percentage),
+                         size=num_samples,
+                         random_state=random_state)
 
         noise = np.atleast_2d(noise)
 

@@ -6,7 +6,7 @@ import numpy as np
 
 from ._utils import predict_lru_cache
 from .kalman import KalmanPredictor
-from ..types.prediction import ASDGaussianStatePrediction
+from ..types.prediction import Prediction
 from ..types.state import GaussianState
 
 
@@ -180,13 +180,19 @@ class ASDKalmanPredictor(KalmanPredictor):
 
             P_right_lower = prior.multi_covar[t_index * ndim:, t_index * ndim:]
 
+            # Calculate what would be the orignal predicted covariance
+            p_state_pred = GaussianState(
+                x_pred_m, correlation_matrices[t_index]['P'], prior.timestamp)
+            p_p_pred = self._predicted_covariance(
+                p_state_pred, predict_over_interval=predict_over_interval)
+
             # add new correlation matrix with the present time step
             correlation_matrices[t_index] = pred_from_corr_matrices = \
                 correlation_matrices[t_index].copy()
-            pred_from_corr_matrices['P_pred'] = p_pred_m
+            pred_from_corr_matrices['P_pred'] = p_p_pred
             pred_from_corr_matrices['F'] = transition_matrix_m
             pred_from_corr_matrices['PFP'] = (
-                    pred_from_corr_matrices['P'] @ transition_matrix_m.T @ np.linalg.inv(p_pred_m))
+                    pred_from_corr_matrices['P'] @ transition_matrix_m.T @ np.linalg.inv(p_p_pred))
 
             correlation_matrices.insert(t_index, {})
             correlation_matrices[t_index]['F'] = transition_matrix_m_plus_1
@@ -229,10 +235,11 @@ class ASDKalmanPredictor(KalmanPredictor):
         timestamps = sorted(prior.timestamps + [timestamp], reverse=True)
         # the act_timestamp parameter is used for the updater to
         # know for which timestamp the prediction is calculated
-        predicted_state = ASDGaussianStatePrediction(
+        predicted_state = Prediction.from_state(
+            prior,
             multi_state_vector=x_pred, multi_covar=p_pred,
             correlation_matrices=correlation_matrices, timestamps=timestamps,
-            max_nstep=prior.max_nstep, act_timestamp=timestamp)
+            act_timestamp=timestamp, prior=prior)
         self.prune_state(predicted_state)
         return predicted_state
 

@@ -42,11 +42,13 @@ Algorithm Components
     stonesoup.dataassociator
     stonesoup.deleter
     stonesoup.gater
+    stonesoup.kernel
     stonesoup.hypothesiser
     stonesoup.initiator
     stonesoup.mixturereducer
     stonesoup.models
     stonesoup.predictor
+    stonesoup.proposal
     stonesoup.regulariser
     stonesoup.resampler
     stonesoup.sampler

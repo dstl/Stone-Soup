@@ -1,8 +1,10 @@
-# -*- coding: utf-8 -*-
+import warnings
+
 from .base import Hypothesiser
 from ..base import Property
 from ..types.multihypothesis import MultipleHypothesis
-from ..types.prediction import TaggedWeightedGaussianStatePrediction
+from ..types.numeric import Probability
+from ..types.prediction import Prediction
 
 
 class MFAHypothesiser(Hypothesiser):
@@ -47,9 +49,11 @@ class MFAHypothesiser(Hypothesiser):
         # Check to make sure all detections are obtained from the same time
         timestamps = {detection.timestamp for detection in detections}
         if len(timestamps) > 1:
-            raise ValueError("All detections must have the same timestamp")
+            warnings.warn("All detections should have the same timestamp")
 
         hypotheses = list()
+        component_weight_sum = Probability.sum(
+                component.weight for component in track.state.components)
         for component in track.state.components:
             # Get hypotheses for that component for all measurements
             component_hypotheses = self.hypothesiser.hypothesise(
@@ -57,14 +61,13 @@ class MFAHypothesiser(Hypothesiser):
             for hypothesis in component_hypotheses:
                 # Update component tag and weight
                 det_idx = detections_tuple.index(hypothesis.measurement) + 1 if hypothesis else 0
-                new_weight = component.weight * hypothesis.weight
+                new_weight = Probability(component.weight * hypothesis.weight)
+                new_weight /= component_weight_sum
                 hypothesis.prediction = \
-                    TaggedWeightedGaussianStatePrediction(
+                    Prediction.from_state(
+                        hypothesis.prediction,
                         tag=[*component.tag, det_idx],  # TODO: Avoid dependency on indexes
                         weight=new_weight,
-                        state_vector=hypothesis.prediction.state_vector,
-                        covar=hypothesis.prediction.covar,
-                        timestamp=hypothesis.prediction.timestamp
                     )
                 hypotheses.append(hypothesis)
         # Create Multiple Hypothesis and add to list

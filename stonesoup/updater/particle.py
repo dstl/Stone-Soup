@@ -40,7 +40,6 @@ class ParticleUpdater(Updater):
             'resampled. If the :class:`~.Resampler` is not defined but a '
             ':class:`~.Regulariser` is, then regularisation will be conducted under the '
             'assumption that the user intends for this to occur.')
-
     constraint_func: Callable = Property(
         default=None,
         doc="Callable, user defined function for applying "
@@ -76,16 +75,19 @@ class ParticleUpdater(Updater):
         predicted_state = Update.from_state(
             state=hypothesis.prediction,
             hypothesis=hypothesis,
-            timestamp=hypothesis.prediction.timestamp
-        )
+            timestamp=hypothesis.prediction.timestamp)
 
         if hypothesis.measurement.measurement_model is None:
             measurement_model = self.measurement_model
         else:
             measurement_model = hypothesis.measurement.measurement_model
 
-        new_weight = predicted_state.log_weight + measurement_model.logpdf(
-            hypothesis.measurement, predicted_state, **kwargs)
+        # p(y_k|x_k)
+        loglikelihood = measurement_model.logpdf(hypothesis.measurement, predicted_state,
+                                                 **kwargs)
+
+        # w_k = w_k-1 * p(y_k|x_k)
+        new_weight = predicted_state.log_weight + loglikelihood
 
         # Apply constraints if defined
         if self.constraint_func is not None:
@@ -94,7 +96,6 @@ class ParticleUpdater(Updater):
 
         # Normalise the weights
         new_weight -= logsumexp(new_weight)
-
         predicted_state.log_weight = new_weight
 
         # Resample
@@ -298,11 +299,25 @@ class MultiModelParticleUpdater(ParticleUpdater):
             + measurement_model.logpdf(hypothesis.measurement, update, **kwargs) \
             + np.log(transition_matrix[update.parent.dynamic_model, update.dynamic_model])
 
+        # Apply constraints if defined
+        if self.constraint_func is not None:
+            part_indx = self.constraint_func(update)
+            update.log_weight[part_indx] = -1*np.inf
+
         # Normalise the weights
         update.log_weight -= logsumexp(update.log_weight)
 
-        if self.resampler:
-            update = self.resampler.resample(update)
+        # Resample
+        resample_flag = True
+        if self.resampler is not None:
+            resampled_state = self.resampler.resample(update)
+            if resampled_state == update:
+                resample_flag = False
+            update = resampled_state
+
+        if self.regulariser is not None and resample_flag:
+            update = self.regulariser.regularise(update.parent, update)
+
         return update
 
 
@@ -334,7 +349,6 @@ class RaoBlackwellisedParticleUpdater(MultiModelParticleUpdater):
 
         update = Update.from_state(
             hypothesis.prediction,
-            log_weight=copy.copy(hypothesis.prediction.log_weight),
             hypothesis=hypothesis,
             timestamp=hypothesis.measurement.timestamp,
         )
@@ -346,11 +360,25 @@ class RaoBlackwellisedParticleUpdater(MultiModelParticleUpdater):
                                                                          update,
                                                                          **kwargs)
 
+        # Apply constraints if defined
+        if self.constraint_func is not None:
+            part_indx = self.constraint_func(update)
+            update.log_weight[part_indx] = -1*np.inf
+
         # Normalise the weights
         update.log_weight -= logsumexp(update.log_weight)
 
-        if self.resampler:
-            update = self.resampler.resample(update)
+        # Resample
+        resample_flag = True
+        if self.resampler is not None:
+            resampled_state = self.resampler.resample(update)
+            if resampled_state == update:
+                resample_flag = False
+            update = resampled_state
+
+        if self.regulariser is not None and resample_flag:
+            update = self.regulariser.regularise(update.parent, update)
+
         return update
 
     @staticmethod
@@ -495,6 +523,14 @@ class BernoulliParticleUpdater(ParticleUpdater):
                 + updated_state.log_weight
 
             # Normalise weights
+            updated_state.log_weight -= logsumexp(updated_state.log_weight)
+
+        # Apply constraints if defined
+        if self.constraint_func is not None:
+            part_indx = self.constraint_func(updated_state)
+            updated_state.log_weight[part_indx] = -1*np.inf
+            if not any(hypotheses):
+                updated_state.log_weight = copy.copy(updated_state.log_weight)
             updated_state.log_weight -= logsumexp(updated_state.log_weight)
 
         # Resampling

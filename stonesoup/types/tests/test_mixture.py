@@ -127,7 +127,7 @@ def test_GaussianMixture_timestamp():
     assert mixturestate.timestamp == timestamp
 
     states[-1].timestamp += datetime.timedelta(hours=1)
-    with pytest.raises(ValueError):
+    with pytest.warns(match="All components should have the same timestamp"):
         GaussianMixture(components=states)
 
 

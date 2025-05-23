@@ -1,5 +1,5 @@
 import math
-from typing import Sequence
+from collections.abc import Sequence
 from functools import lru_cache
 
 import numpy as np
@@ -125,23 +125,23 @@ class ConstantNthDerivative(LinearGaussianTransitionModel, TimeVariantModel):
     def matrix(self, time_interval, **kwargs):
         time_interval_sec = time_interval.total_seconds()
         N = self.constant_derivative
-        Fmat = np.zeros((N + 1, N + 1))
+        Fmat = np.eye(N + 1)
         dt = time_interval_sec
         for i in range(0, N + 1):
-            for j in range(i, N + 1):
+            for j in range(i+1, N + 1):
                 Fmat[i, j] = (dt ** (j - i)) / math.factorial(j - i)
 
         return Fmat
 
     def covar(self, time_interval, **kwargs):
         time_interval_sec = time_interval.total_seconds()
-        dt = time_interval_sec
+        dt = abs(time_interval_sec)
         N = self.constant_derivative
         if N == 1:
             covar = np.array([[dt ** 3 / 3, dt ** 2 / 2],
                               [dt ** 2 / 2, dt]])
         else:
-            Fmat = self.matrix(time_interval, **kwargs)
+            Fmat = self.matrix(abs(time_interval), **kwargs)
             Q = np.zeros((N + 1, N + 1))
             Q[N, N] = 1
             igrand = Fmat @ Q @ Fmat.T
@@ -313,13 +313,13 @@ class NthDerivativeDecay(LinearGaussianTransitionModel, TimeVariantModel):
     @staticmethod
     @lru_cache()
     def _continoustransitionmatrix(t, N, K):
-        FCont = np.zeros((N + 1, N + 1))
+        FCont = np.eye(N + 1)
         for i in range(0, N + 1):
             FCont[i, N] = np.exp(-K * t) * (-1) ** (N - i) / K ** (N - i)
             for n in range(1, N - i + 1):
                 FCont[i, N] -= (-1) ** n * t ** (N - i - n) / \
                                (math.factorial(N - i - n) * K ** n)
-            for j in range(i, N):
+            for j in range(i+1, N):
                 FCont[i, j] = (t ** (j - i)) / math.factorial(j - i)
         return FCont
 
@@ -331,7 +331,7 @@ class NthDerivativeDecay(LinearGaussianTransitionModel, TimeVariantModel):
 
     @classmethod
     def _continouscovar(cls, t, N, K, k, l):  # noqa: E741
-        FcCont = cls._continoustransitionmatrix(t, N, K)
+        FcCont = abs(cls._continoustransitionmatrix(t, N, K))
         Q = np.zeros((N + 1, N + 1))
         Q[N, N] = 1
         CovarCont = FcCont @ Q @ FcCont.T
@@ -341,10 +341,13 @@ class NthDerivativeDecay(LinearGaussianTransitionModel, TimeVariantModel):
     @lru_cache()
     def _covardiscrete(cls, N, q, K, dt):
         covar = np.zeros((N + 1, N + 1))
+        if dt >= 0:
+            bounds = (0, dt)
+        else:
+            bounds = (dt, 0)
         for k in range(0, N + 1):
             for l in range(0, N + 1):  # noqa: E741
-                covar[k, l] = quad(cls._continouscovar, 0,
-                                   dt, args=(N, K, k, l))[0]
+                covar[k, l] = quad(cls._continouscovar, *bounds, args=(N, K, k, l))[0]
         return covar * q
 
     def covar(self, time_interval, **kwargs):
@@ -561,7 +564,7 @@ class SingerApproximate(Singer):
         """
 
         # time_interval_threshold is currently set arbitrarily.
-        time_interval_sec = time_interval.total_seconds()
+        time_interval_sec = abs(time_interval.total_seconds())
 
         # Only leading terms get calculated for speed.
         covar = np.array(
@@ -647,12 +650,12 @@ class KnownTurnRateSandwich(LinearGaussianTransitionModel, TimeVariantModel):
             The process noise covariance.
         """
         q1, q2 = self.turn_noise_diff_coeffs
-        dt = time_interval.total_seconds()
+        dt = abs(time_interval.total_seconds())
         covar_list = [model.covar(time_interval) for model in self.model_list]
-        ctc1 = np.array([[q1 * dt ** 3 / 3, q1 * dt ** 2 / 2],
-                         [q1 * dt ** 2 / 2, q1 * dt]])
-        ctc2 = np.array([[q1 * dt ** 3 / 3, q1 * dt ** 2 / 2],
-                         [q1 * dt ** 2 / 2, q1 * dt]])
+        ctc1 = np.array([[q1*dt**3/3, q1*dt**2/2],
+                         [q1*dt**2/2, q1*dt]])
+        ctc2 = np.array([[q2*dt**3/3, q2*dt**2/2],
+                         [q2*dt**2/2, q2*dt]])
         return CovarianceMatrix(block_diag(ctc1, *covar_list, ctc2))
 
 

@@ -1,4 +1,5 @@
-from typing import Sequence
+import weakref
+from collections.abc import Sequence
 
 from ..base import Property
 from .array import StateVector
@@ -17,14 +18,27 @@ class Particle(Type):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        if self.parent:
-            self.parent.parent = None
+        if self.parent and self.parent.parent:
+            self.parent.parent = weakref.ref(self.parent.parent)
         if self.state_vector is not None and not isinstance(self.state_vector, StateVector):
             self.state_vector = StateVector(self.state_vector)
 
     @property
     def ndim(self):
         return self.state_vector.shape[0]
+
+    @parent.getter
+    def parent(self):
+        if isinstance(self._property_parent, weakref.ReferenceType):
+            return self._property_parent()
+        else:
+            return self._property_parent
+
+    def __getstate__(self):
+        state = super().__getstate__().copy()
+        # Resolve weakref
+        state['_property_parent'] = self.parent
+        return state
 
 
 class MultiModelParticle(Particle):

@@ -1,6 +1,6 @@
 import functools
 
-from ..types.state import StateMutableSequence
+from ..types.state import State, StateMutableSequence
 
 
 def predict_lru_cache(*args, **kwargs):
@@ -19,7 +19,7 @@ def predict_lru_cache(*args, **kwargs):
 
         @functools.wraps(func)
         def predict(self, prior, *args, **kwargs):
-            if isinstance(prior, StateMutableSequence):
+            if isinstance(prior, StateMutableSequence) and not isinstance(prior, State):
                 prior = prior.state
             return func(self, prior, *args, **kwargs)
         return predict

@@ -26,6 +26,10 @@ class DistanceHypothesiser(Hypothesiser):
     include_all: bool = Property(
         default=False,
         doc="If `True`, hypotheses beyond missed distance will be returned. Default `False`")
+    predict_with_measurements: bool = Property(
+        default=False,
+        doc="Whether to pass measurement/detection to the predictor. Default `False`"
+    )
 
     def hypothesise(self, track, detections, timestamp, **kwargs):
         """ Evaluate and return all track association hypotheses.
@@ -68,8 +72,12 @@ class DistanceHypothesiser(Hypothesiser):
         for detection in detections:
 
             # Re-evaluate prediction
-            prediction = self.predictor.predict(
-                track, timestamp=detection.timestamp, **kwargs)
+            if self.predict_with_measurements:
+                prediction = self.predictor.predict(
+                    track, timestamp=detection.timestamp, measurement=detection, **kwargs)
+            else:
+                prediction = self.predictor.predict(
+                    track, timestamp=detection.timestamp, **kwargs)
 
             # Compute measurement prediction and distance measure
             measurement_prediction = self.updater.predict_measurement(

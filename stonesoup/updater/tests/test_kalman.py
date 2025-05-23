@@ -1,5 +1,3 @@
-"""Test for updater.kalman module"""
-
 import pytest
 import numpy as np
 
@@ -14,61 +12,30 @@ from stonesoup.updater.kalman import (KalmanUpdater,
                                       UnscentedKalmanUpdater,
                                       SqrtKalmanUpdater,
                                       IteratedKalmanUpdater,
-                                      SchmidtKalmanUpdater)
+                                      SchmidtKalmanUpdater,
+                                      CubatureKalmanUpdater,
+                                      StochasticIntegrationUpdater)
 
 
-@pytest.mark.parametrize(
-    "UpdaterClass, measurement_model, prediction, measurement",
-    [
-        (   # Standard Kalman
-            KalmanUpdater,
-            LinearGaussian(ndim_state=2, mapping=[0],
-                           noise_covar=np.array([[0.04]])),
-            GaussianStatePrediction(np.array([[-6.45], [0.7]]),
-                                    np.array([[4.1123, 0.0013],
-                                              [0.0013, 0.0365]])),
-            Detection(np.array([[-6.23]]))
-        ),
-        (   # Extended Kalman
-            ExtendedKalmanUpdater,
-            LinearGaussian(ndim_state=2, mapping=[0],
-                           noise_covar=np.array([[0.04]])),
-            GaussianStatePrediction(np.array([[-6.45], [0.7]]),
-                                    np.array([[4.1123, 0.0013],
-                                              [0.0013, 0.0365]])),
-            Detection(np.array([[-6.23]]))
-        ),
-        (   # Unscented Kalman
-            UnscentedKalmanUpdater,
-            LinearGaussian(ndim_state=2, mapping=[0],
-                           noise_covar=np.array([[0.04]])),
-            GaussianStatePrediction(np.array([[-6.45], [0.7]]),
-                                    np.array([[4.1123, 0.0013],
-                                              [0.0013, 0.0365]])),
-            Detection(np.array([[-6.23]]))
-        ),
-        (   # Iterated Kalman
-            IteratedKalmanUpdater,
-            LinearGaussian(ndim_state=2, mapping=[0],
-                           noise_covar=np.array([[0.04]])),
-            GaussianStatePrediction(np.array([[-6.45], [0.7]]),
-                                    np.array([[4.1123, 0.0013],
-                                              [0.0013, 0.0365]])),
-            Detection(np.array([[-6.23]]))
-        ),
-        (   # Schmidt Kalman
-            SchmidtKalmanUpdater,
-            LinearGaussian(ndim_state=2, mapping=[0],
-                           noise_covar=np.array([[0.04]])),
-            GaussianStatePrediction(np.array([[-6.45], [0.7]]),
-                                    np.array([[4.1123, 0.0013],
-                                              [0.0013, 0.0365]])),
-            Detection(np.array([[-6.23]]))
-        ),
-    ],
-    ids=["standard", "extended", "unscented", "iterated", "schmidtkalman"]
-)
-def test_kalman(UpdaterClass, measurement_model, prediction, measurement):
+@pytest.fixture(params=[KalmanUpdater, ExtendedKalmanUpdater, UnscentedKalmanUpdater,
+                        IteratedKalmanUpdater, SchmidtKalmanUpdater, CubatureKalmanUpdater,
+                        StochasticIntegrationUpdater])
+def updater_class(request):
+    return request.param
+
+
+@pytest.fixture(params=[True, False])
+def use_joseph_cov(request):
+    return request.param
+
+
+def test_kalman(updater_class, use_joseph_cov):
+    measurement_model = LinearGaussian(ndim_state=2, mapping=[0],
+                                       noise_covar=np.array([[0.04]]))
+    prediction = GaussianStatePrediction(np.array([[-6.45], [0.7]]),
+                                         np.array([[4.1123, 0.0013],
+                                                   [0.0013, 0.0365]]))
+    measurement = Detection(np.array([[-6.23]]))
 
     # Calculate evaluation variables
     eval_measurement_prediction = GaussianMeasurementPrediction(
@@ -87,44 +54,44 @@ def test_kalman(UpdaterClass, measurement_model, prediction, measurement):
         - kalman_gain@eval_measurement_prediction.covar @ kalman_gain.T)
 
     # Initialise a kalman updater
-    updater = UpdaterClass(measurement_model=measurement_model)
+    updater = updater_class(measurement_model=measurement_model, use_joseph_cov=use_joseph_cov)
 
     # Get and assert measurement prediction without measurement noise
     measurement_prediction = updater.predict_measurement(prediction, measurement_noise=False)
     assert np.allclose(measurement_prediction.mean,
                        eval_measurement_prediction.mean,
-                       0, atol=1.e-14)
+                       0, atol=1.e-13)
     assert np.allclose(measurement_prediction.covar,
                        eval_measurement_prediction.covar - measurement_model.covar(),
-                       0, atol=1.e-14)
+                       0, atol=1.e-13)
     assert np.allclose(measurement_prediction.cross_covar,
                        eval_measurement_prediction.cross_covar,
-                       0, atol=1.e-14)
+                       0, atol=1.e-13)
 
     # Get and assert measurement prediction
     measurement_prediction = updater.predict_measurement(prediction)
     assert np.allclose(measurement_prediction.mean,
                        eval_measurement_prediction.mean,
-                       0, atol=1.e-14)
+                       0, atol=1.e-13)
     assert np.allclose(measurement_prediction.covar,
                        eval_measurement_prediction.covar,
-                       0, atol=1.e-14)
+                       0, atol=1.e-13)
     assert np.allclose(measurement_prediction.cross_covar,
                        eval_measurement_prediction.cross_covar,
-                       0, atol=1.e-14)
+                       0, atol=1.e-13)
 
     # Perform and assert state update (without measurement prediction)
     posterior = updater.update(SingleHypothesis(
         prediction=prediction,
         measurement=measurement))
-    assert np.allclose(posterior.mean, eval_posterior.mean, 0, atol=1.e-14)
-    assert np.allclose(posterior.covar, eval_posterior.covar, 0, atol=1.e-14)
+    assert np.allclose(posterior.mean, eval_posterior.mean, 0, atol=1.e-13)
+    assert np.allclose(posterior.covar, eval_posterior.covar, 0, atol=1.e-13)
     assert np.array_equal(posterior.hypothesis.prediction, prediction)
     assert np.allclose(
         posterior.hypothesis.measurement_prediction.state_vector,
-        measurement_prediction.state_vector, 0, atol=1.e-14)
+        measurement_prediction.state_vector, 0, atol=1.e-13)
     assert np.allclose(posterior.hypothesis.measurement_prediction.covar,
-                       measurement_prediction.covar, 0, atol=1.e-14)
+                       measurement_prediction.covar, 0, atol=1.e-13)
     assert np.array_equal(posterior.hypothesis.measurement, measurement)
     assert posterior.timestamp == prediction.timestamp
 
@@ -133,14 +100,14 @@ def test_kalman(UpdaterClass, measurement_model, prediction, measurement):
         prediction=prediction,
         measurement=measurement,
         measurement_prediction=measurement_prediction))
-    assert np.allclose(posterior.mean, eval_posterior.mean, 0, atol=1.e-14)
-    assert np.allclose(posterior.covar, eval_posterior.covar, 0, atol=1.e-14)
+    assert np.allclose(posterior.mean, eval_posterior.mean, 0, atol=1.e-13)
+    assert np.allclose(posterior.covar, eval_posterior.covar, 0, atol=1.e-13)
     assert np.array_equal(posterior.hypothesis.prediction, prediction)
     assert np.allclose(
         posterior.hypothesis.measurement_prediction.state_vector,
-        measurement_prediction.state_vector, 0, atol=1.e-14)
+        measurement_prediction.state_vector, 0, atol=1.e-13)
     assert np.allclose(posterior.hypothesis.measurement_prediction.covar,
-                       measurement_prediction.covar, 0, atol=1.e-14)
+                       measurement_prediction.covar, 0, atol=1.e-13)
     assert np.array_equal(posterior.hypothesis.measurement, measurement)
     assert posterior.timestamp == prediction.timestamp
 

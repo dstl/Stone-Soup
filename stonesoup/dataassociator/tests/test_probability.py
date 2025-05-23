@@ -3,7 +3,7 @@ import datetime
 import pytest
 import numpy as np
 
-from ..probability import PDA, JPDA
+from ..probability import PDA, JPDA, JPDAwithLBP, JPDAwithEHM, JPDAwithEHM2
 from ...types.detection import Detection, MissedDetection
 from ...types.state import GaussianState
 from ...types.track import Track
@@ -18,6 +18,9 @@ except ImportError:
     params=[
         PDA,
         JPDA,
+        JPDAwithLBP,
+        JPDAwithEHM,
+        JPDAwithEHM2,
         pytest.param(
             JPDAWithEHM,
             marks=pytest.mark.skipif(JPDAWithEHM is None, reason="pyehm required")),

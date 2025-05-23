@@ -175,7 +175,8 @@ set_axes_limits()
 # mapping (1, 0), would indicate that the 0th index sub-detection was attained from the
 # categorical state, and the 1st index sub-detection from the kinematic state.
 
-from typing import Set, Union, Sequence
+from collections.abc import Sequence
+from typing import Union
 
 from stonesoup.base import Property
 from stonesoup.sensor.sensor import Sensor
@@ -193,9 +194,9 @@ class CompositeSensor(Sensor):
         if self.mapping is None:
             self.mapping = list(np.arange(len(self.sensors)))
 
-    def measure(self, ground_truths: Set[CompositeGroundTruthState],
+    def measure(self, ground_truths: set[CompositeGroundTruthState],
                 noise: Sequence[Union[np.ndarray, bool]] = True,
-                **kwargs) -> Set[CompositeDetection]:
+                **kwargs) -> set[CompositeDetection]:
 
         if isinstance(noise, bool) or len(noise) == 1:
             noise = len(self.sensors) * [noise]

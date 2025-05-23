@@ -3,6 +3,7 @@ from functools import partial
 import numpy as np
 import scipy.linalg as la
 
+from ..types.array import CovarianceMatrix, StateVector
 from .base import Predictor
 from ._utils import predict_lru_cache
 from ..base import Property
@@ -12,7 +13,8 @@ from ..models.transition import TransitionModel
 from ..models.transition.linear import LinearGaussianTransitionModel
 from ..models.control import ControlModel
 from ..models.control.linear import LinearControlModel
-from ..functions import gauss2sigma, unscented_transform
+from ..functions import (gauss2sigma, unscented_transform, cubature_transform,
+                         cub_points_and_tf)
 
 
 class KalmanPredictor(Predictor):
@@ -311,12 +313,7 @@ class UnscentedKalmanPredictor(KalmanPredictor):
         doc="Secondary spread scaling parameter. Default is calculated as "
             "3-Ns")
 
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-
-        self._time_interval = None
-
-    def _transition_and_control_function(self, prior_state, **kwargs):
+    def _transition_and_control_function(self, prior_state, noise=None, **kwargs):
         r"""Returns the result of applying the transition and control functions
         for the unscented transform
 
@@ -334,8 +331,8 @@ class UnscentedKalmanPredictor(KalmanPredictor):
             control
         """
 
-        return self.transition_model.function(prior_state, **kwargs) + \
-            self.control_model.function(**kwargs)
+        return self.transition_model.function(prior_state, noise, **kwargs) \
+            + self.control_model.function(**kwargs)
 
     @predict_lru_cache()
     def predict(self, prior, timestamp=None, control_input=None, **kwargs):
@@ -477,8 +474,243 @@ class SqrtKalmanPredictor(ExtendedKalmanPredictor):
                                       sqrt_trans_cov@sqrt_trans_cov.T +
                                       ctrl_mat@sqrt_ctrl_noi@sqrt_ctrl_noi.T@ctrl_mat.T)
 
-class AugmentedKalmanPredictor(KalmanPredictor):
 
+class CubatureKalmanPredictor(KalmanPredictor):
+    """CubatureKalmanFilter class
+
+    Analogously to the unscented filter, the predict is accomplished by calculating the cubature
+    points from the Gaussian mean and covariance, then putting these through the (in general
+    non-linear) transition function, then reconstructing the Gaussian. This is accomplished via the
+    :meth:`cubature_transform` function.
+
+    """
+    transition_model: TransitionModel = Property(doc="The transition model to be used.")
+    control_model: ControlModel = Property(
+        default=None,
+        doc="The control model to be used. Default `None` where the predictor "
+            "will create a zero-effect linear :class:`~.ControlModel`.")
+    alpha: float = Property(
+        default=1.0,
+        doc="Scaling parameter. Default is 1.0. Lower values select points closer to the mean and "
+            "vice versa.")
+
+    def _transition_and_control_function(self, prior_state, **kwargs):
+        r"""Returns the result of applying the transition and control functions
+        for the cubature transform
+
+        Parameters
+        ----------
+        prior_state_vector : :class:`~.State`
+            Prior state vector
+        **kwargs : various, optional
+            These are passed to :class:`~.TransitionModel.function`
+
+        Returns
+        -------
+        : :class:`numpy.ndarray`
+            The combined, noiseless, effect of applying the transition and
+            control
+        """
+
+        return self.transition_model.function(prior_state, **kwargs) \
+            + self.control_model.function(**kwargs)
+
+    @predict_lru_cache()
+    def predict(self, prior, timestamp=None, control_input=None, **kwargs):
+        r"""The unscented version of the predict step
+
+        Parameters
+        ----------
+        prior : :class:`~.State`
+            Prior state, :math:`\mathbf{x}_{k-1}`
+        timestamp : :class:`datetime.datetime`
+            Time to transit to (:math:`k`)
+        control_input: :class:`~.State`
+            Control input vector, :math:`\mathbf{u}_k`
+        **kwargs : various, optional
+            These are passed to :meth:`~.TransitionModel.covar` and :meth:`ControlModel.covar`
+
+        Returns
+        -------
+        : :class:`~.GaussianStatePrediction`
+            The predicted state :math:`\mathbf{x}_{k|k-1}` and the predicted
+            state covariance :math:`P_{k|k-1}`
+        """
+
+        # Get the prediction interval
+        predict_over_interval = self._predict_over_interval(prior, timestamp)
+
+        # The covariance on the transition model + the control model
+        # TODO: See equivalent note to unscented transform.
+        ctrl_mat = self.control_model.matrix(time_interval=predict_over_interval, **kwargs)
+        ctrl_noi = self.control_model.covar(**kwargs)
+        total_noise_covar = \
+            self.transition_model.covar(time_interval=predict_over_interval, **kwargs) \
+            + ctrl_mat@ctrl_noi@ctrl_mat.T
+
+        # This ensures that function passed to transform has the correct time interval and control
+        # input
+        transition_and_control_function = partial(
+            self._transition_and_control_function,
+            control_input=control_input,
+            time_interval=predict_over_interval)
+
+        x_pred, p_pred, _, _ = cubature_transform(prior, transition_and_control_function,
+                                                  covar_noise=total_noise_covar, alpha=self.alpha)
+
+        return Prediction.from_state(prior, x_pred, p_pred, timestamp=timestamp,
+                                     transition_model=self.transition_model, prior=prior)
+
+
+class StochasticIntegrationPredictor(KalmanPredictor):
+    """Stochastic Integration Kalman Filter class
+
+    The state prediction of nonlinear models is accomplished by the stochastic
+    integration approximation.
+    """
+
+    transition_model: TransitionModel = Property(doc="The transition model to be used.")
+    control_model: ControlModel = Property(
+        default=None,
+        doc="The control model to be used. Default `None` where the predictor "
+        "will create a zero-effect linear :class:`~.ControlModel`.",
+    )
+    Nmax: int = Property(default=10, doc="maximal number of iterations of SIR")
+    Nmin: int = Property(
+        default=5,
+        doc="minimal number of iterations of stochastic integration rule (SIR)",
+    )
+    Eps: float = Property(default=5e-3, doc="allowed threshold for integration error")
+    SIorder: int = Property(
+        default=5, doc="order of SIR (orders 1, 3, 5 are currently supported)"
+    )
+
+    def _transition_and_control_function(self, prior_state, **kwargs):
+        r"""Returns the result of applying the transition and control functions
+        for the unscented transform
+
+        Parameters
+        ----------
+        prior_state : :class:`~.State`
+            Prior state vector
+        **kwargs : various, optional
+            These are passed to :class:`~.TransitionModel.function`
+
+        Returns
+        -------
+        : :class:`numpy.ndarray`
+            The combined, noiseless, effect of applying the transition and
+            control
+        """
+
+        return self.transition_model.function(
+            prior_state, **kwargs
+        ) + self.control_model.function(**kwargs)
+
+    @predict_lru_cache()
+    def predict(self, prior, timestamp=None, control_input=None, **kwargs):
+        r"""The stochastic integration version of the predict step
+
+        Parameters
+        ----------
+        prior : :class:`~.State`
+            Prior state, :math:`\mathbf{x}_{k-1}`
+        timestamp : :class:`datetime.datetime`
+            Time to transit to (:math:`k`)
+        control_input: :class:`~.State`
+            Control input vector, :math:`\mathbf{u}_k`
+        **kwargs : various, optional
+            These are passed to :meth:`~.TransitionModel.covar`
+
+        Returns
+        -------
+        : :class:`~.GaussianStatePrediction`
+            The predicted state :math:`\mathbf{x}_{k|k-1}` and the predicted
+            state covariance :math:`P_{k|k-1}`
+        """
+
+        nx = np.size(prior.mean, 0)
+        Sp = np.linalg.cholesky(prior.covar)
+        Ix = np.zeros((nx, 1))
+        Vx = np.zeros((nx, 1))
+        IPx = np.zeros((nx, nx))
+        VPx = np.zeros((nx, nx))
+        # Iteration Count
+        N = 0
+
+        # Get the prediction interval
+        predict_over_interval = self._predict_over_interval(prior, timestamp)
+
+        # This ensures that function passed to unscented transform has the
+        # correct time interval
+        transition_and_control_function = partial(
+            self._transition_and_control_function,
+            control_input=control_input,
+            time_interval=predict_over_interval,
+        )
+
+        # - SIR recursion for state predictive moments computation
+        # -- until either max iterations or threshold is reached
+        while N < self.Nmin or (N < self.Nmax and np.linalg.norm(Vx) > self.Eps):
+            N += 1
+
+            # -- cubature points and weights computation (for standard normal PDF)
+            # -- points transformation for given filtering mean and covariance matrix
+            xpoints, w, fpoints = cub_points_and_tf(nx, self.SIorder, Sp,
+                                                    prior.mean,
+                                                    transition_and_control_function,
+                                                    prior)
+            # Stochastic integration rule for predictive state mean and
+            # covariance matrix
+            SumRx = np.average(fpoints, axis=1, weights=w)
+
+            # --- update mean Ix
+            Dx = (SumRx - Ix) / N
+            Ix += Dx
+            Vx = (N - 2) * Vx / N + Dx ** 2
+
+        xp = Ix
+
+        N = 0
+        # - SIR recursion for state predictive moments computation
+        # -- until max iterations are reached or threshold is reached
+        while N < self.Nmin or (N < self.Nmax and np.linalg.norm(VPx) > self.Eps):
+            N += 1
+            # -- cubature points and weights computation (for standard normal PDF)
+            # -- points transformation for given filtering mean and covariance matrix
+            xpoints, w, fpoints = cub_points_and_tf(nx, self.SIorder, Sp,
+                                                    prior.mean,
+                                                    transition_and_control_function,
+                                                    prior)
+
+            # -- stochastic integration rule for predictive state mean and covariance
+            #    matrix
+            fpoints_diff = fpoints - xp
+            SumRPx = fpoints_diff @ np.diag(w) @ fpoints_diff.T
+
+            # --- update covariance matrix IPx
+            DPx = (SumRPx - IPx) / N
+            IPx += DPx
+            VPx = (N - 2) * VPx / N + DPx ** 2
+
+        Q = self.transition_model.covar(time_interval=predict_over_interval, **kwargs)
+
+        Pp = IPx + Q + np.diag(Vx.ravel())
+        Pp = (Pp + Pp.T) / 2
+        Pp = Pp.astype(np.float64)
+
+        # and return a Gaussian state based on these parameters
+        return Prediction.from_state(
+            prior,
+            xp.view(StateVector),
+            Pp.view(CovarianceMatrix),
+            timestamp=timestamp,
+            transition_model=self.transition_model,
+            prior=prior,
+        )
+      
+      
+class AugmentedKalmanPredictor(KalmanPredictor):
     def _transition_function(self, prior, **kwargs):
         r"""Applies the linear transition function to a single vector in the
         absence of a control input, returns a single predicted state.
@@ -499,6 +731,7 @@ class AugmentedKalmanPredictor(KalmanPredictor):
         """
         return self.transition_model.matrix(**kwargs) @ prior.state_vector + self.transition_model.bias(**kwargs)
 
+      
 class AugmentedUnscentedKalmanPredictor(UnscentedKalmanPredictor):
     """UnscentedKalmanFilter class
 

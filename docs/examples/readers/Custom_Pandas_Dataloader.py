@@ -1,10 +1,11 @@
 """
-Use of Custom Readers that support Pandas DataFrames
-====================================================
-This is a demonstration of using customised readers that
-support data contained within Pandas DataFrames, rather than
-loading directly from a .csv file using :class:`~.CSVGroundTruthReader` or
-:class:`~.CSVDetectionReader`.
+Creating a Custom Reader - Pandas DataFrame
+===========================================
+There are a number of Readers included within Stone Soup, allowing data to be loaded from a
+variety of files/formats. This example demonstrates how to create a customised Reader to
+support additional data formats. In this case, the new reader here supports data contained
+within Pandas DataFrames, rather than loading directly from a .csv file using
+:class:`~.CSVGroundTruthReader` or :class:`~.CSVDetectionReader`.
 
 The benefit is that this allows us to use the versatile data loading
 capabilities of pandas to read from many different data source types
@@ -12,6 +13,9 @@ as needed, including .csv, JSON, XML, Parquet, HDF5, .txt, .zip and more.
 The resulting DataFrame can then simply be fed into the defined
 `DataFrameGroundTruthReader` or `DataFrameDetectionReader` for further processing
 in Stone Soup as required.
+
+Notice: This is only an example. Stone Soup already includes Readers to load data from
+Pandas DataFrames.
 """
 
 # %%
@@ -40,9 +44,9 @@ from stonesoup.reader.base import GroundTruthReader, DetectionReader, Reader
 from stonesoup.types.detection import Detection
 from stonesoup.types.groundtruth import GroundTruthPath, GroundTruthState
 
-from typing import Sequence, Collection
+from collections.abc import Sequence, Collection
 
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from dateutil.parser import parse
 
 
@@ -84,7 +88,8 @@ class _DataFrameReader(Reader):
             time_field_value = datetime.strptime(row[self.time_field], self.time_field_format)
         elif self.timestamp:
             fractional, timestamp = modf(float(row[self.time_field]))
-            time_field_value = datetime.utcfromtimestamp(int(timestamp))
+            time_field_value = datetime.fromtimestamp(
+                int(timestamp), timezone.utc).replace(tzinfo=None)
             time_field_value += timedelta(microseconds=fractional * 1E6)
         else:
             time_field_value = row[self.time_field]
@@ -110,7 +115,7 @@ class _DataFrameReader(Reader):
 class DataFrameGroundTruthReader(GroundTruthReader, _DataFrameReader):
     """A custom reader for pandas DataFrames containing truth data.
 
-    The DataFrame must have colums containing all fields needed to generate the
+    The DataFrame must have columns containing all fields needed to generate the
     ground truth state. Those states with the same ID will be put into
     a :class:`~.GroundTruthPath` in sequence, and all paths that are updated at the same time
     are yielded together, and such assumes file is in time order.
@@ -241,7 +246,7 @@ ground_truth_reader.dataframe.head(3)
 # that can read in DataFrames containing detections through subclassing from Stone Soup's
 # `DetectionReader` class, along with our custom `_DataFrameReader` class above.
 # Again, this closely resembles the existing `CSVDetectionReader` class within the Stone Soup
-# library, except we include a instance attribute 'dataframe', and modify our detections_gen
+# library, except we include an instance attribute 'dataframe', and modify our detections_gen
 # function to work with dataframes rather than .csv files. This can be seen below:
 
 class DataFrameDetectionReader(DetectionReader, _DataFrameReader):

@@ -459,19 +459,19 @@ metric_manager.add_data({'truths': truths,
 
 plotter = Plotterly()
 plotter.plot_measurements(s1_detections, [0, 2],
-                          measurements_label='Radar 1 measurements'),
+                          label='Radar 1 measurements'),
 plotter.plot_measurements(s2_detections, [0, 2],
-                          measurements_label='Radar 2 measurements')
-plotter.plot_tracks(ukf_tracks, [0, 2], line=dict(color='green'), track_label='UKF tracks')
-plotter.plot_tracks(ekf_tracks, [0, 2], line=dict(color='blue'), track_label='EKF tracks')
+                          label='Radar 2 measurements')
+plotter.plot_tracks(ukf_tracks, [0, 2], line=dict(color='green'), label='UKF tracks')
+plotter.plot_tracks(ekf_tracks, [0, 2], line=dict(color='blue'), label='EKF tracks')
 plotter.plot_tracks(pf_tracks, [0, 2], particle=False, line=dict(color='red'),
-                    track_label='PF tracks')
+                    label='PF tracks')
 plotter.plot_ground_truths(truths, [0, 2])
 plotter.plot_sensors(sensor1_platform, [0, 1], marker=dict(color='black', symbol='129', size=15),
-                     sensor_label='Fixed Platform')
+                     label='Fixed Platform')
 plotter.plot_ground_truths(sensor2_platform, [0, 2], marker=dict(color='orange', symbol='cross',
                                                                  size=25),
-                           truths_label='Moving Platform')
+                           label='Moving Platform')
 plotter.fig
 
 # %%

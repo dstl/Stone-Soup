@@ -12,7 +12,8 @@ from ..types.update import Update
 from ..models.base import LinearModel
 from ..models.measurement.linear import LinearGaussian
 from ..models.measurement import MeasurementModel
-from ..functions import gauss2sigma, unscented_transform
+from ..functions import (gauss2sigma, unscented_transform, cubature_transform,
+                         cub_points_and_tf)
 from ..measures import Measure, Euclidean
 
 
@@ -70,6 +71,10 @@ class KalmanUpdater(Updater):
         default=False,
         doc="A flag to force the output covariance matrix to be symmetric by way of a simple "
             "geometric combination of the matrix and transpose. Default is False.")
+    use_joseph_cov: bool = Property(
+        default=False,
+        doc="Bool dictating the method of covariance calculation. If use_joseph_cov is True then "
+            "the Joseph form of the covariance equation is used.")
 
     def _measurement_matrix(self, predicted_state=None, measurement_model=None,
                             **kwargs):
@@ -185,11 +190,38 @@ class KalmanUpdater(Updater):
             The Kalman gain, :math:`K = P_{k|k-1} H_k^T S^{-1}`
 
         """
-        kalman_gain = hypothesis.measurement_prediction.cross_covar @ \
-            np.linalg.inv(hypothesis.measurement_prediction.covar)
+        if self.use_joseph_cov:
+            # Identity matrix
+            id_matrix = np.identity(hypothesis.prediction.ndim)
 
-        post_cov = hypothesis.prediction.covar - kalman_gain @ \
-            hypothesis.measurement_prediction.covar @ kalman_gain.T
+            # Calculate Kalman gain
+            kalman_gain = hypothesis.measurement_prediction.cross_covar @ \
+                np.linalg.inv(hypothesis.measurement_prediction.covar)
+
+            measurement_model = self._check_measurement_model(
+                hypothesis.measurement.measurement_model)
+
+            # Calculate measurement matrix/jacobian matrix
+            meas_matrix = self._measurement_matrix(hypothesis.prediction,
+                                                   measurement_model)
+
+            # Calculate Prior covariance
+            prior_covar = hypothesis.prediction.covar
+
+            # Calculate measurement covariance
+            meas_covar = measurement_model.covar()
+
+            # Compute posterior covariance matrix
+            I_KH = id_matrix - kalman_gain @ meas_matrix
+            post_cov = I_KH @ prior_covar @ I_KH.T \
+                + kalman_gain @ meas_covar @ kalman_gain.T
+
+        else:
+            kalman_gain = hypothesis.measurement_prediction.cross_covar @ \
+                np.linalg.inv(hypothesis.measurement_prediction.covar)
+
+            post_cov = hypothesis.prediction.covar - kalman_gain @ \
+                hypothesis.measurement_prediction.covar @ kalman_gain.T
 
         return post_cov.view(CovarianceMatrix), kalman_gain
 
@@ -812,3 +844,193 @@ class SchmidtKalmanUpdater(ExtendedKalmanUpdater):
         post_cov[np.ix_(self.consider, ~self.consider)] -= khp.T
 
         return post_cov.view(CovarianceMatrix), kalman_gain
+
+
+class CubatureKalmanUpdater(KalmanUpdater):
+    """The cubature Kalman filter version of the Kalman updater. Inherits most of its functionality
+    from :class:`~.KalmanUpdater`.
+
+    The :meth:`predict_measurement` function uses the :func:`cubature_transform` function to
+    estimate a (Gaussian) predicted measurement. This is then updated via the standard Kalman
+    update equations.
+
+    """
+    measurement_model: MeasurementModel = Property(
+        default=None,
+        doc="The measurement model to be used. This need not be defined if a "
+            "measurement model is provided in the measurement. If no model "
+            "specified on construction, or in the measurement, then error "
+            "will be thrown.")
+    alpha: float = Property(
+        default=1.0,
+        doc="Scaling parameter. Default is 1.0. Lower values select points closer to the mean and "
+            "vice versa.")
+
+    @lru_cache()
+    def predict_measurement(self, predicted_state, measurement_model=None, measurement_noise=True,
+                            **kwargs):
+        """Cubature Kalman Filter measurement prediction step. Uses the cubature transform to
+        estimate a Gauss-distributed predicted measurement.
+
+        Parameters
+        ----------
+        predicted_state : :class:`~.GaussianStatePrediction`
+            A predicted state
+        measurement_model : :class:`~.MeasurementModel`, optional
+            The measurement model used to generate the measurement prediction.
+            This should be used in cases where the measurement model is
+            dependent on the received measurement (the default is `None`, in
+            which case the updater will use the measurement model specified on
+            initialisation)
+        measurement_noise : bool
+            Whether to include measurement noise :math:`R` with innovation covariance.
+            Default `True`
+
+        Returns
+        -------
+        : :class:`~.GaussianMeasurementPrediction`
+            The measurement prediction
+
+        """
+        measurement_model = self._check_measurement_model(measurement_model)
+
+        covar_noise = measurement_model.covar(**kwargs) if measurement_noise else None
+        meas_pred_mean, meas_pred_covar, cross_covar, _ = \
+            cubature_transform(predicted_state,
+                               measurement_model.function,
+                               covar_noise=covar_noise, alpha=self.alpha)
+
+        return MeasurementPrediction.from_state(
+            predicted_state, meas_pred_mean, meas_pred_covar, cross_covar=cross_covar)
+
+
+class StochasticIntegrationUpdater(KalmanUpdater):
+    """Stochastic Integration Kalman Filter class. Inherits most
+    of the functionality from :class:`~.KalmanUpdater`.
+
+    The measurement update of nonlinear measurement models is accomplished by
+    the stochastic integration approximation.
+
+    """
+
+    # Can be non-linear and non-differentiable
+    measurement_model: MeasurementModel = Property(
+        default=None,
+        doc="The measurement model to be used. This need not be defined if a "
+        "measurement model is provided in the measurement. If no model "
+        "specified on construction, or in the measurement, then error "
+        "will be thrown.",
+    )
+    Nmax: int = Property(default=10, doc="maximal number of iterations of SIR")
+    Nmin: int = Property(
+        default=5,
+        doc="minimal number of iterations of stochastic integration rule (SIR)",
+    )
+    Eps: float = Property(default=5e-4, doc="allowed threshold for integration error")
+    SIorder: int = Property(
+        default=5, doc="order of SIR (orders 1, 3, 5 are currently supported)"
+    )
+
+    @lru_cache()
+    def predict_measurement(
+        self, predicted_state, measurement_model=None, measurement_noise=True, **kwargs
+    ):
+        """Stochastic Integration Filter measurement prediction step. Uses
+        stochastic integration to estimate a Gaussian distributed predicted measurement.
+
+        Parameters
+        ----------
+        predicted_state : :class:`~.GaussianStatePrediction`
+            A predicted state
+        measurement_model : :class:`~.MeasurementModel`, optional
+            The measurement model used to generate the measurement prediction.
+            This should be used in cases where the measurement model is
+            dependent on the received measurement (the default is `None`, in
+            which case the updater will use the measurement model specified on
+            initialisation)
+        measurement_noise : bool
+            Include measurement noise or not
+
+        Returns
+        -------
+        : :class:`~.GaussianMeasurementPrediction`
+            The measurement prediction
+
+        """
+
+        measurement_model = self._check_measurement_model(measurement_model)
+        Sp = np.linalg.cholesky(predicted_state.covar)
+        nx = len(predicted_state.mean)
+        nz = measurement_model.ndim
+
+        epMean = predicted_state.mean
+        Iz = np.zeros((nz, 1))
+        Vz = np.zeros((nz, 1))
+        IPz = np.zeros((nz, nz))
+        VPz = np.zeros((nz))
+        IPxz = np.zeros((nx, nz))
+        VPxz = np.zeros((nx, nz))
+        N = 0
+        # SIR recursion for measurement predictive moments computation
+        # until either number of iterations is reached or threshold is reached
+        while N < self.Nmin or (N < self.Nmax and np.linalg.norm(Vz) > self.Eps):
+            N += 1
+            # -- cubature points and weights computation (for standard normal PDF)
+            # -- points transformation for given filtering mean and covariance matrix
+            xpoints, w, hpoints = cub_points_and_tf(nx, self.SIorder, Sp,
+                                                    epMean,
+                                                    measurement_model.function,
+                                                    predicted_state)
+            # -- stochastic integration rule for predictive measurement mean and covariance
+            #    matrix and predictive state and measurement covariance matrix
+            SumRz = np.average(hpoints, axis=1, weights=w)
+            # --- update mean Iz
+            Dz = (SumRz - Iz) / N
+            Iz += Dz.astype(np.float64)
+            Vz = (N - 2) * Vz / N + Dz ** 2
+
+        # - measurement predictive moments
+        zp = Iz
+
+        N = 0
+        while N < self.Nmin or (N < self.Nmax and
+                                (np.linalg.norm(VPz) > self.Eps
+                                 or np.linalg.norm(VPxz) > self.Eps)):
+            N += 1
+            # -- cubature points and weights computation (for standard normal PDF)
+            # -- points transformation for given filtering mean and covariance matrix
+            xpoints, w, hpoints = cub_points_and_tf(nx, self.SIorder, Sp,
+                                                    epMean,
+                                                    measurement_model.function,
+                                                    predicted_state)
+            # Stochastic integration rule for predictive measurement mean and covariance
+            # Matrix and predictive state and measurement covariance matrix
+            hpoints_diff = hpoints - zp
+            SumRPz = hpoints_diff @ np.diag(w) @ hpoints_diff.T
+            SumRPxz = (xpoints - xpoints[:, 0:1]) @ np.diag(w) @ hpoints_diff.T
+
+            # Update covariance matrix IPz
+            DPz = (SumRPz - IPz) / N
+            IPz += DPz.reshape(np.shape(IPz))
+            VPz = (N - 2) * VPz / N + DPz**2
+            # Update cross-covariance matrix IPxz
+            DPxz = (SumRPxz - IPxz) / N
+            IPxz += DPxz
+            VPxz = (N - 2) * VPxz / N + DPxz ** 2
+
+        Pzp = IPz
+        if measurement_noise:
+            Pzp = Pzp + measurement_model.covar() + np.diag(Vz.ravel())
+        else:
+            Pzp = Pzp + np.diag(Vz.ravel())
+
+        Pzp = Pzp.astype(np.float64)
+        Pxzp = IPxz
+
+        cross_covar = Pxzp.view(CovarianceMatrix)
+        return MeasurementPrediction.from_state(
+            predicted_state,
+            zp.view(StateVector),
+            Pzp.view(CovarianceMatrix),
+            cross_covar=cross_covar,
+        )

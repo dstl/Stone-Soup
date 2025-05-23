@@ -10,8 +10,10 @@ from stonesoup.movable import FixedMovable, MovingMovable
 from stonesoup.sensor.sensor import Sensor
 from stonesoup.types.angle import Bearing
 from stonesoup.types.array import StateVector
-from stonesoup.platform import MovingPlatform, FixedPlatform, MultiTransitionMovingPlatform
+from stonesoup.platform import MovingPlatform, FixedPlatform, \
+    MultiTransitionMovingPlatform, PathBasedPlatform
 from ...types.state import State
+from ...types.groundtruth import GroundTruthPath, GroundTruthState
 
 
 def test_base():
@@ -324,39 +326,33 @@ def test_platform_orientation_2d(state, orientation):
     assert np.allclose(platform.orientation, orientation)
 
 
-def test_orientation_error():
-    # moving platform without velocity defined
+def test_low_velocity_orientation():
     timestamp = datetime.datetime.now()
-    platform_state = State(np.array([[2],
-                                     [2],
-                                     [0]]),
-                           timestamp)
-    platform = MovingPlatform(states=platform_state, transition_model=None,
-                              position_mapping=[0, 1, 2])
-    with pytest.raises(AttributeError):
-        _ = platform.orientation
-    platform_state = State(np.array([[2],
-                                     [0],
-                                     [2],
-                                     [0],
-                                     [2],
-                                     [0]]),
-                           timestamp)
-    platform = MovingPlatform(states=platform_state, transition_model=None,
-                              position_mapping=[0, 2, 4])
-    with pytest.raises(AttributeError):
-        _ = platform.orientation
 
-    platform_state = State(np.array([[2],
-                                     [0],
-                                     [2],
-                                     [0]]),
-                           timestamp)
+    platform_state_vector = StateVector([0, 0, 0, 0, 0, 0])
+    platform_state = State(platform_state_vector, timestamp)
+
+    transition_model = CombinedLinearGaussianTransitionModel(
+        [ConstantVelocity(0.), ConstantVelocity(0.), ConstantVelocity(0.)])
+
     platform = MovingPlatform(states=platform_state,
-                              transition_model=None,
-                              position_mapping=[0, 2])
-    with pytest.raises(AttributeError):
-        _ = platform.orientation
+                              position_mapping=(0, 2, 4),
+                              velocity_mapping=(1, 3, 5),
+                              transition_model=transition_model)
+    assert np.allclose(platform.orientation, [[0], [0], [0]])
+
+    timediff = 2  # 2sec
+    new_timestamp = timestamp + datetime.timedelta(seconds=timediff)
+    platform.move(new_timestamp)
+    # platform has moved diagonally, velocity is low
+    platform.state.state_vector = StateVector([1, 1e-7, 1, 0, 0, 0])
+    assert np.allclose(platform.orientation, [[0], [0], [0.78539816]])
+
+    new_timestamp2 = timestamp + datetime.timedelta(seconds=timediff)
+    platform.move(new_timestamp2)
+    # platform has moved in x direction by small distance, velocity is low
+    platform.state.state_vector = StateVector([1+1e-7, 1e-7, 1, 0, 0, 0])
+    assert np.allclose(platform.orientation, [[0], [0], [0.78539816]])
 
 
 # noinspection PyPropertyAccess
@@ -699,3 +695,158 @@ def test_platform_getitem():
     state_after = platform.state
     assert platform[0] is state_before
     assert platform[1] is state_after
+
+
+def test_ground_truth_path():
+    timestamp = datetime.datetime.now()
+    state_before = State(np.array([[2], [1], [2], [1], [0], [1]]), timestamp)
+    cv_model = CombinedLinearGaussianTransitionModel((ConstantVelocity(0),
+                                                      ConstantVelocity(0),
+                                                      ConstantVelocity(0)))
+    platform = MovingPlatform(states=state_before,
+                              transition_model=cv_model,
+                              position_mapping=[0, 2, 4], velocity_mapping=[1, 3, 5])
+
+    platform_gtp: GroundTruthPath = platform.ground_truth_path
+
+    # Test the id and states match
+    assert platform.id == platform_gtp.id
+    assert platform.state is platform_gtp.state
+
+    # Test the platform states are dynamically linked to the ground truth path state
+    platform.move(timestamp + datetime.timedelta(seconds=1))
+    assert platform.state is platform_gtp.state
+    assert platform.states is platform_gtp.states
+
+
+def test_default_platform_id():
+    fixed_state = State(np.array([[2], [2], [0]]), datetime.datetime.now())
+    platform1 = FixedPlatform(states=fixed_state, position_mapping=(0, 1, 2))
+
+    # Test `id` is string
+    assert isinstance(platform1.id, str)
+
+    # Test string is suitable long to avoid conflict
+    assert len(platform1.id) >= 32
+
+    # Test id isn't replicated
+    platform2 = FixedPlatform(states=fixed_state, position_mapping=(0, 1, 2))
+    assert platform1.id != platform2
+
+
+test_id_str = "hello"
+
+
+def test_platform_id_assignment():
+    fixed_state = State(np.array([[2], [2], [0]]), datetime.datetime.now())
+    fixed_platform = FixedPlatform(states=fixed_state, position_mapping=(0, 1, 2))
+    fixed_platform.id = test_id_str
+    assert fixed_platform.id == test_id_str
+
+
+def test_platform_initialised_with_id():
+    fixed_state = State(np.array([[2], [2], [0]]), datetime.datetime.now())
+    platform = FixedPlatform(id=test_id_str, states=fixed_state, position_mapping=(0, 1, 2))
+    assert platform.id == test_id_str
+
+
+def test_ground_truth_path_story():
+    # Set Up
+    timestamp = datetime.datetime.now()
+    state_before = State(np.array([[2], [1], [2], [1], [0], [1]]), timestamp)
+    cv_model = CombinedLinearGaussianTransitionModel((ConstantVelocity(0),
+                                                      ConstantVelocity(0),
+                                                      ConstantVelocity(0)))
+    platform = MovingPlatform(states=state_before,
+                              transition_model=cv_model,
+                              position_mapping=[0, 2, 4], velocity_mapping=[1, 3, 5])
+
+    def are_equal(gtp1: GroundTruthPath, gtp2: GroundTruthPath):
+        return gtp1.id == gtp2.id and gtp1.states == gtp2.states
+
+    # `Platform.ground_truth_path` produces a GroundTruthPath with `id` and `states` matching the
+    # platform.
+    platform_gtp = platform.ground_truth_path
+    assert isinstance(platform_gtp, GroundTruthPath)
+
+    # Generally `Platform.ground_truth_path` produces equal objects
+    assert are_equal(platform.ground_truth_path, platform_gtp)
+
+    # This is still true even if the platform moves. This is because they share the same `states`
+    # object
+    platform.move(timestamp + datetime.timedelta(seconds=1))
+    assert are_equal(platform.ground_truth_path, platform_gtp)
+
+    # However they are not the same object
+    assert platform.ground_truth_path is not platform_gtp
+
+    # Therefore changing the `id` will result in a different GroundTruthPath
+    platform.id = test_id_str
+    assert not are_equal(platform.ground_truth_path, platform_gtp)
+
+    # Reset the id. They should now be equal again
+    platform.id = platform_gtp.id
+    assert are_equal(platform.ground_truth_path, platform_gtp)
+
+    # They will remain equal if the `states` property is appended/altered
+    platform_gtp.states.append(State(np.array([[10], [9], [8], [7], [6], [5]]),
+                                     timestamp + datetime.timedelta(seconds=2)))
+    platform.move(timestamp + datetime.timedelta(seconds=3))
+    assert are_equal(platform.ground_truth_path, platform_gtp)
+
+    # However if the `states` property is replaced, they are no longer equal
+    platform_gtp.states = []
+    assert not are_equal(platform.ground_truth_path, platform_gtp)
+
+
+@pytest.mark.xfail
+def test_setting_movement_controller_sensors():
+    timestamp = datetime.datetime.now()
+    fixed_state = State(np.array([[2], [2], [0]]),
+                        timestamp)
+    fixed = FixedMovable(states=fixed_state, position_mapping=(0, 1, 2))
+    platform = MovingPlatform(movement_controller=fixed)
+
+    sensor = DummySensor()
+    platform.add_sensor(sensor)
+    assert platform.movement_controller is sensor.movement_controller
+
+    moving_state = State(np.array([[2], [1], [2], [-1], [2], [0]]), timestamp)
+    moving = MovingMovable(states=moving_state, position_mapping=(0, 2, 4), transition_model=None)
+
+    platform.movement_controller = moving
+
+    assert platform.movement_controller is sensor.movement_controller
+
+
+start_time = datetime.datetime.now().replace(second=0, microsecond=0)
+gt = GroundTruthPath(
+    [GroundTruthState([-i, 1], timestamp=start_time + datetime.timedelta(seconds=2*i))
+     for i in range(2)])
+
+
+@pytest.mark.parametrize("states", [None, [gt[0]]])
+def test_path(states):
+    platform = PathBasedPlatform(path=gt,
+                                 states=states,
+                                 position_mapping=[0],
+                                 transition_model=None)
+    platform.move(timestamp=start_time + datetime.timedelta(seconds=1))
+    assert len(platform.states) == 2
+    assert np.allclose(platform.states[-1].state_vector, GroundTruthState([-0.5, 1]).state_vector)
+
+    with pytest.raises(
+            IndexError, match="timestamp not found in states"):
+        gt[platform.states[-1].timestamp]
+
+
+def test_path_no_states_no_tm():
+    platform = PathBasedPlatform(path=gt,
+                                 position_mapping=[0])
+    platform.move(timestamp=start_time + datetime.timedelta(seconds=1))
+    assert len(platform.states) == 2
+    assert np.allclose(platform.states[-1].state_vector, GroundTruthState([-0.5, 1]).state_vector)
+
+    with pytest.raises(
+            IndexError, match="timestamp not found in states"):
+        gt[platform.states[-1].timestamp]
