@@ -8,7 +8,7 @@ from .state import (State, GaussianState, EnsembleState,
                     ParticleState, MultiModelParticleState, RaoBlackwellisedParticleState,
                     SqrtGaussianState, InformationState, TaggedWeightedGaussianState,
                     WeightedGaussianState, CategoricalState, ASDGaussianState,
-                    BernoulliParticleState, KernelParticleState, ASDTaggedWeightedGaussianState
+                    BernoulliParticleState, KernelParticleState, ASDTaggedWeightedGaussianState,
                     AugmentedGaussianState)
 from ..base import Property
 from ..models.transition.base import TransitionModel
