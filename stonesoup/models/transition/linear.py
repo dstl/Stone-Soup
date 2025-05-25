@@ -642,7 +642,11 @@ class SimpleMarkovianGP(LinearGaussianTransitionModel, TimeVariantModel):
 
         C = self.kernel(t, t)
         C += np.eye(np.shape(C)[0]) * self.epsilon
-        f = solve(C[1:, 1:], C[1:, 0])
+
+        # a higher-level cache from t to f directly (including kernel(t,t))
+        # be desirable, but requires refactoring to handle different kernel computations
+        C_tuple = self.matrix_to_tuple(C)
+        f = self.cached_solve(C_tuple, C.shape[0])  # shape[0] == d
         Fmat = np.eye(d, k=-1)
         Fmat[0, :len(f)] = f.T
 
@@ -669,7 +673,11 @@ class SimpleMarkovianGP(LinearGaussianTransitionModel, TimeVariantModel):
         
         C = self.kernel(t, t, **kwargs)
         C += np.eye(np.shape(C)[0]) * self.epsilon
-        f = solve(C[1:, 1:], C[1:, 0])
+
+        print(C)
+        C_tuple = self.matrix_to_tuple(C)
+        f = self.cached_solve(C_tuple, C.shape[0])  # shape[0] == d
+
         noise_var = C[0, 0] - C[0, 1:] @ f
         covar = np.zeros((d, d))
         covar[0, 0] = 1
@@ -706,6 +714,19 @@ class SimpleMarkovianGP(LinearGaussianTransitionModel, TimeVariantModel):
             state_time = track.states[-1 - i].timestamp
             time_vector = np.append(time_vector, (state_time - start_time).total_seconds())
         return time_vector.reshape(-1, 1)
+    
+    @staticmethod
+    def matrix_to_tuple(C):
+        return tuple(np.round(C.flatten(), 10))  # Round to avoid float precision noise
+    
+    @staticmethod
+    @lru_cache
+    def cached_solve(C_tuple, d):
+        # Recover C from tuple
+        C = np.array(C_tuple).reshape(d, d)
+        print(C)
+        return solve(C[1:, 1:], C[1:, 0])
+
 
 
 class DynamicsInformedIntegratedGP(SimpleMarkovianGP):
