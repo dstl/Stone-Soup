@@ -674,7 +674,6 @@ class SimpleMarkovianGP(LinearGaussianTransitionModel, TimeVariantModel):
         C = self.kernel(t, t, **kwargs)
         C += np.eye(np.shape(C)[0]) * self.epsilon
 
-        print(C)
         C_tuple = self.matrix_to_tuple(C)
         f = self.cached_solve(C_tuple, C.shape[0])  # shape[0] == d
 
@@ -724,7 +723,6 @@ class SimpleMarkovianGP(LinearGaussianTransitionModel, TimeVariantModel):
     def cached_solve(C_tuple, d):
         # Recover C from tuple
         C = np.array(C_tuple).reshape(d, d)
-        print(C)
         return solve(C[1:, 1:], C[1:, 0])
 
 
