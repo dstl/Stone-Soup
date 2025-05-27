@@ -5,7 +5,6 @@ from functools import lru_cache
 import numpy as np
 from scipy.integrate import quad
 from scipy.linalg import block_diag, expm, solve
-from scipy.stats import norm
 from scipy.special import erf
 
 from .base import TransitionModel, CombinedGaussianTransitionModel
@@ -673,7 +672,6 @@ class SimpleMarkovianGP(LinearGaussianTransitionModel, TimeVariantModel):
         
         C = self.kernel(t, t, **kwargs)
         C += np.eye(np.shape(C)[0]) * self.epsilon
-
         C_tuple = self.matrix_to_tuple(C)
         f = self.cached_solve(C_tuple, C.shape[0])  # shape[0] == d
 
@@ -750,9 +748,7 @@ class DynamicsInformedIntegratedGP(SimpleMarkovianGP):
         a = self.dynamics_coeff
         d = self.window_size
         dt = time_interval.total_seconds()
-
         Fmat = super().matrix(track=track, time_interval=time_interval, **kwargs)
-
         # Add extra dimension for augmented mean
         if self.markov_approx == 1:
             Fmat = np.pad(Fmat, ((0, 1), (0, 1)))
@@ -782,9 +778,15 @@ class DynamicsInformedIntegratedGP(SimpleMarkovianGP):
     
     def kernel(self, t1, t2):
         "Computes 2D covariance matrix element-wise"
-        t1 = np.atleast_1d(t1)
-        t2 = np.atleast_1d(t2)
+        t1 = tuple(np.round(np.atleast_1d(t1).flatten(), 10))
+        t2 = tuple(np.round(np.atleast_1d(t2).flatten(), 10))
 
+        return self._cached_kernel(t1, t2)
+
+    @lru_cache
+    def _cached_kernel(self, t1_tuple, t2_tuple):
+        t1 = np.array(t1_tuple).reshape(-1, 1)
+        t2 = np.array(t2_tuple).reshape(-1, 1)
         K = np.zeros((len(t1), len(t2)))
 
         # if t1 == t2, compute upper triangular matrix only
@@ -892,12 +894,13 @@ class DynamicsInformedTwiceIntegratedGP(DynamicsInformedIntegratedGP):
         diff_s = (t2 - t1) / l_s
         t1_s = t1 / l_s
         t2_s = t2 / l_s
+        pdf = IntegratedGP._gaussian_pdf
 
         s1 = (
             diff_s * erf(diff_s) 
             + t1_s * erf(-t1_s) 
             - t2_s * erf(t2_s) 
-            + l_s * (norm.pdf(t2, t1, l) - norm.pdf(t1, 0, l) - norm.pdf(t2, 0, l))
+            + l_s * (pdf(t2, t1, l) - pdf(t1, 0, l) - pdf(t2, 0, l))
             + 1 / np.sqrt(np.pi)
         )
 
@@ -944,7 +947,16 @@ class IntegratedGP(DynamicsInformedIntegratedGP):
     @lru_cache
     def _h(l, t1, t2):
         """Helper function for iSE kernel."""        
-        return (t1 - t2) * norm.cdf((t1 - t2) / l) + l**2 * norm.pdf(t1, loc=t2, scale=l)
+        return (t1 - t2) * IntegratedGP._gaussian_cdf((t1 - t2) / l) + l**2 * IntegratedGP._gaussian_pdf(t1, t2, l)
+    
+    # use helper functions instead of scipy.stats.norm for faster execution
+    @staticmethod
+    def _gaussian_pdf(x, mu=0, sigma=1):
+        return np.exp(-0.5 * ((x - mu) / sigma)**2) / (sigma * np.sqrt(2 * np.pi))
+    
+    @staticmethod
+    def _gaussian_cdf(x, mu=0, sigma=1):
+        return 0.5 * (1 + erf((x - mu) / (sigma * np.sqrt(2))))
 
 
 class TwiceIntegratedGP(DynamicsInformedTwiceIntegratedGP):
@@ -968,11 +980,12 @@ class TwiceIntegratedGP(DynamicsInformedTwiceIntegratedGP):
         var = kernel_variance
         h = IntegratedGP._h
         h2 = TwiceIntegratedGP._h2
+        pdf = IntegratedGP._gaussian_pdf
     
         s1 = 0.5 * t2 * h2(l, t1) - 0.5 * t1 * h2(l, -t2)
 
         s2 = (1 / 6) * ((t1 - t2) ** 2 * h(l, t1, t2) - t1 ** 2 * h(l, t1, 0) - t2 ** 2 * h(l, 0, t2)
-                        + l ** 4 * (norm.pdf(0, t2, l) + norm.pdf(t1, 0, l) - norm.pdf(t1, t2, l)))
+                        + l ** 4 * (pdf(0, t2, l) + pdf(t1, 0, l) - pdf(t1, t2, l)))
 
         s3 = 0.5 * l ** 2 * (h(l, t1, t2) - h(l, 0, t2) - h(l, t1, 0))
 
@@ -983,8 +996,9 @@ class TwiceIntegratedGP(DynamicsInformedTwiceIntegratedGP):
     @staticmethod
     @lru_cache
     def _h2(l, t):
-        """Helper function for iiSE kernel."""        
-        return t * IntegratedGP._h(l, t, 0) + l**2 * norm.cdf(t / l) - l**2 * norm.cdf(0)
+        """Helper function for iiSE kernel."""
+        cdf = IntegratedGP._gaussian_cdf        
+        return t * IntegratedGP._h(l, t, 0) + l**2 * cdf(t / l) - l**2 * cdf(0)
 
 
 class KnownTurnRateSandwich(LinearGaussianTransitionModel, TimeVariantModel):
