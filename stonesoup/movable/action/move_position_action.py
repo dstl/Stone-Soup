@@ -17,8 +17,8 @@ class MovePositionAction(Action):
         return self.target_value
 
 
-class GridActionGenerator(ActionGenerator):
-    """This is the base class for generators that generate actions in a grid like fashion."""
+class MovePositionActionGenerator(ActionGenerator):
+    """This is the base class for generators that generate :class:`~MovePositionAction`s."""
 
     action_space: np.ndarray = Property(
         default=None,
@@ -32,13 +32,11 @@ class GridActionGenerator(ActionGenerator):
         doc="The state dimensions that actions are applied to."
     )
 
-    resolution: float = Property(
-        default=1,
-        doc="The size of each grid cell. Cells are assumed square."
-    )
+    epsilon = 1e-6
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
+
         if self.action_space is not None:
             if len(self.action_space) != len(self.action_mapping):
                 raise ValueError(f"Dimensions of action_space {self.action_space.shape} "
@@ -54,6 +52,21 @@ class GridActionGenerator(ActionGenerator):
 
     def __contains__(self, item):
         return item in iter(self)
+
+    @property
+    @abstractmethod
+    def maximum_travel(self):
+        pass
+
+
+class GridActionGenerator(MovePositionActionGenerator):
+    """This is the base class for generators that generate actions in a grid like fashion."""
+
+
+    resolution: float = Property(
+        default=1,
+        doc="The size of each grid cell. Cells are assumed square."
+    )
 
     @abstractmethod
     def __iter__(self) -> Iterator[MovePositionAction]:
@@ -83,6 +96,10 @@ class NStepDirectionalGridActionGenerator(GridActionGenerator):
                                   end_time=self.end_time,
                                   target_value=self.current_value)
 
+    @property
+    def maximum_travel(self):
+        return self.step_size * self.n_steps
+
     def __iter__(self):
         yield MovePositionAction(generator=self,
                                  end_time=self.end_time,
@@ -107,22 +124,10 @@ class NStepDirectionalGridActionGenerator(GridActionGenerator):
                                              target_value=target_value)
 
 
-class SamplePositionActionGenerator(ActionGenerator):
+class SamplePositionActionGenerator(MovePositionActionGenerator):
     """Base action generator for sampling approaches to action generation. The action
     generator requires the user to define a number of samples to generate
     (:attr:`n_samples`) according to the defined sampling technique."""
-
-    action_space: np.ndarray = Property(
-        default=None,
-        doc="The bounds of the action space that should not be exceeded. Of shape (ndim, 2) "
-            "where ndim is the length of the action_mapping. For example, "
-            ":code:`np.array([[xmin, xmax], [ymin, ymax]])`."
-    )
-
-    action_mapping: Sequence[int] = Property(
-        default=(0, 1),
-        doc="The state dimensions that actions are applied to."
-    )
 
     n_samples: int = Property(
         default=10,
@@ -131,30 +136,11 @@ class SamplePositionActionGenerator(ActionGenerator):
         "actions will be generated."
     )
 
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-
-        if self.action_space is not None:
-            if len(self.action_space) != len(self.action_mapping):
-                raise ValueError(f"Dimensions of action_space {self.action_space.shape} "
-                                 f"are not compatible with action_mapping of length "
-                                 f"{len(self.action_mapping)}. action_space should be "
-                                 f"of shape (ndim, 2) where ndim is the length of the "
-                                 f"action_mapping.")
-
-            if (np.any(self.current_value[self.action_mapping, :] < self.action_space[:, [0]])
-                    or np.any(self.current_value[self.action_mapping, :] > self.action_space[:, [1]])):  # noqa: E501
-                raise ValueError(f"Initial platform location {self.current_value} is not within "
-                                 f"the bounds of the action space {self.action_space}.")
-
     @property
     def default_action(self):
         return MovePositionAction(generator=self,
                                   end_time=self.end_time,
                                   target_value=self.current_value)
-
-    def __contains__(self, item):
-        return item in iter(self)
 
     @abstractmethod
     def __iter__(self):
@@ -218,7 +204,7 @@ class CircleSamplePositionActionGenerator(SamplePositionActionGenerator):
                                      target_value=StateVector(target_value))
 
 
-class MaxSpeedPositionActionGenerator(ActionGenerator):
+class MaxSpeedPositionActionGenerator(MovePositionActionGenerator):
     """Action generator which generates actions uniformly within a circle around the current
     position. Circle radius is defined by the :attr:`max_speed` of the platform and the duration of
     the action. This generator is only applicable to 2D position actions."""
