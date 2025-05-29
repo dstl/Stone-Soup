@@ -1,6 +1,7 @@
 import warnings
 from collections import defaultdict
 from collections.abc import Iterable
+import numpy as np
 
 try:
     import optuna
@@ -10,6 +11,7 @@ except ImportError as error:
 
 from ..base import Property
 from ..sensor.sensor import Sensor
+from ..movable.action.move_position_action import MovePositionActionGenerator
 from .action import RealNumberActionGenerator, Action
 from . import SensorManager
 
@@ -24,6 +26,14 @@ class OptunaSensorManager(SensorManager):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         optuna.logging.set_verbosity(optuna.logging.CRITICAL)
+
+    @staticmethod
+    def sample_parameters(max_value, generator):
+        resolution = getattr(generator, "resolution", None)
+
+        if resolution is not None:
+            max_value = np.floor(max_value / resolution) * resolution
+        return max_value, resolution
 
     def choose_actions(self, tracks, timestamp, nchoose=1, **kwargs) -> Iterable[tuple[Sensor,
                                                                                        Action]]:
@@ -43,9 +53,9 @@ class OptunaSensorManager(SensorManager):
             The actions and associated sensors produced by the sensor manager."""
         all_action_generators = dict()
 
-        for sensor in self.sensors:
-            action_generators = sensor.actions(timestamp)
-            all_action_generators[sensor] = action_generators  # set of generators
+        for actionable in self.actionables:
+            action_generators = actionable.actions(timestamp)
+            all_action_generators[actionable] = action_generators  # set of generators
 
         def config_from_trial(trial):
             config = defaultdict(list)
@@ -58,6 +68,22 @@ class OptunaSensorManager(SensorManager):
                             value = trial.suggest_float(
                                 f'{i}{j}', generator.min, generator.max + generator.epsilon,
                                 step=getattr(generator, 'resolution', None))
+                    elif isinstance(generator, MovePositionActionGenerator):
+                        if not hasattr(generator, "action_from_value"):
+                            raise TypeError(f"type {type(generator)} not handled yet")
+                        with warnings.catch_warnings():
+                            warnings.simplefilter("ignore", UserWarning)
+                            value = np.zeros(generator.current_value.shape)
+                            for index in generator.action_mapping:
+                                max_travel = float(np.sqrt(generator.maximum_travel**2 -
+                                                           sum(value**2)))
+                                max_travel, resolution = self.sample_parameters(max_travel,
+                                                                                generator)
+                                value[index] = trial.suggest_float(
+                                    f'{i}{j}{index}',
+                                    -max_travel, max_travel + generator.epsilon, step=resolution
+                                )
+                            value = generator.current_value + value
                     else:
                         raise TypeError(f"type {type(generator)} not handled yet")
                     action = generator.action_from_value(value)
@@ -82,6 +108,13 @@ class OptunaSensorManager(SensorManager):
             for j, generator in enumerate(generators):
                 if isinstance(generator, RealNumberActionGenerator):
                     action = generator.action_from_value(best_params[f'{i}{j}'])
+                elif isinstance(generator, MovePositionActionGenerator):
+                    if not hasattr(generator, "action_from_value"):
+                        raise TypeError(f"type {type(generator)} not handled yet")
+                    value = np.zeros(generator.current_value.shape)
+                    for index in generator.action_mapping:
+                        value[index] = best_params[f'{i}{j}{index}']
+                    action = generator.action_from_value(value=generator.current_value + value)
                 else:
                     raise TypeError(f"generator type {type(generator)} not supported")
                 if action is not None:
