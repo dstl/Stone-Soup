@@ -184,11 +184,19 @@ def test_n_step_directional_grid_action_gen(generator_params, state, position_ma
              'maximum_travel': 10},
             StateVector([0.0, 0.0, 0.0]),  # state
             (0, 1, 2)  # position_mapping
+        ), (
+            {'n_samples': 20,
+             'action_space': StateVectors([[-5, 5], [-5, 5]]),
+             'action_mapping': (0, 1),
+             'maximum_travel': 10},
+            StateVector([0.0, 0.0, 0.0]),  # state
+            (0, 1, 2)  # position_mapping
         )
     ],
 
     ids=["defauls_n_samples_no_space", "default_travel_in_space", "max_travel_larger_than_space",
-         "outside_space_start", "incompatible_action_space_and_mapping", "3d_action_value_error"]
+         "outside_space_start", "incompatible_action_space_and_mapping", "3d_action_value_error",
+         "3d_position_2d_action"]
 )
 def test_circle_sample_action_gen(gen_param_dict, state, position_mapping):
 
@@ -239,7 +247,7 @@ def test_circle_sample_action_gen(gen_param_dict, state, position_mapping):
     assert generator.maximum_travel == maximum_travel
 
     # Test generator default action
-    assert np.all(generator.default_action.target_value == state[action_mapping, :])
+    assert np.all(generator.default_action.target_value == state[position_mapping, :])
 
     # Check that actions are generated correctly
     generator_set = set()

@@ -175,7 +175,7 @@ class CircleSamplePositionActionGenerator(SamplePositionActionGenerator):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
-        if self.action_space is not None and len(self.action_space) != 2:
+        if len(self.action_mapping) != 2:
             raise ValueError(f"Action mapping {self.action_mapping} does "
                              f"not have 2 dimensions. "
                              f":class:`~.CircleSamplePositionActionGenerator` "
@@ -189,25 +189,27 @@ class CircleSamplePositionActionGenerator(SamplePositionActionGenerator):
 
         radius_angle_samples = np.random.uniform([0, 0], [1, 2*np.pi], (self.n_samples, 2))
 
-        values = self.maximum_travel*np.sqrt(radius_angle_samples[:, 0]) *\
+        sample_values = self.maximum_travel*np.sqrt(radius_angle_samples[:, 0]) *\
             np.array([np.sin(radius_angle_samples[:, 1]), np.cos(radius_angle_samples[:, 1])])
+        values = np.zeros((self.current_value.shape[0], self.n_samples))
+        values[self.action_mapping,] = sample_values
 
         target_values = self.current_value + values
 
         if self.action_space is not None:
-            while (np.any(target_values[(0, 1), :] < self.action_space[:, [0]])
-                    or np.any(target_values[(0, 1), :] > self.action_space[:, [1]])):
+            while (np.any(target_values[self.action_mapping, :] < self.action_space[:, [0]])
+                    or np.any(target_values[self.action_mapping, :] > self.action_space[:, [1]])):
 
-                _, idx = np.where(
-                    np.logical_or(target_values[(0, 1), :] > self.action_space[:, [1]],
-                                  target_values[(0, 1), :] < self.action_space[:, [0]]))
+                _, idx = np.where(np.logical_or(
+                    target_values[self.action_mapping, :] > self.action_space[:, [1]],
+                    target_values[self.action_mapping, :] < self.action_space[:, [0]]))
                 radius_angle_samples = np.random.uniform([0, 0], [1, 2*np.pi], (len(idx), 2))
-                values = self.maximum_travel*np.sqrt(radius_angle_samples[:, 0]) *\
+                sample_values = self.maximum_travel*np.sqrt(radius_angle_samples[:, 0]) *\
                     np.array([np.sin(radius_angle_samples[:, 1]),
                               np.cos(radius_angle_samples[:, 1])])
+                values = np.zeros((self.current_value.shape[0], len(idx)))
+                values[self.action_mapping,] = sample_values
                 target_values[:, idx] = self.current_value + values
-
-                np.where(target_values[self.action_mapping, :] < self.action_space[:, [0]])
 
         for target_value in target_values.T:
             yield MovePositionAction(generator=self,
