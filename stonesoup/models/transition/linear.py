@@ -639,15 +639,9 @@ class SimpleMarkovianGP(LinearGaussianTransitionModel, TimeVariantModel):
         d = self.window_size
         t = self._get_time_vector(track, time_interval)
 
-        C = self.kernel(t, t)
-        C += np.eye(np.shape(C)[0]) * self.epsilon
-
-        # a higher-level cache from t to f directly (including kernel(t,t))
-        # be desirable, but requires refactoring to handle different kernel computations
-        C_tuple = self.matrix_to_tuple(C)
-        f = self.cached_solve(C_tuple, C.shape[0])  # shape[0] == d
+        gp_weights, _ = self.gp_pred(t, t)
         Fmat = np.eye(d, k=-1)
-        Fmat[0, :len(f)] = f.T
+        Fmat[0, :len(gp_weights)] = gp_weights.T
 
         return Fmat
 
@@ -669,13 +663,8 @@ class SimpleMarkovianGP(LinearGaussianTransitionModel, TimeVariantModel):
         """
         d = self.ndim_state
         t = self._get_time_vector(track, time_interval)
-        
-        C = self.kernel(t, t, **kwargs)
-        C += np.eye(np.shape(C)[0]) * self.epsilon
-        C_tuple = self.matrix_to_tuple(C)
-        f = self.cached_solve(C_tuple, C.shape[0])  # shape[0] == d
 
-        noise_var = C[0, 0] - C[0, 1:] @ f
+        _, noise_var = self.gp_pred(t, t)
         covar = np.zeros((d, d))
         covar[0, 0] = 1
         return CovarianceMatrix(covar * noise_var)
@@ -712,16 +701,18 @@ class SimpleMarkovianGP(LinearGaussianTransitionModel, TimeVariantModel):
             time_vector = np.append(time_vector, (state_time - start_time).total_seconds())
         return time_vector.reshape(-1, 1)
     
-    @staticmethod
-    def matrix_to_tuple(C):
-        return tuple(np.round(C.flatten(), 10))  # Round to avoid float precision noise
+    def gp_pred(self, t1, t2):
+        t1 = tuple(np.round(np.atleast_1d(t1).flatten(), 10))
+        t2 = tuple(np.round(np.atleast_1d(t2).flatten(), 10))
+        return self._gp_pred(t1, t2)
     
-    @staticmethod
     @lru_cache
-    def cached_solve(C_tuple, d):
-        # Recover C from tuple
-        C = np.array(C_tuple).reshape(d, d)
-        return solve(C[1:, 1:], C[1:, 0])
+    def _gp_pred(self, t1, t2):
+        C = self.kernel(t1, t2)
+        C += np.eye(np.shape(C)[0]) * self.epsilon
+        gp_weights = solve(C[1:, 1:], C[1:, 0])
+        noise_var = C[0, 0] - C[0, 1:] @ gp_weights
+        return gp_weights, noise_var
 
 
 
@@ -775,25 +766,18 @@ class DynamicsInformedIntegratedGP(SimpleMarkovianGP):
             return np.linspace(d * dt, 0, d + 1).reshape(-1, 1)
         else:
             return np.linspace(d * dt, dt, d).reshape(-1, 1)
-    
+
     def kernel(self, t1, t2):
-        "Computes 2D covariance matrix element-wise"
-        t1 = tuple(np.round(np.atleast_1d(t1).flatten(), 10))
-        t2 = tuple(np.round(np.atleast_1d(t2).flatten(), 10))
-
-        return self._cached_kernel(t1, t2)
-
-    @lru_cache
-    def _cached_kernel(self, t1_tuple, t2_tuple):
-        t1 = np.array(t1_tuple).reshape(-1, 1)
-        t2 = np.array(t2_tuple).reshape(-1, 1)
+        t1 = np.atleast_2d(t1).reshape(-1, 1)
+        t2 = np.atleast_2d(t2).reshape(-1, 1)
         K = np.zeros((len(t1), len(t2)))
 
         # if t1 == t2, compute upper triangular matrix only
         if np.array_equal(t1, t2):
             for i in range(len(t1)):
                 for j in range(i, len(t2)):
-                    K[i, j] = self._invoke_scalar_kernel(float(t1[i]), float(t2[j]))
+                    # K[i, j] = self._invoke_scalar_kernel(float(t1[i]), float(t2[j]))
+                    K[i, j] = self.scalar_kernel(t1[i], t2[j])
                     if i != j:
                         K[j, i] = K[i, j]
         
@@ -801,29 +785,25 @@ class DynamicsInformedIntegratedGP(SimpleMarkovianGP):
         else:
             for i in range(len(t1)):
                 for j in range(len(t2)):
-                    K[i, j] = self._invoke_scalar_kernel(float(t1[i]), float(t2[j]))
+                    # K[i, j] = self._invoke_scalar_kernel(float(t1[i]), float(t2[j]))
+                    K[i, j] = self.scalar_kernel(t1[i], t2[j])
 
         # Include prior variance if the current window includes the prior
         if t1[-1] == 0:
             K += self.prior_var
 
         return K
-    
-    def _invoke_scalar_kernel(self, t1, t2):
-        """Unpacks kernel paramaters and passes it to kernel method to enable caching."""
-        return self.scalar_kernel(
-            t1, t2, dynamics_coeff=self.dynamics_coeff, gp_coeff=self.gp_coeff, **self.kernel_params)
 
-    @staticmethod
+    def scalar_kernel(self, t1, t2):
+        return self._scalar_kernel(float(t1), float(t2))
+
     @lru_cache
-    def scalar_kernel(t1, t2, dynamics_coeff, gp_coeff, length_scale, kernel_variance):
+    def _scalar_kernel(self, t1, t2):
         """iDSE kernel."""
-        # length_scale and kernel_variance are from the dictionary self.kernel_params
-        # the dict is unpacked in _invoke_kernel in DynamicsInformedIntegratedGP
-        a = dynamics_coeff
-        b = gp_coeff
-        l = length_scale
-        var = kernel_variance
+        a = self.dynamics_coeff
+        b = self.gp_coeff
+        l = self.kernel_params["length_scale"]
+        var = self.kernel_params["kernel_variance"]
         return (b ** 2) * var * np.sqrt(np.pi / 2) * l * (
                     DynamicsInformedIntegratedGP._h(a, l, t2, t1)
                     + DynamicsInformedIntegratedGP._h(a, l, t1, t2)
@@ -872,14 +852,13 @@ class DynamicsInformedTwiceIntegratedGP(DynamicsInformedIntegratedGP):
         Fmat[d:, d:] = Fmat_mean
         return Fmat
     
-    @staticmethod
     @lru_cache
-    def scalar_kernel(t1, t2, dynamics_coeff, gp_coeff, length_scale, kernel_variance):
+    def _scalar_kernel(self, t1, t2):
         """iiDSE kernel."""
-        a = dynamics_coeff
-        b = gp_coeff
-        l = length_scale
-        var = kernel_variance
+        a = self.dynamics_coeff
+        b = self.gp_coeff
+        l = self.kernel_params["length_scale"]
+        var = self.kernel_params["kernel_variance"]
         gma = -l * a / np.sqrt(2)
         return -((np.sqrt(2 * np.pi) * (b**2) * var * l * np.exp(gma**2))/(4 * a))\
                 * (DynamicsInformedTwiceIntegratedGP._h(l, a, t1, t2)
@@ -932,12 +911,11 @@ class IntegratedGP(DynamicsInformedIntegratedGP):
     def gp_coeff(self):
         return 1
 
-    @staticmethod
     @lru_cache
-    def scalar_kernel(t1, t2, dynamics_coeff, gp_coeff, length_scale, kernel_variance):
+    def _scalar_kernel(self, t1, t2):
         """iSE kernel."""
-        l = length_scale
-        var = kernel_variance
+        l = self.kernel_params["length_scale"]
+        var = self.kernel_params["kernel_variance"]
         return np.sqrt(2 * np.pi) * l * var * (
                     IntegratedGP._h(l, t1, 0) + IntegratedGP._h(l, 0, t2)
                     - IntegratedGP._h(l, t1, t2) - 2 / np.sqrt(2 * np.pi)
@@ -972,12 +950,11 @@ class TwiceIntegratedGP(DynamicsInformedTwiceIntegratedGP):
     def gp_coeff(self):
         return 1
 
-    @staticmethod
     @lru_cache
-    def scalar_kernel(t1, t2, dynamics_coeff, gp_coeff, length_scale, kernel_variance):
+    def _scalar_kernel(self, t1, t2):
         """iiSE kernel."""
-        l = length_scale
-        var = kernel_variance
+        l = self.kernel_params["length_scale"]
+        var = self.kernel_params["kernel_variance"]
         h = IntegratedGP._h
         h2 = TwiceIntegratedGP._h2
         pdf = IntegratedGP._gaussian_pdf
