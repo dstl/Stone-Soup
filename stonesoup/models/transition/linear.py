@@ -639,7 +639,7 @@ class SimpleMarkovianGP(LinearGaussianTransitionModel, TimeVariantModel):
         d = self.window_size
         t = self._get_time_vector(track, time_interval)
 
-        gp_weights, _ = self.gp_pred(t, t)
+        gp_weights, _ = self._gp_pred_wrapper(t, t)
         Fmat = np.eye(d, k=-1)
         Fmat[0, :len(gp_weights)] = gp_weights.T
 
@@ -664,7 +664,7 @@ class SimpleMarkovianGP(LinearGaussianTransitionModel, TimeVariantModel):
         d = self.ndim_state
         t = self._get_time_vector(track, time_interval)
 
-        _, noise_var = self.gp_pred(t, t)
+        _, noise_var = self._gp_pred_wrapper(t, t)
         covar = np.zeros((d, d))
         covar[0, 0] = 1
         return CovarianceMatrix(covar * noise_var)
@@ -701,15 +701,17 @@ class SimpleMarkovianGP(LinearGaussianTransitionModel, TimeVariantModel):
             time_vector = np.append(time_vector, (state_time - start_time).total_seconds())
         return time_vector.reshape(-1, 1)
     
-    def gp_pred(self, t1, t2):
+    def _gp_pred_wrapper(self, t1, t2):
+        """Prepare inputs and call cached GP prediction helper function."""
         t1 = tuple(np.round(np.atleast_1d(t1).flatten(), 10))
         t2 = tuple(np.round(np.atleast_1d(t2).flatten(), 10))
         return self._gp_pred(t1, t2)
     
     @lru_cache
     def _gp_pred(self, t1, t2):
+        """Cached GP prediction: compute weights and noise variance."""
         C = self.kernel(t1, t2)
-        C += np.eye(np.shape(C)[0]) * self.epsilon
+        C = C + np.eye(np.shape(C)[0]) * self.epsilon
         gp_weights = solve(C[1:, 1:], C[1:, 0])
         noise_var = C[0, 0] - C[0, 1:] @ gp_weights
         return gp_weights, noise_var
@@ -777,7 +779,7 @@ class DynamicsInformedIntegratedGP(SimpleMarkovianGP):
             for i in range(len(t1)):
                 for j in range(i, len(t2)):
                     # K[i, j] = self._invoke_scalar_kernel(float(t1[i]), float(t2[j]))
-                    K[i, j] = self.scalar_kernel(t1[i], t2[j])
+                    K[i, j] = self._scalar_kernel_wrapper(t1[i], t2[j])
                     if i != j:
                         K[j, i] = K[i, j]
         
@@ -786,7 +788,7 @@ class DynamicsInformedIntegratedGP(SimpleMarkovianGP):
             for i in range(len(t1)):
                 for j in range(len(t2)):
                     # K[i, j] = self._invoke_scalar_kernel(float(t1[i]), float(t2[j]))
-                    K[i, j] = self.scalar_kernel(t1[i], t2[j])
+                    K[i, j] = self._scalar_kernel_wrapper(t1[i], t2[j])
 
         # Include prior variance if the current window includes the prior
         if t1[-1] == 0:
@@ -794,7 +796,7 @@ class DynamicsInformedIntegratedGP(SimpleMarkovianGP):
 
         return K
 
-    def scalar_kernel(self, t1, t2):
+    def _scalar_kernel_wrapper(self, t1, t2):
         return self._scalar_kernel(float(t1), float(t2))
 
     @lru_cache
