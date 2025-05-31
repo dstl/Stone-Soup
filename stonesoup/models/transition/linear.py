@@ -710,6 +710,8 @@ class SimpleMarkovianGP(LinearGaussianTransitionModel, TimeVariantModel):
     @lru_cache
     def _gp_pred(self, t1, t2):
         """Cached GP prediction: compute weights and noise variance."""
+        t1 = np.array(t1)
+        t2 = np.array(t2)
         C = self.kernel(t1, t2)
         C = C + np.eye(np.shape(C)[0]) * self.epsilon
         gp_weights = solve(C[1:, 1:], C[1:, 0])
