@@ -1,6 +1,7 @@
 import datetime
 
 from pytest import approx
+import pytest
 import numpy as np
 import scipy as sp
 from scipy.stats import multivariate_normal
@@ -10,35 +11,28 @@ from ..base import CombinedGaussianTransitionModel
 from ....types.state import State
 
 
-def test_singer1dmodel():
-    """ Singer 1D Transition Model test """
-    state = State(np.array([[3.0], [1.0], [0.1]]))
-    noise_diff_coeffs = np.array([0.01])
-    damping_coeffs = np.array([0.1])
-    base(state, noise_diff_coeffs, damping_coeffs)
+@pytest.fixture(params=[1, 2, 3])
+def singer_model_params(request):
+    if request.param == 1:
+        state = State(np.array([[3.0], [1.0], [0.1]]))
+        noise_diff_coeffs = np.array([0.01])
+        damping_coeffs = np.array([0.1])
+    elif request.param == 2:
+        state = State(np.array([[3.0], [1.0], [0.1], [2.0], [2.0], [0.2]]))
+        noise_diff_coeffs = np.array([0.01, 0.02])
+        damping_coeffs = np.array([0.1, 0.1])
+    else:
+        state = State(np.array([[3.0], [1.0], [0.1], [2.0], [2.0], [0.2], [4.0],
+                                [0.5], [0.05]]))
+        noise_diff_coeffs = np.array([0.01, 0.02, 0.005])
+        damping_coeffs = np.array([0.1, 0.1, 0.1])
+    return state, noise_diff_coeffs, damping_coeffs
 
 
-def test_singer2dmodel():
-    """ Singer 2D Transition Model test """
-    state = State(np.array([[3.0], [1.0], [0.1], [2.0], [2.0], [0.2]]))
-    noise_diff_coeffs = np.array([0.01, 0.02])
-    damping_coeffs = np.array([0.1, 0.1])
-
-    base(state, noise_diff_coeffs, damping_coeffs)
-
-
-def test_singer3dmodel():
-    """ Singer 3D Transition Model test """
-    state = State(np.array([[3.0], [1.0], [0.1], [2.0], [2.0], [0.2], [4.0],
-                            [0.5], [0.05]]))
-    noise_diff_coeffs = np.array([0.01, 0.02, 0.005])
-    damping_coeffs = np.array([0.1, 0.1, 0.1])
-    base(state, noise_diff_coeffs, damping_coeffs)
-
-
-def base(state, noise_diff_coeffs, damping_coeffs, timediff=1.0):
-    """ Base test for n-dimensional ConstantAcceleration Transition Models """
-
+@pytest.mark.parametrize('sign', [1, -1])
+def test_singer(singer_model_params, sign):
+    state, noise_diff_coeffs, damping_coeffs = singer_model_params
+    timediff = 1 * sign
     state_vec = state.state_vector
 
     # Create a 1D Singer or an n-dimensional
@@ -54,7 +48,6 @@ def base(state, noise_diff_coeffs, damping_coeffs, timediff=1.0):
         model_obj = CombinedGaussianTransitionModel(model_list)
 
     # State related variables
-    state_vec = state_vec
     old_timestamp = datetime.datetime.now()
     new_timestamp = old_timestamp + datetime.timedelta(seconds=timediff)
     time_interval = new_timestamp - old_timestamp
@@ -72,8 +65,7 @@ def base(state, noise_diff_coeffs, damping_coeffs, timediff=1.0):
         mat_list.append(np.array(
             [[1,
               timediff,
-              (damping_coeffdt - 1 + np.exp(-damping_coeffdt)) /
-              damping_coeff**2],
+              (damping_coeffdt - 1 + np.exp(-damping_coeffdt)) / damping_coeff**2],
              [0,
               1,
               (1 - np.exp(-damping_coeffdt)) / damping_coeff],
@@ -85,27 +77,27 @@ def base(state, noise_diff_coeffs, damping_coeffs, timediff=1.0):
         e_neg_at = np.exp(-alpha_time)
         e_neg2_at = np.exp(-2 * alpha_time)
         covar_list.append(np.array(
-            [[((1 - e_neg2_at) +
+            [[(((1 - e_neg2_at) +
                2 * alpha_time +
                (2 * alpha_time**3) / 3 -
                2 * alpha_time**2 -
                4 * alpha_time * e_neg_at) /
-              (2 * damping_coeff**5),
+              (2 * damping_coeff**5)) * sign,
               (alpha_time - (1 - e_neg_at))**2 /
               (2 * damping_coeff**4),
               ((1 - e_neg2_at) - 2 * alpha_time * e_neg_at) /
-              (2 * damping_coeff**3)],
+              (2 * damping_coeff**3) * sign],
              [(alpha_time - (1 - e_neg_at))**2 /
               (2 * damping_coeff**4),
               (2 * alpha_time - 4 * (1 - e_neg_at) + (1 - e_neg2_at)) /
-              (2 * damping_coeff**3),
+              (2 * damping_coeff**3) * sign,
               (1 - e_neg_at)**2 /
               (2 * damping_coeff**2)],
              [((1 - e_neg2_at) - 2 * alpha_time * e_neg_at) /
-              (2 * damping_coeff**3),
+              (2 * damping_coeff**3) * sign,
               (1 - e_neg_at)**2 /
               (2 * damping_coeff**2),
-              (1 - e_neg2_at) / (2 * damping_coeff)]]
+              (1 - e_neg2_at) / (2 * damping_coeff) * sign]]
         ) * noise_diff_coeff)
 
     F = sp.linalg.block_diag(*mat_list)

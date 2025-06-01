@@ -17,7 +17,7 @@ def test_ensemble():
     measurement_model = LinearGaussian(ndim_state=2, mapping=[0],
                                        noise_covar=np.array([[0.04]]))
     timestamp = datetime.datetime(2021, 3, 5, 22, 3, 17)
-    num_vectors = 100
+    num_vectors = 200
 
     test_ensemble = EnsembleState.generate_ensemble(
                         np.array([[-6.45], [0.7]]),
@@ -79,7 +79,7 @@ def test_sqrt_ensemble():
     measurement_model = LinearGaussian(ndim_state=2, mapping=[0],
                                        noise_covar=np.array([[0.04]]))
     timestamp = datetime.datetime(2021, 3, 5, 22, 3, 17)
-    num_vectors = 100
+    num_vectors = 200
 
     test_ensemble = EnsembleState.generate_ensemble(
                         np.array([[-6.45], [0.7]]),
@@ -140,7 +140,7 @@ def test_linearised_ensemble_updater():
     measurement_model = LinearGaussian(ndim_state=2, mapping=[0],
                                        noise_covar=np.array([[0.04]]))
     timestamp = datetime.datetime(2021, 3, 5, 22, 3, 17)
-    num_vectors = 100
+    num_vectors = 200
 
     test_ensemble = EnsembleState.generate_ensemble(
                         np.array([[-6.45], [0.7]]),

@@ -50,7 +50,7 @@ class Track(StateMutableSequence):
 
     def __copy__(self):
         inst = super().__copy__()
-        inst.__dict__['metadatas'] = copy.copy(self.__dict__['metadatas'])
+        inst.__dict__['metadatas'] = list(copy.copy(md) for md in self.__dict__['metadatas'])
         return inst
 
     def insert(self, index, value):
@@ -130,7 +130,7 @@ class Track(StateMutableSequence):
                 # hypotheses will over-write the metadata set by less likely
                 # ones.
                 try:
-                    for hypothesis in sorted(state.hypothesis, reverse=True):
+                    for hypothesis in sorted(state.hypothesis):
                         if hypothesis \
                                 and hypothesis.measurement.metadata is not None:
                             self.metadata.update(hypothesis.measurement.metadata)

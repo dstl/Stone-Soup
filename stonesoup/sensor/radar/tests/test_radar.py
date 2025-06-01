@@ -1,4 +1,5 @@
 import datetime
+from itertools import product
 
 import numpy as np
 from scipy.stats import poisson
@@ -8,7 +9,7 @@ from pytest import approx
 from ..beam_pattern import StationaryBeam
 from ..beam_shape import Beam2DGaussian
 from ..radar import RadarBearingRange, RadarElevationBearingRange, RadarRotatingBearingRange, \
-    AESARadar, RadarRasterScanBearingRange, RadarBearingRangeRate, \
+    AESARadar, RadarRasterScanBearingRange, RadarBearingRangeRate, RadarBearingRangeRate2D, \
     RadarElevationBearingRangeRate, RadarBearing, RadarRotatingBearing, \
     RadarRotatingElevationBearingRange
 from ....functions import rotz, rotx, roty, cart2sphere
@@ -236,6 +237,16 @@ def h3d_rr(state, pos_map, vel_map, translation_offset, rotation_offset, velocit
                 StateVector([[100], [0], [0]])  # position
         ),
         (
+                h2d_rr,  # h
+                RadarBearingRangeRate2D,  # sensorclass
+                np.array([0, 2]),  # pos_mapping
+                np.array([1, 3]),  # vel_mapping
+                np.array([[0.05, 0, 0],
+                          [0, 0.015, 0],
+                          [0, 0, 10]]),  # noise_covar
+                StateVector([[100], [0]])  # position
+        ),
+        (
                 h3d_rr,
                 RadarElevationBearingRangeRate,
                 np.array([0, 2, 4]),  # pos_mapping
@@ -247,7 +258,7 @@ def h3d_rr(state, pos_map, vel_map, translation_offset, rotation_offset, velocit
                 StateVector([[100], [0], [0]])  # position
         )
     ],
-    ids=["RadarBearingRangeRate", "RadarElevationBearingRangeRate"]
+    ids=["RadarBearingRangeRate", "RadarBearingRangeRate2D", "RadarElevationBearingRangeRate"]
 )
 def test_range_rate_radar(h, sensorclass, pos_mapping, vel_mapping, noise_covar, position):
     # Instantiate the rotating radar
@@ -947,91 +958,96 @@ def test_clutter_model(radar, clutter_params):
     assert len(measurements) >= 1
 
 
-sensor = RadarRotatingElevationBearingRange(position_mapping=[0, 1, 2],
-                                            noise_covar=np.diag([np.radians(0.1),
-                                                                 np.radians(0.1),
-                                                                 0.1]),
-                                            ndim_state=3,
-                                            position=np.array([[0], [0], [0]]),
-                                            rpm=60,
-                                            fov_angle=0.5,
-                                            vertical_extent=0.5,
-                                            dwell_centre=StateVector([0]),
-                                            tilt_centre=StateVector([0]),
-                                            max_range=np.inf)
+@pytest.fixture
+def sensor():
+    return RadarRotatingElevationBearingRange(position_mapping=[0, 1, 2],
+                                              noise_covar=np.diag([0, 0, 0]),
+                                              ndim_state=3,
+                                              position=np.array([[0], [0], [0]]),
+                                              rpm=0,
+                                              fov_angle=2*np.pi,
+                                              vertical_extent=np.pi,
+                                              dwell_centre=StateVector([0]),
+                                              tilt_centre=StateVector([0]),
+                                              max_range=np.inf)
 
-targets = [GroundTruthState(StateVector([1,   0, 0])),
-           GroundTruthState(StateVector([1,   1, 0])),
-           GroundTruthState(StateVector([0,   1, 0])),
-           GroundTruthState(StateVector([-1,  1, 0])),
-           GroundTruthState(StateVector([-1,  0, 0])),
-           GroundTruthState(StateVector([-1, -1, 0])),
-           GroundTruthState(StateVector([0,  -1, 0])),
-           GroundTruthState(StateVector([1,  -1, 0])),
-           GroundTruthState(StateVector([1,   0, 1])),
-           GroundTruthState(StateVector([1,   1, 1])),
-           GroundTruthState(StateVector([0,   1, 1])),
-           GroundTruthState(StateVector([-1,  1, 1])),
-           GroundTruthState(StateVector([-1,  0, 1])),
-           GroundTruthState(StateVector([-1, -1, 1])),
-           GroundTruthState(StateVector([0,  -1, 1])),
-           GroundTruthState(StateVector([1,  -1, 1])),
-           GroundTruthState(StateVector([0,   0, 1])),
-           GroundTruthState(StateVector([1,   0, -1])),
-           GroundTruthState(StateVector([1,   1, -1])),
-           GroundTruthState(StateVector([0,   1, -1])),
-           GroundTruthState(StateVector([-1,  1, -1])),
-           GroundTruthState(StateVector([-1,  0, -1])),
-           GroundTruthState(StateVector([-1, -1, -1])),
-           GroundTruthState(StateVector([0,  -1, -1])),
-           GroundTruthState(StateVector([1,  -1, -1])),
-           GroundTruthState(StateVector([0,   0, -1]))]
+
+@pytest.fixture
+def targets():
+    return [GroundTruthState(StateVector([1, 0, 0])),
+            GroundTruthState(StateVector([np.sqrt(1/2), np.sqrt(1/2), 0])),
+            GroundTruthState(StateVector([0, 1, 0])),
+            GroundTruthState(StateVector([-np.sqrt(1/2), np.sqrt(1/2), 0])),
+            GroundTruthState(StateVector([-1, 0, 0])),
+            GroundTruthState(StateVector([-np.sqrt(1/2), -np.sqrt(1/2), 0])),
+            GroundTruthState(StateVector([0, -1, 0])),
+            GroundTruthState(StateVector([np.sqrt(1/2), -np.sqrt(1/2), 0])),
+            GroundTruthState(StateVector([1, 0, 1])),
+            GroundTruthState(StateVector([np.sqrt(1/2), np.sqrt(1/2), 1])),
+            GroundTruthState(StateVector([0, 1, 1])),
+            GroundTruthState(StateVector([-np.sqrt(1/2), np.sqrt(1/2), 1])),
+            GroundTruthState(StateVector([-1, 0, 1])),
+            GroundTruthState(StateVector([-np.sqrt(1/2), -np.sqrt(1/2), 1])),
+            GroundTruthState(StateVector([0, -1, 1])),
+            GroundTruthState(StateVector([np.sqrt(1/2), -np.sqrt(1/2), 1])),
+            GroundTruthState(StateVector([0, 0, 1])),
+            GroundTruthState(StateVector([1, 0, -1])),
+            GroundTruthState(StateVector([np.sqrt(1/2), np.sqrt(1/2), -1])),
+            GroundTruthState(StateVector([0, 1, -1])),
+            GroundTruthState(StateVector([-np.sqrt(1/2), np.sqrt(1/2), -1])),
+            GroundTruthState(StateVector([-1, 0, -1])),
+            GroundTruthState(StateVector([-np.sqrt(1/2), -np.sqrt(1/2), -1])),
+            GroundTruthState(StateVector([0, -1, -1])),
+            GroundTruthState(StateVector([np.sqrt(1/2), -np.sqrt(1/2), -1])),
+            GroundTruthState(StateVector([0, 0, -1]))]
 
 
 @pytest.mark.parametrize(["pan", "tilt", "ans"],
-                         ([0,     0,  0],
-                          [45,    0,  1],
-                          [90,    0,  2],
-                          [135,   0,  3],
-                          [180,   0,  4],
-                          [225,   0,  5],
-                          [270,   0,  6],
-                          [315,   0,  7],
-                          [0,    45,  8],
-                          [45,   45,  9],
-                          [90,   45, 10],
-                          [135,  45, 11],
-                          [180,  45, 12],
-                          [225,  45, 13],
-                          [270,  45, 14],
-                          [315,  45, 15],
-                          [0,    90, 16],
-                          [0,   -45, 17],
-                          [45,  -45, 18],
-                          [90,  -45, 19],
+                         ([0, 0, 0],
+                          [45, 0, 1],
+                          [90, 0, 2],
+                          [135, 0, 3],
+                          [180, 0, 4],
+                          [225, 0, 5],
+                          [270, 0, 6],
+                          [315, 0, 7],
+                          [0, 45, 8],
+                          [45, 45, 9],
+                          [90, 45, 10],
+                          [135, 45, 11],
+                          [180, 45, 12],
+                          [225, 45, 13],
+                          [270, 45, 14],
+                          [315, 45, 15],
+                          [0, 90, 16],
+                          [0, -45, 17],
+                          [45, -45, 18],
+                          [90, -45, 19],
                           [135, -45, 20],
                           [180, -45, 21],
                           [225, -45, 22],
                           [270, -45, 23],
                           [315, -45, 24],
-                          [0,   -90, 25]))
-def test_detectable(pan, tilt, ans):
+                          [0, -90, 25]))
+def test_ebr_detectable(pan, tilt, ans, sensor, targets):
     sensor.dwell_centre = StateVector([np.radians(pan)])
     sensor.tilt_centre = StateVector([np.radians(tilt)])
+    sensor.fov_angle = 0.001
+    sensor.vertical_extent = 0.001
 
     for i, target in enumerate(targets):
-        sensor.fov_angle = 0.5
-        sensor.vertical_extent = 0.5
-
         if i == ans:
             assert sensor.is_detectable(target)
         else:
             assert not sensor.is_detectable(target)
 
-        sensor.fov_angle = 2*np.pi
-        sensor.vertical_extent = np.pi
 
-        detections = sensor.measure({target}, noise=False)
-        detection = next(iter(detections))
-        assert np.allclose(target.state_vector,
-                           detection.measurement_model.inverse_function(detection))
+def test_ebr_detections(sensor, targets):
+    for pan, tilt in product(45*np.arange(8), 45*np.arange(5)-90):
+        sensor.dwell_centre = StateVector([np.radians(pan)])
+        sensor.tilt_centre = StateVector([np.radians(tilt)])
+        for target in targets:
+            detections = sensor.measure({target}, noise=False)
+            detection = next(iter(detections))
+            assert np.allclose(target.state_vector,
+                               detection.measurement_model.inverse_function(detection))

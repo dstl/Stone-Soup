@@ -163,7 +163,7 @@ class GOSPAMetric(MetricGenerator):
         """
         all_meas_timestamps = np.fromiter(
             (state.timestamp for state in measured_states),
-            dtype='datetime64[us]'
+            dtype='O'
         )
         meas_order = np.argsort(all_meas_timestamps)
         all_meas_timestamps = all_meas_timestamps[meas_order]
@@ -175,7 +175,7 @@ class GOSPAMetric(MetricGenerator):
 
         all_truth_timestamps = np.fromiter(
             (state.timestamp for state in truth_states),
-            dtype='datetime64[us]'
+            dtype='O'
         )
         truth_order = np.argsort(all_truth_timestamps)
         all_truth_timestamps = all_truth_timestamps[truth_order]

@@ -59,7 +59,8 @@ class _Plotter(ABC):
 
     @abstractmethod
     def plot_measurements(self, measurements, mapping, measurement_model=None,
-                          label="Measurements", **kwargs):
+                          label="Measurements", convert_measurements=True, show_clutter=True,
+                          **kwargs):
         raise NotImplementedError
 
     @abstractmethod
@@ -72,7 +73,7 @@ class _Plotter(ABC):
         raise NotImplementedError
 
     def _conv_measurements(self, measurements, mapping, measurement_model=None,
-                           convert_measurements=True) -> \
+                           convert_measurements=True, show_clutter=True) -> \
             tuple[dict[detection.Detection, StateVector], dict[detection.Clutter, StateVector]]:
         conv_detections = {}
         conv_clutter = {}
@@ -99,9 +100,9 @@ class _Plotter(ABC):
                 continue
 
             if isinstance(state, detection.Clutter):
-                # Plot clutter
-                conv_clutter[state] = (*state_vec, )
-
+                if show_clutter:
+                    # Plot clutter
+                    conv_clutter[state] = (*state_vec, )
             elif isinstance(state, detection.Detection):
                 # Plot detections
                 conv_detections[state] = (*state_vec, )
@@ -233,7 +234,8 @@ class Plotter(_Plotter):
         return artists
 
     def plot_measurements(self, measurements, mapping, measurement_model=None,
-                          label="Measurements", convert_measurements=True, **kwargs):
+                          label="Measurements", convert_measurements=True, show_clutter=True,
+                          **kwargs):
         """Plots measurements
 
         Plots detections and clutter, generating a legend automatically. Detections are plotted as
@@ -257,6 +259,8 @@ class Plotter(_Plotter):
         convert_measurements : bool
             Should the measurements be converted from measurement space to state space before
             being plotted. Default is True
+        show_clutter : bool
+            Should the clutter measurements be plotted. Default is True
         \\*\\*kwargs: dict
             Additional arguments to be passed to plot function for detections. Defaults are
             ``marker='o'`` and ``color='b'``.
@@ -287,7 +291,8 @@ class Plotter(_Plotter):
         plot_detections, plot_clutter = self._conv_measurements(measurements_set,
                                                                 mapping,
                                                                 measurement_model,
-                                                                convert_measurements)
+                                                                convert_measurements,
+                                                                show_clutter)
 
         artists = []
         if plot_detections:
@@ -1139,7 +1144,8 @@ class Plotterly(_Plotter):
                     **scatter_kwargs)
 
     def plot_measurements(self, measurements, mapping, measurement_model=None,
-                          label="Measurements", convert_measurements=True, **kwargs):
+                          label="Measurements", convert_measurements=True, show_clutter=True,
+                          **kwargs):
         """Plots measurements
 
         Plots detections and clutter, generating a legend automatically. Detections are plotted as
@@ -1163,6 +1169,8 @@ class Plotterly(_Plotter):
         convert_measurements: bool
             Should the measurements be converted from measurement space to state space before
             being plotted. Default is True
+        show_clutter : bool
+            Should the clutter measurements be plotted. Default is True
         \\*\\*kwargs: dict
             Additional arguments to be passed to scatter function for detections. Defaults are
             ``marker=dict(color="#636EFA")``.
@@ -1187,7 +1195,8 @@ class Plotterly(_Plotter):
         plot_detections, plot_clutter = self._conv_measurements(measurements_set,
                                                                 mapping,
                                                                 measurement_model,
-                                                                convert_measurements)
+                                                                convert_measurements,
+                                                                show_clutter)
 
         if plot_detections:
             if plot_clutter:
@@ -1727,7 +1736,8 @@ class PolarPlotterly(_Plotter):
                                  range_mapping=range_mapping, label=label, **truths_kwargs)
 
     def plot_measurements(self, measurements, mapping, measurement_model=None,
-                          label="Measurements", convert_measurements=True, **kwargs):
+                          label="Measurements", convert_measurements=True, show_clutter=True,
+                          **kwargs):
         """Plots measurements
 
         Plots detections and clutter, generating a legend automatically. Detections are plotted as
@@ -1750,6 +1760,8 @@ class PolarPlotterly(_Plotter):
             Label for the measurements.  Default is "Measurements".
         convert_measurements: bool
             Should the measurements be converted before being plotted. Default is True.
+        show_clutter : bool
+            Should the clutter measurements be plotted. Default is True
         \\*\\*kwargs: dict
             Additional arguments to be passed to scatter function for detections. Defaults are
             ``marker=dict(color="#636EFA")``.
@@ -1772,7 +1784,8 @@ class PolarPlotterly(_Plotter):
         plot_detections, plot_clutter = self._conv_measurements(measurements_set,
                                                                 mapping,
                                                                 measurement_model,
-                                                                convert_measurements)
+                                                                convert_measurements,
+                                                                show_clutter)
 
         angle_mapping = 0
         if len(mapping) > 1:
@@ -2054,7 +2067,8 @@ class AnimationPlotter(_Plotter):
             ))
 
     def plot_measurements(self, measurements, mapping, measurement_model=None,
-                          label="Measurements", convert_measurements=True, **kwargs):
+                          label="Measurements", convert_measurements=True, show_clutter=True,
+                          **kwargs):
         """Plots measurements
 
         Plots detections and clutter, generating a legend automatically. Detections are plotted as
@@ -2078,6 +2092,8 @@ class AnimationPlotter(_Plotter):
         convert_measurements: bool
             Should the measurements be converted from measurement space to state space before
             being plotted. Default is True
+        show_clutter : bool
+            Should the clutter measurements be plotted. Default is True
         \\*\\*kwargs: dict
             Additional arguments to be passed to plot function for detections. Defaults are
             ``marker='o'`` and ``color='b'``.
@@ -2103,7 +2119,8 @@ class AnimationPlotter(_Plotter):
         plot_detections, plot_clutter = self._conv_measurements(measurements_set,
                                                                 mapping,
                                                                 measurement_model,
-                                                                convert_measurements)
+                                                                convert_measurements,
+                                                                show_clutter)
 
         if plot_detections:
             if plot_clutter:
@@ -2670,8 +2687,8 @@ class AnimatedPlotterly(_Plotter):
         self.plotting_function_called = True
 
     def plot_measurements(self, measurements, mapping, measurement_model=None,
-                          resize=True, label="Measurements",
-                          convert_measurements=True, **kwargs):
+                          resize=True, label="Measurements", convert_measurements=True,
+                          show_clutter=True, **kwargs):
         """Plots measurements
 
         Plots detections and clutter, generating a legend automatically. Detections are plotted as
@@ -2697,6 +2714,8 @@ class AnimatedPlotterly(_Plotter):
         convert_measurements : bool
             Should the measurements be converted from measurement space to state space before
             being plotted. Default is True
+        show_clutter : bool
+            Should the clutter measurements be plotted. Default is True
         \\*\\*kwargs: dict
             Additional arguments to be passed to scatter function for detections. Defaults are
             ``marker=dict(color="#636EFA")``.
@@ -2719,7 +2738,8 @@ class AnimatedPlotterly(_Plotter):
         plot_detections, plot_clutter = self._conv_measurements(measurements_set,
                                                                 mapping,
                                                                 measurement_model,
-                                                                convert_measurements)
+                                                                convert_measurements,
+                                                                show_clutter)
         plot_combined = {'Detection': plot_detections,
                          'Clutter': plot_clutter}  # for later reference
 

@@ -88,9 +88,10 @@ sphinx_gallery_conf = {
 
 intersphinx_mapping = {
     'python': ('https://docs.python.org/{.major}'.format(sys.version_info), None),
-    'matplotlib': ('https://matplotlib.org/', None),
-    'numpy': ('https://docs.scipy.org/doc/numpy', None),
-    'scipy': ('https://docs.scipy.org/doc/scipy/reference', None),
+    'matplotlib': ('https://matplotlib.org/stable', None),
+    'numpy': ('https://numpy.org/doc/stable', None),
+    'scipy': ('https://docs.scipy.org/doc/scipy', None),
+    'networkx': ('https://networkx.org/documentation/stable', None),
 }
 
 # Add any paths that contain templates here, relative to this directory.
@@ -110,7 +111,7 @@ toc_object_entries = False
 
 # General information about the project.
 project = 'Stone Soup'
-copyright = '2017-2024 Stone Soup contributors'
+copyright = '2017-2025 Stone Soup contributors'
 author = 'Dstl'
 
 # The version info for the project you're documenting, acts as replacement for

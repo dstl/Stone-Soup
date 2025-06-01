@@ -10,6 +10,8 @@ from ..types.numeric import Probability
 import itertools
 import numpy as np
 
+from ._ehm import EHMTree, TrackClusterer
+
 
 class PDA(DataAssociator):
     """Probabilistic Data Association (PDA)
@@ -387,3 +389,75 @@ class JPDAwithLBP(JPDA):
             new_hypotheses[track] = MultipleHypothesis(single_measurement_hypotheses, True, 1)
 
         return new_hypotheses
+
+
+class JPDAwithEHM(JPDA):
+    r"""Joint Probabilistic Data Association with Efficient Hypothesis Management (EHM)
+
+    This is a faster alternative of the standard :class:`~.JPDA` algorithm, which makes use of
+    Efficient Hypothesis Management (EHM) to compute the exact marginal association probabilities
+    of tracks to measurements. See [#]_ for further details.
+
+    References
+    ----------
+    .. [#] S. Maskell, M. Briers, and R. Wright. "Fast mutual exclusion." Signal and Data
+       Processing of Small Targets 2004. Vol. 5428. SPIE, 2004.
+    """
+
+    def associate(self, tracks, detections, timestamp, **kwargs):
+
+        # Calculate MultipleHypothesis for each Track over all
+        # available Detections
+        hypotheses = self.generate_hypotheses(tracks, detections, timestamp, **kwargs)
+
+        # Partition tracks into independent clusters and order tracks in each cluster
+        clusters = TrackClusterer(hypotheses)
+
+        # Update the hypotheses with the new association probabilities for each cluster
+        new_hypotheses = dict()
+        for cluster in clusters.clustered_hypotheses:
+
+            # Run EHM2 on cluster and get cluster hypotheses with new probabilities
+            tree = self._get_tree(cluster)
+            cluster_hypotheses = tree.get_posterior_hypotheses()
+
+            # Update hypotheses for each track in the cluster
+            for track, new_track_hypotheses in cluster_hypotheses.items():
+
+                single_measurement_hypotheses = list()
+                for this_hypothesis, new_probability in new_track_hypotheses:
+                    single_measurement_hypotheses.append(
+                        SingleProbabilityHypothesis(
+                            this_hypothesis.prediction,
+                            this_hypothesis.measurement,
+                            measurement_prediction=this_hypothesis.measurement_prediction,
+                            probability=new_probability))
+
+                new_hypotheses[track] = MultipleHypothesis(single_measurement_hypotheses, True, 1)
+
+        return new_hypotheses
+
+    @staticmethod
+    def _get_tree(cluster):
+        return EHMTree(cluster, make_tree=False)
+
+
+class JPDAwithEHM2(JPDAwithEHM):
+    r"""Joint Probabilistic Data Association with Efficient Hypothesis Management 2 (EHM2)
+
+    This is a faster alternative of the standard :class:`~.JPDA` algorithm, which makes use of
+    Efficient Hypothesis Management 2 (EHM2) to compute the exact marginal association
+    probabilities of tracks to measurements. EHM2 takes advantage of conditional independence of
+    track-measurement pairs to achieve better computational performance than EHM in certain
+    scenarios. See [#]_ for further details.
+
+    References
+    ----------
+    .. [#] P. Horridge and S. Maskell, "Real-Time Tracking Of Hundreds Of Targets With Efficient
+       Exact JPDAF Implementation," 2006 9th International Conference on Information Fusion,
+       Florence, Italy, 2006, pp. 1-8
+    """
+
+    @staticmethod
+    def _get_tree(cluster):
+        return EHMTree(cluster, make_tree=True)

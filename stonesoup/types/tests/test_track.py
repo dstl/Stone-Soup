@@ -5,7 +5,8 @@ import numpy as np
 import pytest
 
 from ..detection import Detection
-from ..hypothesis import SingleHypothesis
+from ..hypothesis import SingleHypothesis, SingleProbabilityHypothesis, SingleDistanceHypothesis
+from ..multihypothesis import MultipleHypothesis
 from ..numeric import Probability
 from ..state import State, GaussianState, ParticleState
 from ..track import Track
@@ -181,6 +182,43 @@ def test_track_metadata():
            {'colour': 'green', 'side': 'enemy', 'speed': 'fast', 'size': 'small'}
 
 
+def test_track_metadata_multi():
+    track = Track(init_metadata={'colour': 'blue'})
+
+    assert track.metadata == {'colour': 'blue'}
+    assert not track.metadatas
+
+    state = Update(hypothesis=MultipleHypothesis([
+        SingleProbabilityHypothesis(
+            None,
+            Detection(np.array([[0]]), metadata={'colour': 'red'}),
+            probability=0.8),
+        SingleProbabilityHypothesis(
+            None,
+            Detection(np.array([[0]]), metadata={'colour': 'green', 'side': 'ally'}),
+            probability=0.2),
+    ]))
+    track.append(state)
+    assert track.metadata == {'colour': 'red', 'side': 'ally'}
+    assert len(track.metadatas) == 1
+    assert track.metadata == track.metadatas[-1]
+
+    state = Update(hypothesis=MultipleHypothesis([
+        SingleDistanceHypothesis(
+            None,
+            Detection(np.array([[0]]), metadata={'colour': 'maroon'}),
+            distance=1),
+        SingleDistanceHypothesis(
+            None,
+            Detection(np.array([[0]]), metadata={'colour': 'lime'}),
+            distance=2),
+    ]))
+    track.append(state)
+    assert track.metadata == {'colour': 'maroon', 'side': 'ally'}
+    assert len(track.metadatas) == 2
+    assert track.metadata == track.metadatas[-1]
+
+
 def test_copy():
     metadatas = [{'update_number': i} for i in range(3)]
 
@@ -201,7 +239,7 @@ def test_copy():
         assert original_state is copied_state
 
     for original_metadata, copied_metadata in zip(track.metadatas, copied_track.metadatas):
-        assert original_metadata is copied_metadata
+        assert original_metadata == copied_metadata
 
     assert len(track) == 3
     assert len(copied_track) == 3

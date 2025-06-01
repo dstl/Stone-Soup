@@ -1,29 +1,24 @@
 import datetime
 
+import pytest
 import numpy as np
+
 from ..nonlinear import ConstantTurn
 from ....types.state import State
 
 
-def test_ctmodel(CT_model):
-    """ ConstantTurn Transition Model test """
+@pytest.mark.parametrize('sign', [1, -1])
+def test_nlct(CT_model, sign):
     state = State(np.array([[3.0], [1.0], [2.0], [1.0], [-0.05]]))
     linear_noise_coeffs = np.array([0.1, 0.1])
     turn_noise_coeff = 0.01
-    base(CT_model, ConstantTurn, state, linear_noise_coeffs, turn_noise_coeff)
-
-
-def base(CT_model, model, state, linear_noise_coeffs, turn_noise_coeff):
-    """ Base test for n-dimensional ConstantAcceleration Transition Models """
-
     # Create an ConstantTurn model object
-    model = model
-    model_obj = model(linear_noise_coeffs=linear_noise_coeffs,
-                      turn_noise_coeff=turn_noise_coeff)
+    model_obj = ConstantTurn(linear_noise_coeffs=linear_noise_coeffs,
+                             turn_noise_coeff=turn_noise_coeff)
 
     # State related variables
     old_timestamp = datetime.datetime.now()
-    timediff = 1  # 1sec
+    timediff = 1 * sign  # 1sec
     new_timestamp = old_timestamp + datetime.timedelta(seconds=timediff)
     time_interval = datetime.timedelta(seconds=timediff)
 

@@ -31,8 +31,14 @@ from ...regulariser.particle import MCMCRegulariser
 
 
 def dummy_constraint_function(particles):
-    part_indx = particles.state_vector[1, :] > 20
+    part_indx = particles.state_vector[1, :] > 30
     return part_indx
+
+
+@pytest.fixture(params=[True, False])
+def constraint_func(request):
+    if request.param:
+        return dummy_constraint_function
 
 
 @pytest.fixture(params=(
@@ -103,15 +109,12 @@ def test_particle(updater):
     assert updated_state.hypothesis.measurement_prediction == measurement_prediction
     assert updated_state.hypothesis.prediction == prediction
     assert updated_state.hypothesis.measurement == measurement
-    if hasattr(updater, 'constraint_func') and updater.constraint_func is not None:
-        assert np.allclose(updated_state.mean, StateVectors([[15.0], [15.0]]), rtol=2e-2)
-    else:
-        if not hasattr(updater, 'regulariser') or updater.regulariser is None:
-            # Skip state check for regularised version
-            assert np.allclose(updated_state.mean, StateVectors([[15.0], [20.0]]), rtol=5e-2)
+    if (hasattr(updater, 'constraint_func') and updater.constraint_func is not None) \
+            or (not hasattr(updater, 'regulariser') or updater.regulariser is None):
+        assert np.allclose(updated_state.mean, StateVectors([[15.0], [20.0]]), rtol=5e-2)
 
 
-def test_bernoulli_particle():
+def test_bernoulli_particle(constraint_func):
     timestamp = datetime.datetime.now()
     timediff = 2
     new_timestamp = timestamp + datetime.timedelta(seconds=timediff)
@@ -182,7 +185,8 @@ def test_bernoulli_particle():
                                        clutter_rate=2,
                                        clutter_distribution=1/10,
                                        nsurv_particles=9,
-                                       detection_probability=detection_probability)
+                                       detection_probability=detection_probability,
+                                       constraint_func=constraint_func)
 
     hypotheses = MultipleHypothesis(
         [SingleHypothesis(prediction, detection) for detection in detections])

@@ -33,7 +33,7 @@ class CT_helper:
         """
         q_x, q_y = linear_noise_coeffs
         q = turn_noise_coeff
-        dt = time_interval.total_seconds()
+        dt = abs(time_interval.total_seconds())
 
         Q = np.array([[dt**3 / 3., dt**2 / 2.],
                       [dt**2 / 2., dt]])

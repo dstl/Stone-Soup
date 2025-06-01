@@ -38,6 +38,12 @@ class Prediction(Type, CreatableFromState):
         else:
             return self._property_prior
 
+    def __getstate__(self):
+        state = super().__getstate__().copy()
+        # Resolve weakref
+        state['_property_prior'] = self.prior
+        return state
+
 
 class MeasurementPrediction(Type, CreatableFromState):
     """ Prediction type

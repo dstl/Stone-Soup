@@ -10,9 +10,10 @@ from stonesoup.movable import FixedMovable, MovingMovable
 from stonesoup.sensor.sensor import Sensor
 from stonesoup.types.angle import Bearing
 from stonesoup.types.array import StateVector
-from stonesoup.platform import MovingPlatform, FixedPlatform, MultiTransitionMovingPlatform
+from stonesoup.platform import MovingPlatform, FixedPlatform, \
+    MultiTransitionMovingPlatform, PathBasedPlatform
 from ...types.state import State
-from ...types.groundtruth import GroundTruthPath
+from ...types.groundtruth import GroundTruthPath, GroundTruthState
 
 
 def test_base():
@@ -325,39 +326,33 @@ def test_platform_orientation_2d(state, orientation):
     assert np.allclose(platform.orientation, orientation)
 
 
-def test_orientation_error():
-    # moving platform without velocity defined
+def test_low_velocity_orientation():
     timestamp = datetime.datetime.now()
-    platform_state = State(np.array([[2],
-                                     [2],
-                                     [0]]),
-                           timestamp)
-    platform = MovingPlatform(states=platform_state, transition_model=None,
-                              position_mapping=[0, 1, 2])
-    with pytest.raises(AttributeError):
-        _ = platform.orientation
-    platform_state = State(np.array([[2],
-                                     [0],
-                                     [2],
-                                     [0],
-                                     [2],
-                                     [0]]),
-                           timestamp)
-    platform = MovingPlatform(states=platform_state, transition_model=None,
-                              position_mapping=[0, 2, 4])
-    with pytest.raises(AttributeError):
-        _ = platform.orientation
 
-    platform_state = State(np.array([[2],
-                                     [0],
-                                     [2],
-                                     [0]]),
-                           timestamp)
+    platform_state_vector = StateVector([0, 0, 0, 0, 0, 0])
+    platform_state = State(platform_state_vector, timestamp)
+
+    transition_model = CombinedLinearGaussianTransitionModel(
+        [ConstantVelocity(0.), ConstantVelocity(0.), ConstantVelocity(0.)])
+
     platform = MovingPlatform(states=platform_state,
-                              transition_model=None,
-                              position_mapping=[0, 2])
-    with pytest.raises(AttributeError):
-        _ = platform.orientation
+                              position_mapping=(0, 2, 4),
+                              velocity_mapping=(1, 3, 5),
+                              transition_model=transition_model)
+    assert np.allclose(platform.orientation, [[0], [0], [0]])
+
+    timediff = 2  # 2sec
+    new_timestamp = timestamp + datetime.timedelta(seconds=timediff)
+    platform.move(new_timestamp)
+    # platform has moved diagonally, velocity is low
+    platform.state.state_vector = StateVector([1, 1e-7, 1, 0, 0, 0])
+    assert np.allclose(platform.orientation, [[0], [0], [0.78539816]])
+
+    new_timestamp2 = timestamp + datetime.timedelta(seconds=timediff)
+    platform.move(new_timestamp2)
+    # platform has moved in x direction by small distance, velocity is low
+    platform.state.state_vector = StateVector([1+1e-7, 1e-7, 1, 0, 0, 0])
+    assert np.allclose(platform.orientation, [[0], [0], [0.78539816]])
 
 
 # noinspection PyPropertyAccess
@@ -822,3 +817,36 @@ def test_setting_movement_controller_sensors():
     platform.movement_controller = moving
 
     assert platform.movement_controller is sensor.movement_controller
+
+
+start_time = datetime.datetime.now().replace(second=0, microsecond=0)
+gt = GroundTruthPath(
+    [GroundTruthState([-i, 1], timestamp=start_time + datetime.timedelta(seconds=2*i))
+     for i in range(2)])
+
+
+@pytest.mark.parametrize("states", [None, [gt[0]]])
+def test_path(states):
+    platform = PathBasedPlatform(path=gt,
+                                 states=states,
+                                 position_mapping=[0],
+                                 transition_model=None)
+    platform.move(timestamp=start_time + datetime.timedelta(seconds=1))
+    assert len(platform.states) == 2
+    assert np.allclose(platform.states[-1].state_vector, GroundTruthState([-0.5, 1]).state_vector)
+
+    with pytest.raises(
+            IndexError, match="timestamp not found in states"):
+        gt[platform.states[-1].timestamp]
+
+
+def test_path_no_states_no_tm():
+    platform = PathBasedPlatform(path=gt,
+                                 position_mapping=[0])
+    platform.move(timestamp=start_time + datetime.timedelta(seconds=1))
+    assert len(platform.states) == 2
+    assert np.allclose(platform.states[-1].state_vector, GroundTruthState([-0.5, 1]).state_vector)
+
+    with pytest.raises(
+            IndexError, match="timestamp not found in states"):
+        gt[platform.states[-1].timestamp]

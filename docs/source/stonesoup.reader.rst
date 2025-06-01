@@ -55,3 +55,7 @@ Astronomical
 .. automodule:: stonesoup.reader.astronomical
     :show-inheritance:
 
+Pandas DataFrame
+----------------
+.. automodule:: stonesoup.reader.pandas_reader
+    :show-inheritance:

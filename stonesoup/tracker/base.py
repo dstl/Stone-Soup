@@ -55,6 +55,25 @@ class _TrackerMixInNext(_TrackerMixInBase):
 
     def update_tracker(self, time: datetime.datetime, detections: set[Detection]) \
             -> tuple[datetime.datetime, set[Track]]:
+        """Use `time` and `detections` to create tracks.
+
+        This is an alternative to iterating over the tracker, instead the
+        tracker can be progressed by multiple calls to this method.
+
+        Parameters
+        ----------
+        time : :class:`datetime.datetime`
+            Datetime of current time step
+        detections: set of :class:`~.Detection`
+            Detections existing in the time step to be tracked
+
+        Returns
+        -------
+        : :class:`datetime.datetime`
+            Datetime of current time step
+        : set of :class:`~.Track`
+            Tracks existing in the time step
+        """
 
         placeholder_detector_iter = self.detector_iter
         self.detector_iter = iter([(time, detections)])
@@ -73,4 +92,22 @@ class _TrackerMixInUpdate(_TrackerMixInBase):
     @abstractmethod
     def update_tracker(self, time: datetime.datetime, detections: set[Detection]) \
             -> tuple[datetime.datetime, set[Track]]:
-        """Use `time` and `detections` to create tracks."""
+        """Use `time` and `detections` to create tracks.
+
+        This is an alternative to iterating over the tracker, instead the
+        tracker can be progressed by multiple calls to this method.
+
+        Parameters
+        ----------
+        time : :class:`datetime.datetime`
+            Datetime of current time step
+        detections: set of :class:`~.Detection`
+            Detections existing in the time step to be tracked
+
+        Returns
+        -------
+        : :class:`datetime.datetime`
+            Datetime of current time step
+        : set of :class:`~.Track`
+            Tracks existing in the time step
+        """
