@@ -223,6 +223,12 @@ class CircleSamplePositionActionGenerator(SamplePositionActionGenerator):
                                      end_time=self.end_time,
                                      target_value=StateVector(target_value))
 
+    def __contains__(self, item):
+        if isinstance(item, MovePositionAction):
+            item = item.target_value
+        distance = np.sqrt(sum((item - self.current_value)**2))
+        return distance <= self.maximum_travel + self.epsilon
+
 
 class MaxSpeedPositionActionGenerator(MovePositionActionGenerator):
     """Action generator which generates actions uniformly within a circle around the current
