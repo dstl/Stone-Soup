@@ -415,7 +415,46 @@ class StochasticIntegrationSmoother(KalmanSmoother):
 
 
 class IPLSKalmanSmoother(UnscentedKalmanSmoother):
-    r"""The unscented implementation of the IPLS algorithm."""
+    r"""
+    The Iterated Posterior Linearisation Smoother (IPLS), implemented using Unscented Transform.
+
+    This smoother is based on performing statistical linear regression (SLR) of the dynamic and
+    measurement functions with respect to the current posterior approximation. It builds on
+    the unscented Kalman smoother by iteratively refining the affine approximation of the
+    non-linear system, and thus improving the smoothing accuracy over iterations.
+
+    The key idea is to relinearise both the transition and measurement models using updated
+    posterior moments obtained from the previous smoothing iteration. This allows all
+    available measurements to influence the affine approximation, rather than just those
+    prior to the time step in question.
+
+    The smoothing process starts with an initial pass using the Unscented Kalman Smoother,
+    and then repeats the following loop `n_iterations` times:
+
+    1. Linearise the transition and measurement models around the current smoothed trajectory
+       using SLR with sigma-points.
+    2. Apply the standard Kalman smoother to the track using the updated affine models.
+    3. Replace the previous trajectory with the smoothed one and repeat.
+
+    The dynamic and measurement functions are linearised as:
+
+    .. math::
+
+        f_k(x) &\approx F_k x + a_k + \epsilon_k \\
+        h_k(x) &\approx H_k x + b_k + \xi_k
+
+    where :math:`\epsilon_k \sim \mathcal{N}(0, \Lambda_k)` and
+    :math:`\xi_k \sim \mathcal{N}(0, \Omega_k)` account for the linearisation error.
+
+    This smoother is suitable for non-linear systems with additive Gaussian noise and
+    unimodal posteriors. It is derivative-free and only requires the ability to simulate
+    the dynamic and measurement functions.
+
+    References
+    ----------
+    [1] A. F. García-Fernández, L. Svensson, S. Särkkä, "Iterated Posterior Linearization Smoother",
+        IEEE Transactions on Automatic Control, vol. 62, no. 4, 2017.
+    """
 
     measurement_model: MeasurementModel = Property(default=None,
                                                    doc="The measurement model to be used.")

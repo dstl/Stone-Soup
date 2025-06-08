@@ -106,10 +106,10 @@ class GeneralLinearGaussian(LinearGaussian):
 
     .. math::
 
-      y_t = H_k*x_t + b_k + v_k,\ \ \ \   v(k)\sim \mathcal{N}(0,R)
+      y_k = H_k*x_k + b_k + v_k,\ \ \ \   v_k\sim \mathcal{N}(0,R)
 
     where ``H_k`` is a (:py:attr:`~ndim_meas`, :py:attr:`~ndim_state`) \
-    matrix and ``v_k`` is Gaussian distributed.
+    matrix, ``b_k`` is a (:py:attr:`~ndim_meas`, 1) vector and ``v_k`` is Gaussian distributed.
 
     """
 

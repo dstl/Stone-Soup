@@ -143,8 +143,39 @@ ExtendedKalmanUpdater.register(DynamicallyIteratedEKFUpdater)
 
 
 class IPLFKalmanUpdater(UnscentedKalmanUpdater):
-    """
-    The update step of the IPLF algorithm.
+    r"""
+    The update step of the Iterated Posterior Linearisation Filter (IPLF) using Unscented Transform.
+
+    This method refines the standard Unscented Kalman Filter (UKF) update by iteratively improving
+    the local linearisation of the nonlinear measurement function around the current posterior
+    estimate. This leads to more accurate posterior distributions, particularly in cases where
+    the posterior is significantly non-Gaussian due to nonlinearity in the measurement model.
+
+    The algorithm proceeds as follows:
+
+    1. An initial posterior is computed using a standard UKF update.
+    2. The measurement function is relinearised with respect to the current posterior
+       (not the original prior), using statistical linear regression (SLR).
+    3. A new measurement update is performed using this refined approximation.
+    4. Steps 2 and 3 are repeated until either:
+        - the change between two consecutive posteriors, as measured by a divergence measure
+          (e.g. Kullback-Leibler divergence), falls below a given tolerance, or
+        - a maximum number of iterations is reached.
+
+    The linearised measurement model takes the form:
+
+    .. math::
+
+        h(x) \approx H x + b + \xi, \quad \xi \sim \mathcal{N}(0, \Omega)
+
+    where the parameters are determined by minimising the mean squared error between the
+    nonlinear and affine models under the current posterior distribution.
+
+    References
+    ----------
+    [1] García-Fernández, Á.F., Svensson, L., Morelande, M.R. and Särkkä, S., 2015. "Posterior
+    linearization filter: Principles and implementation using sigma points." in IEEE Transactions
+    on Signal Processing, 63(20), pp.5561–5573.
     """
 
     tolerance: float = Property(
