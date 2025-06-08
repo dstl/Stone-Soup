@@ -158,7 +158,6 @@ def test_IPLF():
 
     hypothesis = SingleHypothesis(prediction=prediction, measurement=measurement)
 
-    sub_updater = UnscentedKalmanUpdater(measurement_model)
     sub_predictor = UnscentedKalmanPredictor(transition_model)
 
     updater = IPLFKalmanUpdater()
