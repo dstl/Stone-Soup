@@ -335,44 +335,52 @@ def test_dotproduct(state_vector1, state_vector2):
                 [np.eye(2), np.eye(2), np.eye(2)],  # covars
                 np.array([1 / 3] * 3),  # weights
                 20  # size
-        ), (
+        ),
+        (
             StateVectors(np.array([[20, 30, 40, 50], [20, 30, 40, 50]])),  # means
             [np.eye(2), np.eye(2), np.eye(2), np.eye(2)],  # covars
             np.array([1 / 4] * 4),  # weights
             20  # size
-    ), (
+        ),
+        (
             [np.array([10, 10]), np.array([20, 20]), np.array([30, 30])],  # means
             np.array([np.eye(2), np.eye(2), np.eye(2)]),  # covars
             np.array([1 / 3] * 3),  # weights
             20  # size
-    ), (
+        ),
+        (
             [StateVector(np.array([10, 10])), StateVector(np.array([20, 20])),
              StateVector(np.array([30, 30]))],  # means
             [np.eye(2), np.eye(2), np.eye(2)],  # covars
             np.array([1 / 3] * 3),  # weights
             20  # size
-    ), (
+        ),
+        (
             StateVector(np.array([10, 10])),  # means
             [np.eye(2)],  # covars
             np.array([1]),  # weights
             20  # size
-    ), (
+        ),
+        (
             np.array([10, 10]),  # means
             [np.eye(2)],  # covars
             np.array([1]),  # weights
             20  # size
-    ), (
+        ),
+        (
             [np.array([10, 10]), np.array([20, 20]), np.array([30, 30])],  # means
             [np.eye(2), np.eye(2), np.eye(2)],  # covars
             None,  # weights
             20  # size
-    ), (
+        ),
+        (
             StateVectors(np.array([[20, 30, 40, 50], [20, 30, 40, 50]])),  # means
             [np.eye(2), np.eye(2), np.eye(2), np.eye(2)],  # covars
             None,  # weights
             20  # size
-    )
-    ], ids=["mean_list", "mean_statevectors", "3d_covar_array", "mean_statevector_list",
+        )
+    ],
+    ids=["mean_list", "mean_statevectors", "3d_covar_array", "mean_statevector_list",
             "single_statevector_mean", "single_ndarray_mean", "no_weight_mean_list",
             "no_weight_mean_statevectors"]
 )
@@ -418,6 +426,7 @@ def test_slr_definition():
     assert np.allclose(omega_cov_matrix,
                        np.array([[4.32261080e+00, -8.39869232e-01],
                                  [-8.39869232e-01, -4.50359965e+15]]))
+
 
 @pytest.mark.parametrize(
     "mean, covar, alp",

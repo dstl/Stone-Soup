@@ -10,7 +10,7 @@ from .base import TransitionModel, CombinedGaussianTransitionModel
 from ..base import (LinearModel, GaussianModel, TimeVariantModel,
                     TimeInvariantModel)
 from ...base import Property
-from ...types.array import Matrix, CovarianceMatrix
+from ...types.array import CovarianceMatrix
 from ...types.state import StateVector
 
 

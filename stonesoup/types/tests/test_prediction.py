@@ -312,7 +312,7 @@ def test_kernel_particle_state_prediction():
     assert np.array_equal(np.diag(weights), prediction.kernel_covar)
     assert timestamp == prediction.timestamp
 
-    
+
 def test_augmentedgaussianstateprediction():
     """ AugmentedGaussianStatePrediction test """
 

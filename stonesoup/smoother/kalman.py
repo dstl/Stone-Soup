@@ -20,6 +20,7 @@ from ..types.update import Update
 from ..updater.kalman import KalmanUpdater, UnscentedKalmanUpdater
 from .base import Smoother
 
+
 class KalmanSmoother(Smoother):
     r"""
     The linear-Gaussian or Rauch-Tung-Striebel smoother, colloquially the Kalman smoother [1]_. The
@@ -416,7 +417,8 @@ class StochasticIntegrationSmoother(KalmanSmoother):
 class IPLSKalmanSmoother(UnscentedKalmanSmoother):
     r"""The unscented implementation of the IPLS algorithm."""
 
-    measurement_model: MeasurementModel = Property(default=None, doc="The measurement model to be used.")
+    measurement_model: MeasurementModel = Property(default=None,
+                                                   doc="The measurement model to be used.")
     n_iterations: int = Property(
         default=5,
         doc="Number of smoothing iterations.")
@@ -486,7 +488,8 @@ class IPLSKalmanSmoother(UnscentedKalmanSmoother):
                     transition_model=transition_model,
                     timestamp=current_state.timestamp
                 )
-                f_matrix, a_vector, lambda_cov_matrix = slr_definition(previous_state, trans_fun, force_symmetry=True)
+                f_matrix, a_vector, lambda_cov_matrix = slr_definition(
+                    previous_state, trans_fun, force_symmetry=True)
 
                 # Perform linear time update (transition)
                 time_interval = current_state.timestamp - previous_state.timestamp
@@ -509,7 +512,8 @@ class IPLSKalmanSmoother(UnscentedKalmanSmoother):
                         self.measurement_prediction_no_noise,
                         measurement_model=measurement_model
                     )
-                    h_matrix, b_vector, omega_cov_matrix = slr_definition(current_state, meas_fun, force_symmetry=True)
+                    h_matrix, b_vector, omega_cov_matrix = slr_definition(
+                        current_state, meas_fun, force_symmetry=True)
                     r_matrix = measurement_model.covar()
 
                     # Perform linear measurement update
@@ -521,10 +525,11 @@ class IPLSKalmanSmoother(UnscentedKalmanSmoother):
                         noise_covar=omega_cov_matrix+r_matrix
                     )
 
-                    # Get the actual measurement plus its prediction for the above model using the predicted pdf
+                    # Get the actual measurement plus its prediction using the predicted pdf
                     measurement = current_state.hypothesis.measurement
                     measurement.measurement_model = measurement_model_linearized
-                    hypothesis = SingleHypothesis(prediction=prediction_linear, measurement=measurement)
+                    hypothesis = SingleHypothesis(prediction=prediction_linear,
+                                                  measurement=measurement)
                     update_linear = KalmanUpdater().update(hypothesis)
                     # restores the model (ensures visualisation is OK)
                     update_linear.hypothesis.measurement.measurement_model = measurement_model

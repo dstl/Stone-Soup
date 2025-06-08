@@ -273,6 +273,8 @@ class CompositeMeasurementPrediction(MeasurementPrediction, CompositeState):
 
 MeasurementPrediction.register(CompositeState)  # noqa: E305
 
+
 class AugmentedGaussianStatePrediction(Prediction, AugmentedGaussianState):
-    """ Prediction class for AugmentedGaussianState. The existence of this class harmonises how state predictions
-    are reported, to be in line with measurement predictions, which also carry information on cross-covariance. """
+    """ Prediction class for AugmentedGaussianState. The existence of this class harmonises
+     how state predictions are reported, to be in line with measurement predictions, which
+     also carry information on cross-covariance. """

@@ -97,6 +97,7 @@ class LinearGaussian(MeasurementModel, LinearModel, GaussianModel):
 
         return self.noise_covar
 
+
 class GeneralLinearGaussian(LinearGaussian):
     r"""This is an implementation of a time-invariant Linear-Gaussian Measurement Model,
     which allows for an explicitly specified measurement matrix and a bias term.

@@ -5,7 +5,7 @@ import numpy as np
 from ...models.transition.linear import ConstantVelocity, LinearTransitionModel
 from ...predictor.kalman import (
     KalmanPredictor, ExtendedKalmanPredictor, UnscentedKalmanPredictor,
-    SqrtKalmanPredictor, CubatureKalmanPredictor, StochasticIntegrationPredictor, 
+    SqrtKalmanPredictor, CubatureKalmanPredictor, StochasticIntegrationPredictor,
     AugmentedKalmanPredictor, AugmentedUnscentedKalmanPredictor
 )
 from ...types.prediction import GaussianStatePrediction
@@ -72,8 +72,8 @@ from ...types.track import Track
                       [0.0013, 0.0365]])
         )
     ],
-    ids=["standard", "extended", "unscented", "cubature", "stochasticIntegration", "augmented_kalman",
-         "augmented_unscented_kalman"]
+    ids=["standard", "extended", "unscented", "cubature", "stochasticIntegration",
+         "augmented_kalman", "augmented_unscented_kalman"]
 )
 def test_kalman(PredictorClass, transition_model,
                 prior_mean, prior_covar):

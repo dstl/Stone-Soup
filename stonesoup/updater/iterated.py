@@ -17,6 +17,7 @@ from ..types.track import Track
 from ..functions import slr_definition
 from ..models.measurement.linear import GeneralLinearGaussian
 
+
 class DynamicallyIteratedUpdater(Updater):
     """
     Wrapper around a :class:`~.Predictor`, :class:`~.Updater` and :class:`~.Smoother`. This
@@ -152,26 +153,29 @@ class IPLFKalmanUpdater(UnscentedKalmanUpdater):
     measure: Measure = Property(
         default=KLDivergence(),
         doc="The measure to use to test the iteration stopping criterion. Defaults to the "
-            "GaussianKullbackLeiblerDivergence between current and prior posterior state estimate.")
+            "KLDivergence between current and prior posterior state estimate.")
     max_iterations: int = Property(
         default=5,
         doc="Number of iterations before while loop is exited and a non-convergence warning is "
             "returned")
 
     def update(self, hypothesis, force_symmetry=True, **kwargs):
-        # Record the starting point (not a posterior here, rather a variable that stores an entry for KLD computation)
+        # Record the starting point
+        # (not a posterior here, rather a variable that stores an entry for KLD computation)
         prev_post_state = hypothesis.prediction  # Prior is only on the first step, later updated
 
         # Get the measurement model out of the measurement if it's there.
         # If not, use the one native to the updater (which might still be none).
-        measurement_model = self._check_measurement_model(hypothesis.measurement.measurement_model)
+        measurement_model = self._check_measurement_model(
+            hypothesis.measurement.measurement_model)
 
         # The first iteration is just the application of the UKF update.
-        updater = UnscentedKalmanUpdater(beta=self.beta, kappa=self.kappa, force_symmetric_covariance=True)
+        updater = UnscentedKalmanUpdater(beta=self.beta, kappa=self.kappa,
+                                         force_symmetric_covariance=True)
         hypothesis.measurement_prediction = self.predict_measurement(
             predicted_state=hypothesis.prediction,
             measurement_model=measurement_model
-        )  # UKF measurement prediction that relies on Unscented Transform and is required in the update
+        )  # UKF measurement prediction that relies on UT and is required in the update
         post_state = updater.update(hypothesis, **kwargs)
 
         # Now update the measurement prediction mean and loop
@@ -182,10 +186,13 @@ class IPLFKalmanUpdater(UnscentedKalmanUpdater):
                 # warnings.warn("IPLF update reached maximum number of iterations.")
                 break
 
-            # SLR is wrt to tne approximated posterior in post_state, not the original prior in hypothesis.prediction
-            meas_fun = partial(self.predict_measurement, measurement_model=measurement_model,
+            # SLR is wrt to tne approximated posterior in post_state,
+            # not the original prior in hypothesis.prediction
+            meas_fun = partial(self.predict_measurement,
+                               measurement_model=measurement_model,
                                measurement_noise=False)
-            h_matrix, b_vector, omega_cov_matrix = slr_definition(post_state, meas_fun, force_symmetry=force_symmetry)
+            h_matrix, b_vector, omega_cov_matrix = slr_definition(
+                post_state, meas_fun, force_symmetry=force_symmetry)
             r_matrix = measurement_model.covar()
 
             measurement_model_linearized = GeneralLinearGaussian(

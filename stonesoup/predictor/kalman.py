@@ -7,10 +7,11 @@ from ..types.array import CovarianceMatrix, StateVector
 from .base import Predictor
 from ._utils import predict_lru_cache
 from ..base import Property
-from ..types.prediction import Prediction, SqrtGaussianStatePrediction, AugmentedGaussianStatePrediction
+from ..types.prediction import (Prediction, SqrtGaussianStatePrediction,
+                                AugmentedGaussianStatePrediction)
 from ..models.base import LinearModel
 from ..models.transition import TransitionModel
-from ..models.transition.linear import LinearGaussianTransitionModel
+from ..models.transition.linear import LinearGaussianTransitionModel, LinearTransitionModel
 from ..models.control import ControlModel
 from ..models.control.linear import LinearControlModel
 from ..functions import (gauss2sigma, unscented_transform, cubature_transform,
@@ -708,9 +709,12 @@ class StochasticIntegrationPredictor(KalmanPredictor):
             transition_model=self.transition_model,
             prior=prior,
         )
-      
-      
+
+
 class AugmentedKalmanPredictor(KalmanPredictor):
+    transition_model: LinearTransitionModel = Property(
+        doc="The transition model to be used.")
+
     def _transition_function(self, prior, **kwargs):
         r"""Applies the linear transition function to a single vector in the
         absence of a control input, returns a single predicted state.
@@ -729,13 +733,15 @@ class AugmentedKalmanPredictor(KalmanPredictor):
             The predicted state
 
         """
-        return self.transition_model.matrix(**kwargs) @ prior.state_vector + self.transition_model.bias(**kwargs)
+        return (self.transition_model.matrix(**kwargs) @ prior.state_vector +
+                self.transition_model.bias(**kwargs))
 
-      
+
 class AugmentedUnscentedKalmanPredictor(UnscentedKalmanPredictor):
     """UnscentedKalmanFilter class
 
-    This extends :class:`~.UnscentedKalmanPredictor` to include cross covariance information in the output.
+    This extends :class:`~.UnscentedKalmanPredictor` to include cross covariance information
+    in the output.
     """
     @predict_lru_cache()
     def predict(self, prior, timestamp=None, control_input=None, transition_noise=True, **kwargs):

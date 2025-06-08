@@ -4,7 +4,6 @@ import numpy as np
 from scipy.stats import multivariate_normal
 
 from ..linear import LinearGaussian, GeneralLinearGaussian
-from ....types.array import CovarianceMatrix, Matrix
 from ....types.state import State
 
 
@@ -197,7 +196,7 @@ def test_glmodel(H, R, B, ndim_state, mapping):
                                  bias_value=B,
                                  noise_covar=R,
                                  seed=1)
-    glm2 =GeneralLinearGaussian(ndim_state=ndim_state,
+    glm2 = GeneralLinearGaussian(ndim_state=ndim_state,
                                  mapping=mapping,
                                  meas_matrix=H,
                                  bias_value=B,
