@@ -452,8 +452,8 @@ class IPLSKalmanSmoother(UnscentedKalmanSmoother):
 
     References
     ----------
-    [1] A. F. García-Fernández, L. Svensson, S. Särkkä, "Iterated Posterior Linearization Smoother",
-        IEEE Transactions on Automatic Control, vol. 62, no. 4, 2017.
+    [1] A. F. García-Fernández, L. Svensson, S. Särkkä, "Iterated Posterior Linearization
+    Smoother", IEEE Transactions on Automatic Control, vol. 62, no. 4, 2017.
     """
 
     measurement_model: MeasurementModel = Property(default=None,

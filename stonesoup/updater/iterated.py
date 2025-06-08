@@ -144,7 +144,8 @@ ExtendedKalmanUpdater.register(DynamicallyIteratedEKFUpdater)
 
 class IPLFKalmanUpdater(UnscentedKalmanUpdater):
     r"""
-    The update step of the Iterated Posterior Linearisation Filter (IPLF) using Unscented Transform.
+    The update step of the Iterated Posterior Linearisation Filter (IPLF) using Unscented
+    Transform.
 
     This method refines the standard Unscented Kalman Filter (UKF) update by iteratively improving
     the local linearisation of the nonlinear measurement function around the current posterior
