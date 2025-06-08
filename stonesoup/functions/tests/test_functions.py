@@ -381,8 +381,8 @@ def test_dotproduct(state_vector1, state_vector2):
         )
     ],
     ids=["mean_list", "mean_statevectors", "3d_covar_array", "mean_statevector_list",
-            "single_statevector_mean", "single_ndarray_mean", "no_weight_mean_list",
-            "no_weight_mean_statevectors"]
+         "single_statevector_mean", "single_ndarray_mean", "no_weight_mean_list",
+         "no_weight_mean_statevectors"]
 )
 def test_gm_sample(means, covars, weights, size):
     samples = gm_sample(means, covars, size, weights=weights)
