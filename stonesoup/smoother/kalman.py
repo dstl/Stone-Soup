@@ -20,7 +20,6 @@ from ..types.update import Update
 from ..updater.kalman import KalmanUpdater, UnscentedKalmanUpdater
 from .base import Smoother
 
-
 class KalmanSmoother(Smoother):
     r"""
     The linear-Gaussian or Rauch-Tung-Striebel smoother, colloquially the Kalman smoother [1]_. The
@@ -412,7 +411,7 @@ class StochasticIntegrationSmoother(KalmanSmoother):
         Pxxps = IPxx
 
         return Pxxps @ np.linalg.inv(prediction.covar)
-      
+
 
 class IPLSKalmanSmoother(UnscentedKalmanSmoother):
     r"""The unscented implementation of the IPLS algorithm."""
@@ -461,35 +460,25 @@ class IPLSKalmanSmoother(UnscentedKalmanSmoother):
 
         # A filtered track is the input to this smoother.
 
-        smoothed_tracks = []
+        # initialising by performing sigma-point smoothing via the UKF smoother
+        smoothed_track = UnscentedKalmanSmoother(transition_model=self.transition_model,
+                                                 alpha=self.alpha,
+                                                 beta=self.beta,
+                                                 kappa=self.kappa).smooth(track)
 
-        for iteration in range(self.n_iterations):
-
-            if iteration == 0:
-                # initialising by performing sigma-point smoothing via the UKF smoother
-                smoothed_track = UnscentedKalmanSmoother(transition_model=self.transition_model,
-                                                         alpha=self.alpha,
-                                                         beta=self.beta,
-                                                         kappa=self.kappa).smooth(track)
-                smoothed_tracks.append(smoothed_track)
-                continue
-            else:
-                smoothed_track = smoothed_tracks[-1]
+        for _ in range(1, self.n_iterations):
 
             track_forward = Track(track[0])  # starting the new forward track to be
+            previous_state = track_forward[0]
 
-            for i, current_state in enumerate(smoothed_track):
+            for current_state, base_state in zip(smoothed_track[1:], track[1:]):
 
-                if i == 0:
-                    previous_state = track_forward[0]
-                    continue
-
-                """ Compute SLR parameters (transition). """
-                from stonesoup.types.prediction import Prediction
-                if issubclass(type(track[i]), Prediction):
-                    transition_model = track[i].transition_model
+                # Compute SLR parameters (transition)
+                if isinstance(base_state, Prediction):
+                    transition_model = base_state.transition_model
                 else:
-                    transition_model = track[i].hypothesis.prediction.transition_model
+                    transition_model = base_state.hypothesis.prediction.transition_model
+
                 if transition_model is None:
                     transition_model = self.transition_model
                 trans_fun = partial(
@@ -499,27 +488,20 @@ class IPLSKalmanSmoother(UnscentedKalmanSmoother):
                 )
                 f_matrix, a_vector, lambda_cov_matrix = slr_definition(previous_state, trans_fun, force_symmetry=True)
 
-                "Perform linear time update"
-                time_interval = current_state.timestamp-previous_state.timestamp
-                if not isinstance(current_state, Prediction):
-                    transition_model = track[i].hypothesis.prediction.transition_model
-                else:
-                    transition_model = track[i].transition_model
-                    if transition_model is None:
-                        transition_model = self.transition_model
-
+                # Perform linear time update (transition)
+                time_interval = current_state.timestamp - previous_state.timestamp
                 q_matrix = transition_model.covar(time_interval=time_interval)
                 transition_model_linearised = LinearTransitionModel(
                     transition_matrix=f_matrix,
                     bias_value=a_vector,
-                    noise_covar=lambda_cov_matrix+q_matrix
+                    covariance_matrix=lambda_cov_matrix+q_matrix
                 )
                 prediction_linear = AugmentedKalmanPredictor(transition_model_linearised).predict(
                     track_forward[-1], timestamp=current_state.timestamp
                 )
 
                 if not isinstance(current_state, Prediction):
-                    """ Compute SLR parameters (measurement). """
+                    # Compute SLR parameters (measurement)
                     measurement_model = current_state.hypothesis.measurement.measurement_model
                     if measurement_model is None:
                         measurement_model = self.measurement_model
@@ -529,8 +511,8 @@ class IPLSKalmanSmoother(UnscentedKalmanSmoother):
                     )
                     h_matrix, b_vector, omega_cov_matrix = slr_definition(current_state, meas_fun, force_symmetry=True)
                     r_matrix = measurement_model.covar()
-                    
-                    "Perform linear data update"
+
+                    # Perform linear measurement update
                     measurement_model_linearized = GeneralLinearGaussian(
                         ndim_state=measurement_model.ndim_state,
                         mapping=measurement_model.mapping,
@@ -547,15 +529,13 @@ class IPLSKalmanSmoother(UnscentedKalmanSmoother):
                     # restores the model (ensures visualisation is OK)
                     update_linear.hypothesis.measurement.measurement_model = measurement_model
                 else:
-                    "Use prediction instead of data update"
+                    # Use prediction instead of data update
                     update_linear = prediction_linear
 
-                # append the track with an update (that contains hypothesis and info needed for the backwards go)
                 track_forward.append(update_linear)
 
                 previous_state = current_state
 
             smoothed_track = KalmanSmoother(transition_model=None).smooth(track_forward)
-            smoothed_tracks.append(smoothed_track)
 
-        return smoothed_tracks[-1]
+        return smoothed_track

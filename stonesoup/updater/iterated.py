@@ -1,5 +1,6 @@
 import copy
 import warnings
+from functools import partial
 
 from . import Updater
 from ..base import Property
@@ -15,8 +16,6 @@ from ..types.prediction import Prediction
 from ..types.track import Track
 from ..functions import slr_definition
 from ..models.measurement.linear import GeneralLinearGaussian
-from functools import partial
-from ..types.state import State
 
 class DynamicallyIteratedUpdater(Updater):
     """
@@ -184,7 +183,7 @@ class IPLFKalmanUpdater(UnscentedKalmanUpdater):
                 break
 
             # SLR is wrt to tne approximated posterior in post_state, not the original prior in hypothesis.prediction
-            meas_fun = partial(super().predict_measurement, measurement_model=measurement_model,
+            meas_fun = partial(self.predict_measurement, measurement_model=measurement_model,
                                measurement_noise=False)
             h_matrix, b_vector, omega_cov_matrix = slr_definition(post_state, meas_fun, force_symmetry=force_symmetry)
             r_matrix = measurement_model.covar()

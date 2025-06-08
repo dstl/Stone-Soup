@@ -56,20 +56,25 @@ from ...types.track import Track
             LinearTransitionModel(
                 transition_matrix=np.array([[0.8, 0.2], [0.3, 0.7]]),
                 bias_value=np.zeros([2, 1]),
-                noise_covar=np.diag([0.10961003, 0.88557178])
+                covariance_matrix=np.diag([0.10961003, 0.88557178])),
+            np.array([[-6.45], [0.7]]),
+            np.array([[4.1123, 0.0013],
+                      [0.0013, 0.0365]])
         ),
         (  # Augmented Unscented Kalman
             AugmentedUnscentedKalmanPredictor,
             LinearTransitionModel(
                 transition_matrix=np.array([[0.8, 0.2], [0.3, 0.7]]),
                 bias_value=np.zeros([2, 1]),
-                noise_covar=np.diag([0.10961003, 0.88557178])
-        ),
-
+                covariance_matrix=np.diag([0.10961003, 0.88557178])),
+            np.array([[-6.45], [0.7]]),
+            np.array([[4.1123, 0.0013],
+                      [0.0013, 0.0365]])
+        )
     ],
-
-    ids=["standard", "extended", "unscented", "cubature", "stochasticIntegration", "augmented_kalman", "augmented_unscented_kalman"]
-
+    ids=["standard", "extended", "unscented", "cubature", "stochasticIntegration", "augmented_kalman",
+         "augmented_unscented_kalman"]
+)
 def test_kalman(PredictorClass, transition_model,
                 prior_mean, prior_covar):
 
