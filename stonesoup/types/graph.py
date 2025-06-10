@@ -360,6 +360,10 @@ class RoadNetwork(nx.DiGraph):
         if source is None and target is None:
             # Compute all shortest paths, from all nodes, to all nodes
             paths = nx.shortest_path(self, weight=weight, method=method)
+            if not isinstance(paths, dict):
+                # Fix for NetworkX 3.5+, where shortest_path returns an iterator of tuples
+                # instead of a dictionary
+                paths = {p[0]: p[1] for p in paths}
         elif source is None or target is None:
             # If source or target is None, compute the shortest paths from/to the given nodes
             iter_ = source if source is not None else target
