@@ -151,6 +151,11 @@ class BoundingBoxReducer(DetectionFeeder, GroundTruthFeeder):
             "element with index 0. Default is `None`, where the dimensions of "
             "the state vector will be used in order, up to length to limits."
     )
+    apply_measurement_model_inverse: bool = Property(
+        default=False,
+        doc="If set to True, applies the measurement model inverse function to the state before "
+            "bounding box filtering. Only applies to detections. Default False."
+    )
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -163,7 +168,11 @@ class BoundingBoxReducer(DetectionFeeder, GroundTruthFeeder):
         for time, states in self.reader:
             outlier_data = set()
             for state in states:
-                state_vector = state.state_vector
+                if self.apply_measurement_model_inverse \
+                        and getattr(state, 'measurement_model', None):
+                    state_vector = state.measurement_model.inverse_function(state)
+                else:
+                    state_vector = state.state_vector
                 for i in range(num_dims):
                     min = self.limits[i][0]
                     max = self.limits[i][1]
