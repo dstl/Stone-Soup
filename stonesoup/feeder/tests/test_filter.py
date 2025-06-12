@@ -69,7 +69,8 @@ def test_metadata_value_filter(detector):
     assert nones
 
 
-def test_boundingbox_reducer_detections(detector):
+@pytest.mark.parametrize('apply_measurement_model_inverse', [False, True])
+def test_boundingbox_reducer_detections(detector, apply_measurement_model_inverse):
 
     # Simple 2D rectangle/bounding box
     limits = np.array([[-1, 1],
@@ -82,11 +83,11 @@ def test_boundingbox_reducer_detections(detector):
     with pytest.raises(TypeError):
         BoundingBoxReducer(detector)
 
-    feeder = BoundingBoxReducer(detector, limits, mapping)
-
-    # Assert correct constructor assignments
-    assert np.array_equal(limits, feeder.limits)
-    assert np.array_equal(mapping, feeder.mapping)
+    feeder = BoundingBoxReducer(
+        detector,
+        limits,
+        [2, 0] if apply_measurement_model_inverse else [1, 0],
+        apply_measurement_model_inverse)
 
     # Ensure only measurements within box are returned
     multi_check = True
