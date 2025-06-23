@@ -12,7 +12,7 @@ from stonesoup.models.measurement.linear import LinearGaussian
 from stonesoup.models.transition.linear import CombinedLinearGaussianTransitionModel, \
     ConstantVelocity
 from stonesoup.plotter import Plotter, Dimension, AnimatedPlotterly, AnimationPlotter, Plotterly, \
-    PolarPlotterly, AnimatedPolarPlotterly
+    PolarPlotterly, AnimatedPolarPlotterly, merge_dicts
 from stonesoup.predictor.kalman import KalmanPredictor
 from stonesoup.sensor.radar.radar import RadarElevationBearingRange
 from stonesoup.types.detection import TrueDetection, Clutter
@@ -623,3 +623,26 @@ def test_plotter_plot_measurements_label_adjust_clutter(_measurements,
     plotter.plot_measurements(_measurements, [0, 2], show_clutter=_show_clutter)
     actual_labels = set(plotter.legend_dict.keys())
     assert actual_labels == expected_labels
+
+
+test_merge_dicts_data = {
+    "Empty dictionaries": (({}, {}), {}),
+    "Single dictionary": (({"a": 1},), {"a": 1}),
+    "Non-overlapping keys": (({"a": 1}, {"b": 2}), {"a": 1, "b": 2}),
+    "Overlapping keys (non-dict values)": (({"a": 1}, {"b": 2}), {"a": 1, "b": 2}),
+    "Nested dictionaries": (({"a": {"b": 1}}, {"a": {"c": 2}}), {"a": {"b": 1, "c": 2}}),
+    "Deeply nested dictionaries": (({"a": {"b": {"c": 1}}}, {"a": {"b": {"d": 2}}}),
+                                   {"a": {"b": {"c": 1, "d": 2}}}),
+    "Overwriting a dict with a non-dict": (({"a": {"b": 1}}, {"a": 2}), {"a": 2}),
+    "Merging three dictionaries": (({"a": 1}, {"b": 2}, {"c": 3}), {"a": 1, "b": 2, "c": 3}),
+    "Complex nested merge scenario": (({"a": {"b": 1}}, {"a": {"c": {"d": 2}}}),
+                                      {"a": {"b": 1, "c": {"d": 2}}}),
+}
+
+
+@pytest.mark.parametrize(
+        "dicts, expected",
+        test_merge_dicts_data.values(),
+        ids=test_merge_dicts_data.keys())
+def test_merge(dicts: tuple[dict], expected: dict):
+    assert merge_dicts(*dicts) == expected
