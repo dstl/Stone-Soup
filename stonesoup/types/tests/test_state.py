@@ -47,11 +47,14 @@ def test_state():
     state_vector = StateVector([[0], [1]])
     state = State(state_vector)
     assert np.array_equal(state.state_vector, state_vector)
+    assert len(state.metadata) == 0
 
     # Test state initiation with timestamp
     timestamp = datetime.datetime.now()
-    state = State(state_vector, timestamp=timestamp)
+    metadata = {'colour': 'red', 'size': 'large'}
+    state = State(state_vector, timestamp=timestamp, metadata=metadata)
     assert state.timestamp == timestamp
+    assert state.metadata == metadata
 
 
 def test_state_invalid_vector():
