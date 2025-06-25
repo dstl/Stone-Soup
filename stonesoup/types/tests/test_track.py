@@ -21,7 +21,7 @@ def test_track_empty():
 @pytest.mark.parametrize('state', [
     State(np.array([[0]]), datetime.datetime.now()),
     GaussianState(np.array([[0]]), np.array([[0]]), datetime.datetime.now()),
-    ParticleState([[0]], datetime.datetime.now(), [Probability(1)]),
+    ParticleState([[0]], datetime.datetime.now(), {}, [Probability(1)]),
     ],
     ids=['State', 'GaussianState', 'ParticleState'])
 def test_track_state(state):
