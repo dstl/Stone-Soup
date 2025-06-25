@@ -24,6 +24,8 @@ class State(Type):
     timestamp: datetime.datetime = Property(
         default=None, doc="Timestamp of the state. Default None.")
     state_vector: StateVector = Property(doc='State vector.')
+    metadata: MutableMapping = Property(
+        default=None, doc="Dictionary of metadata items for this state.")
 
     def __init__(self, state_vector, *args, **kwargs):
         # Don't cast away subtype of state_vector if not necessary
@@ -31,6 +33,8 @@ class State(Type):
                 and not isinstance(state_vector, (StateVector, StateVectors)):
             state_vector = StateVector(state_vector)
         super().__init__(state_vector, *args, **kwargs)
+        if self.metadata is None:
+            self.metadata = {}
 
     @property
     def ndim(self):
