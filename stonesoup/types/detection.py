@@ -1,4 +1,4 @@
-from collections.abc import MutableMapping, Sequence
+from collections.abc import Sequence
 
 from .groundtruth import GroundTruthPath
 from .state import CategoricalState, CompositeState
