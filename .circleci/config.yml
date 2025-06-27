@@ -94,7 +94,7 @@ jobs:
   docs:
     resource_class: medium
     docker:
-      - image: cimg/python:3.12
+      - image: cimg/python:3.12-browsers
     steps:
       - checkout
       - restore_cache:
@@ -107,6 +107,7 @@ jobs:
             pip install --upgrade pip
             pip install -r docs/ci-requirements.txt
             pip install -e .[dev,orbital] opencv-python-headless joblib
+            kaleido_get_chrome
       - save_cache:
           paths:
             - ./venv

@@ -1156,22 +1156,22 @@ class Plotterly(_Plotter):
             if self.dimension == 1:
                 self.fig.add_scatter(
                     x=[state.timestamp for state in truth],
-                    y=[state.state_vector[mapping[0]] for state in truth],
+                    y=[float(state.state_vector[mapping[0]]) for state in truth],
                     text=[self._format_state_text(state) for state in truth],
                     **scatter_kwargs)
 
             elif self.dimension == 2:
                 self.fig.add_scatter(
-                    x=[state.state_vector[mapping[0]] for state in truth],
-                    y=[state.state_vector[mapping[1]] for state in truth],
+                    x=[float(state.state_vector[mapping[0]]) for state in truth],
+                    y=[float(state.state_vector[mapping[1]]) for state in truth],
                     text=[self._format_state_text(state) for state in truth],
                     **scatter_kwargs)
 
             elif self.dimension == 3:
                 self.fig.add_scatter3d(
-                    x=[state.state_vector[mapping[0]] for state in truth],
-                    y=[state.state_vector[mapping[1]] for state in truth],
-                    z=[state.state_vector[mapping[2]] for state in truth],
+                    x=[float(state.state_vector[mapping[0]]) for state in truth],
+                    y=[float(state.state_vector[mapping[1]]) for state in truth],
+                    z=[float(state.state_vector[mapping[2]]) for state in truth],
                     text=[self._format_state_text(state) for state in truth],
                     **scatter_kwargs)
 
