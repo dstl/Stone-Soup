@@ -54,9 +54,9 @@ class CombinedReversibleGaussianMeasurementModel(ReversibleModel, GaussianModel,
     def mapping(self):
         return [x for model in self.model_list for x in model.mapping]
 
-    def function(self, state, **kwargs) -> StateVector:
-        return np.vstack([model.function(state, **kwargs)
-                          for model in self.model_list]).view(StateVector)
+    def function(self, state, *args, **kwargs) -> StateVector:
+        state_vectors = [model.function(state, *args, **kwargs) for model in self.model_list]
+        return np.vstack(state_vectors).view(type(state_vectors[0]))
 
     def jacobian(self, state, **kwargs):
         return np.vstack([model.jacobian(state, **kwargs) for model in self.model_list])
