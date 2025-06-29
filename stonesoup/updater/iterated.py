@@ -188,8 +188,7 @@ class IPLFKalmanUpdater(UnscentedKalmanUpdater):
             "KLDivergence between current and prior posterior state estimate.")
     max_iterations: int = Property(
         default=5,
-        doc="Number of iterations before while loop is exited and a non-convergence warning is "
-            "returned")
+        doc="Number of iterations before while loop is exited.")
 
     def update(self, hypothesis, force_symmetry=True, **kwargs):
         # Record the starting point

@@ -753,12 +753,18 @@ class AugmentedUnscentedKalmanPredictor(UnscentedKalmanPredictor):
             Prior state, :math:`\mathbf{x}_{k-1}`
         timestamp : :class:`datetime.datetime`
             Time to transit to (:math:`k`)
+        control_input: :class:`~.State`
+            Control input vector, :math:`\mathbf{u}_k`
+        transition_noise: bool
+            A boolean variable that determines whether transition noise covariance is added to the
+            prediction (the default is `True`, in which case noise covariance will be added,
+            if 'False', the prediction only propagates uncertainty contained in the prior)
         **kwargs : various, optional
             These are passed to :meth:`~.TransitionModel.covar`
 
         Returns
         -------
-        : :class:`~.GaussianStatePrediction`
+        : :class:`~.AugmentedGaussianStatePrediction`
             The predicted state :math:`\mathbf{x}_{k|k-1}` and the predicted
             state covariance :math:`P_{k|k-1}`
         """

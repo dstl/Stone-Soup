@@ -1263,7 +1263,7 @@ State.register(CompositeState)  # noqa: E305
 
 
 class AugmentedGaussianState(GaussianState):
-    """ This is a new GaussianState class that can also store information on cross-covariance
+    """ This is a GaussianState class that can also store information on cross-covariance
     between the two uncertain kinematic states. We need it report augmented predictions which
     is otherwise not possible."""
     cross_covar: CovarianceMatrix = Property(

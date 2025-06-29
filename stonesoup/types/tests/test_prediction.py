@@ -324,6 +324,10 @@ def test_augmentedgaussianstateprediction():
                       [0.0002, 2.2130, 0, 0],
                       [0.3897, -0.00004, 0.0128, 0],
                       [0, 0.3897, 0.0013, 0.0135]]) * 1e3
+    cross_covar = np.array([[2.2128],
+                            [0.0002],
+                            [0.3897],
+                            [0]]) * 1e3
     timestamp = datetime.datetime.now()
 
     with pytest.raises(TypeError):
@@ -334,5 +338,6 @@ def test_augmentedgaussianstateprediction():
         state_vector=mean, covar=covar, timestamp=timestamp)
     assert np.array_equal(mean, state_prediction.mean)
     assert np.array_equal(covar, state_prediction.covar)
+    assert np.array_equal(cross_covar, state_prediction.cross_covar)
     assert state_prediction.ndim == mean.shape[0]
     assert state_prediction.timestamp == timestamp
