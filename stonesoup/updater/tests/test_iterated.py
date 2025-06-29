@@ -4,7 +4,7 @@ import datetime
 
 from stonesoup.models.measurement.nonlinear import CartesianToBearingRange
 from stonesoup.models.transition.nonlinear import ConstantTurn
-from stonesoup.predictor.kalman import ExtendedKalmanPredictor
+from stonesoup.predictor.kalman import ExtendedKalmanPredictor, UnscentedKalmanPredictor
 from stonesoup.smoother.kalman import ExtendedKalmanSmoother
 from stonesoup.types.angle import Bearing
 from stonesoup.types.array import StateVector, CovarianceMatrix
@@ -12,7 +12,7 @@ from stonesoup.types.detection import Detection
 from stonesoup.types.hypothesis import SingleHypothesis
 from stonesoup.types.prediction import GaussianStatePrediction
 from stonesoup.types.state import GaussianState
-from stonesoup.updater.iterated import DynamicallyIteratedUpdater
+from stonesoup.updater.iterated import DynamicallyIteratedUpdater, IPLFKalmanUpdater
 from stonesoup.updater.kalman import ExtendedKalmanUpdater
 
 
@@ -112,4 +112,99 @@ def test_diekf():
              [0.027, -0.013, 2.182, 0.730, 0.022],
              [-0.003, -0.043, 0.730, 0.548, 0.049],
              [-0.010, -0.037, 0.022, 0.049, 0.078]]),
+        atol=1e-3)
+
+
+def test_IPLF():
+
+    time1 = datetime.datetime.now()
+    time2 = time1 + datetime.timedelta(seconds=1)
+    time3 = time2 + datetime.timedelta(seconds=1)
+
+    transition_model = ConstantTurn([0.05, 0.05], np.radians(2))
+
+    sensor_x = 50  # Placing the sensor off-centre
+    sensor_y = 0
+
+    measurement_model = CartesianToBearingRange(
+        ndim_state=5,
+        mapping=(0, 2),
+        noise_covar=np.diag([np.radians(0.2), 1]),  # Covariance matrix. 0.2 degree variance in
+        # bearing and 1 metre in range
+        translation_offset=np.array([[sensor_x], [sensor_y]])  # Offset measurements to location of
+        # sensor in cartesian.
+    )
+
+    prior = GaussianState(
+        [[0.], [1.], [0.], [1.], [0.]],
+        np.diag([1.5, 0.5, 1.5, 0.5, np.radians(0.5)]),
+        timestamp=time1)
+
+    prediction = GaussianStatePrediction(
+        state_vector=StateVector([[1.], [1.], [1.], [1.], [0.]]),
+        covar=CovarianceMatrix([[1.5, 0., 0., 0., 0.],
+                                [0., 0.5, 0., 0., 0.],
+                                [0., 0., 1.5, 0., 0.],
+                                [0., 0., 0., 0.5, 0.],
+                                [0., 0., 0., 0., np.radians(0.5)]]),
+        transition_model=transition_model,
+        timestamp=time2,
+        prior=prior)
+
+    measurement = Detection(state_vector=StateVector([[Bearing(-3.1217136817127424)],
+                                                      [47.7876225398533]]),
+                            timestamp=time2,
+                            measurement_model=measurement_model)
+
+    hypothesis = SingleHypothesis(prediction=prediction, measurement=measurement)
+
+    sub_predictor = UnscentedKalmanPredictor(transition_model)
+
+    updater = IPLFKalmanUpdater()
+
+    updated_state = updater.update(hypothesis=hypothesis)
+
+    # Check timestamp is same as provided in measurement
+    assert updated_state.timestamp == time2
+
+    # Check prediction and measurement are unchanged
+    assert updated_state.hypothesis.prediction == prediction
+    assert updated_state.hypothesis.measurement == measurement
+
+    # Check state vector is correct
+    assert np.allclose(
+        updated_state.state_vector,
+        StateVector([[1.736], [1.000], [0.6860], [1.000], [0.]]),
+        atol=1e-3)
+
+    # Check covariance matrix is correct
+    assert np.allclose(
+        updated_state.covar,
+        CovarianceMatrix(
+            [[0.6002, -0.0, 0.009, -0.0, -0.0],
+             [-0.0, 0.500, 0.0, -0.0, -0.0],
+             [0.009, 0.0, 1.266,  0.0, -0.0],
+             [-0.0, -0.0, -0.0, 0.500, -0.0],
+             [-0.0, -0.0, -0.0, -0.0, 0.008]]),
+        atol=1e-3)
+
+    prediction = sub_predictor.predict(updated_state, time3)
+    measurement = Detection(state_vector=StateVector([[Bearing(3.133)], [47.777]]),
+                            timestamp=time3,
+                            measurement_model=measurement_model)
+    hypothesis = SingleHypothesis(prediction=prediction, measurement=measurement)
+    updated_state = updater.update(hypothesis=hypothesis)
+
+    assert np.allclose(
+        updated_state.state_vector,
+        StateVector([[2.481], [0.876], [1.457], [0.929], [0.0004]]),
+        atol=1e-3)
+    assert np.allclose(
+        updated_state.covar,
+        CovarianceMatrix(
+            [[0.528, 0.250, 0.023, 0.003, -0.002],
+             [0.250, 0.426, 0.004, -0.004, -0.007],
+             [0.023, 0.004, 1.455, 0.431, 0.003],
+             [0.003, -0.004, 0.431, 0.529, 0.008],
+             [-0.002, -0.007, 0.0034, 0.008, 0.043]]),
         atol=1e-3)

@@ -8,7 +8,8 @@ from .state import (State, GaussianState, EnsembleState,
                     ParticleState, MultiModelParticleState, RaoBlackwellisedParticleState,
                     SqrtGaussianState, InformationState, TaggedWeightedGaussianState,
                     WeightedGaussianState, CategoricalState, ASDGaussianState,
-                    BernoulliParticleState, KernelParticleState, ASDTaggedWeightedGaussianState)
+                    BernoulliParticleState, KernelParticleState, ASDTaggedWeightedGaussianState,
+                    AugmentedGaussianState)
 from ..base import Property
 from ..models.transition.base import TransitionModel
 from ..types.state import CreatableFromState, CompositeState, PointMassState
@@ -271,3 +272,9 @@ class CompositeMeasurementPrediction(MeasurementPrediction, CompositeState):
 
 
 MeasurementPrediction.register(CompositeState)  # noqa: E305
+
+
+class AugmentedGaussianStatePrediction(Prediction, AugmentedGaussianState):
+    """ Prediction class for AugmentedGaussianState. The existence of this class harmonises
+     how state predictions are reported, to be in line with measurement predictions, which
+     also carry information on cross-covariance. """
