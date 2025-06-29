@@ -335,7 +335,7 @@ def test_augmentedgaussianstateprediction():
 
     # Test state prediction
     state_prediction = AugmentedGaussianStatePrediction(
-        state_vector=mean, covar=covar, timestamp=timestamp)
+        state_vector=mean, covar=covar, cross_covar=cross_covar, timestamp=timestamp)
     assert np.array_equal(mean, state_prediction.mean)
     assert np.array_equal(covar, state_prediction.covar)
     assert np.array_equal(cross_covar, state_prediction.cross_covar)
