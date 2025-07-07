@@ -29,7 +29,6 @@ from stonesoup.models.measurement.nonlinear import \
     CartesianToElevationBearingRange
 from stonesoup.deleter.time import UpdateTimeStepsDeleter
 from stonesoup.tracker.simple import MultiTargetMixtureTracker
-from matplotlib import pyplot as plt
 
 # %%
 # We set the start time to be the moment when we begin the simulation; for
@@ -147,9 +146,10 @@ groundtruth_sim = MultiTargetGroundTruthSimulator(
     transition_model=transition_model,  # target transition model
     initial_state=initial_target_state,  # add our initial state for targets
     timestep=timedelta(seconds=1),  # time between measurements
+    initial_number_targets=3,  # start with 3 targets at t0
     number_steps=120,  # 2 minutes
     birth_rate=0.05,  # 5% chance of a new target being born every second
-    death_probability=0.05  # 5% chance of a target being killed
+    death_probability=0.02  # 2% chance of a target being killed
 )
 
 # %%
@@ -208,7 +208,7 @@ from stonesoup.hypothesiser.probability import PDAHypothesiser
 Pd = 0.95  # 95%
 hypothesiser = PDAHypothesiser(predictor=predictor,
                                updater=updater,
-                               clutter_spatial_density=0.5,
+                               clutter_spatial_density=1e-9,
                                prob_detect=Pd)
 
 # %%
@@ -238,7 +238,7 @@ from stonesoup.dataassociator.neighbour import NearestNeighbour
 min_detections = 3  # number of detections required to begin a track
 initiator_prior_state = GaussianState(
     state_vector=np.array([[0], [0], [0], [0], [0], [0]]),
-    covar=np.diag([0, 10, 0, 10, 0, 10])**2
+    covar=np.diag([0, 50, 0, 50, 0, 50])**2
 )
 
 initiator_meas_model = CartesianToElevationBearingRange(
@@ -302,14 +302,14 @@ from stonesoup.plotter import Plotter, Dimension
 plotter = Plotter(Dimension.THREE)
 plotter.plot_ground_truths(groundtruth_plot, [0, 2, 4])
 plotter.plot_measurements(detections_plot, [0, 2, 4])
-plotter.plot_tracks(tracks_plot, [0, 2, 4], uncertainty=False, err_freq=5)
+_ = plotter.plot_tracks(tracks_plot, [0, 2, 4], uncertainty=False, err_freq=5)
 
 # %%
 # We will also make a plot without measurements/clutter to better see the
 # tracks.
 plotter2 = Plotter(Dimension.THREE)
 plotter2.plot_ground_truths(groundtruth_plot, [0, 2, 4])
-plotter2.plot_tracks(tracks_plot, [0, 2, 4], uncertainty=True, err_freq=5)
+_ = plotter2.plot_tracks(tracks_plot, [0, 2, 4], uncertainty=True, err_freq=5)
 
 # %%
 # Metrics
@@ -324,7 +324,7 @@ ospa_generator = OSPAMetric(c=40, p=1,
                             generator_name='OSPA metrics',
                             tracks_key='tracks',
                             truths_key='truths'
-                           )
+                            )
 
 # SIAP metrics
 from stonesoup.metricgenerator.tracktotruthmetrics import SIAPMetrics
