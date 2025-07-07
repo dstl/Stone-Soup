@@ -9,7 +9,7 @@ from .action.move_position_action import MaxSpeedPositionActionGenerator
 
 
 class MaxSpeedActionableMovable(FixedMovable):
-    """Class for movables can move in any direction. To be used with
+    """Class for movables that can move in any direction. To be used with
     :class:`~.MoveToActionGenerator`."""
 
     generator = MaxSpeedPositionActionGenerator
@@ -57,7 +57,7 @@ class MaxSpeedActionableMovable(FixedMovable):
         Returns
         -------
         : set of :class:`~.MoveToActionGenerator`
-            Set of grid action generators, that describe the bounds of each action space.
+            Set of action generators, that describe the bounds of each action space.
         """
         if start_timestamp is None:
             start_timestamp = self.states[-1].timestamp

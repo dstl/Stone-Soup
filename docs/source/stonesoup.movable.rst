@@ -23,3 +23,10 @@ Sample-based Movables
 
 .. automodule:: stonesoup.movable.sample
     :show-inheritance:
+
+
+Maximum Speed Movables
+----------------------
+
+.. automodule:: stonesoup.movable.max_speed
+    :show-inheritance:
