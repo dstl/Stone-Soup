@@ -361,7 +361,7 @@ def test_max_speed_action_gen(gen_param_dict, state, position_mapping):
                 generator = platform.actions(start_timestamp).pop()
             return
 
-    generator = platform.actions(start_timestamp).pop()
+    generator = platform.actions(end_timestamp).pop()
 
     # Check that parameters have been set correctly
     assert generator.action_mapping == action_mapping
@@ -386,8 +386,17 @@ def test_max_speed_action_gen(gen_param_dict, state, position_mapping):
         assert np.linalg.norm(temp_platform.position - platform.position,
                               axis=0) <= max_speed
 
+        # Test contains method for both Action and StateVector types
+        assert action[0] in generator
+        assert action[0].target_value in generator
+
         if action_space is not None:
-            assert (temp_platform.position[0] > action_space[0, 0] and
-                    temp_platform.position[0] < action_space[0, 1])
-            assert (temp_platform.position[1] > action_space[1, 0] and
-                    temp_platform.position[1] < action_space[1, 1])
+            assert (temp_platform.position[0] >= action_space[0, 0] and
+                    temp_platform.position[0] <= action_space[0, 1])
+            assert (temp_platform.position[1] >= action_space[1, 0] and
+                    temp_platform.position[1] <= action_space[1, 1])
+
+    # Test creating action outside of range
+    assert generator.action_from_value(StateVector([np.inf] * len(position_mapping))) is None
+    # Test creating action inside range
+    assert generator.action_from_value(platform.position) is not None
