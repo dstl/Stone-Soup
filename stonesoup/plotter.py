@@ -2904,9 +2904,9 @@ class AnimatedPlotterly(_Plotter):
 
         Parameters
         ----------
-        tracks: Collection of :class '~Track'
+        tracks: Collection of :class:`~.Track`
             Collection of tracks which will be plotted. If not a collection, and instead a single
-            :class:'~Track' type, the argument is modified to be a set to allow for iteration
+            :class:`~.Track` type, the argument is modified to be a set to allow for iteration
 
         mapping: list
             List of items specifying the mapping of the position
