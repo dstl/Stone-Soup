@@ -416,3 +416,5 @@ plotter.fig
 # .. [2] Kountouriotis, Panagiotis-Aristidis, and Simon Maskell. "Maneuvering target tracking using
 #        an unbiased nearly constant heading model." 2012 15th International Conference on
 #        Information Fusion. IEEE, 2012.
+
+# sphinx_gallery_thumbnail_path = '_static/sphinx_gallery/ode-example-thumb.png'
