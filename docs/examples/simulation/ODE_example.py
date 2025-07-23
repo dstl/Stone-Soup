@@ -396,8 +396,6 @@ for measurement in measurements:
 plotter.plot_tracks(track, [0, 2], uncertainty=True)
 plotter.fig
 
-# sphinx_gallery_thumbnail_number = 2
-
 # %%
 # Conclusion
 # ----------
