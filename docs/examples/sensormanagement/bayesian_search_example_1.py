@@ -623,3 +623,5 @@ prob_found_plot.update_layout(title="Expected probability of finding target vs s
 # ----------
 # | [1] Harris et al. (2024) - Open source tools for Bayesian search - doi:10.1117/12.3012763
 # | [2] Stone, L. D. (1976) - Theory of optimal search - Elsevier
+
+# sphinx_gallery_thumbnail_path = '_static/sphinx_gallery/bayesian-search-ex1-thumb.png'

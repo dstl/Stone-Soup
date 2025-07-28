@@ -470,3 +470,5 @@ for timestep in timesteps[1:]:
 # References
 # ----------
 # [1] Harris et al. (2024) - Open source tools for Bayesian search - doi:10.1117/12.3012763
+
+# sphinx_gallery_thumbnail_path = '_static/sphinx_gallery/bayesian-search-ex2-thumb.png'
