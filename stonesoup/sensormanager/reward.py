@@ -62,11 +62,15 @@ class AdditiveRewardFunction(RewardFunction):
     """
 
     reward_function_list: Sequence[RewardFunction] = Property(doc="List of reward functions")
+    weights: list = Property(default=None, doc="Weight for each reward function.")
 
     def __call__(self, config: Mapping[Sensor, Sequence[Action]], tracks: set[Track],
                  metric_time: datetime.datetime, *args, **kwargs):
-        return np.sum([reward_function(config, tracks, metric_time, *args, **kwargs)
-                       for reward_function in self.reward_function_list])
+        if self.weights is None:
+            self.weights = [1] * len(self.reward_function_list)
+        return np.sum([reward_function(config, tracks, metric_time, *args, **kwargs) * weight
+                       for reward_function, weight in
+                       zip(self.reward_function_list, self.weights)])
 
 
 class MultiplicativeRewardFunction(RewardFunction):
@@ -76,11 +80,15 @@ class MultiplicativeRewardFunction(RewardFunction):
     """
 
     reward_function_list: Sequence[RewardFunction] = Property(doc="List of reward functions")
+    weights: list = Property(default=None, doc="Weight for each reward function.")
 
     def __call__(self, config: Mapping[Sensor, Sequence[Action]], tracks: set[Track],
                  metric_time: datetime.datetime, *args, **kwargs):
-        return np.prod([reward_function(config, tracks, metric_time, *args, **kwargs)
-                       for reward_function in self.reward_function_list])
+        if self.weights is None:
+            self.weights = [1] * len(self.reward_function_list)
+        return np.prod([reward_function(config, tracks, metric_time, *args, **kwargs) * weight
+                       for reward_function, weight in
+                       zip(self.reward_function_list, self.weights)])
 
 
 class UncertaintyRewardFunction(RewardFunction):
