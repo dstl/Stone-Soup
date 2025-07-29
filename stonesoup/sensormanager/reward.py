@@ -55,6 +55,34 @@ class RewardFunction(Base, ABC):
         raise NotImplementedError
 
 
+class AdditiveRewardFunction(RewardFunction):
+    """Additive reward function
+
+    Elementwise addition of corresponding reward functions.
+    """
+
+    reward_function_list: Sequence[RewardFunction] = Property(doc="List of reward functions")
+
+    def __call__(self, config: Mapping[Sensor, Sequence[Action]], tracks: set[Track],
+                 metric_time: datetime.datetime, *args, **kwargs):
+        return np.sum([reward_function(config, tracks, metric_time, *args, **kwargs)
+                       for reward_function in self.reward_function_list])
+
+
+class MultiplicativeRewardFunction(RewardFunction):
+    """Multiplicative reward function
+
+    Elementwise multiplication of corresponding reward functions.
+    """
+
+    reward_function_list: Sequence[RewardFunction] = Property(doc="List of reward functions")
+
+    def __call__(self, config: Mapping[Sensor, Sequence[Action]], tracks: set[Track],
+                 metric_time: datetime.datetime, *args, **kwargs):
+        return np.prod([reward_function(config, tracks, metric_time, *args, **kwargs)
+                       for reward_function in self.reward_function_list])
+
+
 class UncertaintyRewardFunction(RewardFunction):
     """A reward function which calculates the potential reduction in the uncertainty of track
     estimates if a particular action is taken by a sensor or group of sensors.
