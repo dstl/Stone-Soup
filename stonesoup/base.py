@@ -64,6 +64,9 @@ from functools import cached_property
 from types import MappingProxyType
 from typing import Any, get_args, get_origin
 
+if sys.version_info >= (3, 14):
+    from annotationlib import Format, call_annotate_function, get_annotate_from_class_namespace
+
 
 class Property:
     """Property(cls, default=inspect.Parameter.empty)
@@ -275,9 +278,17 @@ class BaseMeta(ABCMeta):
                 if base_class in bases:
                     properties.update(base_class._properties)
 
+        if sys.version_info >= (3, 14):
+            if annotation_func := get_annotate_from_class_namespace(namespace):
+                annotations = call_annotate_function(annotation_func, format=Format.FORWARDREF)
+            else:
+                annotations = {}
+        else:
+            annotations = namespace.get('__annotations__', {})
+
         for key, value in namespace.items():
             if isinstance(value, Property):
-                annotation_cls = namespace.get('__annotations__', {}).get(key, None)
+                annotation_cls = annotations.get(key, None)
                 if value.cls is not None and annotation_cls is not None:
                     raise ValueError(f'Type was specified both by type hint '
                                      f'({str(annotation_cls)}) and argument ({str(value.cls)}) '
