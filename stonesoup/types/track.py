@@ -28,19 +28,22 @@ class Track(StateMutableSequence):
     id: str = Property(default=None, doc="The unique track ID")
 
     init_metadata: MutableMapping = Property(
-        default={}, doc="Initial dictionary of metadata items for track. Default `None` which "
-                        "initialises track metadata as an empty dictionary.")
+        default=None, doc="Initial dictionary of metadata items for track. Default `None` which "
+                          "initialises track metadata as an empty dictionary.")
 
     def __init__(self, *args, **kwargs):
 
         super().__init__(*args, **kwargs)
 
+        if self.id is None:
+            self.id = str(uuid.uuid4())
+        if self.init_metadata is None:
+            self.init_metadata = {}
+
         self.metadatas = list()
 
         for state in self.states:
             self._update_metadata_from_state(state)
-        if self.id is None:
-            self.id = str(uuid.uuid4())
 
     def __setitem__(self, index, value):
         super().__setitem__(index, value)
