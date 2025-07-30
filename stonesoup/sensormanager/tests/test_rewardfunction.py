@@ -51,8 +51,6 @@ def test_additive(reward_function, score_list, weights, output):
     additive = AdditiveRewardFunction(
         reward_function_list=[reward_function(score=score) for score in score_list],
         weights=weights)
-    print(additive(config=None, tracks=None, metric_time=None),
-          score_list, output)
     assert np.allclose(additive(config=None, tracks=None, metric_time=None), output)
 
 
@@ -83,8 +81,6 @@ def test_multiplicative(reward_function, score_list, weights, output):
     multiplicative = MultiplicativeRewardFunction(
         reward_function_list=[reward_function(score=score) for score in score_list],
         weights=weights)
-    print(multiplicative(config=None, tracks=None, metric_time=None),
-          score_list, output)
     assert np.allclose(multiplicative(config=None, tracks=None, metric_time=None), output)
 
 
