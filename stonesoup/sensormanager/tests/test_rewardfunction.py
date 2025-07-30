@@ -86,3 +86,19 @@ def test_multiplicative(reward_function, score_list, weights, output):
     print(multiplicative(config=None, tracks=None, metric_time=None),
           score_list, output)
     assert np.allclose(multiplicative(config=None, tracks=None, metric_time=None), output)
+
+
+def test_unequal_multiplicative():
+    multiplicative = MultiplicativeRewardFunction(
+        reward_function_list=[DummyRewardFunction(score=1), DummyRewardFunction(score=2)],
+        weights=[1, 2, 3])
+    with pytest.raises(IndexError):
+        multiplicative(config=None, tracks=None, metric_time=None)
+
+
+def test_unequal_additive():
+    additive = AdditiveRewardFunction(
+        reward_function_list=[DummyRewardFunction(score=1), DummyRewardFunction(score=2)],
+        weights=[1, 2, 3])
+    with pytest.raises(IndexError):
+        additive(config=None, tracks=None, metric_time=None)

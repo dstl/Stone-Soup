@@ -68,6 +68,8 @@ class AdditiveRewardFunction(RewardFunction):
                  metric_time: datetime.datetime, *args, **kwargs):
         if self.weights is None:
             self.weights = [1] * len(self.reward_function_list)
+        if len(self.reward_function_list) != len(self.weights):
+            raise IndexError
         return np.sum([reward_function(config, tracks, metric_time, *args, **kwargs) * weight
                        for reward_function, weight in
                        zip(self.reward_function_list, self.weights)])
@@ -86,6 +88,8 @@ class MultiplicativeRewardFunction(RewardFunction):
                  metric_time: datetime.datetime, *args, **kwargs):
         if self.weights is None:
             self.weights = [1] * len(self.reward_function_list)
+        if len(self.reward_function_list) != len(self.weights):
+            raise IndexError
         return np.prod([reward_function(config, tracks, metric_time, *args, **kwargs) * weight
                        for reward_function, weight in
                        zip(self.reward_function_list, self.weights)])
