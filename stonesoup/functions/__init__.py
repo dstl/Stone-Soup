@@ -243,7 +243,7 @@ def gauss2sigma(state, alpha=1.0, beta=2.0, kappa=None):
     sigma_points[:, (ndim_state + 1):] = \
         sigma_points[:, (ndim_state + 1):] - sqrt_sigma*np.sqrt(c)
 
-    # Put these sigma points into s State object list
+    # Put these sigma points into a State object list
     sigma_points_states = copy.copy(state)
     sigma_points_states.state_vector = sigma_points
 
@@ -280,7 +280,7 @@ def sigma2gauss(sigma_points, mean_weights, covar_weights, covar_noise=None):
         Calculated covariance
     """
 
-    mean = np.average(sigma_points, axis=1, weights=mean_weights)
+    mean = np.average(sigma_points, axis=1, weights=mean_weights).reshape(-1, 1)
 
     points_diff = sigma_points - mean
 
@@ -337,7 +337,7 @@ def unscented_transform(sigma_points_states, mean_weights, covar_weights,
     sigma_points = sigma_points_states.state_vector
 
     # Transform points through f
-    sigma_points_t = fun(sigma_points_states, points_noise)
+    sigma_points_t = fun(sigma_points_states, points_noise=points_noise)
 
     # Calculate mean and covariance approximation
     mean, covar = sigma2gauss(sigma_points_t, mean_weights, covar_weights, covar_noise)
