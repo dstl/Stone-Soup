@@ -12,7 +12,6 @@ from matplotlib import pyplot as plt
 from matplotlib.legend_handler import HandlerPatch
 from matplotlib.lines import Line2D
 from matplotlib.patches import Ellipse
-from mergedeep import merge
 from scipy.special import ellipeinc
 from scipy.stats import kde
 try:
