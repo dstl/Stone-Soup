@@ -12,8 +12,8 @@ from matplotlib import pyplot as plt
 from matplotlib.legend_handler import HandlerPatch
 from matplotlib.lines import Line2D
 from matplotlib.patches import Ellipse
-from scipy.integrate import quad
-from scipy.optimize import brentq
+from mergedeep import merge
+from scipy.special import ellipeinc
 from scipy.stats import kde
 try:
     from plotly import colors
@@ -1539,26 +1539,20 @@ class Plotterly(_Plotter):
         b = np.sqrt(w[min_ind])
         m = 1 - (b**2 / a**2)
 
-        def func(x):
-            return np.sqrt(1 - (m**2 * np.sin(x)**2))
+        angles = np.linspace(0, 2 * np.pi, n_points)
+        arc_lengths = a * ellipeinc(angles, m)
 
-        def func2(z):
-            return quad(func, 0, z)[0]
+        total_length = arc_lengths[-1]
+        target_arc_lengths = np.linspace(0, total_length, n_points, endpoint=False)
 
-        c = 4 * a * func2(np.pi / 2)
-
-        points = []
-        for n in range(n_points):
-            def func3(x):
-                return n/n_points*c - a*func2(x)
-
-            points.append((brentq(func3, 0, 2 * np.pi, xtol=1e-4)))
+        thetas = np.interp(target_arc_lengths, arc_lengths, angles)
+        x_coords = a * np.sin(thetas)
+        y_coords = b * np.cos(thetas)
+        points = np.vstack((x_coords, y_coords))
 
         c, s = np.cos(orient), np.sin(orient)
         rotational_matrix = np.array(((c, -s), (s, c)))
-        points.append(points[0])
-        points = np.array([[a * np.sin(i), b * np.cos(i)] for i in points])
-        points = rotational_matrix @ points.T
+        points = rotational_matrix @ points
         return points + state.mean[mapping[:2], :]
 
     def plot_sensors(self, sensors, mapping=[0, 1], label="Sensors", **kwargs):
