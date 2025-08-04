@@ -7,6 +7,7 @@ import numpy as np
 
 from .base import Hypothesiser
 from ..base import Property
+from ..measures import Measure
 from ..measures import SquaredMahalanobis
 from ..types.detection import MissedDetection
 from ..types.hypothesis import SingleProbabilityHypothesis
@@ -26,6 +27,9 @@ class PDAHypothesiser(Hypothesiser):
 
     predictor: Predictor = Property(doc="Predict tracks to detection times")
     updater: Updater = Property(doc="Updater used to get measurement prediction")
+    measure: Measure = Property(
+        doc="Measure class used to calculate the distance between two states.",
+        default=SquaredMahalanobis(state_covar_inv_cache_size=None))
     clutter_spatial_density: float = Property(
         default=None,
         doc="Spatial density of clutter - tied to probability of false detection. Default is None "
@@ -124,7 +128,6 @@ class PDAHypothesiser(Hypothesiser):
 
         hypotheses = list()
         validated_measurements = 0
-        measure = SquaredMahalanobis(state_covar_inv_cache_size=None)
 
         # Common state & measurement prediction
         prediction = self.predictor.predict(track, timestamp=timestamp, **kwargs)
@@ -152,7 +155,7 @@ class PDAHypothesiser(Hypothesiser):
                 cov=measurement_prediction.covar)
             probability = Probability(log_prob, log_value=True)
 
-            if measure(measurement_prediction, detection) \
+            if self.measure(measurement_prediction, detection) \
                     <= self._gate_threshold(self.prob_gate, measurement_prediction.ndim):
                 validated_measurements += 1
                 valid_measurement = True
