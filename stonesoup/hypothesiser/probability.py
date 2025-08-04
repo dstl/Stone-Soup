@@ -27,9 +27,6 @@ class PDAHypothesiser(Hypothesiser):
 
     predictor: Predictor = Property(doc="Predict tracks to detection times")
     updater: Updater = Property(doc="Updater used to get measurement prediction")
-    measure: Measure = Property(
-        doc="Measure class used to calculate the distance between two states.",
-        default=SquaredMahalanobis(state_covar_inv_cache_size=None))
     clutter_spatial_density: float = Property(
         default=None,
         doc="Spatial density of clutter - tied to probability of false detection. Default is None "
@@ -47,6 +44,9 @@ class PDAHypothesiser(Hypothesiser):
         doc="If `True`, hypotheses outside probability gates will be returned. This requires "
             "that the clutter spatial density is also provided, as it may not be possible to"
             "estimate this. Default `False`")
+    measure: Measure = Property(
+        default=SquaredMahalanobis(state_covar_inv_cache_size=None),
+        doc="Measure class used to calculate the distance between two states.")
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
