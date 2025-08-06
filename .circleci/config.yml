@@ -6,7 +6,6 @@ workflows:
       - flake8
   test:
     jobs:
-      - test-39
       - test-310
       - test-311
       - test-312
@@ -15,9 +14,9 @@ workflows:
     jobs:
       - docs
 jobs:
-  test-39: &test-template
+  test-310: &test-template
     docker:
-      - image: cimg/python:3.9
+      - image: cimg/python:3.10
     steps:
       - checkout
       - restore_cache:
@@ -50,10 +49,6 @@ jobs:
               -f test-reports/coverage.xml \
               -F unittests \
               -n ${CIRCLE_BUILD_NUM}
-  test-310:
-    <<: *test-template
-    docker:
-      - image: cimg/python:3.10
   test-311:
     <<: *test-template
     docker:

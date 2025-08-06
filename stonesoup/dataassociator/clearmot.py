@@ -1,6 +1,5 @@
 import datetime
 import itertools
-import sys
 from collections import defaultdict
 from collections.abc import Generator, Iterable, MutableSequence
 from typing import Any
@@ -267,12 +266,4 @@ def pairwise(iterable: Iterable[Any]) -> Generator[Any, None, None]:
     """pairwise('ABCDEFG') → AB BC CD DE EF FG
     """
 
-    if sys.version_info >= (3, 10):
-        yield from itertools.pairwise(iterable)
-    else:
-        # Taken from https://docs.python.org/3/library/itertools.html#itertools.pairwise
-        iterator = iter(iterable)
-        a = next(iterator, None)
-        for b in iterator:
-            yield a, b
-            a = b
+    yield from itertools.pairwise(iterable)

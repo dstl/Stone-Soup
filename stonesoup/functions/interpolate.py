@@ -2,26 +2,13 @@ import copy
 import datetime
 import warnings
 from collections.abc import Iterable, Callable
+from itertools import pairwise
 from typing import Union
 
 import numpy as np
 
 from ..types.array import StateVectors
 from ..types.state import StateMutableSequence, State
-
-try:
-    # Available from python 3.10
-    from itertools import pairwise
-except ImportError:
-    try:
-        from more_itertools import pairwise
-    except ImportError:
-        from itertools import tee
-
-        def pairwise(iterable: Iterable):
-            a, b = tee(iterable)
-            next(b, None)
-            return zip(a, b)
 
 
 def time_range(start_time: datetime.datetime, end_time: datetime.datetime,
