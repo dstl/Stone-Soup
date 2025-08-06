@@ -2,6 +2,8 @@ from collections.abc import Sequence
 
 import numpy as np
 
+_no_value = object()
+
 
 class Matrix(np.ndarray):
     """Matrix wrapper for :class:`numpy.ndarray`
@@ -165,12 +167,21 @@ class StateVectors(Matrix):
             return super().__array_function__(func, types, args, kwargs)
 
     @staticmethod
-    def _mean(state_vectors, axis=None, dtype=None, out=None, keepdims=np._NoValue):
+    def _mean(state_vectors, axis=None, dtype=None, out=None, keepdims=_no_value,
+              *, where=_no_value):
+        if keepdims is not _no_value:
+            keepdims_kw = {'keepdims': keepdims}
+        else:
+            keepdims_kw = {}
+        if where is not _no_value:
+            where_kw = {'where': where}
+        else:
+            where_kw = {}
         if state_vectors.dtype != np.object_:
             # Can just use standard numpy mean if not using custom objects
-            return np.mean(np.asarray(state_vectors), axis, dtype, out, keepdims)
-        elif axis == 1 and out is None:
-            state_vector = np.average(state_vectors, axis)
+            return np.mean(np.asarray(state_vectors), axis, dtype, out, **keepdims_kw, **where_kw)
+        elif axis == 1 and out is None and where_kw.get('where', True) is True:
+            state_vector = np.average(state_vectors, axis, **keepdims_kw)
             if dtype:
                 return state_vector.astype(dtype)
             else:
@@ -179,13 +190,19 @@ class StateVectors(Matrix):
             return NotImplemented
 
     @staticmethod
-    def _average(state_vectors, axis=None, weights=None, returned=False):
-        if state_vectors.dtype != np.object_:
+    def _average(state_vectors, axis=None, weights=None, returned=False, *, keepdims=_no_value):
+        if keepdims is not _no_value:
+            keepdims_kw = {'keepdims': keepdims}
+        else:
+            keepdims_kw = {}
+        if state_vectors.dtype != np.object_ and keepdims_kw.get('keepdims', True):
             # Can just use standard numpy averaging if not using custom objects
-            state_vector = np.average(np.asarray(state_vectors), axis=axis, weights=weights)
+            state_vector = np.average(
+                np.asarray(state_vectors), axis=axis, weights=weights, **keepdims_kw)
             # Convert type as may have type of weights
             state_vector = StateVector(state_vector.astype(np.float64, copy=False))
-        elif axis == 1:  # Need to handle special cases of averaging potentially
+        # Need to handle special cases of averaging potentially
+        elif axis == 1 and keepdims_kw.get('keepdims', True):
             state_vector = StateVector(
                 np.empty((state_vectors.shape[0], 1), dtype=state_vectors.dtype))
             for dim, row in enumerate(np.asarray(state_vectors)):
