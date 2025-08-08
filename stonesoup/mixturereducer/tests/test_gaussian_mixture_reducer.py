@@ -1,10 +1,11 @@
 import numpy as np
 import pytest
 
-from stonesoup.mixturereducer.gaussianmixture import GaussianMixtureReducer
+from stonesoup.mixturereducer.gaussianmixture import GaussianMixtureReducer, CovarianceIntersection
+from stonesoup.types.array import StateVector, CovarianceMatrix
 from stonesoup.types.mixture import GaussianMixture
 from stonesoup.types.state import (TaggedWeightedGaussianState,
-                                   WeightedGaussianState)
+                                   WeightedGaussianState, GaussianState)
 
 
 @pytest.fixture(params=[None, 10])
@@ -99,3 +100,41 @@ def test_gaussianmixture_truncating():
                                             max_number_components=5)
     reduced_mixture = mixturereducer.reduce(mixture)
     assert len(reduced_mixture) == 5
+
+
+state_0 = GaussianState([0, 0, 0, 0], np.diag([1, 1, 1, 1]))
+state_1 = GaussianState([1, 1, 1, 1], np.diag([1, 1, 1, 1]))
+state_2 = GaussianState([-1, -1, -1, -1], np.diag([1, 1, 1, 1]))
+state_3 = GaussianState([3, 3, 3, 3], np.diag([3, 3, 3, 3]))
+state_4 = GaussianState([-3, -3, -3, -3], np.diag([3, 3, 3, 3]))
+state_5 = GaussianState([1, 3, -1, -3], np.diag([1, 3, 1, 3]))
+state_6 = GaussianState([-1, -3, 1, 3], np.diag([1, 3, 1, 3]))
+state_7 = GaussianState([3, 1, -3, -1], np.diag([3, 1, 3, 1]))
+state_8 = GaussianState([-3, -1, 3, 1], np.diag([3, 1, 3, 1]))
+
+
+@pytest.mark.parametrize(("test_state_1", "test_state_2"), [(state_0, state_0),
+                                                            (state_1, state_2),
+                                                            (state_1, state_4),
+                                                            (state_2, state_3),
+                                                            (state_3, state_4),
+                                                            (state_5, state_6),
+                                                            (state_5, state_8),
+                                                            (state_6, state_7),
+                                                            (state_7, state_8),])
+def test_covariance_intersection_position(test_state_1, test_state_2):
+    result = CovarianceIntersection.merge_components(test_state_1, test_state_2)
+    assert np.array_equal(result.state_vector, StateVector([0]*4))
+
+
+@pytest.mark.parametrize(("test_state_1", "test_state_2"), [(state_1, state_3),
+                                                            (state_1, state_4),
+                                                            (state_2, state_3),
+                                                            (state_2, state_4),
+                                                            (state_5, state_7),
+                                                            (state_5, state_8),
+                                                            (state_6, state_7),
+                                                            (state_6, state_8),])
+def test_covariance_intersection_covar(test_state_1, test_state_2):
+    result = CovarianceIntersection.merge_components(test_state_1, test_state_2)
+    assert np.array_equal(result.covar, CovarianceMatrix(np.diag([3/2]*4)))

@@ -1,11 +1,10 @@
 from functools import lru_cache
 
-import numpy as np
-
 from ..base import Property
 from .base import Updater
 from ..types.prediction import MeasurementPrediction
 from ..types.update import Update
+from ..mixturereducer.gaussianmixture import CovarianceIntersection
 
 
 class ChernoffUpdater(Updater):
@@ -34,7 +33,7 @@ class ChernoffUpdater(Updater):
 
     .. math::
 
-            D &= \left ( \omega A^{-1} + (1-\omega)B^{-1} \right )\\
+            D &= \left ( \omega A^{-1} + (1-\omega)B^{-1} \right )^{-1}\\
             d &= D \left ( \omega A^{-1}a + (1-\omega)B^{-1}b \right )\\
             V &= \frac{A}{1-\omega} + \frac{B}{\omega}
 
@@ -144,16 +143,6 @@ class ChernoffUpdater(Updater):
             The state posterior, saved in a generic :class:`~.Update` object.
         """
 
-        # Get the predicted state out of the hypothesis. These are 'B' and 'b', the
-        # covariance and mean of the predicted Gaussian
-        predicted_covar = hypothesis.prediction.covar
-        predicted_mean = hypothesis.prediction.state_vector
-
-        # Extract the vector and covariance from the measurement. These are 'A' and 'a', the
-        # covariance and mean of the Gaussian measurement.
-        measurement_covar = hypothesis.measurement.covar
-        measurement_mean = hypothesis.measurement.state_vector
-
         # Predict the measurement if it is not already done
         if hypothesis.measurement_prediction is None:
             hypothesis.measurement_prediction = self.predict_measurement(
@@ -162,19 +151,15 @@ class ChernoffUpdater(Updater):
                 **kwargs
             )
 
-        # Calculate the updated mean and covariance from covariance intersection
-        posterior_covariance = np.linalg.pinv(self.omega*np.linalg.pinv(measurement_covar) +
-                                              (1-self.omega)*np.linalg.pinv(predicted_covar))
-        posterior_mean = posterior_covariance @ (self.omega*np.linalg.pinv(measurement_covar)
-                                                 @ measurement_mean +
-                                                 (1-self.omega)*np.linalg.pinv(predicted_covar)
-                                                 @ predicted_mean)
+        posterior = CovarianceIntersection.merge_components(hypothesis.measurement,
+                                                            hypothesis.prediction,
+                                                            weights=[self.omega, 1-self.omega])
 
         # Optionally force the posterior covariance to be a symmetric matrix
         if force_symmetric_covariance:
-            posterior_covariance = \
-                (posterior_covariance + posterior_covariance.T)/2
+            posterior.covar = \
+                (posterior.covar + posterior.covar.T)/2
 
         # Return the updated state
-        return Update.from_state(hypothesis.prediction, posterior_mean, posterior_covariance,
+        return Update.from_state(hypothesis.prediction, posterior.state_vector, posterior.covar,
                                  hypothesis, hypothesis.measurement.timestamp)
