@@ -4,7 +4,7 @@ from functools import lru_cache
 
 import numpy as np
 from scipy.integrate import quad
-from scipy.linalg import block_diag
+from scipy.linalg import block_diag, solve
 
 from .base import TransitionModel, CombinedGaussianTransitionModel
 from ..base import (LinearModel, GaussianModel, TimeVariantModel,
@@ -577,6 +577,148 @@ class SingerApproximate(Singer):
         ) * self.noise_diff_coeff
 
         return CovarianceMatrix(covar)
+
+
+class SimpleMarkovianGP(LinearGaussianTransitionModel, TimeVariantModel):
+    r"""Discrete model implementing a Markovian zero-mean Gaussian process (GP).
+
+    By default, the GP has the Squared Exponential (SE) covariance function (kernel).
+    The :py:meth:`kernel` can be overridden to implement different kernels.
+
+    We apply the Markovian approximation :math:`P(x_t \mid x_{1:t-1}) \approx P(x_t \mid \mathbf{x}_{t-1})`,
+    limiting the state vector to length :math:`d`, containing the last :math:`d` states.
+
+    Specify hyperparameters for the SE kernel through :py:attr:`kernel_params`.
+    For SE-based models, the hyperparameters are length_scale and kernel_variance.
+    """
+
+    window_size: int = Property(doc="Size of the state vector :math:`d`")
+    epsilon: float = Property(
+        doc="Small constant added to diagonal of covariance matrix", default=1e-6)
+    kernel_params: dict = Property(doc="Dictionary containing the keyword arguments for the kernel.")
+
+    @property
+    def requires_track(self):
+        return True
+    
+    @property
+    def ndim_state(self):
+        return self.window_size
+
+    def kernel(self, t1, t2, **kwargs) -> np.ndarray:
+        """SE Covariance function (kernel) of the Gaussian Process.
+
+        Computes the covariance matrix between two time vectors using a
+        kernel function.
+        Override this method to implement different kernels.
+
+        Parameters
+        ----------
+        t1 : array-like, shape (n_samples_1,)
+
+        t2 : array-like, shape (n_samples_2,)
+
+        Returns
+        -------
+        np.ndarray, shape (n_samples_1, n_samples_2)
+            The covariance matrix between the input arrays `t1` and `t2`.
+            Each entry (i, j) represents the covariance between `t1[i]` and `t2[j]`.
+        """
+        l = self.kernel_params["length_scale"]
+        var = self.kernel_params["kernel_variance"]
+        t1 = t1.reshape(-1, 1)
+        t2 = t2.reshape(1, -1)
+        return var * np.exp(-0.5 * ((t1 - t2)/l) ** 2)
+
+    def matrix(self, track, time_interval, **kwargs):
+        """Model matrix :math:`F`
+
+        Returns
+        -------
+        : :class:`numpy.ndarray` of shape\
+        (:py:attr:`~ndim_state`, :py:attr:`~ndim_state`)
+        """
+        d = self.window_size
+        t = self._get_time_vector(track, time_interval)
+
+        gp_weights, _ = self._gp_pred_wrapper(t, t)
+        Fmat = np.eye(d, k=-1)
+        Fmat[0, :len(gp_weights)] = gp_weights.T
+
+        return Fmat
+
+    def covar(self, track, time_interval, **kwargs):
+        """Returns the transition model noise covariance matrix.
+
+        Parameters
+        ----------
+        track : :class:`~.Track`
+            The track containing the states to obtain the time vector
+        time_interval : :class:`datetime.timedelta`
+            A time interval :math:`dt`
+
+        Returns
+        -------
+        :class:`stonesoup.types.state.CovarianceMatrix` of shape\
+        (:py:attr:`~ndim_state`, :py:attr:`~ndim_state`)
+            The process noise covariance.
+        """
+        d = self.ndim_state
+        t = self._get_time_vector(track, time_interval)
+
+        _, noise_var = self._gp_pred_wrapper(t, t)
+        covar = np.zeros((d, d))
+        covar[0, 0] = 1
+        return CovarianceMatrix(covar * noise_var)
+    
+    def _get_time_vector(self, track, time_interval):
+        return self._get_time_vector_markov1(track, time_interval)
+    
+    def _get_time_vector_markov1(self, track, time_interval):
+        """
+        Generates a time vector containing the time elapsed (in seconds)
+        from the start time of the track.
+
+        The time vector includes:
+            - The prediction time: (last state timestamp + time_interval)
+            - The timestamps of the last `window_size` states in the track.
+
+        Parameters:
+            track: The track containing the states.
+            time_interval: The time interval for prediction.
+        
+        Returns:
+            time_vector (ndarray): A 2D array of elapsed times (d+1 x 1).
+
+        Markov approx 2 assumes a constatn time interval. 
+        Window spans absolute time time-interval*window_size
+        """
+        d = min(self.window_size, len(track.states))
+        start_time = track.states[0].timestamp
+
+        prediction_time = track.states[-1].timestamp + time_interval
+        time_vector = np.array([(prediction_time - start_time).total_seconds()])
+        for i in range(0, d):
+            state_time = track.states[-1 - i].timestamp
+            time_vector = np.append(time_vector, (state_time - start_time).total_seconds())
+        return time_vector.reshape(-1, 1)
+    
+    def _gp_pred_wrapper(self, t1, t2):
+        """Prepare inputs and call cached GP prediction helper function."""
+        t1 = tuple(np.round(np.atleast_1d(t1).flatten(), 10))
+        t2 = tuple(np.round(np.atleast_1d(t2).flatten(), 10))
+        return self._gp_pred(t1, t2)
+    
+    @lru_cache
+    def _gp_pred(self, t1, t2):
+        """Cached GP prediction: compute weights and noise variance."""
+        t1 = np.array(t1)
+        t2 = np.array(t2)
+        C = self.kernel(t1, t2)
+        C = C + np.eye(np.shape(C)[0]) * self.epsilon
+        gp_weights = solve(C[1:, 1:], C[1:, 0])
+        noise_var = C[0, 0] - C[0, 1:] @ gp_weights
+        return gp_weights, noise_var
 
 
 class KnownTurnRateSandwich(LinearGaussianTransitionModel, TimeVariantModel):
