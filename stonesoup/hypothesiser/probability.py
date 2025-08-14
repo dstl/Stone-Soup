@@ -7,6 +7,7 @@ import numpy as np
 
 from .base import Hypothesiser
 from ..base import Property
+from ..measures import Measure
 from ..measures import SquaredMahalanobis
 from ..types.detection import MissedDetection
 from ..types.hypothesis import SingleProbabilityHypothesis
@@ -43,6 +44,9 @@ class PDAHypothesiser(Hypothesiser):
         doc="If `True`, hypotheses outside probability gates will be returned. This requires "
             "that the clutter spatial density is also provided, as it may not be possible to"
             "estimate this. Default `False`")
+    measure: Measure = Property(
+        default=SquaredMahalanobis(state_covar_inv_cache_size=None),
+        doc="Measure class used to calculate the distance between two states.")
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -124,7 +128,6 @@ class PDAHypothesiser(Hypothesiser):
 
         hypotheses = list()
         validated_measurements = 0
-        measure = SquaredMahalanobis(state_covar_inv_cache_size=None)
 
         # Common state & measurement prediction
         prediction = self.predictor.predict(track, timestamp=timestamp, **kwargs)
@@ -152,7 +155,7 @@ class PDAHypothesiser(Hypothesiser):
                 cov=measurement_prediction.covar)
             probability = Probability(log_prob, log_value=True)
 
-            if measure(measurement_prediction, detection) \
+            if self.measure(measurement_prediction, detection) \
                     <= self._gate_threshold(self.prob_gate, measurement_prediction.ndim):
                 validated_measurements += 1
                 valid_measurement = True
