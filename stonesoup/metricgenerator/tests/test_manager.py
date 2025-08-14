@@ -281,3 +281,81 @@ def test_generate_metrics_simplemanager():
     assert metrics.get("Test metric5 at times") == metric5
     assert np.array_equal(metric5.value, 60)
     assert metric5.generator == generator2
+
+
+def test_association_caching_multimanager():
+    generator = DummyMetricGenerator(generator_name='test_generator',
+                                     tracks_key='tracks',
+                                     truths_key='truths')
+
+    manager = MultiManager(associator=DummyAssociator(), generators=[generator])
+    tracks = {Track(
+        states=State(np.array([[1]]), timestamp=datetime.datetime.now()))}
+    truths = {GroundTruthPath(
+        states=State(np.array([[2]]), timestamp=datetime.datetime.now()))}
+    manager.add_data({'truths': truths, 'tracks': tracks})
+
+    # First association should populate the cache
+    manager.associate_tracks(generator)
+    assert len(manager._association_sets) == 1
+    assert (generator.tracks_key, generator.truths_key) in manager._association_sets
+
+    # Re-associating with the same keys should use the cache
+    previous_association_set = manager.association_set
+    manager.associate_tracks(generator)
+    assert manager.association_set is previous_association_set
+
+    # Updating data should invalidate the cache
+    new_truths = {GroundTruthPath(
+        states=State(np.array([[3]]), timestamp=datetime.datetime.now()))}
+    manager.add_data({'truths': new_truths}, overwrite=True)
+    assert len(manager._association_sets) == 0  # Cache should be cleared
+
+    # Re-associating should repopulate the cache
+    manager.associate_tracks(generator)
+    assert len(manager._association_sets) == 1
+    assert (generator.tracks_key, generator.truths_key) in manager._association_sets
+
+
+def test_association_caching_key_specific():
+    generator1 = DummyMetricGenerator(generator_name='test_generator1',
+                                      tracks_key='tracks',
+                                      truths_key='truths')
+    generator2 = DummyMetricGenerator(generator_name='test_generator2',
+                                      tracks_key='tracks2',
+                                      truths_key='truths2')
+
+    manager = MultiManager(associator=DummyAssociator(), generators=[generator1, generator2])
+    tracks = {Track(
+        states=State(np.array([[1]]), timestamp=datetime.datetime.now()))}
+    truths = {GroundTruthPath(
+        states=State(np.array([[2]]), timestamp=datetime.datetime.now()))}
+    tracks2 = {Track(
+        states=State(np.array([[3]]), timestamp=datetime.datetime.now()))}
+    truths2 = {GroundTruthPath(
+        states=State(np.array([[4]]), timestamp=datetime.datetime.now()))}
+
+    manager.add_data({'truths': truths, 'tracks': tracks,
+                      'truths2': truths2, 'tracks2': tracks2})
+
+    # Associate using generator1
+    manager.associate_tracks(generator1)
+    assert len(manager._association_sets) == 1
+    assert (generator1.tracks_key, generator1.truths_key) in manager._association_sets
+
+    # Associate using generator2
+    manager.associate_tracks(generator2)
+    assert len(manager._association_sets) == 2
+    assert (generator2.tracks_key, generator2.truths_key) in manager._association_sets
+
+    # Ensure caches are independent
+    assert manager._association_sets[(generator1.tracks_key, generator1.truths_key)] != \
+           manager._association_sets[(generator2.tracks_key, generator2.truths_key)]
+
+    # Add more data for new keys
+    manager.add_data({'truths3': truths, 'tracks3': tracks}, overwrite=False)
+    assert len(manager._association_sets) == 2
+
+    # Add data again and ensure cache cleared.
+    manager.add_data({'truths': truths, 'tracks': tracks}, overwrite=False)
+    assert len(manager._association_sets) == 1
