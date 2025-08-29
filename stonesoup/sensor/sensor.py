@@ -1,6 +1,6 @@
 from abc import abstractmethod, ABC
 from functools import lru_cache
-from typing import Set, Union, Sequence, List, TYPE_CHECKING
+from typing import Set, Union, Sequence, TYPE_CHECKING
 try:
     from shapely import STRtree
     from shapely.geometry import Polygon, Point, MultiPoint, LineString, MultiLineString
@@ -204,12 +204,13 @@ class VisibilityInformed2DSensor(SimpleSensor):
     # TODO: Establish the suitable number of obstacles to use when
     # switching between STR Tree and ray casting.
 
-    obstacles: List['Obstacle'] = Property(default=None,
-                                           doc="list of :class:`~.Obstacle` type platforms "
-                                           "that represent obstacles in the environment")
+    obstacles: Set['Obstacle'] = Property(default=None,
+                                          doc="Set of :class:`~.Obstacle` type "
+                                              "platforms that represent obstacles in the "
+                                              "environment")
 
     moving_obstacle_flag: bool = Property(default=False,
-                                          doc="Boolean flag indicating is obstacles are mobile")
+                                          doc="Boolean flag indicating if obstacles are mobile")
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -269,6 +270,16 @@ class VisibilityInformed2DSensor(SimpleSensor):
             return STRtree([Polygon(obstacle.vertices.T) for obstacle in self.obstacles])
         else:
             return self._obstacle_tree
+
+    def measure(self, ground_truths: Set[GroundTruthState], noise: Union[np.ndarray, bool] = True,
+                **kwargs) -> Set[TrueDetection]:
+
+        # In the event that obstacles have been pased to the measure function,
+        # they are removed from the set of known obstacles.
+        if isinstance(self, VisibilityInformed2DSensor) and self.obstacles:
+            ground_truths = ground_truths - self.obstacles
+
+        return super().measure(ground_truths, noise, **kwargs)
 
     def is_visible(self, state):
         """Function for evaluating the visibility of states in the

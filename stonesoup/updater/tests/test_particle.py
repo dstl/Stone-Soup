@@ -30,6 +30,7 @@ from ...sampler.detection import SwitchingDetectionSampler, GaussianDetectionPar
 from ...regulariser.particle import MCMCRegulariser
 from ...platform.base import Obstacle
 from ...sensor.radar import RadarBearingRange
+from ...platform.shape import Shape
 
 
 def dummy_constraint_function(particles):
@@ -121,8 +122,8 @@ def test_particle(updater):
                                        [0, 1**2]]),
                  ndim_state=4,
                  obstacles=[Obstacle(states=State(StateVector([[20], [15]])),
-                                     shape_data=np.array([[-2.5, -2.5, 2.5, 2.5],
-                                                          [-2.5, 2.5, 2.5, -2.5]]),
+                                     shape=Shape(shape_data=np.array([[-2.5, -2.5, 2.5, 2.5],
+                                                                      [-2.5, 2.5, 2.5, -2.5]])),
                                      position_mapping=(0, 1))])}})  # extra_params
         ],
         ids=["standard_bernoulli", "vis_informed_bernoulli"]
