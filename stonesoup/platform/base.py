@@ -1,15 +1,14 @@
 import uuid
-from collections.abc import MutableSequence
-from typing import Sequence, Union, Any
+from typing import MutableSequence, Any
 import numpy as np
 from functools import lru_cache
 
-from ..base import Property, Base
-from ..functions import build_rotation_matrix
-from ..movable import Movable, FixedMovable, MovingMovable, MultiTransitionMovable
-from ..sensor.sensor import Sensor
-from ..types.array import StateVectors
-from ..types.groundtruth import GroundTruthPath
+from stonesoup.base import Property, Base
+from stonesoup.functions import build_rotation_matrix
+from stonesoup.movable import Movable, FixedMovable, MovingMovable, MultiTransitionMovable
+from stonesoup.sensor.sensor import Sensor
+from stonesoup.types.groundtruth import GroundTruthPath
+from stonesoup.platform.shape import Shape
 
 
 class Platform(Base):
@@ -30,6 +29,9 @@ class Platform(Base):
     If a ``movement_controller`` argument is not supplied to the constructor, the Platform will
     try to construct one using unused arguments passed to the Platform's constructor.
 
+    It is also possible to specify the :class:`~.Shape` of a platform, in the event of it
+    representing a vehicle with known geometry, by providing the optional property.
+
     .. note:: This class is abstract and not intended to be instantiated. To get the behaviour
         of this class use a subclass which gives movement
         behaviours. Currently, these are :class:`~.FixedPlatform` and
@@ -48,6 +50,10 @@ class Platform(Base):
     id: str = Property(
         default=None,
         doc="The unique platform ID. Default `None` where random UUID is generated.")
+
+    shape: Shape = Property(
+        default=None,
+        doc="Optional :class:`~.Shape` object defining the :class:`~.Platform` shape.")
 
     _default_movable_class = None  # Will be overridden by subclasses
 
@@ -92,6 +98,13 @@ class Platform(Base):
             sensor.movement_controller = self.movement_controller
         if self.id is None:
             self.id = str(uuid.uuid4())
+
+        if self.shape:
+            # Initialise vertices
+            self._vertices = self._calculate_verts()
+
+            # Initialise relative_edges
+            self._relative_edges = self._calculate_relative_edges()
 
     @staticmethod
     def _tuple_or_none(value):
@@ -183,67 +196,12 @@ class Platform(Base):
         """
         return GroundTruthPath(id=self.id, states=self.movement_controller.states)
 
-
-class FixedPlatform(Platform):
-    _default_movable_class = FixedMovable
-
-
-class MovingPlatform(Platform):
-    _default_movable_class = MovingMovable
-
-
-class MultiTransitionMovingPlatform(Platform):
-    _default_movable_class = MultiTransitionMovable
-
-
-class Obstacle(Platform):
-    """A platform class representing obstacles in the environment that may
-    block the line of sight to targets, preventing detection and measurement."""
-
-    shape_data: StateVectors = Property(
-        default=None,
-        doc="Coordinates defining the vertices of the obstacle relative"
-        "to its centroid without any orientation. Defaults to `None`")
-
-    simplices: Union[Sequence[int], np.ndarray] = Property(
-        default=None,
-        doc="A :class:`Sequence` or :class:`np.ndarray`, describing the connectivity "
-            "of vertices specified in :attr:`shape_data`. Should be constructed such "
-            "that element `i` is the index of a vertex that `i` is connected to. "
-            "For example, simplices for a four sided obstacle may be `(1, 2, 3, 0)` "
-            "for consecutively defined shape data. Default assumes that :attr:`shape_data` "
-            "is provided such that consecutive vertices are connected, such as the "
-            "example above.")
-
-    shape_mapping: Sequence[int] = Property(
-        default=(0, 1),
-        doc="A mapping for shape data dimensions to x y cartesian position. Default value is "
-            "(0,1)."
-    )
-
-    _default_movable_class = FixedMovable
-
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-
-        # If simplices not defined, calculate based on sequential vertices assumption
-        if self.simplices is None:
-            self.simplices = np.roll(np.linspace(0,
-                                                 self.shape_data.shape[1]-1,
-                                                 self.shape_data.shape[1]),
-                                     -1).astype(int)
-        # Initialise vertices
-        self._vertices = self._calculate_verts()
-
-        # Initialise relative_edges
-        self._relative_edges = self._calculate_relative_edges()
-
     @property
     def vertices(self):
         """Vertices are calculated by applying :attr:`position` and
-        :attr:`orientation` to :attr:`shape_data`. If :attr:`position`
+        :attr:`orientation` to :attr:`shape`. If :attr:`position`
         or :attr:`orientation` changes, then vertices will reflect
-        these changes. If shape data specifies vertices that connect
+        these changes. If :attr:`shape` specifies vertices that connect
         to more than two other vertices, then the vertex with more
         connections will be duplicated. This enables correct handling
         of complex non-convex shapes."""
@@ -253,8 +211,8 @@ class Obstacle(Platform):
     @property
     def relative_edges(self):
         """Calculates the difference between connected vertices
-        Cartesian coordinates. This is used by :meth:`is_visible` of
-        :class:`~.VisibilityInformed2DSensor` when calculating the
+        Cartesian coordinates. This is used by :meth:`~.VisibilityInformed2DSensor.is_visible`
+        of :class:`~.VisibilityInformed2DSensor` when calculating the
         visibility of a state due to obstacles obstructing the line of
         sight to the target."""
         self._update_verts_and_relative_edges()
@@ -287,30 +245,58 @@ class Obstacle(Platform):
             self._relative_edges[:] = self._calculate_relative_edges()
 
     def _calculate_verts(self) -> np.ndarray:
-        # Calculates the vertices based on the defined `shape_data`,
+        # Calculates the vertices based on the defined `shape` property,
         # `position` and `orientation`.
         rot_mat = build_rotation_matrix(self.orientation)
         rotated_shape = \
-            rot_mat[np.ix_(self.shape_mapping, self.shape_mapping)] @ \
-            self.shape_data[self.shape_mapping, :]
+            rot_mat[np.ix_(self.shape.shape_mapping, self.shape.shape_mapping)] @ \
+            self.shape.shape_data[self.shape.shape_mapping, :]
         verts = rotated_shape + self.position
-        return verts[:, self.simplices]
+        return verts[:, self.shape.simplices]
 
     def _calculate_relative_edges(self):
         # Calculates the relative edge length in Cartesian space. Required
         # for visibility estimator
         return np.array(
-            [self.vertices[self.shape_mapping[0], :] -
-             self.vertices[self.shape_mapping[0],
+            [self.vertices[self.shape.shape_mapping[0], :] -
+             self.vertices[self.shape.shape_mapping[0],
                            np.roll(np.linspace(0,
-                                               len(self.simplices)-1,
-                                               len(self.simplices)), 1).astype(int)],
-             self.vertices[self.shape_mapping[1], :] -
-             self.vertices[self.shape_mapping[1],
+                                               len(self.shape.simplices)-1,
+                                               len(self.shape.simplices)), 1).astype(int)],
+             self.vertices[self.shape.shape_mapping[1], :] -
+             self.vertices[self.shape.shape_mapping[1],
                            np.roll(np.linspace(0,
-                                               len(self.simplices)-1,
-                                               len(self.simplices)), 1).astype(int)],
+                                               len(self.shape.simplices)-1,
+                                               len(self.shape.simplices)), 1).astype(int)],
              ])
+
+
+class FixedPlatform(Platform):
+    _default_movable_class = FixedMovable
+
+
+class MovingPlatform(Platform):
+    _default_movable_class = MovingMovable
+
+
+class MultiTransitionMovingPlatform(Platform):
+    _default_movable_class = MultiTransitionMovable
+
+
+class Obstacle(Platform):
+    """A platform class representing obstacles in the environment that may
+    block the line of sight to targets, preventing detection and measurement.
+    This platform requires the user to define the :attr:`shape` property."""
+
+    _default_movable_class = FixedMovable
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+
+        if not self.shape:
+            raise ValueError("The 'Obstacle' platform type requires "
+                             "that property 'shape' is defined. Currently "
+                             "'{}'.".format(self.shape))
 
     @classmethod
     def from_obstacle(

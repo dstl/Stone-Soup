@@ -16,10 +16,11 @@ from ....models.measurement.linear import LinearGaussian
 from ....types.angle import Bearing, Elevation
 from ....types.array import StateVector, CovarianceMatrix
 from ....types.groundtruth import GroundTruthState, GroundTruthPath
-from ....types.state import State
+from ....types.state import State, ParticleState, StateVectors
 from ....types.detection import TrueDetection
 from ....models.clutter.clutter import ClutterModel
 from ....platform.base import Obstacle
+from ....platform.shape import Shape
 
 
 def h2d(state, pos_map, translation_offset, rotation_offset):
@@ -1080,23 +1081,23 @@ def test_detectable(pan, tilt, ans):
 def test_is_visible_sensors(sensor, params):
 
     obs_state = State(StateVector([[0], [75]]))
-    shape = np.array([[-5, -5, 5, 5], [-5, 5, 5, -5]])
-    obs_configs = [[Obstacle(states=obs_state,
-                             shape_data=shape,
-                             position_mapping=(0, 1))]]
+    shape = Shape(shape_data=np.array([[-5, -5, 5, 5], [-5, 5, 5, -5]]))
+    obs_configs = [{Obstacle(states=obs_state,
+                             shape=shape,
+                             position_mapping=(0, 1))}]
 
-    shape_2 = np.array([[-0.5, -0.5, 0.5, 0.5], [-0.5, 0.5, 0.5, -0.5]])
+    shape_2 = Shape(shape_data=np.array([[-0.5, -0.5, 0.5, 0.5], [-0.5, 0.5, 0.5, -0.5]]))
     obstacle_grid_positions = np.meshgrid(np.linspace(-12, 12, 11),
                                           np.linspace(50.75, 99, 11))
     obstacle_grid_positions = np.vstack([np.hstack(obstacle_grid_positions[0]),
                                          np.hstack(obstacle_grid_positions[1])])
 
-    obs_configs.append([Obstacle(states=State(StateVector(obstacle_grid_positions[:, 0])),
-                                 shape_data=shape_2,
-                                 position_mapping=(0, 1))])
+    obs_configs.append({Obstacle(states=State(StateVector(obstacle_grid_positions[:, 0])),
+                                 shape=shape_2,
+                                 position_mapping=(0, 1))})
     for obs_pos in obstacle_grid_positions[:, 1:].T:
-        obs_configs[1].append(Obstacle.from_obstacle(obs_configs[1][0],
-                                                     states=State(StateVector(obs_pos))))
+        obs_configs[1].update({Obstacle.from_obstacle(next(iter(obs_configs[1])),
+                                                      states=State(StateVector(obs_pos)))})
 
     states = [GroundTruthState(StateVector([[25], [50]])),
               GroundTruthState(StateVector([[0], [50]])),
@@ -1110,23 +1111,76 @@ def test_is_visible_sensors(sensor, params):
                      StateVector([[-25], [50]]),
                      StateVector([[-25], [99]]),
                      StateVector([[25], [99]])]
+    bool_state_vis_1 = np.array([False, True, False, False, False, False])  # For particle state
 
     # states not visible
     not_vis_set_2 = [StateVector([[0], [99]])]
+    bool_state_vis_2 = np.array([True, True, True, True, False, True])  # For particle state
 
+    # states in obstacles
+    in_obs_set_2 = [StateVector([[0], [99]])]
+    bool_states_in_obs1 = np.full(6, False)
+    bool_states_in_obs2 = np.array([False, False, False, False, True, False])
+
+    test_part_state = ParticleState(StateVectors(
+            [state.state_vector[:, 0] for state in states]).T)
+    vis_sensor_no_obs = sensor(**params)
     for obs_config in obs_configs:
 
         params['obstacles'] = obs_config
         vis_informed_sensor = sensor(**params)
 
+        # Test measuring obstacles
+        obs_measure = vis_informed_sensor.measure({*obs_config})
+        assert len(obs_measure) == 0
+
+        # Test particle state functionality
+        if (isinstance(vis_informed_sensor, RadarRotatingBearing) or
+                isinstance(vis_informed_sensor, RadarRotatingBearingRange)):
+            assert np.all(vis_informed_sensor.is_visible(test_part_state)
+                          & vis_informed_sensor.is_detectable(test_part_state) == bool_state_vis_1)
+        else:
+            assert np.all(vis_informed_sensor.is_visible(test_part_state) == bool_state_vis_2)
+
+        if len(obs_config) > 1:
+            assert np.all(vis_informed_sensor.in_obstacle(test_part_state) == bool_states_in_obs2)
+        else:
+            assert np.all(vis_informed_sensor.in_obstacle(test_part_state) == bool_states_in_obs1)
+        # Test all states visible when no obstacles in sensor
+        assert not np.any(vis_sensor_no_obs.in_obstacle(test_part_state))
+
+        # Test individual state functionality
         for state in states:
             measurement = vis_informed_sensor.measure({state}, noise=False)
+            meas_plus_obs = vis_informed_sensor.measure({state, *obs_config}, noise=False)
 
             if ((isinstance(vis_informed_sensor, RadarRotatingBearing) or
                 isinstance(vis_informed_sensor, RadarRotatingBearingRange))
                 and np.any(np.all(state.state_vector == not_vis_set_1, axis=1)))\
                     or np.any(np.all(state.state_vector == not_vis_set_2, axis=1)):
                 assert len(measurement) == 0
+                # Check that obstacles aren't measured
+                assert len(meas_plus_obs) == 0
+                # Test StateVector input
+                assert not (vis_informed_sensor.is_visible(state.state_vector)
+                            and vis_informed_sensor.is_detectable(state))
             else:
-                assert np.all(measurement.pop().state_vector ==
+                assert np.all(list(measurement)[0].state_vector ==
                               vis_informed_sensor.measurement_model.function(state))
+                # Check that obstacles aren't measured
+                assert np.all(list(measurement)[0].state_vector ==
+                              list(meas_plus_obs)[0].state_vector)
+                # Test StateVector input
+                assert (vis_informed_sensor.is_visible(state.state_vector)
+                        and vis_informed_sensor.is_detectable(state))
+
+            if (len(obs_config) > 1) and \
+                    np.any(np.all(state.state_vector == in_obs_set_2, axis=1)):
+                assert vis_informed_sensor.in_obstacle(state)
+                assert vis_informed_sensor.in_obstacle(state.state_vector)
+            else:
+                assert not vis_informed_sensor.in_obstacle(state)
+                assert not vis_informed_sensor.in_obstacle(state.state_vector)
+
+            # Check no obstacles returns correct response
+            assert not np.any(vis_sensor_no_obs.in_obstacle(state))

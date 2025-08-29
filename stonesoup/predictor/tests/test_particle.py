@@ -25,6 +25,7 @@ from ...functions import gm_sample
 from ...types.hypothesis import SingleHypothesis
 from ...types.multihypothesis import MultipleHypothesis
 from ...platform.base import Obstacle
+from ...platform.shape import Shape
 from ...sensor.radar import RadarBearingRange
 
 
@@ -97,8 +98,8 @@ def test_particle(predictor_class):
                                        [0, 1**2]]),
                  ndim_state=4,
                  obstacles=[Obstacle(states=State(StateVector([[20], [15]])),
-                                     shape_data=np.array([[-2.5, -2.5, 2.5, 2.5],
-                                                          [-2.5, 2.5, 2.5, -2.5]]),
+                                     shape=Shape(shape_data=np.array([[-2.5, -2.5, 2.5, 2.5],
+                                                                      [-2.5, 2.5, 2.5, -2.5]])),
                                      position_mapping=(0, 1))])}})  # extra_params
         ],
         ids=["standard_bernoulli", "vis_informed_bernoulli"]
@@ -229,8 +230,8 @@ def test_bernoulli_particle_no_detection(predictor, extra_params):
                                        [0, 1**2]]),
                  ndim_state=4,
                  obstacles=[Obstacle(states=State(StateVector([[20], [15]])),
-                                     shape_data=np.array([[-2.5, -2.5, 2.5, 2.5],
-                                                          [-2.5, 2.5, 2.5, -2.5]]),
+                                     shape=Shape(shape_data=np.array([[-2.5, -2.5, 2.5, 2.5],
+                                                                      [-2.5, 2.5, 2.5, -2.5]])),
                                      position_mapping=(0, 1))])}})  # extra_params
         ],
         ids=["standard_bernoulli", "vis_informed_bernoulli"]

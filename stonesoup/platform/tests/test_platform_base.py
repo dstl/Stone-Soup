@@ -15,6 +15,7 @@ from stonesoup.types.array import StateVector
 from stonesoup.platform import MovingPlatform, FixedPlatform, MultiTransitionMovingPlatform
 from ...types.state import State
 from ...types.groundtruth import GroundTruthPath
+from stonesoup.platform.shape import Shape
 
 
 def test_base():
@@ -841,42 +842,60 @@ def test_setting_movement_controller_sensors():
       StateVector([3, 4]),  # position2
       StateVector([[0], [0], [0]]),  # orientation2
       None,  # simplices
-      ),  # from_obs_mapping
+      ),
      (np.array([[-2, 0, 2, 2, -2], [2, 3, 2, -2, -2]]),  # shape_data
       StateVector([1, 2]),  # position1
       StateVector([[0], [0], [0]]),  # orientation1
       StateVector([3, 4]),  # position2
       StateVector([[0], [0], [np.radians(45)]]),  # orientation2
       None,  # simplices
-      ),  # from_obs_mapping
+      ),
+     (None,  # shape_data
+      StateVector([1, 2]),  # position1
+      StateVector([[0], [0], [0]]),  # orientation1
+      StateVector([3, 4]),  # position2
+      StateVector([[0], [0], [np.radians(45)]]),  # orientation2
+      None,  # simplices
+      )
      ],
-    ids=['test_defined_simpleces', 'test_undefined_simplices', 'test_5_sides'])
+    ids=['test_defined_simpleces', 'test_undefined_simplices', 'test_5_sides', 'test_no_shape'])
 def test_obstacle(shape_data, position1, orientation1, position2, orientation2,
                   simplices):
 
     if np.any(orientation1 != StateVector([[0], [0], [0]])) and simplices:
+        shape = Shape(shape_data=shape_data,
+                      simplices=simplices,)
         test_obstacle = Obstacle(states=State(position1),
-                                 shape_data=shape_data,
                                  orientation=orientation1,
-                                 simplices=simplices,
-                                 position_mapping=(0, 1))
+                                 position_mapping=(0, 1),
+                                 shape=shape)
     elif simplices:
+        shape = Shape(shape_data=shape_data,
+                      simplices=simplices,)
         test_obstacle = Obstacle(states=State(position1),
-                                 shape_data=shape_data,
-                                 simplices=simplices,
-                                 position_mapping=(0, 1))
+                                 position_mapping=(0, 1),
+                                 shape=shape)
     elif np.any(orientation1 != StateVector([[0], [0], [0]])):
+        shape = Shape(shape_data=shape_data,)
         test_obstacle = Obstacle(states=State(position1),
-                                 shape_data=shape_data,
                                  orientation=orientation1,
-                                 position_mapping=(0, 1))
+                                 position_mapping=(0, 1),
+                                 shape=shape)
+    elif not np.any(shape_data):
+        with pytest.raises(ValueError, match="The 'Obstacle' platform type requires "
+                                             "that property 'shape' is defined. Currently 'None'"):
+            test_obstacle = Obstacle(states=State(position1),
+                                     position_mapping=(0, 1),)
+        return
+
     else:
+        shape = Shape(shape_data=shape_data,)
         test_obstacle = Obstacle(states=State(position1),
-                                 shape_data=shape_data,
-                                 position_mapping=(0, 1))
+                                 position_mapping=(0, 1),
+                                 shape=shape)
 
     # Check that shape data is correct
-    assert np.all(test_obstacle.shape_data == shape_data)
+    assert np.all(test_obstacle.shape.shape_data == shape_data)
     # Check that position is correct
     assert np.all(test_obstacle.position == position1)
     # check that orientation is correct
@@ -898,7 +917,7 @@ def test_obstacle(shape_data, position1, orientation1, position2, orientation2,
                             -1).astype(int)
 
     true_vertices = rot_m[:2, :2] @ \
-        test_obstacle.shape_data[:, simplices] + position1
+        test_obstacle.shape.shape_data[:, simplices] + position1
 
     edge_index = np.roll(np.linspace(0, len(simplices)-1, len(simplices)), 1).astype(int)
     true_relative_edges = np.array([true_vertices[0, :] - true_vertices[0, edge_index],
@@ -962,7 +981,8 @@ def test_from_obstacle(position2, orientation2, mapping2):
     position = StateVector([1, 2])
     mapping = (0, 1)
 
-    initial_obstacle = Obstacle(shape_data=shape_data,
+    shape = Shape(shape_data=shape_data)
+    initial_obstacle = Obstacle(shape=shape,
                                 states=State(position),
                                 position_mapping=mapping)
 
@@ -1002,18 +1022,18 @@ def test_from_obstacle(position2, orientation2, mapping2):
                   [0, 0, 1]])
 
     true_vertices = rot_m[:2, :2] @ \
-        shape_data[:, initial_obstacle.simplices] + position2[mapping2 if mapping2 is not None
-                                                              else mapping, :]
+        shape_data[:, initial_obstacle.shape.simplices] + \
+        position2[mapping2 if mapping2 is not None else mapping, :]
     edge_index = np.roll(np.linspace(0,
-                                     len(initial_obstacle.simplices)-1,
-                                     len(initial_obstacle.simplices)), 1). astype(int)
+                                     len(initial_obstacle.shape.simplices)-1,
+                                     len(initial_obstacle.shape.simplices)), 1). astype(int)
     true_relative_edges = np.array([true_vertices[0, :] -
                                     true_vertices[0, edge_index],
                                     true_vertices[1, :] -
                                     true_vertices[1, edge_index]])
 
     # Check that shape data has not changed
-    assert np.all(sub_obstacle.shape_data == initial_obstacle.shape_data)
+    assert np.all(sub_obstacle.shape.shape_data == initial_obstacle.shape.shape_data)
     # check that changed properties are correct
     if mapping2 is not None:
         assert np.all(sub_obstacle.position == position2[mapping2, :])

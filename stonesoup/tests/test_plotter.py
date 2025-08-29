@@ -21,6 +21,7 @@ from stonesoup.types.state import GaussianState, State, StateVector
 from stonesoup.types.track import Track
 from stonesoup.updater.kalman import KalmanUpdater
 from stonesoup.platform.base import Obstacle
+from stonesoup.platform.shape import Shape
 
 
 # Setup simulation to test the plotter functionality
@@ -133,14 +134,14 @@ def plotter_class(request):
         raise ValueError("Invalid Plotter type.")
 
 
-shape = np.array([[-2, -2, 2, 2], [-2, 2, 2, -2]])
-obstacle_list = [Obstacle(shape_data=shape,
+shape = Shape(shape_data=np.array([[-2, -2, 2, 2], [-2, 2, 2, -2]]))
+obstacle_list = [Obstacle(shape=shape,
                           states=State(StateVector([[0], [0]])),
                           position_mapping=(0, 1)),
-                 Obstacle(shape_data=shape,
+                 Obstacle(shape=shape,
                           states=State(StateVector([[0], [5]])),
                           position_mapping=(0, 1)),
-                 Obstacle(shape_data=shape,
+                 Obstacle(shape=shape,
                           states=State(StateVector([[5], [0]])),
                           position_mapping=(0, 1))]
 
