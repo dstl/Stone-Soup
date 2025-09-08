@@ -163,8 +163,10 @@ class EnsembleUpdater(KalmanUpdater):
         hypothesis = self._check_measurement_prediction(hypothesis)
         pred_state = hypothesis.prediction
         meas_mean = hypothesis.measurement.state_vector
-        meas_covar = self.measurement_model.covar()
         num_vectors = pred_state.num_vectors
+
+        measurement_model = self._check_measurement_model(hypothesis.measurement.measurement_model)
+        meas_covar = measurement_model.covar()
 
         # Generate an ensemble of measurements based on measurement
         measurement_ensemble = pred_state.generate_ensemble(
@@ -176,8 +178,8 @@ class EnsembleUpdater(KalmanUpdater):
         innovation_ensemble = pred_state.state_vector - pred_state.mean
 
         meas_innovation = (
-            self.measurement_model.function(pred_state, num_samples=num_vectors)
-            - self.measurement_model.function(State(pred_state.mean)))
+            measurement_model.function(pred_state, num_samples=num_vectors)
+            - measurement_model.function(State(pred_state.mean)))
 
         # Calculate Kalman Gain
         kalman_gain = 1/(num_vectors-1) * innovation_ensemble @ meas_innovation.T @ \
@@ -274,7 +276,9 @@ class EnsembleSqrtUpdater(EnsembleUpdater):
         pred_measurement = hypothesis.measurement_prediction.mean
         pred_meas_sqrt_covar = hypothesis.measurement_prediction.sqrt_covar
         measurement = hypothesis.measurement.state_vector
-        meas_covar = self.measurement_model.covar()
+
+        measurement_model = self._check_measurement_model(hypothesis.measurement.measurement_model)
+        meas_covar = measurement_model.covar()
 
         # Calculate Posterior Mean
         cross_covar = pred_state_sqrt_covar @ pred_meas_sqrt_covar.T
@@ -344,7 +348,8 @@ class LinearisedEnsembleUpdater(EnsembleUpdater):
         X0 = hypothesis.prediction.state_vector
 
         # Measurement covariance
-        R = self.measurement_model.covar()
+        measurement_model = self._check_measurement_model(hypothesis.measurement.measurement_model)
+        R = measurement_model.covar()
 
         # Line 1: Compute mean
         m = hypothesis.prediction.mean
@@ -364,8 +369,8 @@ class LinearisedEnsembleUpdater(EnsembleUpdater):
         for x, y_hat in zip(X, Y_hat):
 
             # Line 6: Compute Jacobian
-            H = self.measurement_model.jacobian(State(state_vector=x,
-                                                      timestamp=hypothesis.prediction.timestamp))
+            H = measurement_model.jacobian(State(state_vector=x,
+                                                 timestamp=hypothesis.prediction.timestamp))
 
             # Line 7: Calculate Innovation
             S = H @ P @ H.T + R
