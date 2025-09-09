@@ -283,9 +283,13 @@ class CovarianceIntersection(MixtureReducer):
 
     The resulting state is given by its state vector :math:`\bf{x}` and covariance :math:`C`.
 
-    :math:`C^{-1} = \sum_{i=1}^{n} \omega_{i}C_{i}^{-1}`
+    .. math::
 
-    :math:`\bf{x} = C \sum_{i=1}^{n} \omega_{i}C_{i}^{-1}\bf{x_i}`
+        C^{-1} = \sum_{i=1}^{n} \omega_{i}C_{i}^{-1}
+
+    .. math::
+
+        \mathbf{x} = C \sum_{i=1}^{n} \omega_{i}C_{i}^{-1}\mathbf{x}_{i}
 
     where :math:`\omega` are the weights associated with each state such that
     :math:`\sum_{i=1}^{n} \omega_i = 1`.
