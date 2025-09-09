@@ -3,10 +3,11 @@ import uuid
 import numpy as np
 from ordered_set import OrderedSet
 from scipy.spatial import KDTree
+from scipy.linalg import pinv
 
 from ..base import Property
 from .base import MixtureReducer
-from ..types.state import TaggedWeightedGaussianState, WeightedGaussianState
+from ..types.state import TaggedWeightedGaussianState, WeightedGaussianState, GaussianState
 from ..measures import SquaredMahalanobis
 from operator import attrgetter
 
@@ -275,3 +276,53 @@ class GaussianMixtureReducer(MixtureReducer):
                 truncated_weight_sum / self.max_number_components
 
         return remaining_components
+
+
+class CovarianceIntersection(MixtureReducer):
+    r"""Class to perform Covariance Intersection of `n` states.
+
+    The resulting state is given by its state vector :math:`\bf{x}` and covariance :math:`C`.
+
+    .. math::
+
+        C^{-1} = \sum_{i=1}^{n} \omega_{i}C_{i}^{-1}
+
+    .. math::
+
+        \mathbf{x} = C \sum_{i=1}^{n} \omega_{i}C_{i}^{-1}\mathbf{x}_{i}
+
+    where :math:`\omega` are the weights associated with each state such that
+    :math:`\sum_{i=1}^{n} \omega_i = 1`.
+    """
+    @staticmethod
+    def merge_components(*components, weights=None):
+        r"""
+        Merge similar Gaussian components using coveriance intersection
+
+        Parameters
+        ----------
+        *components : :class:`GaussianState`
+            Gaussian states to be combined.
+        weights : list[float], default: None
+            The weight :math:`\omega` associated with each state. If left as `None` this will be
+            set to equal weights across all states.
+
+        Returns
+        -------
+        :class:`GaussianState`
+            Merged Gaussian component.
+        """
+        if weights is None:
+            weights = np.ones(len(components))
+        if len(weights) != len(components):
+            raise IndexError
+
+        weights = np.asarray(weights) / sum(weights)
+
+        inv_covs = [weight*pinv(component.covar) for weight, component in zip(weights, components)]
+        C = pinv(sum(inv_covs))
+        x = C @ sum(inv_cov @ component.state_vector
+                    for inv_cov, component in zip(inv_covs, components))
+
+        new_component = GaussianState.from_state(components[0], state_vector=x, covar=C)
+        return new_component
