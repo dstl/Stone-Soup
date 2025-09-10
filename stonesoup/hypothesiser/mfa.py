@@ -22,7 +22,7 @@ class _MFAHypothesiser(Hypothesiser):
 
     @abstractmethod
     def _tag(self, detections_tuple, hypothesis, hypothesis_index):
-        return detections_tuple.index(hypothesis.measurement) + 1 if hypothesis else 0
+        raise NotImplementedError()
 
     def hypothesise(self, track, detections, timestamp, detections_tuple, **kwargs):
         """Form hypotheses for associations between Detections and a given track.
