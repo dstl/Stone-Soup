@@ -2,13 +2,14 @@
 
 """
 Multi-Model Multi-Frame Assignment example
-==============================
+==========================================
 This notebook includes an example of the Multi-Frame Assignment (MFA) algorithm [#]_,
-modeified with multiple hypothesisers, in the case of needing multiple transition models.
+with multiple hypothesisers with different transition models.
 
 The multi-frame assignment algorithm maintains and prunes hypotheses over *N*-Scans. This enables
-the global optimum assignment choice to be selected over *N* multiple frames/timesteps/scans. As
-this example, each frame has multiple models maintaining all possible options until pruned.
+the global optimum assignment choice to be selected over *N* multiple frames/timesteps/scans. In
+this example, each frame has multiple models maintaining all possible options until pruned, meaning
+optimum track to measurement and transition models are selected.
 """
 
 # %%
@@ -88,8 +89,9 @@ def plot_tracks(tracks, ax, slide_window=None):
 # Models
 # ------
 # Create models for target motion :math:`[x \ \dot{x} \ y \ \dot{y}]` with near constant velocity
-# and known turn rate left and right.
-# and measurements :math:`[x \ y]`.
+# and known turn rate left and right, with measurements :math:`[x \ y]`.
+# A transition probability matrix is also included to provide probability of switching from one
+# transition model to another.
 from stonesoup.models.transition.linear import (
     CombinedLinearGaussianTransitionModel, ConstantVelocity, KnownTurnRate)
 from stonesoup.models.measurement.linear import LinearGaussian
@@ -112,7 +114,7 @@ measurement_model = LinearGaussian(ndim_state=4, mapping=(0, 2),
 # Simulate ground truth
 # ---------------------
 # Simulate two targets moving initially with near constant velocity, and using
-# transition matrix to switch to another model.
+# transition probability matrix to switch transition models at random.
 import datetime
 from ordered_set import OrderedSet
 
@@ -208,6 +210,8 @@ data_associator = MFADataAssociator(hypothesiser, slide_window=slide_window)
 # Initiate priors and tracks. With MFA, a Gaussian mixture is used, where the component
 # represents the estimate as updated using the detections (or missed detection) assignments
 # as recorded on the components tag.
+# The initial tag with `(0, 0)` signifies that the initial measurement is 0 meaning no measurement
+# is associated, and 0 meaning the 0th index hypothesiser (constant velocity) is the initial model
 from stonesoup.types.state import TaggedWeightedGaussianState
 from stonesoup.types.track import Track
 from stonesoup.types.mixture import GaussianMixture
