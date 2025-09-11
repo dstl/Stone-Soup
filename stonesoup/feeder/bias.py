@@ -189,6 +189,6 @@ class OrientationTranslationGaussianBiasFeeder(_GaussianBiasFeeder):
                 models.add(detection.measurement_model)
                 detection.applied_bias = bias
             for model in models:
-                model.orientation_offset = model.orientation_offset - bias[:3]
+                model.rotation_offset = model.rotation_offset - bias[:3]
                 model.translation_offset = model.translation_offset - bias[3:]
             yield time, detections
