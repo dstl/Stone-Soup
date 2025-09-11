@@ -80,7 +80,10 @@ def test_ensemble(ensemble_updater, model_on_detection):
                        updated_state.covar)
 
     measurement_model.noise_covar += 1.  # Increase noise to confirm test
-    updater = EnsembleUpdater(measurement_model)
+    if model_on_detection:
+        updater = ensemble_updater(None)
+    else:
+        updater = ensemble_updater(measurement_model)
     noise_measurement_prediction = updater.predict_measurement(
         prediction, measurement_model=measurement.measurement_model)
     no_noise_measurement_prediction = updater.predict_measurement(
