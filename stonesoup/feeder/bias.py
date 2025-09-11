@@ -107,7 +107,8 @@ class _GaussianBiasFeeder(DetectionFeeder):
         rel_delta_bias = update.state_vector[-ndim_bias:, :] - delta_bias
         self.bias_state.state_vector += rel_delta_bias
         if self.max_bias is not None:
-            self.bias = np.min([abs(self.bias), self.max_bias], axis=0) * np.sign(self.bias)
+            self.bias_state.state_vector = \
+                np.min([abs(self.bias), self.max_bias], axis=0) * np.sign(self.bias)
         self.bias_state.covar = update.covar[-ndim_bias:, -ndim_bias:]
 
         # Create update states
