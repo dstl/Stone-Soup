@@ -120,7 +120,7 @@ class NonLinearGaussianMeasurement(MeasurementModel, GaussianModel, ABC):
         super().__init__(*args, **kwargs)
         # Set values to defaults if not provided
         if self.rotation_offset is None:
-            self.rotation_offset = StateVector([[0], [0], [0]])
+            self.rotation_offset = StateVector([[0.], [0.], [0.]])
 
         if not isinstance(self.noise_covar, CovarianceMatrix):
             self.noise_covar = CovarianceMatrix(self.noise_covar)
@@ -254,7 +254,7 @@ class CartesianToElevationBearingRange(_AngleNonLinearGaussianMeasurement, Rever
         super().__init__(*args, **kwargs)
         # Set values to defaults if not provided
         if self.translation_offset is None:
-            self.translation_offset = StateVector([0] * 3)
+            self.translation_offset = StateVector([0.] * 3)
 
     @property
     def ndim_meas(self) -> int:
@@ -370,7 +370,7 @@ class CartesianToBearingRange(_AngleNonLinearGaussianMeasurement, ReversibleMode
         super().__init__(*args, **kwargs)
         # Set values to defaults if not provided
         if self.translation_offset is None:
-            self.translation_offset = StateVector([0] * len(self.mapping))
+            self.translation_offset = StateVector([0.] * len(self.mapping))
 
     @property
     def ndim_meas(self) -> int:
@@ -496,7 +496,7 @@ class CartesianToElevationBearing(_AngleNonLinearGaussianMeasurement):
         super().__init__(*args, **kwargs)
         # Set values to defaults if not provided
         if self.translation_offset is None:
-            self.translation_offset = StateVector([0] * 3)
+            self.translation_offset = StateVector([0.] * 3)
 
     @property
     def ndim_meas(self) -> int:
@@ -572,7 +572,7 @@ class Cartesian2DToBearing(_AngleNonLinearGaussianMeasurement):
         super().__init__(*args, **kwargs)
         # Set values to defaults if not provided
         if self.translation_offset is None:
-            self.translation_offset = StateVector([0] * 2)
+            self.translation_offset = StateVector([0.] * 2)
 
     @property
     def ndim_meas(self):
@@ -689,10 +689,10 @@ class CartesianToBearingRangeRate(_AngleNonLinearGaussianMeasurement):
         super().__init__(*args, **kwargs)
         # Set values to defaults if not provided
         if self.translation_offset is None:
-            self.translation_offset = StateVector([0] * 3)
+            self.translation_offset = StateVector([0.] * 3)
 
         if self.velocity is None:
-            self.velocity = StateVector([0] * 3)
+            self.velocity = StateVector([0.] * 3)
 
     @property
     def ndim_meas(self) -> int:
@@ -814,10 +814,10 @@ class CartesianToBearingRangeRate2D(_AngleNonLinearGaussianMeasurement):
         super().__init__(*args, **kwargs)
         # Set values to defaults if not provided
         if self.translation_offset is None:
-            self.translation_offset = StateVector([0] * 2)
+            self.translation_offset = StateVector([0.] * 2)
 
         if self.velocity is None:
-            self.velocity = StateVector([0] * 2)
+            self.velocity = StateVector([0.] * 2)
 
     @property
     def ndim_meas(self) -> int:
@@ -958,10 +958,10 @@ class CartesianToElevationBearingRangeRate(_AngleNonLinearGaussianMeasurement, R
         super().__init__(*args, **kwargs)
         # Set values to defaults if not provided
         if self.translation_offset is None:
-            self.translation_offset = StateVector([0] * 3)
+            self.translation_offset = StateVector([0.] * 3)
 
         if self.velocity is None:
-            self.velocity = StateVector([0] * 3)
+            self.velocity = StateVector([0.] * 3)
 
     @property
     def ndim_meas(self) -> int:
@@ -1394,7 +1394,7 @@ class CartesianToAzimuthElevationRange(_AngleNonLinearGaussianMeasurement, Rever
         super().__init__(*args, **kwargs)
         # Set values to defaults if not provided
         if self.translation_offset is None:
-            self.translation_offset = StateVector([0] * 3)
+            self.translation_offset = StateVector([0.] * 3)
 
     @property
     def ndim_meas(self) -> int:
