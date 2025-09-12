@@ -19,6 +19,7 @@ from ..types.groundtruth import GroundTruthState, GroundTruthPath
 from ..types.state import State
 from ..buffered_generator import BufferedGenerator
 from ..platform.base import Obstacle
+from ..platform.shape import Shape
 
 
 class SUMOGroundTruthReader(GroundTruthReader):
@@ -244,7 +245,7 @@ class SUMOGroundTruthReader(GroundTruthReader):
 
     def obstacle_gen(self):
         """
-        Import polygons from SUMO as Obstacle platforms. All polygons
+        Import polygons from SUMO as :class:`~.Obstacle` platforms. All polygons
         with a type id starting with `'building'` will be imported as
         an obstacle. Individual buildings with shared faces, or part
         shared faces, between a neighborough building will be merged
@@ -290,7 +291,8 @@ class SUMOGroundTruthReader(GroundTruthReader):
         # Create obstacle platforms from the data
         for shape in merged_obstalces.geoms:
             state = State(StateVector(shape.centroid.xy))
-            obstacles.append(Obstacle(shape_data=shape.exterior.xy-state.state_vector,
+            tmp_shape = Shape(shape_data=shape.exterior.xy-state.state_vector)
+            obstacles.append(Obstacle(shape=tmp_shape,
                                       states=state,
                                       orientation=StateVector([0, 0, 0]),
                                       position_mapping=(0, 1)))
