@@ -711,7 +711,7 @@ class AESARadar(Sensor):
         default=None,
         doc="A 3x1 array of angles (rad), specifying the radar orientation in terms of the "
             "counter-clockwise rotation around the :math:`x,y,z` axis. i.e Roll, Pitch and Yaw. "
-            "Default is ``StateVector([0, 0, 0])``")
+            "Default is ``StateVector([0., 0., 0.])``")
     position_mapping: tuple[int, int, int] = Property(
         default=(0, 1, 2),
         doc="Mapping between or positions and state "
@@ -757,7 +757,7 @@ class AESARadar(Sensor):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         if self.rotation_offset is None:
-            self.rotation_offset = StateVector([0, 0, 0])
+            self.rotation_offset = StateVector([0., 0., 0.])
 
     @measurement_model.getter
     def measurement_model(self):

@@ -114,7 +114,7 @@ class IsotropicPlume(GaussianModel, MeasurementModel):
         super().__init__(*args, **kwargs)
         # Set values to defaults if not provided
         if self.translation_offset is None:
-            self.translation_offset = StateVector([0] * 3)
+            self.translation_offset = StateVector([0.] * 3)
 
     def covar(self, **kwargs) -> CovarianceMatrix:
         raise NotImplementedError('Covariance for IsotropicPlume is dependant on the '
