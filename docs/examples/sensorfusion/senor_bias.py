@@ -202,9 +202,6 @@ initiator = SinglePointMeasurementInitiator(
 tracks = initiator.initiate(sensors[1].measure({t[0] for t in targets}, noise=False), start_time)
 
 # %%
-# Run Tracking and Bias Estimation
-# --------------------------------
-#
 # For each time step, we associate measurements to tracks, update the bias estimate,
 # and update the tracks accordingly.
 for time, detections in feeder:
@@ -262,6 +259,9 @@ plotter.fig
 #
 # Finally, we plot the true bias and the estimated bias over time, for both x and y components,
 # including 1 standard deviation error area.
+
+# sphinx_gallery_thumbnail_number = 3
+
 plotter = Plotterly(dimension=1, axis_labels=['Bias', 'Time'])
 plotter.plot_ground_truths(true_bias, mapping=[0], label="True 𝑥 bias")
 plotter.plot_tracks(bias_track, mapping=[0], uncertainty=True, label="𝑥 bias estimate")
