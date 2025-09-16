@@ -69,8 +69,6 @@ class OptunaSensorManager(SensorManager):
                                 f'{i}{j}', generator.min, generator.max + generator.epsilon,
                                 step=getattr(generator, 'resolution', None))
                     elif isinstance(generator, MovePositionActionGenerator):
-                        if not hasattr(generator, "action_from_value"):
-                            raise TypeError(f"type {type(generator)} not handled yet")
                         with warnings.catch_warnings():
                             warnings.simplefilter("ignore", UserWarning)
                             value = np.zeros(generator.current_value.shape)
