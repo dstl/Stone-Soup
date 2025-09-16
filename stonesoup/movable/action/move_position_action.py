@@ -62,7 +62,6 @@ class MovePositionActionGenerator(ActionGenerator):
 class GridActionGenerator(MovePositionActionGenerator):
     """This is the base class for generators that generate actions in a grid like fashion."""
 
-
     resolution: float = Property(
         default=1,
         doc="The size of each grid cell. Cells are assumed square."
