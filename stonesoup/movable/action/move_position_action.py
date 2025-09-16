@@ -58,6 +58,27 @@ class MovePositionActionGenerator(ActionGenerator):
     def maximum_travel(self):
         pass
 
+    def action_from_value(self, value=None) -> MovePositionAction:
+        """
+        Given a value for the position, generates the action would achieve that value.
+
+        Parameters
+        ----------
+        value: StateVector
+            Property value for which the action is required.
+
+        Returns
+        -------
+        MovePositionAction
+            Action which will achieve this position.
+        """
+        if value not in self:
+            return None
+
+        return MovePositionAction(generator=self,
+                                  end_time=self.end_time,
+                                  target_value=value)
+
 
 class GridActionGenerator(MovePositionActionGenerator):
     """This is the base class for generators that generate actions in a grid like fashion."""
@@ -303,24 +324,3 @@ class MaxSpeedPositionActionGenerator(MovePositionActionGenerator):
                 yield MovePositionAction(generator=self,
                                          end_time=self.end_time,
                                          target_value=target_value)
-
-    def action_from_value(self, value=None) -> MovePositionAction:
-        """
-        Given a value for the position, generates the action would achieve that value.
-
-        Parameters
-        ----------
-        value: StateVector
-            Property value for which the action is required.
-
-        Returns
-        -------
-        MovePositionAction
-            Action which will achieve this position.
-        """
-        if value not in self:
-            return None
-
-        return MovePositionAction(generator=self,
-                                  end_time=self.end_time,
-                                  target_value=value)
