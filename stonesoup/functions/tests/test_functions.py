@@ -4,6 +4,7 @@ from numpy import deg2rad
 from numpy import linalg as LA
 from pytest import approx, raises
 from scipy.linalg import LinAlgError, cholesky
+import warnings
 
 from ...types.array import CovarianceMatrix, Matrix, StateVector, StateVectors
 from ...types.state import GaussianState, State
@@ -177,6 +178,17 @@ def test_gm_reduce_single():
     assert np.allclose(mean, np.array([[4], [5]]))
     assert np.allclose(covar, np.array([[3.675, 3.35],
                                         [3.2, 3.3375]]))
+
+    # Test that negative means do not cause numeric warnings
+    with warnings.catch_warnings():
+        warnings.filterwarnings(
+            "error", r".*invalid value encountered in (multiply|divide).*", RuntimeWarning
+        )
+
+        mean, covar = gm_reduce_single(-means, covars, weights)
+        assert np.allclose(-mean, np.array([[4], [5]]))
+        assert np.allclose(covar, np.array([[3.675, 3.35],
+                                            [3.2, 3.3375]]))
 
 
 def test_bearing():
