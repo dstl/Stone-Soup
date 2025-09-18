@@ -147,6 +147,9 @@ class Probability(Real):
             return float(self) * other
 
     def __mul__(self, other):
+        if np.any(np.asarray(other) <= 0):
+            return float(self) * other
+
         try:
             if isinstance(other, Probability):
                 return Probability(self.log_value + self._log(other),
@@ -167,6 +170,9 @@ class Probability(Real):
             return float(self) / other
 
     def __rtruediv__(self, other):
+        if np.any(np.asarray(other) <= 0):
+            return other / float(self)
+
         try:
             return Probability(self._log(other) - self.log_value,
                                log_value=True)
