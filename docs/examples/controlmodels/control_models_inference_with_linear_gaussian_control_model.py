@@ -1,7 +1,18 @@
+#!/usr/bin/env python
+
+"""
+Control Models: Inference with Linear Gaussian Control Model
+============================================================
+"""
+
 # %% [markdown]
-# ## Control Models: Inference with Linear Gaussian Control Model
-#
-# This example demonstrates the use of a simple control model which can be used to improve inference when the control input of the target system is known. This allows manoeuvres to be accounted for without relying on high process noise to enable deviations from the motion model. This does however rely on **a**) knowing the underlying control model of the system, **b**) knowing the inputs that the system is making and when it is making them. This limits the application of this technique, usually, to scenarios where the tracker and target both belong to the same owner.
+# This example demonstrates the use of a simple control model which can be used to improve
+# inference when the control input of the target system is known. This allows manoeuvres
+# to be accounted for without relying on high process noise to enable deviations from the
+# motion model. This does however rely on **a**) knowing the underlying control model of
+# the system, **b**) knowing the inputs that the system is making and when it is making
+# them. This limits the application of this technique, usually, to scenarios where the
+# tracker and target both belong to the same owner.
 #
 # The example will proceed as follows:
 # 1. Import some required modules
@@ -12,54 +23,74 @@
 # 6. Define and run Kalman filter with control
 # 7. Compare performance
 
-# %% [markdown]
-# ### Standard external module imports and Environment Setup
-
 # %%
+# Standard external module imports and Environment Setup
+# ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+# First some packages used throughout the example are imported and random numbers are
+# seeded and fixed for repeatability.
+
+# General imports
 import numpy as np
 from datetime import datetime, timedelta
 
 # Start simulation time
 start_time = datetime.now()
-# Use a non-unit time increment (and vary it) to check the various matrices are calculated correctly
+# Use a non-unit time increment (and vary it) to check the various matrices are
+# calculated correctly
 time_interval = timedelta(seconds=0.5)
 
 # Seed random number generation for repeatability
 np.random.seed(1991)
 
-# %% [markdown]
-# ### Define Control Model
+# %%
+# Define Control Model
+# ^^^^^^^^^^^^^^^^^^^^
 #
-# Control models invoke a second term in the state-space motion model representation. Ommiting any noise terms, the motion model is now given by
-# \begin{equation*}
-# \mathbf{x}_{k} = F_{k}\mathbf{x}_{k-1} + B_{k}\mathbf{u}_k
-# \end{equation*}
-# where $B_{k}$ is the control matrix and $\mathbf{u}_{k}$ is the control input both at time $k$. It is clear that the first term above is applying the standard transition according to the current state and transition matrix while the second term is manipulating this according to an applied action. This could be an acceleration for example, which gets mapped and applied to the state vector through $B_k$.
+# Control models invoke a second term in the state-space motion model representation.
+# Ommiting any noise terms, the motion model is now given by
 #
-# In this example, we define a linear constant acceleration control model which applies an acceleration input across the interval between $k-1$ and $k$. The state vector will include position and velocity. Therefore, by the equations of motion, this makes the control matrix
-# \begin{equation*}
+# .. math::
+#     \mathbf{x}_{k} = F_{k}\mathbf{x}_{k-1} + B_{k}\mathbf{u}_k
+#
+# where :math:`B_{k}` is the control matrix and :math:`\mathbf{u}_{k}` is the control input both
+# at time :math:`k`. It is clear that the first term above is applying the standard transition
+# according to the current state and transition matrix while the second term is
+# manipulating this according to an applied action. This could be an acceleration for
+# example, which gets mapped and applied to the state vector through :math:`B_k`.
+#
+# In this example, we define a linear constant acceleration control model which applies
+# an acceleration input across the interval between :math:`k-1` and :math:`k`. The state vector
+# will include position and velocity. Therefore, by the equations of motion, this
+# makes the control matrix
+#
+# .. math::
 #     B_k = \left[\begin{array}{c}
 #         \frac{\Delta t^2}{2} \\
 #         \Delta t
 #     \end{array}\right]
-# \end{equation*}
-# for each dimension. This can be concatinated over multiple dimensions, in a similar way to the transition matrix, as
-# \begin{equation*}
+#
+# for each dimension. This can be concatinated over multiple dimensions, in a similar
+# way to the transition matrix, as
+#
+# .. math::
 #     B_k^D = \left[\begin{array}{ccc}
 #         B_k^1 & \cdots & \mathbf{0} \\
 #         \vdots & \ddots & \vdots \\
 #         \mathbf{0} & \cdots & B_k^D
 #     \end{array}\right]
-# \end{equation*}
-# for $D$ dimensions.
-
-# %% [markdown]
-# #### Defining the Control Model Class
-# To define the control model class, we will create a variant of `LinearControlModel` and ovewrite the `matrix` attribute according to the above expression.
+#
+# for :math:`D` dimensions.
 
 # %%
-from stonesoup.base import Property
+# Defining the Control Model Class
+# ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+#
+# To define the control model class, we will create a variant of :class:`~.LinearControlModel` and
+#  ovewrite the :attr:`~.LinearControlModel.matrix` attribute according to the above expression.
+
+
 from stonesoup.models.control.linear import LinearControlModel
+
 
 class ConstantAccelerationLinearControlModel(LinearControlModel):
     """A model that applies a constant acceleration over a specified time period.
@@ -75,7 +106,7 @@ class ConstantAccelerationLinearControlModel(LinearControlModel):
         Parameters
         ----------
         time_interval : :class:`datetime.timedelta`
-            A time interval. Note the units used are $s$ so accelerations are implicitly
+            A time interval. Note the units used are :math:`s` so accelerations are implicitly
             per second squared.
 
         Returns
@@ -90,7 +121,7 @@ class ConstantAccelerationLinearControlModel(LinearControlModel):
         onedm = np.array([[(deltat**2)/2.0], [deltat]])
         # Construct control matrix for each dimension
         control_matrix = self.control_matrix
-        for i in range(0,self.ndim):
+        for i in range(0, self.ndim):
             control_matrix[2*i:2*i+2, i:i+1] = onedm
 
         self.control_matrix = control_matrix
@@ -98,15 +129,23 @@ class ConstantAccelerationLinearControlModel(LinearControlModel):
         return self.control_matrix
 
 
-# %% [markdown]
-# ### Generate Ground Truth
-# Now that the control model is define, it can now be used to create the ground truth for the target. There are two main differences compared to generating ground truth without a control model. The first is deciding on control input which is required and should be stored for use later in the filtering process. The second is we have to apply the transition model function and the control model function when progressing states.
+# %%
+# Generate Ground Truth
+# ^^^^^^^^^^^^^^^^^^^^^
+# Now that the control model is define, it can now be used to create the ground truth
+# for the target. There are two main differences compared to generating ground truth
+# without a control model. The first is deciding on control input which is required and
+# should be stored for use later in the filtering process. The second is we have to apply
+# the transition model function and the control model function when progressing states.
 #
-# In this example, the target will undergo two manoeuvres. The first starting at 40 seconds and lasting 50 seconds which will be a turn to the right and the second manoeuvre will be at 120 seconds, again lasting 50 seconds, and will be a turn to the left. Nominally, the target will traverse according to nearly constant velocity when not manoeuvering.
+# In this example, the target will undergo two manoeuvres. The first starting at 40 seconds
+# and lasting 50 seconds which will be a turn to the right and the second manoeuvre will be
+# at 120 seconds, again lasting 50 seconds, and will be a turn to the left. Nominally, the
+# target will traverse according to nearly constant velocity when not manoeuvering.
 #
 # First we define the models and populate the required parameters.
 
-# %%
+
 # Transition model
 from stonesoup.models.transition.linear import CombinedLinearGaussianTransitionModel, \
                                                ConstantVelocity
@@ -114,13 +153,17 @@ transition_model = CombinedLinearGaussianTransitionModel([ConstantVelocity(0.000
                                                           ConstantVelocity(0.0005)])
 
 # Control model
-control_model = ConstantAccelerationLinearControlModel(np.array([[1., 0],[1., 0], [0., 1.], [0, 1.]]),
-                                                       control_noise=np.diag([0.005, 0.005]))
-
-# %% [markdown]
-# We can then calculate the ground truth states
+control_model = ConstantAccelerationLinearControlModel(np.array([[1., 0],
+                                                                 [1., 0],
+                                                                 [0, 1.],
+                                                                 [0, 1.]]),
+                                                       control_noise=np.diag([0.005,
+                                                                              0.005]))
 
 # %%
+# We can then calculate the ground truth states
+
+
 from stonesoup.types.state import State
 from stonesoup.types.groundtruth import GroundTruthPath, GroundTruthState
 from stonesoup.types.array import Matrix
@@ -142,13 +185,13 @@ truth = GroundTruthPath([GroundTruthState([0, 1, 0, 1], timestamp=start_time)])
 controlinputs = []
 for k in range(1, 181):
 
-    velocity = truth[-1].state_vector[[1,3]]
+    velocity = truth[-1].state_vector[[1, 3]]
 
     if k > 40 and k < 90:
         # Rotate it to the right
         newvelocity = right@velocity
     elif k > 120 and k < 170:
-         # Rotate it to the left
+        # Rotate it to the left
         newvelocity = left@velocity
     else:
         newvelocity = velocity
@@ -165,16 +208,21 @@ for k in range(1, 181):
 
 # %%
 # And plot the resultant path
+
+
 from stonesoup.plotter import Plotterly
 plotter = Plotterly()
 plotter.plot_ground_truths(truth, [0, 2])
 plotter.fig
 
-# %% [markdown]
-# ### Generate Measurements
-# Now some measurements of the taget throughout the simulation are generated using a range-bearing sensor. This will require an `ExtendedKalmanUpdater` but is more realisic than adopting a linear measurement model.
-
 # %%
+# Generate Measurements
+# ^^^^^^^^^^^^^^^^^^^^^
+# Now some measurements of the taget throughout the simulation are generated using a
+# range-bearing sensor. This will require an :class:`~.ExtendedKalmanUpdater` but is more
+# realisic than adopting a linear measurement model.
+
+
 from stonesoup.models.measurement.nonlinear import CartesianToBearingRange
 from stonesoup.types.detection import Detection
 
@@ -197,15 +245,20 @@ for state in truth[1:]:
                                   measurement_model=measurement_model))
 
 # %%
-# Plot these
+# Plot the measurements
+
 plotter.plot_measurements(measurements, [0, 2])
 plotter.fig
 
-# %% [markdown]
-# ### Initialise Baseline Kalman Filter
-# Now the baseline, ignorant of control input, Kalman filtering components are create. Since the transition model is linear we can adopt a standard Kalman predictor. However, since the measurement model is not linear, a suitable Kalman variant should be adopted. Here we use a `KalmanPredictor` and `ExtendedKalmanUpdater`.
-
 # %%
+# Initialise Baseline Kalman Filter
+# ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+# Now the baseline, ignorant of control input, Kalman filtering components are create.
+# Since the transition model is linear we can adopt a standard Kalman predictor. However,
+# since the measurement model is not linear, a suitable Kalman variant should be adopted.
+# Here we use a :class:`~.KalmanPredictor` and :class:`~.ExtendedKalmanUpdater`.
+
+
 from stonesoup.predictor.kalman import KalmanPredictor
 from stonesoup.updater.kalman import ExtendedKalmanUpdater
 from stonesoup.types.state import GaussianState
@@ -216,10 +269,11 @@ updater = ExtendedKalmanUpdater(measurement_model)
 # Set the prior
 prior = GaussianState([[0], [1], [0], [1]], np.diag([10, 1, 10, 1]), timestamp=start_time)
 
-# %% [markdown]
-# ### Run Baseline Filter
-
 # %%
+# Run Baseline Filter
+# ^^^^^^^^^^^^^^^^^^^
+
+
 from stonesoup.types.hypothesis import SingleHypothesis
 from stonesoup.types.track import Track
 
@@ -232,36 +286,45 @@ for measurement in measurements:
     prior = track[-1]
 
 # %%
-# Plot this
-plotter.plot_tracks(track, [0, 2], uncertainty=True)
+# Plot the baseline tracks
+
+
+plotter.plot_tracks(track, [0, 2], uncertainty=True, label="No Control")
 plotter.fig
 
-# %% [markdown]
-# ### Initialise Kalman Filter with Control Model
-# With the baseline simulation complete, we now initialise the filter which considers control input. Since this change only impacts the prediction process, the updater created earlier can be used. The only difference here is we now pass two inputs to the predictor: `measurement_model` and `control_model`
-
 # %%
+# Initialise Kalman Filter with Control Model
+# ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+# With the baseline simulation complete, we now initialise the filter which considers
+# control input. Since this change only impacts the prediction process, the updater
+# created earlier can be used. The only difference here is we now pass two inputs to
+# the predictor: :class:`~.measurement_model` and :class:`~.control_model`
+
+
 predictor_with_ctrl = KalmanPredictor(transition_model, control_model)
 
 # Set the prior
 covar = Matrix(np.diag([10, 1, 10, 1]))
 prior = GaussianState([[0], [1], [0], [1]], covar, timestamp=start_time)
 
-# %% [markdown]
-# #### Run Filter with Control
-
 # %%
+# Run Filter with Control
+# ^^^^^^^^^^^^^^^^^^^^^^^
+
+
 track_with_ctrl = Track()
 for measurement, c_input in zip(measurements, controlinputs):
-    prediction = predictor_with_ctrl.predict(prior, control_input=c_input, timestamp=measurement.timestamp)
+    prediction = predictor_with_ctrl.predict(prior,
+                                             control_input=c_input,
+                                             timestamp=measurement.timestamp)
     hypothesis = SingleHypothesis(prediction, measurement)  # Group a prediction and measurement
     post = updater.update(hypothesis)
     track_with_ctrl.append(post)
     prior = track_with_ctrl[-1]
 
 # %%
-# Plot and compare the two sets of results
-plotter.plot_tracks(track_with_ctrl, [0, 2], uncertainty=True)
+# Plot and compare performance
+
+
+plotter.plot_tracks(track_with_ctrl, [0, 2], uncertainty=True, label="With Control")
 plotter.fig
-
-
