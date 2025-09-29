@@ -385,6 +385,9 @@ for edge in rm:
     network_arch_rm.edges.remove(edge)
 
 # %%
+
+# sphinx_gallery_thumbnail_path = '_static/sphinx_gallery/ArchTutorial_2.png'
+
 network_arch_rm
 
 # %%
