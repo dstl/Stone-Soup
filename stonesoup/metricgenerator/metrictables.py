@@ -152,6 +152,12 @@ class SIAPDiffTableGenerator(SIAPTableGenerator):
 
     metrics_labels: Collection[str] = Property(doc='List of titles for metrics',
                                                default=None)
+    atol: float = Property(doc="Absolute tolerance value used for assessing if two metric values " \
+                               "are close enough that they pass as equal.",
+                           default=None)
+    rtol: float = Property(doc="Relative tolerance value used for assessing if two metric values " \
+                               "are close enough that they pass as equal.",
+                           default=None)
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -171,6 +177,11 @@ class SIAPDiffTableGenerator(SIAPTableGenerator):
         The colour of each value cell represents how the pair of values of the metric compare to
         each other, with the better value showing in green. Table also contains a 'Diff' value
         displaying the difference between the pair of metric values."""
+
+        if self.rtol is not None:
+            kwargs['rtol'] = self.rtol
+        if self.atol is not None:
+            kwargs['atol'] = self.atol
 
         white = (1, 1, 1)
         cellText = [["Metric", "Description", "Target"] + self.metrics_labels + ["Max Diff"]]
@@ -198,7 +209,7 @@ class SIAPDiffTableGenerator(SIAPTableGenerator):
             colours = []
             for i, value in enumerate(values):
                 other_values = values[:i] + values[i+1:]
-                if all(abs(value - target) < num or np.isclose(num, abs(value - target))
+                if all(abs(value - target) < num or np.isclose(num, abs(value - target), **kwargs)
                        for num in [abs(v - target) for v in other_values]):
                     colours.append((0, 1, 0, 0.5))
                 elif all(num > 0 for num in [abs(value - target) - abs(v - target)
