@@ -352,7 +352,7 @@ information_siap_averages = {information_siap_metrics.get(metric) for
 
 # %%
 from stonesoup.metricgenerator.metrictables import SIAPDiffTableGenerator
-SIAPDiffTableGenerator([network_siap_averages, information_siap_averages]).compute_metric()
+SIAPDiffTableGenerator([network_siap_averages, information_siap_averages], ['Network Arch.', 'Information Arch.']).compute_metric()
 
 # %%
 # 5 - Remove edges from each architecture and re-run
