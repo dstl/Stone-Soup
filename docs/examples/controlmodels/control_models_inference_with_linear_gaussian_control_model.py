@@ -15,13 +15,13 @@ Control Models: Inference with Linear Gaussian Control Model
 # tracker and target both belong to the same owner.
 #
 # The example will proceed as follows:
-# 1. Import some required modules
-# 2. Define a simple linear control model and its class
-# 3. Generate grount truth target trajectory
-# 4. Generate measurements
-# 5. Define and run baseline Kalman filter
-# 6. Define and run Kalman filter with control
-# 7. Compare performance
+#   1. Import some required modules
+#   2. Define a simple linear control model and its class
+#   3. Generate ground truth target trajectory
+#   4. Generate measurements
+#   5. Define and run baseline Kalman filter
+#   6. Define and run Kalman filter with control
+#   7. Compare performance
 
 # %%
 # Standard external module imports and Environment Setup
@@ -47,7 +47,7 @@ np.random.seed(1991)
 # ^^^^^^^^^^^^^^^^^^^^
 #
 # Control models invoke a second term in the state-space motion model representation.
-# Ommiting any noise terms, the motion model is now given by
+# Omitting any noise terms, the motion model is now given by
 #
 # .. math::
 #     \mathbf{x}_{k} = F_{k}\mathbf{x}_{k-1} + B_{k}\mathbf{u}_k
@@ -69,7 +69,7 @@ np.random.seed(1991)
 #         \Delta t
 #     \end{array}\right]
 #
-# for each dimension. This can be concatinated over multiple dimensions, in a similar
+# for each dimension. This can be concatenated over multiple dimensions, in a similar
 # way to the transition matrix, as
 #
 # .. math::
@@ -132,7 +132,7 @@ class ConstantAccelerationLinearControlModel(LinearControlModel):
 # %%
 # Generate Ground Truth
 # ^^^^^^^^^^^^^^^^^^^^^
-# Now that the control model is define, it can now be used to create the ground truth
+# Now that the control model is defined, it can now be used to create the ground truth
 # for the target. There are two main differences compared to generating ground truth
 # without a control model. The first is deciding on control input which is required and
 # should be stored for use later in the filtering process. The second is we have to apply
@@ -218,9 +218,9 @@ plotter.fig
 # %%
 # Generate Measurements
 # ^^^^^^^^^^^^^^^^^^^^^
-# Now some measurements of the taget throughout the simulation are generated using a
-# range-bearing sensor. This will require an :class:`~.ExtendedKalmanUpdater` but is more
-# realisic than adopting a linear measurement model.
+# Now some measurements of the target throughout the simulation are generated using a
+# range-bearing sensor. This will require inference via an :class:`~.ExtendedKalmanUpdater` 
+# but is more realisic than adopting a linear measurement model.
 
 
 from stonesoup.models.measurement.nonlinear import CartesianToBearingRange
@@ -253,7 +253,7 @@ plotter.fig
 # %%
 # Initialise Baseline Kalman Filter
 # ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-# Now the baseline, ignorant of control input, Kalman filtering components are create.
+# Now the baseline, ignorant of control input, Kalman filtering components are created.
 # Since the transition model is linear we can adopt a standard Kalman predictor. However,
 # since the measurement model is not linear, a suitable Kalman variant should be adopted.
 # Here we use a :class:`~.KalmanPredictor` and :class:`~.ExtendedKalmanUpdater`.
