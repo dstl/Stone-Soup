@@ -470,7 +470,6 @@ class InformationArchitecture(Architecture):
             # Need to re-run update messages so that messages aren't left as 'pending'
             edge.update_messages(self.current_time, use_arrival_time=self.use_arrival_time)
 
-
         for fuse_node in self.fusion_nodes:
             fuse_node.fuse()
 
