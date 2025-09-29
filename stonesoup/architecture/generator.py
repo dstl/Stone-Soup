@@ -77,6 +77,14 @@ class InformationArchitectureGenerator(Base):
             raise ValueError('arch_style must be "decentralised" or "hierarchical"')
 
     def generate(self):
+        """
+        Generate one or more InformationArchitecture objects based on the generator's parameters.
+
+        Returns
+        -------
+        list
+            List of generated InformationArchitecture objects.
+        """
         edgelist, node_labels = self._generate_edgelist()
 
         nodes = self._assign_nodes(node_labels)
@@ -247,6 +255,14 @@ class NetworkArchitectureGenerator(InformationArchitectureGenerator):
         default=(1, 2))
 
     def generate(self):
+        """
+        Generate one or more NetworkArchitecture objects based on the generator's parameters.
+
+        Returns
+        -------
+        list
+            List of generated NetworkArchitecture objects.
+        """
         edgelist, node_labels = self._generate_edgelist()
 
         edgelist, node_labels = self._add_network(edgelist, node_labels)

@@ -39,6 +39,14 @@ class FusionQueue(Queue):
 
     @property
     def waiting_for_data(self):
+        """
+        Returns True if the queue is consuming and waiting for data.
+
+        Returns
+        -------
+        bool
+            Whether the queue is waiting for data.
+        """
         return self._consuming and not self._to_consume
 
     def get(self, *args, **kwargs):
@@ -68,7 +76,7 @@ class DataPiece(Base):
 
 
 class Edge(Base):
-    """Comprised of two connected :class:`~.Node`s"""
+    """Comprised of two connected :class:`~.Node` instances"""
     nodes: Tuple["Node", "Node"] = Property(doc="A pair of nodes in the form (sender, recipient)")
     edge_latency: float = Property(doc="The latency stemming from the edge itself, "
                                        "and not either of the nodes",
@@ -85,12 +93,17 @@ class Edge(Base):
     def send_message(self, data_piece, time_pertaining, time_sent):
         """
         Takes a piece of data retrieved from the edge's sender node, and propagates it
-        along the edge
-        :param data_piece: DataPiece object pulled from the edge's sender.
-        :param time_pertaining: The latest time for which the data pertains. For a Detection, this
-        would be the time of the Detection, or for a Track this is the time of the last State in
-        the Track
-        :param time_sent: Time at which the message was sent
+        along the edge.
+
+        Parameters
+        ----------
+        data_piece : DataPiece
+            DataPiece object pulled from the edge's sender.
+        time_pertaining : datetime
+            The latest time for which the data pertains. For a Detection, this would be the
+            time of the Detection, or for a Track this is the time of the last State in the Track.
+        time_sent : datetime
+            Time at which the message was sent.
         """
         if not isinstance(data_piece, DataPiece):
             raise TypeError(f"data_piece is type {type(data_piece)}. Expected DataPiece")
@@ -102,9 +115,13 @@ class Edge(Base):
 
     def pass_message(self, message):
         """
-        Takes a message from a Node's 'messages_to_pass_on' store and propagates them to the
+        Takes a message from a Node's 'messages_to_pass_on' store and propagates it to the
         relevant edges.
-        :param message: :class:`~.Message` to propagate
+
+        Parameters
+        ----------
+        message : Message
+            Message to propagate.
         """
         message_copy = copy.copy(message)
         message_copy.edge = self
@@ -119,11 +136,15 @@ class Edge(Base):
         """
         Updates the category of messages stored in edge.messages_held if latency time has passed.
         Adds messages that have 'arrived' at recipient to the relevant holding area of the node.
-        :param use_arrival_time: Bool that is True if arriving data should use arrival time as
-        it's timestamp
-        :param current_time: Current time in simulation
-        :param to_network_node: Bool that is true if recipient node is not in the information
-        architecture
+
+        Parameters
+        ----------
+        current_time : datetime
+            Current time in simulation.
+        to_network_node : bool, optional
+            True if recipient node is not in the information architecture (default is False).
+        use_arrival_time : bool, optional
+            True if arriving data should use arrival time as its timestamp (default is False).
         """
         # Check info type is what we expect
         to_remove = set()  # Needed as we can't change size of a set during iteration
@@ -169,8 +190,16 @@ class Edge(Base):
                 del self.messages_held['pending'][time]
 
     def failed(self, current_time, delta):
-        """"Keeps track of when this edge was failed using the time_ranges_failed property.
-        Delta should be a timedelta instance"""
+        """
+        Keeps track of when this edge was failed using the time_ranges_failed property.
+
+        Parameters
+        ----------
+        current_time : datetime
+            The current time.
+        delta : timedelta
+            The duration for which the edge is failed.
+        """
         end_time = current_time + delta
         self.time_range_failed.add(TimeRange(current_time, end_time))
 

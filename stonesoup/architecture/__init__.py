@@ -70,16 +70,23 @@ class Architecture(Base):
             self.di_graph.nodes[node].update(self._node_kwargs(node))
 
     def recipients(self, node: Node):
-        """Returns a set of all nodes to which the input node has a direct edge to
+        """
+        Returns a set of all nodes to which the input node has a direct edge to.
 
-        Args:
-            node (Node): Node of which to return the recipients of.
+        Parameters
+        ----------
+        node : Node
+            Node of which to return the recipients of.
 
-        Raises:
-            ValueError: Errors if given node is not in the Architecture.
+        Returns
+        -------
+        set
+            Set of nodes that are recipients of the given node.
 
-        Returns:
-            set: Set of nodes that are recipients of the given node.
+        Raises
+        ------
+        ValueError
+            If the given node is not in the Architecture.
         """
         if node not in self.all_nodes:
             raise ValueError("Node not in this architecture")
@@ -90,16 +97,23 @@ class Architecture(Base):
         return recipients
 
     def senders(self, node: Node):
-        """Returns a set of all nodes to which the input node has a direct edge from
+        """
+        Returns a set of all nodes from which the input node has a direct edge.
 
-        Args:
-            node (Node): Node of which to return the senders of.
+        Parameters
+        ----------
+        node : Node
+            Node of which to return the senders of.
 
-        Raises:
-            ValueError: Errors if given node is not in the Architecture.
+        Returns
+        -------
+        set
+            Set of nodes that are senders to the given node.
 
-        Returns:
-            set: Set of nodes that are senders to the given node.
+        Raises
+        ------
+        ValueError
+            If the given node is not in the Architecture.
         """
         if node not in self.all_nodes:
             raise ValueError("Node not in this architecture")
@@ -111,12 +125,15 @@ class Architecture(Base):
 
     @property
     def shortest_path_dict(self):
-        """Returns a dictionary where dict[key1][key2] gives the distance of the shortest path
+        """
+        Returns a dictionary where dict[key1][key2] gives the distance of the shortest path
         from node1 to node2 if key1=node1 and key2=node2. If no path exists from node1 to node2,
         a KeyError is raised.
 
-        Returns:
-            dict: Nested dictionary where dict[node1][node2] gives the distance of the shortest
+        Returns
+        -------
+        dict
+            Nested dictionary where dict[node1][node2] gives the distance of the shortest
             path from node1 to node2.
         """
         # Cannot use self.di_graph as it is not adjusted when edges are removed after
@@ -130,11 +147,14 @@ class Architecture(Base):
 
     @property
     def top_level_nodes(self):
-        """Returns a list of 'top level nodes' - These are nodes with no recipients. E.g. the
-        single node at the top of a hierarchical architecture.
+        """
+        Returns a set of 'top level nodes' - nodes with no recipients (e.g., the single node
+        at the top of a hierarchical architecture).
 
-        Returns:
-            set: Set of nodes that have no recipients.
+        Returns
+        -------
+        set
+            Set of nodes that have no recipients.
         """
         top_nodes = set()
         for node in self.all_nodes:
@@ -144,14 +164,19 @@ class Architecture(Base):
         return top_nodes
 
     def number_of_leaves(self, node: Node):
-        """Returns the number of leaf nodes which are connected to the node given as a parameter
-        by a path from the leaf node to the parameter node.
+        """
+        Returns the number of leaf nodes which are connected to the given node by a path from
+        the leaf node to the parameter node.
 
-        Args:
-            node (Node): Node of which to calculate number of leaf nodes.
+        Parameters
+        ----------
+        node : Node
+            Node of which to calculate number of leaf nodes.
 
-        Returns:
-            int: Number of leaf nodes that are connected to a given node.
+        Returns
+        -------
+        int
+            Number of leaf nodes that are connected to a given node.
         """
         node_leaves = set()
 
@@ -168,11 +193,14 @@ class Architecture(Base):
 
     @property
     def leaf_nodes(self):
-        """Returns all the nodes in the :class:`Architecture` which have no sender nodes. i.e.
-        all nodes that do not receive any data from other nodes.
+        """
+        Returns all the nodes in the Architecture which have no sender nodes (i.e., all nodes
+        that do not receive any data from other nodes).
 
-        Returns:
-            set: Set of all leaf nodes that exist in the Architecture
+        Returns
+        -------
+        set
+            Set of all leaf nodes that exist in the Architecture.
         """
         leaf_nodes = set()
         for node in self.all_nodes:
@@ -187,19 +215,25 @@ class Architecture(Base):
 
     @property
     def all_nodes(self):
-        """Returns a set of all Nodes in the :class:`Architecture`.
+        """
+        Returns a set of all Nodes in the Architecture.
 
-        Returns:
-            set: Set of all nodes in the Architecture
+        Returns
+        -------
+        set
+            Set of all nodes in the Architecture.
         """
         return set(self.di_graph.nodes)
 
     @property
     def sensor_nodes(self):
-        """Returns a set of all SensorNodes in the :class:`Architecture`.
+        """
+        Returns a set of all SensorNodes in the Architecture.
 
-        Returns:
-            set: Set of nodes in the Architecture that have a Sensor.
+        Returns
+        -------
+        set
+            Set of nodes in the Architecture that have a Sensor.
         """
         sensor_nodes = set()
         for node in self.all_nodes:
@@ -209,10 +243,13 @@ class Architecture(Base):
 
     @property
     def fusion_nodes(self):
-        """Returns a set of all FusionNodes in the :class:`Architecture`.
+        """
+        Returns a set of all FusionNodes in the Architecture.
 
-        Returns:
-            set: Set of nodes in the Architecture that perform data fusion.
+        Returns
+        -------
+        set
+            Set of nodes in the Architecture that perform data fusion.
         """
         fusion = set()
         for node in self.all_nodes:
@@ -222,11 +259,13 @@ class Architecture(Base):
 
     @property
     def repeater_nodes(self):
-        """Returns a set of all RepeaterNodes in the :class:`Architecture`.
+        """
+        Returns a set of all RepeaterNodes in the Architecture.
 
-        Returns:
-            set: Set of nodes in the Architecture whose only role is to link two other nodes
-            together.
+        Returns
+        -------
+        set
+            Set of nodes in the Architecture whose only role is to link two other nodes together.
         """
 
         repeater_nodes = set()
@@ -255,20 +294,30 @@ class Architecture(Base):
 
     def plot(self, use_positions=False, plot_title=False,
              bgcolour="transparent", node_style="filled", font_name='helvetica', plot_style=None):
-        """Creates a pdf plot of the directed graph and displays it
+        """
+        Creates a pdf plot of the directed graph and displays it.
 
-        :param use_positions:
-        :param plot_title: If a string is supplied, makes this the title of the plot. If True, uses
-        the name attribute of the graph to title the plot. If False, no title is used.
-        Default is False
-        :param bgcolour: String containing the background colour for the plot.
-        Default is "transparent". See graphviz attributes for more information.
-        One alternative is "white"
-        :param node_style: String containing the node style for the plot.
-        Default is "filled". See graphviz attributes for more information.
-        One alternative is "solid".
-        :param plot_style: String providing a style to be used to plot the graph. Currently only
-        one option for plot style given by plot_style = 'hierarchical'.
+        Parameters
+        ----------
+        use_positions : bool, optional
+            Whether to use node positions (default is False).
+        plot_title : str or bool, optional
+            If a string is supplied, makes this the title of the plot. If True, uses
+            the name attribute of the graph to title the plot. If False, no title is used.
+            Default is False.
+        bgcolour : str, optional
+            Background colour for the plot. Default is "transparent".
+        node_style : str, optional
+            Node style for the plot. Default is "filled".
+        font_name : str, optional
+            Font name for node labels. Default is 'helvetica'.
+        plot_style : str, optional
+            Style to be used to plot the graph. Currently only option is 'hierarchical'.
+
+        Returns
+        -------
+        graphviz.Source
+            The graphviz Source object for the plot.
         """
         is_hierarchical = self.is_hierarchical or plot_style == 'hierarchical'
         if is_hierarchical:
@@ -336,8 +385,15 @@ class Architecture(Base):
 
     @property
     def density(self):
-        """Returns the density of the graph, i.e. the proportion of possible edges between nodes
-        that exist in the graph"""
+        """
+        Returns the density of the graph, i.e. the proportion of possible edges between nodes
+        that exist in the graph.
+
+        Returns
+        -------
+        float
+            Density of the architecture.
+        """
         num_nodes = len(self.all_nodes)
         num_edges = len(self.edges)
         architecture_density = num_edges / ((num_nodes * (num_nodes - 1)) / 2)
@@ -345,9 +401,16 @@ class Architecture(Base):
 
     @property
     def is_hierarchical(self):
-        """Returns `True` if the :class:`Architecture` is hierarchical, otherwise `False`. Uses
-        the following logic: An architecture is hierarchical if and only if there exists only
-        one node with 0 recipients and all other nodes have exactly 1 recipient."""
+        """
+        Returns True if the Architecture is hierarchical, otherwise False.
+        An architecture is hierarchical if and only if there exists only one node with 0
+        recipients and all other nodes have exactly 1 recipient.
+
+        Returns
+        -------
+        bool
+            Whether the architecture is hierarchical.
+        """
         top_nodes = self.top_level_nodes
         if len(self.top_level_nodes) != 1:
             return False
@@ -359,10 +422,15 @@ class Architecture(Base):
     @property
     def is_centralised(self):
         """
-        Returns 'True' if the :class:`Architecture` is centralised, otherwise 'False'.
-        Uses the following logic: An architecture is centralised if and only if there exists only
-        one node with 0 recipients, and there exists a path to this node from every other node in
-        the architecture.
+        Returns True if the Architecture is centralised, otherwise False.
+        An architecture is centralised if and only if there exists only one node with 0
+        recipients, and there exists a path to this node from every other node in the
+        architecture.
+
+        Returns
+        -------
+        bool
+            Whether the architecture is centralised.
         """
         top_nodes = self.top_level_nodes
         if len(top_nodes) != 1:
@@ -377,19 +445,25 @@ class Architecture(Base):
 
     @property
     def is_connected(self):
-        """Property of Architecture class stating whether the graph is connected or not.
+        """
+        Returns True if the graph is connected, otherwise False.
 
-        Returns:
-            bool: Returns True if graph is connected, otherwise False.
+        Returns
+        -------
+        bool
+            Whether the graph is connected.
         """
         return nx.is_connected(self.to_undirected)
 
     @property
     def to_undirected(self):
-        """Returns an undirected version of self.digraph
+        """
+        Returns an undirected version of self.digraph.
 
-        Returns:
-            _type_: _description_
+        Returns
+        -------
+        networkx.Graph
+            Undirected version of the directed graph.
         """
         return self.di_graph.to_undirected()
 
@@ -398,8 +472,15 @@ class Architecture(Base):
 
     @property
     def fully_propagated(self):
-        """Checks if all data for each node have begun transfer
-        to its recipients. With zero latency, this should be the case after running propagate"""
+        """
+        Checks if all data for each node have begun transfer to its recipients.
+        With zero latency, this should be the case after running propagate.
+
+        Returns
+        -------
+        bool
+            Whether all data have begun transfer to recipients.
+        """
         for edge in self.edges.edges:
             if len(edge.unsent_data) != 0:
                 return False
@@ -410,7 +491,23 @@ class Architecture(Base):
 
     def measure(self, ground_truths: List[GroundTruthPath], noise: Union[bool, np.ndarray] = True,
                 **kwargs) -> Dict[SensorNode, Set[Union[TrueDetection, Clutter]]]:
-        """ Similar to the method for :class:`~.SensorSuite`. Updates each node. """
+        """
+        Similar to the method for :class:`~.SensorSuite`. Updates each node.
+
+        Parameters
+        ----------
+        ground_truths : list of GroundTruthPath
+            List of ground truth paths.
+        noise : bool or np.ndarray, optional
+            Whether to add noise or a noise array (default is True).
+        **kwargs
+            Additional keyword arguments passed to the sensor measure method.
+
+        Returns
+        -------
+        dict
+            Dictionary mapping SensorNode to set of TrueDetection or Clutter.
+        """
         all_detections = dict()
 
         # Filter out only the ground truths that have already happened at self.current_time
@@ -441,13 +538,22 @@ class NonPropagatingArchitecture(Architecture):
     performing network operations on an :class:`~.Edges` object.
     """
     def propagate(self, time_increment: float):
+        """
+        Does not simulate propagation of any data.
+
+        Parameters
+        ----------
+        time_increment : float
+            Time increment for propagation (unused).
+        """
         pass
 
 
 class InformationArchitecture(Architecture):
-    """The architecture for how information is shared through the network. Node A is "
-    "connected to Node B if and only if the information A creates by processing and/or "
-    "sensing is received and opened by B without modification by another node. """
+    """The architecture for how information is shared through the network. Node A is
+    connected to Node B if and only if the information A creates by processing and/or
+    sensing is received and opened by B without modification by another node.
+    """
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -457,7 +563,16 @@ class InformationArchitecture(Architecture):
                             "nodes")
 
     def propagate(self, time_increment: float, failed_edges: Collection = None):
-        """Performs the propagation of the measurements through the network"""
+        """
+        Performs the propagation of the measurements through the network.
+
+        Parameters
+        ----------
+        time_increment : float
+            Time increment for propagation.
+        failed_edges : Collection, optional
+            Collection of failed edges (default is None).
+        """
         # Update each edge with messages received/sent
         for edge in self.edges.edges:
             # TODO: Future work - Introduce failed edges functionality
@@ -481,8 +596,8 @@ class InformationArchitecture(Architecture):
 
 
 class NetworkArchitecture(Architecture):
-    """The architecture for how data is propagated through the network. Node A is connected "
-            "to Node B if and only if A sends its data through B. """
+    """The architecture for how data is propagated through the network. Node A is connected
+    to Node B if and only if A sends its data through B. """
     information_arch: InformationArchitecture = Property(default=None)
     information_architecture_edges: Edges = Property(default=None)
 
@@ -514,7 +629,16 @@ class NetworkArchitecture(Architecture):
             self.di_graph.nodes[node].update(self._node_kwargs(node))
 
     def propagate(self, time_increment: float, failed_edges: Collection = None):
-        """Performs the propagation of the measurements through the network"""
+        """
+        Performs the propagation of the measurements through the network.
+
+        Parameters
+        ----------
+        time_increment : float
+            Time increment for propagation.
+        failed_edges : Collection, optional
+            Collection of failed edges (default is None).
+        """
         # Update each edge with messages received/sent
         for edge in self.edges.edges:
             # TODO: Future work - Introduce failed edges functionality
@@ -557,8 +681,15 @@ def inherit_edges(network_architecture):
     Utility function that takes a NetworkArchitecture object and infers what the overlaying
     InformationArchitecture graph would be.
 
-    :param network_architecture: A NetworkArchitecture object
-    :return: A list of edges.
+    Parameters
+    ----------
+    network_architecture : NetworkArchitecture
+        A NetworkArchitecture object.
+
+    Returns
+    -------
+    Edges
+        A list of edges for the InformationArchitecture.
     """
 
     edges = list()

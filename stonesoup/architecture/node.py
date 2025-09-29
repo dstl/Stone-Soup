@@ -48,19 +48,29 @@ class Node(Base):
 
     def update(self, time_pertaining, time_arrived, data_piece, category, track=None,
                use_arrival_time=False):
-        """Updates this :class:`~.Node`'s :attr:`~.data_held` using a new data piece.
+        """
+        Updates this Node's data_held using a new data piece.
 
-        Args:
-            time_pertaining (datetime): Time the data is relevant to, when it was created.
-            time_arrived (datetime): Time the data arrived at this node.
-            data_piece (DataPiece): The specific data piece, containing for example a Detection.
-            category (str): A string matching either "fused", "created", "unfused".
-            track (Track): Track to which the data piece is assigned,
-             if it contains a Hypothesis. Default is None.
-            use_arrival_time (bool): If True, make `data.timestamp` equal to `time_arrived`.
+        Parameters
+        ----------
+        time_pertaining : datetime
+            Time the data is relevant to, when it was created.
+        time_arrived : datetime
+            Time the data arrived at this node.
+        data_piece : DataPiece
+            The specific data piece, containing for example a Detection.
+        category : str
+            A string matching either "fused", "created", or "unfused".
+        track : Track, optional
+            Track to which the data piece is assigned, if it contains a Hypothesis
+            (default is None).
+        use_arrival_time : bool, optional
+            If True, make `data.timestamp` equal to `time_arrived` (default is False).
 
-        Returns:
-            bool: True if new data has been added.
+        Returns
+        -------
+        bool
+            True if new data has been added.
         """
         if not (isinstance(time_pertaining, datetime) and isinstance(time_arrived, datetime)):
             raise TypeError("Times must be datetime objects")
@@ -146,6 +156,14 @@ class FusionNode(Node):
             daemon=True)
 
     def fuse(self):
+        """
+        Fuse data in the fusion queue and update the node's tracks and data_held.
+
+        Returns
+        -------
+        bool
+            True if new data has been added.
+        """
         if not self._tracking_thread.is_alive():
             try:
                 self._tracking_thread.start()
