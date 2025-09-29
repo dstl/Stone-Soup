@@ -198,11 +198,11 @@ class SIAPDiffTableGenerator(SIAPTableGenerator):
             colours = []
             for i, value in enumerate(values):
                 other_values = values[:i] + values[i+1:]
-                if all(num <= 0 for num in [abs(value - target) - abs(v - target)
-                                            for v in other_values]):
+                if all(abs(value - target) < num or np.isclose(num, abs(value - target))
+                       for num in [abs(v - target) for v in other_values]):
                     colours.append((0, 1, 0, 0.5))
-                elif all(num >= 0 for num in [abs(value - target) - abs(v - target)
-                                              for v in other_values]):
+                elif all(num > 0 for num in [abs(value - target) - abs(v - target)
+                                             for v in other_values]):
                     colours.append((1, 0, 0, 0.5))
                 else:
                     colours.append((1, 1, 0, 0.5))

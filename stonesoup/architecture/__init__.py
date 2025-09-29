@@ -408,28 +408,6 @@ class Architecture(Base):
 
         return True
 
-
-class NonPropagatingArchitecture(Architecture):
-    """
-    A simple Architecture class that does not simulate propagation of any data. Can be used for
-    performing network operations on an :class:`~.Edges` object.
-    """
-    def propagate(self, time_increment: float):
-        pass
-
-
-class InformationArchitecture(Architecture):
-    """The architecture for how information is shared through the network. Node A is "
-    "connected to Node B if and only if the information A creates by processing and/or "
-    "sensing is received and opened by B without modification by another node. """
-
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-
-        if len(self.repeater_nodes) != 0:
-            raise TypeError("Information architecture should not contain any repeater "
-                            "nodes")
-
     def measure(self, ground_truths: List[GroundTruthPath], noise: Union[bool, np.ndarray] = True,
                 **kwargs) -> Dict[SensorNode, Set[Union[TrueDetection, Clutter]]]:
         """ Similar to the method for :class:`~.SensorSuite`. Updates each node. """
@@ -455,6 +433,28 @@ class InformationArchitecture(Architecture):
                                    'created')
 
         return all_detections
+
+
+class NonPropagatingArchitecture(Architecture):
+    """
+    A simple Architecture class that does not simulate propagation of any data. Can be used for
+    performing network operations on an :class:`~.Edges` object.
+    """
+    def propagate(self, time_increment: float):
+        pass
+
+
+class InformationArchitecture(Architecture):
+    """The architecture for how information is shared through the network. Node A is "
+    "connected to Node B if and only if the information A creates by processing and/or "
+    "sensing is received and opened by B without modification by another node. """
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+
+        if len(self.repeater_nodes) != 0:
+            raise TypeError("Information architecture should not contain any repeater "
+                            "nodes")
 
     def propagate(self, time_increment: float, failed_edges: Collection = None):
         """Performs the propagation of the measurements through the network"""
@@ -512,32 +512,6 @@ class NetworkArchitecture(Architecture):
         # Set attributes such as label, colour, shape, etc. for each node
         for node in self.di_graph.nodes:
             self.di_graph.nodes[node].update(self._node_kwargs(node))
-
-    def measure(self, ground_truths: List[GroundTruthPath], noise: Union[bool, np.ndarray] = True,
-                **kwargs) -> Dict[SensorNode, Set[Union[TrueDetection, Clutter]]]:
-        """ Similar to the method for :class:`~.SensorSuite`. Updates each node. """
-        all_detections = dict()
-
-        # Filter out only the ground truths that have already happened at self.current_time
-        current_ground_truths = set()
-        for ground_truth_path in ground_truths:
-            available_gtp = GroundTruthPath(ground_truth_path[:self.current_time +
-                                                              timedelta(seconds=1e-6)])
-            if len(available_gtp) > 0:
-                current_ground_truths.add(available_gtp)
-
-        for sensor_node in self.sensor_nodes:
-            all_detections[sensor_node] = set()
-            for detection in sensor_node.sensor.measure(current_ground_truths, noise, **kwargs):
-                all_detections[sensor_node].add(detection)
-
-            for data in all_detections[sensor_node]:
-                # The sensor acquires its own data instantly
-                sensor_node.update(data.timestamp, data.timestamp,
-                                   DataPiece(sensor_node, sensor_node, data, data.timestamp),
-                                   'created')
-
-        return all_detections
 
     def propagate(self, time_increment: float, failed_edges: Collection = None):
         """Performs the propagation of the measurements through the network"""

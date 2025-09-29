@@ -48,9 +48,9 @@ class FusionQueue(Queue):
 class DataPiece(Base):
     """A piece of data for use in an architecture. Sent via a :class:`~.Message`,
     and stored in a Node's :attr:`data_held`"""
-    node: Node = Property(
+    node: 'Node' = Property(
         doc="The Node this data piece belongs to")
-    originator: Node = Property(
+    originator: 'Node' = Property(
         doc="The node which first created this data, ie by sensing or fusing information together."
             " If the data is simply passed along the chain, the originator remains unchanged. ")
     data: Union[Detection, Track, Hypothesis] = Property(
@@ -279,7 +279,7 @@ class Message(Base):
         doc="Time at which the message was sent")
     data_piece: DataPiece = Property(
         doc="Info that the sent message contains")
-    destinations: Set["Node"] = Property(doc="Nodes in the information architecture that the "
+    destinations: Set['Node'] = Property(doc="Nodes in the information architecture that the "
                                              "message is being sent to",
                                          default=None)
 
