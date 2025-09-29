@@ -34,15 +34,15 @@
 # Different types of node can provide different functionality in the architecture. The following
 # are available in Stone Soup:
 #
-# - :class:`.~SensorNode`: makes detections of targets and propagates data onwards through the
+# - :class:`~.SensorNode`: makes detections of targets and propagates data onwards through the
 #   architecture.
 #
-# - :class:`.~FusionNode`: receives data from child nodes, and fuses to achieve a fused result.
+# - :class:`~.FusionNode`: receives data from child nodes, and fuses to achieve a fused result.
 #   The fused result can be propagated onwards.
 #
-# - :class:`.~SensorFusionNode`: has the functionality of both a SensorNode and a FusionNode.
+# - :class:`~.SensorFusionNode`: has the functionality of both a SensorNode and a FusionNode.
 #
-# - :class:`.~RepeaterNode`: does not create or fuse data, but only propagates it onwards. 
+# - :class:`~.RepeaterNode`: does not create or fuse data, but only propagates it onwards. 
 #   It is only used in network architectures.
 #
 # Set up and Node Properties
@@ -55,7 +55,7 @@ node_B = Node(label='Node B')
 node_C = Node(label='Node C')
 
 # %%
-# The :class:`.~Node` base class contains several properties. The `latency` property gives 
+# The :class:`~.Node` base class contains several properties. The `latency` property gives 
 # functionality to simulate processing latency at the node. The rest of the properties (`label`, 
 # `position`, `colour`, `shape`, `font_size`, `node_dim`), are used for graph plotting.
 

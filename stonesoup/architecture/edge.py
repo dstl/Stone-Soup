@@ -48,9 +48,9 @@ class FusionQueue(Queue):
 class DataPiece(Base):
     """A piece of data for use in an architecture. Sent via a :class:`~.Message`,
     and stored in a Node's :attr:`data_held`"""
-    node: "Node" = Property(
+    node: Node = Property(
         doc="The Node this data piece belongs to")
-    originator: "Node" = Property(
+    originator: Node = Property(
         doc="The node which first created this data, ie by sensing or fusing information together."
             " If the data is simply passed along the chain, the originator remains unchanged. ")
     data: Union[Detection, Track, Hypothesis] = Property(
