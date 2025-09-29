@@ -174,7 +174,7 @@ base_tracker = MultiTargetTracker(
 
 from stonesoup.architecture.generator import NetworkArchitectureGenerator
 
-gen = NetworkArchitectureGenerator('decentralised',
+gen = NetworkArchitectureGenerator('hierarchical',
                                    start_time,
                                    mean_degree=2,
                                    node_ratio=[3, 1, 2],
