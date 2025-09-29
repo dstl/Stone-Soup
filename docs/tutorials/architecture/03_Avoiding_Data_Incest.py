@@ -80,7 +80,7 @@ from stonesoup.base import Property
 
 
 class DummySensor(SimpleSensor):
-    measurement_model: MeasurementModel = Property(doc="TODO")
+    measurement_model: MeasurementModel = Property(doc=":class:`~.MeasurementModel` to be used")
 
     def is_detectable(self, *args, **kwargs):
         return True
@@ -252,7 +252,6 @@ NH_edges = Edges([Edge((sensornode1, fusion_node1), edge_latency=0),
 # expect to see overconfidence in the form of unrealistically small 
 # uncertainty of the output tracks.
 
-# sphinx_gallery_thumbnail_path = '_static/sphinx_gallery/ArchTutorial_3.png'
 
 
 NH_architecture = InformationArchitecture(NH_edges, current_time=start_time,
