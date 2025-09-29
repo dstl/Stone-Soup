@@ -18,8 +18,9 @@ from stonesoup.tracker import Tracker
 
 class InformationArchitectureGenerator(Base):
     """
-    Class that can be used to generate InformationArchitecture classes given a set of input
-    parameters.
+    Convenience class that can be used to generate one or multiple :class:`~.InformationArchitecture`s given a set          
+    of input parameters. The graph is generated randomly subject to the parameters such as `node_ratio` and 
+    `mean_degree`, rather than having to be user-defined. 
     """
     arch_type: str = Property(
         doc="Type of architecture to be modelled. Currently only 'hierarchical' and "
@@ -234,8 +235,9 @@ class InformationArchitectureGenerator(Base):
 
 class NetworkArchitectureGenerator(InformationArchitectureGenerator):
     """
-    Class that can be used to generate NetworkArchitecture classes given a set of input
-    parameters.
+    Convenience class that can be used to generate one or multiple :class:`~.NetworkArchitecture`s given a set of 
+    input parameters. The graph is generated randomly subject to the parameters such as `node_ratio` and 
+    `mean_degree`, rather than having to be user-defined. 
     """
     n_routes: tuple = Property(
         doc="Tuple containing a minimum and maximum value for the number of routes created in the "

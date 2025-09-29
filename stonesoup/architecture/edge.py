@@ -298,7 +298,6 @@ class Message(Base):
     @property
     def arrival_time(self):
         # TODO: incorporate failed time ranges here.
-        # Not essential for a first PR. Could do with merging of PR #664
         return self.time_sent + timedelta(seconds=self.edge.ovr_latency)
 
     def update(self, current_time):

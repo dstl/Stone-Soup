@@ -114,7 +114,6 @@ class SensorNode(Node):
 
 class FusionNode(Node):
     """A :class:`~.Node` that does not measure new data, but does process data it receives"""
-    # feeder probably as well
     tracker: Tracker = Property(
         doc="Tracker used by this Node to fuse together Tracks and Detections")
     fusion_queue: FusionQueue = Property(
