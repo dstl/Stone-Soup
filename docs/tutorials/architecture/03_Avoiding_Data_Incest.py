@@ -435,19 +435,25 @@ for t in timesteps:
     H_states = sum([[state for state in track.states if state.timestamp == t] for track in
                     H_tracks], [])
 
-    NH_trace_mean = np.mean([np.trace(s.covar) for s in NH_states])
-    H_trace_mean = np.mean([np.trace(s.covar) for s in H_states])
-    
-    NH_mean_covar_trace.append(NH_trace_mean if not math.isnan(NH_trace_mean) else 0)
-    H_mean_covar_trace.append(H_trace_mean if not math.isnan(H_trace_mean) else 0)
+    if NH_states:
+        NH_trace_mean = np.mean([np.trace(s.covar) for s in NH_states])
+        NH_mean_covar_trace.append(NH_trace_mean)
+    else:
+        NH_mean_covar_trace.append(np.nan)
+
+    if H_states:
+        H_trace_mean = np.mean([np.trace(s.covar) for s in H_states])
+        H_mean_covar_trace.append(H_trace_mean if not math.isnan(H_trace_mean) else 0)
+    else:
+        H_mean_covar_trace.append(np.nan)
+
 
 # %%
+# As expected, the plot shows that the non-hierarchical architecture has a
+# lower mean covariance trace. A naive observer may think this makes it higher
+# performing, but we know that in fact it is a sign of overconfidence.
 
 plt.plot(NH_mean_covar_trace, label="Non-Hierarchical")
 plt.plot(H_mean_covar_trace, label="Hierarchical")
 plt.legend(loc="upper right")
 plt.show()
-
-# As expected, the plot shows that the non-hierarchical architecture has a
-# lower mean covariance trace. A naive observer may think this makes it higher
-# performing, but we know that in fact it is a sign of overconfidence. 
