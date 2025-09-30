@@ -152,10 +152,10 @@ class SIAPDiffTableGenerator(SIAPTableGenerator):
 
     metrics_labels: Collection[str] = Property(doc='List of titles for metrics',
                                                default=None)
-    atol: float = Property(doc="Absolute tolerance value used for assessing if two metric values " \
+    atol: float = Property(doc="Absolute tolerance value used for assessing if two metric values "
                                "are close enough that they pass as equal.",
                            default=None)
-    rtol: float = Property(doc="Relative tolerance value used for assessing if two metric values " \
+    rtol: float = Property(doc="Relative tolerance value used for assessing if two metric values "
                                "are close enough that they pass as equal.",
                            default=None)
 
