@@ -202,21 +202,18 @@ class NUTSProposal(Proposal):
                                                          v, grad_x, measurement,
                                                          time_interval)
 
-            ns = Prediction.from_state(previous_state,
-                                       parent=previous_state,
-                                       state_vector=x_new.state_vector,
-                                       timestamp=x_new.timestamp,
-                                       transition_model=self.transition_model,
-                                       prior=previous_state)
+            new_nuts_state = Prediction.from_state(previous_state,
+                                                   parent=previous_state,
+                                                   state_vector=x_new.state_vector,
+                                                   timestamp=x_new.timestamp,
+                                                   transition_model=self.transition_model,
+                                                   prior=previous_state)
 
             # pi(x_k)
-            pi_x_k = self.target_proposal(previous_state, ns, measurement, time_interval)
-
-            # pi(x_k-1)
-#            pi_x_k1 = self.target_proposal(state, state, measurement, time_interval)
+            pi_x_k = self.target_proposal(previous_state, new_nuts_state, measurement, time_interval)
 
             # re-evaluate the gradient with the new state
-            grad_x = self.grad_target_proposal(previous_state, ns,
+            grad_x = self.grad_target_proposal(previous_state, new_nuts_state,
                                                measurement, time_interval)
 
             # we need to add the deteminat of the jacobian of the LF integrator
@@ -224,10 +221,10 @@ class NUTSProposal(Proposal):
             # wt = wt-1 * (pi_x_k * qv(-v)/det(J))/(pi_x_k1 * p_x_xk1 * qv(v)/det(J))
             # 1/-1 id the direction
 
-            jk_minus, _, _ = self.integrate_lf_vec(ns, v_new, grad_x, -1,
-                                                   time_interval, measurement)  # ns
-            jk_plus, _, _ = self.integrate_lf_vec(ns, v, grad_x, 1,
-                                                  time_interval, measurement)  # ns
+            jk_minus, _, _ = self.integrate_lf_vec(new_nuts_state, v_new, grad_x, -1,
+                                                   time_interval, measurement)
+            jk_plus, _, _ = self.integrate_lf_vec(new_nuts_state, v, grad_x, 1,
+                                                  time_interval, measurement)
 
             # determinant of the jacobian evaluation
             determinant_m = np.abs(np.linalg.det(self.get_grad(jk_minus, time_interval)))
