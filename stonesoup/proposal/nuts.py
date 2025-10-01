@@ -120,11 +120,14 @@ class NUTSProposal(Proposal):
         # use stone soup in case we don't have a target distribution
         if self.grad_target is None:
             # grad log prior
-            dx = state_prediction.state_vector - self.transition_model.function(prior_state,
-                                                                                time_interval=time_interval,
-                                                                                **kwargs)
+            prediction = self.transition_model.function(prior_state,
+                                                        time_interval=time_interval,
+                                                        **kwargs)
 
-            grad_log_prior = np.linalg.pinv(self.transition_model.covar(time_interval=time_interval)) @ -dx
+            dx = state_prediction.state_vector - prediction
+
+            tx_covar = self.transition_model.covar(time_interval=time_interval)
+            grad_log_prior = np.linalg.pinv(tx_covar) @ -dx
 
             # grad log likelihood
             # Get Jacobians of measurements
@@ -132,7 +135,8 @@ class NUTSProposal(Proposal):
                           state_prediction.particles])
 
             # Get innov
-            dy = detection.state_vector - self.measurement_model.function(state_prediction, **kwargs)
+            dy = detection.state_vector - self.measurement_model.function(state_prediction,
+                                                                          **kwargs)
 
             # Compute the gradient H^T * inv(R) * innov
             if len(H.shape) < 3:
@@ -210,7 +214,8 @@ class NUTSProposal(Proposal):
                                                    prior=previous_state)
 
             # pi(x_k)
-            pi_x_k = self.target_proposal(previous_state, new_nuts_state, measurement, time_interval)
+            pi_x_k = self.target_proposal(previous_state, new_nuts_state, measurement,
+                                          time_interval)
 
             # re-evaluate the gradient with the new state
             grad_x = self.grad_target_proposal(previous_state, new_nuts_state,
@@ -359,7 +364,8 @@ class NUTSProposal(Proposal):
         while np.any(~stopped):
 
             # Generate random direction in {-1, +1}
-            direction = (2 * (uniform.rvs(size=self.num_samples) < 0.5).astype(int) - 1).reshape(1, -1)
+            uniform_samples = uniform.rvs(size=self.num_samples)
+            direction = (2 * (uniform_samples < 0.5).astype(int) - 1).reshape(1, -1)
 
             # Get new states from minus and plus depending on direction and build tree
             x_pm, v_pm, grad_x_pm = self.merge_states_dir(xminus, vminus, grad_xminus, xplus,
