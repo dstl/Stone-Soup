@@ -66,12 +66,11 @@ def test_shortest_path_model(graph, use_indicator):
     assert np.array_equal(meas_state_vector, eval_state_vector)
 
     # Test the function method (with noise)
-    seed = 1994
-    np.random.seed(seed)    # Set the seed for reproducibility
-    meas_state_vector = measurement_model.function(state, noise=True)
+    rng = np.random.RandomState(1994)  # Set the seed for reproducibility
+    meas_state_vector = measurement_model.function(state, noise=True, random_state=rng)
     # The state vector should be equal to the position of node 1 plus the noise
-    np.random.seed(seed)    # Reset the seed to the same value
-    noise = measurement_model.rvs()
+    rng = np.random.RandomState(1994)  # Reset the seed to the same value
+    noise = measurement_model.rvs(random_state=rng)
     eval_state_vector = StateVector(graph.nodes[1]['pos']) + noise
     assert np.array_equal(meas_state_vector, eval_state_vector)
 
