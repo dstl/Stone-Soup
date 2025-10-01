@@ -1,8 +1,8 @@
-import pytest
-
 import copy
 from datetime import datetime
+
 import numpy as np
+import pytest
 
 from ..node import Node, SensorNode, FusionNode, SensorFusionNode, RepeaterNode
 from ..edge import FusionQueue, DataPiece

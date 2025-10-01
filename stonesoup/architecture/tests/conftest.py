@@ -1,9 +1,9 @@
-import pytest
-import random
-import numpy as np
-from ordered_set import OrderedSet
 from datetime import datetime, timedelta
 import copy
+
+import numpy as np
+import pytest
+from ordered_set import OrderedSet
 
 from ..edge import Edge, DataPiece, Edges
 from ..node import Node, RepeaterNode, SensorNode, FusionNode, SensorFusionNode
@@ -367,8 +367,6 @@ def edge_lists(nodes, radar_nodes):
 @pytest.fixture()
 def generator_params():
     start_time = datetime.now().replace(microsecond=0)
-    np.random.seed(1990)
-    random.seed(1990)
 
     from stonesoup.models.transition.linear import CombinedLinearGaussianTransitionModel, \
         ConstantVelocity

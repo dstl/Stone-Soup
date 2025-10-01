@@ -8,8 +8,6 @@ from ...types.track import Track
 from ...types.time import CompoundTimeRange, TimeRange
 from .._functions import _dict_set
 
-from datetime import timedelta
-
 
 def test_data_piece(nodes, times):
     with pytest.raises(TypeError):
@@ -90,7 +88,7 @@ def test_update_messages():
     assert len(edge.messages_held['pending']) == 1
 
     # Try again a secomd later
-    edge.update_messages(time_created + timedelta(seconds=1))
+    edge.update_messages(time_created + datetime.timedelta(seconds=1))
     assert len(edge.messages_held['pending']) == 0
 
     # Test scenario when message has no destinations
@@ -109,8 +107,8 @@ def test_update_messages():
 def test_failed(edges, times):
     edge = edges['a']
     assert edge.time_range_failed == CompoundTimeRange()
-    edge.failed(times['a'], timedelta(seconds=5))
-    new_time_range = TimeRange(times['a'], times['a'] + timedelta(seconds=5))
+    edge.failed(times['a'], datetime.timedelta(seconds=5))
+    new_time_range = TimeRange(times['a'], times['a'] + datetime.timedelta(seconds=5))
     assert edge.time_range_failed == CompoundTimeRange([new_time_range])
 
 
@@ -142,7 +140,7 @@ def test_message(edges, data_pieces, times):
     assert message.recipient_node == edge.recipient
     edge.edge_latency = 5.0
     edge.sender.latency = 1.0
-    assert message.arrival_time == times['b'] + timedelta(seconds=6.0)
+    assert message.arrival_time == times['b'] + datetime.timedelta(seconds=6.0)
     assert message.status == 'sending'
     with pytest.raises(ValueError):
         message.update(times['a'])
@@ -150,10 +148,10 @@ def test_message(edges, data_pieces, times):
     message.update(times['b'])
     assert message.status == 'sending'
 
-    message.update(times['b'] + timedelta(seconds=3))
+    message.update(times['b'] + datetime.timedelta(seconds=3))
     assert message.status == 'transferring'
 
-    message.update(times['b'] + timedelta(seconds=8))
+    message.update(times['b'] + datetime.timedelta(seconds=8))
     assert message.status == 'received'
 
 
