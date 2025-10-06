@@ -56,12 +56,7 @@ typ = 'stonesoup'
 
 def init_typ(yaml):
     # Load additional custom serialisation
-    eps = entry_points()
-    try:
-        entrypoints = eps['stonesoup.serialise.yaml']
-    except KeyError:
-        entrypoints = []
-    for entry_point in entrypoints:
+    for entry_point in entry_points(group="stonesoup.serialise.yaml"):
         try:
             entry_point.load()(yaml)
         except (ImportError, ModuleNotFoundError) as e:
