@@ -67,7 +67,7 @@ node_A.shape = 'hexagon'
 # :class:`~.SensorNode` and :class:`~.FusionNode` objects have additional properties that must be
 # defined. A :class:`~.SensorNode` must be given an additional `sensor` property - this must be a
 # :class:`~.Sensor`. A :class:`~.FusionNode` has two additional properties: `tracker` and
-# `fusion_queue`.`tracker`  must both be :class:`~.Tracker`\s - the main tracker manages the
+# `fusion_queue`. `tracker`  must be :class:`~.Tracker` - the main tracker manages the
 # fusion at the node, while the `fusion_queue` property is a :class:`~.FusionQueue` by default -
 # this manages the inflow of data from child nodes.
 #
@@ -77,8 +77,8 @@ node_A.shape = 'hexagon'
 # property `nodes`: a tuple of :class:`~.Node` objects where the first entry in the tuple is
 # the child node and the second is the parent. Edges in Stone Soup are directional (data can
 # flow only in one direction), with data flowing from child to parent. Edge objects also
-# contain a `latency` property to enable simulation of latency caused by sending a message,
-# separately to node latency.
+# contain a `latency` property, which enables simulation of latency caused by sending a message,
+# separate to the node latency.
 
 from stonesoup.architecture.edge import Edge
 
