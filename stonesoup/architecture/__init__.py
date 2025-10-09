@@ -179,16 +179,14 @@ class Architecture(Base):
             Number of leaf nodes that are connected to a given node.
         """
         node_leaves = set()
-
         for leaf_node in self.leaf_nodes:
+            if node == leaf_node:
+                return 1
             try:
                 self.shortest_path_dict[leaf_node][node]
             except KeyError:
                 continue
-            if node != leaf_node:
-                node_leaves.add(leaf_node)
-            else:
-                return 1
+            node_leaves.add(leaf_node)
         return len(node_leaves)
 
     @property
