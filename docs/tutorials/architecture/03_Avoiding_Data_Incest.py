@@ -18,7 +18,7 @@
 # sourced from two sensors. However, one sensor is overly represented, due to a
 # triangle in the information architecture graph. As a consequence, the fusion
 # node becomes overconfident, or biased towards the duplicated data.
-# 
+#
 # The aim is to demonstrate this effect by modelling two similar
 # information architectures: a centralised (non-hierarchical) architecture,
 # and a hierarchical alternative, and looks to compare the fused results
@@ -57,7 +57,7 @@ random.seed(1990)
 # ^^^^^^^^^^
 #
 # We need two sensors to be assigned to the two sensor nodes.
-# Notice they vary only in their position. 
+# Notice they vary only in their position.
 
 from stonesoup.models.clutter import ClutterModel
 from stonesoup.models.measurement.linear import LinearGaussian
@@ -101,7 +101,7 @@ sensor2 = DummySensor(measurement_model=mm2,
 sensor2.clutter_model.distribution = sensor2.clutter_model.random_state.uniform
 
 # %%
-# 2) Ground Truth  
+# 2) Ground Truth
 # ^^^^^^^^^^^^^^^
 
 from stonesoup.models.transition.linear import CombinedLinearGaussianTransitionModel, \
@@ -236,20 +236,20 @@ NH_edges = Edges([Edge((sensornode1, fusion_node1), edge_latency=0),
 # Create the Non-Hierarchical Architecture
 # ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 # The cell below should create and plot the architecture we have built.
-# This architecture is at risk of data incest, due to the fact that 
+# This architecture is at risk of data incest, due to the fact that
 # information from sensor node 1 could reach Fusion Node 1 via two routes,
 # while appearing to not be from the same source:
 #
 # * Route 1: Sensor Node 1 (S1) passes its information straight to
 #   Fusion Node 1 (F1)
-# * Route 2: S1 also passes its information to Fusion Node 2 (F2). 
+# * Route 2: S1 also passes its information to Fusion Node 2 (F2).
 #   Here it is fused with information from Sensor Node 2 (S2). This
 #   resulting information is then passed to Fusion Node 1.
 #
-# Ultimately, F1 is recieving information from S1, and information from 
-# F2 which is based on the same information from S1. This can cause a 
+# Ultimately, F1 is recieving information from S1, and information from
+# F2 which is based on the same information from S1. This can cause a
 # bias towards the information created at S1. In this example, we would
-# expect to see overconfidence in the form of unrealistically small 
+# expect to see overconfidence in the form of unrealistically small
 # uncertainty of the output tracks.
 
 # sphinx_gallery_thumbnail_path = '_static/sphinx_gallery/ArchTutorial_3.png'
@@ -297,12 +297,12 @@ def reduce_tracks(tracks):
 
 plotter = Plotterly()
 plotter.plot_ground_truths(truths, [0, 2])
+plotter.plot_measurements(NH_dets, [0, 2])
 for node in NH_architecture.fusion_nodes:
     hexcol = ["#" + ''.join([random.choice('ABCDEF0123456789') for i in range(6)])]
     plotter.plot_tracks(reduce_tracks(node.tracks), [0, 2], track_label=str(node.label),
                         line=dict(color=hexcol[0]), uncertainty=True)
 plotter.plot_sensors(NH_sensors)
-plotter.plot_measurements(NH_dets, [0, 2])
 plotter.fig
 
 # %%
@@ -355,10 +355,10 @@ H_edges = Edges([Edge((sensornode1B, fusion_node1B), edge_latency=0),
 # ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 # The only difference between the two architectures is the removal
 # of the edge from Sensor Node 1 to Fusion Node 2. This change removes
-# the second route for information to travel from Sensor Node 1 to 
+# the second route for information to travel from Sensor Node 1 to
 # Fusion Node 1.
 
-H_architecture = InformationArchitecture(H_edges, current_time=start_time, 
+H_architecture = InformationArchitecture(H_edges, current_time=start_time,
                                          use_arrival_time=True)
 H_architecture
 
@@ -391,12 +391,12 @@ for sn in H_architecture.sensor_nodes:
 
 plotter = Plotterly()
 plotter.plot_ground_truths(truths, [0, 2])
+plotter.plot_measurements(H_dets, [0, 2])
 for node in H_architecture.fusion_nodes:
     hexcol = ["#" + ''.join([random.choice('ABCDEF0123456789') for i in range(6)])]
     plotter.plot_tracks(reduce_tracks(node.tracks), [0, 2], track_label=str(node.label),
                         line=dict(color=hexcol[0]), uncertainty=True)
 plotter.plot_sensors(H_sensors)
-plotter.plot_measurements(H_dets, [0, 2])
 plotter.fig
 
 # %%

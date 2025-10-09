@@ -25,7 +25,7 @@
 #
 # 4) Run the simulation over both, and compare results.
 #
-# 5) Remove edges from each of the architectures, and rerun. 
+# 5) Remove edges from each of the architectures, and rerun.
 
 # %%
 # Module Imports
@@ -83,10 +83,10 @@ for j in range(0, ntruths):
 # %%
 # 2 - Base Tracker and Sensor Models
 # ----------------------------------
-# We can use the :class:`~.ArchitectureGenerator` classes to generate multiple identical 
-# architectures. These classes take in base tracker and sensor models, which are duplicated and 
-# applied to each relevant node in the architecture. The base tracker must not have a detector, 
-# in order for it to be duplicated - the detector will be applied during the architecture 
+# We can use the :class:`~.ArchitectureGenerator` classes to generate multiple identical
+# architectures. These classes take in base tracker and sensor models, which are duplicated and
+# applied to each relevant node in the architecture. The base tracker must not have a detector,
+# in order for it to be duplicated - the detector will be applied during the architecture
 # generation step.
 #
 # Sensor Model
@@ -164,7 +164,7 @@ base_tracker = MultiTargetTracker(
 # ------------------------------------
 # The :class:`~.NetworkArchitecture` class has a property `information_arch`, which contains the
 # information architecture representation of the underlying network architecture. This means
-# that if we use the :class:`~.NetworkArchitectureGenerator` class to generate a pair of identical 
+# that if we use the :class:`~.NetworkArchitectureGenerator` class to generate a pair of identical
 # network architectures, we can extract the information architecture from one.
 #
 # This will provide us with two completely separate architecture classes: a network architecture,
@@ -240,16 +240,15 @@ def reduce_tracks(tracks):
 
 plotter = Plotterly()
 plotter.plot_ground_truths(truths, [0, 2])
-for node in network_arch.fusion_nodes:
-    if True:
-        hexcol = ["#"+''.join([random.choice('ABCDEF0123456789') for i in range(6)])]
-        plotter.plot_tracks(reduce_tracks(node.tracks),
-                            [0, 2],
-                            track_label=str(node.label),
-                            line=dict(color=hexcol[0]),
-                            uncertainty=True)
-plotter.plot_sensors(na_sensors)
 plotter.plot_measurements(na_dets, [0, 2])
+for node in network_arch.fusion_nodes:
+    hexcol = ["#"+''.join([random.choice('ABCDEF0123456789') for i in range(6)])]
+    plotter.plot_tracks(reduce_tracks(node.tracks),
+                        [0, 2],
+                        track_label=str(node.label),
+                        line=dict(color=hexcol[0]),
+                        uncertainty=True)
+plotter.plot_sensors(na_sensors)
 plotter.fig
 
 # %%
@@ -275,14 +274,13 @@ for sn in information_arch.sensor_nodes:
 # %%
 plotter = Plotterly()
 plotter.plot_ground_truths(truths, [0, 2])
-for node in information_arch.fusion_nodes:
-    if True:
-        hexcol = ["#"+''.join([random.choice('ABCDEF0123456789') for i in range(6)])]
-        plotter.plot_tracks(reduce_tracks(node.tracks), [0, 2], 
-                            track_label=str(node.label), 
-                            line=dict(color=hexcol[0]), uncertainty=True)
-plotter.plot_sensors(ia_sensors)
 plotter.plot_measurements(ia_dets, [0, 2])
+for node in information_arch.fusion_nodes:
+    hexcol = ["#"+''.join([random.choice('ABCDEF0123456789') for i in range(6)])]
+    plotter.plot_tracks(reduce_tracks(node.tracks), [0, 2],
+                        track_label=str(node.label),
+                        line=dict(color=hexcol[0]), uncertainty=True)
+plotter.plot_sensors(ia_sensors)
 plotter.fig
 
 # %%
@@ -290,7 +288,7 @@ plotter.fig
 # ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 #
 # The information architecture we have studied is hierarchical, and while the network
-# architecture isn't strictly a hierarchical graph, it does have one central node (Fusion Node 1) 
+# architecture isn't strictly a hierarchical graph, it does have one central node (Fusion Node 1)
 # receiving all information. The code below plots SIAP metrics for the
 # tracks maintained at Fusion Node 1 in both architecures. Some variation between the two is
 # expected due to the randomness of the measurements, but we aim to show that the results from
@@ -352,7 +350,9 @@ information_siap_averages = {information_siap_metrics.get(metric) for
 
 # %%
 from stonesoup.metricgenerator.metrictables import SIAPDiffTableGenerator
-SIAPDiffTableGenerator([network_siap_averages, information_siap_averages], ['Network Arch.', 'Information Arch.'], rtol=1e-2, atol=1e-5).compute_metric()
+SIAPDiffTableGenerator([network_siap_averages, information_siap_averages],
+                       ['Network Arch.', 'Information Arch.'],
+                       rtol=1e-2, atol=1e-5).compute_metric()
 
 # %%
 # 5 - Remove edges from each architecture and re-run
@@ -452,7 +452,7 @@ information_rm_siap = SIAPMetrics(position_measure=Euclidean((0, 2)),
                                   truths_key='truths'
                                   )
 
-information_rm_metric_manager = MultiManager([information_rm_siap], 
+information_rm_metric_manager = MultiManager([information_rm_siap],
                                              associator)  # associator for generating SIAP metrics
 information_rm_metric_manager.add_data({'information_rm_tracks': top_node.tracks,
                                         'truths': truths}, overwrite=False)
@@ -472,4 +472,5 @@ SIAPDiffTableGenerator([network_siap_averages,
                         information_siap_averages,
                         network_rm_siap_averages,
                         information_rm_siap_averages],
-                       ['Network', 'Info', 'Network RM', 'Info RM'], rtol=1e-2, atol=1e-5).compute_metric();
+                       ['Network', 'Info', 'Network RM', 'Info RM'],
+                       rtol=1e-2, atol=1e-5).compute_metric()
