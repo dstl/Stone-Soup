@@ -615,6 +615,7 @@ class NetworkArchitecture(Architecture):
                     self.information_arch = InformationArchitecture(
                         edges=self.information_architecture_edges, current_time=self.current_time)
                 else:
+                    self.information_architecture_edges = self.edges
                     self.information_arch = InformationArchitecture(self.edges, self.current_time)
             else:
                 self.information_arch = InformationArchitecture(
@@ -641,12 +642,13 @@ class NetworkArchitecture(Architecture):
         for edge in self.edges.edges:
             # TODO: Future work - Introduce failed edges functionality
 
+            to_network_node = edge.recipient not in self.information_arch.all_nodes
+
             # Initial update of message categories
-            if edge.recipient not in self.information_arch.all_nodes:
-                edge.update_messages(self.current_time, to_network_node=True,
-                                     use_arrival_time=self.use_arrival_time)
-            else:
-                edge.update_messages(self.current_time, use_arrival_time=self.use_arrival_time)
+            edge.update_messages(
+                self.current_time,
+                to_network_node=to_network_node,
+                use_arrival_time=self.use_arrival_time)
 
             # Send available messages from nodes to the edges
             if edge.sender in self.information_arch.all_nodes:
@@ -658,11 +660,10 @@ class NetworkArchitecture(Architecture):
                         edge.pass_message(message)
 
             # Need to re-run update messages so that messages aren't left as 'pending'
-            if edge.recipient not in self.information_arch.all_nodes:
-                edge.update_messages(self.current_time, to_network_node=True,
-                                     use_arrival_time=self.use_arrival_time)
-            else:
-                edge.update_messages(self.current_time, use_arrival_time=self.use_arrival_time)
+            edge.update_messages(
+                self.current_time,
+                to_network_node=to_network_node,
+                use_arrival_time=self.use_arrival_time)
 
         for fuse_node in self.fusion_nodes:
             fuse_node.fuse()

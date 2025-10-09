@@ -743,7 +743,6 @@ def test_net_arch_fully_propagated(generator_params, ground_truths):
     for node in arch.sensor_nodes:
         # Check that each sensor node has data held for the detection of all 3 targets
         for key in node.data_held['created'].keys():
-            print(key)
             assert len(node.data_held['created'][key]) == 3
 
     edge = {edge for edge in arch.edges if
