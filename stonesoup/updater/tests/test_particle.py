@@ -211,11 +211,11 @@ def test_bernoulli_particle(constraint_func):
 
 @pytest.mark.parametrize("transition_model, model_flag", [
         (
-            CombinedLinearGaussianTransitionModel([ConstantVelocity([0.05])]),  # transition_model
+            CombinedLinearGaussianTransitionModel([ConstantVelocity(0.05)]),  # transition_model
             False  # model_flag
         ),
         (
-            CombinedLinearGaussianTransitionModel([ConstantVelocity([0.05])]),  # transition_model
+            CombinedLinearGaussianTransitionModel([ConstantVelocity(0.05)]),  # transition_model
             True  # model_flag
         )
     ], ids=["with_transition_model_init", "without_transition_model_init"]

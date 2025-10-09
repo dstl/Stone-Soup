@@ -28,6 +28,11 @@ def test_cvmodel(sign):
                   [abs(timediff)**2 / 2,
                    abs(timediff)]]) * noise_diff_coeff
 
+    # Test non-float noise_diff_coeff error
+    with pytest.raises(TypeError, match="'noise_diff_coeff' should be a "
+                       "<class 'float'> instance. Instead it is <class 'list'>"):
+        ConstantVelocity(noise_diff_coeff=[noise_diff_coeff])
+
     # Create and a Constant Velocity model object
     cv = ConstantVelocity(noise_diff_coeff=noise_diff_coeff)
 

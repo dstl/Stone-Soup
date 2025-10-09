@@ -40,6 +40,11 @@ def test_oumodel(sign):
     Q = np.array([[q11, q12],
                   [q12, q22]])
 
+    # Test non-float noise_diff_coeff error
+    with pytest.raises(TypeError, match="'noise_diff_coeff' should be a "
+                       "<class 'float'> instance. Instead it is <class 'list'>"):
+        OrnsteinUhlenbeck(noise_diff_coeff=[q], damping_coeff=k)
+
     # Create and a Constant Velocity model object
     ou = OrnsteinUhlenbeck(noise_diff_coeff=q, damping_coeff=k)
 
