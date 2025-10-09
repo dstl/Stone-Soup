@@ -23,6 +23,7 @@ Enabling Components
 ^^^^^^^^^^^^^^^^^^^
 .. toctree::
 
+    stonesoup.architecture
     stonesoup.detector
     stonesoup.feeder
     stonesoup.metricgenerator

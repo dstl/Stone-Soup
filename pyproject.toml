@@ -90,6 +90,11 @@ roadnet = [
     "geopandas",
     "networkx",
 ]
+architectures = [
+    "graphviz",
+    "networkx",
+    "pydot",
+]
 
 [tool.setuptools]
 include-package-data = false

@@ -20,6 +20,7 @@ build:
     - libpango-1.0-0
     - libcairo2
     - libasound2
+    - graphviz
   jobs:
     post_install:
       - kaleido_get_chrome

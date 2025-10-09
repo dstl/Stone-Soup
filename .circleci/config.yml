@@ -27,7 +27,7 @@ jobs:
             python -m venv venv
             . venv/bin/activate
             pip install --upgrade pip
-            pip install -e .[dev,ehm,optuna,orbital,roadnet] opencv-python-headless
+            pip install -e .[dev,ehm,optuna,orbital,roadnet,architectures] opencv-python-headless
       - save_cache:
           paths:
             - ./venv
@@ -95,13 +95,18 @@ jobs:
       - restore_cache:
           key: dependencies-doc-{{ .Environment.CACHE_VERSION }}-{{ checksum "/home/circleci/.pyenv/version" }}-{{ checksum "pyproject.toml" }}
       - run:
+          name: Install OS Dependencies
+          command: |
+            sudo apt-get update
+            sudo apt-get install -y graphviz
+      - run:
           name: Install Dependencies
           command: |
             python -m venv venv
             . venv/bin/activate
             pip install --upgrade pip
             pip install -r docs/ci-requirements.txt
-            pip install -e .[dev,orbital] opencv-python-headless joblib
+            pip install -e .[dev,orbital,architectures] opencv-python-headless joblib
             kaleido_get_chrome
       - save_cache:
           paths:

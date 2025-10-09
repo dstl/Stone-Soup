@@ -51,6 +51,9 @@ def declarative_class(app, what, name, obj, options, lines):
                 class_name = class_name.replace('typing.', '')
                 class_name = STONESOUP_TYPE_REGEX.sub('', class_name)
                 is_sequence = False
+            elif isinstance(property_.cls, str):
+                class_name = str(property_.cls)
+                is_sequence = False
             else:
                 is_sequence = isinstance(property_.cls, Sequence)
                 if is_sequence:
