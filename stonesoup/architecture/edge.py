@@ -89,6 +89,7 @@ class Edge(Base):
         self.messages_held = {"pending": {},  # For pending, messages indexed by time sent.
                               "received": {}}  # For received, by time received
         self.time_range_failed = CompoundTimeRange()  # Times during which this edge was failed
+        self.nodes = tuple(self.nodes)
 
     def send_message(self, data_piece, time_pertaining, time_sent):
         """
