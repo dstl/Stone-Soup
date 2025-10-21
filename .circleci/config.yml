@@ -10,6 +10,7 @@ workflows:
       - test-311
       - test-312
       - test-313
+      - test-314
   docs:
     jobs:
       - docs
@@ -61,9 +62,44 @@ jobs:
     <<: *test-template
     docker:
       - image: cimg/python:3.13
+  test-314: &test-template
+    docker:
+      - image: cimg/python:3.14
+    steps:
+      - checkout
+      - restore_cache:
+          key: dependencies-{{ .Environment.CACHE_VERSION }}-{{ checksum "/home/circleci/.pyenv/version" }}-{{ checksum "pyproject.toml" }}
+      - run:
+          name: Install Dependencies
+          command: |
+            python -m venv venv
+            . venv/bin/activate
+            pip install --upgrade pip
+            pip install .[ehm,optuna,orbital,architectures] opencv-python-headless plotly pytest-cov pytest-remotedata pytest-skip-slow pyehm h5py pandas
+      - save_cache:
+          paths:
+            - ./venv
+          key: dependencies-{{ .Environment.CACHE_VERSION }}-{{ checksum "/home/circleci/.pyenv/version" }}-{{ checksum "pyproject.toml" }}
+      - run:
+          name: Run Tests
+          command: |
+            . venv/bin/activate
+            mkdir test-reports
+            pytest --junitxml=test-reports/junit.xml --cov --cov-report=xml:test-reports/coverage.xml --slow stonesoup
+      - store_test_results:
+          path: test-reports/junit.xml
+      - store_artifacts:
+          path: test-reports
+      - run:
+          name: Upload Coverage Results
+          command: |
+            bash <(curl -s https://codecov.io/bash) \
+              -f test-reports/coverage.xml \
+              -F unittests \
+              -n ${CIRCLE_BUILD_NUM}
   flake8:
     docker:
-      - image: cimg/python:3.12
+      - image: cimg/python:3.13
     steps:
       - checkout
       - restore_cache:
@@ -89,7 +125,7 @@ jobs:
   docs:
     resource_class: medium
     docker:
-      - image: cimg/python:3.12-browsers
+      - image: cimg/python:3.13-browsers
     steps:
       - checkout
       - restore_cache:
