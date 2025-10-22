@@ -75,8 +75,11 @@ class _GaussianBiasFeeder(DetectionFeeder):
 
         # Create joint state
         states = [hypothesis.prediction for hypothesis in hypotheses]
-        applied_bias = next((h.measurement.applied_bias for h in hypotheses),
-                            np.zeros((ndim_bias, 1)))
+        applied_bias = next(
+            (h.measurement.applied_bias
+             for h in hypotheses
+             if hasattr(h.measurement, 'applied_bias')),
+            np.zeros((ndim_bias, 1)))
         delta_bias = self.bias - applied_bias
         states.append(GaussianState(delta_bias, self.bias_state.covar))
         combined_pred = GaussianState(
