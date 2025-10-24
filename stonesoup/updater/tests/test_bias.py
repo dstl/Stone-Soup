@@ -74,7 +74,12 @@ def test_translation_gaussian_bias_feeder_update_bias(bias_timestamp):
         timestamp=datetime.datetime(2025, 9, 10),
         measurement_model=measurement_model
     )
-    meas.applied_bias = np.zeros((3, 1))
+    meas.measurement_model.applied_bias = np.zeros((3, 1))
+
+    pred_meas = updater.predict_measurement(pred, measurement_model)
+    unbias_pred_meas = updater.updater.predict_measurement(pred, measurement_model)
+    assert np.sum(np.trace(pred_meas.covar)) > np.sum(np.trace(unbias_pred_meas.covar))
+
     # Create hypothesis
     hyp = SingleHypothesis(pred, meas)
     # Call update_bias
@@ -110,7 +115,12 @@ def test_orientation_gaussian_bias_feeder_update_bias(bias_timestamp):
         timestamp=datetime.datetime(2025, 9, 10),
         measurement_model=measurement_model
     )
-    meas.applied_bias = np.zeros((3, 1))
+    meas.measurement_model.applied_bias = np.zeros((3, 1))
+
+    pred_meas = updater.predict_measurement(pred, measurement_model)
+    unbias_pred_meas = updater.updater.predict_measurement(pred, measurement_model)
+    assert np.sum(np.trace(pred_meas.covar)) > np.sum(np.trace(unbias_pred_meas.covar))
+
     hyp = SingleHypothesis(pred, meas)
     updates = updater.update([hyp])
     assert not np.allclose(updater.bias_state.state_vector, bias_prior.state_vector)
@@ -178,6 +188,11 @@ def test_time_gaussian_bias_feeder_update_bias(bias_timestamp):
         measurement_model=measurement_model
     )
     meas.measurement_model.applied_bias = StateVector([[0.5]])
+
+    pred_meas = updater.predict_measurement(pred, measurement_model)
+    unbias_pred_meas = updater.updater.predict_measurement(pred, measurement_model)
+    assert np.sum(np.trace(pred_meas.covar)) > np.sum(np.trace(unbias_pred_meas.covar))
+
     hyp = SingleHypothesis(pred, meas)
     updates = updater.update([hyp])
     assert not np.allclose(updater.bias_state.state_vector, bias_prior.state_vector)
