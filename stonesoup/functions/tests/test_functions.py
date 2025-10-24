@@ -242,6 +242,7 @@ def test_gauss2sigma_bad_covar(gauss2x):
     with pytest.warns(UserWarning, match="Matrix is not positive definite"):
         gauss2x(state)
 
+
 @pytest.mark.parametrize(
     "angle",
     [
