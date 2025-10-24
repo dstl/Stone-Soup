@@ -9,7 +9,7 @@ from ...functions import jacobian as compute_jac
 from ...types.state import State, StateVectors
 
 
-class _BiasWrapper(MeasurementModel):
+class BiasModelWrapper(MeasurementModel):
     measurement_model: MeasurementModel = Property(
         doc="Model being wrapped that bias will be applied to")
     state_mapping: list[int] = Property(
@@ -41,7 +41,7 @@ class _BiasWrapper(MeasurementModel):
         raise NotImplementedError()
 
 
-class TimeBiasWrapper(_BiasWrapper):
+class TimeBiasModelWrapper(BiasModelWrapper):
     transition_model: TransitionModel = Property(
         doc="Transition model applied to state to apply time offset")
     bias_mapping: tuple[int] | int = Property(
@@ -64,7 +64,7 @@ class TimeBiasWrapper(_BiasWrapper):
             State(StateVectors(predicted_state_vectors)), noise=noise, **kwargs)
 
 
-class OrientationBiasWrapper(_BiasWrapper):
+class OrientationBiasModelWrapper(BiasModelWrapper):
     bias_mapping: tuple[int, int, int] = Property(
         default=(-3, -2, -1), doc="Mapping to state vector elements where bias is")
 
@@ -82,7 +82,7 @@ class OrientationBiasWrapper(_BiasWrapper):
             return StateVectors(state_vectors)
 
 
-class TranslationBiasWrapper(_BiasWrapper):
+class TranslationBiasModelWrapper(BiasModelWrapper):
     bias_mapping: tuple[int, int] | tuple[int, int, int] = Property(
         default=(-3, -2, -1), doc="Mapping to state vector elements where bias is")
 
@@ -100,7 +100,7 @@ class TranslationBiasWrapper(_BiasWrapper):
             return StateVectors(state_vectors)
 
 
-class OrientationTranslationBiasWrapper(_BiasWrapper):
+class OrientationTranslationBiasModelWrapper(BiasModelWrapper):
     bias_mapping: tuple[int, int, int, int, int] | tuple[int, int, int, int, int, int] = Property(
         default=(-6, -5, -4, -3, -2, -1), doc="Mapping to state vector elements where bias is")
 

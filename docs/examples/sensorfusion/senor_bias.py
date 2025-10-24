@@ -95,8 +95,9 @@ targets = {
 # We simulate the motion of each platform and generate sensor measurements for each target.
 # The first platform's sensor measurements will be affected by a drifting bias.
 #
-# We create a time-varying bias using a random walk model, and apply this bias to the measurements of platform 0.
-true_bias_prior = State([[0.], [0.]], start_time)
+# We create a time-varying bias using a random walk model, and apply this bias to the measurements
+# of platform 0.
+true_bias_prior = State([[5.], [5.]], start_time)
 bias_transition_model = CombinedLinearGaussianTransitionModel([RandomWalk(1e-2)]*2)
 true_bias = GroundTruthPath([true_bias_prior])
 
@@ -154,22 +155,21 @@ plotter.fig
 # %%
 # Initialise Bias Estimation
 # --------------------------
-# We set up the bias feeder and predictor to estimate the drifting bias from platform 0's sensor
+# We set up the bias feeder and predictor to apply the drifting bias from platform 0's sensor
 # measurements.
 #
 # These are  all added to a MultiDataFeeder to combine them into single detection feed.
+import copy
 from stonesoup.predictor.kalman import KalmanPredictor
 from stonesoup.feeder.bias import TranslationGaussianBiasFeeder
 from stonesoup.feeder.multi import MultiDataFeeder
 
-bias_prior = GaussianState([[0.0], [0.]], np.diag([0.5, 0.5]), start_time)
-bias_track = Track([bias_prior])
+bias_state = GaussianState([[0.], [0.]], np.diag([5**2, 5**2]), start_time)
+bias_track = Track([copy.copy(bias_state)])
 
 bias_predictor = KalmanPredictor(CombinedLinearGaussianTransitionModel([RandomWalk(1e-1)]*2))
-bias_feeder = TranslationGaussianBiasFeeder(
-    measurements[0],
-    bias_prior,
-    bias_predictor)
+bias_feeder = TranslationGaussianBiasFeeder(measurements[0], bias_state)
+
 # %%
 # These are  all added to a MultiDataFeeder to combine them into single detection feed.
 feeder = MultiDataFeeder([*measurements[1:], bias_feeder])
@@ -190,8 +190,21 @@ from stonesoup.hypothesiser.distance import DistanceHypothesiser
 from stonesoup.measures import Mahalanobis
 hypothesiser = DistanceHypothesiser(predictor, updater, measure=Mahalanobis(), missed_distance=5)
 
-from stonesoup.dataassociator.neighbour import GlobalNearestNeighbour
-data_associator = GlobalNearestNeighbour(hypothesiser)
+from stonesoup.dataassociator.neighbour import GNNWith2DAssignment
+data_associator = GNNWith2DAssignment(hypothesiser)
+
+# %%
+# A bias aware hypothesiser and data assocaitor are created to factor the bias uncertainty into
+# association threshold. These use bias updater wrapper, which is also used to update target
+# and bias estimates.
+from stonesoup.updater.bias import GaussianBiasUpdater
+from stonesoup.models.measurement.bias import TranslationBiasModelWrapper
+
+bias_updater = GaussianBiasUpdater(
+    bias_state, bias_predictor, TranslationBiasModelWrapper, updater)
+bias_hypothesiser = DistanceHypothesiser(
+    predictor, bias_updater, measure=Mahalanobis(), missed_distance=5)
+bias_data_associator = GNNWith2DAssignment(bias_hypothesiser)
 
 # %%
 # Tracks will be initialised by taking first observation from unbiased sensor
@@ -205,22 +218,24 @@ tracks = initiator.initiate(sensors[1].measure({t[0] for t in targets}, noise=Fa
 # For each time step, we associate measurements to tracks, update the bias estimate,
 # and update the tracks accordingly.
 for time, detections in feeder:
-    hypotheses = data_associator.associate(tracks, detections, time)
-    if any(hasattr(measurement, 'applied_bias') for measurement in detections) and any(hypotheses.values()):
+    if any(hasattr(measurement.measurement_model, 'applied_bias') for measurement in detections):
+        hypotheses = bias_data_associator.associate(tracks, detections, time)
         # Update bias estimate using associated measurements
-        updates = bias_feeder.update_bias([h for h in hypotheses.values() if h])
+        updates = bias_updater.update([h for h in hypotheses.values() if h])
         for track, update in zip((t for t, h in hypotheses.items() if h), updates):
             track.append(update)
         for track, hyp in {t: h for t, h in hypotheses.items() if not h}.items():
             track.append(hyp.prediction)
 
         # Adjust measurement models by removing relative bias for plotting later
-        rel_bias_vector = bias_track.state_vector - bias_feeder.bias_state.state_vector
+        rel_bias_vector = bias_track.state_vector - bias_state.state_vector
         for model in {d.measurement_model for d in detections}:
             model.translation_offset -= rel_bias_vector
-        bias_track.append(bias_feeder.bias_state)
+            model.applied_bias += rel_bias_vector  # No longer used, but for completeness
+        bias_track.append(copy.copy(bias_state))
     else:
         # Standard track update if no bias applied i.e. unbiased sensors
+        hypotheses = data_associator.associate(tracks, detections, time)
         for track in tracks:
             hypothesis = hypotheses[track]
             if hypothesis.measurement:

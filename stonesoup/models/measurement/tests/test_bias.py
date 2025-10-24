@@ -4,8 +4,8 @@ import pytest
 import numpy as np
 
 from stonesoup.models.measurement.bias import (
-    TimeBiasWrapper,
-    OrientationBiasWrapper, TranslationBiasWrapper, OrientationTranslationBiasWrapper)
+    TimeBiasModelWrapper, TranslationBiasModelWrapper,
+    OrientationBiasModelWrapper, OrientationTranslationBiasModelWrapper)
 from stonesoup.models.measurement.nonlinear import CartesianToElevationBearingRangeRate
 from stonesoup.models.transition.linear import ConstantVelocity
 from stonesoup.models.transition.base import CombinedGaussianTransitionModel
@@ -40,7 +40,7 @@ def test_orientation_translation_bias_wrapper(orientation_bias, translation_bias
         rotation_offset=StateVector([[0.], [0.], [0.]]),
     )
     # Wrap with orientation+translation bias
-    wrapper = OrientationTranslationBiasWrapper(
+    wrapper = OrientationTranslationBiasModelWrapper(
         measurement_model=model,
         state_mapping=[0, 1, 2, 3, 4, 5],
         bias_mapping=(6, 7, 8, 9, 10, 11),
@@ -94,7 +94,7 @@ def test_translation_bias_wrapper(translation_bias):
         rotation_offset=StateVector([[0.], [0.], [0.]]),
     )
     # Wrap with translation bias
-    wrapper = TranslationBiasWrapper(
+    wrapper = TranslationBiasModelWrapper(
         measurement_model=model,
         state_mapping=[0, 1, 2, 3, 4, 5],
         bias_mapping=(6, 7, 8),
@@ -146,7 +146,7 @@ def test_orientation_bias_wrapper(orientation_bias):
         rotation_offset=StateVector([[0.], [0.], [0.]]),
     )
     # Wrap with orientation bias
-    wrapper = OrientationBiasWrapper(
+    wrapper = OrientationBiasModelWrapper(
         measurement_model=model,
         state_mapping=[0, 1, 2, 3, 4, 5],
         bias_mapping=(6, 7, 8),
@@ -210,7 +210,7 @@ def test_time_bias_wrapper(bias_mapping):
             return np.eye(3, 7)
 
     # Wrap with time bias
-    wrapper = TimeBiasWrapper(
+    wrapper = TimeBiasModelWrapper(
         measurement_model=DummyMeasurementModel(),
         transition_model=transition_model,
         state_mapping=[0, 1, 2, 3, 4, 5],
