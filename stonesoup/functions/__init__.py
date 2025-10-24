@@ -218,7 +218,7 @@ def gauss2sigma(state, alpha=1.0, beta=2.0, kappa=None):
     if kappa is None:
         kappa = 3.0 - ndim_state
 
-    # Compute Square Root matrix via Colesky decomp.
+    # Compute Square Root matrix via Cholesky decomp.
     try:
         sqrt_sigma = np.linalg.cholesky(state.covar)
     except np.linalg.LinAlgError as e:
@@ -893,7 +893,12 @@ def gauss2cubature(state, alpha=1.0):
     """
     ndim_state = np.shape(state.state_vector)[0]
 
-    sqrt_covar = np.linalg.cholesky(state.covar)
+    try:
+        sqrt_covar = np.linalg.cholesky(state.covar)
+    except np.linalg.LinAlgError as e:
+        warnings.warn(repr(e))
+        sqrt_covar = cholesky_eps(state.covar)
+
     cuba_points = np.sqrt(alpha*ndim_state) * np.hstack((np.identity(ndim_state),
                                                          -np.identity(ndim_state)))
 
