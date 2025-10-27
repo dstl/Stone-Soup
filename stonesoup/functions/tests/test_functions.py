@@ -230,7 +230,8 @@ def test_gauss2sigma(mean):
         assert sigma_point_state_vector[0, 0] == approx(mean + n*covar**0.5)
 
 
-def test_gauss2sigma_bad_covar():
+@pytest.mark.parametrize("gauss2x", [(gauss2sigma), (gauss2cubature)])
+def test_gauss2sigma_bad_covar(gauss2x):
     covar = np.array(
         [[ 0.05201447,  0.02882126, -0.00569971, -0.00733617],  # noqa: E201
          [ 0.02882126,  0.01642966, -0.00862847, -0.00673035],  # noqa: E201
@@ -239,7 +240,7 @@ def test_gauss2sigma_bad_covar():
     state = GaussianState([[0], [0], [0], [0]], covar)
 
     with pytest.warns(UserWarning, match="Matrix is not positive definite"):
-        sigma_points_states, mean_weights, covar_weights = gauss2sigma(state, kappa=0)
+        gauss2x(state)
 
 
 @pytest.mark.parametrize(
