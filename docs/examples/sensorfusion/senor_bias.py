@@ -161,14 +161,14 @@ plotter.fig
 # These are  all added to a MultiDataFeeder to combine them into single detection feed.
 import copy
 from stonesoup.predictor.kalman import KalmanPredictor
-from stonesoup.feeder.bias import TranslationGaussianBiasFeeder
+from stonesoup.feeder.bias import TranslationBiasFeeder
 from stonesoup.feeder.multi import MultiDataFeeder
 
 bias_state = GaussianState([[0.], [0.]], np.diag([5**2, 5**2]), start_time)
 bias_track = Track([copy.copy(bias_state)])
 
 bias_predictor = KalmanPredictor(CombinedLinearGaussianTransitionModel([RandomWalk(1e-1)]*2))
-bias_feeder = TranslationGaussianBiasFeeder(measurements[0], bias_state)
+bias_feeder = TranslationBiasFeeder(measurements[0], bias_state)
 
 # %%
 # These are  all added to a MultiDataFeeder to combine them into single detection feed.
@@ -194,7 +194,7 @@ from stonesoup.dataassociator.neighbour import GNNWith2DAssignment
 data_associator = GNNWith2DAssignment(hypothesiser)
 
 # %%
-# A bias aware hypothesiser and data assocaitor are created to factor the bias uncertainty into
+# A bias aware hypothesiser and data associator are created to factor the bias uncertainty into
 # association threshold. These use bias updater wrapper, which is also used to update target
 # and bias estimates.
 from stonesoup.updater.bias import GaussianBiasUpdater

@@ -3,9 +3,9 @@ import datetime
 import numpy as np
 
 from stonesoup.feeder.bias import (
-    TimeGaussianBiasFeeder,
-    TranslationGaussianBiasFeeder, OrientationGaussianBiasFeeder,
-    OrientationTranslationGaussianBiasFeeder)
+    TimeBiasFeeder,
+    TranslationBiasFeeder, OrientationBiasFeeder,
+    OrientationTranslationBiasFeeder)
 from stonesoup.functions import build_rotation_matrix
 from stonesoup.types.detection import Detection
 from stonesoup.types.state import GaussianState, StateVector
@@ -47,7 +47,7 @@ def test_translation_gaussian_bias_feeder_iter():
     # Mock reader to yield a single time and detection
     measurement_model = make_dummy_measurement_model()
     detection = make_dummy_detection(StateVector([[10.], [20.], [30.]]), measurement_model)
-    feeder = TranslationGaussianBiasFeeder(
+    feeder = TranslationBiasFeeder(
         reader=[(datetime.datetime(2025, 9, 10), [detection])],
         bias_state=bias_state,
     )
@@ -67,7 +67,7 @@ def test_orientation_gaussian_bias_feeder_iter():
     bias_state = GaussianState(StateVector([[0.], [0.], [np.pi/16]]), np.eye(3))
     measurement_model = make_dummy_measurement_model()
     detection = make_dummy_detection(StateVector([[10.], [20.], [30.]]), measurement_model)
-    feeder = OrientationGaussianBiasFeeder(
+    feeder = OrientationBiasFeeder(
         reader=[(datetime.datetime(2025, 9, 10), [detection])],
         bias_state=bias_state,
     )
@@ -90,7 +90,7 @@ def test_orientation_translation_gaussian_bias_feeder_iter():
         StateVector([[0.], [0.], [np.pi/16], [1.], [2.], [3.]]), np.diag([1e-6, 1e-6, 1, 3, 3, 3]))
     measurement_model = make_dummy_measurement_model()
     detection = make_dummy_detection(StateVector([[10.], [20.], [30.]]), measurement_model)
-    feeder = OrientationTranslationGaussianBiasFeeder(
+    feeder = OrientationTranslationBiasFeeder(
         reader=[(datetime.datetime(2025, 9, 10), [detection])],
         bias_state=bias_state,
     )
@@ -115,7 +115,7 @@ def test_time_gaussian_bias_feeder_iter():
     measurement_model = make_dummy_measurement_model()
     detection = make_dummy_detection(StateVector([[42.]]), measurement_model)
     orig_timestamp = detection.timestamp
-    feeder = TimeGaussianBiasFeeder(
+    feeder = TimeBiasFeeder(
         reader=[(datetime.datetime(2025, 9, 10), [detection])],
         bias_state=bias_state,
     )

@@ -7,12 +7,12 @@ from ..buffered_generator import BufferedGenerator
 from ..types.state import GaussianState
 
 
-class _GaussianBiasFeeder(DetectionFeeder):
-    bias_state: GaussianState = Property(doc="Prior bias")
+class _BiasFeeder(DetectionFeeder):
+    bias_state: GaussianState = Property(doc="Bias State")
 
     @property
     def bias(self):
-        return self.bias_state.state_vector
+        return self.bias_state.mean
 
     @abstractmethod
     @BufferedGenerator.generator_method
@@ -20,12 +20,18 @@ class _GaussianBiasFeeder(DetectionFeeder):
         raise NotImplementedError()
 
 
-class TimeGaussianBiasFeeder(_GaussianBiasFeeder):
+class TimeBiasFeeder(_BiasFeeder):
+    """Time Bias Feeder
+
+    Apply bias to detection timestamp and overall timestamp yielded.
+    """
+    bias_state: GaussianState = Property(
+        doc="Bias state with state vector shape (1, 1) in units of seconds")
 
     @BufferedGenerator.generator_method
     def data_gen(self):
         for time, detections in self.reader:
-            bias = self.bias_state.state_vector.copy()
+            bias = self.bias_state.state_vector[0, 0]
             bias_delta = datetime.timedelta(seconds=float(bias))
             time -= bias_delta
             models = set()
@@ -37,7 +43,13 @@ class TimeGaussianBiasFeeder(_GaussianBiasFeeder):
             yield time, detections
 
 
-class OrientationGaussianBiasFeeder(_GaussianBiasFeeder):
+class OrientationBiasFeeder(_BiasFeeder):
+    """Orientation Bias Feeder
+
+    Apply bias to detection measurement model rotation offset
+    """
+    bias_state: GaussianState = Property(
+        doc="Bias state with state vector shape (3, 1) is expected")
 
     @BufferedGenerator.generator_method
     def data_gen(self):
@@ -52,7 +64,13 @@ class OrientationGaussianBiasFeeder(_GaussianBiasFeeder):
             yield time, detections
 
 
-class TranslationGaussianBiasFeeder(_GaussianBiasFeeder):
+class TranslationBiasFeeder(_BiasFeeder):
+    """Translation Bias Feeder
+
+    Apply bias to detection measurement model translation offset
+    """
+    bias_state: GaussianState = Property(
+        doc="Bias state with state vector shape (n, 1), where n is dimensions of the model")
 
     @BufferedGenerator.generator_method
     def data_gen(self):
@@ -67,7 +85,14 @@ class TranslationGaussianBiasFeeder(_GaussianBiasFeeder):
             yield time, detections
 
 
-class OrientationTranslationGaussianBiasFeeder(_GaussianBiasFeeder):
+class OrientationTranslationBiasFeeder(_BiasFeeder):
+    """Orientation Translation Bias Feeder
+
+    Apply bias to detection measurement model rotation and translation offset
+    """
+    bias_state: GaussianState = Property(
+        doc="Bias state with state vector shape (3+n, 1), 3 for rotation and where n is "
+            "dimensions of the model")
 
     @BufferedGenerator.generator_method
     def data_gen(self):

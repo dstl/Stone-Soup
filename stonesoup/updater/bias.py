@@ -17,6 +17,16 @@ from ..updater.kalman import UnscentedKalmanUpdater
 
 
 class GaussianBiasUpdater(Updater):
+    """Updater that jointly estimates a bias alongside target states.
+
+    Maintains a separate Gaussian bias state and integrates it with target predictions
+    to perform joint prediction and update steps. Uses a provided non-linear `updater`
+    (defaults to an Unscented Kalman updater) and a `bias_model_wrapper` to build
+    joint measurement models for bias estimation.
+
+    Note that this assumes that all measurements/hypotheses are updating a common
+    bias i.e. all measurements from the same sensor.
+    """
     measurement_model = None
     bias_state: GaussianState = Property(doc="Prior bias")
     bias_predictor: KalmanPredictor = Property(doc="Predictor for bias")

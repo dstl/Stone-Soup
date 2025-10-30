@@ -95,3 +95,9 @@ Probabilistic
 
 .. automodule:: stonesoup.updater.probability
     :show-inheritance:
+
+Bias
+----
+
+.. automodule:: stonesoup.updater.bias
+    :show-inheritance:
