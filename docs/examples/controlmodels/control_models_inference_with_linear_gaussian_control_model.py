@@ -86,7 +86,7 @@ np.random.seed(1991)
 # ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 #
 # To define the control model class, we will create a variant of :class:`~.LinearControlModel` and
-# ovewrite the :attr:`~.LinearControlModel.matrix` attribute according to the above expression.
+# overwrite the :attr:`~.LinearControlModel.matrix` attribute according to the above expression.
 
 
 from stonesoup.models.control.linear import LinearControlModel
