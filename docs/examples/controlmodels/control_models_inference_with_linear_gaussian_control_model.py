@@ -132,15 +132,15 @@ class ConstantAccelerationLinearControlModel(LinearControlModel):
 # %%
 # Generate Ground Truth
 # ^^^^^^^^^^^^^^^^^^^^^
-# Now that the control model is defined, it can now be used to create the ground truth
+# Now that the control model is defined, it can be used to create the ground truth
 # for the target. There are two main differences compared to generating ground truth
-# without a control model. The first is deciding on control input which is required and
-# should be stored for use later in the filtering process. The second is we have to apply
+# without a control model. The first is deciding on the control input which is required; it
+# should be stored for use later in the filtering process. The second is having to apply
 # the transition model function and the control model function when progressing states.
 #
-# In this example, the target will undergo two manoeuvres. The first starting at 40 seconds
-# and lasting 50 seconds which will be a turn to the right and the second manoeuvre will be
-# at 120 seconds, again lasting 50 seconds, and will be a turn to the left. Nominally, the
+# In this example, the target will undergo two manoeuvres. The first starts at 40 seconds,
+# lasts 50 seconds and will be a turn to the right; the second manoeuvre 
+# at 120 seconds, again lasting 50 seconds, will be a turn to the left. Nominally, the
 # target will traverse according to nearly constant velocity when not manoeuvering.
 #
 # First we define the models and populate the required parameters.
