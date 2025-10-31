@@ -80,10 +80,16 @@ class ReplayTrackFeeder(TrackFeeder):
                     if track in output_tracks:
                         del output_tracks[track]
                     continue
-
-                track_states = [state for state in track if state.timestamp <= time]
-                current_track = output_tracks.get(track, Track())
+                track_states = []
+                track_metadatas = []
+                for state, metadata in zip(track.states, track.metadatas):
+                    if state.timestamp > time:
+                        continue
+                    track_states.append(state)
+                    track_metadatas.append(metadata)
+                current_track = output_tracks.setdefault(
+                    track, Track(id=track.id, init_metadata=track.init_metadata))
                 current_track.states = track_states
-                output_tracks[track] = current_track
+                current_track.metadatas = track_metadatas
             last_time = time
             yield time, set(output_tracks.values())
