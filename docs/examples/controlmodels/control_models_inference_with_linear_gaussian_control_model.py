@@ -22,6 +22,13 @@ Control Models: Inference with Linear Gaussian Control Model
 #   5. Define and run baseline Kalman filter
 #   6. Define and run Kalman filter with control
 #   7. Compare performance
+#
+# Before proceeding with the example, the reader is reminded that this is illustrative
+# of how it is possible to create a control model, rather than the preferred way. There are
+# a number of possible techniques for implementing such models depending on how a problem
+# or system is defined. There are a number of choices made in this example which do not
+# define the only way to create the demonstrated behaviours. The reader may wish to consider
+# alternative approaches when implementing for their own system or problem at hand.
 
 # %%
 # Standard external module imports and Environment Setup
@@ -139,11 +146,16 @@ class ConstantAccelerationLinearControlModel(LinearControlModel):
 # the transition model function and the control model function when progressing states.
 #
 # In this example, the target will undergo two manoeuvres. The first starts at 40 seconds,
-# lasts 50 seconds and will be a turn to the right; the second manoeuvre 
+# lasts 50 seconds and will be a turn to the right; the second manoeuvre
 # at 120 seconds, again lasting 50 seconds, will be a turn to the left. Nominally, the
 # target will traverse according to nearly constant velocity when not manoeuvering.
 #
-# First we define the models and populate the required parameters.
+# First we define the models and populate the required parameters. Note that the first
+# input to the `ConstantAccelerationLinearControlModel` class is a control matrix. This
+# ensures the number of control dimensions is set correctly and will not be used by the
+# model. This is evident as the `control_matrix` property is getting overwritten above
+# when calling `matrix` which is dependant on the possibly time interval where the action
+# is applied.
 
 
 # Transition model
@@ -161,7 +173,7 @@ control_model = ConstantAccelerationLinearControlModel(np.array([[1., 0],
                                                                               0.005]))
 
 # %%
-# We can then calculate the ground truth states
+# We can then calculate the control inputs and subsequent ground truth states.
 
 
 from stonesoup.types.state import State
@@ -219,7 +231,7 @@ plotter.fig
 # Generate Measurements
 # ^^^^^^^^^^^^^^^^^^^^^
 # Now some measurements of the target throughout the simulation are generated using a
-# range-bearing sensor. This will require inference via an :class:`~.ExtendedKalmanUpdater` 
+# range-bearing sensor. This will require inference via an :class:`~.ExtendedKalmanUpdater`
 # but is more realisic than adopting a linear measurement model.
 
 
