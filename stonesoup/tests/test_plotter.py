@@ -305,7 +305,7 @@ def test_plotterly_empty():
     plotter.plot_ground_truths(set(), [0, 2])
     plotter.plot_measurements(set(), [0, 2])
     plotter.plot_tracks(set(), [0, 2])
-    plotter.plot_obstacles(set(), [0, 1])
+    plotter.plot_obstacles(set())
     with pytest.raises(TypeError):
         plotter.plot_tracks(set())
     with pytest.raises(ValueError):

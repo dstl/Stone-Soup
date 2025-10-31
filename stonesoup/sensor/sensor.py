@@ -4,9 +4,9 @@ from typing import Set, Union, Sequence, TYPE_CHECKING
 try:
     from shapely import STRtree
     from shapely.geometry import Polygon, Point, MultiPoint, LineString, MultiLineString
-    shapely = True
+    has_shapely = True
 except ImportError:
-    shapely = False
+    has_shapely = False
 
 import numpy as np
 
@@ -214,7 +214,7 @@ class VisibilityInformed2DSensor(SimpleSensor):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
-        if self.obstacles is not None and shapely and len(self.obstacles) > 100:
+        if self.obstacles is not None and has_shapely and len(self.obstacles) > 100:
             self._str_tree_is_visible_trigger = True
             self._obstacle_tree = \
                 STRtree([Polygon(obstacle.vertices.T) for obstacle in self.obstacles])
@@ -275,7 +275,7 @@ class VisibilityInformed2DSensor(SimpleSensor):
 
         # In the event that obstacles have been pased to the measure function,
         # they are removed from the set of known obstacles.
-        if isinstance(self, VisibilityInformed2DSensor) and self.obstacles:
+        if self.obstacles:
             ground_truths = ground_truths - self.obstacles
 
         return super().measure(ground_truths, noise, **kwargs)
@@ -313,19 +313,18 @@ class VisibilityInformed2DSensor(SimpleSensor):
             if isinstance(state, StateVector):
                 line_segments = \
                     [LineString([self.position[0:2], state[self.position_mapping[0:2], :]])]
+            elif isinstance(state, ParticleState):
+                position_concat = np.tile(self.position, [nstates])
+                line_segments = \
+                    MultiLineString(
+                        [*np.array([position_concat,
+                                    state.state_vector[self.position_mapping[0:2], :]])
+                            .transpose(2, 0, 1)]).geoms
             else:
-                if isinstance(state, ParticleState):
-                    position_concat = np.tile(self.position, [nstates])
-                    line_segments = \
-                        MultiLineString(
-                            [*np.array([position_concat,
-                                        state.state_vector[self.position_mapping[0:2], :]])
-                             .transpose(2, 0, 1)]).geoms
-                else:
-                    nstates = 1
-                    line_segments = \
-                        [LineString([self.position[0:2],
-                                     state.state_vector[self.position_mapping[0:2], :]])]
+                nstates = 1
+                line_segments = \
+                    [LineString([self.position[0:2],
+                                 state.state_vector[self.position_mapping[0:2], :]])]
 
             intersections = np.full((nstates,), True)
 
@@ -376,12 +375,11 @@ class VisibilityInformed2DSensor(SimpleSensor):
 
             if isinstance(state, StateVector):
                 point_sequence = [Point(state[self.position_mapping[0:2], :].T)]
+            elif isinstance(state, ParticleState):
+                point_sequence = \
+                    MultiPoint(state.state_vector[self.position_mapping[0:2], :].T).geoms
             else:
-                if isinstance(state, ParticleState):
-                    point_sequence = \
-                        MultiPoint(state.state_vector[self.position_mapping[0:2], :].T).geoms
-                else:
-                    point_sequence = [Point(state.state_vector[self.position_mapping[0:2], :].T)]
+                point_sequence = [Point(state.state_vector[self.position_mapping[0:2], :].T)]
 
             obstacle_tree = self.get_obstacle_tree()
 
@@ -433,6 +431,5 @@ class VisibilityInformed2DSensor(SimpleSensor):
                                                          alpha <= 1,
                                                          beta >= 0,
                                                          beta <= 1))
-            intersections[n, :] = (alpha >= 0) & (alpha <= 1) & (beta >= 0) & (beta <= 1)
 
         return intersections

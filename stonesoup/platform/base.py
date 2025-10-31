@@ -302,7 +302,6 @@ class Obstacle(Platform):
     def from_obstacle(
             cls,
             obstacle: 'Obstacle',
-            *args: Any,
             **kwargs: Any) -> 'Obstacle':
 
         """Return a new obstacle instance by providing new properties to an existing obstacle.
@@ -317,26 +316,21 @@ class Obstacle(Platform):
         ----------
         obstacle: Obstacle
             :class:`~.Obstacle` to use existing properties from.
-        \\*args: Sequence
-            Arguments to pass to newly created obstacle which will replace those in `obstacle`
         \\*\\*kwargs: Mapping
-            New property names and associate value for use in newly created obstacle, replacing
-            those on the ``obstacle`` parameter.
+            New property names and associated values for use in newly created obstacle, replacing
+            those extracted from the input ``obstacle``.
         """
-
-        args_property_names = {
-            name for n, name in enumerate(obstacle._properties) if n < len(args)}
 
         ignore = ['movement_controller', 'id']
 
         new_kwargs = {
             name: getattr(obstacle, name)
             for name in obstacle._properties.keys()
-            if name not in args_property_names and name not in kwargs and name not in ignore}
+            if name not in kwargs and name not in ignore}
 
         new_kwargs.update(kwargs)
 
         if 'position_mapping' not in kwargs.keys():
             new_kwargs.update({'position_mapping': getattr(obstacle, 'position_mapping')})
 
-        return cls(*args, **new_kwargs)
+        return cls(**new_kwargs)
