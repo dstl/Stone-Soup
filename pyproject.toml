@@ -67,10 +67,6 @@ video = [
 tensorflow = [
     "tensorflow>=2.2.0",
 ]
-tensornets = [
-    "tensorflow>=2.2.0",
-    "tensornets",
-]
 orbital = [
     "astropy",
 ]
