@@ -1,6 +1,6 @@
 import math
 from collections.abc import Sequence
-from abc import numbers
+from numbers import Real
 from functools import lru_cache
 
 import numpy as np
@@ -123,7 +123,7 @@ class ConstantNthDerivative(LinearGaussianTransitionModel, TimeVariantModel):
 
         # Check that the noise_diff_coeff is actually a float
         if not (isinstance(self.noise_diff_coeff, self._properties['noise_diff_coeff'].cls) or
-                isinstance(self.noise_diff_coeff, numbers.real)):
+                isinstance(self.noise_diff_coeff, Real)):
             raise TypeError("'noise_diff_coeff' should be a {} instance. Instead it "
                             "is {}".format(self._properties['noise_diff_coeff'].cls,
                                            type(self.noise_diff_coeff)))
@@ -321,7 +321,7 @@ class NthDerivativeDecay(LinearGaussianTransitionModel, TimeVariantModel):
 
         # Check that the noise_diff_coeff is actually a float
         if not (isinstance(self.noise_diff_coeff, self._properties['noise_diff_coeff'].cls) or
-                isinstance(self.noise_diff_coeff, numbers.real)):
+                isinstance(self.noise_diff_coeff, Real)):
             raise TypeError("'noise_diff_coeff' should be a {} instance. Instead it "
                             "is {}".format(float, type(self.noise_diff_coeff)))
 
