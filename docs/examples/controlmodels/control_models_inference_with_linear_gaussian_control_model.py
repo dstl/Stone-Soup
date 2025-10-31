@@ -187,12 +187,12 @@ for k in range(1, 181):
 
     velocity = truth[-1].state_vector[[1, 3]]
 
-    if k > 40 and k < 90:
+    if 40 < k < 90:
         # Rotate it to the right
-        newvelocity = right@velocity
-    elif k > 120 and k < 170:
+        newvelocity = right @ velocity
+    elif 120 < k < 170:
         # Rotate it to the left
-        newvelocity = left@velocity
+        newvelocity = left @ velocity
     else:
         newvelocity = velocity
 
