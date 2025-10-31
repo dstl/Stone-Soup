@@ -539,7 +539,7 @@ class Plotter(_Plotter):
                                       labels=self.legend_dict.keys()))
         return artists
 
-    def plot_obstacles(self, obstacles, mapping=[0, 1], label='Obstacles', **kwargs):
+    def plot_obstacles(self, obstacles, label='Obstacles', **kwargs):
         """Plots obstacle(s)
 
         Plots obstacles. Users can change the colour and marker size of obstacle
@@ -569,7 +569,7 @@ class Plotter(_Plotter):
         obstacle_kwargs = dict(linestyle='-', marker='.', color='grey')
         obstacle_kwargs.update(kwargs)
         for obstacle in obstacles:
-            artists.append(self.ax.scatter(*obstacle.vertices, **obstacle_kwargs))
+            artists.append(self.ax.scatter(*obstacle.vertices.T, **obstacle_kwargs))
             artists.append(self.ax.add_patch(Polygon(obstacle.vertices.T,
                                                      facecolor=obstacle_kwargs['color'])))
 
@@ -1553,7 +1553,7 @@ class Plotterly(_Plotter):
         sensor_xy = np.array([sensor.position[mapping, 0] for sensor in sensors])
         self.fig.add_scatter(x=sensor_xy[:, 0], y=sensor_xy[:, 1], **sensor_kwargs)
 
-    def plot_obstacles(self, obstacles, mapping=[0, 1], label='Obstacles', **kwargs):
+    def plot_obstacles(self, obstacles, label='Obstacles', **kwargs):
         """Plots obstacle(s)
 
         Plots obstacles. Users can change the colour and marker size of obstacle
@@ -1577,7 +1577,7 @@ class Plotterly(_Plotter):
         if not isinstance(obstacles, Collection):
             obstacles = {obstacles}
 
-        self._check_mapping(mapping)
+        # No need to check mapping as we can use obstacle shape mapping
 
         if self.dimension == 1 or self.dimension == 3:
             raise NotImplementedError
@@ -1596,7 +1596,7 @@ class Plotterly(_Plotter):
             obstacle_kwargs['showlegend'] = False
 
         for obstacle in obstacles:
-            obstacle_xy = obstacle.vertices[mapping, :]
+            obstacle_xy = obstacle.vertices[obstacle.shape.shape_mapping, :]
             self.fig.add_scatter(x=obstacle_xy[0, :], y=obstacle_xy[1, :], **obstacle_kwargs)
             obstacle_kwargs['showlegend'] = False
 
@@ -3127,7 +3127,7 @@ class AnimatedPlotterly(_Plotter):
         # we have called a plotting function so update flag (used in _resize)
         self.plotting_function_called = True
 
-    def plot_obstacles(self, obstacles, mapping=[0, 1], label="Obstacles", resize=True,
+    def plot_obstacles(self, obstacles, label="Obstacles", resize=True,
                        **kwargs):
         """Plots obstacle(s)
 
@@ -3170,7 +3170,7 @@ class AnimatedPlotterly(_Plotter):
                 self._resize(obstacles, "obstacle")
 
             obstacle_xy = np.concatenate(
-                [np.concatenate([obstacle.vertices[mapping, :],
+                [np.concatenate([obstacle.vertices[obstacle.shape.shape_mapping, :],
                                  np.array([[None], [None]])], axis=1)
                  for obstacle in obstacles], axis=1)
             for frame in self.fig.frames:

@@ -10,7 +10,7 @@ class Shape(Base):
     A class for handling shapes as polygons which can be subsequently
     passed to :class:`~.Platform` when considering physical presence of
     the vehicle. This is also used when defining obstacles which require
-    shape in order for simualted sensors to be affected.
+    shape in order for simulated sensors to be affected.
     """
 
     shape_data: StateVectors = Property(
@@ -35,6 +35,9 @@ class Shape(Base):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
+
+        if not isinstance(self.shape_data, StateVectors):
+            self.shape_data = StateVectors(self.shape_data)
 
         # If simplices not defined, calculate based on sequential vertices assumption
         if self.simplices is None:
