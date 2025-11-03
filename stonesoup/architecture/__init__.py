@@ -1,13 +1,14 @@
 from abc import abstractmethod
+from collections.abc import Collection, Sequence
 from datetime import datetime, timedelta
 from operator import attrgetter
-from typing import List, Tuple, Collection, Set, Union, Dict
-from ordered_set import OrderedSet
+from typing import Union
 
 import graphviz
 import numpy as np
 import networkx as nx
 import pydot
+from ordered_set import OrderedSet
 
 from .edge import Edges, DataPiece, Edge
 from .node import Node, SensorNode, RepeaterNode, FusionNode
@@ -285,7 +286,7 @@ class Architecture(Base):
             node_kwargs['width'] = node.node_dim[0]
             node_kwargs['height'] = node.node_dim[1]
         if use_position and node.position:
-            if not isinstance(node.position, Tuple):
+            if not isinstance(node.position, Sequence):
                 raise TypeError("Node position, must be Sequence of length 2")
             node_kwargs["pos"] = f"{node.position[0]},{node.position[1]}!"
         return node_kwargs
@@ -487,8 +488,8 @@ class Architecture(Base):
 
         return True
 
-    def measure(self, ground_truths: List[GroundTruthPath], noise: Union[bool, np.ndarray] = True,
-                **kwargs) -> Dict[SensorNode, Set[Union[TrueDetection, Clutter]]]:
+    def measure(self, ground_truths: list[GroundTruthPath], noise: Union[bool, np.ndarray] = True,
+                **kwargs) -> dict[SensorNode, set[Union[TrueDetection, Clutter]]]:
         """
         Similar to the method for :class:`~.SensorSuite`. Updates each node.
 

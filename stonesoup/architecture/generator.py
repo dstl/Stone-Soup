@@ -1,7 +1,6 @@
 import copy
-import random
-
 from datetime import datetime
+import random
 
 import networkx as nx
 import numpy as np

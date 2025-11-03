@@ -1,9 +1,9 @@
 import copy
-from collections.abc import Collection
-from typing import Union, Tuple, List, Set, TYPE_CHECKING
-from numbers import Number
+from collections.abc import Collection, Sequence
 from datetime import datetime, timedelta
+from numbers import Number
 from queue import Queue
+from typing import Union, TYPE_CHECKING
 
 from ..base import Base, Property
 from ..types.time import TimeRange, CompoundTimeRange
@@ -77,7 +77,7 @@ class DataPiece(Base):
 
 class Edge(Base):
     """Comprised of two connected :class:`~.Node` instances"""
-    nodes: Tuple["Node", "Node"] = Property(doc="A pair of nodes in the form (sender, recipient)")
+    nodes: tuple["Node", "Node"] = Property(doc="A pair of nodes in the form (sender, recipient)")
     edge_latency: float = Property(doc="The latency stemming from the edge itself, "
                                        "and not either of the nodes",
                                    default=0.0)
@@ -252,7 +252,7 @@ class Edge(Base):
 
 class Edges(Base, Collection):
     """Container class for :class:`~.Edge`"""
-    edges: List[Edge] = Property(doc="List of Edge objects", default=None)
+    edges: list[Edge] = Property(doc="List of Edge objects", default=None)
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -273,7 +273,7 @@ class Edges(Base, Collection):
 
     def get(self, node_pair):
         from .node import Node
-        if not (isinstance(node_pair, Tuple) and
+        if not (isinstance(node_pair, Sequence) and
                 all(isinstance(node, Node) for node in node_pair)):
             raise TypeError("Must supply a tuple of nodes")
         if not len(node_pair) == 2:
@@ -309,7 +309,7 @@ class Message(Base):
         doc="Time at which the message was sent")
     data_piece: DataPiece = Property(
         doc="Info that the sent message contains")
-    destinations: Set['Node'] = Property(doc="Nodes in the information architecture that the "
+    destinations: set['Node'] = Property(doc="Nodes in the information architecture that the "
                                              "message is being sent to",
                                          default=None)
 

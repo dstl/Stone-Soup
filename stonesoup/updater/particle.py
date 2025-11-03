@@ -1,7 +1,7 @@
 import copy
-from functools import lru_cache
-from typing import Callable
 import warnings
+from collections.abc import Callable
+from functools import lru_cache
 
 import numpy as np
 from scipy.linalg import inv
