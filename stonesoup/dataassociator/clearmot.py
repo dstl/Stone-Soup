@@ -46,7 +46,7 @@ class ClearMotAssociator(TwoTrackToTrackAssociator):
         doc="Threshold distance measure which states must be within for an "
             "association to be recorded")
     measure: Measure = Property(
-        default=Euclidean(),
+        default_factory=Euclidean,
         doc="Distance measure to use. Default :class:`~.measures.Euclidean()`")
 
     def associate_tracks(self, tracks_set: set[Track], truth_set: set[GroundTruthPath])\

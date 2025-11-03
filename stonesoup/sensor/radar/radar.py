@@ -708,10 +708,10 @@ class AESARadar(Sensor):
     This model does not generate false alarms.
     """
     rotation_offset: StateVector = Property(
-        default=None,
+        default_factory=lambda: StateVector([[0.], [0.], [0.]]),
         doc="A 3x1 array of angles (rad), specifying the radar orientation in terms of the "
             "counter-clockwise rotation around the :math:`x,y,z` axis. i.e Roll, Pitch and Yaw. "
-            "Default is ``StateVector([0., 0., 0.])``")
+            "Default is ``None`` which sets rotation to ``StateVector([[0.], [0.], [0.]])``")
     position_mapping: tuple[int, int, int] = Property(
         default=(0, 1, 2),
         doc="Mapping between or positions and state "
@@ -753,11 +753,6 @@ class AESARadar(Sensor):
             "truth. Default `None`, where 'rcs' must be present on truth.")
     probability_false_alarm: Probability = Property(
         default=1e-6, doc="Probability of false alarm used in the North's approximation")
-
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        if self.rotation_offset is None:
-            self.rotation_offset = StateVector([0., 0., 0.])
 
     @measurement_model.getter
     def measurement_model(self):

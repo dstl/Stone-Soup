@@ -40,11 +40,10 @@ class Platform(Base):
             "it can be constructed transparently by passing Movable's constructor parameters to "
             "the Platform constructor.")
     sensors: MutableSequence[Sensor] = Property(
-        default=None, readonly=True,
+        default_factory=list, readonly=True,
         doc="A list of N mounted sensors. Defaults to an empty list.")
-
     id: str = Property(
-        default=None,
+        default_factory=lambda: str(uuid.uuid4()),
         doc="The unique platform ID. Default `None` where random UUID is generated.")
 
     _default_movable_class = None  # Will be overridden by subclasses
@@ -84,12 +83,8 @@ class Platform(Base):
         super().__init__(**platform_args)
         if self.movement_controller is None:
             self.movement_controller = self._default_movable_class(*args, **other_args)
-        if self.sensors is None:
-            self._property_sensors = []
         for sensor in self.sensors:
             sensor.movement_controller = self.movement_controller
-        if self.id is None:
-            self.id = str(uuid.uuid4())
 
     @staticmethod
     def _tuple_or_none(value):

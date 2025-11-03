@@ -28,7 +28,7 @@ class InformationArchitectureGenerator(Base):
         default='decentralised')
     start_time: datetime = Property(
         doc="Start time of simulation to be passed to the Architecture class.",
-        default=datetime.now())
+        default_factory=datetime.now)
     node_ratio: tuple = Property(
         doc="Tuple containing the number of each type of node, in the order of (sensor nodes, "
             "sensor fusion nodes, fusion nodes).",

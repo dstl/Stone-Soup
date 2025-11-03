@@ -65,12 +65,11 @@ class AssociationSet(Type):
     associations.
     """
 
-    associations: set[Association] = Property(default=None, doc="set of independent associations.")
+    associations: set[Association] = Property(
+        default_factory=set, doc="set of independent associations.")
 
-    def __init__(self, associations=None, *args, **kwargs):
-        super().__init__(associations, *args, **kwargs)
-        if self.associations is None:
-            self.associations = set()
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
         if not all(isinstance(member, Association) for member in self.associations):
             raise TypeError("Association set must contain only Association instances.")
         self._simplify()

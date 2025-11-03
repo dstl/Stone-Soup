@@ -129,7 +129,7 @@ class FusionNode(Node):
         default=None,
         doc="The queue from which this node draws data to be fused. Default is a standard "
             "FusionQueue")
-    tracks: set = Property(default=None,
+    tracks: set = Property(default_factory=set,
                            doc="Set of tracks tracked by the fusion node")
     colour: str = Property(
         default='#00b53d',
@@ -140,7 +140,6 @@ class FusionNode(Node):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.tracks = set()  # Set of tracks this Node has recorded
         if not self.fusion_queue:
             if self.tracker.detector:
                 self.fusion_queue = self.tracker.detector

@@ -29,10 +29,10 @@ class SensorManager(Base, ABC):
 
     """
     sensors: set['Sensor'] = Property(
-        default=None, doc="The sensor(s) which the sensor manager is managing.")
+        default_factory=set, doc="The sensor(s) which the sensor manager is managing.")
 
     platforms: set['Platform'] = Property(
-        default=None, doc="The platform(s) which the sensor manager is managing.")
+        default_factory=set, doc="The platform(s) which the sensor manager is managing.")
 
     reward_function: Callable = Property(
         default=None, doc="A function or class designed to work out the reward associated with an "
@@ -48,14 +48,6 @@ class SensorManager(Base, ABC):
                           "Any sensors not added "
                           "will not be considered by the sensor manager or "
                           "reward function.")
-
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-
-        if self.platforms is None:
-            self.platforms = set()
-        if self._property_sensors is None:
-            self._property_sensors = set()
 
     @sensors.getter
     def sensors(self):

@@ -636,7 +636,7 @@ class IteratedKalmanUpdater(ExtendedKalmanUpdater):
         default=1e-6,
         doc="The value of the difference in the measure used as a stopping criterion.")
     measure: Measure = Property(
-        default=Euclidean(),
+        default_factory=Euclidean,
         doc="The measure to use to test the iteration stopping criterion. Defaults to the "
             "Euclidean distance between current and prior posterior state estimate.")
     max_iterations: int = Property(
