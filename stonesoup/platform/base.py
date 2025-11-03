@@ -258,16 +258,14 @@ class Platform(Base):
         # Calculates the relative edge length in Cartesian space. Required
         # for visibility estimator
         return np.array(
-            [self.vertices[self.shape.shape_mapping[0], :] -
-             self.vertices[self.shape.shape_mapping[0],
-                           np.roll(np.linspace(0,
-                                               len(self.shape.simplices)-1,
-                                               len(self.shape.simplices)), 1).astype(int)],
-             self.vertices[self.shape.shape_mapping[1], :] -
-             self.vertices[self.shape.shape_mapping[1],
-                           np.roll(np.linspace(0,
-                                               len(self.shape.simplices)-1,
-                                               len(self.shape.simplices)), 1).astype(int)],
+            [self.vertices[0, :] -
+             self.vertices[0, np.roll(np.linspace(0,
+                                                  len(self.shape.simplices)-1,
+                                                  len(self.shape.simplices)), 1).astype(int)],
+             self.vertices[1, :] -
+             self.vertices[1, np.roll(np.linspace(0,
+                                                  len(self.shape.simplices)-1,
+                                                  len(self.shape.simplices)), 1).astype(int)],
              ])
 
 
