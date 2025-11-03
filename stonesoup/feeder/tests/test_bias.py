@@ -9,6 +9,7 @@ from stonesoup.feeder.bias import (
 from stonesoup.functions import build_rotation_matrix
 from stonesoup.types.detection import Detection
 from stonesoup.types.state import GaussianState, StateVector
+from stonesoup.types.track import Track
 
 
 def make_dummy_detection(state_vector, measurement_model):
@@ -49,7 +50,7 @@ def test_translation_gaussian_bias_feeder_iter():
     detection = make_dummy_detection(StateVector([[10.], [20.], [30.]]), measurement_model)
     feeder = TranslationBiasFeeder(
         reader=[(datetime.datetime(2025, 9, 10), [detection])],
-        bias_state=bias_state,
+        bias_track=Track([bias_state]),
     )
     # Iterate over feeder
     for time, detections in feeder:
@@ -69,7 +70,7 @@ def test_orientation_gaussian_bias_feeder_iter():
     detection = make_dummy_detection(StateVector([[10.], [20.], [30.]]), measurement_model)
     feeder = OrientationBiasFeeder(
         reader=[(datetime.datetime(2025, 9, 10), [detection])],
-        bias_state=bias_state,
+        bias_track=Track([bias_state]),
     )
     for time, detections in feeder:
         for det in detections:
@@ -92,7 +93,7 @@ def test_orientation_translation_gaussian_bias_feeder_iter():
     detection = make_dummy_detection(StateVector([[10.], [20.], [30.]]), measurement_model)
     feeder = OrientationTranslationBiasFeeder(
         reader=[(datetime.datetime(2025, 9, 10), [detection])],
-        bias_state=bias_state,
+        bias_track=Track([bias_state]),
     )
     for time, detections in feeder:
         for det in detections:
@@ -117,7 +118,7 @@ def test_time_gaussian_bias_feeder_iter():
     orig_timestamp = detection.timestamp
     feeder = TimeBiasFeeder(
         reader=[(datetime.datetime(2025, 9, 10), [detection])],
-        bias_state=bias_state,
+        bias_track=Track([bias_state]),
     )
     for time, detections in feeder:
         for det in detections:

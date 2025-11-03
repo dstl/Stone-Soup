@@ -159,16 +159,15 @@ plotter.fig
 # measurements.
 #
 # These are  all added to a MultiDataFeeder to combine them into single detection feed.
-import copy
 from stonesoup.predictor.kalman import KalmanPredictor
 from stonesoup.feeder.bias import TranslationBiasFeeder
 from stonesoup.feeder.multi import MultiDataFeeder
 
 bias_state = GaussianState([[0.], [0.]], np.diag([5**2, 5**2]), start_time)
-bias_track = Track([copy.copy(bias_state)])
+bias_track = Track([bias_state])
 
 bias_predictor = KalmanPredictor(CombinedLinearGaussianTransitionModel([RandomWalk(1e-1)]*2))
-bias_feeder = TranslationBiasFeeder(measurements[0], bias_state)
+bias_feeder = TranslationBiasFeeder(measurements[0], bias_track)
 
 # %%
 # These are  all added to a MultiDataFeeder to combine them into single detection feed.
@@ -201,7 +200,7 @@ from stonesoup.updater.bias import GaussianBiasUpdater
 from stonesoup.models.measurement.bias import TranslationBiasModelWrapper
 
 bias_updater = GaussianBiasUpdater(
-    bias_state, bias_predictor, TranslationBiasModelWrapper, updater)
+    bias_track, bias_predictor, TranslationBiasModelWrapper, updater)
 bias_hypothesiser = DistanceHypothesiser(
     predictor, bias_updater, measure=Mahalanobis(), missed_distance=5)
 bias_data_associator = GNNWith2DAssignment(bias_hypothesiser)
@@ -228,11 +227,10 @@ for time, detections in feeder:
             track.append(hyp.prediction)
 
         # Adjust measurement models by removing relative bias for plotting later
-        rel_bias_vector = bias_track.state_vector - bias_state.state_vector
+        rel_bias_vector = bias_track[-2].state_vector - bias_track[-1].state_vector
         for model in {d.measurement_model for d in detections}:
             model.translation_offset -= rel_bias_vector
             model.applied_bias += rel_bias_vector  # No longer used, but for completeness
-        bias_track.append(copy.copy(bias_state))
     else:
         # Standard track update if no bias applied i.e. unbiased sensors
         hypotheses = data_associator.associate(tracks, detections, time)

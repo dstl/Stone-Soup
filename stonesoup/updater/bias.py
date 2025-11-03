@@ -11,6 +11,7 @@ from ..types.array import StateVector, CovarianceMatrix
 from ..types.detection import Detection
 from ..types.hypothesis import SingleHypothesis
 from ..types.state import GaussianState
+from ..types.track import Track
 from ..types.update import Update
 from ..updater import Updater
 from ..updater.kalman import UnscentedKalmanUpdater
@@ -28,7 +29,7 @@ class GaussianBiasUpdater(Updater):
     bias i.e. all measurements from the same sensor.
     """
     measurement_model = None
-    bias_state: GaussianState = Property(doc="Prior bias")
+    bias_track: Track[GaussianState] = Property(doc="Prior bias")
     bias_predictor: KalmanPredictor = Property(doc="Predictor for bias")
     bias_model_wrapper: BiasModelWrapper = Property()
     updater: Updater = Property(
@@ -44,15 +45,15 @@ class GaussianBiasUpdater(Updater):
 
     def predict_measurement(
             self, predicted_state, measurement_model=None, measurement_noise=True, **kwargs):
-        ndim_bias = self.bias_state.ndim
-
+        bias_state = self.bias_track.state
+        ndim_bias = bias_state.ndim
         # Predict bias
-        if self.bias_state.timestamp is None:
-            pred_bias_state = copy.copy(self.bias_state)
+        if bias_state.timestamp is None:
+            pred_bias_state = copy.copy(bias_state)
             pred_bias_state.timestamp = predicted_state.timestamp
         else:
             pred_bias_state = self.bias_predictor.predict(
-                self.bias_state, timestamp=predicted_state.timestamp)
+                bias_state, timestamp=predicted_state.timestamp)
 
         applied_bias = getattr(measurement_model, 'applied_bias', np.zeros((ndim_bias, 1)))
         delta_bias = pred_bias_state.state_vector - applied_bias
@@ -75,18 +76,15 @@ class GaussianBiasUpdater(Updater):
     def update(self, hypotheses, **kwargs):
         if any(not hyp for hyp in hypotheses):
             raise ValueError("Must provide only non-missed detection hypotheses")
-
-        ndim_bias = self.bias_state.ndim
+        bias_state = self.bias_track.state
+        ndim_bias = bias_state.ndim
 
         # Predict bias
         pred_time = max(hypothesis.prediction.timestamp for hypothesis in hypotheses)
-        if self.bias_state.timestamp is None:
-            self.bias_state.timestamp = pred_time
+        if bias_state.timestamp is None:
+            bias_state.timestamp = pred_time
         else:
-            new_bias_state = self.bias_predictor.predict(self.bias_state, timestamp=pred_time)
-            self.bias_state.state_vector = new_bias_state.state_vector
-            self.bias_state.covar = new_bias_state.covar
-            self.bias_state.timestamp = new_bias_state.timestamp
+            bias_state = self.bias_predictor.predict(bias_state, timestamp=pred_time)
 
         # Create joint state
         states = [hypothesis.prediction for hypothesis in hypotheses]
@@ -95,8 +93,8 @@ class GaussianBiasUpdater(Updater):
              for h in hypotheses
              if hasattr(h.measurement.measurement_model, 'applied_bias')),
             np.zeros((ndim_bias, 1)))
-        delta_bias = self.bias_state.state_vector - applied_bias
-        states.append(GaussianState(delta_bias, self.bias_state.covar))
+        delta_bias = bias_state.state_vector - applied_bias
+        states.append(GaussianState(delta_bias, bias_state.covar))
         combined_pred = GaussianState(
             np.vstack([state.state_vector for state in states]).view(StateVector),
             block_diag(*[state.covar for state in states]).view(CovarianceMatrix),
@@ -123,12 +121,13 @@ class GaussianBiasUpdater(Updater):
         # Update bias
         update = self.updater.update(SingleHypothesis(combined_pred, combined_meas), **kwargs)
         rel_delta_bias = update.state_vector[-ndim_bias:, :] - delta_bias
-        self.bias_state.state_vector = self.bias_state.state_vector + rel_delta_bias
+        bias_state.state_vector = bias_state.state_vector + rel_delta_bias
         if self.max_bias is not None:
-            self.bias_state.state_vector = \
-                np.min([abs(self.bias_state.state_vector), self.max_bias], axis=0) \
-                * np.sign(self.bias_state.state_vector)
-        self.bias_state.covar = update.covar[-ndim_bias:, -ndim_bias:]
+            bias_state.state_vector = \
+                np.min([abs(bias_state.state_vector), self.max_bias], axis=0) \
+                * np.sign(bias_state.state_vector)
+        bias_state.covar = update.covar[-ndim_bias:, -ndim_bias:]
+        self.bias_track.append(bias_state)
 
         # Create update states
         offset = 0
