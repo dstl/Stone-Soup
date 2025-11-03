@@ -1,6 +1,5 @@
 import copy
 import datetime
-import typing
 import uuid
 import weakref
 from collections.abc import MutableMapping, MutableSequence, Sequence
@@ -38,7 +37,7 @@ class State(Type):
         return self.state_vector.shape[0]
 
     @staticmethod
-    def from_state(state: 'State', *args: Any, target_type: Optional[typing.Type] = None,
+    def from_state(state: 'State', *args: Any, target_type: Optional[Type] = None,
                    **kwargs: Any) -> 'State':
         """Class utility function to create a new state (or compatible type) from an existing
         state. The type and properties of this new state are defined by `state` except for any
@@ -773,7 +772,7 @@ class ParticleState(State):
         return state
 
     @classmethod
-    def from_state(cls, state: 'State', *args: Any, target_type: Optional[typing.Type] = None,
+    def from_state(cls, state: 'State', *args: Any, target_type: Optional[Type] = None,
                    **kwargs: Any) -> 'State':
 
         # Handle default presence of both particle_list and weight once class has been created by

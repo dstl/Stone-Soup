@@ -1,9 +1,10 @@
-from abc import abstractmethod, ABC
-from typing import Callable
 import random
-import numpy as np
 import itertools as it
+from abc import abstractmethod, ABC
+from collections.abc import Callable
 from typing import TYPE_CHECKING
+
+import numpy as np
 
 from ..base import Base, Property
 

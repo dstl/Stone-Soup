@@ -1,6 +1,6 @@
-from typing import Iterable
-from collections import defaultdict
 import warnings
+from collections import defaultdict
+from collections.abc import Iterable
 
 try:
     import optuna
