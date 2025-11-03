@@ -1656,7 +1656,7 @@ class Plotterly(_Plotter):
             obstacle_kwargs['showlegend'] = False
 
         for obstacle in obstacles:
-            obstacle_xy = obstacle.vertices[obstacle.shape.shape_mapping, :]
+            obstacle_xy = obstacle.vertices
             self.fig.add_scatter(x=obstacle_xy[0, :], y=obstacle_xy[1, :], **obstacle_kwargs)
             obstacle_kwargs['showlegend'] = False
 
@@ -3310,7 +3310,7 @@ class AnimatedPlotterly(_Plotter):
                 self._resize(obstacles, "obstacle")
 
             obstacle_xy = np.concatenate(
-                [np.concatenate([obstacle.vertices[obstacle.shape.shape_mapping, :],
+                [np.concatenate([obstacle.vertices,
                                  np.array([[None], [None]])], axis=1)
                  for obstacle in obstacles], axis=1)
             for frame in self.fig.frames:
