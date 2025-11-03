@@ -27,7 +27,7 @@ class Architecture(Base):
         doc="An Edges object containing all edges. For A to be connected to B we would have an "
             "Edge with edge_pair=(A, B) in this object.")
     current_time: datetime = Property(
-        default=None,
+        default_factory=datetime.now,
         doc="The time which the instance is at for the purpose of simulation. "
             "This is increased by the propagate method. This should be set to the earliest "
             "timestep from the ground truth")
@@ -51,8 +51,6 @@ class Architecture(Base):
         super().__init__(*args, **kwargs)
         if not self.name:
             self.name = type(self).__name__
-        if not self.current_time:
-            self.current_time = datetime.now()
 
         self.di_graph = nx.to_networkx_graph(self.edges.edge_list, create_using=nx.DiGraph)
         self._viz_graph = None

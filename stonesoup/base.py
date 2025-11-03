@@ -32,7 +32,7 @@ This is equivalent to the following:
 
         def __init__(self, foo, bar=10):
             self.foo = foo
-            self.bar = 10
+            self.bar = bar
 
 .. note::
 
@@ -46,10 +46,10 @@ This is equivalent to the following:
         foo: str = Property(doc="foo string parameter")
         bar: int = Property(default=10, doc="bar int parameter, default is 10")
 
-        def __init__(self, foo, bar=bar.default, *args, **kwargs):
-            if bar < 0:
+        def __init__(self, *args, **kwargs):
+            super().__init__(*args, **kwargs)
+            if self.bar < 0:
                 raise ValueError("...")
-            super().__init__(foo, bar, *args, **kwargs)
 
 
 """
@@ -83,6 +83,11 @@ class Property:
     :class:`inspect.Parameter.empty` is used to signify the argument is
     mandatory. (Also aliased to :attr:`Property.empty` for ease)
 
+    Alternatively a default_factory can be specified. This must be a
+    callable, that will be called when a value isn't provided or is ``None``.
+    For example, this is useful where a default that is mutable is wanted like
+    a list or a set. This will set default to ``None`` when provided.
+
     A description string can also be provided which will be rendered in the
     documentation.
 
@@ -101,26 +106,42 @@ class Property:
     default : any, optional
         A default value, which should be same type as class or None. Defaults
         to :class:`inspect.Parameter.empty` (alias :attr:`Property.empty`)
+    default_factory : callable, optional
+        A default callable, which should return same type as class. Will be called
+        as the returned value used when value isn't provided or is `None`. Defaults
+        to :class:`inspect.Parameter.empty` (alias :attr:`Property.empty`)
     doc : str, optional
         Doc string for property
     readonly : bool, optional
         If `True`, then property can only be set during initialisation.
+    allow_none_with_factory : bool, optional
+        If `True`, then default_factory will be called only if value isn't specified,
+        else will also be called when value is `None`.
 
     Attributes
     ----------
     cls
     default
+    default_factory
     doc
     readonly
+    allow_none_with_factory
     empty : :class:`inspect.Parameter.empty`
         Alias to :class:`inspect.Parameter.empty`
     """
     empty = inspect.Parameter.empty
 
-    def __init__(self, cls=None, *, default=inspect.Parameter.empty, doc=None,
-                 readonly=False):
+    def __init__(self, cls=None, *,
+                 default=inspect.Parameter.empty, default_factory=inspect.Parameter.empty,
+                 doc=None, readonly=False, allow_none_with_factory=False):
         self.cls = cls
         self.default = default
+        self.default_factory = default_factory
+        if default is not inspect.Parameter.empty \
+                and default_factory is not inspect.Parameter.empty:
+            raise ValueError("Cannot have both default and default_factory")
+        elif default_factory is not inspect.Parameter.empty and not allow_none_with_factory:
+            self.default = None
         self.doc = self.__doc__ = doc
         # Fix for when ":" in doc string being interpreted as type in NumpyDoc
         if doc is not None and ':' in doc:
@@ -327,7 +348,8 @@ class BaseMeta(ABCMeta):
 
         for prop_name in list(properties):
             # Optional arguments must follow mandatory
-            if properties[prop_name].default is not Property.empty:
+            if properties[prop_name].default is not Property.empty \
+                    or properties[prop_name].default_factory is not Property.empty:
                 properties.move_to_end(prop_name)
 
         if '__init__' not in namespace:
@@ -397,7 +419,10 @@ class BaseMeta(ABCMeta):
         parameters.extend(
             inspect.Parameter(
                 name, inspect.Parameter.POSITIONAL_OR_KEYWORD,
-                default=property_.default, annotation=property_.cls)
+                default=(property_.default
+                         if property_.default is not Property.empty
+                         else property_.default_factory),
+                annotation=property_.cls)
             for name, property_ in cls._properties.items())
         parameters.extend(
             parameter
@@ -438,16 +463,20 @@ class Base(metaclass=BaseMeta):
 
         for arg in args:
             try:
-                name, _ = next(prop_iter)
+                name, prop = next(prop_iter)
             except StopIteration:
                 raise TypeError(f'{cls.__name__} had too many positional arguments') from None
             if name in kwargs:
                 raise TypeError(f'{cls.__name__} received multiple values for argument {name!r}')
+            if prop.default_factory is not Property.empty and arg is prop.default:
+                arg = prop.default_factory()
             setattr(self, name, arg)
 
         for name, prop in prop_iter:
             value = kwargs.pop(name, prop.default)
-            if value is Property.empty:
+            if prop.default_factory is not Property.empty and value is prop.default:
+                value = prop.default_factory()
+            elif value is Property.empty:
                 raise TypeError(f'{cls.__name__} is missing a required argument: {name!r}')
             setattr(self, name, value)
 

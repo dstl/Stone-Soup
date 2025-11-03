@@ -22,14 +22,12 @@ class GaussianMixture(Type, MutableSequence):
     """
 
     components: MutableSequence[WeightedGaussianState] = Property(
-        default=None,
+        default_factory=list,
         doc="""The initial list of :class:`WeightedGaussianState` components.
         Default `None` which initialises with empty list.""")
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        if self.components is None:
-            self.components = []
         if any(not isinstance(component, (WeightedGaussianState, TaggedWeightedGaussianState))
                 for component in self.components):
             raise ValueError("Cannot form GaussianMixtureState out of "

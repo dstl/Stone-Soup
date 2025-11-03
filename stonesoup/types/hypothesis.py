@@ -307,7 +307,7 @@ class CompositeProbabilityHypothesis(CompositeHypothesis, SingleProbabilityHypot
         doc="Probability that detection is true location of prediction. Default is `None`, "
             "whereby probability is calculated as the product of sub-hypotheses' probabilities")
     sub_hypotheses: Sequence[SingleProbabilityHypothesis] = Property(
-        default=None,
+        default_factory=list,
         doc="Sequence of probability-scored sub-hypotheses comprising the composite hypothesis."
     )
 

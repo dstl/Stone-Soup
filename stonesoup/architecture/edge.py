@@ -252,12 +252,7 @@ class Edge(Base):
 
 class Edges(Base, Collection):
     """Container class for :class:`~.Edge`"""
-    edges: list[Edge] = Property(doc="List of Edge objects", default=None)
-
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        if self.edges is None:
-            self.edges = []
+    edges: list[Edge] = Property(doc="List of Edge objects", default_factory=list)
 
     def __iter__(self):
         return self.edges.__iter__()

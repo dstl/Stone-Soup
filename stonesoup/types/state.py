@@ -306,14 +306,12 @@ class StateMutableSequence(Type, MutableSequence):
     """
 
     states: MutableSequence[State] = Property(
-        default=None,
+        default_factory=list,
         doc="The initial list of states. Default `None` which initialises with empty list.")
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        if self.states is None:
-            self.states = []
-        elif not isinstance(self.states, Sequence):
+        if not isinstance(self.states, Sequence):
             # Ensure states is a list
             self.states = [self.states]
 
@@ -634,15 +632,11 @@ class TaggedWeightedGaussianState(WeightedGaussianState):
     Gaussian State object with an associated weight and tag. Used as components
     for a GaussianMixtureState.
     """
-    tag: str = Property(default=None, doc="Unique tag of the Gaussian State.")
+    tag: str = Property(
+        default_factory=lambda: str(uuid.uuid4()), doc="Unique tag of the Gaussian State.")
 
     BIRTH = 'birth'
     '''Tag value used to signify birth component'''
-
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        if self.tag is None:
-            self.tag = str(uuid.uuid4())
 
 
 class ASDWeightedGaussianState(ASDGaussianState):
@@ -660,15 +654,11 @@ class ASDTaggedWeightedGaussianState(ASDWeightedGaussianState):
     ASD Gaussian State object with an associated weight and tag. Used as components
     for a GaussianMixtureState.
     """
-    tag: str = Property(default=None, doc="Unique tag of the ASD Gaussian State.")
+    tag: str = Property(
+        default_factory=lambda: str(uuid.uuid4()), doc="Unique tag of the ASD Gaussian State.")
 
     BIRTH = 'birth'
     '''Tag value used to signify birth component'''
-
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        if self.tag is None:
-            self.tag = str(uuid.uuid4())
 
 TaggedWeightedGaussianState.register(ASDTaggedWeightedGaussianState)  # noqa: E305
 
