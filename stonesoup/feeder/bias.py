@@ -24,7 +24,7 @@ class _BiasFeeder(DetectionFeeder):
 class TimeBiasFeeder(_BiasFeeder):
     """Time Bias Feeder
 
-    Apply bias to detection timestamp and overall timestamp yielded.
+    Remove bias from detection timestamp and overall timestamp yielded.
     """
     bias_track: Track[GaussianState] = Property(
         doc="Track of bias states  with state vector shape (1, 1) in units of seconds")
@@ -47,7 +47,7 @@ class TimeBiasFeeder(_BiasFeeder):
 class OrientationBiasFeeder(_BiasFeeder):
     """Orientation Bias Feeder
 
-    Apply bias to detection measurement model rotation offset
+    Remove bias from detection measurement model rotation offset
     """
     bias_track: Track[GaussianState] = Property(
         doc="Track of bias states  with state vector shape (3, 1) is expected")
@@ -68,7 +68,7 @@ class OrientationBiasFeeder(_BiasFeeder):
 class TranslationBiasFeeder(_BiasFeeder):
     """Translation Bias Feeder
 
-    Apply bias to detection measurement model translation offset
+    Remove bias from detection measurement model translation offset
     """
     bias_track: Track[GaussianState] = Property(
         doc="Track of bias states with state vector shape (n, 1), "
@@ -90,7 +90,7 @@ class TranslationBiasFeeder(_BiasFeeder):
 class OrientationTranslationBiasFeeder(_BiasFeeder):
     """Orientation Translation Bias Feeder
 
-    Apply bias to detection measurement model rotation and translation offset
+    Remove bias from detection measurement model rotation and translation offset
     """
     bias_track: Track[GaussianState] = Property(
         doc="Track of bias states with state vector shape (3+n, 1), 3 for rotation and where n is "

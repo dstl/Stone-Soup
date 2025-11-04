@@ -10,7 +10,7 @@ from ...types.state import State, StateVectors
 
 
 class BiasModelWrapper(MeasurementModel):
-    """Abstract wrapper that applies bias values to an existing MeasurementModel.
+    """Abstract wrapper that removes bias values from an existing MeasurementModel.
     """
     measurement_model: MeasurementModel = Property(
         doc="Unbiased model being wrapped that bias will be applied to")
@@ -44,7 +44,7 @@ class BiasModelWrapper(MeasurementModel):
 
 
 class TimeBiasModelWrapper(BiasModelWrapper):
-    """Apply a time-offset bias from the state to the wrapped measurement model.
+    """Removes a time-offset bias from the state to the wrapped measurement model.
 
     The bias elements selected by `bias_mapping` are interpreted as a time offset in seconds.
     For each state vector the wrapper computes the state at the (biased) measurement time by
@@ -75,7 +75,7 @@ class TimeBiasModelWrapper(BiasModelWrapper):
 
 
 class OrientationBiasModelWrapper(BiasModelWrapper):
-    """Apply an orientation (rotation) bias from the state to the wrapped measurement model.
+    """Removes an orientation (rotation) bias from the state to the wrapped measurement model.
 
     The wrapper expects `bias_mapping` to select orientation elements (e.g. Euler angles or
     equivalent) stored in the state vector. For each input state the wrapper creates a copy
@@ -103,7 +103,7 @@ class OrientationBiasModelWrapper(BiasModelWrapper):
 
 
 class TranslationBiasModelWrapper(BiasModelWrapper):
-    """Apply a translation (position) bias from the state to the wrapped measurement model.
+    """Removes a translation (position) bias from the state to the wrapped measurement model.
 
     The wrapper expects `bias_mapping` to select translation elements stored in the state
     vector. For each input state the wrapper creates a copy of the wrapped measurement model,
@@ -128,7 +128,7 @@ class TranslationBiasModelWrapper(BiasModelWrapper):
 
 
 class OrientationTranslationBiasModelWrapper(BiasModelWrapper):
-    """Apply combined orientation and translation biases from the state to the wrapped model.
+    """Removes combined orientation and translation biases from the state to the wrapped model.
 
     `bias_mapping` is expected to contain orientation indices first (3 elements) followed by
     translation indices (2 or 3 elements). For each input state the wrapper copies the

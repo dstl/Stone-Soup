@@ -8,7 +8,7 @@ Estimating Bias Between Sensors
 # %%
 # This example demonstrates how to simulate and estimate a drifting bias in the position of a sensor platform.
 # Specifically, the platform at index 0 (and its sensor) will have a time-varying bias applied to its position.
-# We use Stone-Soup's bias wrappers and feeders to estimate this changing bias from sensor measurements.
+# We use Stone-Soup's bias wrappers, feeders and updater to estimate this changing bias from sensor measurements.
 
 # Some initial imports and set up
 import datetime
