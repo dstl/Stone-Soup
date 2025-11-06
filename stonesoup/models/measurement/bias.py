@@ -65,10 +65,10 @@ class TimeBiasModelWrapper(BiasModelWrapper):
     def function(self, state, noise=False, **kwargs):
         predicted_state_vectors = []
         for state_vector in state.state_vector.view(StateVectors):
-            delta_t = state_vector[self.bias_mapping[0], 0]
+            delta_time = state_vector[self.bias_mapping[0], 0]
             predicted_state_vectors.append(self.transition_model.function(
                 State(state_vector[self.state_mapping, :]),
-                time_interval=datetime.timedelta(seconds=-delta_t),
+                time_interval=datetime.timedelta(seconds=-delta_time),
                 **kwargs))
         return self.measurement_model.function(
             State(StateVectors(predicted_state_vectors)), noise=noise, **kwargs)
@@ -91,9 +91,9 @@ class OrientationBiasModelWrapper(BiasModelWrapper):
     def function(self, state, noise=False, **kwargs):
         state_vectors = []
         for state_vector in state.state_vector.view(StateVectors):
-            delta_orient = state_vector[self.bias_mapping, :]
+            delta_orientation = state_vector[self.bias_mapping, :]
             bias_model = copy.copy(self.measurement_model)
-            bias_model.rotation_offset = bias_model.rotation_offset - delta_orient
+            bias_model.rotation_offset = bias_model.rotation_offset - delta_orientation
             state_vectors.append(bias_model.function(
                 State(state_vector[self.state_mapping, :]), noise=noise, **kwargs))
         if len(state_vectors) == 1:
@@ -116,9 +116,9 @@ class TranslationBiasModelWrapper(BiasModelWrapper):
     def function(self, state, noise=False, **kwargs):
         state_vectors = []
         for state_vector in state.state_vector.view(StateVectors):
-            delta_trans = state_vector[self.bias_mapping, :]
+            delta_translation = state_vector[self.bias_mapping, :]
             bias_model = copy.copy(self.measurement_model)
-            bias_model.translation_offset = bias_model.translation_offset - delta_trans
+            bias_model.translation_offset = bias_model.translation_offset - delta_translation
             state_vectors.append(bias_model.function(
                 State(state_vector[self.state_mapping, :]), noise=noise, **kwargs))
         if len(state_vectors) == 1:
@@ -142,11 +142,11 @@ class OrientationTranslationBiasModelWrapper(BiasModelWrapper):
     def function(self, state, noise=False, **kwargs):
         state_vectors = []
         for state_vector in state.state_vector.view(StateVectors):
-            delta_orient = state_vector[self.bias_mapping[:3], :]
-            delta_trans = state_vector[self.bias_mapping[3:], :]
+            delta_orientation = state_vector[self.bias_mapping[:3], :]
+            delta_translation = state_vector[self.bias_mapping[3:], :]
             bias_model = copy.copy(self.measurement_model)
-            bias_model.rotation_offset = bias_model.rotation_offset - delta_orient
-            bias_model.translation_offset = bias_model.translation_offset - delta_trans
+            bias_model.rotation_offset = bias_model.rotation_offset - delta_orientation
+            bias_model.translation_offset = bias_model.translation_offset - delta_translation
             state_vectors.append(bias_model.function(
                 State(state_vector[self.state_mapping, :]), noise=noise, **kwargs))
         if len(state_vectors) == 1:

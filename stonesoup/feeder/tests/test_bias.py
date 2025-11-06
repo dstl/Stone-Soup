@@ -106,8 +106,8 @@ def test_orientation_translation_gaussian_bias_feeder_iter():
             )
             rotated = build_rotation_matrix(det.measurement_model.rotation_offset) \
                 @ (det.state_vector - det.measurement_model.translation_offset)
-            expected_rotated = build_rotation_matrix(-feeder.bias) \
-                @ (det.state_vector - det.measurement_model.translation_offset)
+            expected_rotated = build_rotation_matrix(-feeder.bias[:3]) \
+                @ (det.state_vector + feeder.bias[3:])
             assert np.allclose(rotated, expected_rotated)
 
 

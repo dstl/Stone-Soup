@@ -120,8 +120,8 @@ class GaussianBiasUpdater(Updater):
 
         # Update bias
         update = self.updater.update(SingleHypothesis(combined_pred, combined_meas), **kwargs)
-        rel_delta_bias = update.state_vector[-ndim_bias:, :] - delta_bias
-        bias_state.state_vector = bias_state.state_vector + rel_delta_bias
+        relative_delta_bias = update.state_vector[-ndim_bias:, :] - delta_bias
+        bias_state.state_vector = bias_state.state_vector + relative_delta_bias
         if self.max_bias is not None:
             bias_state.state_vector = \
                 np.min([abs(bias_state.state_vector), self.max_bias], axis=0) \
