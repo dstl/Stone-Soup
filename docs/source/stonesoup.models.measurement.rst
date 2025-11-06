@@ -36,3 +36,9 @@ Graph
 .. automodule:: stonesoup.models.measurement.graph
     :show-inheritance:
     :inherited-members:
+
+Bias
+----
+.. automodule:: stonesoup.models.measurement.bias
+    :show-inheritance:
+    :inherited-members:
