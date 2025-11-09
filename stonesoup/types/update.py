@@ -8,7 +8,9 @@ from .state import CreatableFromState, CompositeState, KernelParticleState
 from .state import State, GaussianState, ParticleState, EnsembleState, \
     SqrtGaussianState, InformationState, CategoricalState, ASDGaussianState, \
     WeightedGaussianState, TaggedWeightedGaussianState, ASDTaggedWeightedGaussianState, \
-    MultiModelParticleState, RaoBlackwellisedParticleState, BernoulliParticleState
+    MultiModelParticleState, RaoBlackwellisedParticleState, BernoulliParticleState, \
+    ModelAugmentedWeightedGaussianState, ExpandedModelAugmentedWeightedGaussianState
+
 from ..base import Property
 
 
@@ -149,3 +151,23 @@ class CompositeUpdate(Update, CompositeState):
         doc="Sequence of sub-updates comprising the composite update. All sub-updates must have "
             "matching timestamp. Must not be empty.")
     hypothesis: CompositeHypothesis = Property(doc="Hypothesis used for updating")
+
+
+class ModelAugmentedWeightedGaussianStateUpdate(
+        Update,
+        ModelAugmentedWeightedGaussianState):
+    """ ModelAugmentedWeightedGaussianStateUpdate type
+
+    This is a Gaussian state update object with an associated
+    weight and multiple model properties.
+    """
+
+
+class ExpandedModelAugmentedWeightedGaussianStateUpdate(
+        Update,
+        ExpandedModelAugmentedWeightedGaussianState):
+    """ ExpandedModelAugmentedWeightedGaussianStateUpdate type
+
+    This is a Gaussian state update object with an associated
+    weight and multiple model properties.
+    """
