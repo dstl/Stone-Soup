@@ -40,6 +40,7 @@ Algorithm Components
 ^^^^^^^^^^^^^^^^^^^^
 .. toctree::
 
+    stonesoup.augmentor
     stonesoup.dataassociator
     stonesoup.deleter
     stonesoup.gater
