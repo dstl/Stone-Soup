@@ -52,6 +52,7 @@ Algorithm Components
     stonesoup.predictor
     stonesoup.predictors
     stonesoup.proposal
+    stonesoup.reducer
     stonesoup.regulariser
     stonesoup.resampler
     stonesoup.sampler
