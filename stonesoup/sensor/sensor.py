@@ -214,7 +214,7 @@ class VisibilityInformed2DSensor(SimpleSensor):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        
+
         if self.obstacles is None:
             self.obstacles = set()
 
@@ -262,7 +262,8 @@ class VisibilityInformed2DSensor(SimpleSensor):
     @property
     def _obstacle_tree(self):
         if self.moving_obstacle_flag or self._cached_obstacle_tree is None:
-            self._cached_obstacle_tree = STRtree([Polygon(obstacle.vertices.T) for obstacle in self.obstacles]))
+            self._cached_obstacle_tree = \
+                STRtree([Polygon(obstacle.vertices.T) for obstacle in self.obstacles])
         return self._cached_obstacle_tree
 
     def measure(self, ground_truths: Set[GroundTruthState], noise: Union[np.ndarray, bool] = True,
