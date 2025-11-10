@@ -71,7 +71,7 @@ class _Plotter(ABC):
         raise NotImplementedError
 
     @abstractmethod
-    def plot_obstacles(self, obstacles, mapping, label="Obstacles", **kwargs):
+    def plot_obstacles(self, obstacles, label="Obstacles", **kwargs):
         raise NotImplementedError
 
     def _conv_measurements(self, measurements, mapping, measurement_model=None,
@@ -550,9 +550,6 @@ class Plotter(_Plotter):
         ----------
         obstacles : Collection of :class:`~.Obstacle`
             Obstacles to plot
-        mapping : list
-            List of items specifying the mapping of the position components of the
-            obstacle's position. Default is [0, 1].
         label: str
             Label to apply to obstacles for the legend.
         \\*\\*kwargs: dict
@@ -1564,9 +1561,6 @@ class Plotterly(_Plotter):
         ----------
         obstacles : Collection of :class:`~.Obstacle`
             Obstacles to plot
-        mapping : list
-            List of items specifying the mapping of the position components of the
-            obstacle's position. Default is [0, 1].
         label: str
             Label to apply to obstacles for the legend.
         \\*\\*kwargs: dict
@@ -1868,7 +1862,7 @@ class PolarPlotterly(_Plotter):
     def plot_sensors(self, sensors, sensor_label="Sensors", **kwargs):
         raise NotImplementedError
 
-    def plot_obstacles(self, obstacles, mapping=[0, 1], label='Obstacles', **kwargs):
+    def plot_obstacles(self, obstacles, label='Obstacles', **kwargs):
         raise NotImplementedError
 
 
@@ -2125,7 +2119,7 @@ class AnimationPlotter(_Plotter):
     def plot_sensors(self, sensors, sensor_label="Sensors", **kwargs):
         raise NotImplementedError
 
-    def plot_obstacles(self, obstacles, mapping=[0, 1], label='Obstacles', **kwargs):
+    def plot_obstacles(self, obstacles, label='Obstacles', **kwargs):
         raise NotImplementedError
 
     @classmethod
@@ -3140,9 +3134,6 @@ class AnimatedPlotterly(_Plotter):
         ----------
         obstacles : Collection of :class:`~.Obstacle`
             Obstacles to plot
-        mapping : list
-            List of items specifying the mapping of the position components of the
-            obstacle's position. Default is [0, 1].
         label: str
             Label to apply to obstacles for the legend.
         resize : boolean
