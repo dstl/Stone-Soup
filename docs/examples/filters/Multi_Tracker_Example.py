@@ -241,7 +241,6 @@ init_transition_model = CombinedLinearGaussianTransitionModel(
     (ConstantVelocity(1), ConstantVelocity(1)))
 init_predictor_EKF = ExtendedKalmanPredictor(init_transition_model)
 init_predictor_UKF = UnscentedKalmanPredictor(init_transition_model)
-init_predictor_PF = ParticlePredictor(init_transition_model)
 
 # %%
 # The final step before running the trackers is to create the initiators:

@@ -1,9 +1,10 @@
-from abc import abstractmethod, ABC
-from typing import Callable, Set
 import random
-import numpy as np
 import itertools as it
+from abc import abstractmethod, ABC
+from collections.abc import Callable
 from typing import TYPE_CHECKING
+
+import numpy as np
 
 from ..base import Base, Property
 
@@ -27,11 +28,11 @@ class SensorManager(Base, ABC):
     which communicate with other sensor managers in a networked fashion.
 
     """
-    sensors: Set['Sensor'] = Property(
-        default=None, doc="The sensor(s) which the sensor manager is managing.")
+    sensors: set['Sensor'] = Property(
+        default_factory=set, doc="The sensor(s) which the sensor manager is managing.")
 
-    platforms: Set['Platform'] = Property(
-        default=None, doc="The platform(s) which the sensor manager is managing.")
+    platforms: set['Platform'] = Property(
+        default_factory=set, doc="The platform(s) which the sensor manager is managing.")
 
     reward_function: Callable = Property(
         default=None, doc="A function or class designed to work out the reward associated with an "
@@ -47,14 +48,6 @@ class SensorManager(Base, ABC):
                           "Any sensors not added "
                           "will not be considered by the sensor manager or "
                           "reward function.")
-
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-
-        if self.platforms is None:
-            self.platforms = set()
-        if self._property_sensors is None:
-            self._property_sensors = set()
 
     @sensors.getter
     def sensors(self):

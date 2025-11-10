@@ -116,8 +116,9 @@ def test_isotropic_plume(state, mapping, translation_offset):
     actual_conc = isoplume_h(unmapped_state, translation_offset)
     assert np.all(np.isclose(expected_conc, actual_conc))
 
+    rng = np.random.RandomState(1990)
     # Test noise
-    expected_conc = model.function(state, noise=True, random_state=1990)
+    expected_conc = model.function(state, noise=True, random_state=rng)
 
     rng = np.random.RandomState(1990)
     actual_conc += actual_conc * standard_deviation_percentage * rng.normal(size=nparts)
@@ -144,7 +145,8 @@ def test_isotropic_plume(state, mapping, translation_offset):
         actual_likelihood = 1 / (sigma * np.sqrt(2 * np.pi)) \
             * np.exp(-(conc.state_vector - pred_conc) ** 2 / (2 * sigma ** 2))
 
-    assert np.all(np.isclose(expected_log_likelihood, np.log(actual_likelihood)))
+    with np.errstate(divide='ignore'):
+        assert np.all(np.isclose(expected_log_likelihood, np.log(actual_likelihood)))
 
     # Check expected response from model.covar
     with pytest.raises(NotImplementedError) as e:

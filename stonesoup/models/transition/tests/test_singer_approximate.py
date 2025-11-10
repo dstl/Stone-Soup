@@ -1,43 +1,21 @@
 import datetime
 
 from pytest import approx
+import pytest
 import numpy as np
 import scipy as sp
 from scipy.stats import multivariate_normal
 
+from .test_singer import singer_model_params  # noqa: F401
 from ..linear import SingerApproximate
 from ..base import CombinedGaussianTransitionModel
 from ....types.state import State
 
 
-def test_singer1dmodel_approximate():
-    """ SingerApproximate 1D Transition Model test for small timediff """
-    state = State(np.array([[3.0], [1.0], [0.1]]))
-    noise_diff_coeffs = np.array([0.01])
-    damping_coeffs = np.array([0.1])
-    base(state, noise_diff_coeffs, damping_coeffs, timediff=0.4)
-
-
-def test_singer2dmodel_approximate():
-    """ SingerApproximate 2D Transition Model test for small timediff """
-    state = State(np.array([[3.0], [1.0], [0.1], [2.0], [2.0], [0.2]]))
-    noise_diff_coeffs = np.array([0.01, 0.02])
-    damping_coeffs = np.array([0.1, 0.1])
-
-    base(state, noise_diff_coeffs, damping_coeffs, timediff=0.4)
-
-
-def test_singer3dmodel_approximate():
-    """ SingerApproximate 3D Transition Model test for small timediff """
-    state = State(np.array([[3.0], [1.0], [0.1], [2.0], [2.0], [0.2], [4.0],
-                            [0.5], [0.05]]))
-    noise_diff_coeffs = np.array([0.01, 0.02, 0.005])
-    damping_coeffs = np.array([0.1, 0.1, 0.1])
-    base(state, noise_diff_coeffs, damping_coeffs, timediff=0.4)
-
-
-def base(state, noise_diff_coeffs, damping_coeffs, timediff=1.0):
-    """ Base test for n-dimensional ConstantAcceleration Transition Models """
+@pytest.mark.parametrize('sign', [1, -1])
+def test_singer_approximate(singer_model_params, sign):  # noqa: F811
+    state, noise_diff_coeffs, damping_coeffs = singer_model_params
+    timediff = 0.4 * sign
 
     state_vec = state.state_vector
 
@@ -85,15 +63,15 @@ def base(state, noise_diff_coeffs, damping_coeffs, timediff=1.0):
               np.exp(-damping_coeffdt)]]))
 
         covar_list.append(np.array(
-            [[timediff**5 / 20,
-              timediff**4 / 8,
-              timediff**3 / 6],
-             [timediff**4 / 8,
-              timediff**3 / 3,
-              timediff**2 / 2],
-             [timediff**3 / 6,
-              timediff**2 / 2,
-              timediff]]) * noise_diff_coeff)
+            [[abs(timediff)**5 / 20,
+              abs(timediff)**4 / 8,
+              abs(timediff)**3 / 6],
+             [abs(timediff)**4 / 8,
+              abs(timediff)**3 / 3,
+              abs(timediff)**2 / 2],
+             [abs(timediff)**3 / 6,
+              abs(timediff)**2 / 2,
+              abs(timediff)]]) * noise_diff_coeff)
 
     F = sp.linalg.block_diag(*mat_list)
     Q = sp.linalg.block_diag(*covar_list)

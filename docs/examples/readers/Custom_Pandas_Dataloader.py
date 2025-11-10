@@ -1,10 +1,11 @@
 """
-Use of Custom Readers that support Pandas DataFrames
-====================================================
-This is a demonstration of using customised readers that
-support data contained within Pandas DataFrames, rather than
-loading directly from a .csv file using :class:`~.CSVGroundTruthReader` or
-:class:`~.CSVDetectionReader`.
+Creating a Custom Reader - Pandas DataFrame
+===========================================
+There are a number of Readers included within Stone Soup, allowing data to be loaded from a
+variety of files/formats. This example demonstrates how to create a customised Reader to
+support additional data formats. In this case, the new reader here supports data contained
+within Pandas DataFrames, rather than loading directly from a .csv file using
+:class:`~.CSVGroundTruthReader` or :class:`~.CSVDetectionReader`.
 
 The benefit is that this allows us to use the versatile data loading
 capabilities of pandas to read from many different data source types
@@ -12,6 +13,9 @@ as needed, including .csv, JSON, XML, Parquet, HDF5, .txt, .zip and more.
 The resulting DataFrame can then simply be fed into the defined
 `DataFrameGroundTruthReader` or `DataFrameDetectionReader` for further processing
 in Stone Soup as required.
+
+Notice: This is only an example. Stone Soup already includes Readers to load data from
+Pandas DataFrames.
 """
 
 # %%
@@ -40,7 +44,7 @@ from stonesoup.reader.base import GroundTruthReader, DetectionReader, Reader
 from stonesoup.types.detection import Detection
 from stonesoup.types.groundtruth import GroundTruthPath, GroundTruthState
 
-from typing import Sequence, Collection
+from collections.abc import Sequence, Collection
 
 from datetime import datetime, timedelta, timezone
 from dateutil.parser import parse

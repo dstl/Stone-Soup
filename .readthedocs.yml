@@ -1,9 +1,29 @@
 version: 2
 
+sphinx:
+  configuration: docs/source/conf.py
+
 build:
-  os: ubuntu-20.04
+  os: ubuntu-lts-latest
   tools:
     python: "3.12"
+  apt_packages:
+    - libnss3
+    - libatk-bridge2.0-0
+    - libcups2
+    - libxcomposite1
+    - libxdamage1
+    - libxfixes3
+    - libxrandr2
+    - libgbm1
+    - libxkbcommon0
+    - libpango-1.0-0
+    - libcairo2
+    - libasound2
+    - graphviz
+  jobs:
+    post_install:
+      - kaleido_get_chrome
 
 python:
   install:

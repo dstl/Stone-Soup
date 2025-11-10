@@ -8,7 +8,7 @@ from ..manager import MultiManager
 from ..ospametric import GOSPAMetric, OSPAMetric, _SwitchingLoss
 from ...types.detection import Detection
 from ...types.groundtruth import GroundTruthPath, GroundTruthState
-from ...types.state import State
+from ...types.state import State, ParticleState
 from ...types.track import Track
 
 
@@ -132,7 +132,8 @@ def test_gospametric_compute_gospa_metric():
     assert (gospa_metric['false'] == 0.0)
 
 
-def test_gospametric_computemetric():
+@pytest.mark.parametrize("state_type", [State, ParticleState])
+def test_gospametric_computemetric(state_type):
     """Test GOSPA compute metric."""
     generator = GOSPAMetric(
         c=10.0,
@@ -140,10 +141,10 @@ def test_gospametric_computemetric():
     )
     time = datetime.datetime.now()
     # Multiple tracks and truths present at two timesteps
-    tracks = {Track(states=[State(state_vector=[[i + 0.5]], timestamp=time),
-                            State(state_vector=[[i + 1]],
-                                  timestamp=time + datetime.timedelta(
-                                  seconds=1))])
+    tracks = {Track(states=[state_type(state_vector=[[i + 0.5]], timestamp=time),
+                            state_type(state_vector=[[i + 1]],
+                                       timestamp=time + datetime.timedelta(
+                                       seconds=1))])
               for i in range(5)}
     truths = {GroundTruthPath(
         states=[State(state_vector=[[i]], timestamp=time),
@@ -466,7 +467,7 @@ def test_gospametric_no_gts():
     )
     dummy_cost = (generator.c ** generator.p) / generator.alpha
 
-    np.random.seed(42)
+    rng = np.random.RandomState(42)
 
     num_gt = 10
     num_timesteps = int(1e2)
@@ -487,7 +488,7 @@ def test_gospametric_no_gts():
         )
     ).T
 
-    track_states = gt_states + np.random.normal(0, track_position_sigma, gt_states.shape)
+    track_states = gt_states + rng.normal(0, track_position_sigma, gt_states.shape)
 
     time = datetime.datetime.now()
     tracks = {
@@ -521,7 +522,7 @@ def test_gospametric_occasional_no_tracks():
     )
     dummy_cost = (generator.c ** generator.p) / generator.alpha
 
-    np.random.seed(42)
+    rng = np.random.RandomState(42)
 
     num_gt = 10
     num_timesteps = int(1e2)
@@ -542,7 +543,7 @@ def test_gospametric_occasional_no_tracks():
         )
     ).T
 
-    track_states = gt_states + np.random.normal(0, track_position_sigma, gt_states.shape)
+    track_states = gt_states + rng.normal(0, track_position_sigma, gt_states.shape)
 
     time = datetime.datetime.now()
     tracks = {
@@ -587,7 +588,7 @@ def test_gospametric_occasional_no_gts():
     )
     dummy_cost = (generator.c ** generator.p) / generator.alpha
 
-    np.random.seed(42)
+    rng = np.random.RandomState(42)
 
     num_gt = 10
     num_timesteps = int(1e2)
@@ -608,7 +609,7 @@ def test_gospametric_occasional_no_gts():
         )
     ).T
 
-    track_states = gt_states + np.random.normal(0, track_position_sigma, gt_states.shape)
+    track_states = gt_states + rng.normal(0, track_position_sigma, gt_states.shape)
 
     time = datetime.datetime.now()
     tracks = {
@@ -654,7 +655,7 @@ def test_gospametric_speed():
     )
     dummy_cost = (generator.c ** generator.p) / generator.alpha
 
-    np.random.seed(42)
+    rng = np.random.RandomState(42)
 
     num_gt = 10
     num_missed = 3
@@ -684,7 +685,7 @@ def test_gospametric_speed():
             5*gt_states[:num_false_positives]
         )
     )
-    track_states += np.random.normal(0, track_position_sigma, track_states.shape)
+    track_states += rng.normal(0, track_position_sigma, track_states.shape)
 
     time = datetime.datetime.now()
     tracks = {

@@ -43,6 +43,9 @@ class PDAHypothesiser(Hypothesiser):
         doc="If `True`, hypotheses outside probability gates will be returned. This requires "
             "that the clutter spatial density is also provided, as it may not be possible to"
             "estimate this. Default `False`")
+    normalise: bool = Property(
+        default=True,
+        doc="If `True`, hypotheses are normlised to total weight of 1. Default `True`")
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -148,7 +151,7 @@ class PDAHypothesiser(Hypothesiser):
             # Calculate difference before to handle custom types (mean defaults to zero)
             # This is required as log pdf coverts arrays to floats
             log_prob = multivariate_normal.logpdf(
-                (detection.state_vector - measurement_prediction.state_vector).ravel(),
+                (detection.state_vector - measurement_prediction.mean).ravel(),
                 cov=measurement_prediction.covar)
             probability = Probability(log_prob, log_value=True)
 
@@ -178,7 +181,7 @@ class PDAHypothesiser(Hypothesiser):
                 hypothesis.probability *= self._validation_region_volume(
                     self.prob_gate, hypothesis.measurement_prediction) / validated_measurements
 
-        return MultipleHypothesis(hypotheses, normalise=True, total_weight=1)
+        return MultipleHypothesis(hypotheses, normalise=self.normalise)
 
     @classmethod
     @lru_cache()

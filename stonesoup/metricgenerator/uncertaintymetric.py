@@ -54,7 +54,7 @@ class _CovarianceNormsMetric(MetricGenerator):
 
         state_list = StateMutableSequence()
         for element in list(object_with_states):
-            if isinstance(element, StateMutableSequence):
+            if isinstance(element, StateMutableSequence) and not isinstance(element, State):
                 state_list.extend(element.states)
             elif isinstance(element, State):
                 state_list.append(element)

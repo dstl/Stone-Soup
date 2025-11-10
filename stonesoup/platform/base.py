@@ -1,10 +1,13 @@
 import uuid
-from typing import MutableSequence
+from collections.abc import MutableSequence
+from datetime import datetime
 
-from stonesoup.base import Property, Base
-from stonesoup.movable import Movable, FixedMovable, MovingMovable, MultiTransitionMovable
-from stonesoup.sensor.sensor import Sensor
-from stonesoup.types.groundtruth import GroundTruthPath
+
+from ..base import Property, Base
+from ..functions.interpolate import interpolate_state_mutable_sequence
+from ..movable import Movable, FixedMovable, MovingMovable, MultiTransitionMovable
+from ..sensor.sensor import Sensor
+from ..types.groundtruth import GroundTruthPath
 
 
 class Platform(Base):
@@ -37,11 +40,10 @@ class Platform(Base):
             "it can be constructed transparently by passing Movable's constructor parameters to "
             "the Platform constructor.")
     sensors: MutableSequence[Sensor] = Property(
-        default=None, readonly=True,
+        default_factory=list, readonly=True,
         doc="A list of N mounted sensors. Defaults to an empty list.")
-
     id: str = Property(
-        default=None,
+        default_factory=lambda: str(uuid.uuid4()),
         doc="The unique platform ID. Default `None` where random UUID is generated.")
 
     _default_movable_class = None  # Will be overridden by subclasses
@@ -81,12 +83,8 @@ class Platform(Base):
         super().__init__(**platform_args)
         if self.movement_controller is None:
             self.movement_controller = self._default_movable_class(*args, **other_args)
-        if self.sensors is None:
-            self._property_sensors = []
         for sensor in self.sensors:
             sensor.movement_controller = self.movement_controller
-        if self.id is None:
-            self.id = str(uuid.uuid4())
 
     @staticmethod
     def _tuple_or_none(value):
@@ -189,3 +187,19 @@ class MovingPlatform(Platform):
 
 class MultiTransitionMovingPlatform(Platform):
     _default_movable_class = MultiTransitionMovable
+
+
+class PathBasedPlatform(MovingPlatform):
+    path: GroundTruthPath = Property(doc="Ground truth path used for the platform. "
+                                     "This is for use in cases when platform paths are imported "
+                                     "from external data, e.g., from a CSV file")
+
+    def __init__(self, *args, **kwargs):
+        if "states" not in kwargs.keys() or kwargs["states"] is None:
+            kwargs["states"] = [kwargs["path"][0]]
+        if "transition_model" not in kwargs.keys():
+            kwargs["transition_model"] = None
+        super().__init__(*args, **kwargs)
+
+    def move(self, timestamp: datetime):
+        self.states.append(interpolate_state_mutable_sequence(self.path, [timestamp]))

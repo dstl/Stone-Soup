@@ -3,6 +3,7 @@ from math import log, floor, ceil, trunc, sqrt
 import numpy as np
 import pytest
 from pytest import approx
+import warnings
 
 from ..numeric import Probability
 
@@ -119,6 +120,15 @@ def test_probability_multiply():
     probability1 *= 0.5
     assert isinstance(probability1, Probability)
 
+    # Test that negative coeffs do not cause numeric warnings
+    with warnings.catch_warnings():
+        warnings.filterwarnings(
+            "error", r".*invalid value encountered in multiply.*", RuntimeWarning
+        )
+
+        assert approx(-0.6) == np.array([-2.]) * probability2
+        assert approx(-0.6) == probability2 * np.array([-2.])
+
 
 def test_probability_divide():
     probability1 = Probability(0.2)
@@ -138,6 +148,15 @@ def test_probability_divide():
     assert approx(0) == probability1 // 0.3
     assert approx(-1) == -0.2 // probability2
     assert approx(-1) == probability1 // -0.3
+
+    # Test that negative coeffs do not cause numeric warnings
+    with warnings.catch_warnings():
+        warnings.filterwarnings(
+            "error", r".*invalid value encountered in divide.*", RuntimeWarning
+        )
+
+        assert approx(-2/3) == np.array([-0.2]) / probability2
+        assert approx(-3/2) == probability2 / np.array([-0.2])
 
 
 def test_probability_mod():

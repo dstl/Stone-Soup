@@ -2,10 +2,9 @@ import copy
 import datetime
 import uuid
 import weakref
-from collections import abc
+from collections.abc import MutableMapping, MutableSequence, Sequence
 from numbers import Integral
-from typing import MutableSequence, Any, Optional, Sequence, MutableMapping
-import typing
+from typing import Any, Optional
 
 import numpy as np
 from scipy.stats import multivariate_normal
@@ -38,7 +37,7 @@ class State(Type):
         return self.state_vector.shape[0]
 
     @staticmethod
-    def from_state(state: 'State', *args: Any, target_type: Optional[typing.Type] = None,
+    def from_state(state: 'State', *args: Any, target_type: Optional[Type] = None,
                    **kwargs: Any) -> 'State':
         """Class utility function to create a new state (or compatible type) from an existing
         state. The type and properties of this new state are defined by `state` except for any
@@ -63,7 +62,7 @@ class State(Type):
             on the `state` parameter.
         """
         # Handle being initialised with state sequence
-        if isinstance(state, StateMutableSequence):
+        if isinstance(state, StateMutableSequence) and not isinstance(state, State):
             state = state.state
 
         if target_type is None:
@@ -155,7 +154,7 @@ class CreatableFromState:
             those on the ``state`` parameter.
         """
         # Handle being initialised with state sequence
-        if isinstance(state, StateMutableSequence):
+        if isinstance(state, StateMutableSequence) and not isinstance(state, State):
             state = state.state
         try:
             state_type = next(type_ for type_ in type(state).mro()
@@ -166,6 +165,49 @@ class CreatableFromState:
             target_type = CreatableFromState.class_mapping[cls][state_type]
 
         return target_type.from_state(state, *args, **kwargs, target_type=target_type)
+
+
+class PointMassState(State):
+    """PointMassState State type
+
+    For the Lagrangina Point Mass filter.
+    """
+
+    state_vector: StateVectors = Property(doc="State vectors.")
+    weight: MutableSequence[Probability] = Property(
+        default=None, doc="Masses of grid points"
+    )
+    grid_delta: np.ndarray = Property(default=None, doc="Grid step per dim")
+    grid_dim: np.ndarray = Property(
+        default=None,
+        doc="Grid coordinates per dimension before rotation and translation",
+    )
+    center: np.ndarray = Property(default=None, doc="Center of the grid")
+    eigVec: np.ndarray = Property(default=None, doc="Eigenvectors of the grid")
+    Npa: np.ndarray = Property(default=None, doc="Points per dim")
+
+    def __len__(self):
+        return self.state_vector.shape[1]
+
+    @property
+    def ndim(self):
+        """The number of dimensions represented by the state."""
+        return self.state_vector.shape[0]
+
+    @clearable_cached_property("state_vector")
+    def mean(self):
+        """Sample mean for particles"""
+        return np.hstack(self.state_vector @ self.weight * np.prod(self.grid_delta))
+
+    def covar(self):
+        # Measurement update covariance
+        chip_ = self.state_vector - self.mean[:, np.newaxis]
+        chip_w = chip_ * self.weight.reshape(1, -1, order="C")
+        measVar = (chip_w @ chip_.T) * np.prod(self.grid_delta)
+        measVar = CovarianceMatrix(measVar)
+        return measVar
+
+State.register(PointMassState)  # noqa: E305
 
 
 class ASDState(Type):
@@ -231,11 +273,13 @@ class ASDState(Type):
     def states(self):
         return [self[i] for i in range(self.nstep)]
 
+    from_state = State.from_state
+
 
 State.register(ASDState)
 
 
-class StateMutableSequence(Type, abc.MutableSequence):
+class StateMutableSequence(Type, MutableSequence):
     """A mutable sequence for :class:`~.State` instances
 
     This sequence acts like a regular list object for States, as well as
@@ -262,16 +306,14 @@ class StateMutableSequence(Type, abc.MutableSequence):
     """
 
     states: MutableSequence[State] = Property(
-        default=None,
+        default_factory=list,
         doc="The initial list of states. Default `None` which initialises with empty list.")
 
-    def __init__(self, states=None, *args, **kwargs):
-        if states is None:
-            states = []
-        elif not isinstance(states, abc.Sequence):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        if not isinstance(self.states, Sequence):
             # Ensure states is a list
-            states = [states]
-        super().__init__(states, *args, **kwargs)
+            self.states = [self.states]
 
     def __len__(self):
         return self.states.__len__()
@@ -590,24 +632,35 @@ class TaggedWeightedGaussianState(WeightedGaussianState):
     Gaussian State object with an associated weight and tag. Used as components
     for a GaussianMixtureState.
     """
-    tag: str = Property(default=None, doc="Unique tag of the Gaussian State.")
+    tag: str = Property(
+        default_factory=lambda: str(uuid.uuid4()), doc="Unique tag of the Gaussian State.")
 
     BIRTH = 'birth'
     '''Tag value used to signify birth component'''
-
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        if self.tag is None:
-            self.tag = str(uuid.uuid4())
 
 
 class ASDWeightedGaussianState(ASDGaussianState):
     """ASD Weighted Gaussian State Type
 
-    ASD Gaussian State object with an associated weight.  Used as components
+    ASD Gaussian State object with an associated weight. Used as components
     for a GaussianMixtureState.
     """
     weight: Probability = Property(default=0, doc="Weight of the Gaussian State.")
+
+
+class ASDTaggedWeightedGaussianState(ASDWeightedGaussianState):
+    """ASD Tagged Weighted Gaussian State Type
+
+    ASD Gaussian State object with an associated weight and tag. Used as components
+    for a GaussianMixtureState.
+    """
+    tag: str = Property(
+        default_factory=lambda: str(uuid.uuid4()), doc="Unique tag of the ASD Gaussian State.")
+
+    BIRTH = 'birth'
+    '''Tag value used to signify birth component'''
+
+TaggedWeightedGaussianState.register(ASDTaggedWeightedGaussianState)  # noqa: E305
 
 
 class ParticleState(State):
@@ -702,8 +755,14 @@ class ParticleState(State):
         else:
             return self._property_parent
 
+    def __getstate__(self):
+        state = super().__getstate__().copy()
+        # Resolve weakref
+        state['_property_parent'] = self.parent
+        return state
+
     @classmethod
-    def from_state(cls, state: 'State', *args: Any, target_type: Optional[typing.Type] = None,
+    def from_state(cls, state: 'State', *args: Any, target_type: Optional[Type] = None,
                    **kwargs: Any) -> 'State':
 
         # Handle default presence of both particle_list and weight once class has been created by
@@ -744,21 +803,24 @@ class ParticleState(State):
         """Sample mean for particles"""
         if len(self) == 1:  # No need to calculate mean
             return self.state_vector
-        return np.average(self.state_vector, axis=1, weights=np.exp(self.log_weight))
+        return np.average(self.state_vector, axis=1,
+                          weights=np.exp(self.log_weight - np.max(self.log_weight)))
 
     @clearable_cached_property('state_vector', 'log_weight', 'fixed_covar')
     def covar(self):
         """Sample covariance matrix for particles"""
         if self.fixed_covar is not None:
             return self.fixed_covar
-        return np.cov(self.state_vector, ddof=0, aweights=np.exp(self.log_weight))
+        return np.cov(self.state_vector, ddof=0,
+                      aweights=np.exp(self.log_weight - np.max(self.log_weight)))
 
     @weight.setter
     def weight(self, value):
         if value is None:
             self.log_weight = None
         else:
-            self.log_weight = np.log(np.asarray(value, dtype=np.float64))
+            with np.errstate(divide='ignore'):  # Log weight of -inf is fine
+                self.log_weight = np.log(np.asarray(value, dtype=np.float64))
             self.__dict__['weight'] = np.asanyarray(value)
 
     @weight.getter

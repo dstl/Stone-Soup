@@ -70,7 +70,7 @@ class GOSPAMetric(MetricGenerator):
     c: float = Property(doc="c>0, cutoff distance.")
     switching_penalty: float = Property(doc="Penalty term for switching.", default=0.0)
     measure: Measure = Property(
-        default=Euclidean(),
+        default_factory=Euclidean,
         doc="Distance measure to use. Default :class:`~.measures.Euclidean()`")
     generator_name: str = Property(doc="Unique identifier to use when accessing generated metrics "
                                        "from MultiManager",
@@ -127,7 +127,7 @@ class GOSPAMetric(MetricGenerator):
         state_list = StateMutableSequence()
         ids = []
         for i, element in enumerate(list(object_with_states)):
-            if isinstance(element, StateMutableSequence):
+            if isinstance(element, StateMutableSequence) and not isinstance(element, State):
                 states = list(element.last_timestamp_generator())
                 state_list.extend(states)
                 ids.extend([i]*len(states))
@@ -163,16 +163,19 @@ class GOSPAMetric(MetricGenerator):
         """
         all_meas_timestamps = np.fromiter(
             (state.timestamp for state in measured_states),
-            dtype='datetime64[us]'
+            dtype='O'
         )
         meas_order = np.argsort(all_meas_timestamps)
         all_meas_timestamps = all_meas_timestamps[meas_order]
-        all_meas_points = np.array(measured_states)[meas_order]
+        # np.array doesn't work for ParticleState
+        all_meas_points = np.empty(len(measured_states), dtype="O")
+        all_meas_points[:] = measured_states
+        all_meas_points = all_meas_points[meas_order]
         all_meas_ids = np.array(measured_state_ids)[meas_order]
 
         all_truth_timestamps = np.fromiter(
             (state.timestamp for state in truth_states),
-            dtype='datetime64[us]'
+            dtype='O'
         )
         truth_order = np.argsort(all_truth_timestamps)
         all_truth_timestamps = all_truth_timestamps[truth_order]

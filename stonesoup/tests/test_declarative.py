@@ -1,5 +1,5 @@
 import sys
-from typing import List, Any
+from typing import Any
 
 import pytest
 
@@ -331,11 +331,11 @@ def test_type_hint_checking():
 
     # No error for List[int]
     class TestClass(Base):
-        i: List[int] = Property(doc='Test')
+        i: list[int] = Property(doc='Test')
     _ = TestClass(i=1)
 
     class TestClass(Base):
-        i = Property(List[int], doc='Test')
+        i = Property(list[int], doc='Test')
     _ = TestClass(i=1)
 
     # errors for any
@@ -358,3 +358,31 @@ def test_type_hint_checking():
     class TestClass(Base):
         i = Property(Any, doc='Test')
     _ = TestClass(i=1)
+
+
+def test_default_factory():
+
+    class TestClass(Base):
+        i: Any = Property(default_factory=list)
+    inst = TestClass()
+    assert isinstance(inst.i, list)
+    assert len(inst.i) == 0
+    inst.i.append(1)
+
+    inst = TestClass(None)
+    assert isinstance(inst.i, list)
+    assert len(inst.i) == 0
+
+    class TestClass(Base):
+        i: Any = Property(default_factory=list, allow_none_with_factory=True)
+    inst = TestClass()
+    assert isinstance(inst.i, list)
+    assert len(inst.i) == 0
+    inst.i.append(1)
+
+    inst = TestClass(None)
+    assert inst.i is None
+
+    with pytest.raises(ValueError, match="Cannot have both default and default_factory"):
+        class TestClass(Base):
+            i: Any = Property(default="1", default_factory=lambda: "1")

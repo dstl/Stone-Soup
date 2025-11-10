@@ -1,4 +1,5 @@
-from typing import Sequence, Union
+from collections.abc import Sequence
+from typing import Union
 
 import numpy as np
 from scipy.stats import norm
@@ -92,7 +93,7 @@ class IsotropicPlume(GaussianModel, MeasurementModel):
     )
 
     translation_offset: StateVector = Property(
-        default=None,
+        default_factory=lambda: StateVector([[0.], [0.], [0.]]),
         doc="A 3x1 array specifying the Cartesian origin offset in terms of :math:`x,y,z` "
             "coordinates.")
 
@@ -106,15 +107,6 @@ class IsotropicPlume(GaussianModel, MeasurementModel):
         doc="Measurement threshold. Should be set high enough to minimise false detections."
     )
 
-    def __init__(self, *args, **kwargs):
-        """
-        Ensure that the translation offset is initiated
-        """
-        super().__init__(*args, **kwargs)
-        # Set values to defaults if not provided
-        if self.translation_offset is None:
-            self.translation_offset = StateVector([0] * 3)
-
     def covar(self, **kwargs) -> CovarianceMatrix:
         raise NotImplementedError('Covariance for IsotropicPlume is dependant on the '
                                   'measurement as well as standard deviation!')
@@ -123,8 +115,8 @@ class IsotropicPlume(GaussianModel, MeasurementModel):
     def ndim_meas(self) -> int:
         return 1
 
-    def function(self, state: State, noise: Union[bool, np.ndarray] = False, **kwargs) -> Union[
-                 StateVector, StateVectors]:
+    def function(self, state: State, noise: Union[bool, np.ndarray] = False, random_state=None,
+                 **kwargs) -> Union[StateVector, StateVectors]:
         r"""Model function :math:`h(\vec{x}_t,\vec{v}_t)`
 
         Parameters
@@ -164,11 +156,13 @@ class IsotropicPlume(GaussianModel, MeasurementModel):
         if noise:
             C += self.rvs(state=C.view(StateVectors),
                           num_samples=state.state_vector.shape[1],
+                          random_state=random_state,
                           **kwargs)
             # measurement thresholding
             C[C < self.sensing_threshold] = 0
             # missed detections
-            flag = np.random.uniform(size=state.state_vector.shape[1]) \
+            rng = random_state or self.random_state or np.random
+            flag = rng.uniform(size=state.state_vector.shape[1]) \
                 > (1 - self.missed_detection_probability)
             C[:, flag] = 0
 

@@ -1,9 +1,10 @@
 import warnings
 from abc import ABC, abstractmethod
+from collections.abc import Collection, Iterable
 from datetime import datetime, timedelta
 from enum import IntEnum
 from itertools import chain
-from typing import Collection, Iterable, Union, List, Optional, Tuple, Dict
+from typing import Optional, Union
 
 import numpy as np
 from matplotlib import animation as animation
@@ -11,9 +12,7 @@ from matplotlib import pyplot as plt
 from matplotlib.legend_handler import HandlerPatch
 from matplotlib.lines import Line2D
 from matplotlib.patches import Ellipse
-from mergedeep import merge
-from scipy.integrate import quad
-from scipy.optimize import brentq
+from scipy.special import ellipeinc
 from scipy.stats import kde
 try:
     from plotly import colors
@@ -58,7 +57,8 @@ class _Plotter(ABC):
 
     @abstractmethod
     def plot_measurements(self, measurements, mapping, measurement_model=None,
-                          label="Measurements", **kwargs):
+                          label="Measurements", convert_measurements=True, show_clutter=True,
+                          **kwargs):
         raise NotImplementedError
 
     @abstractmethod
@@ -71,8 +71,8 @@ class _Plotter(ABC):
         raise NotImplementedError
 
     def _conv_measurements(self, measurements, mapping, measurement_model=None,
-                           convert_measurements=True) -> \
-            Tuple[Dict[detection.Detection, StateVector], Dict[detection.Clutter, StateVector]]:
+                           convert_measurements=True, show_clutter=True) -> \
+            tuple[dict[detection.Detection, StateVector], dict[detection.Clutter, StateVector]]:
         conv_detections = {}
         conv_clutter = {}
         for state in measurements:
@@ -98,9 +98,9 @@ class _Plotter(ABC):
                 continue
 
             if isinstance(state, detection.Clutter):
-                # Plot clutter
-                conv_clutter[state] = (*state_vec, )
-
+                if show_clutter:
+                    # Plot clutter
+                    conv_clutter[state] = (*state_vec, )
             elif isinstance(state, detection.Detection):
                 # Plot detections
                 conv_detections[state] = (*state_vec, )
@@ -108,6 +108,39 @@ class _Plotter(ABC):
                 warnings.warn(f'Unknown type {type(state)}')
                 continue
         return conv_detections, conv_clutter
+
+
+def merge_dicts(*dicts: dict) -> dict:
+    """Recursively merge multiple dictionaries into one.
+
+    For overlapping keys:
+     - If both values are dictionaries, they are merged recursively.
+     - Otherwise, the value from the later dictionary takes precedence.
+
+
+    Parameters
+    ----------
+    *dicts: dict
+        One or more dictionaries to merge.
+
+    Returns
+    -------
+    output: dict
+        A new dictionary containing the merged keys and values.
+    """
+    output = {}
+
+    for a_dict in dicts:
+        for key, value in a_dict.items():
+            # Merge the dictionaries if both values are dictionaries
+            if isinstance(value, dict):
+                if isinstance(output.get(key), dict):
+                    output[key] = merge_dicts(output.get(key), value)
+                else:
+                    output[key] = value.copy()
+            else:
+                output[key] = value
+    return output
 
 
 class Plotter(_Plotter):
@@ -232,7 +265,8 @@ class Plotter(_Plotter):
         return artists
 
     def plot_measurements(self, measurements, mapping, measurement_model=None,
-                          label="Measurements", convert_measurements=True, **kwargs):
+                          label="Measurements", convert_measurements=True, show_clutter=True,
+                          **kwargs):
         """Plots measurements
 
         Plots detections and clutter, generating a legend automatically. Detections are plotted as
@@ -256,6 +290,8 @@ class Plotter(_Plotter):
         convert_measurements : bool
             Should the measurements be converted from measurement space to state space before
             being plotted. Default is True
+        show_clutter : bool
+            Should the clutter measurements be plotted. Default is True
         \\*\\*kwargs: dict
             Additional arguments to be passed to plot function for detections. Defaults are
             ``marker='o'`` and ``color='b'``.
@@ -286,7 +322,8 @@ class Plotter(_Plotter):
         plot_detections, plot_clutter = self._conv_measurements(measurements_set,
                                                                 mapping,
                                                                 measurement_model,
-                                                                convert_measurements)
+                                                                convert_measurements,
+                                                                show_clutter)
 
         artists = []
         if plot_detections:
@@ -320,7 +357,7 @@ class Plotter(_Plotter):
         return artists
 
     def plot_tracks(self, tracks, mapping, uncertainty=False, particle=False, label="Tracks",
-                    err_freq=1, same_color=False, **kwargs):
+                    err_freq=1, same_color=False, uncertainty_alpha=0.2, **kwargs):
         """Plots track(s)
 
         Plots each track generated, generating a legend automatically. If ``uncertainty=True``
@@ -350,6 +387,8 @@ class Plotter(_Plotter):
         err_freq: int
             Frequency of error bar plotting on tracks. Default value is 1, meaning
             error bars are plotted at every track step.
+        uncertainty_alpha: float
+            The alpha value used when plotting the uncertainty ellipse. Defaults to 0.2.
         same_color: bool
             Should all the tracks have the same color. Default False
         \\*\\*kwargs: dict
@@ -436,13 +475,13 @@ class Plotter(_Plotter):
                         ellipse = Ellipse(xy=state.mean[mapping[:2], 0],
                                           width=2 * np.sqrt(w[max_ind]),
                                           height=2 * np.sqrt(w[min_ind]),
-                                          angle=np.rad2deg(orient), alpha=0.2,
+                                          angle=np.rad2deg(orient), alpha=uncertainty_alpha,
                                           color=track_colors[track])
                         self.ax.add_artist(ellipse)
                         artists.append(ellipse)
 
                 # Generate legend items for uncertainty ellipses
-                ellipse_handle = Ellipse((0.5, 0.5), 0.5, 0.5, alpha=0.2,
+                ellipse_handle = Ellipse((0.5, 0.5), 0.5, 0.5, alpha=uncertainty_alpha,
                                          color=tracks_kwargs['color'])
                 ellipse_label = "Uncertainty"
                 self.legend_dict[ellipse_label] = ellipse_handle
@@ -734,7 +773,7 @@ class MetricPlotter(ABC):
         """
         for metric_dict in metrics.values():
             for metric_name, metric in metric_dict.items():
-                if isinstance(metric.value, List) \
+                if isinstance(metric.value, list) \
                         and all(isinstance(x, SingleTimeMetric) for x in metric.value):
                     self.plottable_metrics.append(metric_name)
 
@@ -1038,7 +1077,7 @@ class Plotterly(_Plotter):
         if self.dimension == 3:
             layout_kwargs.update(dict(scene_aspectmode='data'))  # auto shapes fig to fit data well
 
-        merge(layout_kwargs, kwargs)
+        layout_kwargs = merge_dicts(layout_kwargs, kwargs)
 
         # Generate plot axes
         self.fig = go.Figure(layout=layout_kwargs)
@@ -1101,7 +1140,7 @@ class Plotterly(_Plotter):
         if self.dimension == 3:  # make ground truth line thicker so easier to see in 3d plot
             truths_kwargs.update(dict(line=dict(width=8, dash="longdashdot")))
 
-        merge(truths_kwargs, kwargs)
+        truths_kwargs = merge_dicts(truths_kwargs, kwargs)
         add_legend = truths_kwargs['legendgroup'] not in {trace.legendgroup
                                                           for trace in self.fig.data}
 
@@ -1116,27 +1155,28 @@ class Plotterly(_Plotter):
             if self.dimension == 1:
                 self.fig.add_scatter(
                     x=[state.timestamp for state in truth],
-                    y=[state.state_vector[mapping[0]] for state in truth],
+                    y=[float(state.state_vector[mapping[0]]) for state in truth],
                     text=[self._format_state_text(state) for state in truth],
                     **scatter_kwargs)
 
             elif self.dimension == 2:
                 self.fig.add_scatter(
-                    x=[state.state_vector[mapping[0]] for state in truth],
-                    y=[state.state_vector[mapping[1]] for state in truth],
+                    x=[float(state.state_vector[mapping[0]]) for state in truth],
+                    y=[float(state.state_vector[mapping[1]]) for state in truth],
                     text=[self._format_state_text(state) for state in truth],
                     **scatter_kwargs)
 
             elif self.dimension == 3:
                 self.fig.add_scatter3d(
-                    x=[state.state_vector[mapping[0]] for state in truth],
-                    y=[state.state_vector[mapping[1]] for state in truth],
-                    z=[state.state_vector[mapping[2]] for state in truth],
+                    x=[float(state.state_vector[mapping[0]]) for state in truth],
+                    y=[float(state.state_vector[mapping[1]]) for state in truth],
+                    z=[float(state.state_vector[mapping[2]]) for state in truth],
                     text=[self._format_state_text(state) for state in truth],
                     **scatter_kwargs)
 
     def plot_measurements(self, measurements, mapping, measurement_model=None,
-                          label="Measurements", convert_measurements=True, **kwargs):
+                          label="Measurements", convert_measurements=True, show_clutter=True,
+                          **kwargs):
         """Plots measurements
 
         Plots detections and clutter, generating a legend automatically. Detections are plotted as
@@ -1160,6 +1200,8 @@ class Plotterly(_Plotter):
         convert_measurements: bool
             Should the measurements be converted from measurement space to state space before
             being plotted. Default is True
+        show_clutter : bool
+            Should the clutter measurements be plotted. Default is True
         \\*\\*kwargs: dict
             Additional arguments to be passed to scatter function for detections. Defaults are
             ``marker=dict(color="#636EFA")``.
@@ -1184,7 +1226,8 @@ class Plotterly(_Plotter):
         plot_detections, plot_clutter = self._conv_measurements(measurements_set,
                                                                 mapping,
                                                                 measurement_model,
-                                                                convert_measurements)
+                                                                convert_measurements,
+                                                                show_clutter)
 
         if plot_detections:
             if plot_clutter:
@@ -1198,7 +1241,7 @@ class Plotterly(_Plotter):
             if self.dimension == 3:  # make markers smaller in 3d plot
                 measurement_kwargs.update(dict(marker=dict(size=4, color='#636EFA')))
 
-            merge(measurement_kwargs, kwargs)
+            measurement_kwargs = merge_dicts(measurement_kwargs, kwargs)
             if measurement_kwargs['legendgroup'] not in {trace.legendgroup
                                                          for trace in self.fig.data}:
                 measurement_kwargs['showlegend'] = True
@@ -1239,7 +1282,7 @@ class Plotterly(_Plotter):
                 clutter_kwargs.update(dict(marker=dict(size=4, symbol="diamond",
                                                        color='#FECB52')))
 
-            merge(clutter_kwargs, kwargs)
+            clutter_kwargs = merge_dicts(clutter_kwargs, kwargs)
             if clutter_kwargs['legendgroup'] not in {trace.legendgroup
                                                      for trace in self.fig.data}:
                 clutter_kwargs['showlegend'] = True
@@ -1346,7 +1389,7 @@ class Plotterly(_Plotter):
 
         if self.dimension == 3:  # change visuals to work well in 3d
             track_kwargs.update(dict(line=dict(width=7)), marker=dict(size=4))
-        merge(track_kwargs, kwargs)
+        track_kwargs = merge_dicts(track_kwargs, kwargs)
         add_legend = track_kwargs['legendgroup'] not in {trace.legendgroup
                                                          for trace in self.fig.data}
 
@@ -1495,26 +1538,20 @@ class Plotterly(_Plotter):
         b = np.sqrt(w[min_ind])
         m = 1 - (b**2 / a**2)
 
-        def func(x):
-            return np.sqrt(1 - (m**2 * np.sin(x)**2))
+        angles = np.linspace(0, 2 * np.pi, n_points)
+        arc_lengths = a * ellipeinc(angles, m)
 
-        def func2(z):
-            return quad(func, 0, z)[0]
+        total_length = arc_lengths[-1]
+        target_arc_lengths = np.linspace(0, total_length, n_points, endpoint=False)
 
-        c = 4 * a * func2(np.pi / 2)
-
-        points = []
-        for n in range(n_points):
-            def func3(x):
-                return n/n_points*c - a*func2(x)
-
-            points.append((brentq(func3, 0, 2 * np.pi, xtol=1e-4)))
+        thetas = np.interp(target_arc_lengths, arc_lengths, angles)
+        x_coords = a * np.sin(thetas)
+        y_coords = b * np.cos(thetas)
+        points = np.vstack((x_coords, y_coords))
 
         c, s = np.cos(orient), np.sin(orient)
         rotational_matrix = np.array(((c, -s), (s, c)))
-        points.append(points[0])
-        points = np.array([[a * np.sin(i), b * np.cos(i)] for i in points])
-        points = rotational_matrix @ points.T
+        points = rotational_matrix @ points
         return points + state.mean[mapping[:2], :]
 
     def plot_sensors(self, sensors, mapping=[0, 1], label="Sensors", **kwargs):
@@ -1553,7 +1590,7 @@ class Plotterly(_Plotter):
 
         sensor_kwargs = dict(mode='markers', marker=dict(symbol='x', color='black'),
                              legendgroup=label, legendrank=50)
-        merge(sensor_kwargs, kwargs)
+        sensor_kwargs = merge_dicts(sensor_kwargs, kwargs)
 
         sensor_kwargs['name'] = label
         if sensor_kwargs['legendgroup'] not in {trace.legendgroup
@@ -1660,7 +1697,7 @@ class PolarPlotterly(_Plotter):
         plotting_kwargs = dict(
             mode="markers", legendgroup=label, legendrank=200,
             name=label, thetaunit="radians")
-        merge(plotting_kwargs, kwargs)
+        plotting_kwargs = merge_dicts(plotting_kwargs, kwargs)
         add_legend = plotting_kwargs['legendgroup'] not in {trace.legendgroup
                                                             for trace in self.fig.data}
 
@@ -1714,7 +1751,7 @@ class PolarPlotterly(_Plotter):
         """
         label = kwargs.pop('truths_label', None) or label
         truths_kwargs = dict(mode="lines", line=dict(dash="dash"), legendrank=100)
-        merge(truths_kwargs, kwargs)
+        truths_kwargs = merge_dicts(truths_kwargs, kwargs)
         angle_mapping = mapping[0]
         if len(mapping) > 1:
             range_mapping = mapping[1]
@@ -1724,7 +1761,8 @@ class PolarPlotterly(_Plotter):
                                  range_mapping=range_mapping, label=label, **truths_kwargs)
 
     def plot_measurements(self, measurements, mapping, measurement_model=None,
-                          label="Measurements", convert_measurements=True, **kwargs):
+                          label="Measurements", convert_measurements=True, show_clutter=True,
+                          **kwargs):
         """Plots measurements
 
         Plots detections and clutter, generating a legend automatically. Detections are plotted as
@@ -1747,6 +1785,8 @@ class PolarPlotterly(_Plotter):
             Label for the measurements.  Default is "Measurements".
         convert_measurements: bool
             Should the measurements be converted before being plotted. Default is True.
+        show_clutter : bool
+            Should the clutter measurements be plotted. Default is True
         \\*\\*kwargs: dict
             Additional arguments to be passed to scatter function for detections. Defaults are
             ``marker=dict(color="#636EFA")``.
@@ -1769,7 +1809,8 @@ class PolarPlotterly(_Plotter):
         plot_detections, plot_clutter = self._conv_measurements(measurements_set,
                                                                 mapping,
                                                                 measurement_model,
-                                                                convert_measurements)
+                                                                convert_measurements,
+                                                                show_clutter)
 
         angle_mapping = 0
         if len(mapping) > 1:
@@ -1783,7 +1824,7 @@ class PolarPlotterly(_Plotter):
             else:
                 name = label
             measurement_kwargs = dict(mode='markers', marker=dict(color='#636EFA'), legendrank=200)
-            merge(measurement_kwargs, kwargs)
+            measurement_kwargs = merge_dicts(measurement_kwargs, kwargs)
             plotting_data = [State(state_vector=plotting_state_vector,
                                    timestamp=det.timestamp)
                              for det, plotting_state_vector in plot_detections.items()]
@@ -1796,7 +1837,7 @@ class PolarPlotterly(_Plotter):
             name = label + "<br>(Clutter)"
             clutter_kwargs = dict(mode='markers', legendrank=210,
                                   marker=dict(symbol="star-triangle-up", color='#FECB52'))
-            merge(clutter_kwargs, kwargs)
+            clutter_kwargs = merge_dicts(clutter_kwargs, kwargs)
             plotting_data = [State(state_vector=plotting_state_vector,
                                    timestamp=det.timestamp)
                              for det, plotting_state_vector in plot_clutter.items()]
@@ -1844,7 +1885,7 @@ class PolarPlotterly(_Plotter):
             raise NotImplementedError
 
         track_kwargs = dict(mode='markers+lines', legendrank=300)
-        merge(track_kwargs, kwargs)
+        track_kwargs = merge_dicts(track_kwargs, kwargs)
         angle_mapping = mapping[0]
         if len(mapping) > 1:
             range_mapping = mapping[1]
@@ -1858,7 +1899,7 @@ class PolarPlotterly(_Plotter):
 
 
 class _AnimationPlotterDataClass(Base):
-    plotting_data = Property(Iterable[State])
+    plotting_data: Iterable[State] = Property()
     plotting_label: str = Property()
     plotting_keyword_arguments: dict = Property()
 
@@ -1866,7 +1907,7 @@ class _AnimationPlotterDataClass(Base):
 class AnimationPlotter(_Plotter):
 
     def __init__(self, dimension=Dimension.TWO, x_label: str = "$x$", y_label: str = "$y$",
-                 title: str = None, legend_kwargs: dict = {}, **kwargs):
+                 title: str = None, legend_kwargs: dict = None, **kwargs):
 
         self.figure_kwargs = {"figsize": (10, 6)}
         self.figure_kwargs.update(kwargs)
@@ -1874,7 +1915,8 @@ class AnimationPlotter(_Plotter):
             raise NotImplementedError
 
         self.legend_kwargs = dict()
-        self.legend_kwargs.update(legend_kwargs)
+        if legend_kwargs is not None:
+            self.legend_kwargs.update(legend_kwargs)
 
         self.x_label: str = x_label
         self.y_label: str = y_label
@@ -1883,12 +1925,12 @@ class AnimationPlotter(_Plotter):
             title += "\n"
         self.title: str = title
 
-        self.plotting_data: List[_AnimationPlotterDataClass] = []
+        self.plotting_data: list[_AnimationPlotterDataClass] = []
 
         self.animation_output: animation.FuncAnimation = None
 
     def run(self,
-            times_to_plot: List[datetime] = None,
+            times_to_plot: list[datetime] = None,
             plot_item_expiry: Optional[timedelta] = None,
             **kwargs):
         """Run the animation
@@ -1939,7 +1981,7 @@ class AnimationPlotter(_Plotter):
 
         self.animation_output.save(filename, **kwargs)
 
-    def plot_ground_truths(self, truths, mapping: List[int], label: str = "Ground Truth",
+    def plot_ground_truths(self, truths, mapping: list[int], label: str = "Ground Truth",
                            **kwargs):
         """Plots ground truth(s)
 
@@ -1973,7 +2015,7 @@ class AnimationPlotter(_Plotter):
         truths_kwargs.update(kwargs)
         self.plot_state_mutable_sequence(truths, mapping, label, **truths_kwargs)
 
-    def plot_tracks(self, tracks, mapping: List[int], uncertainty=False, particle=False,
+    def plot_tracks(self, tracks, mapping: list[int], uncertainty=False, particle=False,
                     label="Tracks", **kwargs):
         """Plots track(s)
 
@@ -2013,7 +2055,7 @@ class AnimationPlotter(_Plotter):
         tracks_kwargs.update(kwargs)
         self.plot_state_mutable_sequence(tracks, mapping, label, **tracks_kwargs)
 
-    def plot_state_mutable_sequence(self, state_mutable_sequences, mapping: List[int], label: str,
+    def plot_state_mutable_sequence(self, state_mutable_sequences, mapping: list[int], label: str,
                                     **plotting_kwargs):
         """Plots State Mutable Sequence
 
@@ -2050,7 +2092,8 @@ class AnimationPlotter(_Plotter):
             ))
 
     def plot_measurements(self, measurements, mapping, measurement_model=None,
-                          label="Measurements", convert_measurements=True, **kwargs):
+                          label="Measurements", convert_measurements=True, show_clutter=True,
+                          **kwargs):
         """Plots measurements
 
         Plots detections and clutter, generating a legend automatically. Detections are plotted as
@@ -2074,6 +2117,8 @@ class AnimationPlotter(_Plotter):
         convert_measurements: bool
             Should the measurements be converted from measurement space to state space before
             being plotted. Default is True
+        show_clutter : bool
+            Should the clutter measurements be plotted. Default is True
         \\*\\*kwargs: dict
             Additional arguments to be passed to plot function for detections. Defaults are
             ``marker='o'`` and ``color='b'``.
@@ -2099,7 +2144,8 @@ class AnimationPlotter(_Plotter):
         plot_detections, plot_clutter = self._conv_measurements(measurements_set,
                                                                 mapping,
                                                                 measurement_model,
-                                                                convert_measurements)
+                                                                convert_measurements,
+                                                                show_clutter)
 
         if plot_detections:
             if plot_clutter:
@@ -2132,13 +2178,13 @@ class AnimationPlotter(_Plotter):
 
     @classmethod
     def run_animation(cls,
-                      times_to_plot: List[datetime],
+                      times_to_plot: list[datetime],
                       data: Iterable[_AnimationPlotterDataClass],
                       plot_item_expiry: Optional[timedelta] = None,
                       axis_padding: float = 0.1,
-                      figure_kwargs: dict = {},
-                      animation_input_kwargs: dict = {},
-                      legend_kwargs: dict = {},
+                      figure_kwargs: dict = None,
+                      animation_input_kwargs: dict = None,
+                      legend_kwargs: dict = None,
                       x_label: str = "$x$",
                       y_label: str = "$y$",
                       plot_title: str = None
@@ -2178,8 +2224,12 @@ class AnimationPlotter(_Plotter):
         """
 
         animation_kwargs = dict(blit=False, repeat=False, interval=50)  # milliseconds
+        if animation_input_kwargs is None:
+            animation_input_kwargs = dict()
         animation_kwargs.update(animation_input_kwargs)
 
+        if figure_kwargs is None:
+            figure_kwargs = dict()
         fig1 = plt.figure(**figure_kwargs)
 
         the_lines = []
@@ -2222,6 +2272,8 @@ class AnimationPlotter(_Plotter):
 
         lines_with_legend = [line for line, label in zip(the_lines, legends_key)
                              if label is not None]
+        if legend_kwargs is None:
+            legend_kwargs = dict()
         plt.legend(lines_with_legend, [label for label in legends_key if label is not None],
                    **legend_kwargs)
 
@@ -2244,8 +2296,8 @@ class AnimationPlotter(_Plotter):
         return line_ani
 
     @staticmethod
-    def update_animation(index: int, lines: List[Line2D], data_list: List[List[State]],
-                         start_times: List[datetime], end_times: List[datetime], title: str):
+    def update_animation(index: int, lines: list[Line2D], data_list: list[list[State]],
+                         start_times: list[datetime], end_times: list[datetime], title: str):
         """
         Parameters
         ----------
@@ -2596,7 +2648,7 @@ class AnimatedPlotterly(_Plotter):
         truth_kwargs = dict(x=[], y=[], mode="lines", hoverinfo='none', legendgroup=label,
                             line=dict(dash="dash", color=self.colorway[0]), legendrank=100,
                             name=label, showlegend=True)
-        merge(truth_kwargs, kwargs)
+        truth_kwargs = merge_dicts(truth_kwargs, kwargs)
         # legend dummy trace
         self.fig.add_trace(go.Scatter(truth_kwargs))
 
@@ -2605,8 +2657,9 @@ class AnimatedPlotterly(_Plotter):
 
         for n, _ in enumerate(truths):
             # change the colour of each truth and include n in its name
-            merge(truth_kwargs, dict(line=dict(color=self.colorway[n % len(self.colorway)])))
-            merge(truth_kwargs, kwargs)
+            truth_kwargs = merge_dicts(
+                truth_kwargs, dict(line=dict(color=self.colorway[n % len(self.colorway)])))
+            truth_kwargs = merge_dicts(truth_kwargs, kwargs)
             self.fig.add_trace(go.Scatter(truth_kwargs))  # add to traces
 
         for frame in self.fig.frames:
@@ -2660,8 +2713,8 @@ class AnimatedPlotterly(_Plotter):
         self.plotting_function_called = True
 
     def plot_measurements(self, measurements, mapping, measurement_model=None,
-                          resize=True, label="Measurements",
-                          convert_measurements=True, **kwargs):
+                          resize=True, label="Measurements", convert_measurements=True,
+                          show_clutter=True, **kwargs):
         """Plots measurements
 
         Plots detections and clutter, generating a legend automatically. Detections are plotted as
@@ -2687,6 +2740,8 @@ class AnimatedPlotterly(_Plotter):
         convert_measurements : bool
             Should the measurements be converted from measurement space to state space before
             being plotted. Default is True
+        show_clutter : bool
+            Should the clutter measurements be plotted. Default is True
         \\*\\*kwargs: dict
             Additional arguments to be passed to scatter function for detections. Defaults are
             ``marker=dict(color="#636EFA")``.
@@ -2709,7 +2764,8 @@ class AnimatedPlotterly(_Plotter):
         plot_detections, plot_clutter = self._conv_measurements(measurements_set,
                                                                 mapping,
                                                                 measurement_model,
-                                                                convert_measurements)
+                                                                convert_measurements,
+                                                                show_clutter)
         plot_combined = {'Detection': plot_detections,
                          'Clutter': plot_clutter}  # for later reference
 
@@ -2759,7 +2815,7 @@ class AnimatedPlotterly(_Plotter):
                                       legendgroup=name,
                                       legendrank=200, showlegend=True,
                                       marker=dict(color="#636EFA"), hoverinfo='none')
-            merge(measurement_kwargs, kwargs)
+            measurement_kwargs = merge_dicts(measurement_kwargs, kwargs)
 
             self.fig.add_trace(go.Scatter(measurement_kwargs))  # trace for legend
 
@@ -2775,7 +2831,7 @@ class AnimatedPlotterly(_Plotter):
                                   legendrank=300, showlegend=True,
                                   marker=dict(symbol="star-triangle-up", color='#FECB52'),
                                   hoverinfo='none')
-            merge(clutter_kwargs, kwargs)
+            clutter_kwargs = merge_dicts(clutter_kwargs, kwargs)
 
             self.fig.add_trace(go.Scatter(clutter_kwargs))  # trace for plotting clutter
 
@@ -2841,9 +2897,9 @@ class AnimatedPlotterly(_Plotter):
 
         Parameters
         ----------
-        tracks: Collection of :class '~Track'
+        tracks: Collection of :class:`~.Track`
             Collection of tracks which will be plotted. If not a collection, and instead a single
-            :class:'~Track' type, the argument is modified to be a set to allow for iteration
+            :class:`~.Track` type, the argument is modified to be a set to allow for iteration
 
         mapping: list
             List of items specifying the mapping of the position
@@ -3131,7 +3187,7 @@ class AnimatedPlotterly(_Plotter):
             sensor_kwargs = dict(mode='markers', marker=dict(symbol='x', color='black'),
                                  legendgroup=label, legendrank=50,
                                  name=label, showlegend=True)
-            merge(sensor_kwargs, kwargs)
+            sensor_kwargs = merge_dicts(sensor_kwargs, kwargs)
 
             self.fig.add_trace(go.Scatter(sensor_kwargs))  # initialises trace
 
@@ -3152,3 +3208,216 @@ class AnimatedPlotterly(_Plotter):
 
         # we have called a plotting function so update flag (used in _resize)
         self.plotting_function_called = True
+
+
+class AnimatedPolarPlotterly(PolarPlotterly):
+    """Class to produce 2D animated polar plots."""
+
+    def __init__(self, timesteps, tail_length=1, dimension=Dimension.TWO,
+                 sim_duration=6, **kwargs):
+        if go is None:
+            raise RuntimeError("Usage of Plotterly plotter requires installation of `plotly`")
+        if isinstance(dimension, type(Dimension.TWO)):
+            self.dimension = dimension
+        elif isinstance(dimension, int):
+            self.dimension = Dimension(dimension)
+        else:
+            raise TypeError(f"{type(dimension)} is an unsupported type for \'dimension\'; "
+                            f"expected type {type(Dimension.TWO)}")
+        if self.dimension != dimension.TWO:
+            raise TypeError("Only 2D plotting currently supported")
+
+        if len(timesteps) < 2:
+            raise ValueError("Must be at least 2 timesteps for animation.")
+
+        # checking that timesteps are evenly spaced
+        time_spaces = np.unique(np.diff(timesteps))
+
+        # gives the unique values of time gaps between timesteps. If this contains more than
+        # one value, then timesteps are not all evenly spaced which is an issue.
+        if len(time_spaces) != 1:
+            warnings.warn("Timesteps are not equally spaced, so the passage of time is not linear")
+        self.timesteps = timesteps
+
+        # checking input to tail_length
+        if tail_length > 1 or tail_length < 0:
+            raise ValueError("Tail length should be between 0 and 1")
+        self.tail_length = tail_length
+
+        # checking sim_duration
+        if sim_duration <= 0:
+            raise ValueError("Simulation duration must be positive")
+
+        # time window is calculated as sim_length * tail_length. This is
+        # the window of time for which past plots are still visible
+        self.time_window = (timesteps[-1] - timesteps[0]) * tail_length
+
+        layout_kwargs = dict()
+        self.colorway = colors.qualitative.Plotly[1:]  # plotting colours
+
+        # Generate plot axes
+        self.fig = go.Figure(layout=layout_kwargs)
+        self.fig.frames = [dict(
+            name=str(time),
+            data=[],
+            traces=[]
+        ) for time in timesteps]
+
+        frame_duration = sim_duration * 1000 / len(self.fig.frames)
+
+        # if the gap between timesteps is greater than a day, it isn't necessary
+        # to display hour and minute information, so remove this to give a cleaner display.
+        # a and b are used in the slider steps label later
+        if time_spaces[0] >= timedelta(days=1):
+            start_cut_off = None
+            end_cut_off = 10
+
+        # if the simulation is over a day long, display all information which
+        # looks clunky but is necessary
+        elif timesteps[-1] - timesteps[0] > timedelta(days=1):
+            start_cut_off = None
+            end_cut_off = None
+
+        # otherwise, remove day information and just show
+        # hours, mins, etc. which is cleaner to look at
+        else:
+            start_cut_off = 11
+            end_cut_off = None
+
+        # create button and slider
+        updatemenus = [dict(type='buttons',
+                            buttons=[{
+                                "args": [None,
+                                         {"frame": {"duration": frame_duration, "redraw": True},
+                                          "fromcurrent": True, "transition": {"duration": 0}}],
+                                "label": "Play",
+                                "method": "animate"
+                            }, {
+                                "args": [[None], {"frame": {"duration": 0, "redraw": True},
+                                                  "mode": "immediate",
+                                                  "transition": {"duration": 0}}],
+                                "label": "Stop",
+                                "method": "animate"
+                            }],
+                            direction='left',
+                            pad=dict(r=10, t=75),
+                            showactive=True, x=0.1, y=0, xanchor='right', yanchor='top')
+                       ]
+        sliders = [{'yanchor': 'top',
+                    'xanchor': 'left',
+                    'currentvalue': {'font': {'size': 16}, 'prefix': 'Time: ', 'visible': True,
+                                     'xanchor': 'right'},
+                    'transition': {'duration': frame_duration, 'easing': 'linear'},
+                    'pad': {'b': 10, 't': 50},
+                    'len': 0.9, 'x': 0.1, 'y': 0,
+                    'steps': [{'args': [[frame.name], {
+                        'frame': {'duration': 1.0, 'easing': 'linear', 'redraw': True},
+                        'transition': {'duration': 0, 'easing': 'linear'}}],
+                               'label': frame.name[start_cut_off: end_cut_off],
+                               'method': 'animate'} for frame in
+                              self.fig.frames
+                              ]}]
+        self.fig.update_layout(updatemenus=updatemenus, sliders=sliders)
+        layout_kwargs.update(kwargs)
+
+    def plot_state_sequence(self, state_sequences, angle_mapping: int, range_mapping: int,
+                            label="", **kwargs):
+        """Plots state sequence(s)
+
+        Plots each state sequence passed in to :attr:`state_sequences` and generates a legend
+        automatically.
+
+        Users can change line style, color and marker using keyword arguments. Any changes
+        will apply to all ground truths.
+
+        Parameters
+        ----------
+        state_sequences : Collection of :class:`~.StateMutableSequence`
+            Collection of  state sequences which will be plotted. If not a collection,
+            and instead a single :class:`~.StateMutableSequence` type, the argument is modified
+            to be a set to allow for iteration.
+        angle_mapping: int
+            Specifying the mapping of the angular component of the state space to be plotted.
+        range_mapping: int
+            Specifying the mapping of the range component of the state space to be plotted.
+        label: str
+            Label for truth data.
+        \\*\\*kwargs: dict
+            Additional arguments to be passed to scatter function. Default is
+            ``mode=marker``.
+            The default unit for the angular component is radians. This can be changed to degrees
+            with the keyword argument ``thetaunit='degrees'``.
+        """
+
+        if not isinstance(state_sequences, Collection) \
+                or isinstance(state_sequences, StateMutableSequence):
+            state_sequences = {state_sequences}
+
+        if range_mapping is None:
+            raise NotImplementedError(
+                "Angle vs Time plots are not supported for Animated Polar Plots.")
+
+        plotting_kwargs = dict(
+            mode="markers", legendgroup=label, legendrank=200,
+            name=label, thetaunit="radians")
+        plotting_kwargs = merge_dicts(plotting_kwargs, kwargs)
+        add_legend = plotting_kwargs['legendgroup'] not in {trace.legendgroup
+                                                            for trace in self.fig.data}
+        data = [dict() for _ in state_sequences]
+        for n, state_sequence in enumerate(state_sequences):
+            data[n].update(
+                angle=np.zeros(len(state_sequence)),
+                range=np.zeros(len(state_sequence)),
+                time=np.array([0 for _ in range(len(state_sequence))], dtype=object),
+                time_str=np.array([0 for _ in range(len(state_sequence))], dtype=object),
+                type=np.array([0 for _ in range(len(state_sequence))], dtype=object))
+            for k, state in enumerate(state_sequence):
+                data[n]["angle"][k] = state.state_vector[angle_mapping]
+                data[n]["range"][k] = state.state_vector[range_mapping]
+                data[n]["time"][k] = state.timestamp
+                data[n]["time_str"][k] = str(state.timestamp)
+                data[n]["type"][k] = type(state).__name__
+
+        trace_base = len(self.fig.data)
+        scatter_kwargs = plotting_kwargs.copy()
+        if add_legend:
+            scatter_kwargs['showlegend'] = True
+            add_legend = False
+        else:
+            scatter_kwargs['showlegend'] = False
+        scatter_kwargs = merge_dicts(scatter_kwargs, kwargs)
+        self.fig.add_trace(go.Scatterpolar(scatter_kwargs))
+
+        for n, _ in enumerate(state_sequences):
+            scatter_kwargs = merge_dicts(
+                scatter_kwargs, dict(line=dict(color=self.colorway[n % len(self.colorway)])))
+            scatter_kwargs = merge_dicts(scatter_kwargs, kwargs)
+            self.fig.add_trace(go.Scatterpolar(scatter_kwargs))
+
+        for frame in self.fig.frames:
+            data_ = list(frame.data)
+            traces_ = list(frame.traces)
+
+            frame_time = datetime.fromisoformat(frame.name)
+            cutoff_time = frame_time - self.time_window
+
+            for n, state_sequence in enumerate(state_sequences):
+                t_upper = [data[n]["time"] <= frame_time]
+                t_lower = [data[n]["time"] >= cutoff_time]
+
+                mask = np.logical_and(t_upper, t_lower)
+
+                state_angle = data[n]["angle"][tuple(mask)]
+                state_angle = np.append(state_angle, [np.inf])
+
+                state_range = data[n]["range"][tuple(mask)]
+                state_range = np.append(state_range, [np.inf])
+
+                times = data[n]["time_str"][tuple(mask)]
+                data_.append(go.Scatterpolar(r=state_range,
+                                             theta=state_angle,
+                                             meta=times))
+                traces_.append(trace_base + n + 1)
+
+                frame.data = data_
+                frame.traces = traces_

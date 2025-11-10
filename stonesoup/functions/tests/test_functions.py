@@ -1,15 +1,57 @@
-import pytest
 import numpy as np
+import pytest
 from numpy import deg2rad
-from scipy.linalg import cholesky, LinAlgError
+from numpy import linalg as LA
 from pytest import approx, raises
+from scipy.linalg import LinAlgError, cholesky
+import warnings
 
+from ...types.array import CovarianceMatrix, Matrix, StateVector, StateVectors
+from ...types.state import GaussianState, State
 from .. import (
-    cholesky_eps, jacobian, gm_reduce_single, mod_bearing, mod_elevation, gauss2sigma,
-    rotx, roty, rotz, cart2sphere, cart2angles, pol2cart, sphere2cart, dotproduct, gm_sample,
-    gauss2cubature, cubature2gauss, cubature_transform)
-from ...types.array import StateVector, StateVectors, Matrix, CovarianceMatrix
-from ...types.state import State, GaussianState
+    cart2angles,
+    cart2sphere,
+    cholesky_eps,
+    cubature2gauss,
+    cubature_transform,
+    dotproduct,
+    gauss2cubature,
+    gauss2sigma,
+    gm_reduce_single,
+    gm_sample,
+    grid_creation,
+    jacobian,
+    mod_bearing,
+    mod_elevation,
+    pol2cart,
+    rotx,
+    roty,
+    rotz,
+    sphere2cart,
+    stochastic_cubature_rule_points,
+)
+
+
+def test_grid_creation():
+    nx = 4
+    meanX0 = np.array([36569, 50, 55581, 50])  # mean value
+    varX0 = np.diag([90, 5, 160, 5])  # variance
+    Npa = np.array([31, 31, 27, 27])  # must be ODD!
+    sFactor = 4  # scaling factor (number of sigmas covered by the grid)
+
+    [predGrid, predGridDelta, gridDimOld, xOld, Ppold] = grid_creation(
+        np.vstack(meanX0), varX0, sFactor, nx, Npa
+    )
+
+    mean_diffs = np.array([np.mean(np.diff(sublist)) for sublist in gridDimOld])
+
+    eigVal, eigVect = LA.eig(varX0)
+
+    assert np.allclose(meanX0, np.mean(predGrid, axis=1), 0, atol=1.0e-1)
+    assert np.all(meanX0 == xOld.ravel())
+    assert np.all(np.argsort(predGridDelta) == np.argsort(np.diag(varX0)))
+    assert np.allclose(mean_diffs, predGridDelta, 0, atol=1e-10)
+    assert np.all(eigVect == Ppold)
 
 
 def test_cholesky_eps():
@@ -137,6 +179,17 @@ def test_gm_reduce_single():
     assert np.allclose(covar, np.array([[3.675, 3.35],
                                         [3.2, 3.3375]]))
 
+    # Test that negative means do not cause numeric warnings
+    with warnings.catch_warnings():
+        warnings.filterwarnings(
+            "error", r".*invalid value encountered in (multiply|divide).*", RuntimeWarning
+        )
+
+        mean, covar = gm_reduce_single(-means, covars, weights)
+        assert np.allclose(-mean, np.array([[4], [5]]))
+        assert np.allclose(covar, np.array([[3.675, 3.35],
+                                            [3.2, 3.3375]]))
+
 
 def test_bearing():
     bearing_in = [10., 170., 190., 260., 280., 350., 705]
@@ -173,11 +226,12 @@ def test_gauss2sigma(mean):
 
     sigma_points_states, mean_weights, covar_weights = gauss2sigma(state, kappa=0)
 
-    for n, sigma_point_state in zip((0, 1, -1), sigma_points_states):
-        assert sigma_point_state.state_vector[0, 0] == approx(mean + n*covar**0.5)
+    for n, sigma_point_state_vector in zip((0, 1, -1), sigma_points_states.state_vector):
+        assert sigma_point_state_vector[0, 0] == approx(mean + n*covar**0.5)
 
 
-def test_gauss2sigma_bad_covar():
+@pytest.mark.parametrize("gauss2x", [(gauss2sigma), (gauss2cubature)])
+def test_gauss2sigma_bad_covar(gauss2x):
     covar = np.array(
         [[ 0.05201447,  0.02882126, -0.00569971, -0.00733617],  # noqa: E201
          [ 0.02882126,  0.01642966, -0.00862847, -0.00673035],  # noqa: E201
@@ -186,7 +240,7 @@ def test_gauss2sigma_bad_covar():
     state = GaussianState([[0], [0], [0], [0]], covar)
 
     with pytest.warns(UserWarning, match="Matrix is not positive definite"):
-        sigma_points_states, mean_weights, covar_weights = gauss2sigma(state, kappa=0)
+        gauss2x(state)
 
 
 @pytest.mark.parametrize(
@@ -380,3 +434,34 @@ def test_cubature_transform(mean, covar, alp):
     assert np.allclose(outcovar, instate.covar)
     assert np.allclose(mean, instate.state_vector)
     assert np.allclose(covar, instate.covar)
+
+
+@pytest.mark.parametrize(
+    "order, nx",
+    [
+        (3, 3),
+        (5, 4),
+        (1, 2)
+    ]
+)
+def test_stochastic_integration(order, nx):
+    points, weights = stochastic_cubature_rule_points(nx, order)
+    # Mean
+    assert np.allclose(np.average(points, weights=weights, axis=1),
+                       0, atol=1e-5)
+    # Weights
+    assert np.isclose(np.sum(weights), 1, atol=1e-5)
+    if order != 1:  # For order 1 it does not make sense to check variance of points
+        # Covariance
+        var = ((weights * points) @ points.T)
+        # Check if diagonal elements are close to 1
+        diagonal_elements = np.diag(var)
+        assert np.allclose(diagonal_elements, 1, atol=1e-5)
+        # Check if off-diagonal elements are close to 0
+        off_diagonal_elements = var[~np.eye(nx, dtype=bool)]
+        assert np.allclose(off_diagonal_elements, 0, atol=1e-5)
+
+
+def test_stochastic_integration_invalid_order():
+    with pytest.raises(ValueError, match="This order of SIF is not supported"):
+        stochastic_cubature_rule_points(5, 2)

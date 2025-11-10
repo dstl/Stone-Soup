@@ -44,6 +44,12 @@ following command::
 
     git clean -xf docs/source/auto_*
 
+Some examples may require additional packages beyond the dev installation.
+These are likely all located in the optional dependencies section of the
+top-level `pyproject.toml` file and can be installed through commands such as::
+
+    pip install .[ehm]
+
 Tests
 -----
 PyTest_ is used for testing in Stone Soup. As much effort should be put into

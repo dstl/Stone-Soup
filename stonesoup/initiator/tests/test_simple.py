@@ -28,7 +28,7 @@ from ...types.state import GaussianState, ParticleState
 from ...types.update import ParticleStateUpdate, Update, GaussianMixtureUpdate, \
     ASDGaussianStateUpdate, EnsembleStateUpdate
 from ..simple import (
-    SinglePointInitiator, SimpleMeasurementInitiator,
+    SinglePointInitiator, SinglePointMeasurementInitiator, SimpleMeasurementInitiator,
     MultiMeasurementInitiator, GaussianParticleInitiator, GaussianMixtureInitiator,
     ASDGaussianInitiator, EnsembleInitiator,
     NoHistoryMultiMeasurementInitiator, ParticleGaussianInitiator
@@ -62,7 +62,7 @@ def test_spi(measurement_model):
     # Define 2 detections from which tracks are to be initiated
     timestamp = datetime.datetime.now()
     detections = [Detection(np.array([[4.5], [2.0]]), timestamp),
-                  Detection(np.array([[-4.5], [2.0]]), timestamp)]
+                  Detection(np.array([[-4.5], [2.0]]), timestamp, measurement_model)]
 
     # Run the initiator based on the available detections
     tracks = initiator.initiate(detections, timestamp)
@@ -92,16 +92,21 @@ def test_spi(measurement_model):
                                   for track in tracks)
 
 
-def test_linear_measurement():
+@pytest.fixture(params=[SimpleMeasurementInitiator, SinglePointMeasurementInitiator])
+def meas_init(request):
+    return request.param
+
+
+def test_linear_measurement(meas_init):
     measurement_model = LinearGaussian(2, [0], np.array([[50]]))
-    measurement_initiator = SimpleMeasurementInitiator(
+    measurement_initiator = meas_init(
         GaussianState(np.array([[0], [0]]), np.diag([100, 10])),
         measurement_model
     )
 
     timestamp = datetime.datetime.now()
     detections = [Detection(np.array([[5]]), timestamp),
-                  Detection(np.array([[-5]]), timestamp)]
+                  Detection(np.array([[-5]]), timestamp, measurement_model)]
 
     tracks = measurement_initiator.initiate(detections, timestamp)
 
@@ -121,31 +126,34 @@ def test_linear_measurement():
 
         assert track.timestamp == timestamp
 
-        assert np.diag([50, 10]) == approx(track.covar)
-        assert measurement_model.matrix() @ track.covar @ \
-            measurement_model.matrix().T == approx(measurement_model.covar())
+        if isinstance(measurement_initiator, SimpleMeasurementInitiator):
+            assert np.diag([50, 10]) == approx(track.covar)
+            assert measurement_model.matrix() @ track.covar @ \
+                measurement_model.matrix().T == approx(measurement_model.covar())
+        else:
+            assert np.diag([(1 - 100/(100+50))*100, 10]) == approx(track.covar)
 
 
 @pytest.mark.parametrize("meas_model", (CartesianToBearingRange, Cartesian2DToBearing))
 @pytest.mark.parametrize("skip_non_linear", (None, True, False))
-def test_nonlinear_measurement(meas_model, skip_non_linear):
+def test_nonlinear_measurement(meas_init, meas_model, skip_non_linear):
 
     meas_params = [2, [0, 1], np.diag([np.radians(2), 30])]
     measurement_model = meas_model(*meas_params)
     combined_measurement_model = CombinedReversibleGaussianMeasurementModel([measurement_model])
 
-    measurement_initiator = SimpleMeasurementInitiator(
+    measurement_initiator = meas_init(
         prior_state=GaussianState(np.array([[0], [0]]), np.diag([100, 10])),
         measurement_model=measurement_model,
         skip_non_reversible=skip_non_linear)
-    combined_measurement_initiator = SimpleMeasurementInitiator(
+    combined_measurement_initiator = meas_init(
         prior_state=GaussianState(np.array([[0], [0]]), np.diag([100, 10])),
         measurement_model=combined_measurement_model,
         skip_non_reversible=skip_non_linear)
 
     timestamp = datetime.datetime.now()
     detections = [Detection(np.array([[5, 2]]), timestamp),
-                  Detection(np.array([[-5, -2]]), timestamp)]
+                  Detection(np.array([[-5, -2]]), timestamp, measurement_model)]
 
     if not (isinstance(measurement_model, ReversibleModel) or skip_non_linear):
         with pytest.raises(Exception):
@@ -158,7 +166,7 @@ def test_nonlinear_measurement(meas_model, skip_non_linear):
         # Skipping for non-reversible
         assert len(measurement_initiator.initiate(detections, timestamp)) == 0
         assert len(combined_measurement_initiator.initiate(detections, timestamp)) == 0
-    else:
+    elif isinstance(measurement_initiator, SimpleMeasurementInitiator):
         # Otherwise tracks made
         all_tracks = [measurement_initiator.initiate(detections, timestamp),
                       combined_measurement_initiator.initiate(detections, timestamp)]
@@ -171,7 +179,7 @@ def test_nonlinear_measurement(meas_model, skip_non_linear):
                 assert Ry == approx(measurement_model.covar())
 
 
-def test_linear_measurement_non_direct():
+def test_linear_measurement_non_direct(meas_init):
     class _LinearMeasurementModel(LinearModel):
         ndim_state = 2
         ndmim_meas = 2
@@ -194,14 +202,14 @@ def test_linear_measurement_non_direct():
             pass
 
     measurement_model = _LinearMeasurementModel()
-    measurement_initiator = SimpleMeasurementInitiator(
+    measurement_initiator = meas_init(
         GaussianState(np.array([[0], [0]]), np.diag([100, 10])),
         measurement_model
     )
 
     timestamp = datetime.datetime.now()
     detections = [Detection(np.array([[5], [2]]), timestamp),
-                  Detection(np.array([[-5], [8]]), timestamp)]
+                  Detection(np.array([[-5], [8]]), timestamp, measurement_model)]
 
     tracks = measurement_initiator.initiate(detections, timestamp)
 
@@ -221,12 +229,15 @@ def test_linear_measurement_non_direct():
 
         assert track.timestamp == timestamp
 
-        assert np.diag([12.5, 10]) == approx(track.covar)
-        assert measurement_model.matrix() @ track.covar @ \
-            measurement_model.matrix().T == approx(measurement_model.covar())
+        if isinstance(measurement_initiator, SimpleMeasurementInitiator):
+            assert np.diag([12.5, 10]) == approx(track.covar)
+            assert measurement_model.matrix() @ track.covar @ \
+                measurement_model.matrix().T == approx(measurement_model.covar())
+        else:
+            assert np.diag([(1 - 400/(400+50))*100, (1 - 10/(10+10))*10]) == approx(track.covar)
 
 
-def test_linear_measurement_extra_state_dim():
+def test_linear_measurement_extra_state_dim(meas_init):
     class _LinearMeasurementModel(LinearModel):
         ndim_state = 3
         ndmim_meas = 2
@@ -250,14 +261,14 @@ def test_linear_measurement_extra_state_dim():
             pass
 
     measurement_model = _LinearMeasurementModel()
-    measurement_initiator = SimpleMeasurementInitiator(
+    measurement_initiator = meas_init(
         GaussianState(np.array([[0], [0], [0]]), np.diag([100, 10, 500])),
         measurement_model
     )
 
     timestamp = datetime.datetime.now()
     detections = [Detection(np.array([[5], [2]]), timestamp),
-                  Detection(np.array([[-5], [8]]), timestamp)]
+                  Detection(np.array([[-5], [8]]), timestamp, measurement_model)]
 
     tracks = measurement_initiator.initiate(detections, timestamp)
 
@@ -281,9 +292,13 @@ def test_linear_measurement_extra_state_dim():
 
         assert track.timestamp == timestamp
 
-        assert np.diag([10, 10, 50]) == approx(track.covar)
-        assert measurement_model.matrix() @ track.covar @ \
-            measurement_model.matrix().T == approx(measurement_model.covar())
+        if isinstance(measurement_initiator, SimpleMeasurementInitiator):
+            assert np.diag([10, 10, 50]) == approx(track.covar)
+            assert measurement_model.matrix() @ track.covar @ \
+                measurement_model.matrix().T == approx(measurement_model.covar())
+        else:
+            assert np.diag([(1 - 100/(100+10))*100, 10, (1 - 500/(500+50))*500]) \
+                    == approx(track.covar)
 
 
 def create_multi_measurement_initiator(obj_class, **kwargs):
@@ -404,7 +419,10 @@ def test_skip_in_multi_measurement(measurement_model_class, skip_non_reversible)
     SimpleMeasurementInitiator(
         GaussianState(np.array([[0]]), np.array([[100]]))
     ),
-], ids=['SinglePoint', 'LinearMeasurement'])
+    SinglePointMeasurementInitiator(
+        GaussianState(np.array([[0]]), np.array([[100]]))
+    ),
+], ids=['SinglePoint', 'SimpleMeasurementInitiator', 'SinglePointMeasurementInitiator'])
 def test_measurement_model(initiator):
     timestamp = datetime.datetime.now()
     dummy_detection = TrueDetection(np.array([0, 0]), timestamp)

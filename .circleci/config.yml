@@ -1,4 +1,6 @@
 version: 2.1
+orbs:
+  codecov: codecov/codecov@5.4.3
 workflows:
   version: 2
   lint:
@@ -6,33 +8,33 @@ workflows:
       - flake8
   test:
     jobs:
-      - test-38
-      - test-39
       - test-310
       - test-311
       - test-312
+      - test-313
+      - test-314
   docs:
     jobs:
       - docs
 jobs:
-  test-38: &test-template
+  test-310: &test-template
     docker:
-      - image: cimg/python:3.8
+      - image: cimg/python:3.10
     steps:
       - checkout
       - restore_cache:
-          key: dependencies-{{ .Environment.CACHE_VERSION }}-{{ checksum "/home/circleci/.pyenv/version" }}-{{ checksum "setup.cfg" }}
+          key: dependencies-{{ .Environment.CACHE_VERSION }}-{{ checksum "/home/circleci/.pyenv/version" }}-{{ checksum "pyproject.toml" }}
       - run:
           name: Install Dependencies
           command: |
             python -m venv venv
             . venv/bin/activate
             pip install --upgrade pip
-            pip install -e .[dev,orbital] opencv-python-headless pyehm
+            pip install -e .[dev,ehm,optuna,orbital,roadnet,architectures] opencv-python-headless
       - save_cache:
           paths:
             - ./venv
-          key: dependencies-{{ .Environment.CACHE_VERSION }}-{{ checksum "/home/circleci/.pyenv/version" }}-{{ checksum "setup.cfg" }}
+          key: dependencies-{{ .Environment.CACHE_VERSION }}-{{ checksum "/home/circleci/.pyenv/version" }}-{{ checksum "pyproject.toml" }}
       - run:
           name: Run Tests
           command: |
@@ -42,22 +44,10 @@ jobs:
       - store_test_results:
           path: test-reports/junit.xml
       - store_artifacts:
-          path: test-reports 
-      - run:
-          name: Upload Coverage Results
-          command: |
-            bash <(curl -s https://codecov.io/bash) \
-              -f test-reports/coverage.xml \
-              -F unittests \
-              -n ${CIRCLE_BUILD_NUM}
-  test-39:
-    <<: *test-template
-    docker:
-      - image: cimg/python:3.9
-  test-310:
-    <<: *test-template
-    docker:
-      - image: cimg/python:3.10
+          path: test-reports
+      - codecov/upload:
+          files: test-reports/coverage.xml
+          flags: unittests
   test-311:
     <<: *test-template
     docker:
@@ -66,13 +56,48 @@ jobs:
     <<: *test-template
     docker:
       - image: cimg/python:3.12
-  flake8:
+  test-313:
+    <<: *test-template
     docker:
-      - image: cimg/python:3.12
+      - image: cimg/python:3.13
+  test-314: &test-template
+    docker:
+      - image: cimg/python:3.14
     steps:
       - checkout
       - restore_cache:
-          key: dependencies-flake8-{{ .Environment.CACHE_VERSION }}-{{ checksum "/home/circleci/.pyenv/version" }}-{{ checksum "setup.cfg" }}
+          key: dependencies-{{ .Environment.CACHE_VERSION }}-{{ checksum "/home/circleci/.pyenv/version" }}-{{ checksum "pyproject.toml" }}
+      - run:
+          name: Install Dependencies
+          command: |
+            python -m venv venv
+            . venv/bin/activate
+            pip install --upgrade pip
+            pip install .[ehm,optuna,orbital,architectures] opencv-python-headless plotly pytest-cov pytest-remotedata pytest-skip-slow pyehm h5py pandas
+      - save_cache:
+          paths:
+            - ./venv
+          key: dependencies-{{ .Environment.CACHE_VERSION }}-{{ checksum "/home/circleci/.pyenv/version" }}-{{ checksum "pyproject.toml" }}
+      - run:
+          name: Run Tests
+          command: |
+            . venv/bin/activate
+            mkdir test-reports
+            pytest --junitxml=test-reports/junit.xml --cov --cov-report=xml:test-reports/coverage.xml --slow stonesoup
+      - store_test_results:
+          path: test-reports/junit.xml
+      - store_artifacts:
+          path: test-reports
+      - codecov/upload:
+          files: test-reports/coverage.xml
+          flags: unittests
+  flake8:
+    docker:
+      - image: cimg/python:3.13
+    steps:
+      - checkout
+      - restore_cache:
+          key: dependencies-flake8-{{ .Environment.CACHE_VERSION }}-{{ checksum "/home/circleci/.pyenv/version" }}-{{ checksum "pyproject.toml" }}
       - run:
           name: Install Dependencies
           command: |
@@ -83,7 +108,7 @@ jobs:
       - save_cache:
           paths:
             - ./venv
-          key: dependencies-flake8-{{ .Environment.CACHE_VERSION }}-{{ checksum "/home/circleci/.pyenv/version" }}-{{ checksum "setup.cfg" }}
+          key: dependencies-flake8-{{ .Environment.CACHE_VERSION }}-{{ checksum "/home/circleci/.pyenv/version" }}-{{ checksum "pyproject.toml" }}
       - run:
           name: Flake8
           command: |
@@ -92,12 +117,18 @@ jobs:
       - store_artifacts:
           path: test-reports
   docs:
+    resource_class: medium
     docker:
-      - image: cimg/python:3.12
+      - image: cimg/python:3.13-browsers
     steps:
       - checkout
       - restore_cache:
-          key: dependencies-doc-{{ .Environment.CACHE_VERSION }}-{{ checksum "/home/circleci/.pyenv/version" }}-{{ checksum "setup.cfg" }}
+          key: dependencies-doc-{{ .Environment.CACHE_VERSION }}-{{ checksum "/home/circleci/.pyenv/version" }}-{{ checksum "pyproject.toml" }}
+      - run:
+          name: Install OS Dependencies
+          command: |
+            sudo apt-get update
+            sudo apt-get install -y graphviz
       - run:
           name: Install Dependencies
           command: |
@@ -105,16 +136,22 @@ jobs:
             . venv/bin/activate
             pip install --upgrade pip
             pip install -r docs/ci-requirements.txt
-            pip install -e .[dev,orbital] opencv-python-headless
+            pip install -e .[dev,orbital,architectures] opencv-python-headless joblib
+            kaleido_get_chrome
       - save_cache:
           paths:
             - ./venv
-          key: dependencies-doc-{{ .Environment.CACHE_VERSION }}-{{ checksum "/home/circleci/.pyenv/version" }}-{{ checksum "setup.cfg" }}
+          key: dependencies-doc-{{ .Environment.CACHE_VERSION }}-{{ checksum "/home/circleci/.pyenv/version" }}-{{ checksum "pyproject.toml" }}
       - run:
           name: Build Docs
+          environment:
+            SPHINX_GALLERY_PARALLEL: 2
           command: |
             . venv/bin/activate
-            coverage run -m sphinx -b html -d build/.doctrees -W --keep-going -D sphinx_gallery_conf.junit=../../../test-reports/sphinx-gallery/junit.xml docs/source docs/build/html
+            python .circleci/install_coverage_subprocess_pth.py
+            export COVERAGE_PROCESS_START="${PWD}/pyproject.toml"
+            coverage run -m sphinx -b html -j ${SPHINX_GALLERY_PARALLEL} -d build/.doctrees -W --keep-going -D sphinx_gallery_conf.junit=../../../test-reports/sphinx-gallery/junit.xml docs/source docs/build/html
+            coverage combine --quiet
             coverage xml -o test-reports/coverage.xml
       - store_artifacts:
           path: docs/build/html
@@ -123,10 +160,6 @@ jobs:
           path: test-reports/sphinx-gallery/junit.xml
       - store_artifacts:
           path: test-reports
-      - run:
-          name: Upload Coverage Results
-          command: |
-            bash <(curl -s https://codecov.io/bash) \
-              -f test-reports/coverage.xml \
-              -F integration \
-              -n ${CIRCLE_BUILD_NUM}
+      - codecov/upload:
+          files: test-reports/coverage.xml
+          flags: integration

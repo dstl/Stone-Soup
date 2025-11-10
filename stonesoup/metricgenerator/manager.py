@@ -1,14 +1,14 @@
+from collections.abc import Sequence, Iterable
 from itertools import chain
-from typing import Sequence, Dict, Iterable, Union
+from typing import Union
 
-from .base import MetricManager, MetricGenerator
 from ..base import Property
 from ..dataassociator import Associator
-
+from ..platform import Platform
+from ..types.detection import Detection
 from ..types.groundtruth import GroundTruthPath
 from ..types.track import Track
-from ..types.detection import Detection
-from ..platform import Platform
+from .base import MetricGenerator, MetricManager
 
 
 class MultiManager(MetricManager):
@@ -26,8 +26,9 @@ class MultiManager(MetricManager):
         self.states_sets = dict()
         self.association_set = None
         self.metrics = None
+        self._association_sets = {}
 
-    def add_data(self, metric_data: Dict = None, overwrite=True):
+    def add_data(self, metric_data: dict = None, overwrite=True):
         """Adds data to the metric generator
 
         Parameters
@@ -44,6 +45,7 @@ class MultiManager(MetricManager):
 
     def _add(self, overwrite, metric_data):
         if overwrite:
+            self._association_sets = {}
             for key, value in metric_data.items():
                 self.states_sets[key] = set(value)
         else:
@@ -52,6 +54,9 @@ class MultiManager(MetricManager):
                     self.states_sets[key] = set(value)
                 else:
                     self.states_sets[key].update(value)
+                    for assoc_key in list(self._association_sets.keys()):
+                        if key in assoc_key:
+                            del self._association_sets[assoc_key]
 
     def associate_tracks(self, generator):
         """Associate tracks to truth using the associator to produce an
@@ -63,8 +68,11 @@ class MultiManager(MetricManager):
             :class:`~.MetricGenerator` containing `tracks_key` and `truths_key` to extract
             tracks and truths from :class:`~.MetricManager` for association.
         """
-        self.association_set = self.associator.associate_tracks(
-            self.states_sets[generator.tracks_key], self.states_sets[generator.truths_key])
+        key = (generator.tracks_key, generator.truths_key)
+        if key not in self._association_sets:
+            self._association_sets[key] = self.associator.associate_tracks(
+                self.states_sets[generator.tracks_key], self.states_sets[generator.truths_key])
+        self.association_set = self._association_sets[key]
 
     def _get_metrics(self):
         return self.metrics
@@ -78,7 +86,7 @@ class MultiManager(MetricManager):
             Metrics generated
         """
 
-        metrics = {}
+        metrics: dict[dict] = {}
 
         generators = self.generators if isinstance(self.generators, list) else [self.generators]
 

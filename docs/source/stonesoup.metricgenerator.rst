@@ -9,6 +9,7 @@ Metric Generators
     stonesoup.metricgenerator.pcrbmetric
     stonesoup.metricgenerator.uncertaintymetric
     stonesoup.metricgenerator.plotter
+    stonesoup.metricgenerator.clearmotmetrics
 
 .. automodule:: stonesoup.metricgenerator
     :no-members:

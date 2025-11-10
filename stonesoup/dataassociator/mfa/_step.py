@@ -10,8 +10,8 @@ These are both called from algorithm_step(), which advances the algorithm by one
 overall iteration.
 """
 
+import warnings
 from dataclasses import dataclass
-from typing import Dict, List
 
 import numpy as np
 from scipy.optimize import linear_sum_assignment
@@ -83,7 +83,7 @@ def _getSuboptimalSolutionForSubproblem(
         c_hat, time_step_indices, track_count, meas_count
     )
 
-    # Perform the actual assignment (Hungarian algorithm)
+    # Perform the actual assignment
     # The column count (= meas_count + track_count) > row count (= track_count)
     # so it is guaranteed that every row (track) is assigned
     # row_ind is therefore simply np.array(range(track_count))
@@ -103,6 +103,29 @@ def _getSuboptimalSolutionForSubproblem(
     return c_hat, assignedHypotheses
 
 
+def _getPrimal(Amatrix, hypothesisCosts):
+    # Create the mip solver with the SCIP backend.
+    solver: pywraplp.Solver = pywraplp.Solver.CreateSolver("SCIP")
+
+    c_uncertain = hypothesisCosts * 1000000
+
+    # Add constraints
+    vars = [solver.BoolVar(str(i)) for i in range(c_uncertain.size)]
+    for A_uncertain_row in Amatrix:
+        selected_vars = [var for var, A_val in zip(vars, A_uncertain_row) if A_val]
+        solver.Add(solver.Sum(selected_vars) == 1)
+
+    # Run the solver
+    solver.Minimize(solver.Sum([c * var for var, c in zip(vars, c_uncertain)]))
+    status = solver.Solve()
+    if status not in (pywraplp.Solver.OPTIMAL, pywraplp.Solver.FEASIBLE):  # pragma: no cover
+        raise RuntimeError("Infeasible primal problem")
+
+    uprimal_uncertain = np.array([v.solution_value() for v in vars], dtype=np.bool_)
+
+    return uprimal_uncertain
+
+
 def _getPrimalSolution(u_hat_mean, Amatrix, hypothesisCosts):
     """Get a primal (feasible but not necessarily optimal) solution from the dual solution.
 
@@ -117,34 +140,19 @@ def _getPrimalSolution(u_hat_mean, Amatrix, hypothesisCosts):
 
     # Tracks and measurements not used by the partial solution (ordered by
     # tracks first, then measurements for each scan)
-    idx_uncertainTracksMeas = np.sum(Amatrix[:, idx_selectedHyps], axis=1).astype(np.int32) == 0
+    idx_uncertainTracksMeas = np.sum(Amatrix[:, idx_selectedHyps], axis=1) == 0
 
     # If a track or measurement used by the partial solution, remove it from
     # the problem to be solved by integer linear programming
     for i, val in enumerate(idx_uncertainTracksMeas):
         if not val:
-            idx_unselectedHyps[Amatrix[i, :] == 1] = False
+            idx_unselectedHyps[Amatrix[i, :]] = False
 
     # Solve remaining problem using OR tools solver to find a feasible solution
-    A_uncertain = Amatrix[:, idx_unselectedHyps][idx_uncertainTracksMeas, :]
-    c_uncertain = hypothesisCosts[idx_unselectedHyps] * 1000000
-
-    # Create the mip solver with the SCIP backend.
-    solver = pywraplp.Solver.CreateSolver("SCIP")
-
-    # Add constraints
-    vars = [solver.BoolVar(str(i)) for i in range(c_uncertain.size)]
-    for A_uncertain_row in A_uncertain:
-        selected_vars = [var for var, A_val in zip(vars, A_uncertain_row) if A_val]
-        solver.Add(solver.Sum(selected_vars) == 1)
-
-    # Run the solver
-    solver.Minimize(solver.Sum([c * var for var, c in zip(vars, c_uncertain)]))
-    status = solver.Solve()
-    if status not in (pywraplp.Solver.OPTIMAL, pywraplp.Solver.FEASIBLE):  # pragma: no cover
-        raise RuntimeError("Infeasible primal problem")
-
-    uprimal_uncertain = [bool(v.solution_value()) for v in vars]
+    uprimal_uncertain = _getPrimal(
+        Amatrix[:, idx_unselectedHyps][idx_uncertainTracksMeas, :],
+        hypothesisCosts[idx_unselectedHyps]
+    )
 
     # Get solution to full problem by combining the partial and linear programming solutions
     u_primal_hat = u_hat_mean == 1
@@ -213,9 +221,22 @@ def algorithm_step(
     dual_cost_hat = np.sum(sub_dual_cost)
 
     # Get primal solution
-    u_primal_hat, primal_cost_hat = _getPrimalSolution(
-        u_hat_mean, hyp_info.constraint_matrix, hyp_info.all_costs
-    )
+    try:
+        u_primal_hat, primal_cost_hat = _getPrimalSolution(
+            u_hat_mean, hyp_info.constraint_matrix, hyp_info.all_costs
+        )
+    except RuntimeError as err:
+        # Infeasible primal problem: try without subproblem solutions
+        warnings.warn(
+            f'{err}: solving with full problem space without using subproblem solutions',
+            stacklevel=2
+        )
+        u_primal_hat = _getPrimal(
+            hyp_info.constraint_matrix, hyp_info.all_costs
+        )
+        state.uprimal = u_primal_hat
+        state.should_break = True
+        return
 
     # Replace best primal cost
     if primal_cost_hat < state.bestPrimalCost:
@@ -241,7 +262,7 @@ def algorithm_step(
     state.delta = state.delta + stepSize * g
 
 
-def prune_hypotheses(best_hypotheses: List[Hyp], hyps: List[Hyp]) -> Dict[int, List[Hyp]]:
+def prune_hypotheses(best_hypotheses: list[Hyp], hyps: list[Hyp]) -> dict[int, list[Hyp]]:
     """n-scan pruning.
 
     This routine discards any hypotheses that disagree with the best hypothesis before the

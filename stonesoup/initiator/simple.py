@@ -1,3 +1,5 @@
+import copy
+
 import numpy as np
 from scipy.stats import multivariate_normal
 
@@ -23,7 +25,7 @@ from ..updater.kalman import ExtendedKalmanUpdater
 class SinglePointInitiator(GaussianInitiator):
     """SinglePointInitiator class
 
-    This uses an :class:`~.ExtendedKalmanUpdater` to carry out an update using
+    This uses an :class:`~.Updater` to carry out an update using
     provided :attr:`prior_state` for each unassociated detection.
     """
 
@@ -32,6 +34,14 @@ class SinglePointInitiator(GaussianInitiator):
         default=None,
         doc="Measurement model. Can be left as None if all detections have a "
             "valid measurement model.")
+    updater: Updater = Property(
+        default=None,
+        doc="Updater to use. Defaults to `None` where EKF will be used.")
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        if self.updater is None:
+            self.updater = ExtendedKalmanUpdater(self.measurement_model)
 
     def initiate(self, detections, timestamp, **kwargs):
         """Initiates tracks given unassociated measurements
@@ -49,14 +59,81 @@ class SinglePointInitiator(GaussianInitiator):
             A list of new tracks with an initial :class:`~.GaussianState`
         """
 
-        updater = ExtendedKalmanUpdater(self.measurement_model)
+        tracks = set()
+        for detection in detections:
+            measurement_prediction = self.updater.predict_measurement(
+                self.prior_state, detection.measurement_model)
+            track_state = self.updater.update(SingleHypothesis(
+                self.prior_state, detection, measurement_prediction))
+            track = Track([track_state])
+            tracks.add(track)
+
+        return tracks
+
+
+class SinglePointMeasurementInitiator(SinglePointInitiator):
+    """SinglePointMeasurementInitiator class
+
+    This uses an :class:`~.Updater` to carry out an update using
+    provided :attr:`prior_state` for each unassociated detection, using the
+    measurements state vector in state space to replace the prior state vector.
+    """
+    skip_non_reversible: bool = Property(default=False)
+
+    def initiate(self, detections, timestamp, **kwargs):
+        """Initiates tracks given unassociated measurements
+
+        Parameters
+        ----------
+        detections : set of :class:`~.Detection`
+            A list of unassociated detections
+        timestamp: datetime.datetime
+            Current timestamp
+
+        Returns
+        -------
+        : set of :class:`~.Track`
+            A list of new tracks with an initial :class:`~.GaussianState`
+        """
 
         tracks = set()
         for detection in detections:
-            measurement_prediction = updater.predict_measurement(
-                self.prior_state, detection.measurement_model)
-            track_state = updater.update(SingleHypothesis(
-                self.prior_state, detection, measurement_prediction))
+            if detection.measurement_model is not None:
+                measurement_model = detection.measurement_model
+            else:
+                if self.measurement_model is None:
+                    raise ValueError("No measurement model specified")
+                else:
+                    measurement_model = self.measurement_model
+
+            if isinstance(measurement_model, LinearModel):
+                model_matrix = measurement_model.matrix()
+                inv_model_matrix = np.linalg.pinv(model_matrix)
+                state_vector = inv_model_matrix @ detection.state_vector
+            else:
+                if isinstance(measurement_model, ReversibleModel):
+                    try:
+                        state_vector = measurement_model.inverse_function(detection)
+                    except NotImplementedError:
+                        if not self.skip_non_reversible:
+                            raise
+                        else:
+                            continue
+                elif self.skip_non_reversible:
+                    continue
+                else:
+                    raise Exception("Invalid measurement model used.\
+                                    Must be instance of linear or reversible.")
+
+            prior = copy.copy(self.prior_state)
+            mapped_dimensions = measurement_model.mapping
+
+            prior_state_vector = prior.state_vector.copy()
+            prior_state_vector[mapped_dimensions, :] = 0
+            prior.state_vector = prior_state_vector + state_vector
+            track_state = self.updater.update(SingleHypothesis(prior, detection))
+            track_state.hypothesis.prediction = None
+            track_state.hypothesis.measurement_prediction = None
             track = Track([track_state])
             tracks.add(track)
 

@@ -26,7 +26,7 @@ def test__linear_combined(comb_model):
 
     DIM = 9
 
-    combined_model = CombinedGaussianTransitionModel(
+    combined_model = comb_model(
         [model_1, model_2, model_3, model_4])
     t_delta = datetime.timedelta(0, 3)
 

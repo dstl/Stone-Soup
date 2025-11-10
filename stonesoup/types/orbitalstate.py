@@ -1,5 +1,6 @@
+from collections.abc import Mapping
 from enum import Enum
-from typing import Mapping, Any
+from typing import Any
 
 import numpy as np
 

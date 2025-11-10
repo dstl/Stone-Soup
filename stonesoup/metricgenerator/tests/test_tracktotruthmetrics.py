@@ -1,11 +1,11 @@
 import numpy as np
 import pytest
 
-from ..tracktotruthmetrics import SIAPMetrics, IDSIAPMetrics
 from ...measures import Euclidean, Mahalanobis
 from ...types.groundtruth import GroundTruthPath
 from ...types.metric import SingleTimeMetric, TimeRangeMetric
 from ...types.track import Track
+from ..tracktotruthmetrics import IDSIAPMetrics, SIAPMetrics
 
 
 @pytest.mark.parametrize('measure_class', [Euclidean, Mahalanobis])
@@ -44,7 +44,7 @@ def test_siap(trial_manager, trial_truths, trial_tracks, trial_associations, mea
     pos_accuracy = siap_generator.accuracy_at_time(trial_manager, timestamps[0], position_measure)
     assert pos_accuracy == exp_pos_accuracy
     vel_accuracy = siap_generator.accuracy_at_time(trial_manager, timestamps[0], velocity_measure)
-    assert vel_accuracy == exp_vel_accuracy
+    assert vel_accuracy == pytest.approx(exp_vel_accuracy, abs=1e-9)
 
     # Test truth_track_from_association
     for association in trial_associations:

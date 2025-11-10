@@ -23,6 +23,7 @@ Enabling Components
 ^^^^^^^^^^^^^^^^^^^
 .. toctree::
 
+    stonesoup.architecture
     stonesoup.detector
     stonesoup.feeder
     stonesoup.metricgenerator
@@ -48,6 +49,7 @@ Algorithm Components
     stonesoup.mixturereducer
     stonesoup.models
     stonesoup.predictor
+    stonesoup.proposal
     stonesoup.regulariser
     stonesoup.resampler
     stonesoup.sampler

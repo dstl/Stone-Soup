@@ -1,6 +1,6 @@
 from abc import abstractmethod, ABC
-from typing import Set, Union, Sequence
-
+from collections.abc import Sequence
+from typing import Union, Optional
 import numpy as np
 
 from ..sensormanager.action import Actionable
@@ -45,8 +45,8 @@ class Sensor(PlatformMountable, Actionable):
         return True
 
     @abstractmethod
-    def measure(self, ground_truths: Set[GroundTruthState], noise: Union[np.ndarray, bool] = True,
-                **kwargs) -> Set[TrueDetection]:
+    def measure(self, ground_truths: set[GroundTruthState], noise: Union[np.ndarray, bool] = True,
+                **kwargs) -> set[TrueDetection]:
         """Generate a measurement for a given state
 
         Parameters
@@ -76,26 +76,34 @@ class Sensor(PlatformMountable, Actionable):
 
 class SimpleSensor(Sensor, ABC):
 
+    seed: Optional[int] = Property(default=None, doc="Seed for random number generation")
     clutter_model: ClutterModel = Property(
         default=None,
         doc="An optional clutter generator that adds a set of simulated "
             ":class:`Clutter` objects to the measurements at each time step. "
             "The clutter is simulated according to the provided distribution.")
 
-    def measure(self, ground_truths: Set[GroundTruthState], noise: Union[np.ndarray, bool] = True,
-                **kwargs) -> Set[TrueDetection]:
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.random_state = np.random.RandomState(self.seed) if self.seed is not None else None
+
+    def measure(self, ground_truths: set[GroundTruthState], noise: Union[np.ndarray, bool] = True,
+                random_state=None, **kwargs) -> set[TrueDetection]:
 
         measurement_model = self.measurement_model
 
         detectable_ground_truths = [truth for truth in ground_truths
-                                    if self.is_detectable(truth)]
+                                    if self.is_detectable(truth, measurement_model)]
 
         if noise is True:
+            random_state = random_state if random_state is not None else self.random_state
             if len(detectable_ground_truths) > 1:
                 noise_vectors_iter = iter(measurement_model.rvs(len(detectable_ground_truths),
+                                                                random_state=random_state,
                                                                 **kwargs))
             else:
-                noise_vectors_iter = iter([measurement_model.rvs(**kwargs)])
+                noise_vectors_iter = iter([measurement_model.rvs(random_state=random_state,
+                                                                 **kwargs)])
 
         detections = set()
         for truth in detectable_ground_truths:
@@ -126,7 +134,7 @@ class SimpleSensor(Sensor, ABC):
         return detections
 
     @abstractmethod
-    def is_detectable(self, state: GroundTruthState) -> bool:
+    def is_detectable(self, state: GroundTruthState, measurement_model=None) -> bool:
         raise NotImplementedError
 
     @abstractmethod
@@ -144,12 +152,12 @@ class SensorSuite(Sensor):
 
     sensors: Sequence[Sensor] = Property(doc="Suite of sensors to get detections from.")
 
-    attributes_inform: Set[str] = Property(
+    attributes_inform: set[str] = Property(
         doc="Names of attributes to store the value of at time of detection."
     )
 
-    def measure(self, ground_truths: Set[GroundTruthState], noise: Union[bool, np.ndarray] = True,
-                **kwargs) -> Set[TrueDetection]:
+    def measure(self, ground_truths: set[GroundTruthState], noise: Union[bool, np.ndarray] = True,
+                **kwargs) -> set[TrueDetection]:
         """Call each sub-sensor's measure method in turn. Key word arguments are passed to the
         measure method of each sensor.
 

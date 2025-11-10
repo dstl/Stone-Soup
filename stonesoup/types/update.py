@@ -1,4 +1,4 @@
-from typing import Sequence
+from collections.abc import Sequence
 
 from .array import StateVectors
 from .base import Type
@@ -7,7 +7,7 @@ from .mixture import GaussianMixture
 from .state import CreatableFromState, CompositeState, KernelParticleState
 from .state import State, GaussianState, ParticleState, EnsembleState, \
     SqrtGaussianState, InformationState, CategoricalState, ASDGaussianState, \
-    WeightedGaussianState, TaggedWeightedGaussianState, \
+    WeightedGaussianState, TaggedWeightedGaussianState, ASDTaggedWeightedGaussianState, \
     MultiModelParticleState, RaoBlackwellisedParticleState, BernoulliParticleState
 from ..base import Property
 
@@ -77,6 +77,10 @@ class ASDGaussianStateUpdate(Update, ASDGaussianState):
     This is a simple ASD Gaussian state update object, which, as the name
     suggests, is described by a Gaussian distribution.
     """
+
+
+class ASDTaggedWeightedGaussianStateUpdate(Update, ASDTaggedWeightedGaussianState):
+    """ASDTaggedWeightedGaussianStateUpdate type"""
 
 
 class ParticleStateUpdate(Update, ParticleState):

@@ -1,12 +1,13 @@
 import datetime
 import inspect
 from abc import ABC, abstractmethod
-from typing import Set, Sequence, Iterator, Any
+from collections.abc import Sequence, Iterator
+from typing import Any
 
-from stonesoup.base import Base, Property
+from stonesoup.base import Base, Property, ImmutableMixIn
 
 
-class Action(Base):
+class Action(Base, ImmutableMixIn):
     """The base class for an action that can be taken by a sensor or platform with an
     :class:`~.ActionableProperty`."""
 
@@ -36,14 +37,6 @@ class Action(Base):
             The new value of the attribute
         """
         raise NotImplementedError()
-
-    def __eq__(self, other):
-        if not isinstance(other, type(self)):
-            return False
-        return all(getattr(self, name) == getattr(other, name) for name in type(self).properties)
-
-    def __hash__(self):
-        return hash(tuple(getattr(self, name) for name in type(self).properties))
 
 
 class ActionGenerator(Base):
@@ -92,15 +85,21 @@ class RealNumberActionGenerator(ActionGenerator):
     def max(self):
         raise NotImplementedError
 
+    @abstractmethod
+    def action_from_value(self, value):
+        raise NotImplementedError
+
 
 class ActionableProperty(Property):
     """Property that is modified via an :class:`~.Action` with defined, non-equal start and end
     times."""
 
     def __init__(self, generator_cls, generator_kwargs_mapping=None,
-                 cls=None, *, default=inspect.Parameter.empty,
+                 cls=None, *,
+                 default=inspect.Parameter.empty, default_factory=inspect.Parameter.empty,
                  doc=None, readonly=False):
-        super().__init__(cls=cls, default=default, doc=doc, readonly=readonly)
+        super().__init__(cls=cls, default=default, default_factory=default_factory,
+                         doc=doc, readonly=readonly)
         self.generator_cls = generator_cls
         self.generator_kwargs_mapping = generator_kwargs_mapping
         if generator_kwargs_mapping is None:
@@ -147,7 +146,7 @@ class Actionable(Base, ABC):
         return generator.default_action
 
     def actions(self, timestamp: datetime.datetime, start_timestamp: datetime.datetime = None
-                ) -> Set[ActionGenerator]:
+                ) -> set[ActionGenerator]:
         """Method to return a set of action generators available up to a provided timestamp.
 
         A generator is returned for each actionable property that the sensor has.

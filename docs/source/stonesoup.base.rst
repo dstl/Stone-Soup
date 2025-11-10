@@ -8,5 +8,7 @@ Declarative Base
     :no-members:
 .. autoclass:: stonesoup.base.BaseMeta
 .. autoclass:: stonesoup.base.Base
-
+.. autoclass:: stonesoup.base.ImmutableMeta
+.. autoclass:: stonesoup.base.ImmutableMixIn
+.. autofunction:: stonesoup.base.Freezable
 

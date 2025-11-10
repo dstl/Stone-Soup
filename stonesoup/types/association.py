@@ -1,6 +1,6 @@
 import datetime
-from typing import Set, Union
 from itertools import combinations
+from typing import Union
 
 from ..base import Property
 from .base import Type
@@ -14,7 +14,7 @@ class Association(Type):
     """
 
     # TODO: Should probably add a link to the associator that produced it
-    objects: Set = Property(doc="Set of objects being associated.")
+    objects: set = Property(doc="set of objects being associated.")
 
 
 class AssociationPair(Association):
@@ -65,12 +65,11 @@ class AssociationSet(Type):
     associations.
     """
 
-    associations: Set[Association] = Property(default=None, doc="Set of independent associations.")
+    associations: set[Association] = Property(
+        default_factory=set, doc="set of independent associations.")
 
-    def __init__(self, associations=None, *args, **kwargs):
-        super().__init__(associations, *args, **kwargs)
-        if self.associations is None:
-            self.associations = set()
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
         if not all(isinstance(member, Association) for member in self.associations):
             raise TypeError("Association set must contain only Association instances.")
         self._simplify()

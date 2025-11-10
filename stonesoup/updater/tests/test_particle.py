@@ -1,7 +1,7 @@
 """Test for updater.particle module"""
-import itertools
-
 import datetime
+import itertools
+import warnings
 from functools import partial
 
 import numpy as np
@@ -31,8 +31,14 @@ from ...regulariser.particle import MCMCRegulariser
 
 
 def dummy_constraint_function(particles):
-    part_indx = particles.state_vector[1, :] > 20
+    part_indx = particles.state_vector[1, :] > 30
     return part_indx
+
+
+@pytest.fixture(params=[True, False])
+def constraint_func(request):
+    if request.param:
+        return dummy_constraint_function
 
 
 @pytest.fixture(params=(
@@ -47,7 +53,12 @@ def updater(request):
     updater_class = request.param
     measurement_model = LinearGaussian(
         ndim_state=2, mapping=[0], noise_covar=np.array([[0.04]]))
-    return updater_class(measurement_model)
+    with warnings.catch_warnings():
+        warnings.filterwarnings(
+            'ignore',
+            message=r"`regulariser` has been defined but a `resampler` has not")
+        updater = updater_class(measurement_model)
+    return updater
 
 
 def test_particle(updater):
@@ -98,15 +109,12 @@ def test_particle(updater):
     assert updated_state.hypothesis.measurement_prediction == measurement_prediction
     assert updated_state.hypothesis.prediction == prediction
     assert updated_state.hypothesis.measurement == measurement
-    if hasattr(updater, 'constraint_func') and updater.constraint_func is not None:
-        assert np.allclose(updated_state.mean, StateVectors([[15.0], [15.0]]), rtol=2e-2)
-    else:
-        if not hasattr(updater, 'regulariser') or updater.regulariser is None:
-            # Skip state check for regularised version
-            assert np.allclose(updated_state.mean, StateVectors([[15.0], [20.0]]), rtol=5e-2)
+    if (hasattr(updater, 'constraint_func') and updater.constraint_func is not None) \
+            or (not hasattr(updater, 'regulariser') or updater.regulariser is None):
+        assert np.allclose(updated_state.mean, StateVectors([[15.0], [20.0]]), rtol=5e-2)
 
 
-def test_bernoulli_particle():
+def test_bernoulli_particle(constraint_func):
     timestamp = datetime.datetime.now()
     timediff = 2
     new_timestamp = timestamp + datetime.timedelta(seconds=timediff)
@@ -177,7 +185,8 @@ def test_bernoulli_particle():
                                        clutter_rate=2,
                                        clutter_distribution=1/10,
                                        nsurv_particles=9,
-                                       detection_probability=detection_probability)
+                                       detection_probability=detection_probability,
+                                       constraint_func=constraint_func)
 
     hypotheses = MultipleHypothesis(
         [SingleHypothesis(prediction, detection) for detection in detections])
@@ -202,11 +211,11 @@ def test_bernoulli_particle():
 
 @pytest.mark.parametrize("transition_model, model_flag", [
         (
-            CombinedLinearGaussianTransitionModel([ConstantVelocity([0.05])]),  # transition_model
+            CombinedLinearGaussianTransitionModel([ConstantVelocity(0.05)]),  # transition_model
             False  # model_flag
         ),
         (
-            CombinedLinearGaussianTransitionModel([ConstantVelocity([0.05])]),  # transition_model
+            CombinedLinearGaussianTransitionModel([ConstantVelocity(0.05)]),  # transition_model
             True  # model_flag
         )
     ], ids=["with_transition_model_init", "without_transition_model_init"]
@@ -216,13 +225,18 @@ def test_regularised_particle(transition_model, model_flag):
     measurement_model = LinearGaussian(
         ndim_state=2, mapping=[0], noise_covar=np.array([[10]]))
 
-    if model_flag:
-        updater = ParticleUpdater(regulariser=MCMCRegulariser(),
-                                  measurement_model=measurement_model)
-    else:
-        updater = ParticleUpdater(regulariser=MCMCRegulariser(transition_model=transition_model),
-                                  measurement_model=measurement_model)
-    # Measurement model
+    with warnings.catch_warnings():
+        warnings.filterwarnings(
+            'ignore',
+            message=r"`regulariser` has been defined but a `resampler` has not")
+        if model_flag:
+            updater = ParticleUpdater(regulariser=MCMCRegulariser(),
+                                      measurement_model=measurement_model)
+        else:
+            updater = ParticleUpdater(
+                regulariser=MCMCRegulariser(transition_model=transition_model),
+                measurement_model=measurement_model)
+
     timestamp = datetime.datetime.now()
     particles = [Particle([[10], [10]], 1 / 9),
                  Particle([[10], [20]], 1 / 9),

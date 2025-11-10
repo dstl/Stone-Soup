@@ -1,3 +1,4 @@
+import warnings
 from datetime import datetime, timedelta
 
 import matplotlib.pyplot as plt
@@ -11,7 +12,7 @@ from stonesoup.models.measurement.linear import LinearGaussian
 from stonesoup.models.transition.linear import CombinedLinearGaussianTransitionModel, \
     ConstantVelocity
 from stonesoup.plotter import Plotter, Dimension, AnimatedPlotterly, AnimationPlotter, Plotterly, \
-    PolarPlotterly
+    PolarPlotterly, AnimatedPolarPlotterly, merge_dicts
 from stonesoup.predictor.kalman import KalmanPredictor
 from stonesoup.sensor.radar.radar import RadarElevationBearingRange
 from stonesoup.types.detection import TrueDetection, Clutter
@@ -30,7 +31,6 @@ for k in range(1, 21):
         transition_model.function(truth[k-1], noise=True, time_interval=timedelta(seconds=1)),
         timestamp=start_time+timedelta(seconds=k)))
 timesteps = [start_time + timedelta(seconds=k) for k in range(1, 21)]
-prob_det = 0.5
 
 measurement_model = LinearGaussian(
     ndim_state=4,
@@ -41,29 +41,25 @@ true_measurements = []
 for state in truth:
     measurement_set = set()
     # Generate actual detection from the state with a 1-p_d chance that no detection is received.
-    if np.random.rand() <= prob_det:
-        measurement = measurement_model.function(state, noise=True)
-        measurement_set.add(TrueDetection(state_vector=measurement,
-                                          groundtruth_path=truth,
-                                          timestamp=state.timestamp,
-                                          measurement_model=measurement_model))
+    measurement = measurement_model.function(state, noise=True)
+    measurement_set.add(TrueDetection(state_vector=measurement,
+                                      groundtruth_path=truth,
+                                      timestamp=state.timestamp,
+                                      measurement_model=measurement_model))
 
     true_measurements.append(measurement_set)
 
-prob_clutter = 0.8
 clutter_measurements = []
 for state in truth:
     clutter_measurement_set = set()
-    # Generate clutter detections
-    if np.random.rand() <= prob_clutter:
-        random_state = state.from_state(
-            state=state,
-            state_vector=np.random.uniform(-20, 20, size=state.state_vector.size)
-        )
-        measurement = measurement_model.function(random_state, noise=True)
-        clutter_measurement_set.add(Clutter(state_vector=measurement,
-                                            timestamp=state.timestamp,
-                                            measurement_model=measurement_model))
+    random_state = state.from_state(
+        state=state,
+        state_vector=np.random.uniform(-20, 20, size=state.state_vector.size)
+    )
+    measurement = measurement_model.function(random_state, noise=True)
+    clutter_measurement_set.add(Clutter(state_vector=measurement,
+                                        timestamp=state.timestamp,
+                                        measurement_model=measurement_model))
 
     clutter_measurements.append(clutter_measurement_set)
 
@@ -106,22 +102,30 @@ sensor3d = RadarElevationBearingRange(
 )
 
 
+@pytest.fixture(autouse=True)
+def close_figs():
+    existing_figs = set(plt.get_fignums())
+    yield None
+    for fignum in set(plt.get_fignums()) - existing_figs:
+        plt.close(fignum)
+
+
 @pytest.fixture(scope="module")
 def plotter_class(request):
 
     plotter_class = request.param
     assert plotter_class in {Plotter, Plotterly, AnimationPlotter,
-                             PolarPlotterly, AnimatedPlotterly}
+                             PolarPlotterly, AnimatedPlotterly, AnimatedPolarPlotterly}
 
     def _generate_animated_plotterly(*args, **kwargs):
-        return AnimatedPlotterly(*args, timesteps=timesteps, **kwargs)
+        return plotter_class(*args, timesteps=timesteps, **kwargs)
 
     def _generate_plotter(*args, **kwargs):
         return plotter_class(*args, **kwargs)
 
     if plotter_class in {Plotter, Plotterly, AnimationPlotter, PolarPlotterly}:
         yield _generate_plotter
-    elif plotter_class is AnimatedPlotterly:
+    elif plotter_class in {AnimatedPlotterly, AnimatedPolarPlotterly}:
         yield _generate_animated_plotterly
     else:
         raise ValueError("Invalid Plotter type.")
@@ -143,13 +147,13 @@ def test_particle_3d():  # warning should arise if particle is attempted in 3d m
 def test_plot_sensors():
     plotter3d = Plotter(Dimension.THREE)
     plotter3d.plot_sensors(sensor3d, marker='o', color='red')
-    plt.close()
     assert 'Sensors' in plotter3d.legend_dict
 
 
 @pytest.mark.parametrize(
     "plotter_class",
-    [Plotter, Plotterly, AnimationPlotter, PolarPlotterly, AnimatedPlotterly], indirect=True)
+    [Plotter, Plotterly, AnimationPlotter, PolarPlotterly, AnimatedPlotterly,
+     AnimatedPolarPlotterly], indirect=True)
 def test_empty_tracks(plotter_class):
     plotter = plotter_class()
     plotter.plot_tracks(set(), [0, 2])
@@ -180,15 +184,15 @@ def test_equal_3daxis():
     plotter_xyz.set_equal_3daxis([0, 1, 2])
     plotters = [plotter_default, plotter_xy_default, plotter_xy, plotter_xyz]
     lengths = [3, 2, 2, 1]
-    for plotter, l in zip(plotters, lengths):
+    for plotter, length in zip(plotters, lengths):
         min_xyz = [0, 0, 0]
         max_xyz = [0, 0, 0]
         for i in range(3):
             for line in plotter.ax.lines:
                 min_xyz[i] = np.min([min_xyz[i], *line.get_data_3d()[i]])
                 max_xyz[i] = np.max([max_xyz[i], *line.get_data_3d()[i]])
-        assert len(set(min_xyz)) == l
-        assert len(set(max_xyz)) == l
+        assert len(set(min_xyz)) == length
+        assert len(set(max_xyz)) == length
 
 
 def test_equal_3daxis_2d():
@@ -243,6 +247,13 @@ def test_animation_plotter():
     animation_plotter_with_title.plot_ground_truths(truth, [0, 2])
     animation_plotter_with_title.plot_tracks(track, [0, 2])
     animation_plotter_with_title.run()
+    with warnings.catch_warnings():
+        warnings.filterwarnings(
+            'ignore',
+            "Animation was deleted without rendering anything"
+        )
+        del animation_plotter
+        del animation_plotter_with_title
 
 
 def test_animated_plotterly():
@@ -394,7 +405,8 @@ def test_show_plot(labels):
 
 @pytest.mark.parametrize(
     "plotter_class",
-    [Plotter, Plotterly, AnimationPlotter, PolarPlotterly, AnimatedPlotterly], indirect=True)
+    [Plotter, Plotterly, AnimationPlotter, PolarPlotterly, AnimatedPlotterly,
+     AnimatedPolarPlotterly], indirect=True)
 @pytest.mark.parametrize(
     "_measurements",
     [true_measurements, clutter_measurements, all_measurements,
@@ -407,7 +419,87 @@ def test_plotters_plot_measurements_2d(plotter_class, _measurements):
 
 @pytest.mark.parametrize(
     "plotter_class",
-    [Plotter, Plotterly, AnimationPlotter, PolarPlotterly, AnimatedPlotterly], indirect=True)
+    [Plotterly, AnimationPlotter, PolarPlotterly, AnimatedPlotterly,
+     AnimatedPolarPlotterly], indirect=True)
+@pytest.mark.parametrize(
+    "_measurements, _show_clutter",
+    [(list(), True), (list(), False), (clutter_measurement_set, False)])
+def test_plotters_plot_measurements_empty_silent(plotter_class, _measurements, _show_clutter):
+    plotter = plotter_class()
+    plotter.plot_measurements(_measurements, [0, 2], show_clutter=_show_clutter)
+
+
+@pytest.mark.parametrize(
+    "_measurements, _show_clutter",
+    [(list(), True), (list(), False), (clutter_measurement_set, False)])
+def test_plotters_plot_measurements_empty_warn(_measurements, _show_clutter):
+    with pytest.warns(UserWarning, match="No artists with labels found to put in legend"):
+        plotter = Plotter()
+        plotter.plot_measurements(_measurements, [0, 2], show_clutter=_show_clutter)
+
+
+@pytest.mark.parametrize(
+    "_measurements, _show_clutter, expected_plot_truths_length",
+    [(true_measurements, True, len(true_measurements)),
+     (true_measurements, False, len(true_measurements)),
+     (all_measurements, False, len(true_measurements)),
+     (clutter_measurements, False, None)])
+# Ignore this warning which occurs when there is no data to plot (e.g. last test case here)
+@pytest.mark.filterwarnings("ignore:.*No artists with labels found to put in legend.*:UserWarning")
+def test_plotters_plot_measurements_count_no_clutter(_measurements, _show_clutter,
+                                                     expected_plot_truths_length):
+    plotter = Plotter()
+    artist_list = plotter.plot_measurements(_measurements, [0, 2], show_clutter=_show_clutter)
+
+    expected_number_of_artists = 1  # there is always a legend artist at the end
+    if expected_plot_truths_length is not None:
+        expected_number_of_artists += 1
+    assert len(artist_list) == expected_number_of_artists
+
+    if expected_plot_truths_length is not None:
+        truths_artist = artist_list[0]
+        actual_plot_truths_length = len(truths_artist.get_offsets())
+        assert actual_plot_truths_length == expected_plot_truths_length
+
+
+@pytest.mark.parametrize(
+    "_measurements, _show_clutter, expected_plot_truths_length, expected_plot_clutter_length",
+    [(all_measurements, True, len(true_measurements), len(clutter_measurements)),
+     (clutter_measurements, True, None, len(clutter_measurements))])
+def test_plotters_plot_measurements_count_with_clutter(_measurements, _show_clutter,
+                                                       expected_plot_truths_length,
+                                                       expected_plot_clutter_length):
+    plotter = Plotter()
+    artist_list = plotter.plot_measurements(_measurements, [0, 2], show_clutter=_show_clutter)
+
+    truths_expected = expected_plot_truths_length is not None
+    clutter_expected = expected_plot_clutter_length is not None
+    expected_number_of_artists = 1  # there is always a legend artist at the end
+    if truths_expected:
+        expected_number_of_artists += 1
+    if clutter_expected:
+        expected_number_of_artists += 1
+    assert len(artist_list) == expected_number_of_artists
+
+    if truths_expected:
+        # If truths are present in the plot, they are always the first artist
+        actual_plot_truths_length = len(artist_list[0].get_offsets())
+        assert actual_plot_truths_length == expected_plot_truths_length
+    elif clutter_expected:
+        # If no truths but clutter is present, clutter will be the first artist
+        actual_plot_clutter_length = len(artist_list[0].get_offsets())
+        assert actual_plot_clutter_length == expected_plot_clutter_length
+
+    if truths_expected and clutter_expected:
+        # If both are present, clutter will be the second artist (and we already checked truths)
+        actual_plot_clutter_length = len(artist_list[1].get_offsets())
+        assert actual_plot_clutter_length == expected_plot_clutter_length
+
+
+@pytest.mark.parametrize(
+    "plotter_class",
+    [Plotter, Plotterly, AnimationPlotter, PolarPlotterly, AnimatedPlotterly,
+     AnimatedPolarPlotterly], indirect=True)
 def test_plotters_plot_tracks(plotter_class):
     plotter = plotter_class()
     plotter.plot_tracks(track, [0, 2])
@@ -419,7 +511,8 @@ def test_plotters_plot_tracks(plotter_class):
      Plotterly,
      pytest.param(AnimationPlotter, marks=pytest.mark.xfail(raises=NotImplementedError)),
      pytest.param(PolarPlotterly, marks=pytest.mark.xfail(raises=NotImplementedError)),
-     AnimatedPlotterly],
+     AnimatedPlotterly,
+     pytest.param(AnimatedPolarPlotterly, marks=pytest.mark.xfail(raises=NotImplementedError))],
     indirect=True
 )
 def test_plotters_plot_track_uncertainty(plotter_class):
@@ -431,8 +524,9 @@ def test_plotters_plot_track_uncertainty(plotter_class):
 @pytest.mark.parametrize(
     "plotter_class",
     [AnimationPlotter,
-     PolarPlotterly]
-)
+     PolarPlotterly,
+     AnimatedPolarPlotterly],
+    indirect=True)
 def test_plotters_plot_track_particle(plotter_class):
     plotter = plotter_class()
     plotter.plot_tracks(track, [0, 2], particle=True)
@@ -440,7 +534,8 @@ def test_plotters_plot_track_particle(plotter_class):
 
 @pytest.mark.parametrize(
     "plotter_class",
-    [Plotter, Plotterly, AnimationPlotter, PolarPlotterly, AnimatedPlotterly], indirect=True)
+    [Plotter, Plotterly, AnimationPlotter, PolarPlotterly, AnimatedPlotterly,
+     AnimatedPolarPlotterly], indirect=True)
 def test_plotters_plot_truths(plotter_class):
     plotter = plotter_class()
     plotter.plot_ground_truths(truth, [0, 2])
@@ -452,7 +547,9 @@ def test_plotters_plot_truths(plotter_class):
      Plotterly,
      pytest.param(AnimationPlotter, marks=pytest.mark.xfail(raises=NotImplementedError)),
      pytest.param(PolarPlotterly, marks=pytest.mark.xfail(raises=NotImplementedError)),
-     AnimatedPlotterly], indirect=True
+     AnimatedPlotterly,
+     pytest.param(AnimatedPolarPlotterly, marks=pytest.mark.xfail(raises=NotImplementedError))],
+    indirect=True
 )
 def test_plotters_plot_sensors(plotter_class):
     plotter = plotter_class()
@@ -460,7 +557,8 @@ def test_plotters_plot_sensors(plotter_class):
 
 
 @pytest.mark.parametrize("plotter_class",
-                         [Plotterly, PolarPlotterly, AnimatedPlotterly], indirect=True)
+                         [Plotterly, PolarPlotterly, AnimatedPlotterly, PolarPlotterly],
+                         indirect=True)
 @pytest.mark.parametrize("_measurements, expected_labels",
                          [(true_measurements, {'Measurements'}),
                           (clutter_measurements, {'Measurements<br>(Clutter)'}),
@@ -470,6 +568,26 @@ def test_plotters_plot_sensors(plotter_class):
 def test_plotterlys_plot_measurements_label(plotter_class, _measurements, expected_labels):
     plotter = plotter_class()
     plotter.plot_measurements(_measurements, [0, 2])
+    actual_labels = {fig_data.legendgroup for fig_data in plotter.fig.data}
+    assert actual_labels == expected_labels
+
+
+@pytest.mark.parametrize("plotter_class",
+                         [Plotterly, PolarPlotterly, AnimatedPlotterly, PolarPlotterly],
+                         indirect=True)
+@pytest.mark.parametrize("_measurements, _show_clutter, expected_labels",
+                         [(true_measurements, True, {'Measurements'}),
+                          (true_measurements, False, {'Measurements'}),
+                          (clutter_measurements, True, {'Measurements<br>(Clutter)'}),
+                          (clutter_measurements, False, set()),
+                          (all_measurements, True, {'Measurements<br>(Detections)',
+                                                    'Measurements<br>(Clutter)'}),
+                          (all_measurements, False, {'Measurements'})
+                          ])
+def test_plotterlys_plot_measurements_label_adjust_clutter(plotter_class, _measurements,
+                                                           _show_clutter, expected_labels):
+    plotter = plotter_class()
+    plotter.plot_measurements(_measurements, [0, 2], show_clutter=_show_clutter)
     actual_labels = {fig_data.legendgroup for fig_data in plotter.fig.data}
     assert actual_labels == expected_labels
 
@@ -487,7 +605,44 @@ def test_plotter_plot_measurements_label(_measurements, expected_labels):
     assert actual_labels == expected_labels
 
 
-def teardown_module():
-    """Closes all matplotlib plots.
-    Without this code plots would remain in the background for the duration of all the tests."""
-    plt.close('all')
+@pytest.mark.parametrize("_measurements, _show_clutter, expected_labels",
+                         [(true_measurements, True, {'Measurements'}),
+                          (true_measurements, False, {'Measurements'}),
+                          (clutter_measurements, True, {'Measurements\n(Clutter)'}),
+                          (clutter_measurements, False, set()),
+                          (all_measurements, True, {'Measurements\n(Detections)',
+                                                    'Measurements\n(Clutter)'}),
+                          (all_measurements, False, {'Measurements'})
+                          ])
+@pytest.mark.filterwarnings("ignore:.*No artists with labels found to put in legend.*:UserWarning")
+# Ignore this warning which occurs when there is no data to plot
+def test_plotter_plot_measurements_label_adjust_clutter(_measurements,
+                                                        _show_clutter,
+                                                        expected_labels):
+    plotter = Plotter()
+    plotter.plot_measurements(_measurements, [0, 2], show_clutter=_show_clutter)
+    actual_labels = set(plotter.legend_dict.keys())
+    assert actual_labels == expected_labels
+
+
+test_merge_dicts_data = {
+    "Empty dictionaries": (({}, {}), {}),
+    "Single dictionary": (({"a": 1},), {"a": 1}),
+    "Non-overlapping keys": (({"a": 1}, {"b": 2}), {"a": 1, "b": 2}),
+    "Overlapping keys (non-dict values)": (({"a": 1}, {"b": 2}), {"a": 1, "b": 2}),
+    "Nested dictionaries": (({"a": {"b": 1}}, {"a": {"c": 2}}), {"a": {"b": 1, "c": 2}}),
+    "Deeply nested dictionaries": (({"a": {"b": {"c": 1}}}, {"a": {"b": {"d": 2}}}),
+                                   {"a": {"b": {"c": 1, "d": 2}}}),
+    "Overwriting a dict with a non-dict": (({"a": {"b": 1}}, {"a": 2}), {"a": 2}),
+    "Merging three dictionaries": (({"a": 1}, {"b": 2}, {"c": 3}), {"a": 1, "b": 2, "c": 3}),
+    "Complex nested merge scenario": (({"a": {"b": 1}}, {"a": {"c": {"d": 2}}}),
+                                      {"a": {"b": 1, "c": {"d": 2}}}),
+}
+
+
+@pytest.mark.parametrize(
+        "dicts, expected",
+        test_merge_dicts_data.values(),
+        ids=test_merge_dicts_data.keys())
+def test_merge(dicts: tuple[dict], expected: dict):
+    assert merge_dicts(*dicts) == expected

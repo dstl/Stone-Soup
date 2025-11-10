@@ -1,6 +1,6 @@
 import copy
-from collections import abc
-from typing import MutableSequence
+import warnings
+from collections.abc import MutableSequence
 
 import numpy as np
 
@@ -12,7 +12,7 @@ from .numeric import Probability
 from .state import GaussianState, TaggedWeightedGaussianState, WeightedGaussianState
 
 
-class GaussianMixture(Type, abc.MutableSequence):
+class GaussianMixture(Type, MutableSequence):
     """
     Gaussian Mixture type
 
@@ -22,20 +22,18 @@ class GaussianMixture(Type, abc.MutableSequence):
     """
 
     components: MutableSequence[WeightedGaussianState] = Property(
-        default=None,
+        default_factory=list,
         doc="""The initial list of :class:`WeightedGaussianState` components.
         Default `None` which initialises with empty list.""")
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        if self.components is None:
-            self.components = []
         if any(not isinstance(component, (WeightedGaussianState, TaggedWeightedGaussianState))
                 for component in self.components):
             raise ValueError("Cannot form GaussianMixtureState out of "
                              "non-WeightedGaussianState inputs!")
         if len({component.timestamp for component in self.components}) > 1:
-            raise ValueError("All components must have the same timestamp")
+            warnings.warn("All components should have the same timestamp")
 
     def __contains__(self, index):
         # check if 'components' contains any WeightedGaussianState
