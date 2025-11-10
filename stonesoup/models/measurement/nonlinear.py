@@ -1197,19 +1197,52 @@ class CartesianToElevationRateBearingRateRangeRate(NonLinearGaussianMeasurement,
         rxydot = np.dot(xyz_rot[0:2, :].T, xyz_pos[0:2, :]) / rxy
 
         # Calculate bearing rate
-        br = (np.dot(xyz_vel[1, :], xyz_rot[0, :]) - np.dot(xyz_vel[0, :], xyz_rot[2])) / rxy ** 2
+        br = (np.dot(xyz_vel[1, :], xyz_rot[0, :]) - np.dot(xyz_vel[0, :], xyz_rot[1])) / rxy ** 2
 
         # Calculate elevation rate
-        er = (np.dot(xyz_vel[2, :], rxy) - np.dot(rxydot, xyz_rot[2, :])) / rho ** 2
+        # er = (np.dot(xyz_vel[2, :], rxy) - np.dot(rxydot, xyz_rot[2, :])) / rho ** 2
 
-        bearings = [Bearing(i) for i in phi]
-        elevations = [Elevation(i) for i in theta]
-        return StateVectors([elevations,
+        er = (xyz_vel[2, :] * rxy ** 2 - xyz_rot[2, :] * (np.dot(xyz_rot[0, :], xyz_vel[0, :])+np.dot(xyz_rot[1, :], xyz_vel[1, :]))) / (rho ** 2 * rxy)
+
+        pos = xyz_pos
+        vel = xyz_vel
+
+        r2 = np.linalg.norm(pos) ** 2  # Squared norm of pos
+        r = np.sqrt(r2)  # Radius (magnitude)
+        azi = np.arctan2(pos[1], pos[0])  # Azimuth (atan2)
+        rxy2 = np.linalg.norm(pos[:2]) ** 2  # Squared norm
+        rxy = np.sqrt(rxy2)  # rxy
+        el = np.arctan2(pos[2], rxy)  # Elevation (atan2)
+
+        rDot = np.dot(pos.flatten(), vel.flatten()) / r  # Radial velocity (dot product)
+        # rDot = rr
+        # print(pos, vel)
+        # print(type(pos), type(vel))
+        rxyDot = np.dot(pos[:2].flatten(), vel[:2].flatten()) / rxy  # rxy dot
+        azimuthDot = (vel[1] * pos[0] - vel[0] * pos[1]) / rxy2  # Azimuth rate of change
+        elevationDot = (vel[2] * rxy - rxyDot * pos[2]) / r2  # Elevation rate of change
+
+
+        # bearings = [Bearing(i) for i in phi]
+        # elevations = [Elevation(i) for i in theta]
+        # return StateVectors([elevations,
+        #                      bearings,
+        #                      rho,
+        #                      er,
+        #                      br,
+        #                      rr]) + noise
+
+        # bearings = [Bearing(i) for i in azi]
+        # elevations = [Elevation(i) for i in el]
+        bearings = Bearing(azi)
+        elevations = Elevation(el)
+        # print(elevations, bearings, r, elevationDot, azimuthDot, rDot)
+        return StateVector([elevations,
                              bearings,
-                             rho,
-                             er,
-                             br,
-                             rr]) + noise
+                             r,
+                             elevationDot,
+                             azimuthDot,
+                             rDot]) + noise
 
     def inverse_function(self, detection, **kwargs) -> StateVector:
         # Theta: elevation
@@ -1219,13 +1252,21 @@ class CartesianToElevationRateBearingRateRangeRate(NonLinearGaussianMeasurement,
 
         x, y, z = sphere2cart(rho, phi, theta)
 
-        x_rate = (rho_rate * np.cos(theta) * np.sin(phi) +
-                  rho * phi_rate * np.cos(theta) * np.cos(phi) -
-                  rho * theta_rate * np.sin(phi) * np.sin(theta))
+        # x_rate = (rho_rate * np.cos(theta) * np.sin(phi) +
+        #           rho * phi_rate * np.cos(theta) * np.cos(phi) -
+        #           rho * theta_rate * np.sin(theta) * np.sin(phi))
 
-        y_rate = (rho_rate * np.cos(theta) * np.cos(phi) -
-                  rho * phi_rate * np.cos(theta) * np.sin(phi) -
-                  rho * theta_rate * np.sin(theta) * np.cos(phi))
+        x_rate = (rho_rate * np.cos(theta) * np.cos(phi) -
+                  rho * theta_rate * np.sin(theta) * np.cos(phi) -
+                  rho * phi_rate * np.cos(theta) * np.sin(phi))
+
+        # y_rate = (rho_rate * np.cos(theta) * np.cos(phi) -
+        #           rho * phi_rate * np.cos(theta) * np.sin(phi) -
+        #           rho * theta_rate * np.sin(theta) * np.cos(phi))
+
+        y_rate = (rho_rate * np.cos(theta) * np.sin(phi) -
+                  rho * theta_rate * np.sin(theta) * np.sin(phi) +
+                  rho * phi_rate * np.cos(theta) * np.cos(phi))
 
         z_rate = rho_rate * np.sin(theta) + rho * theta_rate * np.cos(theta)
 

@@ -8,7 +8,7 @@ from ..nonlinear import (
     CartesianToElevationBearingRange, CartesianToBearingRange,
     CartesianToElevationBearing, Cartesian2DToBearing, CartesianToBearingRangeRate,
     CartesianToElevationBearingRangeRate, RangeRangeRateBinning,
-    CartesianToAzimuthElevationRange)
+    CartesianToAzimuthElevationRange, CartesianToElevationRateBearingRateRangeRate)
 
 from ...base import ReversibleModel
 from ...measurement.linear import LinearGaussian
@@ -104,7 +104,8 @@ def az_el_rng(state_vector, pos_map, translation_offset, rotation_offset):
      CartesianToElevationBearing,
      Cartesian2DToBearing,
      CartesianToBearingRangeRate,
-     CartesianToElevationBearingRangeRate]
+     CartesianToElevationBearingRangeRate,
+     CartesianToElevationRateBearingRateRangeRate]
 )
 def test_none_covar(model_class):
     with pytest.raises(ValueError, match="Covariance should have ndim of 2: got 0"):
@@ -455,7 +456,8 @@ position_measurement_sets = [((0, 1, 0, 0, 0, 0), (1, 0, 0, 0, 0, 0),
 @pytest.mark.parametrize('model_class, measure_mapping, use_velocity',
                          [(CartesianToElevationBearing, [0, 1], False),
                           (CartesianToElevationBearingRange, [0, 1, 2], False),
-                          (CartesianToElevationBearingRangeRate, [0, 1, 2, 3], True)])
+                          (CartesianToElevationBearingRangeRate, [0, 1, 2, 3], True),
+                          (CartesianToElevationRateBearingRateRangeRate, [0, 1, 2, 3, 4, 5], True)])
 def test_model_predictions(sensor_state, target_state, expected_measurement, model_class,
                            measure_mapping, use_velocity):
     sensor_state = StateVector(sensor_state)
