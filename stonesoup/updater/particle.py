@@ -459,7 +459,7 @@ class BernoulliParticleUpdater(ParticleUpdater):
             # Evaluate measurement likelihood and approximate integrals
             log_meas_likelihood = []
             delta_part2 = []
-            log_detection_probability = self.get_detection_probability(prediction)
+            log_detection_probability = self.get_log_detection_probability(prediction)
 
             for detection in detections:
                 measurement_model = detection.measurement_model or self.measurement_model
@@ -503,7 +503,7 @@ class BernoulliParticleUpdater(ParticleUpdater):
 
         return updated_state
 
-    def get_detection_probability(self, prediction):
+    def get_log_detection_probability(self, prediction):
 
         log_detection_probability = np.full(len(prediction),
                                             np.log(self.detection_probability))
@@ -555,7 +555,7 @@ class VisibilityInformedBernoulliParticleUpdater(BernoulliParticleUpdater):
         doc="Probability of detection "
         "to assume when particle state is not visible to the sensor.")
 
-    def get_detection_probability(self, prediction):
+    def get_log_detection_probability(self, prediction):
 
         n_parts = len(prediction)
         log_detection_probability = np.full(n_parts, np.log(self.detection_probability))
