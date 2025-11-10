@@ -1049,7 +1049,7 @@ class CartesianToElevationBearingRangeRate(_AngleNonLinearGaussianMeasurement, R
         return jac
 
 
-class CartesianToElevationRateBearingRateRangeRate(NonLinearGaussianMeasurement, ReversibleModel):
+class CartesianToElevationRateBearingRateRangeRate(_AngleNonLinearGaussianMeasurement, ReversibleModel):
     r"""This is a class implementation of a time-invariant measurement model, \
     where measurements are assumed to be received in the form of elevation \
     (:math:`\theta`),  bearing (:math:`\phi`), range (:math:`r`) and
@@ -1085,6 +1085,10 @@ class CartesianToElevationRateBearingRateRangeRate(NonLinearGaussianMeasurement,
                 asin(\mathcal{z}/\sqrt{\mathcal{x}^2 + \mathcal{y}^2 +\mathcal{z}^2}) \\
                 atan2(\mathcal{y},\mathcal{x}) \\
                 \sqrt{\mathcal{x}^2 + \mathcal{y}^2 + \mathcal{z}^2} \\
+                (\dot{y}\mathcal{x} - \dot{x}\mathcal{y}) / (\mathcal{x}^2 + \mathcal{y}^2)  \\
+                (\dot{y}\sqrt{\mathcal{x}^2 + \mathcal{y}^2} - (\mathcal{xy}\cdot\dot{x}\dot{y}/
+                \sqrt{\mathcal{x}^2 + \mathcal{y}^2})\mathcal{z}}) / \sqrt{\mathcal{x}^2 +
+                \mathcal{y}^2 +\mathcal{z}^2}) \\
                 (x\dot{x} + y\dot{y} + z\dot{z})/\sqrt{x^2 + y^2 + z^2}
                 \end{bmatrix} + \vec{v}_t
 
@@ -1097,10 +1101,12 @@ class CartesianToElevationRateBearingRateRangeRate(NonLinearGaussianMeasurement,
     .. math::
 
       R = \begin{bmatrix}
-            \sigma_{\theta}^2 & 0 & 0 & 0\\
-            0 & \sigma_{\phi}^2 & 0 & 0\\
-            0 & 0 & \sigma_{r}^2 & 0\\
-            0 & 0 & 0 & \sigma_{\dot{r}}^2
+            \sigma_{\theta}^2 & 0 & 0 & 0 & 0 & 0\\
+            0 & \sigma_{\phi}^2 & 0 & 0 & 0 & 0\\
+            0 & 0 & \sigma_{r}^2 & 0& 0 & 0\\
+            0 & 0 & 0 & \sigma_{\dot{\theta}}^2 & 0 & 0\\
+            0 & 0 & 0 & 0 & \sigma_{\dot{\phi}}^2 & 0\\
+            0 & 0 & 0 & 0 & 9 & \sigma_{\dot{r}}^2\\
             \end{bmatrix}
 
     The :py:attr:`mapping` property of the model is a 3 element vector, \
@@ -1116,26 +1122,14 @@ class CartesianToElevationRateBearingRateRangeRate(NonLinearGaussianMeasurement,
     """
 
     translation_offset: StateVector = Property(
-        default=None,
+        default_factory=lambda: StateVector([[0.], [0.], [0.]]),
         doc="A 3x1 array specifying the origin offset in terms of :math:`x,y,z` coordinates.")
-    velocity_mapping: Tuple[int, int, int] = Property(
+    velocity_mapping: tuple[int, int, int] = Property(
         default=(1, 3, 5),
         doc="Mapping to the targets velocity within its state space")
     velocity: StateVector = Property(
-        default=None,
+        default_factory=lambda: StateVector([[0.], [0.], [0.]]),
         doc="A 3x1 array specifying the sensor velocity in terms of :math:`x,y,z` coordinates.")
-
-    def __init__(self, *args, **kwargs):
-        """
-        Ensure that the translation offset is initiated
-        """
-        super().__init__(*args, **kwargs)
-        # Set values to defaults if not provided
-        if self.translation_offset is None:
-            self.translation_offset = StateVector([0] * 3)
-
-        if self.velocity is None:
-            self.velocity = StateVector([0] * 3)
 
     @property
     def ndim_meas(self) -> int:
@@ -1149,25 +1143,7 @@ class CartesianToElevationRateBearingRateRangeRate(NonLinearGaussianMeasurement,
 
         return 6
 
-    def function(self, state, noise=False, **kwargs) -> StateVector:
-        r"""Model function :math:`h(\vec{x}_t,\vec{v}_t)`
-
-        Parameters
-        ----------
-        state: :class:`~.StateVector`
-            An input state vector for the target
-
-        noise: :class:`numpy.ndarray` or bool
-            An externally generated random process noise sample (the default is
-            `False`, in which case no noise will be added
-            if 'True', the output of :meth:`~.Model.rvs` is added)
-
-        Returns
-        -------
-        :class:`numpy.ndarray` of shape (:py:attr:`~ndim_state`, 1)
-            The model function evaluated given the provided time interval.
-        """
-
+    def _function(self, state, noise=False, **kwargs):
         if isinstance(noise, bool) or noise is None:
             if noise:
                 noise = self.rvs(num_samples=state.state_vector.shape[1], **kwargs)
@@ -1180,25 +1156,8 @@ class CartesianToElevationRateBearingRateRangeRate(NonLinearGaussianMeasurement,
         # Rotate coordinates based upon the sensor_velocity
         xyz_rot = self.rotation_matrix @ xyz_pos
 
-        # Convert to Spherical
-        rho, phi, theta = cart2sphere(xyz_rot[0, :], xyz_rot[1, :], xyz_rot[2, :])
-
         # Determine the net velocity component in the engagement
         xyz_vel = state.state_vector[self.velocity_mapping, :] - self.velocity
-
-        # Use polar to calculate range rate
-        rr = np.einsum('ij,ij->j', xyz_pos, xyz_vel) / np.linalg.norm(xyz_pos, axis=0)
-
-        rxy = sqrt(xyz_rot[0, :] ** 2 + xyz_rot[1, :] ** 2)
-        rxydot = np.dot(xyz_rot[0:2, :].T, xyz_pos[0:2, :]) / rxy
-
-        # Calculate bearing rate
-        br = (np.dot(xyz_vel[1, :], xyz_rot[0, :]) - np.dot(xyz_vel[0, :], xyz_rot[1])) / rxy ** 2
-
-        # Calculate elevation rate
-        # er = (np.dot(xyz_vel[2, :], rxy) - np.dot(rxydot, xyz_rot[2, :])) / rho ** 2
-
-        er = (xyz_vel[2, :] * rxy ** 2 - xyz_rot[2, :] * (np.dot(xyz_rot[0, :], xyz_vel[0, :])+np.dot(xyz_rot[1, :], xyz_vel[1, :]))) / (rho ** 2 * rxy)
 
         pos = xyz_pos
         vel = xyz_vel
@@ -1211,34 +1170,16 @@ class CartesianToElevationRateBearingRateRangeRate(NonLinearGaussianMeasurement,
         el = np.arctan2(pos[2], rxy)  # Elevation (atan2)
 
         rDot = np.dot(pos.flatten(), vel.flatten()) / r  # Radial velocity (dot product)
-        # rDot = rr
-        # print(pos, vel)
-        # print(type(pos), type(vel))
         rxyDot = np.dot(pos[:2].flatten(), vel[:2].flatten()) / rxy  # rxy dot
         azimuthDot = (vel[1] * pos[0] - vel[0] * pos[1]) / rxy2  # Azimuth rate of change
         elevationDot = (vel[2] * rxy - rxyDot * pos[2]) / r2  # Elevation rate of change
 
-
-        # bearings = [Bearing(i) for i in phi]
-        # elevations = [Elevation(i) for i in theta]
-        # return StateVectors([elevations,
-        #                      bearings,
-        #                      rho,
-        #                      er,
-        #                      br,
-        #                      rr]) + noise
-
-        # bearings = [Bearing(i) for i in azi]
-        # elevations = [Elevation(i) for i in el]
-        bearings = Bearing(azi)
-        elevations = Elevation(el)
-        # print(elevations, bearings, r, elevationDot, azimuthDot, rDot)
-        return StateVector([elevations,
-                             bearings,
-                             r,
-                             elevationDot,
-                             azimuthDot,
-                             rDot]) + noise
+        return StateVector([el,
+                            azi,
+                            r,
+                            elevationDot,
+                            azimuthDot,
+                            rDot]) + noise
 
     def inverse_function(self, detection, **kwargs) -> StateVector:
         # Theta: elevation
@@ -1248,17 +1189,9 @@ class CartesianToElevationRateBearingRateRangeRate(NonLinearGaussianMeasurement,
 
         x, y, z = sphere2cart(rho, phi, theta)
 
-        # x_rate = (rho_rate * np.cos(theta) * np.sin(phi) +
-        #           rho * phi_rate * np.cos(theta) * np.cos(phi) -
-        #           rho * theta_rate * np.sin(theta) * np.sin(phi))
-
         x_rate = (rho_rate * np.cos(theta) * np.cos(phi) -
                   rho * theta_rate * np.sin(theta) * np.cos(phi) -
                   rho * phi_rate * np.cos(theta) * np.sin(phi))
-
-        # y_rate = (rho_rate * np.cos(theta) * np.cos(phi) -
-        #           rho * phi_rate * np.cos(theta) * np.sin(phi) -
-        #           rho * theta_rate * np.sin(theta) * np.cos(phi))
 
         y_rate = (rho_rate * np.cos(theta) * np.sin(phi) -
                   rho * theta_rate * np.sin(theta) * np.sin(phi) +
@@ -1282,97 +1215,9 @@ class CartesianToElevationRateBearingRateRangeRate(NonLinearGaussianMeasurement,
 
         return out_vector
 
-    def rvs(self, num_samples=1, **kwargs) -> Union[StateVector, StateVectors]:
-        out = super().rvs(num_samples, **kwargs)
-        out = np.array([[Elevation(0)], [Bearing(0)], [0.], [0.], [0.], [0.]]) + out
-        return out
-
-    def jacobian(self, state, **kwargs):
-        """Model jacobian matrix :math:`H_{jac}`
-
-        Parameters
-        ----------
-        state : :class:`~.State`
-            An input state
-
-        Returns
-        -------
-        :class:`numpy.ndarray` of shape (:py:attr:`~ndim_meas`, \
-        :py:attr:`~ndim_state`)
-            The model jacobian matrix evaluated around the given state vector.
-        """
-        # Account for origin offset in position to enable range and angles to be determined
-        xyz_pos = state.state_vector[self.mapping, :] - self.translation_offset
-
-        # Determine the net velocity component in the engagement
-        xyz_vel = state.state_vector[self.velocity_mapping, :] - self.velocity
-
-        # Rotate into RADAR coordinate system to linearize around the correct
-        # state
-        xyz_pos = self.rotation_matrix @ xyz_pos
-        xyz_vel = self.rotation_matrix @ xyz_vel
-
-        jac = np.zeros((4, 6), dtype=np.float64)
-
-        x, y, z = xyz_pos
-        vx, vy, vz = xyz_vel
-        x2, y2, z2 = x ** 2, y ** 2, z ** 2
-        x2y2 = x2 + y2
-        r2 = x2y2 + z2
-        r = sqrt(r2)
-        sqrt_x2_y2 = sqrt(x2y2)
-        r32 = r2 * r
-
-        # Jacobian encodes partial derivatives of measurement vector components
-        # Y = <theta, phi, r, rdot> against state vector
-        # X = <x, vx, y, vy, z, vz>.
-
-        # dtheta/dx
-        sqrt_x2_y2r2 = sqrt_x2_y2 * r2
-        jac[0, 0] = -(x * z) / (sqrt_x2_y2r2)
-
-        # dtheta/dy
-        jac[0, 2] = -(y * z) / (sqrt_x2_y2r2)
-
-        # dthtea/dz
-        jac[0, 4] = sqrt_x2_y2 / r2
-
-        # dphi/dx
-        jac[1, 0] = - y / (x2y2)
-
-        # dphi/dy
-        jac[1, 2] = x / (x2y2)
-
-        # dphi/dz = 0
-
-        # dr/dx and drdot/dvx
-        jac[2, 0] = jac[3, 1] = x / r
-
-        # dr/dx and drdot/dvy
-        jac[2, 2] = jac[3, 3] = y / r
-
-        # dr/dx and drdot/dvz
-        jac[2, 4] = jac[3, 5] = z / r
-
-        vx_x, vy_y, vz_z = vx * x, vy * y, vz * z
-
-        # drdot/dx
-        jac[3, 0] = (-x * (vy_y + vz_z) + vx * (y2 + z2)) / r32
-
-        # drdot/dy
-        jac[3, 2] = (vy * (x2 + z2) - y * (vx_x + vz_z)) / r32
-
-        # drdot/dz
-        jac[3, 4] = (vz * (x2y2) - (vx_x + vy_y) * z) / r32
-
-        # Up to this point, the Jacobian has been with respect to the state
-        # vector after rotating into the RADAR coordinate system. However, we
-        # want the Jacobian with respect to world state vector, so we must post
-        # multiply Jacobian by the RADAR rotation matrix.
-        jac[:, self.mapping] = jac[:, self.mapping] @ self.rotation_matrix
-        jac[:, self.velocity_mapping] = jac[:, self.velocity_mapping] @ self.rotation_matrix
-
-        return jac
+    @staticmethod
+    def _typed_vector():
+        return np.array([[Elevation(0)], [Bearing(0)], [0.], [0.], [0.], [0.]])
 
 
 class RangeRangeRateBinning(CartesianToElevationBearingRangeRate):

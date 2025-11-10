@@ -18,6 +18,7 @@ from ....functions import pol2cart
 from ....functions import rotz, rotx, roty, cart2sphere, cart2az_el_rg
 from ....types.angle import Bearing, Elevation, Azimuth
 from ....types.array import StateVector, StateVectors
+from ....types.detection import Detection
 from ....types.state import State, CovarianceMatrix, ParticleState
 
 
@@ -458,8 +459,7 @@ position_measurement_sets = [((0, 1, 0, 0, 0, 0), (1, 0, 0, 0, 0, 0),
 @pytest.mark.parametrize('model_class, measure_mapping, use_velocity',
                          [(CartesianToElevationBearing, [0, 1], False),
                           (CartesianToElevationBearingRange, [0, 1, 2], False),
-                          (CartesianToElevationBearingRangeRate, [0, 1, 2, 3], True),
-                          (CartesianToElevationRateBearingRateRangeRate, [0, 1, 2, 3, 4, 5], True)])
+                          (CartesianToElevationBearingRangeRate, [0, 1, 2, 3], True)])
 def test_model_predictions(sensor_state, target_state, expected_measurement, model_class,
                            measure_mapping, use_velocity):
     sensor_state = StateVector(sensor_state)
@@ -1449,3 +1449,51 @@ def test_models_with_particles(h, ModelClass, state_vec, R,
              - h(single_state_vec, model.mapping, model.translation_offset, model.rotation_offset)
              ).T,
             cov=R)
+
+position_measurement_sets = [((0, 1, 0, 0, 0, 0), (1, 0, 0, 0, 0, 0),
+                              (0, 0, 1, 0, 0, -1))]
+@pytest.mark.parametrize('sensor_state, target_state, expected_measurement',
+                         position_measurement_sets)
+@pytest.mark.parametrize('model_class, measure_mapping, use_velocity',
+                          [(CartesianToElevationRateBearingRateRangeRate, [0, 1, 2, 3, 4, 5], True)])
+def test_rates(sensor_state, target_state, expected_measurement, model_class,
+                           measure_mapping, use_velocity):
+    sensor_state = StateVector(sensor_state)
+    target_state = State(StateVector(target_state), timestamp=None)
+    expected_measurement = StateVector([Elevation(expected_measurement[0]),
+                                        Bearing(expected_measurement[1]),
+                                        expected_measurement[2],  # range
+                                        expected_measurement[3],  # elevation rate
+                                        expected_measurement[4],  # bearing rate
+                                        expected_measurement[5]])  # range rate
+    pos_mapping = [0, 2, 4]
+    vel_mapping = [1, 3, 5]
+    sensor_velocity = sensor_state[vel_mapping]
+    _, bearing, elevation = cart2sphere(*sensor_velocity)
+    orientation = StateVector([0, elevation, bearing])
+    model = model_class(ndim_state=6,
+                        translation_offset=sensor_state[pos_mapping],
+                        rotation_offset=orientation,
+                        mapping=pos_mapping,
+                        noise_covar=np.eye(len(expected_measurement)))
+    if use_velocity:
+        model.velocity = sensor_velocity
+    actual_measurement = model.function(target_state, noise=False)
+    assert np.allclose(actual_measurement, expected_measurement[measure_mapping])
+
+def test_inverse_rates():
+    target_state = State(StateVector([1, 0, 0, 0, 0, 0]), timestamp=None)
+    measurement_model = CartesianToElevationRateBearingRateRangeRate(
+        ndim_state = 6,
+        mapping=np.array([0, 2, 4]),
+        velocity_mapping=np.array([1, 3, 5]),
+        noise_covar=np.array([[0, 0, 0, 0],
+                              [0, 0, 0, 0],
+                              [0, 0, 0, 0],
+                              [0, 0, 0, 0]]))
+
+
+    measurement = Detection(measurement_model.function(target_state), timestamp=None)
+    inv_state = measurement_model.inverse_function(measurement)
+
+    assert np.allclose(target_state.state_vector, inv_state)
