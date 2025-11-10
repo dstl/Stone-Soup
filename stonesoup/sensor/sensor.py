@@ -214,23 +214,18 @@ class VisibilityInformed2DSensor(SimpleSensor):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
+        
+        if self.obstacles is None:
+            self.obstacles = set()
 
-        if self.obstacles is not None and has_shapely and len(self.obstacles) > 100:
-            self._str_tree_is_visible_trigger = True
-            self._obstacle_tree = \
-                STRtree([Polygon(obstacle.vertices.T) for obstacle in self.obstacles])
-        else:
-            self._str_tree_is_visible_trigger = False
+        self._str_tree_is_visible_trigger = has_shapely and len(self.obstacles) > 100
+        self._cached_obstacle_tree = None
 
         self._relevant_obs = []
         self._relevant_obs_idx = []
 
-        if self.obstacles:
-            self._all_verts = [obstacle.vertices for obstacle in self.obstacles]
-            self._all_rel_edges = [obstacle.relative_edges for obstacle in self.obstacles]
-        else:
-            self._all_verts = []
-            self._all_rel_edges = []
+        self._all_verts = [obstacle.vertices for obstacle in self.obstacles]
+        self._all_rel_edges = [obstacle.relative_edges for obstacle in self.obstacles]
 
     @lru_cache(maxsize=None)
     def _position_cache(self):
@@ -264,12 +259,11 @@ class VisibilityInformed2DSensor(SimpleSensor):
             self._relevant_obs_idx = \
                 np.linspace(0, len(self.obstacles)-1, len(self.obstacles)).astype(int)
 
-    def get_obstacle_tree(self):
-
-        if self.moving_obstacle_flag:
-            return STRtree([Polygon(obstacle.vertices.T) for obstacle in self.obstacles])
-        else:
-            return self._obstacle_tree
+    @property
+    def _obstacle_tree(self):
+        if self.moving_obstacle_flag or self._cached_obstacle_tree is None:
+            self._cached_obstacle_tree = STRtree([Polygon(obstacle.vertices.T) for obstacle in self.obstacles]))
+        return self._cached_obstacle_tree
 
     def measure(self, ground_truths: Set[GroundTruthState], noise: Union[np.ndarray, bool] = True,
                 **kwargs) -> Set[TrueDetection]:
@@ -329,7 +323,7 @@ class VisibilityInformed2DSensor(SimpleSensor):
 
             intersections = np.full((nstates,), True)
 
-            obstacle_tree = self.get_obstacle_tree()
+            obstacle_tree = self._obstacle_tree
 
             non_vis_rays = obstacle_tree.query(line_segments, predicate='intersects')[0, :]
             intersections[np.unique(non_vis_rays)] = False
@@ -382,7 +376,7 @@ class VisibilityInformed2DSensor(SimpleSensor):
             else:
                 point_sequence = [Point(state.state_vector[self.position_mapping[0:2], :].T)]
 
-            obstacle_tree = self.get_obstacle_tree()
+            obstacle_tree = self._obstacle_tree
 
             in_obs_states = obstacle_tree.query(point_sequence, predicate='within')[0, :]
             in_obstacles[in_obs_states] = True
