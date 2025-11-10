@@ -397,9 +397,6 @@ class BernoulliParticlePredictor(ParticlePredictor):
 
 
 class VisibilityInformedBernoulliParticlePredictor(BernoulliParticlePredictor):
-    """A Bernoulli particle predictor implementing visibility estimation of particles
-    for reduced existence probability decay rate in cluttered environments."""
-
     """Visibility informed Bernoulli Particle Predictor class
 
     An implementation of a particle filter predictor utilising the Bernoulli

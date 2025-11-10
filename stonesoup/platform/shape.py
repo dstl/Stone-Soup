@@ -14,9 +14,8 @@ class Shape(Base):
     """
 
     shape_data: StateVectors = Property(
-        default=None,
         doc="Coordinates defining the vertices of the obstacle relative"
-        "to its centroid without any orientation. Defaults to `None`")
+        "to its centroid without any orientation.")
 
     simplices: Union[Sequence[int], np.ndarray] = Property(
         default=None,
