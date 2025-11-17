@@ -11,13 +11,15 @@ from stonesoup.measures import Mahalanobis
 from stonesoup.models.measurement.linear import LinearGaussian
 from stonesoup.models.transition.linear import CombinedLinearGaussianTransitionModel, \
     ConstantVelocity
+from stonesoup.platform.base import Obstacle
+from stonesoup.platform.shape import Shape
 from stonesoup.plotter import Plotter, Dimension, AnimatedPlotterly, AnimationPlotter, Plotterly, \
     PolarPlotterly, AnimatedPolarPlotterly, merge_dicts
 from stonesoup.predictor.kalman import KalmanPredictor
 from stonesoup.sensor.radar.radar import RadarElevationBearingRange
 from stonesoup.types.detection import TrueDetection, Clutter
 from stonesoup.types.groundtruth import GroundTruthPath, GroundTruthState
-from stonesoup.types.state import GaussianState, State
+from stonesoup.types.state import GaussianState, State, StateVector
 from stonesoup.types.track import Track
 from stonesoup.updater.kalman import KalmanUpdater
 
@@ -100,6 +102,17 @@ sensor3d = RadarElevationBearingRange(
     ndim_state=6,
     position=np.array([[10], [50], [0]])
 )
+
+shape = Shape(shape_data=np.array([[-2, -2, 2, 2], [-2, 2, 2, -2]]))
+obstacle_list = [Obstacle(shape=shape,
+                          states=State(StateVector([[0], [0]])),
+                          position_mapping=(0, 1)),
+                 Obstacle(shape=shape,
+                          states=State(StateVector([[0], [5]])),
+                          position_mapping=(0, 1)),
+                 Obstacle(shape=shape,
+                          states=State(StateVector([[5], [0]])),
+                          position_mapping=(0, 1))]
 
 
 @pytest.fixture(autouse=True)
@@ -260,6 +273,8 @@ def test_animated_plotterly():
     plotter = AnimatedPlotterly(timesteps)
     plotter.plot_ground_truths(truth, [0, 2])
     plotter.plot_measurements(true_measurements, [0, 2])
+    plotter.plot_measurements(all_measurements, [0, 2])
+    plotter.plot_obstacles(obstacle_list)
     plotter.plot_tracks(track, [0, 2], uncertainty=True, plot_history=True)
 
 
@@ -289,6 +304,7 @@ def test_plotterly_empty():
     plotter.plot_ground_truths(set(), [0, 2])
     plotter.plot_measurements(set(), [0, 2])
     plotter.plot_tracks(set(), [0, 2])
+    plotter.plot_obstacles(set())
     with pytest.raises(TypeError):
         plotter.plot_tracks(set())
     with pytest.raises(ValueError):
@@ -316,6 +332,8 @@ def test_plotterly_2d():
     plotter2d.plot_measurements(true_measurements, [0, 2])
     plotter2d.plot_tracks(track, [0, 2], uncertainty=True)
     plotter2d.plot_sensors(sensor2d)
+    plotter2d.plot_obstacles(obstacle_list)
+    plotter2d.plot_obstacles(obstacle_list[0])
 
 
 def test_plotterly_3d():
@@ -646,3 +664,25 @@ test_merge_dicts_data = {
         ids=test_merge_dicts_data.keys())
 def test_merge(dicts: tuple[dict], expected: dict):
     assert merge_dicts(*dicts) == expected
+
+
+@pytest.fixture(scope="module", params=[
+    Plotter(), Plotterly(), AnimationPlotter(), AnimatedPlotterly(timesteps=timesteps)])
+def plotters(request):
+    return request.param
+
+
+@pytest.fixture(scope="module", params=[obstacle_list[0], obstacle_list])
+def obstacles(request):
+    return request.param
+
+
+def test_obstacles(plotters, obstacles):
+    if isinstance(plotters, AnimationPlotter):
+        with pytest.raises(NotImplementedError):
+            plotters.plot_obstacles(obstacles)
+    else:
+        plotters.plot_ground_truths(truth, [0, 1])
+        plotters.plot_measurements(all_measurements, [0, 1])
+        plotters.plot_tracks(track, [0, 1])
+        plotters.plot_obstacles(obstacles)

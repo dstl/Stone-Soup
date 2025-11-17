@@ -11,7 +11,7 @@ from matplotlib import animation as animation
 from matplotlib import pyplot as plt
 from matplotlib.legend_handler import HandlerPatch
 from matplotlib.lines import Line2D
-from matplotlib.patches import Ellipse
+from matplotlib.patches import Ellipse, Patch, Polygon
 from scipy.special import ellipeinc
 from scipy.stats import kde
 try:
@@ -68,6 +68,10 @@ class _Plotter(ABC):
 
     @abstractmethod
     def plot_sensors(self, sensors, mapping, label="Sensors", **kwargs):
+        raise NotImplementedError
+
+    @abstractmethod
+    def plot_obstacles(self, obstacles, label="Obstacles", **kwargs):
         raise NotImplementedError
 
     def _conv_measurements(self, measurements, mapping, measurement_model=None,
@@ -598,6 +602,44 @@ class Plotter(_Plotter):
             else:
                 raise NotImplementedError('Unsupported dimension type for sensor plotting')
         self.legend_dict[label] = Line2D([], [], linestyle='', **sensor_kwargs)
+        artists.append(self.ax.legend(handles=self.legend_dict.values(),
+                                      labels=self.legend_dict.keys()))
+        return artists
+
+    def plot_obstacles(self, obstacles, label='Obstacles', **kwargs):
+        """Plots obstacle(s)
+
+        Plots obstacles. Users can change the colour and marker size of obstacle
+        vertices with keyword arguments. Marker colour determines the fill colour
+        of obstacle patches. Defaults are grey '.' marker and matching fill colour.
+
+        Parameters
+        ----------
+        obstacles : Collection of :class:`~.Obstacle`
+            Obstacles to plot
+        label: str
+            Label to apply to obstacles for the legend.
+        \\*\\*kwargs: dict
+            Additional arguments to be passed to scatter function for detections. Defaults are
+            ``marker=dict(symbol='circle', size=3, color='grey')``.
+        """
+        artists = []
+        if not isinstance(obstacles, Collection):
+            obstacles = {obstacles}
+
+        if self.dimension == 1 or self.dimension == 3:
+            raise NotImplementedError
+
+        obstacle_kwargs = dict(linestyle='-', marker='.', color='grey')
+        obstacle_kwargs.update(kwargs)
+        for obstacle in obstacles:
+            artists.append(self.ax.scatter(*obstacle.vertices.T, **obstacle_kwargs))
+            artists.append(self.ax.add_patch(Polygon(obstacle.vertices.T,
+                                                     facecolor=obstacle_kwargs['color'])))
+
+        obstacle_handle = Patch(facecolor=obstacle_kwargs['color'], label=label)
+        self.legend_dict[label] = obstacle_handle
+
         artists.append(self.ax.legend(handles=self.legend_dict.values(),
                                       labels=self.legend_dict.keys()))
         return artists
@@ -1602,6 +1644,50 @@ class Plotterly(_Plotter):
         sensor_xy = np.array([sensor.position[mapping, 0] for sensor in sensors])
         self.fig.add_scatter(x=sensor_xy[:, 0], y=sensor_xy[:, 1], **sensor_kwargs)
 
+    def plot_obstacles(self, obstacles, label='Obstacles', **kwargs):
+        """Plots obstacle(s)
+
+        Plots obstacles. Users can change the colour and marker size of obstacle
+        vertices with keyword arguments. Marker colour determines the fill colour
+        of obstacle patches. Defaults are grey '.' marker and matching fill colour.
+
+        Parameters
+        ----------
+        obstacles : Collection of :class:`~.Obstacle`
+            Obstacles to plot
+        label: str
+            Label to apply to obstacles for the legend.
+        \\*\\*kwargs: dict
+            Additional arguments to be passed to scatter function for detections. Defaults are
+            ``marker=dict(symbol='circle', size=3, color='grey')``.
+        """
+
+        if not isinstance(obstacles, Collection):
+            obstacles = {obstacles}
+
+        # No need to check mapping as we can use obstacle shape mapping
+
+        if self.dimension == 1 or self.dimension == 3:
+            raise NotImplementedError
+
+        obstacle_kwargs = dict(mode='markers', marker=dict(symbol='circle', size=3,
+                                                           color='grey'),
+                               legendgroup=label, legendrank=50, fill='toself',
+                               name=label)
+
+        obstacle_kwargs = merge_dicts(obstacle_kwargs, kwargs)
+
+        if obstacle_kwargs['legendgroup'] not in {trace.legendgroup
+                                                  for trace in self.fig.data}:
+            obstacle_kwargs['showlegend'] = True
+        else:
+            obstacle_kwargs['showlegend'] = False
+
+        for obstacle in obstacles:
+            obstacle_xy = obstacle.vertices
+            self.fig.add_scatter(x=obstacle_xy[0, :], y=obstacle_xy[1, :], **obstacle_kwargs)
+            obstacle_kwargs['showlegend'] = False
+
     def hide_plot_traces(self, items_to_hide=None):
         """Hide Plot Traces
 
@@ -1897,6 +1983,9 @@ class PolarPlotterly(_Plotter):
     def plot_sensors(self, sensors, label="Sensors", **kwargs):
         raise NotImplementedError
 
+    def plot_obstacles(self, obstacles, label='Obstacles', **kwargs):
+        raise NotImplementedError
+
 
 class _AnimationPlotterDataClass(Base):
     plotting_data: Iterable[State] = Property()
@@ -2174,6 +2263,9 @@ class AnimationPlotter(_Plotter):
             ))
 
     def plot_sensors(self, sensors, label="Sensors", **kwargs):
+        raise NotImplementedError
+
+    def plot_obstacles(self, obstacles, label='Obstacles', **kwargs):
         raise NotImplementedError
 
     @classmethod
@@ -2549,6 +2641,12 @@ class AnimatedPlotterly(_Plotter):
                     all_x.extend([np.nanmax(x_values), np.nanmin(x_values)])
                 for y_values in dictionary["y"]:
                     all_y.extend([np.nanmax(y_values), np.nanmin(y_values)])
+
+        elif type == "obstacle":
+            for obstacle in data:
+                obstacle_xy = obstacle.vertices[(0, 1), :]
+                all_x.extend(obstacle_xy[0, :])
+                all_y.extend(obstacle_xy[1, :])
 
         xmax = max(all_x)
         ymax = max(all_y)
@@ -3207,6 +3305,61 @@ class AnimatedPlotterly(_Plotter):
                 frame.data = data_
 
         # we have called a plotting function so update flag (used in _resize)
+        self.plotting_function_called = True
+
+    def plot_obstacles(self, obstacles, label="Obstacles", resize=True,
+                       **kwargs):
+        """Plots obstacle(s)
+
+        Plots obstacles. Users can change the colour and marker size of obstacle
+        vertices with keyword arguments. Marker colour determines the fill colour
+        of obstacle patches. Defaults are grey '.' marker and matching fill colour.
+        Currently only works for stationary obstacles.
+
+        Parameters
+        ----------
+        obstacles : Collection of :class:`~.Obstacle`
+            Obstacles to plot
+        label: str
+            Label to apply to obstacles for the legend.
+        resize : boolean
+            Boolean to reshape figure such that all elements are in view.
+        \\*\\*kwargs: dict
+            Additional arguments to be passed to scatter function for detections. Defaults are
+            ``marker=dict(symbol='circle', size=3, color='grey')``.
+        """
+        if not isinstance(obstacles, Collection):
+            obstacles = {obstacles}
+
+        if obstacles:
+            trace_base = len(self.fig.data)
+
+            obstacle_kwargs = dict(mode='markers', marker=dict(symbol='circle', size=3,
+                                                               color='grey'),
+                                   legendgroup=label, legendrank=50, fill='toself',
+                                   name=label)
+
+            obstacle_kwargs = merge_dicts(obstacle_kwargs, kwargs)
+
+            self.fig.add_trace(go.Scatter(obstacle_kwargs))
+
+            if resize:
+                self._resize(obstacles, "obstacle")
+
+            obstacle_xy = np.concatenate(
+                [np.concatenate([obstacle.vertices,
+                                 np.array([[None], [None]])], axis=1)
+                 for obstacle in obstacles], axis=1)
+            for frame in self.fig.frames:
+                traces_ = list(frame.traces)
+                data_ = list(frame.data)
+
+                data_.append(go.Scatter(x=obstacle_xy[0, :], y=obstacle_xy[1, :]))
+                traces_.append(trace_base)
+
+                frame.traces = traces_
+                frame.data = data_
+
         self.plotting_function_called = True
 
 

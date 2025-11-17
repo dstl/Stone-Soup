@@ -30,7 +30,7 @@ jobs:
             python -m venv venv
             . venv/bin/activate
             pip install --upgrade pip
-            pip install -e .[dev,ehm,optuna,orbital,roadnet,architectures] opencv-python-headless
+            pip install -e .[dev,ehm,optuna,orbital,roadnet,architectures,shapely] opencv-python-headless
       - save_cache:
           paths:
             - ./venv
