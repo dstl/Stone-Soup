@@ -73,8 +73,8 @@ class KalmanUpdater(Updater):
             "geometric combination of the matrix and transpose. Default is False.")
     force_positive_definite_covariance: bool = Property(
         default=False,
-        doc="A flag to force the output covariance matrix to be symmetric by way of a simple "
-            "geometric combination of the matrix and transpose. Default is False.")
+        doc="A flag to force the output covariance matrix to be positive definite. "
+            "Default is False.")
     use_joseph_cov: bool = Property(
         default=False,
         doc="Bool dictating the method of covariance calculation. If use_joseph_cov is True then "
