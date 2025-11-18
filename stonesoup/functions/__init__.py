@@ -1159,3 +1159,65 @@ def cub_points_and_tf(nx, order, sqrtCov, mean, transFunct, state):
     trsfPoints = transFunct(state_copy)
 
     return points, w, trsfPoints
+
+
+def find_nearest_positive_definite(matrix, max_iterations=20):
+    r"""Find the nearest positive definite matrix usable for cholesky factorization.
+
+    The nearest measure is in terms of Frobenius norm.
+
+    Parameters
+    ----------
+    matrix : numpy.ndarray
+        Base matrix to find the nearest positive definite from
+
+    Returns
+    -------
+     : numpy.ndarray
+        The nearest positive definite matrix
+    """
+    if is_cholesky_decomposable(matrix):
+        return matrix
+
+    # make matrix symetric
+    matrix = (matrix + matrix.T) / 2
+
+    # set negative eigenvalues to zero for positive semi definitife matrix
+    eigval, eigvec = np.linalg.eig(matrix)
+    eigval[eigval < 0] = 0
+
+    # matrix reconstruction
+    matrix = eigvec @ np.diag(eigval) @ eigvec.T
+
+    # find the closest positive definite matrix
+    eps = np.spacing(np.linalg.norm(matrix))
+    eye = np.eye(matrix.shape[0])
+    k = 0
+    while not is_cholesky_decomposable(matrix):
+        matrix += eye * (k**2 + eps)
+        k += 1
+
+        if k == max_iterations:
+            raise ValueError("Cannot find the nearest positive definite matrix.""")
+
+    return matrix
+
+
+def is_cholesky_decomposable(matrix):
+    r"""Test if given matrix is usable for cholesky decomposition.
+
+    Parameters
+    ----------
+    matrix: numpy.ndarray
+        Matrix to test
+
+    Returns
+    -------
+     : bool
+        An indication whether given matrix is usable for chelesky decomposition
+    """
+    try:
+        _ = np.linalg.cholesky(matrix)
+        return True
+    except np.linalg.LinAlgError:
+        return False
