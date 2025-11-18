@@ -46,9 +46,9 @@ class ModelReducer(Reducer):
             mean, covar = gm_reduce_single(means, covars, weights)
             temp.append(ModelAugmentedWeightedGaussianState.from_state(
                 hist_state[0],
-                mean,
-                covar,
-                np.sum(hist_state.weights)/np.sum(m_ij_weights)))
+                state_vector=mean,
+                covar=covar,
+                weight=np.sum(hist_state.weights)/np.sum(m_ij_weights)))
 
         states = self.calculate_likelihood(temp, timestamp)
         return states
