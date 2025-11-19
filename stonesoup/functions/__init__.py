@@ -1190,11 +1190,10 @@ def find_nearest_positive_definite(matrix, max_iterations=20):
     matrix = eigvec @ np.diag(eigval) @ eigvec.T
 
     # find the closest positive definite matrix
-    eps = np.spacing(np.linalg.norm(matrix))
-    eye = np.eye(matrix.shape[0])
-    k = 0
+    eps = np.eye(matrix.shape[0]) * np.spacing(np.linalg.norm(matrix))
+    k = 1
     while not is_cholesky_decomposable(matrix):
-        matrix += eye * (k**2 + eps)
+        matrix += eps * k**2
         k += 1
 
         if k == max_iterations:
