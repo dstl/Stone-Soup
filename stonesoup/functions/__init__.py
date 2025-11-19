@@ -1192,12 +1192,14 @@ def find_nearest_positive_definite(matrix, max_iterations=20):
     # find the closest positive definite matrix
     eps = np.eye(matrix.shape[0]) * np.spacing(np.linalg.norm(matrix))
     k = 1
-    while not is_cholesky_decomposable(matrix):
+    while True:
         matrix += eps * k**2
-        k += 1
+        if is_cholesky_decomposable(matrix):
+            break
 
         if k == max_iterations:
             raise ValueError("Cannot find the nearest positive definite matrix.""")
+        k += 1
 
     return matrix
 
