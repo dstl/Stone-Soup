@@ -18,6 +18,8 @@ class FITSReader(FileReader):
 
     FITS file must be valid i.e. have at least one Header Data Unit (HDU)
 
+    .. deprecated:: 1.9
+        This function will be removed in Stone Soup 1.10. Orbital functions have moved to the astrodynamics plugin.
     """
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -51,6 +53,8 @@ class TLEDictReader(Reader):
     .. [2] Kelso, T.S. 2019, Frequently Asked Questions: Two-Line Element Set Format,
        [CelesTrak](https://celestrak.com/columns/v04n03/)
 
+    .. deprecated:: 1.9
+        This function will be removed in Stone Soup 1.10. Orbital functions have moved to the astrodynamics plugin.
     """
     tle: dict = Property(doc="")
 
