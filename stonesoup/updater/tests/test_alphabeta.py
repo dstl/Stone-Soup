@@ -16,7 +16,7 @@ from stonesoup.types.hypothesis import SingleHypothesis
     "measurement_model, prediction, measurement, alpha, beta",
     [
         (   # Standard Alpha-Beta
-            LinearGaussian(ndim_state=4, mapping=[0, 2], noise_covar=0),
+            LinearGaussian(ndim_state=4, mapping=[0, 2], noise_covar=np.diag([0, 0])),
             StatePrediction(StateVector([-6.45, 0.7, -6.45, 0.7])),
             Detection(StateVector([-6.23, -6.23])),
             0.9,
@@ -52,17 +52,17 @@ def test_alphabeta(measurement_model, prediction, measurement, alpha, beta):
     # Get and assert measurement prediction
     measurement_prediction = updater.predict_measurement(prediction)
 
-    assert(np.allclose(measurement_prediction.state_vector,
-                       eval_measurement_prediction.state_vector, 0, atol=1.e-14))
+    assert np.allclose(measurement_prediction.state_vector,
+                       eval_measurement_prediction.state_vector, 0, atol=1.e-14)
 
     # Perform and assert state update (without measurement prediction)
     posterior = updater.update(SingleHypothesis(prediction=prediction, measurement=measurement),
                                time_interval=timediff)
 
-    assert(np.allclose(posterior.state_vector, eval_posterior.state_vector, 0, atol=1.e-14))
-    assert(np.array_equal(posterior.hypothesis.prediction, prediction))
-    assert(np.array_equal(posterior.hypothesis.measurement, measurement))
-    assert(posterior.timestamp == prediction.timestamp)
+    assert np.allclose(posterior.state_vector, eval_posterior.state_vector, 0, atol=1.e-14)
+    assert np.array_equal(posterior.hypothesis.prediction, prediction)
+    assert np.array_equal(posterior.hypothesis.measurement, measurement)
+    assert posterior.timestamp == prediction.timestamp
 
     # Check that the vmap parameter can be set
     # Check a measurement prediction can be added
@@ -70,9 +70,12 @@ def test_alphabeta(measurement_model, prediction, measurement, alpha, beta):
     posterior = updater.update(SingleHypothesis(prediction=prediction, measurement=measurement,
                                                 measurement_prediction=measurement_prediction),
                                time_interval=timediff)
-    assert(np.allclose(posterior.state_vector, eval_posterior.state_vector, 0, atol=1.e-14))
+    assert np.allclose(posterior.state_vector, eval_posterior.state_vector, 0, atol=1.e-14)
 
     # Finally check that no model in the updater raises correct error
     updater.measurement_model = None
     with pytest.raises(ValueError):
         updater._check_measurement_model(None)
+
+    with pytest.raises(ValueError):
+        updater.predict_measurement(prediction, measurement_noise=True)

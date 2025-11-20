@@ -15,9 +15,8 @@ components may not be the most optimised implementations, instead focusing on
 being flexible. Its also intended to aid choice of component/algorithms
 to tackle real world problems.
 
-Stone Soup is currently in *beta* and under continuing development, where
-feedback and contributions are welcomed to improve the component interface
-design and grow the number components available.
+Stone Soup is under active development, where feedback and contributions are
+welcomed to grow the number of components and features available.
 
 Please see the Stone Soup :ref:`auto_tutorials/index:Tutorials` for learning
 about tracking and using Stone Soup, :ref:`auto_examples/index:Examples` for
@@ -42,7 +41,7 @@ To install Stone Soup from Conda-Forge with ``conda``:
     conda config --add channels conda-forge
     conda install stonesoup
 
-Stone Soup is currently in active development under *beta*. To install
+Stone Soup is currently in active development. To install
 the latest version from the GitHub repository:
 
 .. code::

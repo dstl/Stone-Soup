@@ -3,10 +3,11 @@ import uuid
 import numpy as np
 from ordered_set import OrderedSet
 from scipy.spatial import KDTree
+from scipy.linalg import pinv
 
 from ..base import Property
 from .base import MixtureReducer
-from ..types.state import TaggedWeightedGaussianState, WeightedGaussianState
+from ..types.state import TaggedWeightedGaussianState, WeightedGaussianState, GaussianState
 from ..measures import SquaredMahalanobis
 from operator import attrgetter
 
@@ -33,8 +34,10 @@ class GaussianMixtureReducer(MixtureReducer):
     pp. 4091–4104, 2006..
     """
 
-    prune_threshold: float = Property(default=1e-9, doc='Threshold for pruning')
-    merge_threshold: float = Property(default=16, doc='Threshold for merging')
+    prune_threshold: float = Property(default=1e-9, doc='Mixture component weight '
+                                      'threshold for pruning')
+    merge_threshold: float = Property(default=16, doc='Squared Mahalanobis distance '
+                                      'threshold for merging')
     max_number_components: int = Property(default=np.iinfo(np.int64).max,
                                           doc='Maximum number of components to keep '
                                               'in the Gaussian mixture')
@@ -124,7 +127,7 @@ class GaussianMixtureReducer(MixtureReducer):
             Merged Gaussian component
 
         """
-        weight_sum = component_1.weight+component_2.weight
+        weight_sum = component_1.weight + component_2.weight
         w1 = component_1.weight / weight_sum
         w2 = component_2.weight / weight_sum
         merged_mean = component_1.mean*w1 + component_2.mean*w2
@@ -132,14 +135,13 @@ class GaussianMixtureReducer(MixtureReducer):
         mu1_minus_m2 = component_1.mean - component_2.mean
         merged_covar = merged_covar + \
             mu1_minus_m2*mu1_minus_m2.T*w1*w2
-        merged_weight = component_1.weight + component_2.weight
-        if merged_weight > 1:
-            merged_weight = 1
+        if weight_sum > 1:
+            weight_sum = 1
         if isinstance(component_1, TaggedWeightedGaussianState):
             merged_component = TaggedWeightedGaussianState(
                 state_vector=merged_mean,
                 covar=merged_covar,
-                weight=merged_weight,
+                weight=weight_sum,
                 tag=component_1.tag,
                 timestamp=component_1.timestamp
             )
@@ -147,7 +149,7 @@ class GaussianMixtureReducer(MixtureReducer):
             merged_component = WeightedGaussianState(
                 state_vector=merged_mean,
                 covar=merged_covar,
-                weight=merged_weight,
+                weight=weight_sum,
                 timestamp=component_1.timestamp
             )
 
@@ -274,3 +276,53 @@ class GaussianMixtureReducer(MixtureReducer):
                 truncated_weight_sum / self.max_number_components
 
         return remaining_components
+
+
+class CovarianceIntersection(MixtureReducer):
+    r"""Class to perform Covariance Intersection of `n` states.
+
+    The resulting state is given by its state vector :math:`\bf{x}` and covariance :math:`C`.
+
+    .. math::
+
+        C^{-1} = \sum_{i=1}^{n} \omega_{i}C_{i}^{-1}
+
+    .. math::
+
+        \mathbf{x} = C \sum_{i=1}^{n} \omega_{i}C_{i}^{-1}\mathbf{x}_{i}
+
+    where :math:`\omega` are the weights associated with each state such that
+    :math:`\sum_{i=1}^{n} \omega_i = 1`.
+    """
+    @staticmethod
+    def merge_components(*components, weights=None):
+        r"""
+        Merge similar Gaussian components using coveriance intersection
+
+        Parameters
+        ----------
+        *components : :class:`GaussianState`
+            Gaussian states to be combined.
+        weights : list[float], default: None
+            The weight :math:`\omega` associated with each state. If left as `None` this will be
+            set to equal weights across all states.
+
+        Returns
+        -------
+        :class:`GaussianState`
+            Merged Gaussian component.
+        """
+        if weights is None:
+            weights = np.ones(len(components))
+        if len(weights) != len(components):
+            raise IndexError
+
+        weights = np.asarray(weights) / sum(weights)
+
+        inv_covs = [weight*pinv(component.covar) for weight, component in zip(weights, components)]
+        C = pinv(sum(inv_covs))
+        x = C @ sum(inv_cov @ component.state_vector
+                    for inv_cov, component in zip(inv_covs, components))
+
+        new_component = GaussianState.from_state(components[0], state_vector=x, covar=C)
+        return new_component

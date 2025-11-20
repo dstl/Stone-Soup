@@ -19,10 +19,28 @@ Particle
 .. automodule:: stonesoup.updater.particle
     :show-inheritance:
 
+Kernel
+------
+
+.. automodule:: stonesoup.updater.kernel
+    :show-inheritance:
+
 Ensemble
 --------
 
 .. automodule:: stonesoup.updater.ensemble
+    :show-inheritance:
+
+Recursive
+---------
+
+.. automodule:: stonesoup.updater.recursive
+    :show-inheritance:
+
+Iterated
+--------
+
+.. automodule:: stonesoup.updater.iterated
     :show-inheritance:
 
 Information
@@ -62,7 +80,7 @@ Categorical
     :show-inheritance:
 
 Composite
------------
+---------
 
 .. automodule:: stonesoup.updater.composite
     :show-inheritance:
@@ -71,4 +89,9 @@ Chernoff
 --------
 
 .. automodule:: stonesoup.updater.chernoff
+
+Probabilistic
+-------------
+
+.. automodule:: stonesoup.updater.probability
     :show-inheritance:

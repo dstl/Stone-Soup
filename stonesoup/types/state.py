@@ -1,17 +1,18 @@
 import copy
 import datetime
 import uuid
-from collections import abc
+import weakref
+from collections.abc import MutableMapping, MutableSequence, Sequence
 from numbers import Integral
-from typing import MutableSequence, Any, Optional, Sequence, MutableMapping
-import typing
+from typing import Any, Optional
 
 import numpy as np
+from scipy.stats import multivariate_normal
 
 from ..base import Property, clearable_cached_property
 from .array import StateVector, CovarianceMatrix, PrecisionMatrix, StateVectors
 from .base import Type
-from .particle import Particle
+from .particle import Particle, MultiModelParticle, RaoBlackwellisedParticle
 from .numeric import Probability
 
 
@@ -36,7 +37,7 @@ class State(Type):
         return self.state_vector.shape[0]
 
     @staticmethod
-    def from_state(state: 'State', *args: Any, target_type: Optional[typing.Type] = None,
+    def from_state(state: 'State', *args: Any, target_type: Optional[Type] = None,
                    **kwargs: Any) -> 'State':
         """Class utility function to create a new state (or compatible type) from an existing
         state. The type and properties of this new state are defined by `state` except for any
@@ -52,16 +53,16 @@ class State(Type):
         \\*args: Sequence
             Arguments to pass to newly created state, replacing those with same name in `state`.
         target_type: Type,  optional
-            Optional argument specifying the type of of object to be created. This need not
+            Optional argument specifying the type of object to be created. This need not
             necessarily be :class:`~.State` subclass. Any arguments that match between the input
             `state` and the target type will be copied from the old to the new object (except those
-            explicitly specified in `args` and `kwargs`.
+            explicitly specified in `args` and `kwargs`).
         \\*\\*kwargs: Mapping
             New property names and associate value for use in newly created state, replacing those
             on the `state` parameter.
         """
         # Handle being initialised with state sequence
-        if isinstance(state, StateMutableSequence):
+        if isinstance(state, StateMutableSequence) and not isinstance(state, State):
             state = state.state
 
         if target_type is None:
@@ -73,7 +74,7 @@ class State(Type):
         new_kwargs = {
             name: getattr(state, name)
             for name in type(state).properties.keys() & target_type.properties.keys()
-            if name not in args_property_names}
+            if name not in args_property_names and name not in kwargs}
 
         new_kwargs.update(kwargs)
 
@@ -153,7 +154,7 @@ class CreatableFromState:
             those on the ``state`` parameter.
         """
         # Handle being initialised with state sequence
-        if isinstance(state, StateMutableSequence):
+        if isinstance(state, StateMutableSequence) and not isinstance(state, State):
             state = state.state
         try:
             state_type = next(type_ for type_ in type(state).mro()
@@ -163,7 +164,50 @@ class CreatableFromState:
         if target_type is None:
             target_type = CreatableFromState.class_mapping[cls][state_type]
 
-        return State.from_state(state, *args, **kwargs, target_type=target_type)
+        return target_type.from_state(state, *args, **kwargs, target_type=target_type)
+
+
+class PointMassState(State):
+    """PointMassState State type
+
+    For the Lagrangina Point Mass filter.
+    """
+
+    state_vector: StateVectors = Property(doc="State vectors.")
+    weight: MutableSequence[Probability] = Property(
+        default=None, doc="Masses of grid points"
+    )
+    grid_delta: np.ndarray = Property(default=None, doc="Grid step per dim")
+    grid_dim: np.ndarray = Property(
+        default=None,
+        doc="Grid coordinates per dimension before rotation and translation",
+    )
+    center: np.ndarray = Property(default=None, doc="Center of the grid")
+    eigVec: np.ndarray = Property(default=None, doc="Eigenvectors of the grid")
+    Npa: np.ndarray = Property(default=None, doc="Points per dim")
+
+    def __len__(self):
+        return self.state_vector.shape[1]
+
+    @property
+    def ndim(self):
+        """The number of dimensions represented by the state."""
+        return self.state_vector.shape[0]
+
+    @clearable_cached_property("state_vector")
+    def mean(self):
+        """Sample mean for particles"""
+        return np.hstack(self.state_vector @ self.weight * np.prod(self.grid_delta))
+
+    def covar(self):
+        # Measurement update covariance
+        chip_ = self.state_vector - self.mean[:, np.newaxis]
+        chip_w = chip_ * self.weight.reshape(1, -1, order="C")
+        measVar = (chip_w @ chip_.T) * np.prod(self.grid_delta)
+        measVar = CovarianceMatrix(measVar)
+        return measVar
+
+State.register(PointMassState)  # noqa: E305
 
 
 class ASDState(Type):
@@ -229,11 +273,13 @@ class ASDState(Type):
     def states(self):
         return [self[i] for i in range(self.nstep)]
 
+    from_state = State.from_state
+
 
 State.register(ASDState)
 
 
-class StateMutableSequence(Type, abc.MutableSequence):
+class StateMutableSequence(Type, MutableSequence):
     """A mutable sequence for :class:`~.State` instances
 
     This sequence acts like a regular list object for States, as well as
@@ -260,16 +306,14 @@ class StateMutableSequence(Type, abc.MutableSequence):
     """
 
     states: MutableSequence[State] = Property(
-        default=None,
+        default_factory=list,
         doc="The initial list of states. Default `None` which initialises with empty list.")
 
-    def __init__(self, states=None, *args, **kwargs):
-        if states is None:
-            states = []
-        elif not isinstance(states, abc.Sequence):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        if not isinstance(self.states, Sequence):
             # Ensure states is a list
-            states = [states]
-        super().__init__(states, *args, **kwargs)
+            self.states = [self.states]
 
     def __len__(self):
         return self.states.__len__()
@@ -316,7 +360,7 @@ class StateMutableSequence(Type, abc.MutableSequence):
         # such attribute.
         #
         # An alternative mechanism using __getattr__ seems simpler (as it skips the first few lines
-        # of code, but __getattr__ has no mechanism to capture the originally raised error.
+        # of code, but __getattr__ has no mechanism to capture the originally raised error).
         try:
             # This tries first to get the attribute from self.
             return Type.__getattribute__(self, name)
@@ -588,24 +632,35 @@ class TaggedWeightedGaussianState(WeightedGaussianState):
     Gaussian State object with an associated weight and tag. Used as components
     for a GaussianMixtureState.
     """
-    tag: str = Property(default=None, doc="Unique tag of the Gaussian State.")
+    tag: str = Property(
+        default_factory=lambda: str(uuid.uuid4()), doc="Unique tag of the Gaussian State.")
 
     BIRTH = 'birth'
     '''Tag value used to signify birth component'''
-
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        if self.tag is None:
-            self.tag = str(uuid.uuid4())
 
 
 class ASDWeightedGaussianState(ASDGaussianState):
     """ASD Weighted Gaussian State Type
 
-    ASD Gaussian State object with an associated weight.  Used as components
+    ASD Gaussian State object with an associated weight. Used as components
     for a GaussianMixtureState.
     """
     weight: Probability = Property(default=0, doc="Weight of the Gaussian State.")
+
+
+class ASDTaggedWeightedGaussianState(ASDWeightedGaussianState):
+    """ASD Tagged Weighted Gaussian State Type
+
+    ASD Gaussian State object with an associated weight and tag. Used as components
+    for a GaussianMixtureState.
+    """
+    tag: str = Property(
+        default_factory=lambda: str(uuid.uuid4()), doc="Unique tag of the ASD Gaussian State.")
+
+    BIRTH = 'birth'
+    '''Tag value used to signify birth component'''
+
+TaggedWeightedGaussianState.register(ASDTaggedWeightedGaussianState)  # noqa: E305
 
 
 class ParticleState(State):
@@ -617,6 +672,7 @@ class ParticleState(State):
 
     state_vector: StateVectors = Property(doc='State vectors.')
     weight: MutableSequence[Probability] = Property(default=None, doc='Weights of particles')
+    log_weight: np.ndarray = Property(default=None, doc='Log weights of particles')
     parent: 'ParticleState' = Property(default=None, doc='Parent particles')
     particle_list: MutableSequence[Particle] = Property(default=None,
                                                         doc='List of Particle objects')
@@ -625,6 +681,22 @@ class ParticleState(State):
                                                  'weighted sample covariance is then used.')
 
     def __init__(self, *args, **kwargs):
+        weight = next(
+            (val for name, val in zip(type(self).properties, args) if name == 'weight'),
+            kwargs.get('weight', None))
+        log_weight, idx = next(
+            ((val, idx) for idx, (name, val) in enumerate(zip(type(self).properties, args))
+             if name == 'log_weight'),
+            (kwargs.get('log_weight', None), None))
+
+        if weight is not None and log_weight is not None:
+            raise ValueError("Cannot provide both weight and log weight")
+        elif log_weight is None and weight is not None:
+            log_weight = np.log(np.asarray(weight, dtype=np.float64))
+            if idx is not None:
+                args[idx] = log_weight
+            else:
+                kwargs['log_weight'] = log_weight
         super().__init__(*args, **kwargs)
 
         if (self.particle_list is not None) and \
@@ -645,29 +717,302 @@ class ParticleState(State):
                 raise ValueError("Either all particles should have"
                                  " parents or none of them should.")
 
-        if self.parent:
-            self.parent.parent = None  # Removed to avoid using significant memory
+        if self.parent and self.parent.parent:  # Create weakref to avoid using significant memory
+            self.parent.parent = weakref.ref(self.parent.parent)
 
         if self.state_vector is not None and not isinstance(self.state_vector, StateVectors):
             self.state_vector = StateVectors(self.state_vector)
-        if self.weight is not None and not isinstance(self.weight, np.ndarray):
-            self.weight = np.array(self.weight)
 
     def __getitem__(self, item):
-        if self.parent:
-            p = self.parent[item]
+        if self.parent is not None:
+            parent = copy.copy(self.parent)
+            parent.parent = None  # Don't slice parent parent
+            parent = parent[item]
         else:
-            p = None
+            parent = None
 
-        particle = Particle(state_vector=self.state_vector[:, item],
-                            weight=self.weight[item],
-                            parent=p)
-        return particle
+        if self.log_weight is not None:
+            log_weight = self.log_weight[item]
+        else:
+            log_weight = None
 
-    @clearable_cached_property('state_vector', 'weight')
+        if isinstance(item, int):
+            result = Particle(state_vector=self.state_vector[:, item],
+                              weight=self.weight[item] if self.weight is not None else None,
+                              parent=parent)
+        else:
+            # Allow for Prediction/Update sub-types
+            result = type(self).from_state(self,
+                                           state_vector=self.state_vector[:, item],
+                                           log_weight=log_weight,
+                                           parent=parent)
+        return result
+
+    @parent.getter
+    def parent(self):
+        if isinstance(self._property_parent, weakref.ReferenceType):
+            return self._property_parent()
+        else:
+            return self._property_parent
+
+    def __getstate__(self):
+        state = super().__getstate__().copy()
+        # Resolve weakref
+        state['_property_parent'] = self.parent
+        return state
+
+    @classmethod
+    def from_state(cls, state: 'State', *args: Any, target_type: Optional[Type] = None,
+                   **kwargs: Any) -> 'State':
+
+        # Handle default presence of both particle_list and weight once class has been created by
+        # ignoring particle_list and weight (setting to None) if not provided.
+        particle_list, particle_list_idx = next(
+            ((val, idx) for idx, (name, val) in enumerate(zip(cls.properties, args))
+             if name == 'particle_list'),
+            (kwargs.get('particle_list', None), None))
+        if particle_list_idx is None:
+            kwargs['particle_list'] = particle_list
+
+        weight, weight_idx = next(
+            ((val, idx) for idx, (name, val) in enumerate(zip(cls.properties, args))
+             if name == 'weight'),
+            (kwargs.get('weight', None), None))
+        if weight_idx is None:
+            kwargs['weight'] = weight
+
+        return super().from_state(state, *args, target_type=target_type, **kwargs)
+
+    @clearable_cached_property('state_vector', 'log_weight')
     def particles(self):
         """Sequence of individual :class:`~.Particle` objects."""
+        if self.particle_list is not None:
+            return self.particle_list
         return tuple(particle for particle in self)
+
+    def __len__(self):
+        return self.state_vector.shape[1]
+
+    @property
+    def ndim(self):
+        """The number of dimensions represented by the state."""
+        return self.state_vector.shape[0]
+
+    @clearable_cached_property('state_vector', 'log_weight')
+    def mean(self):
+        """Sample mean for particles"""
+        if len(self) == 1:  # No need to calculate mean
+            return self.state_vector
+        return np.average(self.state_vector, axis=1,
+                          weights=np.exp(self.log_weight - np.max(self.log_weight)))
+
+    @clearable_cached_property('state_vector', 'log_weight', 'fixed_covar')
+    def covar(self):
+        """Sample covariance matrix for particles"""
+        if self.fixed_covar is not None:
+            return self.fixed_covar
+        return np.cov(self.state_vector, ddof=0,
+                      aweights=np.exp(self.log_weight - np.max(self.log_weight)))
+
+    @weight.setter
+    def weight(self, value):
+        if value is None:
+            self.log_weight = None
+        else:
+            with np.errstate(divide='ignore'):  # Log weight of -inf is fine
+                self.log_weight = np.log(np.asarray(value, dtype=np.float64))
+            self.__dict__['weight'] = np.asanyarray(value)
+
+    @weight.getter
+    def weight(self):
+        try:
+            return self.__dict__['weight']
+        except KeyError:
+            log_weight = self.log_weight
+            if log_weight is None:
+                return None
+            weight = Probability.from_log_ufunc(log_weight)
+            self.__dict__['weight'] = weight
+            return weight
+
+State.register(ParticleState)  # noqa: E305
+ParticleState.log_weight._clear_cached.add('weight')
+
+
+class MultiModelParticleState(ParticleState):
+    """Multi-Model Particle State type
+
+    This is a particle state object which describes the state as a
+    distribution of particles, where each particle has an associated
+    dynamics model
+    """
+
+    dynamic_model: np.ndarray = Property(
+        default=None,
+        doc="Array of indices that identify which model is associated with each particle.")
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        if self.particle_list and isinstance(self.particle_list, list):
+            self.dynamic_model = \
+                np.array([particle.dynamic_model for particle in self.particle_list])
+
+    def __getitem__(self, item):
+        if self.parent is not None:
+            parent = copy.copy(self.parent)
+            parent.parent = None  # Don't slice parent parent
+            parent = parent[item]
+        else:
+            parent = None
+
+        if self.log_weight is not None:
+            log_weight = self.log_weight[item]
+        else:
+            log_weight = None
+
+        if self.dynamic_model is not None:
+            dynamic_model = self.dynamic_model[item]
+        else:
+            dynamic_model = None
+
+        if isinstance(item, int):
+            result = MultiModelParticle(
+                state_vector=self.state_vector[:, item],
+                weight=self.weight[item] if self.weight is not None else None,
+                parent=parent,
+                dynamic_model=dynamic_model)
+        else:
+            # Allow for Prediction/Update sub-types
+            result = type(self).from_state(self,
+                                           state_vector=self.state_vector[:, item],
+                                           log_weight=log_weight,
+                                           parent=parent,
+                                           dynamic_model=dynamic_model)
+        return result
+
+
+class RaoBlackwellisedParticleState(ParticleState):
+
+    model_probabilities: np.ndarray = Property(
+        default=None,
+        doc="2d NumPy array containing probability of particle belong to particular model. "
+            "Shape (n-models, m-particles)."
+    )
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        if self.particle_list and isinstance(self.particle_list, list):
+            self.model_probabilities = \
+                np.column_stack([particle.model_probabilities for particle in self.particle_list])
+
+    def __getitem__(self, item):
+        if self.parent is not None:
+            parent = copy.copy(self.parent)
+            parent.parent = None  # Don't slice parent parent
+            parent = parent[item]
+        else:
+            parent = None
+
+        if self.log_weight is not None:
+            log_weight = self.log_weight[item]
+        else:
+            log_weight = None
+
+        if self.model_probabilities is not None:
+            model_probabilities = self.model_probabilities[:, item]
+        else:
+            model_probabilities = None
+
+        if isinstance(item, int):
+            result = RaoBlackwellisedParticle(
+                state_vector=self.state_vector[:, item],
+                weight=self.weight[item] if self.weight is not None else None,
+                parent=parent,
+                model_probabilities=model_probabilities)
+        else:
+            # Allow for Prediction/Update sub-types
+            result = type(self).from_state(self,
+                                           state_vector=self.state_vector[:, item],
+                                           log_weight=log_weight,
+                                           parent=parent,
+                                           model_probabilities=model_probabilities)
+        return result
+
+
+class BernoulliParticleState(ParticleState):
+    """Bernoulli Particle State type
+
+    This is a particle state object that describes the target
+    as a distribution of particles and an estimated existence
+    probability according to the Bernoulli particle filter [1]_.
+
+    References
+    ----------
+    .. [1] Ristic, Branko & Vo, Ba-Toung & Vo, Ba-Ngu & Farina, Alfonso, A
+       Tutorial on Bernoulli Filters: Theory, Implementation and Applications,
+       2013, IEEE Transactions on Signal Processing, 61(13), 3406-3430.
+
+    """
+
+    existence_probability: Probability = Property(
+        default=None,
+        doc="Target existence probability estimate"
+    )
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+
+    def __getitem__(self, item):
+        if self.parent is not None:
+            parent = copy.copy(self.parent)
+            parent.parent = None  # Don't slice parent parent
+            parent = parent[item]
+        else:
+            parent = None
+
+        if self.weight is not None:
+            weight = self.weight[item]
+        else:
+            weight = None
+
+        if self.existence_probability is not None:
+            existence_probability = self.existence_probability
+        else:
+            existence_probability = None
+
+        if isinstance(item, int):
+            result = Particle(state_vector=self.state_vector[:, item],
+                              weight=weight,
+                              parent=parent)
+        else:
+            # Allow for Prediction/Update sub-types
+            result = type(self).from_state(
+                self,
+                state_vector=self.state_vector[:, item],
+                parent=parent,
+                particle_list=None,
+                existence_probability=existence_probability)
+        return result
+
+
+class KernelParticleState(State):
+    """Kernel Particle State type
+
+    This is a kernel particle state object which describes the state as a
+    distribution of particles and kernel covariance.
+    """
+
+    state_vector: StateVectors = Property(doc='State vectors.')
+    weight: np.ndarray = Property(default=None, doc='Weights of particles. Defaults to [1/N]*N.')
+    kernel_covar: CovarianceMatrix = Property(default=None,
+                                              doc='Kernel covariance value. Default `None`.'
+                                                  'If None, the identity matrix is used.')
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        if self.kernel_covar is None:
+            self.kernel_covar = CovarianceMatrix(np.identity(self.state_vector.shape[1])
+                                                 * (1/self.state_vector.shape[1]))
 
     def __len__(self):
         return self.state_vector.shape[1]
@@ -679,26 +1024,20 @@ class ParticleState(State):
 
     @clearable_cached_property('state_vector', 'weight')
     def mean(self):
-        """Sample mean for particles"""
-        if len(self) == 1:  # No need to calculate mean
-            return self.state_vector
-        return np.average(self.state_vector, axis=1, weights=np.asfarray(self.weight))
+        return self.state_vector @ self.weight[:, np.newaxis]
 
-    @clearable_cached_property('state_vector', 'weight', 'fixed_covar')
+    @clearable_cached_property('state_vector', 'kernel_covar')
     def covar(self):
-        """Sample covariance matrix for particles"""
-        if self.fixed_covar is not None:
-            return self.fixed_covar
-        return np.cov(self.state_vector, ddof=0, aweights=np.asfarray(self.weight))
+        return self.state_vector @ self.kernel_covar @ self.state_vector.T
 
 
-State.register(ParticleState)  # noqa: E305
+ParticleState.register(KernelParticleState)
 
 
-class EnsembleState(Type):
+class EnsembleState(State):
     r"""Ensemble State type
 
-    This is an Ensemble state object which describes the system state as a
+    This is an Ensemble state object which describes the system state as an
     ensemble of state vectors for use in Ensemble based filters.
 
     This approach is functionally identical to the Particle state type except
@@ -717,7 +1056,7 @@ class EnsembleState(Type):
         default=None, doc="Timestamp of the state. Default None.")
 
     @classmethod
-    def from_gaussian_state(cls, gaussian_state, num_vectors):
+    def from_gaussian_state(cls, gaussian_state, num_vectors, **kwargs):
         """
         Returns an EnsembleState instance, from a given
         GaussianState object.
@@ -733,12 +1072,13 @@ class EnsembleState(Type):
         :class:`~.EnsembleState`
             Instance of EnsembleState.
         """
-        mean = gaussian_state.state_vector.reshape((gaussian_state.ndim,))
+        mean = gaussian_state.mean
         covar = gaussian_state.covar
         timestamp = gaussian_state.timestamp
 
-        return EnsembleState(state_vector=cls.generate_ensemble(mean, covar, num_vectors),
-                             timestamp=timestamp)
+        return cls(state_vector=cls.generate_ensemble(mean, covar, num_vectors),
+                   timestamp=timestamp,
+                   **kwargs)
 
     @staticmethod
     def generate_ensemble(mean, covar, num_vectors):
@@ -762,26 +1102,15 @@ class EnsembleState(Type):
         :class:`~.EnsembleState`
             Instance of EnsembleState.
         """
-        # This check is necessary, because the StateVector wrapper does
-        # funny things with dimension.
-        rng = np.random.default_rng()
-        if mean.ndim != 1:
-            mean = mean.reshape(len(mean))
-        try:
-            ensemble = StateVectors(
-                                    [StateVector((rng.multivariate_normal(mean, covar)))
-                                     for n in range(num_vectors)])
-        # If covar is univariate, then use the univariate noise generation function.
-        except ValueError:
-            ensemble = StateVectors(
-                [StateVector((rng.normal(mean, covar))) for n in range(num_vectors)])
+        if not isinstance(mean, StateVector):
+            mean = StateVector(mean)
+        ndim = mean.shape[0]
+        vectors = np.atleast_2d(
+            multivariate_normal.rvs(np.zeros(ndim), covar, num_vectors))
+        if ndim > 1:
+            vectors = vectors.T
 
-        return ensemble
-
-    @property
-    def ndim(self):
-        """Number of dimensions in state vectors"""
-        return np.shape(self.state_vector)[0]
+        return StateVectors(vectors) + mean
 
     @property
     def num_vectors(self):
@@ -804,9 +1133,6 @@ class EnsembleState(Type):
         some EnKF algorithms"""
         return ((self.state_vector-np.tile(self.mean, self.num_vectors))
                 / np.sqrt(self.num_vectors - 1))
-
-
-State.register(EnsembleState)  # noqa: E305
 
 
 class CategoricalState(State):

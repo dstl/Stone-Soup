@@ -4,15 +4,17 @@ import numpy as np
 import pytest
 
 from ..action.dwell_action import DwellActionsGenerator, ChangeDwellAction
-from ..actionable import Actionable, ActionableProperty
+from ...sensormanager.action import Actionable, ActionableProperty
 from ..base import Property
 from ...types.angle import Bearing
 from ...types.array import StateVector
 
 
 class DummyActionable(Actionable):
-    dwell_centre: StateVector = ActionableProperty(doc="Actionable dwell centre.",
-                                                   generator_cls=DwellActionsGenerator)
+    dwell_centre: StateVector = ActionableProperty(
+        doc="Actionable dwell centre.",
+        generator_cls=DwellActionsGenerator,
+        generator_kwargs_mapping={'rpm': 'rpm'})
     timestamp: datetime = Property(doc="Current time that actionable exists at.")
     rpm: float = Property(doc="Dwell centre revolutions per minute")
 

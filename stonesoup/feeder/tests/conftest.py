@@ -1,10 +1,12 @@
 import os
 import datetime
-from distutils import dir_util
+import shutil
+
 import pytest
 
 from ...buffered_generator import BufferedGenerator
 from ...reader import DetectionReader, GroundTruthReader
+from ...types.array import StateVector
 from ...types.detection import Detection
 from ...types.groundtruth import GroundTruthPath, GroundTruthState
 
@@ -22,14 +24,22 @@ def detector():
             time = datetime.datetime(2019, 4, 1, 14)
             time_step = datetime.timedelta(seconds=1)
 
+            class DummyModel():
+                def inverse_function(self, state, *args, **kwargs):
+                    return StateVector([state.state_vector[0], 0, state.state_vector[1], 0])
+            model = DummyModel()
+
             yield time, {
                 Detection([[50], [0]], timestamp=time,
+                          measurement_model=model,
                           metadata={'colour': 'red',
                                     'score': 0}),
                 Detection([[20], [5]], timestamp=time,
+                          measurement_model=model,
                           metadata={'colour': 'green',
                                     'score': 0.5}),
                 Detection([[1], [1]], timestamp=time,
+                          measurement_model=model,
                           metadata={'colour': 'blue',
                                     'score': 0.1}),
             }
@@ -37,14 +47,18 @@ def detector():
             time += time_step
             yield time, {
                 Detection([[-5], [4]], timestamp=time,
+                          measurement_model=model,
                           metadata={'colour': 'red',
                                     'score': 0.4}),
                 Detection([[11], [200]], timestamp=time,
+                          measurement_model=model,
                           metadata={'colour': 'green'}),
                 Detection([[0], [0]], timestamp=time,
+                          measurement_model=model,
                           metadata={'colour': 'green',
                                     'score': 0.2}),
                 Detection([[-43], [-10]], timestamp=time,
+                          measurement_model=model,
                           metadata={'colour': 'blue',
                                     'score': 0.326}),
             }
@@ -52,12 +66,15 @@ def detector():
             time += time_step
             yield time, {
                 Detection([[561], [10]], timestamp=time,
+                          measurement_model=model,
                           metadata={'colour': 'red',
                                     'score': 0.745}),
                 Detection([[1], [-10]], timestamp=time - time_step/2,
+                          measurement_model=model,
                           metadata={'colour': 'red',
                                     'score': 0}),
                 Detection([[-11], [-50]], timestamp=time,
+                          measurement_model=model,
                           metadata={'colour': 'blue',
                                     'score': 2}),
             }
@@ -65,9 +82,11 @@ def detector():
             time += time_step
             yield time, {
                 Detection([[1], [-5]], timestamp=time,
+                          measurement_model=model,
                           metadata={'colour': 'red',
                                     'score': 0.3412}),
                 Detection([[1], [-5]], timestamp=time,
+                          measurement_model=model,
                           metadata={'colour': 'blue',
                                     'score': 0.214}),
             }
@@ -75,35 +94,44 @@ def detector():
             time += time_step
             yield time, {
                 Detection([[-11], [5]], timestamp=time,
+                          measurement_model=model,
                           metadata={'colour': 'red',
                                     'score': 0.5}),
                 Detection([[13], [654]], timestamp=time,
+                          measurement_model=model,
                           metadata={'colour': 'blue',
                                     'score': 0}),
                 Detection([[-3], [6]], timestamp=time,
+                          measurement_model=model,
                           metadata={}),
             }
 
             time += time_step*2
             yield time, {
                 Detection([[0], [0]], timestamp=time,
+                          measurement_model=model,
                           metadata={'colour': 'red',
                                     'score': 1}),
                 Detection([[0], [0]], timestamp=time,
+                          measurement_model=model,
                           metadata={'colour': 'blue',
                                     'score': 0.612}),
                 Detection([[0], [0]], timestamp=time,
+                          measurement_model=model,
                           metadata={'score': 0}),
                 Detection([[0], [0]], timestamp=time,
+                          measurement_model=model,
                           metadata={}),
             }
 
             time -= time_step
             yield time, {
                 Detection([[5], [-6]], timestamp=time,
+                          measurement_model=model,
                           metadata={'colour': 'red',
                                     'score': 0.2}),
                 Detection([[10], [0]], timestamp=time,
+                          measurement_model=model,
                           metadata={'colour': 'blue'}),
             }
 
@@ -172,6 +200,6 @@ def datadir(tmpdir, request):
     test_dir, _ = os.path.splitext(filename)
 
     if os.path.isdir(test_dir):
-        dir_util.copy_tree(test_dir, str(tmpdir))
+        shutil.copytree(test_dir, str(tmpdir), dirs_exist_ok=True)
 
     return tmpdir

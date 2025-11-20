@@ -1,5 +1,4 @@
-from collections.abc import Sized, Iterable, Container
-from typing import Sequence
+from collections.abc import Sequence
 
 from .detection import MissedDetection
 from .numeric import Probability
@@ -10,14 +9,14 @@ from ..types.hypothesis import SingleHypothesis, CompositeHypothesis
 from ..types.prediction import Prediction
 
 
-class MultipleHypothesis(Type, Sized, Iterable, Container):
+class MultipleHypothesis(Type, Sequence):
     """Multiple Hypothesis base type
 
     A Multiple Hypothesis is a container to store a collection of hypotheses.
     """
 
     single_hypotheses: Sequence[SingleHypothesis] = Property(
-        default=None,
+        default_factory=list,
         doc="The initial list of :class:`~.SingleHypothesis`. Default `None` "
             "which initialises with empty list.")
     normalise: bool = Property(
@@ -28,17 +27,13 @@ class MultipleHypothesis(Type, Sized, Iterable, Container):
         default=1,
         doc="When normalising, weights will sum to this. Default is 1.")
 
-    def __init__(self, single_hypotheses=None, normalise=False, *args,
-                 **kwargs):
-        if single_hypotheses is None:
-            single_hypotheses = []
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
 
         if any(not isinstance(hypothesis, SingleHypothesis)
-               for hypothesis in single_hypotheses):
+               for hypothesis in self.single_hypotheses):
             raise ValueError("Cannot form MultipleHypothesis out of "
                              "non-SingleHypothesis inputs!")
-
-        super().__init__(single_hypotheses, normalise, *args, **kwargs)
 
         # normalise the weights of 'single_hypotheses', if indicated
         if self.normalise:
@@ -119,7 +114,7 @@ class MultipleHypothesis(Type, Sized, Iterable, Container):
         return None
 
 
-class MultipleCompositeHypothesis(Type, Sized, Iterable, Container):
+class MultipleCompositeHypothesis(Type, Sequence):
     """Multiple composite hypothesis type
 
     A Multiple Composite Hypothesis is a container to store a collection of composite hypotheses.
@@ -129,7 +124,7 @@ class MultipleCompositeHypothesis(Type, Sized, Iterable, Container):
     """
 
     single_hypotheses: Sequence[CompositeHypothesis] = Property(
-        default=None,
+        default_factory=list,
         doc="The initial list of :class:`~.CompositeHypothesis`. Default `None` which initialises "
             "with empty list.")
     normalise: bool = Property(
@@ -139,17 +134,13 @@ class MultipleCompositeHypothesis(Type, Sized, Iterable, Container):
         default=1,
         doc="When normalising, weights will sum to this. Default is 1.")
 
-    def __init__(self, single_hypotheses=None, normalise=False, *args,
-                 **kwargs):
-        if single_hypotheses is None:
-            single_hypotheses = []
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
 
         if not all(isinstance(hypothesis, CompositeHypothesis)
-                   for hypothesis in single_hypotheses):
+                   for hypothesis in self.single_hypotheses):
             raise ValueError("Cannot form MultipleHypothesis out of "
                              "non-CompositeHypothesis inputs!")
-
-        super().__init__(single_hypotheses, normalise, *args, **kwargs)
 
         # normalise the weights of 'single_hypotheses', if indicated
         if self.normalise:

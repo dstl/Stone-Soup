@@ -2,11 +2,15 @@ import datetime
 
 import pytest
 
-from ..tracktotrack import TrackToTrackCounting, TrackToTruth, TrackIDbased
+from ...types.association import Association
+from ...types.groundtruth import GroundTruthPath, GroundTruthState
 from ...types.state import State
 from ...types.track import Track
-from ...types.groundtruth import GroundTruthPath, GroundTruthState
-from ...types.association import Association
+from ..tracktotrack import (
+    TrackIDbased,
+    TrackToTrackCounting,
+    TrackToTruth,
+)
 
 
 @pytest.fixture
@@ -90,9 +94,19 @@ def test_euclidiantracktotrack(tracks):
         position_weighting=0.999)
 
     association_set_3 = heavily_weighted_associator.associate_tracks(
-                            {tracks[0], tracks[2]}, {tracks[1], tracks[3], tracks[4]})
+        {tracks[0], tracks[2]}, {tracks[1], tracks[3], tracks[4]})
 
     association_set_4 = complete_associator.associate_tracks({tracks[0]}, {tracks[5]})
+
+    complete_associator_one2one = TrackToTrackCounting(
+        association_threshold=10,
+        consec_pairs_confirm=3,
+        consec_misses_end=2,
+        use_positional_only=False)
+    start_time = datetime.datetime(2019, 1, 1, 14, 0, 0)
+
+    association_set_one2one = complete_associator_one2one.associate_tracks(
+        {tracks[0], tracks[2]}, {tracks[1], tracks[3], tracks[4]})
 
     assert len(association_set_1.associations) == 1
     assoc1 = list(association_set_1.associations)[0]
@@ -121,6 +135,15 @@ def test_euclidiantracktotrack(tracks):
     assert assoc4.time_range.end_timestamp \
         == start_time + datetime.timedelta(seconds=7)
 
+    assert len(association_set_one2one) == 1
+    assoc5 = list(association_set_one2one)[0]
+    # assoc5 should be equal to assoc1
+    assert set(assoc5.objects) == {tracks[0], tracks[1]}
+    assert assoc5.time_range.start_timestamp \
+        == start_time + datetime.timedelta(seconds=1)
+    assert assoc5.time_range.end_timestamp \
+        == start_time + datetime.timedelta(seconds=6)
+
 
 def test_euclidiantracktotruth(tracks):
     associator = TrackToTruth(
@@ -139,6 +162,27 @@ def test_euclidiantracktotruth(tracks):
         seconds=1)
     assert assoc.time_range.end_timestamp == start_time + datetime.timedelta(
         seconds=6)
+
+
+def test_empty_track_to_truth(tracks):
+    associator = TrackToTruth(
+        association_threshold=10,
+        consec_pairs_confirm=3,
+        consec_misses_end=2)
+
+    empty_track = Track()
+    empty_truth = GroundTruthPath()
+    association_set = associator.associate_tracks(
+        truth_set={empty_track, tracks[0]},
+        tracks_set={empty_truth, tracks[2], tracks[1], tracks[3]})
+
+    associated_objects = {obj
+                          for association in association_set
+                          for obj in association.objects}
+
+    assert empty_track not in associated_objects
+    assert empty_truth not in associated_objects
+    assert associated_objects == {tracks[0], tracks[1]}
 
 
 def test_trackidbased():
@@ -190,8 +234,8 @@ def test_trackidbased():
 
     association_setB = associator.associate_tracks(tracksB, truths)
     assocB = list(association_setB.associations)[0]
-    assert type(assocB) == Association
+    assert isinstance(assocB, Association)
 
     association_setC = associator.associate_tracks(tracksC, truths)
     assocC = list(association_setC.associations)[0]
-    assert type(assocC) == Association
+    assert isinstance(assocC, Association)

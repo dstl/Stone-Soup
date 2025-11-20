@@ -1,3 +1,5 @@
+import pickle
+
 import numpy as np
 
 from ..particle import Particle
@@ -15,5 +17,9 @@ def test_particle():
 
     particle3 = Particle(np.array([[0]]), weight=0.1, parent=particle2)
 
+    del particle1  # Weakref in particle3.parent.parent should now be None
+
     assert particle3.parent is particle2
     assert particle3.parent.parent is None
+
+    pickle.dumps(particle3)

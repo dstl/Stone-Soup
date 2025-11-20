@@ -7,6 +7,12 @@ Hypothesiser
 .. automodule:: stonesoup.hypothesiser.base
     :show-inheritance:
 
+Simple
+------
+
+.. automodule:: stonesoup.hypothesiser.simple
+    :show-inheritance:
+
 Distance
 --------
 
@@ -35,4 +41,10 @@ Composite
 ---------
 
 .. automodule:: stonesoup.hypothesiser.composite
+    :show-inheritance:
+
+Multi-Frame Assignment
+----------------------
+
+.. automodule:: stonesoup.hypothesiser.mfa
     :show-inheritance:

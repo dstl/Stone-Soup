@@ -1,7 +1,26 @@
 import re
 from collections.abc import Sequence
+from pathlib import PurePosixPath
+from textwrap import indent
+
+import numpy as np
+import matplotlib
+import matplotlib.pyplot as plt
+from matplotlib.animation import Animation
+from matplotlib.figure import Figure
+from sphinx_gallery.scrapers import (
+    figure_rst, _anim_rst, _matplotlib_fig_titles, HLIST_HEADER,
+    HLIST_IMAGE_MATPLOTLIB)
+import plotly.graph_objects as go
+try:
+    import kaleido  # noqa: F401
+except ImportError:
+    write_plotly_image = None
+else:
+    from plotly.io import write_image as write_plotly_image
 
 from stonesoup.base import Base
+
 
 STONESOUP_TYPE_REGEX = re.compile(r'stonesoup\.(\w+\.)*')
 
@@ -31,6 +50,9 @@ def declarative_class(app, what, name, obj, options, lines):
                 class_name = str(property_.cls)
                 class_name = class_name.replace('typing.', '')
                 class_name = STONESOUP_TYPE_REGEX.sub('', class_name)
+                is_sequence = False
+            elif isinstance(property_.cls, str):
+                class_name = str(property_.cls)
                 is_sequence = False
             else:
                 is_sequence = isinstance(property_.cls, Sequence)
@@ -69,26 +91,13 @@ def setup(app):
     app.connect('autodoc-process-docstring', declarative_class)
     app.connect('autodoc-process-signature', shorten_type_hints)
 
-
-import os
-import matplotlib
-import matplotlib.pyplot as plt
-from textwrap import indent
-
-from sphinx_gallery.scrapers import (
-    figure_rst, _anim_rst, _matplotlib_fig_titles, HLIST_HEADER,
-    HLIST_IMAGE_MATPLOTLIB)
-
-import plotly.graph_objects as go
-try:
-    import kaleido
-except ImportError:
-    write_plotly_image = None
-else:
-    from plotly.io import write_image as write_plotly_image
+    return {
+        'parallel_read_safe': True,
+        'parallel_write_safe': True,
+    }
 
 
-class gallery_scraper():
+class GalleryScraper():
     def __init__(self):
         self.plotted_figures = set()
         self.current_src_file = None
@@ -124,18 +133,15 @@ class gallery_scraper():
             self.plotted_figures = set()
             self.current_src_file = block_vars['src_file']
 
-        from matplotlib.animation import Animation
-        from matplotlib.figure import Figure
         image_path_iterator = block_vars['image_path_iterator']
         image_rsts = []
 
         # Check for animations
-        anims = list()
-        if gallery_conf.get('matplotlib_animations', False):
+        anims = {}
+        if gallery_conf['matplotlib_animations']:
             for ani in block_vars['example_globals'].values():
                 if isinstance(ani, Animation):
-                    anims.append(ani)
-
+                    anims[ani._fig] = ani
         # Then standard images
         new_figures = set(plt.get_fignums()) - self.plotted_figures
         last_line = block[1].strip().split('\n')[-1]
@@ -149,30 +155,22 @@ class gallery_scraper():
         else:
             if isinstance(output, Figure):
                 new_figures.add(output.number)
-            elif isinstance(output, go.Figure):
-                if write_plotly_image is not None:
-                    image_path = next(image_path_iterator)
-                    if 'format' in kwargs:
-                        image_path = '%s.%s' % (os.path.splitext(image_path)[0],
-                                                kwargs['format'])
-                    write_plotly_image(output, image_path, kwargs.get('format'))
+            elif isinstance(output, go.Figure) and write_plotly_image is not None:
+                image_path = PurePosixPath(next(image_path_iterator))
+                if "format" in kwargs:
+                    image_path = image_path.with_suffix("." + kwargs["format"])
+                write_plotly_image(output, str(image_path), kwargs.get('format'))
 
         for fig_num, image_path in zip(new_figures, image_path_iterator):
-            if 'format' in kwargs:
-                image_path = '%s.%s' % (os.path.splitext(image_path)[0],
-                                        kwargs['format'])
-            # Set the fig_num figure as the current figure as we can't
-            # save a figure that's not the current figure.
+            image_path = PurePosixPath(image_path)
+            if "format" in kwargs:
+                image_path = image_path.with_suffix("." + kwargs["format"])
+            # Convert figure number to Figure.
             fig = plt.figure(fig_num)
             self.plotted_figures.add(fig_num)
             # Deal with animations
-            cont = False
-            for anim in anims:
-                if anim._fig is fig:
-                    image_rsts.append(_anim_rst(anim, image_path, gallery_conf))
-                    cont = True
-                    break
-            if cont:
+            if anim := anims.get(fig):
+                image_rsts.append(_anim_rst(anim, image_path, gallery_conf))
                 continue
             # get fig titles
             fig_titles = _matplotlib_fig_titles(fig)
@@ -183,8 +181,7 @@ class gallery_scraper():
             for attr in ['facecolor', 'edgecolor']:
                 fig_attr = getattr(fig, 'get_' + attr)()
                 default_attr = matplotlib.rcParams['figure.' + attr]
-                if to_rgba(fig_attr) != to_rgba(default_attr) and \
-                        attr not in kwargs:
+                if to_rgba(fig_attr) != to_rgba(default_attr) and attr not in kwargs:
                     these_kwargs[attr] = fig_attr
             these_kwargs['bbox_inches'] = "tight"
             fig.savefig(image_path, **these_kwargs)
@@ -194,24 +191,28 @@ class gallery_scraper():
         if len(image_rsts) == 1:
             rst = image_rsts[0]
         elif len(image_rsts) > 1:
-            image_rsts = [re.sub(r':class: sphx-glr-single-img',
-                                 ':class: sphx-glr-multi-img',
-                                 image) for image in image_rsts]
-            image_rsts = [HLIST_IMAGE_MATPLOTLIB + indent(image, u' ' * 6)
-                          for image in image_rsts]
+            image_rsts = [
+                re.sub(r':class: sphx-glr-single-img', ':class: sphx-glr-multi-img', image)
+                for image in image_rsts]
+            image_rsts = [
+                HLIST_IMAGE_MATPLOTLIB + indent(image, ' ' * 6) for image in image_rsts
+            ]
             rst = HLIST_HEADER + ''.join(image_rsts)
         return rst
 
 
-class reset_numpy_random_seed:
+class ResetNumPyRandomSeed:
 
     def __init__(self):
         self.state = None
 
     def __call__(self, gallery_conf, fname, when):
-        import numpy as np
         if when == 'before':
             self.state = np.random.get_state()
         elif when == 'after':
             # Set state attribute back to `None`
             self.state = np.random.set_state(self.state)
+
+
+gallery_scraper = GalleryScraper()
+reset_numpy_random_seed = ResetNumPyRandomSeed()

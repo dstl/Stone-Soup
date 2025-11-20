@@ -27,7 +27,7 @@ Categorical
 .. automodule:: stonesoup.sensor.categorical
     :show-inheritance:
 
-Actionable
-----------
-.. automodule:: stonesoup.sensor.actionable
+Gas
+---
+.. automodule:: stonesoup.sensor.gas
     :show-inheritance:

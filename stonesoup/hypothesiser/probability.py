@@ -43,6 +43,9 @@ class PDAHypothesiser(Hypothesiser):
         doc="If `True`, hypotheses outside probability gates will be returned. This requires "
             "that the clutter spatial density is also provided, as it may not be possible to"
             "estimate this. Default `False`")
+    normalise: bool = Property(
+        default=True,
+        doc="If `True`, hypotheses are normlised to total weight of 1. Default `True`")
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -102,7 +105,7 @@ class PDAHypothesiser(Hypothesiser):
         https://ieeexplore.ieee.org/stamp/stamp.jsp?arnumber=5338565
 
         [2] "Robotics 2 Data Association" (Lecture notes) -
-        http://ais.informatik.uni-freiburg.de/teaching/ws10/robotics2/pdfs/rob2-15-dataassociation.pdf
+        http://ais.informatik.uni-freiburg.de/teaching/ws11/robotics2/pdfs/rob2-20-dataassociation.pdf
 
         Parameters
         ----------
@@ -147,10 +150,10 @@ class PDAHypothesiser(Hypothesiser):
                 prediction, detection.measurement_model, **kwargs)
             # Calculate difference before to handle custom types (mean defaults to zero)
             # This is required as log pdf coverts arrays to floats
-            log_pdf = multivariate_normal.logpdf(
-                (detection.state_vector - measurement_prediction.state_vector).ravel(),
+            log_prob = multivariate_normal.logpdf(
+                (detection.state_vector - measurement_prediction.mean).ravel(),
                 cov=measurement_prediction.covar)
-            pdf = Probability(log_pdf, log_value=True)
+            probability = Probability(log_prob, log_value=True)
 
             if measure(measurement_prediction, detection) \
                     <= self._gate_threshold(self.prob_gate, measurement_prediction.ndim):
@@ -161,7 +164,7 @@ class PDAHypothesiser(Hypothesiser):
                 valid_measurement = False
 
             if self.include_all or valid_measurement:
-                probability = pdf * self.prob_detect
+                probability *= self.prob_detect
                 if self.clutter_spatial_density is not None:
                     probability /= self.clutter_spatial_density
 
@@ -178,7 +181,7 @@ class PDAHypothesiser(Hypothesiser):
                 hypothesis.probability *= self._validation_region_volume(
                     self.prob_gate, hypothesis.measurement_prediction) / validated_measurements
 
-        return MultipleHypothesis(hypotheses, normalise=True, total_weight=1)
+        return MultipleHypothesis(hypotheses, normalise=self.normalise)
 
     @classmethod
     @lru_cache()

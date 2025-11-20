@@ -1,14 +1,17 @@
 import datetime
-from typing import Sequence
+import weakref
+from collections.abc import Sequence
 
 from .array import CovarianceMatrix
 from .base import Type
-from .state import (State, GaussianState, ParticleState, EnsembleState,
+from .state import (State, GaussianState, EnsembleState,
+                    ParticleState, MultiModelParticleState, RaoBlackwellisedParticleState,
                     SqrtGaussianState, InformationState, TaggedWeightedGaussianState,
-                    WeightedGaussianState, CategoricalState, ASDGaussianState)
+                    WeightedGaussianState, CategoricalState, ASDGaussianState,
+                    BernoulliParticleState, KernelParticleState, ASDTaggedWeightedGaussianState)
 from ..base import Property
 from ..models.transition.base import TransitionModel
-from ..types.state import CreatableFromState, CompositeState
+from ..types.state import CreatableFromState, CompositeState, PointMassState
 
 
 class Prediction(Type, CreatableFromState):
@@ -17,6 +20,29 @@ class Prediction(Type, CreatableFromState):
     This is the base prediction class. """
     transition_model: TransitionModel = Property(
         default=None, doc='The transition model used to make the prediction')
+    prior: State = Property(default=None)
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        if hasattr(self.prior, 'hypothesis'):
+            if hasattr(self.prior.hypothesis, 'prediction'):
+                prior_prediction_prior = getattr(self.prior.hypothesis.prediction, 'prior', None)
+                if prior_prediction_prior is not None:
+                    # Create weakref to avoid using significant memory
+                    self.prior.hypothesis.prediction.prior = weakref.ref(prior_prediction_prior)
+
+    @prior.getter
+    def prior(self):
+        if isinstance(self._property_prior, weakref.ReferenceType):
+            return self._property_prior()
+        else:
+            return self._property_prior
+
+    def __getstate__(self):
+        state = super().__getstate__().copy()
+        # Resolve weakref
+        state['_property_prior'] = self.prior
+        return state
 
 
 class MeasurementPrediction(Type, CreatableFromState):
@@ -61,6 +87,12 @@ class ASDGaussianStatePrediction(Prediction, ASDGaussianState):
     This is a simple ASDGaussian state prediction object, which, as the name
     suggests, is described by a Gaussian distribution.
     """
+    act_timestamp: datetime.datetime = Property(
+        doc="The timestamp for which the state is predicted")
+
+
+class ASDTaggedWeightedGaussianStatePrediction(Prediction, ASDTaggedWeightedGaussianState):
+    """ASD Tagged Weighted Gaussian Prediction"""
     act_timestamp: datetime.datetime = Property(
         doc="The timestamp for which the state is predicted")
 
@@ -121,6 +153,13 @@ class ASDGaussianMeasurementPrediction(MeasurementPrediction, ASDGaussianState):
         doc="The state-measurement cross covariance matrix", default=None)
 
 
+class ASDTaggedWeightedGaussianMeasurementPrediction(
+        MeasurementPrediction, ASDTaggedWeightedGaussianState):
+    """ASD Tagged Weighted Gaussian Measurement Prediction"""
+    cross_covar: CovarianceMatrix = Property(
+        doc="The state-measurement cross covariance matrix", default=None)
+
+
 class ParticleStatePrediction(Prediction, ParticleState):
     """ParticleStatePrediction type
 
@@ -128,10 +167,58 @@ class ParticleStatePrediction(Prediction, ParticleState):
     """
 
 
+class PointMassStatePrediction(Prediction, PointMassState):
+    """PointMassStatePrediction type
+
+    This is a simple Point mass state prediction object.
+    """
+
+
 class ParticleMeasurementPrediction(MeasurementPrediction, ParticleState):
     """MeasurementStatePrediction type
 
     This is a simple Particle measurement prediction object.
+    """
+
+
+class PointMassMeasurementPrediction(MeasurementPrediction, PointMassState):
+    """MeasurementStatePrediction type
+
+    This is a simple Point mass measurement prediction object.
+    """
+
+
+class MultiModelParticleStatePrediction(Prediction, MultiModelParticleState):
+    """MultiModelParticleStatePrediction type
+
+    This is a simple multi-model Particle state prediction object.
+    """
+
+
+class RaoBlackwellisedParticleStatePrediction(Prediction, RaoBlackwellisedParticleState):
+    """RaoBlackwellisedParticleStatePrediction type
+
+    This is a simple Rao Blackwellised Particle state prediction object.
+    """
+
+
+class BernoulliParticleStatePrediction(Prediction, BernoulliParticleState):
+    """BernoulliParticleStatePrediction type
+
+    This is a simple Bernoulli Particle state prediction object"""
+
+
+class KernelParticleStatePrediction(Prediction, KernelParticleState):
+    """KernelParticleStatePrediction type
+
+    This is a kernel particle state prediction object.
+    """
+
+
+class KernelParticleStateMeasurementPrediction(MeasurementPrediction, KernelParticleState):
+    """KernelParticleStateMeasurementPrediction type
+
+    This is a kernel particle state measurement prediction object.
     """
 
 

@@ -71,7 +71,7 @@
 import numpy as np
 
 from datetime import datetime, timedelta
-start_time = datetime.now()
+start_time = datetime.now().replace(microsecond=0)
 
 # %%
 
@@ -87,18 +87,20 @@ from stonesoup.models.transition.linear import CombinedLinearGaussianTransitionM
 
 transition_model = CombinedLinearGaussianTransitionModel([ConstantVelocity(0.05),
                                                           ConstantVelocity(0.05)])
-truth = GroundTruthPath([GroundTruthState([0, 1, 0, 1], timestamp=start_time)])
+timesteps = [start_time]
+truth = GroundTruthPath([GroundTruthState([0, 1, 0, 1], timestamp=timesteps[0])])
 
 for k in range(1, 21):
+    timesteps.append(start_time+timedelta(seconds=k))
     truth.append(GroundTruthState(
         transition_model.function(truth[k-1], noise=True, time_interval=timedelta(seconds=1)),
-        timestamp=start_time+timedelta(seconds=k)))
+        timestamp=timesteps[k]))
 
 # %%
 # Set-up plot to render ground truth, as before.
 
-from stonesoup.plotter import Plotterly
-plotter = Plotterly()
+from stonesoup.plotter import AnimatedPlotterly
+plotter = AnimatedPlotterly(timesteps, tail_length=0.3)
 plotter.plot_ground_truths(truth, [0, 2])
 plotter.fig
 
@@ -230,7 +232,7 @@ predict_meas_samples = pupdater.predict_measurement(pred_samples)
 # %%
 # Don't worry what all this means for the moment. It's a convenient way of showing the 'true'
 # distribution of the predicted measurement - which is rendered as a blue cloud. Note that
-# no noise is added by the :meth:`~.UnscentedKalmanUpdater.predict_measurement` method so we add
+# no noise is added by the :meth:`~.UnscentedKalmanUpdater.predict_measurement` method, so we add
 # some noise below. This is additive Gaussian in the sensor coordinates.
 from matplotlib import pyplot as plt
 fig = plt.figure(figsize=(10, 6), tight_layout=True)
@@ -300,7 +302,7 @@ fig
 
 # %%
 # You may have to spend some time fiddling with the parameters to see major differences between the
-# EKF and UKF. Indeed the point to make is not that there is any great magic about the UKF. Its
+# EKF and UKF. Indeed, the point to make is not that there is any great magic about the UKF. Its
 # power is that it harnesses some extra free parameters to give a more flexible description of the
 # transformed distribution.
 
@@ -314,10 +316,10 @@ fig
 # References
 # ----------
 # .. [#] Julier S., Uhlmann J., Durrant-Whyte H.F. 2000, A new method for the nonlinear
-#        transformation of means and covariances in filters and estimators," in IEEE Transactions
+#        transformation of means and covariances in filters and estimators, in IEEE Transactions
 #        on Automatic Control, vol. 45, no. 3, pp. 477-482, doi: 10.1109/9.847726.
 # .. [#] Julier S.J. 2002, The scaled unscented transformation, Proceedings of the 2002 American
 #        Control Conference (IEEE Cat. No.CH37301), Anchorage, AK, USA, 2002, pp. 4555-4559 vol.6,
 #        doi: 10.1109/ACC.2002.1025369.
 
-# sphinx_gallery_thumbnail_number = 5
+# sphinx_gallery_thumbnail_path = '_static/sphinx_gallery/Tutorial_3.PNG'

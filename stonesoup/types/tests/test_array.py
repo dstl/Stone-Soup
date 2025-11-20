@@ -39,6 +39,22 @@ def test_statevectors():
         assert isinstance(sv, StateVector)
 
 
+def test_statevectors_mean():
+    svs = StateVectors([[1., 2., 3.], [4., 5., 6.]])
+    mean = StateVector([[2., 5.]])
+
+    assert np.allclose(np.average(svs, axis=1), mean)
+    assert np.allclose(np.mean(svs, axis=1, keepdims=True), mean)
+    assert np.allclose(np.mean(svs.astype(object), axis=1, keepdims=True), mean)
+
+    assert np.allclose(np.mean(svs, axis=1, where=np.array([True, True, False])), [[1.5, 4.5]])
+    assert np.allclose(
+        np.mean(svs, axis=1, dtype=int, where=np.array([True, True, False])), [[1, 4]])
+
+    with pytest.raises(TypeError):
+        np.average(svs, axis=1, keepdims=False)
+
+
 def test_standard_statevector_indexing():
     state_vector_array = np.array([[1], [2], [3], [4]])
     state_vector = StateVector(state_vector_array)
@@ -104,7 +120,7 @@ def test_covariancematrix():
                               [0, 0.3897, 0.0013, 0.0135]]) * 1e3
 
     covar_matrix = CovarianceMatrix(covar_nparray)
-    assert(np.array_equal(covar_matrix, covar_nparray))
+    assert np.array_equal(covar_matrix, covar_nparray)
 
 
 def test_precisionmatrix():
@@ -119,7 +135,7 @@ def test_precisionmatrix():
                              [0, 0.4, 0.3, 5]])
 
     prec_matrix = PrecisionMatrix(prec_nparray)
-    assert(np.array_equal(prec_matrix, prec_nparray))
+    assert np.array_equal(prec_matrix, prec_nparray)
 
 
 def test_matrix():
@@ -131,7 +147,7 @@ def test_matrix():
                               [0, 0.3897, 0.0013, 0.0135]]) * 1e3
 
     matrix = Matrix(covar_nparray)
-    assert(np.array_equal(matrix, covar_nparray))
+    assert np.array_equal(matrix, covar_nparray)
 
 
 def test_multiplication():
@@ -150,10 +166,10 @@ def test_multiplication():
     assert np.array_equal(vector.T@covar.T, vector.T@array.T)
     assert np.array_equal(state_vector.T@array.T, vector.T@array.T)
 
-    assert type(array@state_vector) == Vtype
-    assert type(state_vector.T@array.T) == Mtype
-    assert type(covar@vector) == Vtype
-    assert type(vector.T@covar.T) == Mtype
+    assert type(array@state_vector) == Vtype  # noqa: E721
+    assert type(state_vector.T@array.T) == Mtype  # noqa: E721
+    assert type(covar@vector) == Vtype  # noqa: E721
+    assert type(vector.T@covar.T) == Mtype  # noqa: E721
 
 
 def test_array_ops():
@@ -166,32 +182,32 @@ def test_array_ops():
     Vtype = type(sv)
 
     assert np.array_equal(covar - vector, array - vector)
-    assert type(covar-vector) == Mtype
+    assert type(covar-vector) == Mtype  # noqa: E721
     assert np.array_equal(covar + vector, array + vector)
-    assert type(covar+vector) == Mtype
+    assert type(covar+vector) == Mtype  # noqa: E721
     assert np.array_equal(vector - covar, vector - array)
-    assert type(vector - covar) == Mtype
+    assert type(vector - covar) == Mtype  # noqa: E721
     assert np.array_equal(vector + covar, vector + array)
-    assert type(vector + covar) == Mtype
+    assert type(vector + covar) == Mtype  # noqa: E721
 
     assert np.array_equal(vector2 - sv, vector2 - vector)
-    assert type(vector2 - sv) == Vtype
+    assert type(vector2 - sv) == Vtype  # noqa: E721
     assert np.array_equal(sv - vector2, vector - vector2)
-    assert type(sv - vector2) == Vtype
+    assert type(sv - vector2) == Vtype  # noqa: E721
     assert np.array_equal(vector2 + sv, vector2 + vector)
-    assert type(vector2 + sv) == Vtype
+    assert type(vector2 + sv) == Vtype  # noqa: E721
     assert np.array_equal(sv + vector2, vector + vector2)
-    assert type(sv + vector2) == Vtype
-    assert type(sv+2.) == Vtype
-    assert type(sv*2.) == Vtype
+    assert type(sv + vector2) == Vtype  # noqa: E721
+    assert type(sv+2.) == Vtype  # noqa: E721
+    assert type(sv*2.) == Vtype  # noqa: E721
 
     assert np.array_equal(array - sv, array - vector)
-    assert type(array - sv) == Mtype
+    assert type(array - sv) == Mtype  # noqa: E721
     assert np.array_equal(sv - array, vector - array)
-    assert type(sv - array) == Mtype
+    assert type(sv - array) == Mtype  # noqa: E721
     assert np.array_equal(array + sv, array + vector)
-    assert type(array + sv) == Mtype
+    assert type(array + sv) == Mtype  # noqa: E721
     assert np.array_equal(sv + array, vector + array)
-    assert type(sv + array) == Mtype
-    assert type(covar+2.) == Mtype
-    assert type(covar*2.) == Mtype
+    assert type(sv + array) == Mtype  # noqa: E721
+    assert type(covar+2.) == Mtype  # noqa: E721
+    assert type(covar*2.) == Mtype  # noqa: E721

@@ -1,6 +1,6 @@
 from typing import Optional
 import datetime
-from typing import Sequence, Collection
+from collections.abc import Sequence, Collection
 
 import numpy as np
 from ordered_set import OrderedSet
@@ -95,8 +95,8 @@ class MultiTargetGroundTruthSimulator(SingleTargetGroundTruthSimulator):
     seed: Optional[int] = Property(default=None, doc="Seed for random number generation."
                                                      " Default None")
     preexisting_states: Collection[StateVector] = Property(
-        default=list(), doc="State vectors at time 0 for "
-                            "groundtruths which should exist at the start of simulation.")
+        default_factory=list, doc="State vectors at time 0 for "
+                                  "groundtruths which should exist at the start of simulation.")
     initial_number_targets: int = Property(
         default=0, doc="Initial number of targets to be "
                        "simulated. These simulated targets will be made in addition to those "
@@ -110,10 +110,12 @@ class MultiTargetGroundTruthSimulator(SingleTargetGroundTruthSimulator):
             self.random_state = np.random.mtrand._rand
 
     def _new_target(self, time, random_state, state_vector=None):
-        vector = state_vector or \
-            self.initial_state.state_vector + \
-            self.initial_state.covar @ \
-            random_state.randn(self.initial_state.ndim, 1)
+        if state_vector is not None:
+            vector = state_vector
+        else:
+            vector = self.initial_state.state_vector + \
+                self.initial_state.covar @ \
+                random_state.randn(self.initial_state.ndim, 1)
 
         gttrack = GroundTruthPath()
         gttrack.append(GroundTruthState(

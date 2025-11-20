@@ -1,6 +1,6 @@
 import copy
 import uuid
-from typing import MutableSequence, MutableMapping
+from collections.abc import MutableSequence, MutableMapping
 
 from .multihypothesis import MultipleHypothesis
 from .state import State, StateMutableSequence
@@ -22,25 +22,21 @@ class Track(StateMutableSequence):
     """
 
     states: MutableSequence[State] = Property(
-        default=None,
+        default_factory=list,
         doc="The initial states of the track. Default `None` which initialises with empty list.")
-
-    id: str = Property(default=None, doc="The unique track ID")
-
+    id: str = Property(default_factory=lambda: str(uuid.uuid4()), doc="The unique track ID")
     init_metadata: MutableMapping = Property(
-        default={}, doc="Initial dictionary of metadata items for track. Default `None` which "
-                        "initialises track metadata as an empty dictionary.")
+        default_factory=dict,
+        doc="Initial dictionary of metadata items for track. Default `None` which "
+            "initialises track metadata as an empty dictionary.")
 
     def __init__(self, *args, **kwargs):
-
         super().__init__(*args, **kwargs)
 
         self.metadatas = list()
 
         for state in self.states:
             self._update_metadata_from_state(state)
-        if self.id is None:
-            self.id = str(uuid.uuid4())
 
     def __setitem__(self, index, value):
         super().__setitem__(index, value)
@@ -50,7 +46,7 @@ class Track(StateMutableSequence):
 
     def __copy__(self):
         inst = super().__copy__()
-        inst.__dict__['metadatas'] = copy.copy(self.__dict__['metadatas'])
+        inst.__dict__['metadatas'] = list(copy.copy(md) for md in self.__dict__['metadatas'])
         return inst
 
     def insert(self, index, value):
@@ -129,10 +125,13 @@ class Track(StateMutableSequence):
                 # from all hypotheses are retained, but more likely
                 # hypotheses will over-write the metadata set by less likely
                 # ones.
-                for hypothesis in sorted(state.hypothesis, reverse=True):
-                    if hypothesis \
-                            and hypothesis.measurement.metadata is not None:
-                        self.metadata.update(hypothesis.measurement.metadata)
+                try:
+                    for hypothesis in sorted(state.hypothesis):
+                        if hypothesis \
+                                and hypothesis.measurement.metadata is not None:
+                            self.metadata.update(hypothesis.measurement.metadata)
+                except TypeError:
+                    pass
             else:
                 hypothesis = state.hypothesis
                 if hypothesis and hypothesis.measurement.metadata is not None:

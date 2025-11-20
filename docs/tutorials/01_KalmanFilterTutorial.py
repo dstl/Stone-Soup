@@ -65,12 +65,13 @@
 # .. math::
 #           p(\mathbf{x}_k | \mathbf{z}_{1:k}) =
 #           \frac{ p(\mathbf{z}_{k} | \mathbf{x}_k) p(\mathbf{x}_k | \mathbf{z}_{1:k-1})}
-#           {p(\mathbf{z}_k)}
+#           {p(\mathbf{z}_k | \mathbf{z}_{1:k-1})}
 #
 # where :math:`p(\mathbf{x}_k | \mathbf{z}_{1:k-1})` is the output of the prediction stage,
-# :math:`p(\mathbf{z}_{k} | \mathbf{x}_k)` is known as the likelihood, and :math:`p(\mathbf{z}_k)`
-# the evidence. In Stone Soup, this calculation is undertaken by the :class:`~.Updater` class.
-# Updaters use a :class:`~.MeasurementModel` class which models the effect of :math:`h(\cdot)`.
+# :math:`p(\mathbf{z}_{k} | \mathbf{x}_k)` is known as the likelihood, and
+# :math:`p(\mathbf{z}_k | \mathbf{z}_{1:k-1})` the evidence. In Stone Soup, this calculation is
+# undertaken by the :class:`~.Updater` class. Updaters use a :class:`~.MeasurementModel` class
+# which models the effect of :math:`h(\cdot)`.
 #
 # .. image:: ../_static/predict_update.png
 #   :width: 500
@@ -111,7 +112,7 @@ from stonesoup.models.transition.linear import CombinedLinearGaussianTransitionM
                                                ConstantVelocity
 
 # And the clock starts
-start_time = datetime.now()
+start_time = datetime.now().replace(microsecond=0)
 
 # %%
 # We note that it can sometimes be useful to fix our random number generator in order to probe a
@@ -160,26 +161,34 @@ transition_model = CombinedLinearGaussianTransitionModel([ConstantVelocity(q_x),
                                                           ConstantVelocity(q_y)])
 
 # %%
-# A 'truth path' is created starting at (0,0) moving to the NE at one distance unit per (time) step in each dimension.
-truth = GroundTruthPath([GroundTruthState([0, 1, 0, 1], timestamp=start_time)])
+# A 'truth path' is created starting at (0,0) moving to the NE at one distance unit per (time)
+# step in each dimension.
+timesteps = [start_time]
+truth = GroundTruthPath([GroundTruthState([0, 1, 0, 1], timestamp=timesteps[0])])
 
 num_steps = 20
 for k in range(1, num_steps + 1):
+
+    timesteps.append(start_time+timedelta(seconds=k))  # add next timestep to list of timesteps
     truth.append(GroundTruthState(
         transition_model.function(truth[k-1], noise=True, time_interval=timedelta(seconds=1)),
-        timestamp=start_time+timedelta(seconds=k)))
+        timestamp=timesteps[k]))
 
 # %%
 # Thus the ground truth is generated and we can plot the result.
 #
-# Stone Soup has an in-built plotting class which can be used to plot
-# ground truths, measurements and tracks in a consistent format. It can be accessed by importing
-# the class :class:`Plotterly` from Stone Soup as below.
+# Stone Soup has a few in-built plotting classes which can be used to plot
+# ground truths, measurements and tracks in a consistent format. An animated plotter that uses
+# Plotly graph objects can be accessed via the class :class:`AnimatedPlotterly` from Stone Soup
+# as below.
 #
-# Note that the mapping argument is [0, 2] because those are the x and y position indices from our state vector.
+# Note that the animated plotter requires a list of timesteps as an input, and that 'tail_length'
+# is set to 0.3. This means that each data point will be on display for 30% of the total
+# simulation time. Also note that the mapping argument is [0, 2] because those are the x and
+# y position indices from our state vector.
 
-from stonesoup.plotter import Plotterly
-plotter = Plotterly()
+from stonesoup.plotter import AnimatedPlotterly
+plotter = AnimatedPlotterly(timesteps, tail_length=0.3)
 plotter.plot_ground_truths(truth, [0, 2])
 plotter.fig
 
@@ -265,8 +274,8 @@ plotter.fig
 # ^^^^^^^^^^^^^^^^^^^^^^^^^
 #
 # We're now ready to build a tracker. We'll use a Kalman filter as it's conceptually the simplest
-# to start with. The Kalman filter is described extensively elsewhere [#]_, [#]_, so for the
-# moment we just assert that the prediction step proceeds as:
+# to start with. The Kalman filter is described extensively elsewhere [#]_:math:`^,` [#]_,
+# so for the moment we just assert that the prediction step proceeds as:
 #
 # .. math::
 #           \mathbf{x}_{k|k-1} &= F_{k}\mathbf{x}_{k-1} + B_{k}\mathbf{u}_{k}\\
@@ -295,7 +304,7 @@ plotter.fig
 # responsibility, a :class:`~.Predictor` takes a :class:`~.TransitionModel` as input and
 # an :class:`~.Updater` takes a :class:`~.MeasurementModel` as input. Note that for now we're using
 # the same models used to generate the ground truth and the simulated measurements. This won't
-# usually be possible and it's an interesting exercise to explore what happens when these
+# usually be possible, and it's an interesting exercise to explore what happens when these
 # parameters are mismatched.
 from stonesoup.predictor.kalman import KalmanPredictor
 predictor = KalmanPredictor(transition_model)
@@ -369,4 +378,4 @@ plotter.fig
 # .. [#] Anderson & Moore 1979, Optimal filtering,
 #        (http://users.cecs.anu.edu.au/~john/papers/BOOK/B02.PDF)
 
-# sphinx_gallery_thumbnail_number = 3
+# sphinx_gallery_thumbnail_path = '_static/sphinx_gallery/Tutorial_1.PNG'

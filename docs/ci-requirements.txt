@@ -1,3 +1,13 @@
 # Additional requirement for CircleCI and Read The Docs
 # Needed to generate thumbnails in Sphinx-Gallery
-kaleido
+kaleido>=1.0.0
+# Additional requirement for EHM example [To fix the failing tests]
+pyehm
+# Additional requirement for ODE example
+torch
+# Additional requirement for RoadNet example
+geopandas
+networkx
+# Architectures
+graphviz
+pydot

@@ -1,6 +1,7 @@
 import numpy as np
 from scipy.stats import poisson
-from typing import Set, Union, Callable, Tuple, Optional
+from collections.abc import Callable
+from typing import Union, Optional
 from abc import ABC
 
 from ..base import Model
@@ -33,7 +34,7 @@ class ClutterModel(Model, ABC):
         doc="A function which represents the distribution of the clutter over the "
             "measurement space. The function should return a single value (ie, do "
             "not use multivariate distributions).")
-    dist_params: Tuple = Property(
+    dist_params: tuple = Property(
         default=((-200, 200), (-200, 200)),
         doc="The required parameters for the clutter distribution function. The "
         "length of the list must be equal to the number of state dimensions "
@@ -57,7 +58,7 @@ class ClutterModel(Model, ABC):
         else:
             self.random_state = None
 
-    def function(self, ground_truths: Set[GroundTruthState], **kwargs) -> Set[Clutter]:
+    def function(self, ground_truths: set[GroundTruthState], **kwargs) -> set[Clutter]:
         """
         Use the defined distribution and parameters to create simulated clutter
         for the current time step. Return this clutter to the calling sensor so

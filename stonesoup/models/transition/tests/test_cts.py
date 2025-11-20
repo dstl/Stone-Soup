@@ -1,6 +1,7 @@
 import datetime
 
 from pytest import approx
+import pytest
 import numpy as np
 from scipy.stats import multivariate_normal
 
@@ -9,44 +10,34 @@ from ..linear import ConstantVelocity
 from ....types.state import State
 
 
-def test_ctmodel():
-    """ KnownTurnRateSandwich Transition Model test """
+@pytest.mark.parametrize('sign', [1, -1])
+def test_ctsmodel(sign):
     state = State(np.array([[3.0], [1.0], [2.0], [1.0], [1.0], [1.0]]))
     turn_noise_diff_coeffs = np.array([0.01, 0.01])
     turn_rate = 0.1
     noise_diff_cv = 0.1
     model_list = [ConstantVelocity(noise_diff_cv)]
-    base(KnownTurnRateSandwich, state, turn_noise_diff_coeffs, turn_rate,
-         noise_diff_cv, model_list)
-
-
-def base(model, state, turn_noise_diff_coeffs, turn_rate, noise_diff_cv,
-         model_list):
-    """ Base test for n-dimensional ConstantAcceleration Transition Models """
-
     # Create an ConstantTurn model object
-    model = model
-    model_obj = model(turn_noise_diff_coeffs=turn_noise_diff_coeffs,
-                      turn_rate=turn_rate, model_list=model_list)
+    model_obj = KnownTurnRateSandwich(turn_noise_diff_coeffs=turn_noise_diff_coeffs,
+                                      turn_rate=turn_rate, model_list=model_list)
 
     # State related variables
     state_vec = state.state_vector
     old_timestamp = datetime.datetime.now()
-    timediff = 1  # 1sec
+    timediff = 1 * sign  # 1sec
     new_timestamp = old_timestamp + datetime.timedelta(seconds=timediff)
     time_interval = new_timestamp - old_timestamp
 
     # Model-related components
     turn_noise_diff_coeffs = turn_noise_diff_coeffs  # m/s^3
     noise_diff_cv = noise_diff_cv
-    turn_rate = turn_rate
     turn_ratedt = turn_rate*timediff
     F = np.array(
             [[1, np.sin(turn_ratedt) / turn_rate, 0, 0,
               0, -(1 - np.cos(turn_ratedt)) / turn_rate],
              [0, np.cos(turn_ratedt), 0, 0,
               0, -np.sin(turn_ratedt)],
-             [0, 0, 1, 1, 0, 0],
+             [0, 0, 1, timediff, 0, 0],
              [0, 0, 0, 1, 0, 0],
              [0, (1 - np.cos(turn_ratedt)) / turn_rate, 0, 0,
               1, np.sin(turn_ratedt) / turn_rate],
@@ -55,34 +46,34 @@ def base(model, state, turn_noise_diff_coeffs, turn_rate, noise_diff_cv,
     q = noise_diff_cv
     qx = turn_noise_diff_coeffs[0]
     qy = turn_noise_diff_coeffs[1]
-    Q = np.array([[qx * timediff**3 / 3,
-                   qx * timediff**2 / 2,
+    Q = np.array([[qx * abs(timediff)**3 / 3,
+                   qx * abs(timediff)**2 / 2,
                    0, 0,
                    0, 0],
-                  [qx * timediff**2 / 2,
-                   qx * timediff,
+                  [qx * abs(timediff)**2 / 2,
+                   qx * abs(timediff),
                    0, 0,
                    0, 0],
                   [0,
                    0,
-                   q * timediff**3 / 3,
-                   q * timediff**2 / 2,
+                   q * abs(timediff)**3 / 3,
+                   q * abs(timediff)**2 / 2,
                    0,
                    0],
                   [0,
                    0,
-                   q * timediff**2 / 2,
-                   q * timediff,
+                   q * abs(timediff)**2 / 2,
+                   q * abs(timediff),
                    0,
                    0],
                   [0, 0,
                    0, 0,
-                   qy * timediff**3 / 3,
-                   qy * timediff**2 / 2],
+                   qy * abs(timediff)**3 / 3,
+                   qy * abs(timediff)**2 / 2],
                   [0, 0,
                    0, 0,
-                   qy * timediff**2 / 2,
-                   qy * timediff]])
+                   qy * abs(timediff)**2 / 2,
+                   qy * abs(timediff)]])
 
     # Ensure ```model_obj.transfer_function(time_interval)``` returns F
     assert np.array_equal(F, model_obj.matrix(

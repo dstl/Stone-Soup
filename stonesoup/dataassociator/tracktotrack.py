@@ -1,16 +1,20 @@
 from operator import attrgetter
-from typing import Set
 
-from .base import TrackToTrackAssociator
+from ordered_set import OrderedSet
+
 from ..base import Property
-from ..measures import Measure, Euclidean, EuclideanWeighted
-from ..types.association import AssociationSet, TimeRangeAssociation, Association
+from ..measures import Euclidean, EuclideanWeighted, Measure
+from ..measures.base import TrackMeasure
+from ..types.association import Association, AssociationSet, TimeRangeAssociation
 from ..types.groundtruth import GroundTruthPath
-from ..types.track import Track
 from ..types.time import TimeRange
+from ..types.track import Track
+from ._assignment import multidimensional_deconfliction
+from .base import TwoTrackToTrackAssociator
+from .general import OneToOneAssociator
 
 
-class TrackToTrackCounting(TrackToTrackAssociator):
+class TrackToTrackCounting(TwoTrackToTrackAssociator):
     """Track to track associator based on the Counting Technique
 
     Compares two sets of :class:`~.tracks`, each formed of a sequence of
@@ -77,8 +81,13 @@ class TrackToTrackCounting(TrackToTrackAssociator):
             "position components compared to others (such as velocity).  "
             "Default is 0.6"
     )
+    one_to_one: bool = Property(
+        default=False,
+        doc="If True, it is ensured no two associations ever contain the same track "
+            "at the same time"
+    )
 
-    def associate_tracks(self, tracks_set_1: Set[Track], tracks_set_2: Set[Track]):
+    def associate_tracks(self, tracks_set_1: set[Track], tracks_set_2: set[Track]):
         """Associate two sets of tracks together.
 
         Parameters
@@ -100,7 +109,7 @@ class TrackToTrackCounting(TrackToTrackAssociator):
             raise ValueError("Must provide mapping of position components to pos_map")
 
         if not self.measure:
-            state1 = list(tracks_set_1)[0][0]
+            state1 = next(iter(tracks_set_1))[0]
             total = len(state1.state_vector)
             if not self.pos_map:
                 self.pos_map = [i for i in range(total)]
@@ -169,7 +178,7 @@ class TrackToTrackCounting(TrackToTrackAssociator):
                         if n_unsuccessful >= self.consec_misses_end and \
                                 start_timestamp:
                             associations.add(TimeRangeAssociation(
-                                (track1, track2),
+                                OrderedSet((track1, track2)),
                                 TimeRange(start_timestamp, end_timestamp)))
                             start_timestamp = None
 
@@ -177,18 +186,21 @@ class TrackToTrackCounting(TrackToTrackAssociator):
                 if start_timestamp:
                     end_timestamp = track1_states[-1].timestamp
                     associations.add(TimeRangeAssociation(
-                        (track1, track2),
+                        OrderedSet((track1, track2)),
                         TimeRange(start_timestamp, end_timestamp)))
 
-        return AssociationSet(associations)
+        if self.one_to_one:
+            return multidimensional_deconfliction(AssociationSet(associations))
+        else:
+            return AssociationSet(associations)
 
 
-class TrackToTruth(TrackToTrackAssociator):
+class TrackToTruth(TwoTrackToTrackAssociator):
     """Track to truth associator
 
     Compares two sets of :class:`~.Track`, each formed of a sequence of
     :class:`~.State` objects and returns an :class:`~.Association` object for
-    each time at which a the two :class:`~.State` within the :class:`~.Track`
+    each time at which two :class:`~.State` objects within the :class:`~.Track`
     are assessed to be associated. Tracks are considered to be associated with
     the Truth if the true :class:`~.State` is the closest to the track and
     within the specified distance for a specified number of time steps.
@@ -221,10 +233,10 @@ class TrackToTruth(TrackToTrackAssociator):
             "required to exceed a specified threshold in order for an "
             "association to be ended. Default is 2")
     measure: Measure = Property(
-        default=Euclidean(),
+        default_factory=Euclidean,
         doc="Distance measure to use. Default :class:`~.measures.Euclidean()`")
 
-    def associate_tracks(self, tracks_set: Set[Track], truth_set: Set[GroundTruthPath]):
+    def associate_tracks(self, tracks_set: set[Track], truth_set: set[GroundTruthPath]):
         """Associate Tracks
 
         Method compares to sets of :class:`~.Track` objects and will determine
@@ -245,6 +257,10 @@ class TrackToTruth(TrackToTrackAssociator):
 
         associations = set()
 
+        # Remove tracks and truths with zero length
+        tracks_set = {track for track in tracks_set if len(track) > 0}
+        truth_set = {truth for truth in truth_set if len(truth) > 0}
+
         for track in tracks_set:
 
             current_truth = None
@@ -262,7 +278,7 @@ class TrackToTruth(TrackToTrackAssociator):
 
             for track_state in Track.last_timestamp_generator(track):
 
-                min_dist = None
+                min_dist = self.association_threshold
                 min_truth = None
 
                 for truth in truth_set:
@@ -277,11 +293,7 @@ class TrackToTruth(TrackToTrackAssociator):
                         continue
 
                     distance = self.measure(track_state, truth_state)
-                    if min_dist and distance < min_dist:
-                        min_dist = distance
-                        min_truth = truth
-                    elif not min_dist \
-                            and distance < self.association_threshold:
+                    if distance < min_dist:
                         min_dist = distance
                         min_truth = truth
 
@@ -300,7 +312,7 @@ class TrackToTruth(TrackToTrackAssociator):
                         n_potential_successes = 1
                         potential_start_timestep = track_state.timestamp
 
-                    # Otherwise increse the number of times
+                    # Otherwise increase the number of times
                     # this truth appears in a row
                     else:
                         n_potential_successes += 1
@@ -338,7 +350,7 @@ class TrackToTruth(TrackToTrackAssociator):
                     # in a row end the association and record
                     if n_failures >= self.consec_misses_end:
                         associations.add(TimeRangeAssociation(
-                            (track, current_truth),
+                            OrderedSet((track, current_truth)),
                             TimeRange(start_timestamp, end_timestamp)))
 
                         # If the current potential association
@@ -360,18 +372,18 @@ class TrackToTruth(TrackToTrackAssociator):
             if current_truth:
 
                 associations.add(TimeRangeAssociation(
-                    (track, current_truth),
+                    OrderedSet((track, current_truth)),
                     TimeRange(start_timestamp, end_timestamp)))
 
         return AssociationSet(associations)
 
 
-class TrackIDbased(TrackToTrackAssociator):
+class TrackIDbased(TwoTrackToTrackAssociator):
     """Track ID based associator
 
-        Compares set of :class:`~.Track` objects to set of :class:`~.GroundTruth` objects,
+        Compares a set of :class:`~.Track` objects to a set of :class:`~.GroundTruth` objects,
         each formed of a sequence of :class:`~.State` objects and returns an
-        :class:`~.Association` object for each time at which a the two :class:`~.State`
+        :class:`~.Association` object for each time at which two :class:`~.State` objects
         within the :class:`~.Track` and :class:`~.GroundTruthPath` are assessed to be associated.
         Tracks are considered to be associated with the Ground Truth if the ID of the Track
         is the same as the ID of the Ground Truth.
@@ -401,13 +413,29 @@ class TrackIDbased(TrackToTrackAssociator):
                 if track.id == truth.id:
                     try:
                         associations.add(
-                            TimeRangeAssociation((track, truth),
+                            TimeRangeAssociation(OrderedSet((track, truth)),
                                                  TimeRange(max(track[0].timestamp,
                                                                truth[0].timestamp),
                                                            min(track[-1].timestamp,
                                                                truth[-1].timestamp))))
                     except (TypeError, ValueError):
                         # A timestamp is None, or non-overlapping timestamps (start > end)
-                        associations.add(Association((track, truth)))
+                        associations.add(Association(OrderedSet((track, truth))))
 
         return AssociationSet(associations)
+
+
+class OneToOneTrackAssociator(TwoTrackToTrackAssociator, OneToOneAssociator):
+    """ Uses the :class:`~.OneToOneAssociator` to associate tracks together """
+
+    measure: TrackMeasure = Property()
+
+    def associate_tracks(self, *tracks_sets: set[Track]) -> AssociationSet:
+        if len(tracks_sets) != 2:  # Should have two sets of tracks
+            raise ValueError("There should be two sources of tracks to compare")
+
+        tracks_a, tracks_b = tracks_sets
+
+        associated_tracks, _, _ = self.associate(tracks_a, tracks_b)
+
+        return associated_tracks

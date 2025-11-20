@@ -1,7 +1,6 @@
-from typing import Tuple
-
 from .base import PlotGenerator
 from ..base import Property
+from ..models.measurement import MeasurementModel
 from ..types.metric import TimeRangePlottingMetric
 from ..types.prediction import Prediction
 from ..types.time import TimeRange
@@ -9,21 +8,36 @@ from ..plotter import Plotter
 
 
 class TwoDPlotter(PlotGenerator):
-    """:class:`~.MetricManager` for the plotting data
+    """:class:`~.MetricGenerator` for the plotting data
 
     Plots of :class:`~.Track`, :class:`~.Detection` and
     :class:`~.GroundTruthPath` objects in two dimensions.
     """
-    track_indices: Tuple[int, int] = Property(
+    track_indices: tuple[int, int] = Property(
         doc="Elements of track state vector to plot as x and y")
-    gtruth_indices: Tuple[int, int] = Property(
+    gtruth_indices: tuple[int, int] = Property(
         doc="Elements of ground truth path state vector to plot as x and y")
-    detection_indices: Tuple[int, int] = Property(
+    detection_indices: tuple[int, int] = Property(
         doc="Elements of detection state vector to plot as x and y")
     uncertainty: bool = Property(default=False,
                                  doc='If True the plot includes uncertainty ellipses')
     particle: bool = Property(default=False,
                               doc='If True the plot includes particles')
+    tracks_key: str = Property(doc='Key to access set of tracks added to MetricManager',
+                               default='tracks')
+    truths_key: str = Property(doc="Key to access set of ground truths added to MetricManager. "
+                                   "Or key to access a second set of tracks for track-to-track "
+                                   "metric generation",
+                               default='groundtruth_paths')
+    detections_key: str = Property(doc="Key to access desired set of detections added "
+                                       "to MetricManager",
+                                   default='detections')
+    generator_name: str = Property(doc="Unique identifier to use when accessing generated "
+                                       "plots from MultiManager",
+                                   default='tracker_plot')
+    measurement_model: MeasurementModel = Property(doc="Default mesaurement mode to use for "
+                                                       "detections without own model",
+                                                   default=None)
 
     def compute_metric(self, manager, *args, **kwargs):
         """Compute the metric using the data in the metric manager
@@ -39,20 +53,28 @@ class TwoDPlotter(PlotGenerator):
             Contains a matplotlib figure
         """
 
-        metric = self.plot_tracks_truth_detections(manager.tracks,
-                                                   manager.groundtruth_paths,
-                                                   manager.detections,
+        if self.truths_key in manager.states_sets.keys():
+            groundtruth_paths = self._get_data(manager, self.truths_key)
+        if self.tracks_key in manager.states_sets.keys():
+            tracks = self._get_data(manager, self.tracks_key)
+        if self.detections_key in manager.states_sets.keys():
+            detections = self._get_data(manager, self.detections_key)
+
+        metric = self.plot_tracks_truth_detections(tracks,
+                                                   groundtruth_paths,
+                                                   detections,
                                                    self.uncertainty,
                                                    self.particle)
         return metric
 
     def plot_tracks_truth_detections(self, tracks, groundtruth_paths,
-                                     detections, uncertainty=False, particle=False):
+                                     detections, uncertainty=False, particle=False,
+                                     convert_measurements=True):
         """Plots tracks, truths and detections onto a 2d matplotlib figure
 
         Parameters
         ----------
-        tracks: set of :class:`~.Track`
+        tracks: list of set of :class:`~.Track`
             Objects to be plotted as tracks
         groundtruth_paths: set of :class:`~.GroundTruthPath`
             Objects to be plotted as truths
@@ -62,27 +84,40 @@ class TwoDPlotter(PlotGenerator):
             If True, function plots uncertainty ellipses.
         particle : bool
             If True, function plots particles.
+        convert_measurements : bool
+            Should the measurements be converted from measurement space to state space before
+            being plotted. Default is True
 
         Returns
-        ----------
+        -------
         TimeRangePlottingMetric
             Contains the produced plot
         """
 
         plotter = Plotter()  # initialises axes using Plotter class
 
-        plotter.plot_measurements(detections, [self.detection_indices[0],
-                                               self.detection_indices[1]],
-                                  color='tab:blue')
+        plotter.ax.set_title(self.generator_name)
 
-        if groundtruth_paths:
-            plotter.plot_ground_truths(groundtruth_paths, [self.gtruth_indices[0],
-                                                           self.gtruth_indices[1]],
-                                       linestyle=':')
+        if detections is not None:
+            plotter.plot_measurements(
+                detections, [self.detection_indices[0], self.detection_indices[1]],
+                measurement_model=self.measurement_model,
+                convert_measurements=convert_measurements,
+                color='tab:blue',
+                label=self.detections_key)
+        else:
+            detections = []
+
+        if groundtruth_paths is not None:
+            plotter.plot_ground_truths(
+                groundtruth_paths,
+                [self.gtruth_indices[0], self.gtruth_indices[1]],
+                linestyle=':',
+                label=self.truths_key)
         else:
             groundtruth_paths = []
 
-        if tracks:
+        if tracks is not None:
             plotting_tracks = set()
             for track in tracks:
                 if len([state for state in track.states if not isinstance(
@@ -95,16 +130,19 @@ class TwoDPlotter(PlotGenerator):
             if uncertainty:
                 plotter.plot_tracks(plotting_tracks, [self.track_indices[0],
                                                       self.track_indices[1]],
-                                    uncertainty=True)
+                                    uncertainty=True,
+                                    track_label=self.tracks_key)
 
             elif particle:
                 plotter.plot_tracks(plotting_tracks, [self.track_indices[0],
                                                       self.track_indices[1]],
-                                    particle=True)
+                                    particle=True,
+                                    track_label=self.tracks_key)
 
             else:
                 plotter.plot_tracks(plotting_tracks, [self.track_indices[0],
-                                                      self.track_indices[1]])
+                                                      self.track_indices[1]],
+                                    track_label=self.tracks_key)
         else:
             tracks = []
 

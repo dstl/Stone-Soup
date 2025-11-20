@@ -3,6 +3,8 @@ from typing import Optional
 
 from stonesoup.movable import Movable, FixedMovable
 from stonesoup.types.state import State
+from stonesoup.types.angle import mod_bearing
+from stonesoup.functions import cart2sphere, build_rotation_matrix_xyz
 
 from ..base import Base, Property
 from ..types.array import StateVector
@@ -46,9 +48,9 @@ class PlatformMountable(Base, ABC):
         if position is not None or orientation is not None:
             if position is None:
                 # assuming 3d for a default platform
-                position = StateVector([0, 0, 0])
+                position = StateVector([0., 0., 0.])
             if orientation is None:
-                orientation = StateVector([0, 0, 0])
+                orientation = StateVector([0., 0., 0.])
             controller = FixedMovable(
                 states=State(state_vector=position),
                 position_mapping=list(range(len(position))),
@@ -61,11 +63,11 @@ class PlatformMountable(Base, ABC):
         if self.movement_controller is None:
             return
         if self.mounting_offset is None:
-            self.mounting_offset = StateVector([0]
+            self.mounting_offset = StateVector([0.]
                                                * len(self.movement_controller.position_mapping))
 
         if self.rotation_offset is None:
-            self.rotation_offset = StateVector([0] * 3)
+            self.rotation_offset = StateVector([0.] * 3)
 
     @movement_controller.setter
     def movement_controller(self, value):
@@ -115,7 +117,14 @@ class PlatformMountable(Base, ABC):
             """
         if self.movement_controller is None:
             return None
-        return self.movement_controller.orientation + self.rotation_offset
+        x_axis = (1, 0, 0)
+        rotmat = (build_rotation_matrix_xyz(-self.movement_controller.orientation) @
+                  build_rotation_matrix_xyz(-self.rotation_offset))
+        offset_axis = rotmat @ x_axis
+        roll = mod_bearing(self.movement_controller.orientation[0] + self.rotation_offset[0])
+        # convert cartesian direction, 'offset_axis', into an orientation
+        _, yaw, pitch = cart2sphere(*offset_axis)
+        return StateVector([roll, pitch, yaw])
 
     @orientation.setter
     def orientation(self, value: StateVector):

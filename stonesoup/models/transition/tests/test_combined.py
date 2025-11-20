@@ -26,7 +26,7 @@ def test__linear_combined(comb_model):
 
     DIM = 9
 
-    combined_model = CombinedGaussianTransitionModel(
+    combined_model = comb_model(
         [model_1, model_2, model_3, model_4])
     t_delta = datetime.timedelta(0, 3)
 
@@ -93,9 +93,22 @@ def test_nonlinear_combined(model_4):
         time_interval=t_delta).shape
     assert (DIM, 1) == combined_model.rvs(time_interval=t_delta).shape
 
-    # TODO: Figure out handling of pdf for non-linear models and singular convariance matrix
+    # TODO: Figure out handling of pdf for non-linear models and singular covariance matrix
     # e.g. See Non-Linear Constant Turn model
     # if isinstance(model_4,LinearModel):
     assert isinstance(
         combined_model.pdf(State(x_post), State(x_prior),
                            time_interval=t_delta), Real)
+
+
+@pytest.mark.parametrize(
+    "model_list",
+    [
+        ConstantVelocity(noise_diff_coeff=1),
+        CombinedGaussianTransitionModel([ConstantVelocity(1)]),
+        None,
+     ],
+    ids=["CV", "CGTM", "None"])
+def test_model_list(model_list):
+    with pytest.raises(TypeError):
+        CombinedGaussianTransitionModel(model_list)

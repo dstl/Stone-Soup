@@ -3,15 +3,17 @@ import datetime
 
 import pytest
 
-from stonesoup.models.measurement.nonlinear import CartesianToBearingRange, \
+from ...models.measurement.linear import LinearGaussian
+from ...models.measurement.nonlinear import CartesianToBearingRange, \
     CartesianToElevationBearingRange
-from stonesoup.movable import FixedMovable
-from stonesoup.sensor.radar.radar import RadarElevationBearingRangeRate, RadarBearingRange, \
+from ...movable import FixedMovable
+from ..radar.radar import RadarElevationBearingRangeRate, RadarBearingRange, \
     RadarElevationBearingRange
-from stonesoup.platform import FixedPlatform
-from stonesoup.types.groundtruth import GroundTruthPath, GroundTruthState
+from ...platform import FixedPlatform
+from ...types.detection import Detection
+from ...types.groundtruth import GroundTruthPath, GroundTruthState
 from ..base import PlatformMountable
-from ..sensor import Sensor, SensorSuite
+from ..sensor import Sensor, SensorSuite, SimpleSensor
 from ...types.array import StateVector, CovarianceMatrix
 from ...types.state import State
 
@@ -32,14 +34,41 @@ class DummyBaseSensor(PlatformMountable):
         pass
 
 
+def test_simple_sensor_seed():
+    class DummySimpleSensor(SimpleSensor):
+        @property
+        def measurement_model(self):
+            return LinearGaussian(1, [0], np.diag([1]))
+
+        def is_detectable(self, state: GroundTruthState, measurement_model=None) -> bool:
+            return True
+
+        def is_clutter_detectable(self, state: Detection) -> bool:
+            return True
+
+    s1 = DummySimpleSensor()
+    s2 = DummySimpleSensor()
+    s4 = DummySimpleSensor(seed=1)
+    s3 = DummySimpleSensor(seed=1)
+    ground_truths = {GroundTruthState([[0]])}
+    measurements1 = s1.measure(ground_truths)
+    measurements2 = s2.measure(ground_truths)
+    measurements3 = s3.measure(ground_truths)
+    measurements4 = s4.measure(ground_truths)
+    for m1, m2 in zip(measurements1, measurements2):
+        assert m1.state_vector[0] != m2.state_vector[0]
+    for m3, m4 in zip(measurements3, measurements4):
+        assert np.allclose(m3.state_vector, m4.state_vector)
+
+
 def test_sensor_position_orientation_setting():
     sensor = DummySensor(position=StateVector([0, 0, 1]))
-    assert np.array_equal(sensor.position, StateVector([0, 0, 1]))
-    assert np.array_equal(sensor.orientation, StateVector([0, 0, 0]))
+    assert np.allclose(sensor.position, StateVector([0, 0, 1]))
+    assert np.allclose(sensor.orientation, StateVector([0, 0, 0]))
     sensor.position = StateVector([0, 1, 0])
-    assert np.array_equal(sensor.position, StateVector([0, 1, 0]))
+    assert np.allclose(sensor.position, StateVector([0, 1, 0]))
     sensor.orientation = StateVector([0, 1, 0])
-    assert np.array_equal(sensor.orientation, StateVector([0, 1, 0]))
+    assert np.allclose(sensor.orientation, StateVector([0, 1, 0]))
 
     position = StateVector([0, 0, 1])
     sensor = DummySensor()
@@ -54,12 +83,12 @@ def test_sensor_position_orientation_setting():
 
 def test_default_platform():
     sensor = DummySensor(position=StateVector([0, 0, 1]))
-    assert np.array_equal(sensor.position, StateVector([0, 0, 1]))
-    assert np.array_equal(sensor.orientation, StateVector([0, 0, 0]))
+    assert np.allclose(sensor.position, StateVector([0, 0, 1]))
+    assert np.allclose(sensor.orientation, StateVector([0, 0, 0]))
 
     sensor = DummySensor(orientation=StateVector([0, 0, 1]))
-    assert np.array_equal(sensor.orientation, StateVector([0, 0, 1]))
-    assert np.array_equal(sensor.position, StateVector([0, 0, 0]))
+    assert np.allclose(sensor.orientation, StateVector([0, 0, 1]))
+    assert np.allclose(sensor.position, StateVector([0, 0, 0]))
 
 
 def test_internal_platform_flag():

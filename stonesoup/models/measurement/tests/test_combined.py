@@ -3,8 +3,7 @@ from pytest import approx
 import numpy as np
 
 from ....types.angle import Bearing
-from ....types.array import StateVector, CovarianceMatrix
-from ....types.detection import Detection
+from ....types.array import CovarianceMatrix, StateVector, StateVectors
 from ....types.state import State
 from ..linear import LinearGaussian
 from ..nonlinear import (
@@ -24,7 +23,7 @@ def test_non_linear(model):
     assert model.ndim_state == 5
 
     meas_vector = model.function(
-        Detection(StateVector([[0], [10], [10], [0], [-10]])))
+        State(StateVector([[0], [10], [10], [0], [-10]])))
 
     assert isinstance(meas_vector[0, 0], Bearing)
     assert not isinstance(meas_vector[1, 0], Bearing)
@@ -36,6 +35,24 @@ def test_non_linear(model):
                           np.array([[np.pi/2], [10], [-np.pi/2], [10]]))
 
     assert model.mapping == [0, 1, 3, 4]
+
+
+def test_non_linear_state_vectors(model):
+    meas_vector = model.function(
+        State(StateVectors([[0, 0], [10, -10], [10, 10], [0, 0], [-10, 10]])))
+
+    assert isinstance(meas_vector[0, 0], Bearing)
+    assert not isinstance(meas_vector[1, 0], Bearing)
+    assert isinstance(meas_vector[2, 0], Bearing)
+    assert not isinstance(meas_vector[3, 0], Bearing)
+    assert isinstance(meas_vector[0, 1], Bearing)
+    assert not isinstance(meas_vector[1, 1], Bearing)
+    assert isinstance(meas_vector[2, 1], Bearing)
+    assert not isinstance(meas_vector[3, 1], Bearing)
+    assert isinstance(meas_vector, StateVectors)
+
+    assert np.array_equal(meas_vector,
+                          np.array([[np.pi/2, -np.pi/2], [10, 10], [-np.pi/2, np.pi/2], [10, 10]]))
 
 
 def test_jacobian(model):
@@ -111,12 +128,8 @@ def test_mismatch_ndim_state():
 
 
 def test_none_covar():
-    new_model = CombinedReversibleGaussianMeasurementModel([
-        CartesianToBearingRange(4, [0, 1], None),
-        CartesianToBearingRange(4, [0, 1], np.diag([1, 10]))
-    ])
-
-    with pytest.raises(ValueError, match="Cannot generate rvs from None-type covariance"):
-        new_model.rvs()
-    with pytest.raises(ValueError, match="Cannot generate pdf from None-type covariance"):
-        new_model.pdf(State([0, 0, 0, 0]), State([0, 0, 0, 0]))
+    with pytest.raises(ValueError, match="Covariance should have ndim of 2: got 0"):
+        CombinedReversibleGaussianMeasurementModel([
+            CartesianToBearingRange(4, [0, 1], None),
+            CartesianToBearingRange(4, [0, 1], np.diag([1, 10]))
+        ])

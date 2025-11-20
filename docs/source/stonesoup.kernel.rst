@@ -1,0 +1,4 @@
+Kernel
+======
+
+.. automodule:: stonesoup.kernel

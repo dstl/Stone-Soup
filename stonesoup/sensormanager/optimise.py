@@ -14,7 +14,7 @@ class _OptimizeSensorManager(BruteForceSensorManager):
     def _optimiser(self, optimise_func, all_action_generators):
         raise NotImplementedError
 
-    def choose_actions(self, tracks, timestamp, nchoose=1, **kwargs):
+    def choose_actions(self, tracks, timestamp, nchoose=1, return_reward=False, **kwargs):
         if nchoose > 1:
             raise ValueError("Can only return best result (nchoose=1)")
         all_action_generators = dict()
@@ -38,8 +38,11 @@ class _OptimizeSensorManager(BruteForceSensorManager):
 
         best_x = self._optimiser(optimise_func, all_action_generators)
         config = config_from_x(best_x)
-
-        return [config]
+        if return_reward:
+            reward = self.reward_function(config, tracks, timestamp)
+            return [config], reward
+        else:
+            return [config]
 
 
 class OptimizeBruteSensorManager(_OptimizeSensorManager):
@@ -83,7 +86,7 @@ class OptimizeBruteSensorManager(_OptimizeSensorManager):
 
     def _optimiser(self, optimise_func, all_action_generators):
         ranges = [
-            (gen.min, gen.max)
+            (float(gen.min), float(gen.max))
             for gens in all_action_generators.values()
             for gen in gens]
 

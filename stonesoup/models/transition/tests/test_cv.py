@@ -1,6 +1,7 @@
 import datetime
 
 from pytest import approx
+import pytest
 import numpy as np
 from scipy.stats import multivariate_normal
 
@@ -8,23 +9,29 @@ from ..linear import ConstantVelocity
 from ....types.state import State
 
 
-def test_cvmodel():
+@pytest.mark.parametrize('sign', [1, -1])
+def test_cvmodel(sign):
     """ ConstanVelocity Transition Model test """
 
     # State related variables
     state = State(np.array([[3.0], [1.0]]))
     old_timestamp = datetime.datetime.now()
-    timediff = 1  # 1sec
+    timediff = 1 * sign  # 1sec
     new_timestamp = old_timestamp + datetime.timedelta(seconds=timediff)
     time_interval = new_timestamp - old_timestamp
 
     # Model-related components
     noise_diff_coeff = 0.001  # m/s^2
     F = np.array([[1, timediff], [0, 1]])
-    Q = np.array([[timediff**3 / 3,
-                   timediff**2 / 2],
-                  [timediff**2 / 2,
-                   timediff]]) * noise_diff_coeff
+    Q = np.array([[abs(timediff)**3 / 3,
+                   abs(timediff)**2 / 2],
+                  [abs(timediff)**2 / 2,
+                   abs(timediff)]]) * noise_diff_coeff
+
+    # Test non-float noise_diff_coeff error
+    with pytest.raises(TypeError, match="'noise_diff_coeff' should be a "
+                       "<class 'float'> instance. Instead it is <class 'list'>"):
+        ConstantVelocity(noise_diff_coeff=[noise_diff_coeff])
 
     # Create and a Constant Velocity model object
     cv = ConstantVelocity(noise_diff_coeff=noise_diff_coeff)

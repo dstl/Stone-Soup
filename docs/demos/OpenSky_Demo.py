@@ -20,7 +20,8 @@ Tracking Groundtruth ADS-B Data by Simulating Radar Detections
 # %%
 # Reading the CSV File
 # ---------------------
-# To read in our groundtruth data from a CSV file, we can use Stone Soup’s
+# To read in our groundtruth data from a
+# :download:`CSV file <../../demos/OpenSky_Plane_States.csv>`, we can use Stone Soup’s
 # :class:`~.CSVGroundTruthReader`. To convert our longitude and latitude data to Universal
 # Transverse Mercator (UTM) projection, we will use :class:`~.LongLatToUTMConverter`.
 
@@ -234,7 +235,7 @@ len(tracks)
 # %%
 # Plotting
 # ------------------
-# We will be using the Folium plotting library so we can visualize our tracks on a two-dimensional
+# We will be using the Folium plotting library, so we can visualize our tracks on a two-dimensional
 # leaflet map. These Folium markers will show where our stationary sensors are located. Since our
 # FOV angles are 360 degrees, we can easily use a fixed circle to display our radar's coverage.
 
@@ -329,7 +330,7 @@ for platform in movingPlatforms:
             'properties':{
                 'icon': 'marker',
                 'iconstyle':{
-                    'iconUrl': '../_static/sphinx_gallery/Radar_dish.png',
+                    'iconUrl': 'https://stonesoup.rtfd.io/en/latest/_static/sphinx_gallery/Radar_dish.png',
                     'iconSize': [24, 24],
                     'fillOpacity': 1,
                     'popupAnchor': [1, -17]},
@@ -492,7 +493,7 @@ for id in icao:
             'properties':{
                 'icon': 'marker',
                 'iconstyle':{
-                    'iconUrl': f'../_static/sphinx_gallery/Plane_Headings/Plane_{angle}.png',
+                    'iconUrl': f'https://stonesoup.rtfd.io/en/latest/_static/sphinx_gallery/Plane_Headings/Plane_{angle}.png',
                     'iconSize': [24, 24],
                     'fillOpacity': 1,
                     'popupAnchor': [1, -17],

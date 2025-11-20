@@ -108,6 +108,7 @@ def test_tracks_yaml(tracker, tmpdir):
                 - [1]
               - timestamp: *id001
           - id: '0'
+          - init_metadata: {}
           :
         ...
         """)

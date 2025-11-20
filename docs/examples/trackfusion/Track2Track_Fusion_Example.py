@@ -1,0 +1,727 @@
+#!/usr/bin/env python
+# coding: utf-8
+
+"""
+=========================================================================
+Multi-Sensor Fusion: Covariance Intersection Using Tracks as Measurements
+=========================================================================
+"""
+
+
+# %%
+# Background
+# ----------
+# The Covariance Intersection Algorithm from Julier and Uhlmann [#]_ is a popular algorithm for
+# track-to-track fusion in target tracking systems. This approach is highly appealing due to its
+# robustness, simple structure, and applicability to any tracking system that uses Gaussians as the
+# basis for tracking. Generalisations to non-Gaussian systems have been proposed based on the
+# exponential mixture density structure of the algorithm. The approach is based on a simple rule
+# called the Chernoff Fusion Rule. However, due to the non-Bayesian formulation of the rule, it
+# cannot be integrated straightforwardly into multi-target tracking algorithms which are based on
+# Bayesian formulations.
+#
+# A new Bayesian formulation for covariance intersection was recently proposed which allows for the
+# integration of the approach into multi-target tracking algorithms. [#]_ The new formulation
+# recasts the fusion rule as a Bayesian update rule that calculates a normalisation constant which
+# enables integration into different multi-target tracking algorithms.
+#
+# In this example we demonstrate the approach with different multi-target trackers in a
+# multi-platform scenario where the sensors output estimated target tracks instead of raw
+# measurements. In real life situations, such sensors make multi-target tracking more accessible to
+# new researchers because the researchers don't have to know about or implement target filtering
+# and/or tracking algorithms on their own. However, when there are multiple sensors measuring the
+# same target space and they all produce estimated tracks, as demonstrated in this example, it is
+# not immediately clear how to combine this information into a single set of tracks. This is where
+# covariance intersection comes in.
+#
+# The concept of covariance intersection relies on the aforementioned Chernoff fusion rule [#]_ :
+#
+# .. math::
+#           p_{\omega}(x_{k}) = \frac{p_{1}(x_{k})^{\omega}p_{2}(x_{k})^{1-\omega}}{\int p_{1}(x)^{\omega}p_{2}(x)^{1-\omega}dx}
+#
+#
+# In situations where :math:`p_1(x)` and :math:`p_2(x)` are multivariate Gaussian distributions,
+# this formula is equal to the Covariance Intersection Algorithm from Julier and Uhlmann. In the
+# Covariance Intersection Algorithm, the weighting parameter, :math:`\omega \in [0, 1]` is chosen
+# using an optimization algorithm. In this example, we have set it to :math:`0.5` for simplicity.
+#
+# We also introduce the following identity. Given two Gaussians, :math:`N(x ; a, A)` and
+# :math:`N(x ; b, B)` with the same dimension, we have:
+#
+# .. math::
+#           \left({\frac{\mathcal{N}(x ; a, A)}{\mathcal{N}(x ; a, A)}}\right)^\omega \mathcal{N}(x ; b,  B) \propto \mathcal{N}(a ; b,  V) \mathcal{N}(x ; d,  D)
+#
+#
+# where
+#
+# .. math::
+#           D &= \left(\omega A^{-1}+(1-\omega) B^{-1}\right)^{-1} \\
+#           d &= D\left(\omega A^{-1} {a}+(1-\omega ) B^{-1} {b}\right) \\
+#           V &= A/(1-\omega )+ B/\omega
+#
+#
+# This example considers the Gaussian mixture probability hypothesis density (GM-PHD) algorithm
+# as the tracker for the track-to-track fusion. The following table shows the formulas used in the
+# regular GM-PHD, and the GM-PHD covariance intersector algorithm.
+#
+# .. image:: ../../_static/covariance_intersection_formulas.png
+#   :width: 700
+#   :alt: Formulas for the posterior/fused intensity, gaussian components, updated weight, updated
+#         mean, updated covariance, innovation, Kalman gain, and innovation covariance in the
+#         GM-PHD and the GM-PHD Covariance Intersector algorithm.
+#
+#
+# The specifics for implementing the Covariance Intersection Algorithm in several popular
+# multi-target tracking algorithms was expanded upon recently by Clark et al [#]_. The work
+# includes a discussion of Stone Soup and is used as the basis for this example.
+
+
+# %%
+# The rest of this example will continue as follows:
+#   * Create a simulator for the ground truth
+#   * Create 2 radar simulators, one on the ground and one that is airborne
+#   * Make a JPDA tracker for the first radar, and a Gaussian mixture linear complexity with
+#     cumulants (GM-LCC) tracker for the second. These will mimic the situation where the radar
+#     sensors outputs tracks instead of raw measurements.
+#   * Create a GM-PHD tracker that will perform measurement fusion, using all measurements from
+#     both radars. This is created to compare with the covariance intersection method.
+#   * Create a GM-PHD tracker that will perform track fusion via covariance intersection using
+#     the :class:`ChernoffUpdater` class.
+#   * Create a metric manager to generate metrics for each of the four trackers
+#   * Set up the detection feeders. The track fusion tracker will also use the
+#     :class:`Tracks2GaussianDetectionFeeder` class.
+#   * Run the simulation
+#   * Plot the resulting tracks and the metrics over time
+
+# %%
+from copy import deepcopy
+import numpy as np
+from datetime import datetime
+
+start_time = datetime.now()
+num_steps = 50
+
+# %%
+# 1: Create a Ground Truth Simulator
+# ----------------------------------
+# We will simulate the paths of two targets using the :class:`~.MultiTargetGroundTruthSimulator`.
+# We can dictate the starting states of the two targets using the `preexisting_states` parameter.
+# The targets start at [-100, -200, 500] and [0, 300, 500] respectively. Their initial velocities
+# are [4, 0.5, 0] and [5, -0.5, 0] and they move according to a constant velocity transition model
+# with noise.
+
+# %%
+from stonesoup.models.transition.linear import CombinedLinearGaussianTransitionModel,\
+                                               ConstantVelocity
+truth_transition_model = CombinedLinearGaussianTransitionModel(
+    (ConstantVelocity(0.5), ConstantVelocity(0.5), ConstantVelocity(0.5)))
+
+from stonesoup.simulator.simple import MultiTargetGroundTruthSimulator
+from stonesoup.types.state import GaussianState
+gt_simulator = MultiTargetGroundTruthSimulator(
+    transition_model=truth_transition_model,
+    initial_state=GaussianState([0, 0, 0, 0, 500, 0], np.diag([100, 1, 100, 1, 100, 1]),
+                                timestamp=start_time),
+    birth_rate=0,
+    death_probability=0,
+    number_steps=num_steps,
+    preexisting_states=[[-100, 4, -200, 0.5, 500, 0], [0, 5, 300, -0.5, 500, 0]]
+)
+
+# %%
+# 2: Create Two Radars and a Detection Simulation
+# --------------------------------------------------
+# The two radars can share the same clutter model.
+
+# %%
+from stonesoup.models.clutter.clutter import ClutterModel
+clutter_model = ClutterModel(
+    clutter_rate=2.0,
+    distribution=np.random.default_rng().uniform,
+    dist_params=((-600.0, 600.0), (-600.0, 600.0), (250.0, 750.0))
+)
+
+# %%
+# The first radar will be airborne, at an altitude of approximately 3000 m. It makes detections
+# with an elevation, bearing, and range measurement model. By setting the `max_range` to 3500, we
+# can ensure that it does not make detections of the other radar (which will be far away on the
+# ground). We will later do a similar thing with the second radar. This mimics a real-life scenario
+# where each radar is outside the field-of-view of the other.
+
+# %%
+from stonesoup.sensor.radar.radar import RadarElevationBearingRange
+from stonesoup.types.array import CovarianceMatrix
+from stonesoup.types.array import StateVector
+from stonesoup.platform.base import MovingPlatform
+from stonesoup.types.state import State
+
+radar1 = RadarElevationBearingRange(
+    ndim_state=6,
+    position_mapping=(0, 2, 4),
+    noise_covar=CovarianceMatrix(np.diag([np.deg2rad(0.005), np.deg2rad(0.005), 0.05])),
+    mounting_offset=StateVector([10, 0, 0]),
+    clutter_model=clutter_model,
+    max_range=3500
+)
+
+# Mount the radar onto a moving platform. The platform starts at [-250, 50, 3000]
+# with velocity [1, 5, 0] and moves according to a constant velocity model with low noise
+sensor1_initial_loc = StateVector([[-250], [1], [50], [5], [3000], [0]])
+initial_state = State(sensor1_initial_loc, start_time)
+sensor1_transition_model = CombinedLinearGaussianTransitionModel(
+    [ConstantVelocity(0.3), ConstantVelocity(0.3), ConstantVelocity(0.3)])
+sensor1_platform = MovingPlatform(
+    states=initial_state,
+    position_mapping=(0, 2, 4),
+    velocity_mapping=(1, 3, 5),
+    transition_model=sensor1_transition_model,
+    sensors=[radar1]
+)
+
+# %%
+# The second radar will be stationary on the ground at the point [2000, 50, 0]. This radar also
+# measures in 3D using bearing, range, and elevation.
+
+# %%
+radar2_noise_covar = CovarianceMatrix(np.diag([np.deg2rad(0.005), np.deg2rad(0.005), 0.05]))
+radar2 = RadarElevationBearingRange(
+    ndim_state=6,
+    position_mapping=(0, 2, 4),
+    noise_covar=radar2_noise_covar,
+    clutter_model=clutter_model,
+    max_range=3000
+)
+
+# Make a platform and mount the radar
+from stonesoup.platform.base import FixedPlatform
+sensor2_platform = FixedPlatform(
+    State([2000, 0, 50, 0, 0, 0]),
+    position_mapping=[0, 2, 4],
+    sensors=[radar2]
+)
+
+# %%
+# Now we can pass the platforms into a detection simulator. At each timestep, the simulator will
+# return the detections from the `sensor1_platform`, then the detections from the
+# `sensor2_platform`.
+#
+# As we'll be using the same simulation and detectors in multiple detectors, trackers and for
+# plotting :func:`itertools.tee()` is used to create independent iterators to use in different
+# components.
+
+# %%
+from itertools import tee
+from stonesoup.feeder.multi import MultiDataFeeder
+from stonesoup.simulator.platform import PlatformDetectionSimulator
+
+gt_sims = tee(gt_simulator, 2)
+radar1_simulator = PlatformDetectionSimulator(
+    groundtruth=gt_sims[0],
+    platforms=[sensor1_platform]
+)
+radar1_plotting, radar1_simulator, s1_detector = tee(radar1_simulator, 3)
+
+radar2_simulator = PlatformDetectionSimulator(
+    groundtruth=gt_sims[1],
+    platforms=[sensor2_platform]
+)
+radar2_plotting, radar2_simulator, s2_detector = tee(radar2_simulator, 3)
+
+s1s2_detector = MultiDataFeeder([radar1_simulator, radar2_simulator])
+
+# %%
+# Let's briefly visualize the truths and measurements before we move on. Note that the final
+# simulation will not have the same truths because the ground truth generator is randomized. But
+# this gives an idea of what it will look like. The detections from the first sensor (airborne)
+# will be plotted in blue, and the detections from the second sensor are in red. The clutter from
+# both sensors are plotted in yellow. The sensor locations will be plotted in green Xs.
+
+# %%
+from stonesoup.plotter import Plotter, Dimension
+
+# Lists to hold the detections from each sensor and the path of the airborne radar
+s1_detections = set()
+s2_detections = set()
+radar1_path = []
+truths = set()
+
+# Iterate over the time steps, extracting the detections, truths, and airborne sensor path
+for (time, s1ds), (_, s2ds) in zip(radar1_plotting, radar2_plotting):
+    s1_detections.update(s1ds)
+    s2_detections.update(s2ds)
+    radar1_path.append(sensor1_platform.position)
+    truths.update(gt_simulator.groundtruth_paths)
+
+# Plot the truths and detections
+plotter = Plotter(dimension=Dimension.THREE)
+plotter.plot_ground_truths(truths, [0, 2, 4])
+plotter.plot_measurements(s1_detections, [0, 2, 4], color='blue')
+plotter.plot_measurements(s2_detections, [0, 2, 4], color='red')
+
+# Plot the radar positions
+plotter.ax.plot(*zip(*radar1_path), marker='x', color='green')
+plotter.ax.plot(2000, 50, 0, marker='x', color='green')
+
+# %%
+# 3: Make Trackers for the Radars
+# -------------------------------
+# The airborne radar will be tracking using a JPDA tracker, and the stationary one will use a
+# GM-LCC. These trackers will not be given the platform detection simulation objects as parameters,
+# we will feed the measurements later to ensure that that the same measurements are used in the
+# fusion trackers.
+# To start, we can calculate the clutter spatial density.
+
+# %%
+clutter_area = np.prod(np.diff(clutter_model.dist_params))
+clutter_spatial_density = clutter_model.clutter_rate/clutter_area
+
+# %%
+# JPDA Tracker
+# ^^^^^^^^^^^^
+
+# %%
+from stonesoup.hypothesiser.probability import PDAHypothesiser
+from stonesoup.updater.kalman import ExtendedKalmanUpdater
+from stonesoup.predictor.kalman import ExtendedKalmanPredictor
+from stonesoup.dataassociator.probability import JPDA
+from stonesoup.deleter.error import CovarianceBasedDeleter
+from stonesoup.initiator.simple import MultiMeasurementInitiator
+from stonesoup.tracker.simple import MultiTargetMixtureTracker
+
+# Updater
+jpda_updater = ExtendedKalmanUpdater(measurement_model=None)
+
+# Data Associator
+predictor = ExtendedKalmanPredictor(truth_transition_model)
+hypothesiser = PDAHypothesiser(
+    predictor=predictor,
+    updater=jpda_updater,
+    clutter_spatial_density=clutter_spatial_density,
+    prob_detect=0.9
+)
+data_associator = JPDA(hypothesiser=hypothesiser)
+
+# Deleter
+covariance_limit_for_delete = 500
+deleter = CovarianceBasedDeleter(covar_trace_thresh=covariance_limit_for_delete)
+
+# Initiator
+s_prior_state = GaussianState([0, 0, 0, 0, 500, 0], np.diag([0, 50, 0, 50, 0, 50]))
+from stonesoup.hypothesiser.distance import DistanceHypothesiser
+from stonesoup.measures import Mahalanobis
+hypothesiser = DistanceHypothesiser(
+    predictor,
+    jpda_updater,
+    measure=Mahalanobis(),
+    missed_distance=3
+)
+
+from stonesoup.dataassociator.neighbour import GNNWith2DAssignment
+initiator_associator = GNNWith2DAssignment(hypothesiser)
+initiator_deleter = CovarianceBasedDeleter(covar_trace_thresh=500)
+initiator = MultiMeasurementInitiator(
+    prior_state=s_prior_state,
+    measurement_model=None,
+    deleter=initiator_deleter,
+    data_associator=initiator_associator,
+    updater=jpda_updater,
+    min_points=2
+)
+
+jpda_tracker = MultiTargetMixtureTracker(
+    initiator=initiator,
+    deleter=deleter,
+    detector=s1_detector,
+    data_associator=data_associator,
+    updater=jpda_updater
+)
+jpda_tracker, s1_tracker = tee(jpda_tracker, 2)
+
+# %%
+# GM-LCC Tracker
+# ^^^^^^^^^^^^^^
+
+# %%
+from stonesoup.updater.pointprocess import LCCUpdater
+from stonesoup.hypothesiser.distance import DistanceHypothesiser
+from stonesoup.measures import Mahalanobis
+from stonesoup.hypothesiser.gaussianmixture import GaussianMixtureHypothesiser
+from stonesoup.mixturereducer.gaussianmixture import GaussianMixtureReducer
+from stonesoup.types.state import TaggedWeightedGaussianState
+from stonesoup.tracker.pointprocess import PointProcessMultiTargetTracker
+
+# Updater
+kalman_updater = ExtendedKalmanUpdater(measurement_model=None)
+updater = LCCUpdater(
+    updater=kalman_updater,
+    clutter_spatial_density=clutter_spatial_density,
+    normalisation=True,
+    prob_detection=0.9,
+    prob_survival=0.9,
+    mean_number_of_false_alarms=clutter_model.clutter_rate,
+    variance_of_false_alarms=100
+)
+
+# Hypothesiser
+kalman_predictor = ExtendedKalmanPredictor(truth_transition_model)
+base_hypothesiser = DistanceHypothesiser(
+    predictor=kalman_predictor,
+    updater=kalman_updater,
+    measure=Mahalanobis(),
+    missed_distance=15,
+    include_all=False
+)
+hypothesiser = GaussianMixtureHypothesiser(
+    base_hypothesiser,
+    order_by_detection=True
+)
+
+# Reducer
+reducer = GaussianMixtureReducer(
+    prune_threshold=1E-3,
+    pruning=True,
+    merge_threshold=200,
+    merging=True
+)
+
+# Birth component
+birth_covar = CovarianceMatrix(np.diag([10000, 10, 10000, 10, 10000, 10]))
+birth_component = TaggedWeightedGaussianState(
+    state_vector=[0, 0, 0, 0, 500, 0],
+    covar=birth_covar**2,
+    weight=0.5,
+    tag=TaggedWeightedGaussianState.BIRTH,
+    timestamp=start_time
+)
+
+# Tracker
+gmlcc_tracker = PointProcessMultiTargetTracker(
+    detector=s2_detector,
+    hypothesiser=deepcopy(hypothesiser),
+    updater=deepcopy(updater),
+    reducer=deepcopy(reducer),
+    birth_component=deepcopy(birth_component),
+    extraction_threshold=0.90,
+)
+gmlcc_tracker, s2_tracker = tee(gmlcc_tracker, 2)
+
+# %%
+# 4: Make GM-PHD Tracker For Measurement Fusion
+# ---------------------------------------------
+# This tracker can use many of the same elements as the GM-LCC one.
+
+# %%
+from stonesoup.updater.pointprocess import PHDUpdater
+
+updater = PHDUpdater(
+    kalman_updater,
+    clutter_spatial_density=clutter_spatial_density,
+    prob_detection=0.9,
+    prob_survival=0.9
+)
+
+meas_fusion_tracker = PointProcessMultiTargetTracker(
+    detector=s1s2_detector,
+    hypothesiser=deepcopy(hypothesiser),
+    updater=deepcopy(updater),
+    reducer=deepcopy(reducer),
+    birth_component=deepcopy(birth_component),
+    extraction_threshold=0.90,
+)
+
+
+# %%
+# 5: Define a GM-PHD Tracker for Track Fusion
+# -------------------------------------------
+# Track fusion using covariance intersection is implemented in Stone Soup using the
+# :class:`ChernoffUpdater` class. For use in a GM-PHD, we insert the :class:`ChernoffUpdater` as
+# the base updater, instead of a typical :class:`~.KalmanUpdater`. The `clutter_spatial_density`
+# parameter now refers to the estimated intensity of false tracks. Since the previous tracker will
+# (hopefully) have ignored some of the clutter, we can use a smaller intensity than in the previous
+# trackers. The `omega` parameter is also adjustable. We will set it to 0.5 for now.
+#
+# The remaining tracker parameters have been kept the same as the measurement fusion tracker except
+# where noted. This will ensure a fair comparison of the results.
+
+# %%
+
+from stonesoup.updater.chernoff import ChernoffUpdater
+from stonesoup.measures import Euclidean
+
+# Updater
+ch_updater = ChernoffUpdater(measurement_model=None)
+updater = PHDUpdater(
+    ch_updater,
+    clutter_spatial_density=1E-15,
+    prob_detection=0.9,
+    prob_survival=0.9
+)
+
+
+# Hypothesiser
+# The states being used as measurements are in Cartesian space. We will use Euclidean distance in
+# the :class:`~.DistanceHypothesiser`, meaning that we need a bigger missed distance than the
+# previous hypothesiser which used the Mahalanobis distance.
+kalman_predictor = ExtendedKalmanPredictor(truth_transition_model)
+base_hypothesiser = DistanceHypothesiser(
+    kalman_predictor,
+    ch_updater,
+    Euclidean(),
+    missed_distance=300,
+    include_all=False
+)
+hypothesiser = GaussianMixtureHypothesiser(base_hypothesiser, order_by_detection=True)
+
+# Reducer
+# The states tend to have low weights when they are first initialized using this method, so we will
+# keep the pruning threshold low.
+ch_reducer = GaussianMixtureReducer(
+    prune_threshold=1E-10,
+    pruning=True,
+    merge_threshold=200,
+    merging=True
+)
+
+# Birth component
+birth_covar = CovarianceMatrix(np.diag([100000, 100, 100000, 100, 100000, 100]))
+ch_birth_component = TaggedWeightedGaussianState(
+    state_vector=[0, 0, 0, 0, 500, 0],
+    covar=birth_covar**2,
+    weight=0.5,
+    tag=TaggedWeightedGaussianState.BIRTH,
+    timestamp=start_time
+)
+
+# Make tracker
+from stonesoup.feeder.track import Tracks2GaussianDetectionFeeder
+
+track_fusion_tracker = PointProcessMultiTargetTracker(
+    detector=Tracks2GaussianDetectionFeeder(MultiDataFeeder([s1_tracker, s2_tracker])),
+    hypothesiser=hypothesiser,
+    updater=updater,
+    reducer=deepcopy(ch_reducer),
+    birth_component=deepcopy(ch_birth_component),
+    extraction_threshold=0.90,
+)
+
+# %%
+# 6: Make Metric Manager
+# ----------------------
+# We will generate metrics of each of the four trackers for comparison.
+
+# %%
+from stonesoup.metricgenerator.basicmetrics import BasicMetrics
+from stonesoup.metricgenerator.ospametric import OSPAMetric
+from stonesoup.metricgenerator.tracktotruthmetrics import SIAPMetrics
+from stonesoup.metricgenerator.uncertaintymetric import SumofCovarianceNormsMetric
+
+metric_generators = []
+
+track_labels = ['jpda', 'gmlcc', 'meas_fusion', 'track_fusion']
+labels = ['Airborne Radar (JPDAF)', 'Ground Radar (GM-LCC)', 'Measurement Fusion (GM-PHD)',
+          'Covariance Intersection (GM-PHD)']
+
+for track_label, label in zip(track_labels, labels):
+    # for _ in ['jpda', 'gmlcc', 'meas_fusion', 'track_fusion']:
+    metric_generators.extend([BasicMetrics(generator_name=f'basic {label}',
+                                           tracks_key=f'{track_label}_tracks',
+                                           truths_key='truths'
+                                           ),
+                              OSPAMetric(c=10, p=1, measure=Euclidean([0, 2, 4]),
+                                         generator_name=f'OSPA {label}',
+                                         tracks_key=f'{track_label}_tracks',
+                                         truths_key='truths'
+                                         ),
+                              SIAPMetrics(position_measure=Euclidean(), velocity_measure=Euclidean(),
+                                          generator_name=f'SIAP {label}',
+                                          tracks_key=f'{track_label}_tracks',
+                                          truths_key='truths'
+                                          ),
+                              SumofCovarianceNormsMetric(generator_name=f'Uncertainty {label}',
+                                                         tracks_key=f'{track_label}_tracks'
+                                                         )
+
+                              ])
+
+
+# %%
+from stonesoup.dataassociator.tracktotrack import TrackToTruth
+associator = TrackToTruth(association_threshold=30)
+
+# %%
+from stonesoup.metricgenerator.manager import MultiManager
+
+metric_manager = MultiManager(metric_generators, associator=associator)
+
+# %%
+# 7: Set Up the Detection Feeders
+# -------------------------------
+# As one final step before running the simulation, we will write a little class which feeds the
+# detections for a single timestep. This makes sure that the two radars and the measurement
+# fusion tracker are getting the same measurements.
+#
+# The track fusion tracker will also use the :class:`~.Tracks2GaussianDetectionFeeder` class to
+# feed the tracks as measurements. At each time step, the resultant live tracks from the JPDA and
+# GM-LCC trackers will be put into a :class:`~.Tracks2GaussianDetectionFeeder`. The feeder will
+# take the most recent state from each
+# track and turn it into a :class:`~.GaussianDetection` object. The set of detection objects will
+# be returned and passed into the tracker.
+
+# %%
+
+# %%
+# 8: Run Simulation
+# -----------------
+
+# %%
+jpda_tracks, gmlcc_tracks = set(), set()
+meas_fusion_tracks, track_fusion_tracks = set(), set()
+
+meas_fusion_tracker_iter = iter(meas_fusion_tracker)
+track_fusion_tracker_iter = iter(track_fusion_tracker)
+
+for t in range(num_steps):
+
+    # Run JPDA tracker from sensor 1
+    _, sensor1_tracks = next(jpda_tracker)
+    jpda_tracks.update(sensor1_tracks)
+
+    # Run GM-LCC tracker from sensor 2
+    _, sensor2_tracks = next(gmlcc_tracker)
+    gmlcc_tracks.update(sensor2_tracks)
+
+    # Run the GM-PHD for measurement fusion. This one gets called twice, once for each set of
+    # detections. This ensures there is only one detection per target.
+    # Run the GM-PHD for track fusion. Similar to the measurement fusion, this tracker gets run
+    # twice, once for each set of tracks.
+    for _ in (0, 1):
+        _, tracks = next(meas_fusion_tracker_iter)
+        meas_fusion_tracks.update(tracks)
+        _, tracks = next(track_fusion_tracker_iter)
+        track_fusion_tracks.update(tracks)
+
+detections = s1_detections | s2_detections
+metric_manager.add_data({'truths': truths, 'detections': detections}, overwrite=False)
+
+# Remove tracks that have just one state in them as they were probably from clutter
+jpda_tracks = {track for track in jpda_tracks if len(track) > 1}
+gmlcc_tracks = {track for track in gmlcc_tracks if len(track) > 1}
+meas_fusion_tracks = {track for track in meas_fusion_tracks if len(track) > 1}
+track_fusion_tracks = {track for track in track_fusion_tracks if len(track) > 1}
+
+# Add track data to the metric manager
+metric_manager.add_data({'jpda_tracks': jpda_tracks,
+                         'gmlcc_tracks': gmlcc_tracks,
+                         'meas_fusion_tracks': meas_fusion_tracks,
+                         'track_fusion_tracks': track_fusion_tracks
+                         }, overwrite=False)
+
+# %%
+# 9: Plot the Results
+# --------------------
+# Next, we will plot all of the resulting tracks and measurements. This will be done in two plots.
+# The first plot will show all of the data, and the second plot will show a closer view of one
+# resultant track.
+
+# %%
+plotter1, plotter2 = Plotter(), Plotter()
+for plotter in [plotter1, plotter2]:
+    plotter.plot_ground_truths(truths, [0, 2],
+                               color='black')
+    plotter.plot_measurements(s1_detections, [0, 2], color='orange', marker='*',
+                              label='Measurements - Airborne Radar')
+    plotter.plot_measurements(s2_detections, [0, 2], color='blue', marker='*',
+                              label='Measurements - Ground Radar')
+    plotter.plot_tracks(jpda_tracks, [0, 2], color='red',
+                        label='Tracks - Airborne Radar (JPDAF)')
+    plotter.plot_tracks(gmlcc_tracks, [0, 2], color='purple',
+                        label='Tracks - Ground Radar (GM-LCC)')
+    plotter.plot_tracks(meas_fusion_tracks, [0, 2], color='green',
+                        label='Tracks - Measurement Fusion (GM-PHD)')
+    plotter.plot_tracks(track_fusion_tracks, [0, 2], color='pink',
+                        label='Tracks - Covariance Intersection (GM-PHD)')
+
+    # Format the legend a bit. Set the position outside of the plot, and
+    # swap the order of the clutter and ground radar measurements
+    pos = plotter.ax.get_position()
+    plotter.ax.set_position([pos.x0, pos.y0, pos.width * 0.7, pos.height])
+    k = list(plotter.legend_dict.keys())
+    k[2], k[3] = k[3], k[2]
+    v = list(plotter.legend_dict.values())
+    v[2], v[3] = v[3], v[2]
+    plotter.ax.legend(handles=v, labels=k, loc='lower center', bbox_to_anchor=(0.5, -0.5))
+
+plotter1.fig.show()
+
+track = sorted(track_fusion_tracks, key=len)[-1]  # Longest track
+x_min = min([state.state_vector[0] for state in track])
+x_max = max([state.state_vector[0] for state in track])
+y_min = min([state.state_vector[2] for state in track])
+y_max = max([state.state_vector[2] for state in track])
+
+plotter2.ax.set_xlim(x_min-50, x_max+50)
+plotter2.ax.set_ylim(y_min-50, y_max+50)
+
+plotter2.fig.show()
+
+
+# %%
+# Now we will plot the metrics. First, we call a function to calculate
+# the metrics.
+
+# %%
+metrics = metric_manager.generate_metrics()
+
+# %%
+# Now we can plot them. The SIAP and OSPA metrics can be done together in a loop. The
+# Track-To-Truth ratio needs to be done separately so that it can be calculated at each
+# timestep.
+
+# %%
+from stonesoup.plotter import MetricPlotter
+
+fig = MetricPlotter()
+fig.plot_metrics(metrics, color=['blue', 'orange', 'green', 'red'], linestyle='--')
+
+# %%
+# Plot Track to Truth Ratio
+import matplotlib.pyplot as plt
+fig, ax = plt.subplots()
+times = metric_manager.list_timestamps(metric_manager.generators[2])
+
+# Iterate through the trackers. For each one, go through the list of all timesteps
+# and calculate the ratio at that time
+for track_label, label in zip(track_labels, labels):
+    ratios = []
+    for time in times:
+        num_tracks = SIAPMetrics.num_tracks_at_time(metric_manager.states_sets[f'{track_label}_tracks'], timestamp=time)
+        num_truths = SIAPMetrics.num_truths_at_time(metric_manager.states_sets['truths'], timestamp=time)
+        ratios.append(num_tracks / num_truths)
+    plt.plot(ratios, linewidth=2, label=label, linestyle='--')
+
+ax.set_title('Track-to-Truth Ratio')
+ax.set_ylabel('Ratio')
+ax.set_xlabel('Time $(s)$')
+ax.legend(loc='center left', bbox_to_anchor=(1.0, 0.5))
+
+# sphinx_gallery_thumbnail_number = 3
+
+# %%
+# References
+# ----------
+# .. [#] Julier, S. J. and Uhlmann, J. K., “General decentralized data fusion
+#         with covariance intersection,” Handbook of multisensor data fusion:
+#         theory and practice, pp. 319–344, 2009.
+#
+# .. [#] Clark, D. E. and Campbell, M. A., “Integrating covariance intersection
+#        into Bayesian multi-target tracking filters,” preprint on TechRxiv.
+#        submitted to IEEE Transactions on Aerospace and Electronic Systems.
+#
+# .. [#] Hurley, M. B., “An information theoretic justification for covariance
+#        intersection and its generalization,” in Proceedings of the Fifth
+#        International Conference on Information Fusion. FUSION 2002.(IEEE Cat.
+#        No. 02EX5997), vol. 1. IEEE, 2002, pp. 505–511
+#
+# .. [#] Clark, D. and Hunter, E. and Balaji, B. and O'Rourke, S., “Centralized multi-sensor
+#        multi-target data fusion with tracks as measurements,” to be submitted to SPIE Defense and
+#        Security Symposium 2023.

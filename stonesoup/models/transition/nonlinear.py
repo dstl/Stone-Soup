@@ -1,13 +1,13 @@
 import copy
-from typing import Sequence
+from collections.abc import Sequence
+
 import numpy as np
 from scipy.linalg import block_diag
 
-from ...types.array import StateVector, StateVectors
 from .base import TransitionModel
 from ..base import GaussianModel, TimeVariantModel
 from ...base import Property
-from ...types.array import CovarianceMatrix
+from ...types.array import CovarianceMatrix, StateVector, StateVectors
 
 
 class GaussianTransitionModel(TransitionModel, GaussianModel):
@@ -56,27 +56,22 @@ class ConstantTurn(GaussianTransitionModel, TimeVariantModel):
 
         .. math::
             F(x) & = & \begin{bmatrix}
-                          x+ \frac{x_{vel}}{\omega}\sin\omega dt -
-                              \frac{y_{vel}}{\omega}(1-\cos\omega dt) \\
-                          x_{vel}\cos\omega dt - y_{vel}\sin\omega dt \\
-                          y+ \frac{v_{vel}}{\omega}\sin\omega dt +
-                              \frac{x_{vel}}{\omega}(1-\cos\omega dt) \\
-                          x_{vel}\sin\omega dt + y_{vel}\sin\omega dt \\
-                          \omega
+                          1 & \frac{\sin\omega dt}{\omega} & 0 & -
+                            \frac{(1-\cos\omega dt)}{\omega} & 0 \\
+                          0 & \cos\omega dt & 0 & - \sin\omega dt & 0 \\
+                          0 & \frac{(1-\cos\omega dt)}{\omega} & 1 &
+                            \frac{\sin\omega dt}{\omega} & 0 \\
+                          0 & \sin\omega dt & 0 & \sin\omega dt & 0 \\
+                          0 & 0 & 0 & 0 & 1
                       \end{bmatrix}
 
         .. math::
              Q_t & = & \begin{bmatrix}
-                          \frac{dt^4q_x^2}{4} & \frac{dt^3q_x^2}{2} & \frac{dt^4q_xq_y}{4} &
-                              \frac{dt^3q_xq_y}{2} & \frac{dt^2q_xq_\omega}{2} \\
-                          \frac{dt^3q_x^2}{2} & dt^2q_x^2 & \frac{dt^3q_xq_y}{2} & dt^2q_xq_y &
-                              dt q_x q_\omega \\
-                          \frac{dt^4q_xq_y}{4} & \frac{dt^3q_xq_y}{2} & \frac{dt^4q_y^2}{4} &
-                              \frac{dt^3q_y^2}{2} & \frac{dt^2q_y q_\omega}{2} \\
-                          \frac{dt^3q_x q_y}{2} & dt^2q_xq_y & \frac{dt^3q_y^2}{2} &
-                              dt^2q_y^2 & dt q_y q_\omega \\
-                          \frac{dt^2q_xq_\omega}{2} & dtq_xq_\omega & \frac{dt^2q_yq_\omega}{2} &
-                              dt q_y q_\omega & q_\omega^2
+                          q_x\frac{dt^3}{3} & q_x\frac{dt^2}{2} & 0 & 0 & 0 \\
+                          q_x\frac{dt^2}{2} & q_xdt & 0 & 0 & 0 \\
+                          0 & 0 & q_y\frac{dt^3}{3} & q_y\frac{dt^2}{2} & 0 \\
+                          0 & 0 & q_y\frac{dt^2}{2} & q_ydt & 0 \\
+                          0 & 0 & 0 & 0 & q_\omega dt
                      \end{bmatrix}
     """
     linear_noise_coeffs: np.ndarray = Property(
@@ -100,6 +95,8 @@ class ConstantTurn(GaussianTransitionModel, TimeVariantModel):
         sv1 = state.state_vector
         turn_rate = sv1[4, :]
         # Avoid divide by zero in the function evaluation
+        if turn_rate.dtype != float:
+            turn_rate = turn_rate.astype(float)
         turn_rate[turn_rate == 0.] = np.finfo(float).eps
         dAngle = turn_rate * time_interval_sec
         cos_dAngle = np.cos(dAngle)
@@ -130,11 +127,11 @@ class ConstantTurn(GaussianTransitionModel, TimeVariantModel):
         """
         q_x, q_y = self.linear_noise_coeffs
         q = self.turn_noise_coeff
-        dt = time_interval.total_seconds()
+        dt = abs(time_interval.total_seconds())
 
         Q = np.array([[dt**3 / 3., dt**2 / 2.],
                       [dt**2 / 2., dt]])
-        C = block_diag(Q*q_x**2, Q*q_y**2, q**2/dt)
+        C = block_diag(Q*q_x, Q*q_y, dt*q)
 
         return CovarianceMatrix(C)
 

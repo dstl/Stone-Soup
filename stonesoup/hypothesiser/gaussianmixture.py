@@ -3,8 +3,7 @@ from ..base import Property
 from ..dataassociator.tree import DetectionKDTreeMixIn
 from ..types.detection import MissedDetection
 from ..types.multihypothesis import MultipleHypothesis
-from ..types.prediction import (TaggedWeightedGaussianStatePrediction,
-                                WeightedGaussianStatePrediction)
+from ..types.prediction import Prediction
 from ..types.state import TaggedWeightedGaussianState
 
 
@@ -73,16 +72,16 @@ class GaussianMixtureHypothesiser(Hypothesiser):
                     else:
                         tag = component.tag
                     hypothesis.prediction = \
-                        TaggedWeightedGaussianStatePrediction(
+                        Prediction.from_state(
+                            component,
                             tag=tag,
-                            weight=component.weight,
                             state_vector=hypothesis.prediction.state_vector,
                             covar=hypothesis.prediction.covar,
                             timestamp=hypothesis.prediction.timestamp
                             )
                 else:
-                    hypothesis.prediction = WeightedGaussianStatePrediction(
-                        weight=component.weight,
+                    hypothesis.prediction = Prediction.from_state(
+                        component,
                         state_vector=hypothesis.prediction.state_vector,
                         covar=hypothesis.prediction.covar,
                         timestamp=hypothesis.prediction.timestamp

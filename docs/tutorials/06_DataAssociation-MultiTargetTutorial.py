@@ -63,7 +63,7 @@
 
 import numpy as np
 from datetime import datetime, timedelta
-start_time = datetime.now()
+start_time = datetime.now().replace(microsecond=0)
 
 from stonesoup.models.transition.linear import CombinedLinearGaussianTransitionModel, \
                                                ConstantVelocity
@@ -82,25 +82,27 @@ truths = OrderedSet()
 transition_model = CombinedLinearGaussianTransitionModel([ConstantVelocity(0.005),
                                                           ConstantVelocity(0.005)])
 
-truth = GroundTruthPath([GroundTruthState([0, 1, 0, 1], timestamp=start_time)])
+timesteps = [start_time]
+truth = GroundTruthPath([GroundTruthState([0, 1, 0, 1], timestamp=timesteps[0])])
 for k in range(1, 21):
+    timesteps.append(start_time+timedelta(seconds=k))
     truth.append(GroundTruthState(
         transition_model.function(truth[k-1], noise=True, time_interval=timedelta(seconds=1)),
-        timestamp=start_time+timedelta(seconds=k)))
+        timestamp=timesteps[k]))
 truths.add(truth)
 
-truth = GroundTruthPath([GroundTruthState([0, 1, 20, -1], timestamp=start_time)])
+truth = GroundTruthPath([GroundTruthState([0, 1, 20, -1], timestamp=timesteps[0])])
 for k in range(1, 21):
     truth.append(GroundTruthState(
         transition_model.function(truth[k-1], noise=True, time_interval=timedelta(seconds=1)),
-        timestamp=start_time+timedelta(seconds=k)))
+        timestamp=timesteps[k]))
 _ = truths.add(truth)
 
 # %%
 # Plot the ground truth
 
-from stonesoup.plotter import Plotterly
-plotter = Plotterly()
+from stonesoup.plotter import AnimatedPlotterly
+plotter = AnimatedPlotterly(timesteps, tail_length=0.3)
 plotter.plot_ground_truths(truths, [0, 2])
 plotter.fig
 
@@ -198,7 +200,7 @@ for n, measurements in enumerate(all_measurements):
 # %%
 # Plot the resulting tracks
 
-# sphinx_gallery_thumbnail_number = 3
+# sphinx_gallery_thumbnail_path = '_static/sphinx_gallery/Tutorial_6.PNG'
 
 plotter.plot_tracks(tracks, [0, 2], uncertainty=True)
 plotter.fig

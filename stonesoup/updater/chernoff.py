@@ -1,9 +1,10 @@
-import numpy as np
+from functools import lru_cache
 
 from ..base import Property
 from .base import Updater
 from ..types.prediction import MeasurementPrediction
 from ..types.update import Update
+from ..mixturereducer.gaussianmixture import CovarianceIntersection
 
 
 class ChernoffUpdater(Updater):
@@ -32,7 +33,7 @@ class ChernoffUpdater(Updater):
 
     .. math::
 
-            D &= \left ( \omega A^{-1} + (1-\omega)B^{-1} \right )\\
+            D &= \left ( \omega A^{-1} + (1-\omega)B^{-1} \right )^{-1}\\
             d &= D \left ( \omega A^{-1}a + (1-\omega)B^{-1}b \right )\\
             V &= \frac{A}{1-\omega} + \frac{B}{\omega}
 
@@ -78,7 +79,9 @@ class ChernoffUpdater(Updater):
         default=0.5,
         doc="A weighting parameter in the range :math:`(0,1]`")
 
-    def predict_measurement(self, predicted_state, measurement_model=None,  **kwargs):
+    @lru_cache()
+    def predict_measurement(self, predicted_state, measurement_model=None, measurement_noise=True,
+                            **kwargs):
         r"""
         This function predicts the measurement of a state in situations where measurements consist
         of a covariance and state vector.
@@ -90,6 +93,9 @@ class ChernoffUpdater(Updater):
         measurement_model : :class:`~.MeasurementModel`
             The measurement model. If omitted, the updater will use the model that was specified
             on initialization.
+        measurement_noise : bool
+            Whether to include measurement noise. Default `True`. Where `False` the
+            predicted state covariance is used directly without omega factor.
 
         Returns
         -------
@@ -99,9 +105,12 @@ class ChernoffUpdater(Updater):
 
         measurement_model = self._check_measurement_model(measurement_model)
 
-        # The innovation covariance uses the noise covariance from the measurement model
-        state_covar_m = measurement_model.noise_covar
-        innov_covar = 1/(1-self.omega)*state_covar_m + 1/self.omega*predicted_state.covar
+        if measurement_noise:
+            # The innovation covariance uses the noise covariance from the measurement model
+            state_covar_m = measurement_model.noise_covar
+            innov_covar = 1/(1-self.omega)*state_covar_m + 1/self.omega*predicted_state.covar
+        else:
+            innov_covar = predicted_state.covar
 
         # The predicted measurement and measurement cross covariance can be taken from
         # the predicted state
@@ -134,16 +143,6 @@ class ChernoffUpdater(Updater):
             The state posterior, saved in a generic :class:`~.Update` object.
         """
 
-        # Get the predicted state out of the hypothesis. These are 'B' and 'b', the
-        # covariance and mean of the predicted Gaussian
-        predicted_covar = hypothesis.prediction.covar
-        predicted_mean = hypothesis.prediction.state_vector
-
-        # Extract the vector and covariance from the measurement. These are 'A' and 'a', the
-        # covariance and mean of the Gaussian measurement.
-        measurement_covar = hypothesis.measurement.covar
-        measurement_mean = hypothesis.measurement.state_vector
-
         # Predict the measurement if it is not already done
         if hypothesis.measurement_prediction is None:
             hypothesis.measurement_prediction = self.predict_measurement(
@@ -152,19 +151,15 @@ class ChernoffUpdater(Updater):
                 **kwargs
             )
 
-        # Calculate the updated mean and covariance from covariance intersection
-        posterior_covariance = np.linalg.inv(self.omega*np.linalg.inv(measurement_covar) +
-                                             (1-self.omega)*np.linalg.inv(predicted_covar))
-        posterior_mean = posterior_covariance @ (self.omega*np.linalg.inv(measurement_covar)
-                                                 @ measurement_mean +
-                                                 (1-self.omega)*np.linalg.inv(predicted_covar)
-                                                 @ predicted_mean)
+        posterior = CovarianceIntersection.merge_components(hypothesis.measurement,
+                                                            hypothesis.prediction,
+                                                            weights=[self.omega, 1-self.omega])
 
         # Optionally force the posterior covariance to be a symmetric matrix
         if force_symmetric_covariance:
-            posterior_covariance = \
-                (posterior_covariance + posterior_covariance.T)/2
+            posterior.covar = \
+                (posterior.covar + posterior.covar.T)/2
 
         # Return the updated state
-        return Update.from_state(hypothesis.prediction, posterior_mean, posterior_covariance,
+        return Update.from_state(hypothesis.prediction, posterior.state_vector, posterior.covar,
                                  hypothesis, hypothesis.measurement.timestamp)

@@ -2,6 +2,8 @@ from collections.abc import Sequence
 
 import numpy as np
 
+_no_value = object()
+
 
 class Matrix(np.ndarray):
     """Matrix wrapper for :class:`numpy.ndarray`
@@ -14,8 +16,8 @@ class Matrix(np.ndarray):
         array = np.asarray(*args, **kwargs)
         return array.view(cls)
 
-    def __array_wrap__(self, array):
-        return self._cast(array)
+    def __array_wrap__(self, array, context=None, return_scalar=False):
+        return array[()] if return_scalar else self._cast(array)
 
     @classmethod
     def _cast(cls, val):
@@ -31,8 +33,9 @@ class Matrix(np.ndarray):
     def __array_ufunc__(self, ufunc, method, *inputs, **kwargs):
         if ufunc in (np.isfinite, np.matmul):
             # Custom types break here, so simply convert to floats.
-            inputs = [np.asfarray(input_) if isinstance(input_, Matrix) else input_
-                      for input_ in inputs]
+            inputs = [
+                np.asarray(input_, dtype=np.float64) if isinstance(input_, Matrix) else input_
+                for input_ in inputs]
         else:
             # Change to standard ndarray
             inputs = [np.asarray(input_) if isinstance(input_, Matrix) else input_
@@ -69,7 +72,7 @@ class StateVector(Matrix):
 
     Note that code using the pattern `my_state_vector[1, 0]` will continue to work.
 
-    When slicing would result in return of a invalid shape for a StateVector (i.e. not `(n, 1)`)
+    When slicing would result in return of an invalid shape for a StateVector (i.e. not `(n, 1)`)
     then a :class:`~.Matrix` view will be returned.
 
     .. note ::
@@ -96,7 +99,7 @@ class StateVector(Matrix):
         # If item has two elements, it is a tuple and should be left alone.
         # If item is a slice object, or an ndarray, we would expect a StateVector returned,
         #   so leave it alone.
-        # If item is an int, we would expected a number returned, so we should append 0  to the
+        # If item is an int, we would expect a number returned, so we should append 0  to the
         #   item and extract the first (and only) column
         # Note that an ndarray of ints is an instance of int
         #   i.e. isinstance(np.array([1]), int) == True
@@ -147,7 +150,7 @@ class StateVectors(Matrix):
     @classmethod
     def _cast(cls, val):
         out = super()._cast(val)
-        if type(out) == Matrix and out.ndim == 2:
+        if type(out) == Matrix and out.ndim == 2:  # noqa: E721
             # Assume still set of State Vectors
             return out.view(StateVectors)
         else:
@@ -164,12 +167,21 @@ class StateVectors(Matrix):
             return super().__array_function__(func, types, args, kwargs)
 
     @staticmethod
-    def _mean(state_vectors, axis=None, dtype=None, out=None, keepdims=np._NoValue):
+    def _mean(state_vectors, axis=None, dtype=None, out=None, keepdims=_no_value,
+              *, where=_no_value):
+        if keepdims is not _no_value:
+            keepdims_kw = {'keepdims': keepdims}
+        else:
+            keepdims_kw = {}
+        if where is not _no_value:
+            where_kw = {'where': where}
+        else:
+            where_kw = {}
         if state_vectors.dtype != np.object_:
             # Can just use standard numpy mean if not using custom objects
-            return np.mean(axis, dtype, out, keepdims)
-        elif axis == 1 and out is None:
-            state_vector = np.average(state_vectors, axis)
+            return np.mean(np.asarray(state_vectors), axis, dtype, out, **keepdims_kw, **where_kw)
+        elif axis == 1 and out is None and where_kw.get('where', True) is True:
+            state_vector = np.average(state_vectors, axis, **keepdims_kw)
             if dtype:
                 return state_vector.astype(dtype)
             else:
@@ -178,13 +190,19 @@ class StateVectors(Matrix):
             return NotImplemented
 
     @staticmethod
-    def _average(state_vectors, axis=None, weights=None, returned=False):
-        if state_vectors.dtype != np.object_:
+    def _average(state_vectors, axis=None, weights=None, returned=False, *, keepdims=_no_value):
+        if keepdims is not _no_value:
+            keepdims_kw = {'keepdims': keepdims}
+        else:
+            keepdims_kw = {}
+        if state_vectors.dtype != np.object_ and keepdims_kw.get('keepdims', True):
             # Can just use standard numpy averaging if not using custom objects
-            state_vector = np.average(np.asarray(state_vectors), axis=axis, weights=weights)
+            state_vector = np.average(
+                np.asarray(state_vectors), axis=axis, weights=weights, **keepdims_kw)
             # Convert type as may have type of weights
-            state_vector = StateVector(state_vector.astype(np.float_, copy=False))
-        elif axis == 1:  # Need to handle special cases of averaging potentially
+            state_vector = StateVector(state_vector.astype(np.float64, copy=False))
+        # Need to handle special cases of averaging potentially
+        elif axis == 1 and keepdims_kw.get('keepdims', True):
             state_vector = StateVector(
                 np.empty((state_vectors.shape[0], 1), dtype=state_vectors.dtype))
             for dim, row in enumerate(np.asarray(state_vectors)):
@@ -194,7 +212,8 @@ class StateVectors(Matrix):
                     state_vector[dim, 0] = type_.average(row, weights=weights)
                 else:
                     # Else use numpy built in, converting to float array
-                    state_vector[dim, 0] = type_(np.average(np.asfarray(row), weights=weights))
+                    state_vector[dim, 0] = type_(
+                        np.average(np.asarray(row, dtype=np.float64), weights=weights))
         else:
             return NotImplemented
 
@@ -214,11 +233,11 @@ class StateVectors(Matrix):
             # Only really handle simple usage here
             avg, w_sum = np.average(state_vectors, axis=1, weights=aweights, returned=True)
 
-            X = np.asfarray(state_vectors - avg)
+            X = np.asarray(state_vectors - avg, dtype=np.float64)
             if aweights is None:
                 X_T = X.T
             else:
-                X_T = (X*np.asfarray(aweights)).T
+                X_T = (X*np.asarray(aweights, dtype=np.float64)).T
             cov = X @ X_T.conj()
             cov *= np.true_divide(1, float(w_sum))
         else:
@@ -230,7 +249,7 @@ class CovarianceMatrix(Matrix):
     """Covariance matrix wrapper for :class:`numpy.ndarray`.
 
     This class returns a view to a :class:`numpy.ndarray`, but ensures that
-    its initialised at a *NxN* matrix. It's called similar to
+    it is initialised as a *NxN* matrix. It's called similar to
     :func:`numpy.asarray`.
     """
 

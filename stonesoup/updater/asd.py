@@ -3,8 +3,8 @@ from functools import lru_cache
 import numpy as np
 
 from .kalman import KalmanUpdater
-from ..types.prediction import ASDGaussianMeasurementPrediction
-from ..types.update import ASDGaussianStateUpdate
+from ..types.prediction import MeasurementPrediction
+from ..types.update import Update
 
 
 class ASDKalmanUpdater(KalmanUpdater):
@@ -22,7 +22,7 @@ class ASDKalmanUpdater(KalmanUpdater):
         vol. 47, no. 4, pp. 2766-2778, OCTOBER 2011, doi: 10.1109/TAES.2011.6034663.
     """
     @lru_cache()
-    def predict_measurement(self, predicted_state, measurement_model=None,
+    def predict_measurement(self, predicted_state, measurement_model=None, measurement_noise=True,
                             **kwargs):
         r"""Predict the measurement implied by the predicted state mean
 
@@ -33,6 +33,8 @@ class ASDKalmanUpdater(KalmanUpdater):
         measurement_model : :class:`~.MeasurementModel`
             The measurement model. If omitted, the model in the updater
             object is used
+        measurement_noise : bool
+            Whether to include measurement noise :math:`R` with innovation covariance
         **kwargs : various
             These are passed to :meth:`~.MeasurementModel.function` and
             :meth:`~.MeasurementModel.matrix`
@@ -53,12 +55,15 @@ class ASDKalmanUpdater(KalmanUpdater):
         hh = self._measurement_matrix(predicted_state=state_at_t,
                                       measurement_model=measurement_model,
                                       **kwargs)
-        innov_cov = hh@state_at_t.covar@hh.T + measurement_model.covar()
+        innov_cov = hh@state_at_t.covar@hh.T
+        if measurement_noise:
+            innov_cov += measurement_model.covar()
 
         t2t_plus = slice(t_index * predicted_state.ndim, (t_index+1) * predicted_state.ndim)
         meas_cross_cov = predicted_state.multi_covar[:, t2t_plus] @ hh.T
 
-        return ASDGaussianMeasurementPrediction(
+        return MeasurementPrediction.from_state(
+            predicted_state,
             multi_state_vector=pred_meas, multi_covar=innov_cov,
             timestamps=[predicted_state.act_timestamp],
             cross_covar=meas_cross_cov)
@@ -137,9 +142,9 @@ class ASDKalmanUpdater(KalmanUpdater):
         except KeyError:
             pass
 
-        return ASDGaussianStateUpdate(multi_state_vector=posterior_mean,
-                                      multi_covar=posterior_covariance,
-                                      hypothesis=hypothesis,
-                                      timestamps=predicted_state.timestamps,
-                                      correlation_matrices=correlation_matrices,
-                                      max_nstep=predicted_state.max_nstep)
+        return Update.from_state(
+            predicted_state,
+            multi_state_vector=posterior_mean,
+            multi_covar=posterior_covariance,
+            hypothesis=hypothesis,
+            correlation_matrices=correlation_matrices)
