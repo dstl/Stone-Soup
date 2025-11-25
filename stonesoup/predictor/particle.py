@@ -413,7 +413,7 @@ class VisibilityInformedBernoulliParticlePredictor(BernoulliParticlePredictor):
     target and estimates its existence. This implementation modifies the weight
     prediction step to account for particles that are predicted to be inside
     obstacles and not visible to the sensor. This is based on the work by
-    Glover et al. [#vibpf]
+    Glover et al. [#vibpf]_
 
     This should be used in conjunction with the
     :class:`~.VisibilityInformedBernoulliParticleUpdater` but also works with
