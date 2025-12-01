@@ -31,8 +31,12 @@ from ...transition.linear import (ConstantAcceleration,
          ConstantNthDerivative(constant_derivative=3, noise_diff_coeff=1),
          ConstantNthDerivative(constant_derivative=3, noise_diff_coeff=1)]),
       [3, 7],
-      np.array([[500/3, 0.], [50., 0.], [10., 0.], [0., 500/3], [0., 50.], [0., 10.]]))],
-    ids=["CV1d", "CA1d", "CJ1d", "CV2d", "CA2d", "CJ2d"]
+      np.array([[500/3, 0.], [50., 0.], [10., 0.], [0., 500/3], [0., 50.], [0., 10.]])),
+     (CombinedLinearGaussianTransitionModel([ConstantAcceleration(1),
+                                             ConstantVelocity(1)]),
+      [2, 4],
+      np.array([[50., 0.], [10., 0.], [0., 10.]]))],
+    ids=["CV1d", "CA1d", "CJ1d", "CV2d", "CA2d", "CJ2d", "CACV"]
 )
 def test_transition_based_control_model(transition_model, mapping, control_model_output):
 
