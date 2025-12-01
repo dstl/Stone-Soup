@@ -83,12 +83,25 @@ class TransitionBasedLinearControlModel(LinearControlModel):
     to matrix to compute the control matrix.
 
     A derivative ordered state vector is assumed
-    (:math:`[x, \dot{x}, \lots, y, \dot{y} \dots]^T`).:
+    (e.g., :math:`[x, \dot{x}, \ldots, y, \dot{y}, \dots]^T`).:
     """
     transition_model: TransitionModel = Property(default=ConstantAcceleration(1), doc="")
     mapping: list = Property(default=[2], doc="")
 
     def matrix(self, time_interval, **kwargs) -> np.ndarray:
+        r"""
+
+        Parameters
+        ----------
+        time_interval : :class:`datetime.timedelta`
+            A time interval. Note the units used are :math:`s` so accelerations are implicitly
+            per second squared.
+
+        Returns
+        -------
+        : :class:`numpy.ndarray`
+            the control-input model matrix, :math:`B_k`
+        """
         self.control_matrix = np.eye(self.transition_model.ndim)[
             [x for x in range(self.transition_model.ndim) if x not in self.mapping]] @ \
             self.transition_model.matrix(time_interval=time_interval) @ \
