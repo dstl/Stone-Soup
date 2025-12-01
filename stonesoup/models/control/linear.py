@@ -2,6 +2,8 @@ import numpy as np
 
 from .base import ControlModel
 from ..base import LinearModel, GaussianModel
+from ..transition import TransitionModel
+from ..transition.linear import ConstantAcceleration
 from ...base import Property
 from ...types.array import StateVector
 
@@ -73,3 +75,22 @@ class LinearControlModel(ControlModel, LinearModel, GaussianModel):
                 noise = 0
 
         return self.matrix(**kwargs) @ (control_vector + noise)
+
+
+class TransitionBasedLinearControlModel(LinearControlModel):
+    r"""A model that applies a Nth Derivative Transition Model over a specified time period.
+    This is just a :class:`~.LinearControlModel` which accepts a time_interval input
+    to matrix to compute the control matrix.
+
+    A derivative ordered state vector is assumed
+    (:math:`[x, \dot{x}, \lots, y, \dot{y} \dots]^T`).:
+    """
+    transition_model: TransitionModel = Property(default=ConstantAcceleration(1), doc="")
+    mapping: list = Property(default=[2], doc="")
+
+    def matrix(self, time_interval, **kwargs) -> np.ndarray:
+        self.control_matrix = np.eye(self.transition_model.ndim)[
+            [x for x in range(self.transition_model.ndim) if x not in self.mapping]] @ \
+            self.transition_model.matrix(time_interval=time_interval) @ \
+            np.eye(self.transition_model.ndim)[self.mapping].T
+        return self.control_matrix
