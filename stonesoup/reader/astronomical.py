@@ -6,10 +6,15 @@ common astronomical formats.
 from datetime import datetime
 import numpy as np
 from astropy.io import fits
+import warnings
 
 from ..base import Property
 from .base import Reader
 from .file import FileReader, TextFileReader
+
+warnings.simplefilter("default")  # To show warnings to user
+warnings.warn('Astronomical readers are deprecated and will be removed in Stone Soup 1.10. '
+              'Orbital functionality has moved to the astrodynamics plugin.', DeprecationWarning)
 
 
 class FITSReader(FileReader):

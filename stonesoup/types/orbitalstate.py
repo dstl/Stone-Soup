@@ -1,6 +1,7 @@
 from collections.abc import Mapping
 from enum import Enum
 from typing import Any
+import warnings
 
 import numpy as np
 
@@ -13,6 +14,9 @@ from .state import State, GaussianState, ParticleState
 from .angle import Inclination, EclipticLongitude
 from ..reader.astronomical import TLEDictReader
 
+warnings.simplefilter("default")  # To show warnings to user
+warnings.warn('Orbital types are deprecated and will be removed in Stone Soup 1.10. '
+              'Orbital functionality has moved to the astrodynamics plugin.', DeprecationWarning)
 
 class CoordinateSystem(Enum):
     """Enumerates the allowable coordinate systems. See OrbitalState help for full explanation of

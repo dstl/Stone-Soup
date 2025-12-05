@@ -6,9 +6,15 @@ Functions used within multiple orbital classes in Stone Soup
 
 """
 import numpy as np
+import warnings
 
 from . import dotproduct
 from ..types.array import StateVector, StateVectors
+
+warnings.simplefilter("default")  # To show DeprecationWarning to user
+warnings.warn('Orbital functions are deprecated and will be removed in Stone Soup 1.10. '
+              'Orbital functionality has moved to the astrodynamics plugin.',
+              DeprecationWarning, stacklevel=2)
 
 
 def stumpff_s(z):
