@@ -17,8 +17,8 @@ class ControlModel(Model):
         pass
 
     @abstractmethod
-    def function(self, control_input, prior, noise=False, **kwargs):
-        r"""Control Model function :math:`f_k(u(k),x(k),w(k))`
+    def function(self, control_input, prior=None, noise=False, **kwargs):
+        r"""Control Model function :math:`b_k(u(k),x(k),w(k))`
 
         Parameters
         ----------
