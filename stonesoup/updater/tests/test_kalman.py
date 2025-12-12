@@ -1,3 +1,5 @@
+import datetime
+
 import pytest
 import numpy as np
 
@@ -15,6 +17,9 @@ from stonesoup.updater.kalman import (KalmanUpdater,
                                       SchmidtKalmanUpdater,
                                       CubatureKalmanUpdater,
                                       StochasticIntegrationUpdater)
+from stonesoup.predictor.kalman import CubatureKalmanPredictor
+from stonesoup.models.transition.linear import (CombinedLinearGaussianTransitionModel,
+                                                ConstantVelocity)
 
 
 @pytest.fixture(params=[KalmanUpdater, ExtendedKalmanUpdater, UnscentedKalmanUpdater,
@@ -27,6 +32,83 @@ def updater_class(request):
 @pytest.fixture(params=[True, False])
 def use_joseph_cov(request):
     return request.param
+
+
+def test_kalman_covariance_stability():
+    # input data
+    measurement_model = LinearGaussian(
+        ndim_state=6,
+        mapping=[0, 2, 4],
+        noise_covar=np.zeros((3, 3)),
+    )
+    prediction = GaussianStatePrediction(
+        state_vector=np.zeros((6, 1)),
+        covar=np.array([
+            [1.64385383e+06,  1.00001250e+06, -2.48073899e+05,
+                -5.86573934e-08, -4.03756199e+05, -5.86573934e-08],
+            [1.00001250e+06,  1.00002500e+06,  5.24472545e-09,
+                0.00000000e+00, -3.90355011e-08,  0.00000000e+00],
+            [-2.48073899e+05,  5.24472545e-09,  2.03087457e+06,
+                1.92001250e+06,  1.58877383e+05,  1.34045255e-08],
+            [-5.86573934e-08,  0.00000000e+00,  1.92001250e+06,
+                1.92002500e+06, -2.38775732e-09,  0.00000000e+00],
+            [-4.03756199e+05, -3.90355011e-08,  1.58877383e+05,
+                -2.38775732e-09,  2.19190854e+06,  1.92001250e+06],
+            [-5.86573934e-08,  0.00000000e+00,  1.34045255e-08,
+                0.00000000e+00,  1.92001250e+06,  1.92002500e+06]
+        ])
+    )
+    measurement_prediction = GaussianMeasurementPrediction(
+        state_vector=np.zeros((3, 1)),
+        covar=np.array([
+            [4.25607853e-02,  3.37582173e-03, -1.40573707e+00],
+            [3.37582173e-03,  4.18898195e-02, -2.22353400e+01],
+            [-1.40573707e+00, -2.22353400e+01,  3.24759672e+06],
+        ]),
+        cross_covar=np.array([
+            [-6.70207286e+01,  2.17782708e+02,  3.13723904e+06],
+            [-6.13505872e+01,  1.99344484e+02,  1.56529358e+06],
+            [-5.19907012e+02,  7.23354556e+01, -1.70022791e+06],
+            [-5.18271180e+02,  7.80151873e+01, -1.08255080e+06],
+            [1.95377768e+02,  4.52672009e+02, -2.79383465e+06],
+            [1.90861853e+02,  4.59621649e+02, -1.78870865e+06],
+        ]),
+    )
+    measurement = Detection(
+        state_vector=np.zeros((3, 1)),
+        timestamp=datetime.datetime.fromtimestamp(0),
+    )
+
+    # check assumptions, all covariances are positive definite
+    assert np.all(np.linalg.eigvals(prediction.covar) > 0)
+    assert np.all(np.linalg.eigvals(measurement_prediction.covar) > 0)
+
+    # create cubature kalman filter
+    transition_model = CombinedLinearGaussianTransitionModel([
+        ConstantVelocity(0),
+        ConstantVelocity(0),
+        ConstantVelocity(0),
+    ])
+    updater = CubatureKalmanUpdater(
+        measurement_model=measurement_model,
+        force_positive_definite_covariance=True,
+    )
+    predictor = CubatureKalmanPredictor(transition_model)
+
+    # compute update
+    update = updater.update(SingleHypothesis(
+        prediction=prediction,
+        measurement=measurement,
+        measurement_prediction=measurement_prediction,
+    ))
+
+    # predict state
+    predicted_state = predictor.predict(update, timestamp=datetime.datetime.fromtimestamp(1))
+
+    # check results
+    assert np.all(np.isfinite(predicted_state.state_vector))
+    assert np.all(np.isfinite(predicted_state.covar))
+    assert np.all(np.linalg.eigvals(predicted_state.covar) > 0)
 
 
 def test_kalman(updater_class, use_joseph_cov):
