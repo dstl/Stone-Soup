@@ -4,6 +4,7 @@ import numpy as np
 from scipy.stats import multivariate_normal as mvn
 
 from stonesoup.base import Property
+from stonesoup.models.control import ControlModel
 from stonesoup.models.transition import TransitionModel
 from stonesoup.proposal.base import Proposal
 from stonesoup.types.array import StateVector, StateVectors
@@ -23,8 +24,9 @@ class DynamicsProposal(Proposal):
     """
     transition_model: TransitionModel = Property(
         doc="The transition model used to make the prediction")
+    control_model: ControlModel = Property(default=None, doc="control model")
 
-    def rvs(self, prior: State, measurement=None, time_interval=None,
+    def rvs(self, prior: State, measurement=None, time_interval=None, control_input=None,
             **kwargs) -> Union[StateVector, StateVectors]:
         """Generate samples from the proposal.
 
@@ -37,6 +39,8 @@ class DynamicsProposal(Proposal):
             if provided(the default is `None`)
         time_interval: :class:`datetime.time_delta`
             time interval of the prediction is needed to propagate the states
+        control_input : :class:`State`, optional
+            :math:`\\mathbf{u}_k` passed to control model
 
         Returns
         -------
@@ -53,6 +57,13 @@ class DynamicsProposal(Proposal):
         new_state_vector = self.transition_model.function(prior,
                                                           time_interval=time_interval,
                                                           **kwargs)
+
+        if self.control_model:
+            new_state_vector += self.control_model.function(control_input,
+                                                            prior=prior,
+                                                            time_interval=time_interval,
+                                                            **kwargs)
+
         return Prediction.from_state(prior,
                                      parent=prior,
                                      state_vector=new_state_vector,
@@ -116,11 +127,12 @@ class KalmanProposal(Proposal):
         predictions = [
             self.predictor.predict(
                 prior_cls(particle_sv, null_covar, prior.timestamp),
-                timestamp=timestamp)
+                timestamp=timestamp,
+                **kwargs)
             for particle_sv in prior.state_vector]
 
         if measurement is not None:
-            updates = [self.updater.update(SingleHypothesis(prediction, measurement))
+            updates = [self.updater.update(SingleHypothesis(prediction, measurement), **kwargs)
                        for prediction in predictions]
         else:
             updates = predictions  # keep the prediction
