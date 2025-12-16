@@ -149,14 +149,16 @@ class KalmanPredictor(Predictor):
         prior_cov = prior.covar
         trans_m = self._transition_matrix(prior=prior, time_interval=predict_over_interval,
                                           **kwargs)
-        trans_cov = self.transition_model.covar(time_interval=predict_over_interval, **kwargs)
+        trans_cov = self.transition_model.covar(
+            time_interval=predict_over_interval, prior=prior, **kwargs)
 
         # As this is Kalman-like, the control model must be capable of
         # returning a control matrix (B)
         ctrl_mat = self._control_matrix(control_input=control_input,
                                         prior=prior,
                                         time_interval=predict_over_interval, **kwargs)
-        ctrl_noi = self.control_model.control_noise
+        ctrl_noi = self.control_model.covar(
+            time_interval=predict_over_interval, prior=prior, **kwargs)
 
         return trans_m @ prior_cov @ trans_m.T + trans_cov + ctrl_mat @ ctrl_noi @ ctrl_mat.T
 
@@ -368,9 +370,11 @@ class UnscentedKalmanPredictor(KalmanPredictor):
         # TODO: unscented transform, and I haven't checked the statistics.
         ctrl_mat = self._control_matrix(
             control_input, prior=prior, time_interval=predict_over_interval, **kwargs)
-        ctrl_noi = self.control_model.covar(time_interval=predict_over_interval, **kwargs)
+        ctrl_noi = self.control_model.covar(
+            time_interval=predict_over_interval, prior=prior, **kwargs)
         total_noise_covar = \
-            self.transition_model.covar(time_interval=predict_over_interval, **kwargs) \
+            self.transition_model.covar(
+                time_interval=predict_over_interval, prior=prior, **kwargs) \
             + ctrl_mat @ ctrl_noi @ ctrl_mat.T
 
         # Get the sigma points from the prior mean and covariance.
@@ -466,6 +470,7 @@ class SqrtKalmanPredictor(ExtendedKalmanPredictor):
                                                           **kwargs)
         except AttributeError:
             sqrt_ctrl_noi = la.sqrtm(self.control_model.covar(time_interval=predict_over_interval,
+                                                              prior=prior,
                                                               **kwargs))
 
         if self.qr_method:
@@ -531,7 +536,8 @@ class CubatureKalmanPredictor(KalmanPredictor):
         # TODO: See equivalent note to unscented transform.
         ctrl_mat = self._control_matrix(
             control_input, prior=prior, time_interval=predict_over_interval, **kwargs)
-        ctrl_noi = self.control_model.covar(time_interval=predict_over_interval, **kwargs)
+        ctrl_noi = self.control_model.covar(
+            time_interval=predict_over_interval, prior=prior, **kwargs)
         total_noise_covar = \
             self.transition_model.covar(time_interval=predict_over_interval, **kwargs) \
             + ctrl_mat@ctrl_noi@ctrl_mat.T
@@ -665,7 +671,8 @@ class StochasticIntegrationPredictor(KalmanPredictor):
         # TODO: See equivalent note to unscented transform.
         ctrl_mat = self._control_matrix(
             control_input, prior=prior, time_interval=predict_over_interval, **kwargs)
-        ctrl_noi = self.control_model.covar(time_interval=predict_over_interval, **kwargs)
+        ctrl_noi = self.control_model.covar(
+            time_interval=predict_over_interval, prior=prior, **kwargs)
         Q = self.transition_model.covar(time_interval=predict_over_interval, **kwargs) \
             + ctrl_mat@ctrl_noi@ctrl_mat.T
 
