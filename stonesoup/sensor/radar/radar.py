@@ -149,25 +149,41 @@ class RadarRotatingBearingRange(RadarBearingRange):
 
     """
 
-    dwell_centre: StateVector = ActionableProperty(
-        doc="A `state_vector` property that describes the rotation angle of the centre of the "
-            "sensor's current FOV (i.e. the dwell centre) relative to the positive x-axis of the "
-            "sensor frame/orientation. The angle is positive if the rotation is in the "
-            "counter-clockwise direction when viewed by an observer looking down the z-axis of "
-            "the sensor frame, towards the origin. Angle units are in radians",
-        generator_cls=DwellActionsGenerator,
-        generator_kwargs_mapping={'rpm': 'rpm', 'resolution': 'resolution'})
-    rpm: float = Property(
-        doc="The number of antenna rotations per minute (RPM)")
     resolution: Angle = Property(
         default=Angle(np.radians(1)),
         doc="Resolution of the dwell_centre. Used by the :class:`~.DwellActionsGenerator` "
             "during sensor management.")
-    max_range: float = Property(
-        default=np.inf,
-        doc="The maximum detection range of the radar (in meters)")
-    fov_angle: float = Property(
-        doc="The radar field of view (FOV) angle (in radians).")
+    dwell_mapping: int = Property(
+        default=0,
+        doc="Mapping for the :attr:`dwell_centre` component of the :attr:`state_vector`"
+    )
+    range_mapping: int = Property(
+        default=1,
+        doc="Mapping for the :attr:`max_range` component of the :attr:`state_vector`"
+    )
+    fov_mapping: int = Property(
+        default=2,
+        doc="Mapping for the :attr:`fov_mapping` component of the :attr:`state_vector`"
+    )
+
+    @property
+    def dwell_centre(self) -> StateVector:
+        "A `state_vector` property that describes the rotation angle of the centre of the "
+        "sensor's current FOV (i.e. the dwell centre) relative to the positive x-axis of the "
+        "sensor frame/orientation. The angle is positive if the rotation is in the "
+        "counter-clockwise direction when viewed by an observer looking down the z-axis of "
+        "the sensor frame, towards the origin. Angle units are in radians"
+        return StateVector(self.state_vector[self.dwell_mapping, :])
+
+    @property
+    def max_range(self) -> float:
+        "The maximum detection range of the radar (in meters)"
+        return self.state_vector[self.range_mapping]
+
+    @property
+    def fov_angle(self) -> float:
+        "The radar field of view (FOV) angle (in radians)."
+        return self.state_vector[self.fov_mapping]
 
     @property
     def measurement_model(self):

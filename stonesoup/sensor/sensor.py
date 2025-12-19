@@ -11,6 +11,8 @@ except ImportError:
     has_shapely = False
 
 import numpy as np
+import datetime
+from bisect import insort
 
 from .base import PlatformMountable
 from ..sensormanager.action import Actionable
@@ -18,13 +20,14 @@ from ..base import Property
 from ..models.clutter.clutter import ClutterModel
 from ..types.detection import TrueDetection, Detection
 from ..types.groundtruth import GroundTruthState
-from ..types.state import ParticleState, State, StateVector
+from ..types.state import ParticleState, State, StateVector, StateMutableSequence
+from ..models.control.base import ControlModel
 
 if TYPE_CHECKING:
     from ..platform.base import Obstacle
 
 
-class Sensor(PlatformMountable, Actionable):
+class Sensor(PlatformMountable, StateMutableSequence):
     """Sensor Base class for general use.
 
     Most properties and methods are inherited from :class:`~.PlatformMountable`.
@@ -39,23 +42,15 @@ class Sensor(PlatformMountable, Actionable):
 
     """
 
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
+    control_model: Optional[ControlModel] = Property(
+        default=None,
+        doc="Control model for controlling components of sensor :attr:`state_vector`"
+    )
 
-        self.timestamp = None
-
-    def validate_timestamp(self):
-
-        if self.timestamp:
-            return True
-
-        try:
-            self.timestamp = self.movement_controller.state.timestamp
-        except AttributeError:
-            return False
-        if self.timestamp is None:
-            return False
-        return True
+    actions: list[State] = Property(
+        default=[],
+        doc="List of actions ordered according to action timestamp"
+    )
 
     @abstractmethod
     def measure(self, ground_truths: set[GroundTruthState], noise: Union[np.ndarray, bool] = True,
@@ -85,6 +80,74 @@ class Sensor(PlatformMountable, Actionable):
     def measurement_model(self):
         """Measurement model of the sensor, describing general sensor model properties"""
         raise NotImplementedError
+
+    def add_actions(self, actions, **kwargs):
+        """Add actions to the :attr:`actions` list ordered by timestamp for execution
+        once action.timestamp == sensor.timestamp
+
+        Parameters
+        ----------
+        actions : List[:class:`~.State`] or :class:`~.State`
+            A list of :class:`~.State` or single :class:`~.State` to be added to
+            :attr:`actions` according to :attr:`~.State.timestamp`
+        """
+
+        if isinstance(actions, list):
+            [insort(self.actions, actions, key=lambda state: state.timestamp)]
+        elif isinstance(actions, State):
+            insort(self.actions, actions, key=lambda state: state.timestamp)
+
+    def act(self, timestamp: datetime.datetime, action: State = None, **kwargs):
+        """Instruct the sensor to take an action or progress to the next time
+        instance. In order of priority,
+            1. The user may provide an action to act and take that immidiately.
+            2. The user may call act, providing a timestamp, causes a query to
+            :attr:`actions` to get the action with the timestamp equivalent
+            to :attr:`timestamp`.
+            3. If there is no valid action in :attr:`actions`, act does not
+            change the sensor :attr:`State` but will transition the timestamp
+             according to the input value.
+
+        Parameters
+        ----------
+        timestamp : :class:`datetime`
+            The timestamp when the action should be completed by.
+        action : :class:`State`, optional
+            An action to take immidiately, overriding :attr:`actions`.
+        """
+
+        # If user inputs action to act, it takes priority
+        if action:
+            time_interval = timestamp - self.timestamp
+            kwargs.update({'time_interval': time_interval})
+            self.states.append(State(self.state_vector +
+                self.control_model.function(action, **kwargs),
+                timestamp=timestamp))
+        # If they dont input an action, one is retrieved from the list of
+        # actions if it is the correct time to do that
+        else:
+            relevant_action = self._get_relevant_actions(timestamp)
+            if relevant_action:
+                time_interval = relevant_action.timestamp - self.timestamp
+                kwargs.update({'time_interval': time_interval})
+                self.states.append(State(
+                    self.state_vector + self.control_model.function(relevant_action, **kwargs),
+                    timestamp=timestamp))
+            else:
+                # Otherwise, the state remains the same and time progressed.
+                self.states.append(State(self.state_vector,
+                                         timestamp=timestamp))
+
+
+    def _get_relevant_actions(self, timestamp):
+
+        timestamps = np.array([state.timestamp for state in self.actions])
+
+        for action in self.actions:
+            if action.timestamp - timestamp < datetime.timedelta(seconds=0):
+                action.timestamp = timestamp
+
+        return self.actions.pop(0) if self.actions[0].timestamp == timestamp else None
 
 
 class SimpleSensor(Sensor, ABC):
