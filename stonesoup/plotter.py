@@ -3574,3 +3574,39 @@ class AnimatedPolarPlotterly(PolarPlotterly):
 
                 frame.data = data_
                 frame.traces = traces_
+
+
+def plot_sensor_fov(fig_, sensor_set, sensor_history, color='blue', alpha=0.2, label="Sensor FOV"):
+    trace_base = len(fig_.data)
+    for _ in sensor_set:
+        fig_.add_trace(go.Scatter(
+            mode='lines', line=go.scatter.Line(color='black')))
+
+    for frame in fig_.frames:
+        traces_ = list(frame.traces)
+        data_ = list(frame.data)
+
+        timestring = frame.name
+        timestamp = datetime.strptime(timestring, "%Y-%m-%d %H:%M:%S")
+
+        for n_, sensor_ in enumerate(sensor_set):
+            if timestamp in sensor_history:
+                sensor_ = sensor_history[timestamp][sensor_]
+                theta = sensor_.dwell_centre.flatten()[0]
+                angles = np.linspace(theta - sensor_.fov_angle/2, theta + sensor_.fov_angle/2, 100)
+                arc_x = ([sensor_.position[0]] + list(sensor_.position[0] +
+                                                      sensor_.max_range * np.cos(angles)) +
+                         [sensor_.position[0]])
+                arc_y = ([sensor_.position[1]] + list(sensor_.position[1] +
+                                                      sensor_.max_range * np.sin(angles)) +
+                         [sensor_.position[1]])
+            else:
+                continue
+
+            data_.append(go.Scatter(x=arc_x, y=arc_y, fill='toself', fillcolor=color,
+                                    line=dict(color=color), opacity=alpha, name=label,
+                                    mode='lines'))
+            traces_.append(trace_base + n_)
+
+        frame.traces = traces_
+        frame.data = data_
