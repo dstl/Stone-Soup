@@ -1,7 +1,14 @@
 import pytest
+from datetime import datetime
 import numpy as np
 
-from ..reward import RewardFunction, AdditiveRewardFunction, MultiplicativeRewardFunction
+from ..reward import (RewardFunction, AdditiveRewardFunction, MultiplicativeRewardFunction,
+                      FOVInteractionRewardFunction)
+
+from stonesoup.base import Property
+from stonesoup.types.state import State
+from stonesoup.types.track import Track
+from stonesoup.sensor.sensor import Sensor
 
 
 class DummyRewardFunction(RewardFunction):
@@ -10,6 +17,36 @@ class DummyRewardFunction(RewardFunction):
 
     def __call__(self, config, tracks, metric_time, *args, **kwargs):
         return self.score
+
+
+class DummyUpdater:
+    pass
+
+
+class DummySensor(Sensor):
+    position: State = Property()
+
+    def add_actions(self, actions):
+        pass
+
+    def act(self, metric_time, noise=False):
+        pass
+
+    def measure(self, ground_truths, noise, **kwargs):
+        pass
+
+    def measurement_model(self):
+        pass
+
+
+class DummyAction:
+    pass
+
+
+class DummyPredictor:
+    def predict(self, track, timestamp=None):
+        # Just return a dummy state (as a list or object)
+        return State([10, 0, 10])
 
 
 @pytest.mark.parametrize(
@@ -98,3 +135,50 @@ def test_unequal_additive():
         weights=[1, 2, 3])
     with pytest.raises(IndexError):
         additive(config=None, tracks=None, metric_time=None)
+
+
+@pytest.fixture
+def fov_reward():
+    return FOVInteractionRewardFunction(
+        predictor=DummyPredictor(),
+        updater=DummyUpdater(),
+        sensor_fov_radius=20.0,
+        target_fov_radius=10.0,
+        sensor_mapping=[0, 2],
+        target_mapping=[0, 2])
+
+
+def test_target_in_sensor_fov_and_not_in_target_fov(reward_function=fov_reward):
+    sensor = DummySensor(State([10, 0, 10, 0]))
+    config = {sensor: [DummyAction()]}
+    tracks = {Track([10, 0, 10, 0])}
+    metric_time = datetime.now()
+    reward = reward_function(config, tracks, metric_time)
+    assert reward == -1.0
+
+
+def test_target_outside_sensor_fov(reward_function=fov_reward):
+    sensor = DummySensor(State([100, 0, 100, 0]))
+    config = {sensor: [DummyAction()]}
+    tracks = {Track([0, 0, 0, 0])}
+    metric_time = datetime.now()
+    reward = reward_function(config, tracks, metric_time)
+    assert reward == -1.0
+
+
+def test_target_in_sensor_fov_and_in_target_fov(reward_function=fov_reward):
+    sensor = DummySensor(State([9, 0, 9, 0]))
+    config = {sensor: [DummyAction()]}
+    tracks = {Track([10, 0, 10, 0])}
+    metric_time = datetime.now()
+    reward = reward_function(config, tracks, metric_time)
+    assert reward == -1.0
+
+
+def test_target_in_sensor_fov_but_not_in_target_fov(reward_function=fov_reward):
+    sensor = DummySensor(State([0, 0, 0, 0]))
+    config = {sensor: [DummyAction()]}
+    tracks = {Track([15, 0, 0, 0])}
+    metric_time = datetime.now()
+    reward = reward_function(config, tracks, metric_time)
+    assert reward == 1.0
