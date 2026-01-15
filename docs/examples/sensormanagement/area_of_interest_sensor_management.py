@@ -8,7 +8,7 @@
 
 # %%
 # This notebook introduces sensor management which factors in environmental information
-# such as area of interest.
+# such as areas of interest.
 
 # %%
 # Setting Up the Scenario
@@ -47,8 +47,6 @@ truths.append(truth)
 # Visualising the ground truth
 # ----------------------------
 
-
-# from stonesoup.plotter import AnimatedPlotterly
 from stonesoup.plotter import AnimatedPlotterly
 plotter = AnimatedPlotterly(timesteps, tail_length=1)
 plotter.plot_ground_truths(truth, [0, 2])
@@ -57,7 +55,6 @@ plotter.fig
 # %%
 # Creating the Platform and Sensor
 # --------------------------------
-
 
 from stonesoup.platform import MovingPlatform
 from stonesoup.movable.max_speed import MaxSpeedActionableMovable
@@ -111,8 +108,10 @@ from stonesoup.updater.kalman import ExtendedKalmanUpdater
 updater = ExtendedKalmanUpdater(measurement_model=None)
 
 # %%
-# Creating an Area
-# ----------------
+# Creating Areas of Interest
+# --------------------------
+# The default area is defined by the x, y minimum and maximum coordinates as
+# :math:`x, y \in (-\infty, \infty)`.
 
 from stonesoup.sensormanager.shape import AreaOfInterest
 
@@ -139,7 +138,7 @@ reward_func_B = FOVInteractionRewardFunction(
 
 reward_func_C = FOVInteractionRewardFunction(
     predictor, updater, sensor_fov_radius=sensor.max_range,
-    target_fov_radius=target_sensor1.max_range+100,  # extra cautious!
+    target_fov_radius=target_sensor1.max_range + 100,  # extra cautious!
     fov_scale=1)
 
 reward_func_AB = MultiplicativeRewardFunction([reward_func_A, reward_func_B])
@@ -173,6 +172,7 @@ tracks = {Track([prior1])}
 # %%
 # Creating a Hypothesiser and Data Associator
 # -------------------------------------------
+#
 # The final tracking components required are the hypothesiser and data associator.
 
 from stonesoup.hypothesiser.distance import DistanceHypothesiser
@@ -229,9 +229,11 @@ for timestep in timesteps[1:]:
 #
 # The FOV-based reward function in an actionable platform is able to follow the target as it moves
 # across the action space, keeping it within the sensor's range but outside the FOV of the target.
+# As the target moves through areas of interest, the sensor manager adjusts the sensor's FOV to
+# prioritise tracking the target despite the change of access and interest parameters of each area.
 
 from stonesoup.plotter import plot_sensor_fov
-
+import plotly.graph_objects as go
 from stonesoup.platform.base import PathBasedPlatform
 
 plotter = AnimatedPlotterly(timesteps, tail_length=0.1)
@@ -254,6 +256,20 @@ plot_sensor_fov(plotter.fig, sensor_set, sensor_history)
 
 plot_sensor_fov(plotter.fig, target_sensor_set1, target_sensor_history1, label="Target FOV",
                 color="red")
+plotter.fig.add_trace(go.Scatter(x=[1500, 1500], y=[-300, 500], mode='lines',
+                                 line=dict(color='#888'),
+                                 name='Area Boundaries',
+                                 showlegend=False))
+plotter.fig.add_trace(go.Scatter(x=[0, 0], y=[-300, 500], mode='lines',
+                                 line=dict(color='#888'),
+                                 name='Area Boundaries',
+                                 showlegend=False))
+plotter.fig.add_trace(go.Scatter(x=[-400, 800, 2000],
+                                 y=[0, 0, 0], mode="text", name="Areas of Interest",
+                                 line=dict(color='#888'),
+                                 text=["Interest: 4</br></br>Access: 0",
+                                       "Interest: 7</br></br>Access: 5",
+                                       "Interest: 10</br></br>Access: 9"]))
 plotter.fig
 
 # %%
@@ -268,7 +284,6 @@ ospa_generatorA = OSPAMetric(c=40, p=1,
                              truths_key='truths')
 
 from stonesoup.metricgenerator.tracktotruthmetrics import SIAPMetrics
-# from stonesoup.measures import Euclidean
 siap_generatorA = SIAPMetrics(position_measure=Euclidean((0, 2)),
                               velocity_measure=Euclidean((1, 3)),
                               generator_name='3 areas of interest',
