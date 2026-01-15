@@ -10,6 +10,7 @@ from ..platform import Platform
 from ..sensormanager.action import Actionable
 from ..types.detection import TrueDetection
 from ..base import Base, Property
+from ..measures import Euclidean
 from ..predictor.base import Predictor
 from ..predictor.particle import ParticlePredictor
 from ..predictor.kalman import KalmanPredictor
@@ -19,11 +20,13 @@ from ..types.hypothesis import SingleHypothesis
 from ..sensor.sensor import Sensor
 from ..sensormanager.action import Action
 from ..types.prediction import Prediction
+from ..types.state import State
 from ..updater.base import Updater
 from ..updater.particle import ParticleUpdater
 from ..resampler.particle import SystematicResampler
 from ..types.groundtruth import GroundTruthState
 from ..dataassociator.base import DataAssociator
+from .shape import AreaOfInterest
 
 
 class RewardFunction(Base, ABC):
@@ -443,3 +446,122 @@ class MultiUpdateExpectedKLDivergence(ExpectedKLDivergence):
             all_detections.update({sensor: detections})
 
         return all_detections
+
+
+class FOVInteractionRewardFunction(RewardFunction):
+    """
+    A reward function for the FOV interaction scenario.
+    This function rewards the sensor for keeping the target in its FOV while
+    penalising it for entering the target's FOV.
+    """
+    predictor: KalmanPredictor = Property(doc="")
+    updater: ExtendedKalmanUpdater = Property(doc="")
+    sensor_fov_radius: float = Property(default=20.0, doc="")
+    target_fov_radius: float = Property(default=10.0, doc="")
+    sensor_mapping: list[int] = Property(default=(0, 1), doc="")
+    target_mapping: list[int] = Property(default=(0, 2), doc="")
+    fov_scale: float = Property(default=1.0, doc="")
+
+    def __call__(self,  config: Mapping[Sensor, Sequence[Action]], tracks: set[Track],
+                 metric_time: datetime, *args, **kwargs) -> float:
+        """
+        Calculate the reward for a given sensor and predicted target state.
+        Parameters
+        ----------
+        sensor : Sensor
+            The sensor platform.
+        predicted_state : State
+            The predicted state of the target.
+        Returns
+        -------
+        float
+            The calculated reward.
+        """
+
+        predicted_sensors = set()
+        memo = {}
+        # For each sensor/platform in the configuration
+        for actionable, actions in config.items():
+            # print('predicting sensors')
+            predicted_actionable = copy.deepcopy(actionable, memo)
+            predicted_actionable.add_actions(actions)
+            predicted_actionable.act(metric_time, noise=False)
+            if isinstance(actionable, Sensor):
+                predicted_sensors.add(predicted_actionable)  # checks if it's a sensor
+
+        # Create dictionary of predictions for the tracks in the configuration
+        predicted_tracks = set()
+        for track in tracks:
+            # print('predicting tracks')
+            predicted_track = copy.copy(track)
+            predicted_track.append(self.predictor.predict(predicted_track, timestamp=metric_time))
+            predicted_tracks.add(predicted_track)
+        no_tracks = int(len(predicted_tracks))
+
+        for sensor in predicted_sensors:
+            sensor_pos = State(sensor.position)
+
+        total_reward = 0
+        for target in predicted_tracks:
+            target_pos = target
+
+            measure = Euclidean(self.sensor_mapping, self.target_mapping)
+            distance = measure(sensor_pos, target_pos)
+            # print(distance)
+            # Reward for keeping the target in the sensor's FOV
+            tracking_reward = (2 * no_tracks
+                               if distance <= self.sensor_fov_radius * self.fov_scale
+                               else -no_tracks)
+            # print("tracking reward: ", tracking_reward)
+            # Penalty for entering the target's FOV
+            lack_of_stealth_penalty = (-no_tracks if distance <= self.target_fov_radius else 0.0)
+            # print("lack_of_stealth_penalty: ", lack_of_stealth_penalty)
+            # Combine the reward and penalty
+            total_reward += tracking_reward + lack_of_stealth_penalty
+
+        return total_reward
+
+
+class AOIAccess2DRewardFunction(RewardFunction):
+    interest_thresholds: Mapping[int, RewardFunction] = Property(default=None,
+                                                                 doc="Mapping of interest "
+                                                                 "thresholds to reward functions")
+    access_thresholds: Mapping[int, RewardFunction] = Property(default=None,
+                                                               doc="Mapping of access "
+                                                               "thresholds to reward functions")
+    default_reward: RewardFunction = Property(doc="Default reward function")
+    areas: Sequence[AreaOfInterest] = Property(doc="List of areas")
+    target_mapping: Sequence = Property(doc="Position mapping for the target")
+
+    def __call__(self, config: Mapping[Sensor, Sequence[Action]], tracks: set[Track],
+                 metric_time: datetime, *args, **kwargs):
+
+        reward_func = self.default_reward
+        for track in tracks:
+            track_x = track.state_vector[self.target_mapping[0]]
+            track_y = track.state_vector[self.target_mapping[1]]
+
+            for area in self.areas:
+                if area.xmin < track_x < area.xmax and area.ymin < track_y < area.ymax:  # should this be sensor location??? No?  # noqa: E501
+                    interest_reward = None
+                    if self.interest_thresholds is not None:
+                        for threshold, reward in self.interest_thresholds.items():
+                            if threshold <= area.interest:
+                                interest_reward = reward
+
+                    access_reward = None
+                    if self.access_thresholds is not None:
+                        for threshold, reward in self.access_thresholds.items():
+                            if threshold <= area.access:
+                                access_reward = reward
+
+                    if interest_reward and access_reward:  # could add in weights here too
+                        reward_func = AdditiveRewardFunction([interest_reward, access_reward])
+                    elif interest_reward:
+                        reward_func = interest_reward
+                    elif access_reward:
+                        reward_func = access_reward
+                    else:
+                        reward_func = self.default_reward
+
+        return reward_func(config, tracks, metric_time, *args, **kwargs)
