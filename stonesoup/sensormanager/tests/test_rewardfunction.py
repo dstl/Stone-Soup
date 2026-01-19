@@ -148,37 +148,37 @@ def fov_reward():
         target_mapping=[0, 2])
 
 
-def test_target_in_sensor_fov_and_not_in_target_fov(reward_function=fov_reward):
+def test_target_in_sensor_fov_and_not_in_target_fov(fov_reward):
     sensor = DummySensor(State([10, 0, 10, 0]))
     config = {sensor: [DummyAction()]}
     tracks = {Track([10, 0, 10, 0])}
     metric_time = datetime.now()
-    reward = reward_function(config, tracks, metric_time)
+    reward = fov_reward(config, tracks, metric_time)
     assert reward == -1.0
 
 
-def test_target_outside_sensor_fov(reward_function=fov_reward):
+def test_target_outside_sensor_fov(fov_reward):
     sensor = DummySensor(State([100, 0, 100, 0]))
     config = {sensor: [DummyAction()]}
     tracks = {Track([0, 0, 0, 0])}
     metric_time = datetime.now()
-    reward = reward_function(config, tracks, metric_time)
+    reward = fov_reward(config, tracks, metric_time)
     assert reward == -1.0
 
 
-def test_target_in_sensor_fov_and_in_target_fov(reward_function=fov_reward):
+def test_target_in_sensor_fov_and_in_target_fov(fov_reward):
     sensor = DummySensor(State([9, 0, 9, 0]))
     config = {sensor: [DummyAction()]}
     tracks = {Track([10, 0, 10, 0])}
     metric_time = datetime.now()
-    reward = reward_function(config, tracks, metric_time)
+    reward = fov_reward(config, tracks, metric_time)
     assert reward == -1.0
 
 
-def test_target_in_sensor_fov_but_not_in_target_fov(reward_function=fov_reward):
+def test_target_in_sensor_fov_but_not_in_target_fov(fov_reward):
     sensor = DummySensor(State([0, 0, 0, 0]))
     config = {sensor: [DummyAction()]}
     tracks = {Track([15, 0, 0, 0])}
     metric_time = datetime.now()
-    reward = reward_function(config, tracks, metric_time)
+    reward = fov_reward(config, tracks, metric_time)
     assert reward == 1.0
