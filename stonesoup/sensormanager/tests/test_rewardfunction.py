@@ -154,7 +154,8 @@ def test_target_in_sensor_fov_and_not_in_target_fov(fov_reward):
     tracks = {Track(State([10, 0, 10, 0]))}
     metric_time = datetime.now()
     reward = fov_reward(config, tracks, metric_time)
-    assert reward == -1.0
+    # distance = 0, so tracking_reward=2, lack_of_stealth_penalty=-1
+    assert reward == 1.0
 
 
 def test_target_outside_sensor_fov(fov_reward):
@@ -163,6 +164,7 @@ def test_target_outside_sensor_fov(fov_reward):
     tracks = {Track(State([0, 0, 0, 0]))}
     metric_time = datetime.now()
     reward = fov_reward(config, tracks, metric_time)
+    # distance > sensor_fov_radius, so tracking_reward=-1, lack_of_stealth_penalty=0
     assert reward == -1.0
 
 
@@ -172,7 +174,8 @@ def test_target_in_sensor_fov_and_in_target_fov(fov_reward):
     tracks = {Track(State([10, 0, 10, 0]))}
     metric_time = datetime.now()
     reward = fov_reward(config, tracks, metric_time)
-    assert reward == -1.0
+    # distance ~1.414 < 20 and < 10, so tracking_reward=2, lack_of_stealth_penalty=-1
+    assert reward == 1.0
 
 
 def test_target_in_sensor_fov_but_not_in_target_fov(fov_reward):
@@ -181,4 +184,5 @@ def test_target_in_sensor_fov_but_not_in_target_fov(fov_reward):
     tracks = {Track(State([15, 0, 0, 0]))}
     metric_time = datetime.now()
     reward = fov_reward(config, tracks, metric_time)
-    assert reward == 1.0
+    # distance ~14.14 < 20, so tracking_reward=2, lack_of_stealth_penalty=0
+    assert reward == 2.0
