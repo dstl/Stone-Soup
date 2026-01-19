@@ -496,7 +496,7 @@ class FOVInteractionRewardFunction(RewardFunction):
         no_tracks = int(len(predicted_tracks))
 
         for sensor in predicted_sensors:
-            sensor_pos = State(sensor.position)
+            sensor_pos = sensor.position if isinstance(sensor.position, State) else State(sensor.position)  # noqa: E501
 
         total_reward = 0
         for target in predicted_tracks:
