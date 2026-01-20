@@ -11,8 +11,7 @@ except ImportError as error:
 
 from ..base import Property
 from ..sensor.sensor import Sensor
-from ..movable.action.move_position_action import MovePositionActionGenerator
-from .action import RealNumberActionGenerator, Action
+from .action import RealNumberActionGenerator, Action, StateVectorActionGenerator
 from . import SensorManager
 
 
@@ -68,18 +67,21 @@ class OptunaSensorManager(SensorManager):
                             value = trial.suggest_float(
                                 f'{i}{j}', generator.min, generator.max + generator.epsilon,
                                 step=getattr(generator, 'resolution', None))
-                    elif isinstance(generator, MovePositionActionGenerator):
+                    elif isinstance(generator, StateVectorActionGenerator):
                         with warnings.catch_warnings():
                             warnings.simplefilter("ignore", UserWarning)
                             value = np.zeros(generator.current_value.shape)
                             for index in generator.action_mapping:
-                                max_travel = float(np.sqrt(generator.maximum_travel**2 -
-                                                           sum(value**2)))
-                                max_travel, resolution = self.sample_parameters(max_travel,
-                                                                                generator)
+                                # calculate maximum travel distance remaining for each dimension
+                                max_index_change = float(np.sqrt(generator.max_state_change**2 -
+                                                         sum(value**2)))
+                                max_index_change, resolution = self.sample_parameters(
+                                    max_index_change,
+                                    generator)
                                 value[index] = trial.suggest_float(
                                     f'{i}{j}{index}',
-                                    -max_travel, max_travel + generator.epsilon, step=resolution
+                                    -max_index_change, max_index_change + generator.epsilon,
+                                    step=resolution
                                 )
                             value = generator.current_value + value
                     else:
@@ -106,7 +108,7 @@ class OptunaSensorManager(SensorManager):
             for j, generator in enumerate(generators):
                 if isinstance(generator, RealNumberActionGenerator):
                     action = generator.action_from_value(best_params[f'{i}{j}'])
-                elif isinstance(generator, MovePositionActionGenerator):
+                elif isinstance(generator, StateVectorActionGenerator):
                     if not hasattr(generator, "action_from_value"):
                         raise TypeError(f"type {type(generator)} not handled yet")
                     value = np.zeros(generator.current_value.shape)

@@ -5,7 +5,7 @@ from itertools import product
 import numpy as np
 
 from ...base import Property
-from ...sensormanager.action import ActionGenerator, Action
+from ...sensormanager.action import StateVectorActionGenerator, Action
 from ...types.state import StateVector
 
 
@@ -17,8 +17,8 @@ class MovePositionAction(Action):
         return self.target_value
 
 
-class MovePositionActionGenerator(ActionGenerator):
-    """This is the base class for generators that generate :class:`~MovePositionAction`s."""
+class MovePositionActionGenerator(StateVectorActionGenerator):
+    """This is the base class for generators that generate :class:`~.MovePositionAction` types."""
 
     action_space: np.ndarray = Property(
         default=None,
@@ -53,11 +53,6 @@ class MovePositionActionGenerator(ActionGenerator):
     def __contains__(self, item):
         return item in iter(self)
 
-    @property
-    @abstractmethod
-    def maximum_travel(self):
-        pass
-
     def action_from_value(self, value=None) -> MovePositionAction:
         """
         Given a value for the position, generates the action would achieve that value.
@@ -78,6 +73,12 @@ class MovePositionActionGenerator(ActionGenerator):
         return MovePositionAction(generator=self,
                                   end_time=self.end_time,
                                   target_value=value)
+
+    @property
+    def default_action(self):
+        return MovePositionAction(generator=self,
+                                  end_time=self.end_time,
+                                  target_value=self.current_value)
 
 
 class GridActionGenerator(MovePositionActionGenerator):
@@ -111,13 +112,7 @@ class NStepDirectionalGridActionGenerator(GridActionGenerator):
     )
 
     @property
-    def default_action(self):
-        return MovePositionAction(generator=self,
-                                  end_time=self.end_time,
-                                  target_value=self.current_value)
-
-    @property
-    def maximum_travel(self):
+    def max_state_change(self):
         return self.step_size * self.n_steps
 
     def __iter__(self):
@@ -156,12 +151,6 @@ class SamplePositionActionGenerator(MovePositionActionGenerator):
         "actions will be generated."
     )
 
-    @property
-    def default_action(self):
-        return MovePositionAction(generator=self,
-                                  end_time=self.end_time,
-                                  target_value=self.current_value)
-
     @abstractmethod
     def __iter__(self):
         raise NotImplementedError
@@ -173,7 +162,7 @@ class CircleSamplePositionActionGenerator(SamplePositionActionGenerator):
     with :attr:`maximum_travel`. This generator is only applicable to 2D position
     actions."""
 
-    maximum_travel: float = Property(
+    max_state_change: float = Property(
         default=1.0,
         doc="Maximum possible travel distance. Specifies the radius of "
         "sampling area."
@@ -196,7 +185,7 @@ class CircleSamplePositionActionGenerator(SamplePositionActionGenerator):
 
         radius_angle_samples = np.random.uniform([0, 0], [1, 2*np.pi], (self.n_samples, 2))
 
-        sample_values = self.maximum_travel*np.sqrt(radius_angle_samples[:, 0]) *\
+        sample_values = self.max_state_change*np.sqrt(radius_angle_samples[:, 0]) *\
             np.array([np.sin(radius_angle_samples[:, 1]), np.cos(radius_angle_samples[:, 1])])
         values = np.zeros((self.current_value.shape[0], self.n_samples))
         values[self.action_mapping,] = sample_values
@@ -211,7 +200,7 @@ class CircleSamplePositionActionGenerator(SamplePositionActionGenerator):
                     target_values[self.action_mapping, :] > self.action_space[:, [1]],
                     target_values[self.action_mapping, :] < self.action_space[:, [0]]))
                 radius_angle_samples = np.random.uniform([0, 0], [1, 2*np.pi], (len(idx), 2))
-                sample_values = self.maximum_travel*np.sqrt(radius_angle_samples[:, 0]) *\
+                sample_values = self.max_state_change*np.sqrt(radius_angle_samples[:, 0]) *\
                     np.array([np.sin(radius_angle_samples[:, 1]),
                               np.cos(radius_angle_samples[:, 1])])
                 values = np.zeros((self.current_value.shape[0], len(idx)))
@@ -227,25 +216,13 @@ class CircleSamplePositionActionGenerator(SamplePositionActionGenerator):
         if isinstance(item, MovePositionAction):
             item = item.target_value
         distance = np.sqrt(sum((item - self.current_value)**2))
-        return distance <= self.maximum_travel + self.epsilon
+        return distance <= self.max_state_change + self.epsilon
 
 
 class MaxSpeedPositionActionGenerator(MovePositionActionGenerator):
     """Action generator which generates actions uniformly within a circle around the current
     position. Circle radius is defined by the :attr:`max_speed` of the platform and the duration of
     the action. This generator is only applicable to 2D position actions."""
-
-    action_space: np.ndarray = Property(
-        default=None,
-        doc="The bounds of the action space that should not be exceeded. Of shape (ndim, 2) "
-            "where ndim is the length of the action_mapping. For example, "
-            ":code:`np.array([[xmin, xmax], [ymin, ymax]])`."
-    )
-
-    action_mapping: Sequence[int] = Property(
-        default=(0, 1),
-        doc="The state dimensions that actions are applied to."
-    )
 
     max_speed: float = Property(
         default=1,
@@ -262,15 +239,13 @@ class MaxSpeedPositionActionGenerator(MovePositionActionGenerator):
         doc="The interval in angle for each action."
     )
 
-    epsilon = 1e-6
-
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
         if len(self.action_mapping) != 2:
             raise ValueError(f"Action mapping {self.action_mapping} does not have 2 dimensions."
-                             ":class:`~.RangeAngleActionGenerator` is designed for 2D action "
-                             "generation only.")
+                             ":class:`~.MaxSpeedPositionActionGenerator` is designed for 2D "
+                             "action generation only.")
 
         if self.action_space is not None:
             if len(self.action_space) != len(self.action_mapping):
@@ -289,7 +264,9 @@ class MaxSpeedPositionActionGenerator(MovePositionActionGenerator):
         return self.end_time - self.start_time
 
     @property
-    def maximum_travel(self):
+    def max_state_change(self):
+        """Maximum magnitude of change in state vector - i.e. maximum possible travel distance,
+        as calculated from `max_speed`."""
         return self.duration.total_seconds() * self.max_speed
 
     @property
@@ -298,19 +275,13 @@ class MaxSpeedPositionActionGenerator(MovePositionActionGenerator):
 
     @property
     def range_deltas(self):
-        return np.arange(0, self.maximum_travel + self.epsilon, self.resolution)
+        return np.arange(0, self.max_state_change + self.epsilon, self.resolution)
 
     def __contains__(self, item):
         if isinstance(item, MovePositionAction):
             item = item.target_value
         distance = np.sqrt(sum((item - self.current_value)**2))
-        return distance <= self.maximum_travel + self.epsilon
-
-    @property
-    def default_action(self):
-        return MovePositionAction(generator=self,
-                                  end_time=self.end_time,
-                                  target_value=self.current_value)
+        return distance <= self.max_state_change + self.epsilon
 
     def __iter__(self):
         yield MovePositionAction(generator=self,
