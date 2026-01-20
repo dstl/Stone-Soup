@@ -56,6 +56,12 @@ class ActionGenerator(Base):
     def __iter__(self) -> Iterator[Action]:
         raise NotImplementedError()
 
+    @abstractmethod
+    def action_from_value(self, value):
+        """Given a value for the attribute, generates the action would
+          achieve that value."""
+        raise NotImplementedError
+
     @property
     def current_value(self):
         """Return the current value of the owner's attribute."""
@@ -70,23 +76,40 @@ class ActionGenerator(Base):
 class RealNumberActionGenerator(ActionGenerator):
     """Action generator where action is a choice of a real number."""
 
-    @property
-    @abstractmethod
-    def initial_value(self):
-        raise NotImplementedError
+    # @property
+    # @abstractmethod
+    # def initial_value(self):
+    #     raise NotImplementedError
 
     @property
     @abstractmethod
     def min(self):
+        """Minimum action value."""
         raise NotImplementedError
 
     @property
     @abstractmethod
     def max(self):
+        """Maximum action value."""
         raise NotImplementedError
 
-    @abstractmethod
-    def action_from_value(self, value):
+
+class StateVectorActionGenerator(ActionGenerator):
+    """Action generator for :class:`~.StateVector` types."""
+
+    # @property
+    # def initial_value(self):
+    #     raise NotImplementedError
+    # TODO: don't think we need initial and current value, could we remove everywhere?
+
+    @property
+    def action_mapping(self):
+        """The state dimensions that actions are applied to."""
+        raise NotImplementedError
+
+    @property
+    def max_state_change(self):
+        """Maximum magnitude of change in state vector."""
         raise NotImplementedError
 
 

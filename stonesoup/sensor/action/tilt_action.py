@@ -5,7 +5,7 @@ import numpy as np
 from ...base import Property
 from ...types.angle import Angle, Elevation
 from ...functions import mod_elevation
-from .base import ChangeAngleAction, AngleActionsGenerator
+from .base import ChangeAngleAction, AngleActionGenerator
 
 
 class ChangeTiltAction(ChangeAngleAction):
@@ -34,7 +34,7 @@ class ChangeTiltAction(ChangeAngleAction):
         return tilt_centre
 
 
-class TiltActionsGenerator(AngleActionsGenerator):
+class TiltActionsGenerator(AngleActionGenerator):
     """Generates possible actions for changing the tilt centre of a sensor in a given
     time period."""
 

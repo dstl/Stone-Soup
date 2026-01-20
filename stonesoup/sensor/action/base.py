@@ -62,7 +62,7 @@ class ChangeAngleAction(Action):
         return actionable_value
 
 
-class AngleActionsGenerator(RealNumberActionGenerator):
+class AngleActionGenerator(RealNumberActionGenerator):
     """Generates possible actions for changing an actionable property of a sensor in a given
     time period."""
 
@@ -76,11 +76,6 @@ class AngleActionsGenerator(RealNumberActionGenerator):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.epsilon = Angle(np.radians(1e-6))
-
-    @property
-    @abstractmethod
-    def default_action(self):
-        return NotImplementedError
 
     def __call__(self, resolution=None, epsilon=None):
         """
@@ -97,10 +92,6 @@ class AngleActionsGenerator(RealNumberActionGenerator):
             self.epsilon = epsilon
 
     @property
-    def initial_value(self):
-        return Angle(self.current_value[0, 0])
-
-    @property
     def duration(self):
         return self.end_time - self.start_time
 
@@ -114,11 +105,11 @@ class AngleActionsGenerator(RealNumberActionGenerator):
 
     @property
     def min(self):
-        return Angle(self.initial_value - self.angle_delta)
+        return Angle(self.current_value - self.angle_delta)
 
     @property
     def max(self):
-        return Angle(self.initial_value + self.angle_delta)
+        return Angle(self.current_value + self.angle_delta)
 
     def __contains__(self, item):
 
@@ -140,16 +131,16 @@ class AngleActionsGenerator(RealNumberActionGenerator):
 
         angle = Angle(angle)
 
-        if self.initial_value - self.epsilon \
+        if self.current_value - self.epsilon \
                 <= angle \
-                <= self.initial_value + self.epsilon:
+                <= self.current_value + self.epsilon:
             return self.start_time, None  # no rotation, target bearing achieved
 
-        angle_delta = np.abs(angle - self.initial_value)
+        angle_delta = np.abs(angle - self.current_value)
 
         return (
             self.start_time + datetime.timedelta(seconds=angle_delta / (self.rps * 2 * np.pi)),
-            angle > self.initial_value
+            angle > self.current_value
         )
 
     @abstractmethod
@@ -181,13 +172,13 @@ class AngleActionsGenerator(RealNumberActionGenerator):
             return None
 
         # Find the number of resolutions that fit between initial value and target
-        n = (value - self.initial_value) / self.resolution
+        n = (value - self.current_value) / self.resolution
         if np.isclose(n, round(n), 1e-6):
             n = round(n)
         else:
             n = int(n)
 
-        target_value = self.initial_value + self.resolution * n
+        target_value = self.current_value + self.resolution * n
 
         rot_end_time, increasing = self._end_time_direction(target_value)
 
