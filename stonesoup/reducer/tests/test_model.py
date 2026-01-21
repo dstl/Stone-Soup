@@ -19,9 +19,14 @@ def test_model_reducer():
         state_vector=[0, 1],
         covar=np.diag([1, 1]),
         weight=1,
-        timestamp=timestamp)
+        timestamp=timestamp, model_histories=[ModelAugmentedWeightedGaussianState(
+            state_vector=[0, 1],
+            covar=np.diag([1, 1]),
+            weight=1,
+            timestamp=timestamp)],
+        model_history_length=1)
     transition_probabilities = TransitionMatrix(
-        transition_matrix=np.array([[1, 1], [1, 1]]))
+        transition_matrix=np.array([[1, 1], [1, 1]]), num_states=2)
 
     augmentor = ModelAugmentor(transition_probabilities=transition_probabilities,
                                transition_models=transitions,
@@ -32,8 +37,6 @@ def test_model_reducer():
                            transition_model_list=transitions,
                            model_history_length=1)
     reduced_states = reducer.reduce(augmented_states, timestamp)
-    # print(reduced_states)
-    print(prior, reduced_states)
     # assert all(getattr(prior, name) == getattr(reduced_states, name)
     #            for name in type(prior).properties)
     # assert transition_probabilities == reducer.transition_probabilities
