@@ -40,7 +40,7 @@ class DwellActionsGenerator(AngleActionGenerator):
         return ChangeDwellAction(rotation_end_time=self.end_time,
                                  generator=self,
                                  end_time=self.end_time,
-                                 target_value=self.initial_value,
+                                 target_value=self.current_value,
                                  increasing_angle=True)
 
     def __iter__(self) -> Iterator[ChangeDwellAction]:
