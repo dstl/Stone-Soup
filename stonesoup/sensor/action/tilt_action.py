@@ -51,17 +51,17 @@ class TiltActionsGenerator(AngleActionGenerator):
 
     @property
     def min(self):
-        return max(Angle(self.current_value[0, 0] - self.angle_delta), self.min_tilt)
+        return max(Angle(self.initial_value - self.angle_delta), self.min_tilt)
 
     @property
     def max(self):
-        return min(Angle(self.current_value[0, 0] + self.angle_delta), self.max_tilt)
+        return min(Angle(self.initial_value + self.angle_delta), self.max_tilt)
 
     def __iter__(self) -> Iterator[ChangeTiltAction]:
         """Returns ChangeTiltAction types, where the value is a possible value of the [0, 0]
         element of the tilt centre's state vector."""
 
-        current_angle = self.current_value[0, 0]
+        current_angle = self.initial_value
         while current_angle - self.resolution >= max(self.min_tilt, self.min-self.epsilon):
             current_angle -= self.resolution
         while current_angle <= self.max + self.epsilon:

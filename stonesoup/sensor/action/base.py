@@ -111,11 +111,11 @@ class AngleActionGenerator(RealNumberActionGenerator):
 
     @property
     def min(self):
-        return Angle(self.current_value[0, 0]) - self.angle_delta
+        return Angle(self.initial_value - self.angle_delta)
 
     @property
     def max(self):
-        return Angle(self.current_value[0, 0]) + self.angle_delta
+        return Angle(self.initial_value + self.angle_delta)
 
     def __contains__(self, item):
 
@@ -137,16 +137,16 @@ class AngleActionGenerator(RealNumberActionGenerator):
 
         angle = Angle(angle)
 
-        if Angle(self.current_value[0, 0]) - self.epsilon \
+        if self.initial_value - self.epsilon \
                 <= angle \
-                <= Angle(self.current_value[0, 0]) + self.epsilon:
+                <= self.initial_value + self.epsilon:
             return self.start_time, None  # no rotation, target bearing achieved
 
-        angle_delta = np.abs(angle - Angle(self.current_value[0, 0]))
+        angle_delta = np.abs(angle - self.initial_value)
 
         return (
             self.start_time + datetime.timedelta(seconds=angle_delta / (self.rps * 2 * np.pi)),
-            angle > self.current_value[0, 0]
+            angle > self.initial_value
         )
 
     @abstractmethod
@@ -178,13 +178,13 @@ class AngleActionGenerator(RealNumberActionGenerator):
             return None
 
         # Find the number of resolutions that fit between initial value and target
-        n = (value - self.current_value[0, 0]) / self.resolution
+        n = (value - self.initial_value) / self.resolution
         if np.isclose(n, round(n), 1e-6):
             n = round(n)
         else:
             n = int(n)
 
-        target_value = self.current_value[0, 0] + self.resolution * n
+        target_value = self.initial_value + self.resolution * n
 
         rot_end_time, increasing = self._end_time_direction(target_value)
 
