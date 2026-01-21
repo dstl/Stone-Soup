@@ -147,49 +147,49 @@ def test_n_step_directional_grid_action_gen(generator_params, state, position_ma
             {'n_samples': None,
              'action_space': None,
              'action_mapping': (0, 1),
-             'maximum_travel': 4},
+             'max_state_change': 4},
             StateVector([0.0, 0.0]),  # state
             (0, 1)  # position_mapping
         ), (
             {'n_samples': 15,
              'action_space': StateVectors([[-5, 5], [-5, 5]]),
              'action_mapping': (0, 1),
-             'maximum_travel': None},
+             'max_state_change': None},
             StateVector([0.0, 0.0]),  # state
             (0, 1)  # position_mapping
         ), (
             {'n_samples': 20,
              'action_space': StateVectors([[-10, 5], [-10, 5]]),
              'action_mapping': (0, 1),
-             'maximum_travel': 10},
+             'max_state_change': 10},
             StateVector([2.0, 3.0, 2.0]),  # state
             (0, 1)  # position_mapping
         ), (
             {'n_samples': 20,
              'action_space': StateVectors([[-5, 5], [-5, 5]]),
              'action_mapping': (0, 1),
-             'maximum_travel': 10},
+             'max_state_change': 10},
             StateVector([6.0, 6.0]),  # state
             (0, 1)  # position_mapping
         ), (
             {'n_samples': 20,
              'action_space': StateVectors([[-5, 5], [-5, 5], [-5, 5]]),
              'action_mapping': (0, 1),
-             'maximum_travel': 10},
+             'max_state_change': 10},
             StateVector([0.0, 0.0]),  # state
             (0, 1)  # position_mapping
         ), (
             {'n_samples': 20,
              'action_space': StateVectors([[-5, 5], [-5, 5], [-5, 5]]),
              'action_mapping': (0, 1, 2),
-             'maximum_travel': 10},
+             'max_state_change': 10},
             StateVector([0.0, 0.0, 0.0]),  # state
             (0, 1, 2)  # position_mapping
         ), (
             {'n_samples': 20,
              'action_space': StateVectors([[-5, 5], [-5, 5]]),
              'action_mapping': (0, 1),
-             'maximum_travel': 10},
+             'max_state_change': 10},
             StateVector([0.0, 0.0, 0.0]),  # state
             (0, 1, 2)  # position_mapping
         )
@@ -204,11 +204,11 @@ def test_circle_sample_action_gen(gen_param_dict, state, position_mapping):
     start_timestamp = datetime.now()
     end_timestamp = start_timestamp + timedelta(seconds=1)
 
-    n_samples, action_space, action_mapping, maximum_travel = \
+    n_samples, action_space, action_mapping, max_state_change = \
         (gen_param_dict.get(key) for key in ['n_samples',
                                              'action_space',
                                              'action_mapping',
-                                             'maximum_travel'])
+                                             'max_state_change'])
 
     if n_samples is None:
         gen_param_dict.pop('n_samples')
@@ -217,9 +217,9 @@ def test_circle_sample_action_gen(gen_param_dict, state, position_mapping):
     if action_space is None:
         gen_param_dict.pop('action_space')
 
-    if maximum_travel is None:
-        gen_param_dict.pop('maximum_travel')
-        maximum_travel = 1  # if non it should use default
+    if max_state_change is None:
+        gen_param_dict.pop('max_state_change')
+        max_state_change = 1  # if non it should use default
 
     platform = \
         FixedPlatform(
@@ -245,7 +245,7 @@ def test_circle_sample_action_gen(gen_param_dict, state, position_mapping):
     assert generator.n_samples == n_samples
     assert generator.action_mapping == action_mapping
     assert np.all(generator.action_space == action_space)
-    assert generator.maximum_travel == maximum_travel
+    assert generator.max_state_change == max_state_change
 
     # Test generator default action
     assert np.all(generator.default_action.target_value == state[position_mapping, :])
@@ -266,7 +266,7 @@ def test_circle_sample_action_gen(gen_param_dict, state, position_mapping):
         temp_platform.add_actions(action)
         temp_platform.act(end_timestamp)
         assert np.linalg.norm(temp_platform.position - platform.position,
-                              axis=0) <= maximum_travel
+                              axis=0) <= max_state_change
 
         if action_space is not None:
             assert (temp_platform.position[0] > action_space[0, 0] and

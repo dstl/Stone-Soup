@@ -76,10 +76,12 @@ class ActionGenerator(Base):
 class RealNumberActionGenerator(ActionGenerator):
     """Action generator where action is a choice of a real number."""
 
-    # @property
-    # @abstractmethod
-    # def initial_value(self):
-    #     raise NotImplementedError
+    @property
+    @abstractmethod
+    def initial_value(self):
+        """Initial action value, for use where a :class:`~.SensorManager` requires an
+          `initial_value` for optimisation."""
+        raise NotImplementedError
 
     @property
     @abstractmethod
@@ -97,9 +99,9 @@ class RealNumberActionGenerator(ActionGenerator):
 class StateVectorActionGenerator(ActionGenerator):
     """Action generator for :class:`~.StateVector` types."""
 
-    # @property
-    # def initial_value(self):
-    #     raise NotImplementedError
+    @property
+    def initial_value(self):
+        raise NotImplementedError
     # TODO: don't think we need initial and current value, could we remove everywhere?
 
     @property
