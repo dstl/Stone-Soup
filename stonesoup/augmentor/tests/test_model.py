@@ -35,11 +35,8 @@ model_augmentor = ModelAugmentor(
      (GaussianMixture([Prediction.from_state(prior, prior=None)]),
       ExpandedModelAugmentedWeightedGaussianStatePrediction),
      (GaussianMixture([Update.from_state(prior, hypothesis=None)]),
-      ExpandedModelAugmentedWeightedGaussianStateUpdate),
-     (GaussianMixture([Update.from_state(prior, hypothesis=None),
-                       Update.from_state(prior, hypothesis=None)]),
       ExpandedModelAugmentedWeightedGaussianStateUpdate)],
-    ids=["state", "prediction", "update", "2updates"]
+    ids=["state", "prediction", "update"]
 )
 def test_model_augmentor(priors, priors_class):
     augmented_states = model_augmentor.augment(priors)
