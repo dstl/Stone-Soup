@@ -6,6 +6,7 @@ from ..base import Base, Property
 class TransitionMatrix(Base):
     transition_matrix: np.ndarray = Property(
         doc="Transition Probability matrix.")
+    num_states: int = Property(default=0, doc="Number of states.")
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -38,6 +39,8 @@ class TransitionMatrix(Base):
 
     def __getitem__(self, state):
         history_length = len(state.model_histories)
+        if history_length <= 1 and self.num_states > 1:
+            history_length += 1
         return self.transition_matrices[np.max([0, history_length - 1])]
 
     @property
