@@ -1,9 +1,9 @@
 #!/usr/bin/env python
 
 """
-===================================================================================
-1 - An Introduction to Multiple Model Algorithms: GPB1, GPB2, and IMM in Stone Soup
-===================================================================================
+===============================================================================
+An Introduction to Multiple Model Algorithms: GPB1, GPB2, and IMM in Stone Soup
+===============================================================================
 """
 
 # %%
@@ -19,6 +19,8 @@
 # %%
 # Manoeuvring Target Scenario
 # ---------------------------
+# 
+# We begin by introducing a manoeuvring target scenario
 
 from stonesoup.types.mixture import GaussianMixture
 from stonesoup.types.state import ModelAugmentedWeightedGaussianState
@@ -143,6 +145,9 @@ plt.show()
 # %%
 # Kalman Filter as a Multiple Model Algorithm (:math:`M = 1`)
 # -----------------------------------------------------------
+# 
+# The Kalman filter can be thought of as a multiple model algorithm with only one transition
+# model. 
 
 start_time = datetime.now().replace(hour=0, minute=0, second=0, microsecond=0)
 cv = CLGTM([CV(1e-5), CV(1e-5)])
@@ -168,8 +173,6 @@ prior = ModelAugmentedWeightedGaussianState(
     model_histories=[],
     model_history_length=model_history)
 priors = GaussianMixture([prior])
-
-
 model_augmentor = ModelAugmentor(
     transition_probabilities=transitioning_probabilities,
     transition_models=transition_models_list,
@@ -184,6 +187,7 @@ measurement_reducer = IdentityReducer(
     model_history_length=model_history)
 
 # %%
+# We create a function to handle the tracking loop.
 import numpy as np
 from stonesoup.models.measurement.linear import LinearGaussian
 
@@ -220,11 +224,10 @@ def MultipleModelTracker(model_augmentor,
 
 
 # %%
+# We now run the tracking loop and we get a track for a Kalman filter.
+
 KF_track = MultipleModelTracker(model_augmentor, model_reducer, predictors, updater,
                                 measurement_reducer, priors, all_measurements)
-
-# %%
-# OSPA, RMSE = run_metrics(KF_track, truths, start_time, "KF", 1)
 
 # %%
 plotter = Plotter()
@@ -233,6 +236,9 @@ plotter.fig
 # %%
 # GPB1 (:math:`M=3`)
 # ------------------
+#
+# Now we can extend the simple Kalman filter into the GPB1 by adding in more models.
+# This example GPB1 algorithm has three models; turn left, straight ahead and turn right.
 
 ctl = CLGTM([CT(np.array([1e-5, 1e-5]), 0.01)])
 ctr = CLGTM([CT(np.array([1e-5, 1e-5]), -0.01)])
@@ -251,7 +257,6 @@ prior = ModelAugmentedWeightedGaussianState(
     model_histories=[],
     model_history_length=model_history)
 priors = GaussianMixture([prior])
-
 model_augmentor = ModelAugmentor(
     transition_probabilities=transitioning_probabilities,
     transition_models=transition_models_list,
@@ -267,6 +272,9 @@ measurement_reducer = ModelReducer(
 
 GPB1_track = MultipleModelTracker(model_augmentor, model_reducer, predictors, updater,
                                   measurement_reducer, priors, all_measurements)
+
+plotter.plot_tracks(GPB1_track, [0, 2], color="green", track_label="GPB1 [CTL, CV, CTR]")
+plotter.fig
 
 # %%
 # GPB2 (:math:`M=3`)
@@ -305,6 +313,8 @@ measurement_reducer = ModelReducer(
 GPB2_track = MultipleModelTracker(model_augmentor, model_reducer, predictors, updater,
                                   measurement_reducer, priors, all_measurements)
 
+plotter.plot_tracks(GPB2_track, [0, 2], color="red", track_label="GPB2 [CTL, CV, CTR]")
+plotter.fig
 # %%
 # IMM (:math:`M=3`)
 # -----------------
@@ -339,3 +349,6 @@ measurement_reducer = IdentityReducer(
 
 IMM_track = MultipleModelTracker(model_augmentor, model_reducer, predictors, updater,
                                  measurement_reducer, priors, all_measurements)
+
+plotter.plot_tracks(IMM_track, [0, 2], color="purple", track_label="IMM [CTL, CV, CTR]")
+plotter.fig
