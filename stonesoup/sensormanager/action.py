@@ -100,11 +100,6 @@ class StateVectorActionGenerator(ActionGenerator):
     """Action generator for :class:`~.StateVector` types."""
 
     @property
-    def initial_value(self):
-        raise NotImplementedError
-    # TODO: don't think we need initial and current value, could we remove everywhere?
-
-    @property
     def action_mapping(self):
         """The state dimensions that actions are applied to."""
         raise NotImplementedError
