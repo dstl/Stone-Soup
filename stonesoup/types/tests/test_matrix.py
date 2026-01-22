@@ -46,28 +46,34 @@ def test_transition_matrix(transitioning_probabilities, full_output):
 
 
 @pytest.mark.parametrize(
-    "model_length, output",
+    "model_length, num_components, output",
     [(0,
+      0,
       None,
       ),
      (0,
+      2,
       np.array([[0.75, 0.25]])),
      (1,
+      2,
       np.array([[0.6, 0.4]])),
      (2,
+      2,
       np.array([[0.95, 0.05], [0.25, 0.75]]),
       )],
     ids=["KF", "GPB1", "GPB2:1/2", "GPB2:2/2"]
 )
-def test_transition_state(model_length, output):
-    tpm = TransitionMatrix([[0.95, 0.05], [0.25, 0.75]])
+def test_transition_state(model_length, num_components, output, request):
+    print(request.node.callspec.id)
+    tpm = TransitionMatrix([[0.95, 0.05], [0.25, 0.75]], num_components)
     prior = ModelAugmentedWeightedGaussianState(
         state_vector=[[0], [1], [0], [1]],
         covar=np.diag([1.5, 0.5, 1.5, 0.5]),
         timestamp=datetime.now().replace(second=0, microsecond=0),
         weight=Probability(1),
-        model_histories=[cv]*model_length,
+        model_histories=[cv]*(model_length-1),
         model_history_length=model_length)
+    print(tpm[prior], output)
     if model_length == 0:
         with pytest.raises(TypeError):
             assert tpm(prior)

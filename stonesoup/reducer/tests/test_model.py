@@ -26,7 +26,7 @@ def test_model_reducer():
             timestamp=timestamp)],
         model_history_length=1)
     transition_probabilities = TransitionMatrix(
-        transition_matrix=np.array([[1, 1], [1, 1]]), num_states=2)
+        transition_matrix=np.array([[1, 1], [1, 1]]), num_components=2)
 
     augmentor = ModelAugmentor(transition_probabilities=transition_probabilities,
                                transition_models=transitions,
