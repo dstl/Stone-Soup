@@ -6,7 +6,7 @@ from ..base import Base, Property
 class TransitionMatrix(Base):
     transition_matrix: np.ndarray = Property(
         doc="Transition Probability matrix.")
-    num_states: int = Property(default=0, doc="Number of states.")
+    num_components: int = Property(default=0, doc="Number of states.")
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
