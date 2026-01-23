@@ -19,7 +19,7 @@ An Introduction to Multiple Model Algorithms: GPB1, GPB2, and IMM in Stone Soup
 # %%
 # Manoeuvring Target Scenario
 # ---------------------------
-# 
+#
 # We begin by introducing a manoeuvring target scenario
 
 from stonesoup.types.mixture import GaussianMixture
@@ -145,14 +145,14 @@ plt.show()
 # %%
 # Kalman Filter as a Multiple Model Algorithm (:math:`M = 1`)
 # -----------------------------------------------------------
-# 
+#
 # The Kalman filter can be thought of as a multiple model algorithm with only one transition
-# model. 
+# model.
 
 start_time = datetime.now().replace(hour=0, minute=0, second=0, microsecond=0)
 cv = CLGTM([CV(1e-5), CV(1e-5)])
 measurement_model_noise = 1e-3
-transitioning_probabilities = TransitionMatrix(np.atleast_2d(1))
+transitioning_probabilities = TransitionMatrix(np.atleast_2d(1), 1)
 prior_state_vector = [[truth[0].state_vector[0]], [0], [truth[0].state_vector[2]], [0]]
 prior_covar = np.diag([50**2, 3**2, 50**2, 3**2])
 
@@ -243,7 +243,7 @@ plotter.fig
 ctl = CLGTM([CT(np.array([1e-5, 1e-5]), 0.01)])
 ctr = CLGTM([CT(np.array([1e-5, 1e-5]), -0.01)])
 transition_models_list = [ctl, cv, ctr]
-transitioning_probabilities = TransitionMatrix([0.25, 0.5, 0.25])
+transitioning_probabilities = TransitionMatrix([0.25, 0.5, 0.25], 3)
 
 predictors = KalmanPredictors(transition_models_list)
 updater = KalmanUpdater(measurement_model)
@@ -254,7 +254,7 @@ prior = ModelAugmentedWeightedGaussianState(
     covar=prior_covar,
     timestamp=start_time,
     weight=Probability(1),
-    model_histories=[],
+    model_histories=[cv],
     model_history_length=model_history)
 priors = GaussianMixture([prior])
 model_augmentor = ModelAugmentor(
@@ -282,7 +282,7 @@ plotter.fig
 
 transitioning_probabilities = TransitionMatrix([[0.90, 0.05, 0.05],
                                                 [0.05, 0.90, 0.05],
-                                                [0.05, 0.05, 0.90]])
+                                                [0.05, 0.05, 0.90]], 3)
 
 predictors = KalmanPredictors(transition_models_list)
 updater = KalmanUpdater(measurement_model)
@@ -293,7 +293,7 @@ prior = ModelAugmentedWeightedGaussianState(
     covar=prior_covar,
     timestamp=start_time,
     weight=Probability(1),
-    model_histories=[],
+    model_histories=[cv],
     model_history_length=model_history)
 priors = GaussianMixture([prior, prior, prior])
 model_augmentor = ModelAugmentor(
@@ -328,7 +328,7 @@ prior = ModelAugmentedWeightedGaussianState(
     covar=prior_covar,
     timestamp=start_time,
     weight=Probability(1),
-    model_histories=[],
+    model_histories=[cv],
     model_history_length=model_history)
 priors = GaussianMixture([prior, prior, prior])
 
