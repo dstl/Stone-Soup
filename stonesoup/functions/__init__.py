@@ -669,9 +669,9 @@ def gm_reduce_single(means, covars, weights):
     ----------
     means : :class:`~.StateVectors`
         The means of the GM components
-    covars : np.array of shape (num_dims, num_dims, num_components)
+    covars : :class:`numpy.ndarray` of shape (num_dims, num_dims, num_components)
         The covariance matrices of the GM components
-    weights : np.array of shape (num_components,)
+    weights : :class:`numpy.ndarray` of shape (num_components,)
         The weights of the GM components
 
     Returns
@@ -754,14 +754,13 @@ def build_rotation_matrix(angle_vector: np.ndarray):
 
     Parameters
     ----------
-        angle_vector : :class:`numpy.ndarray` of shape (3, 1): the rotations
-        about the :math:'x, y, z' axes.
-        In aircraft/radar terms these correspond to
+    angle_vector : :class:`numpy.ndarray` of shape (3, 1)
+        the rotations about the :math:'x, y, z' axes. In aircraft/radar terms these correspond to
         [roll, pitch/elevation, yaw/azimuth]
 
     Returns
     -------
-        :class:`numpy.ndarray` of shape (3, 3)
+    : :class:`numpy.ndarray` of shape (3, 3)
             The model (3D) rotation matrix.
     """
     return _build_rotation_matrix(angle_vector[0, 0], angle_vector[1, 0], angle_vector[2, 0])
@@ -783,14 +782,13 @@ def build_rotation_matrix_xyz(angle_vector: np.ndarray):
 
     Parameters
     ----------
-        angle_vector : :class:`numpy.ndarray` of shape (3, 1): the rotations
-        about the :math:'x, y, z' axes.
-        In aircraft/radar terms these correspond to
+    angle_vector : :class:`numpy.ndarray` of shape (3, 1)
+        the rotations about the :math:'x, y, z' axes.  In aircraft/radar terms these correspond to
         [roll, pitch/elevation, yaw/azimuth]
 
     Returns
     -------
-        :class:`numpy.ndarray` of shape (3, 3)
+    : :class:`numpy.ndarray` of shape (3, 3)
             The model (3D) rotation matrix.
     """
     return _build_rotation_matrix_xyz(angle_vector[0, 0], angle_vector[1, 0], angle_vector[2, 0])
