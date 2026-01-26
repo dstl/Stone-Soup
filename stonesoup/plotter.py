@@ -1093,7 +1093,7 @@ class Plotterly(_Plotter):
     fig: plotly.graph_objects.Figure
         Generated figure to display graphs.
     """
-    def __init__(self, dimension=Dimension.TWO, axis_labels=None, **kwargs):
+    def __init__(self, dimension=Dimension.TWO, axis_labels=None, to_scale=True, **kwargs):
         if dimension != Dimension.ONE:
             if not axis_labels:
                 axis_labels = ["x", "y"]
@@ -1115,6 +1115,8 @@ class Plotterly(_Plotter):
             yaxis_title=axis_labels[1],
             colorway=colors.qualitative.Plotly,  # Needed to match colours later.
         )
+        if to_scale:
+            layout_kwargs["yaxis"] = dict(scaleanchor="x", scaleratio=1)
 
         if self.dimension == 3:
             layout_kwargs.update(dict(scene_aspectmode='data'))  # auto shapes fig to fit data well
@@ -2463,7 +2465,7 @@ class AnimatedPlotterly(_Plotter):
     """
 
     def __init__(self, timesteps, tail_length=0.3, equal_size=False,
-                 sim_duration=6, **kwargs):
+                 sim_duration=6, to_scale=True, **kwargs):
         """
         Initialise the figure and checks that inputs are correctly formatted.
         Creates an empty frame for each timestep, and configures
@@ -2518,6 +2520,9 @@ class AnimatedPlotterly(_Plotter):
             height=550,
             autosize=True
         )
+        if to_scale:
+            layout_kwargs["yaxis"].update(dict(scaleanchor="x", scaleratio=1))
+
         # layout_kwargs.update(kwargs)
         self.fig.update_layout(layout_kwargs)
 
