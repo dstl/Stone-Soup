@@ -658,8 +658,8 @@ class Plotter(_Plotter):
         if not axes:
             axes = [0, 1]
         if self.dimension is Dimension.THREE:
-            min_xyz = [0, 0, 0]
-            max_xyz = [0, 0, 0]
+            min_xyz = [np.inf, np.inf, np.inf]
+            max_xyz = [-np.inf, -np.inf, -np.inf]
             for n in range(3):
                 for line in self.ax.lines:
                     min_xyz[n] = np.min([min_xyz[n], *line.get_data_3d()[n]])
