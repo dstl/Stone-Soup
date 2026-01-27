@@ -1,6 +1,7 @@
 from collections.abc import Mapping
 from enum import Enum
 from typing import Any
+import warnings
 
 import numpy as np
 
@@ -13,6 +14,9 @@ from .state import State, GaussianState, ParticleState
 from .angle import Inclination, EclipticLongitude
 from ..reader.astronomical import TLEDictReader
 
+warnings.simplefilter("default")  # To show warnings to user
+warnings.warn('Orbital types are deprecated and will be removed in Stone Soup 1.10. '
+              'Orbital functionality has moved to the astrodynamics plugin.', DeprecationWarning)
 
 class CoordinateSystem(Enum):
     """Enumerates the allowable coordinate systems. See OrbitalState help for full explanation of
@@ -117,6 +121,8 @@ class Orbital(Type):
 
     .. [3] Broucke, R. A. & Cefola, P. J. 1972, Celestial Mechanics, Volume 5, Issue 3, pp. 303-310
 
+    .. deprecated:: 1.9
+        This function will be removed in Stone Soup 1.10. Orbital functions have moved to the astrodynamics plugin.
     """
 
     coordinates: CoordinateSystem = Property(
@@ -744,6 +750,9 @@ class OrbitalState(Orbital, State):
     ----------
     .. [4] Curtis, H.D. 2010, Orbital Mechanics for Engineering Students (3rd Ed), Elsevier
            Aerospace Engineering Series
+
+    .. deprecated:: 1.9
+        This function will be removed in Stone Soup 1.10. Orbital functions have moved to the astrodynamics plugin.
     """
 
 
@@ -753,6 +762,9 @@ class GaussianOrbitalState(Orbital, GaussianState):
     matrix are made, care should be exercised in its use. The propagator will generally require
     a particular coordinate reference which must be understood.
     All methods provided by :class:`~.Orbital` are available.
+
+    .. deprecated:: 1.9
+        This function will be removed in Stone Soup 1.10. Orbital functions have moved to the astrodynamics plugin.
     """
 
 
@@ -763,4 +775,6 @@ class ParticleOrbitalState(Orbital, ParticleState):
 
     All methods provided by :class:`~.Orbital` are available.
 
+    .. deprecated:: 1.9
+        This function will be removed in Stone Soup 1.10. Orbital functions have moved to the astrodynamics plugin.
     """
