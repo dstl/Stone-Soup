@@ -42,3 +42,9 @@ Track
 
 .. automodule:: stonesoup.feeder.track
     :show-inheritance:
+
+Bias
+----
+
+.. automodule:: stonesoup.feeder.bias
+    :show-inheritance:

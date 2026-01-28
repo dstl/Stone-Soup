@@ -1469,15 +1469,29 @@ class Plotterly(_Plotter):
 
             if self.dimension == 1:  # plot 1D tracks
 
-                if uncertainty or particle:
+                if particle:
                     raise NotImplementedError
 
+                x = [state.timestamp for state in track]
+                y = [float(getattr(state, 'mean', state.state_vector)[mapping[0]])
+                     for state in track]
                 self.fig.add_scatter(
-                    x=[state.timestamp for state in track],
-                    y=[float(getattr(state, 'mean', state.state_vector)[mapping[0]])
-                       for state in track],
+                    x=x,
+                    y=y,
                     text=[self._format_state_text(state) for state in track],
                     **scatter_kwargs)
+
+                if uncertainty:
+                    dy = np.array([
+                        np.sqrt(float(state.covar[mapping[0], mapping[0]])) for state in track])
+                    name = track_kwargs['legendgroup'] + "<br>(Error)"
+                    self.fig.add_scatter(
+                        x=np.concatenate([x, x[::-1]]),
+                        y=np.concatenate([y + dy, (y - dy)[::-1]]),
+                        mode='none', fill='toself', fillcolor=track_colors[track],
+                        opacity=0.2, hoverinfo='skip',
+                        legendgroup=name, name=name,
+                        legendrank=track_kwargs['legendrank'] + 10)
 
             elif self.dimension == 2:  # plot 2D tracks
 
