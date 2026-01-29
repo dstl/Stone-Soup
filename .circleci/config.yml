@@ -60,37 +60,10 @@ jobs:
     <<: *test-template
     docker:
       - image: cimg/python:3.13
-  test-314: &test-template
+  test-314:
+    <<: *test-template
     docker:
       - image: cimg/python:3.14
-    steps:
-      - checkout
-      - restore_cache:
-          key: dependencies-{{ .Environment.CACHE_VERSION }}-{{ checksum "/home/circleci/.pyenv/version" }}-{{ checksum "pyproject.toml" }}
-      - run:
-          name: Install Dependencies
-          command: |
-            python -m venv venv
-            . venv/bin/activate
-            pip install --upgrade pip
-            pip install .[ehm,optuna,orbital,architectures] opencv-python-headless plotly pytest-cov pytest-remotedata pytest-skip-slow pyehm h5py pandas
-      - save_cache:
-          paths:
-            - ./venv
-          key: dependencies-{{ .Environment.CACHE_VERSION }}-{{ checksum "/home/circleci/.pyenv/version" }}-{{ checksum "pyproject.toml" }}
-      - run:
-          name: Run Tests
-          command: |
-            . venv/bin/activate
-            mkdir test-reports
-            pytest --junitxml=test-reports/junit.xml --cov --cov-report=xml:test-reports/coverage.xml --slow stonesoup
-      - store_test_results:
-          path: test-reports/junit.xml
-      - store_artifacts:
-          path: test-reports
-      - codecov/upload:
-          files: test-reports/coverage.xml
-          flags: unittests
   flake8:
     docker:
       - image: cimg/python:3.13
