@@ -36,9 +36,11 @@ class Probability(Real):
         elif other == 0:
             return float("-inf")
         else:
-            log_value = np.log(other)
-            if np.isnan(log_value):
-                raise ValueError("value must be greater than 0")
+            with np.errstate(invalid="raise"):
+                try:
+                    log_value = np.log(other)
+                except FloatingPointError:
+                    raise ValueError("value must be greater than 0")
             return log_value
 
     def __hash__(self):
@@ -212,7 +214,7 @@ class Probability(Real):
         return Probability(self)
 
     def __float__(self):
-        return np.exp(self.log_value)
+        return float(np.exp(self.log_value))
 
     def __round__(self, ndigits=None):
         value = round(float(self), ndigits)
