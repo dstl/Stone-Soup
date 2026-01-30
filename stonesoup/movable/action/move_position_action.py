@@ -51,7 +51,11 @@ class MovePositionActionGenerator(StateVectorActionGenerator):
                                  f"the bounds of the action space {self.action_space}.")
 
     def __contains__(self, item):
-        return item in iter(self)
+        if isinstance(item, MovePositionAction):
+            item = item.target_value
+        for action in self:
+            if np.all(action.target_value == item):
+                return True
 
     def action_from_value(self, value=None) -> MovePositionAction:
         """

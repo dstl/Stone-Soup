@@ -106,6 +106,7 @@ def test_n_step_directional_grid_action_gen(generator_params, state, position_ma
     assert generator.action_mapping == action_mapping
     assert np.all(generator.action_space == action_space)
     assert generator.resolution == resolution
+    assert generator.max_state_change == step_size * n_steps
 
     # Check that actions are generated correctly
     generator_set = set()
@@ -114,6 +115,7 @@ def test_n_step_directional_grid_action_gen(generator_params, state, position_ma
     actions = []
     for elements in move_position_actions:
         actions.append(elements[0].target_value)
+        assert elements[0].target_value in generator
 
     deltas = np.linspace(-1*n_steps*step_size*resolution,
                          n_steps*step_size*resolution,
@@ -267,6 +269,10 @@ def test_circle_sample_action_gen(gen_param_dict, state, position_mapping):
         temp_platform.act(end_timestamp)
         assert np.linalg.norm(temp_platform.position - platform.position,
                               axis=0) <= max_state_change
+
+        # Test contains method for both Action and StateVector types
+        assert action[0] in generator
+        assert action[0].target_value in generator
 
         if action_space is not None:
             assert (temp_platform.position[0] > action_space[0, 0] and
