@@ -465,8 +465,9 @@ class SqrtKalmanPredictor(ExtendedKalmanPredictor):
             sqrt_ctrl_noi = self.control_model.sqrt_covar(time_interval=predict_over_interval,
                                                           **kwargs)
         except AttributeError:
-            sqrt_ctrl_noi = la.sqrtm(self.control_model.covar(time_interval=predict_over_interval,
-                                                              **kwargs))
+            ctrl_noi = self.control_model.covar(time_interval=predict_over_interval, **kwargs)
+            # Avoid warning for all zeros case
+            sqrt_ctrl_noi = la.sqrtm(ctrl_noi) if np.any(ctrl_noi) else ctrl_noi
 
         if self.qr_method:
             # Note that the control matrix aspect of this hasn't been tested

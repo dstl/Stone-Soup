@@ -342,7 +342,8 @@ def test_low_velocity_orientation():
                               position_mapping=(0, 2, 4),
                               velocity_mapping=(1, 3, 5),
                               transition_model=transition_model)
-    assert np.allclose(platform.orientation, [[0], [0], [0]])
+    with pytest.warns(UserWarning, match='A default initial orientation has been set'):
+        assert np.allclose(platform.orientation, [[0], [0], [0]])
 
     timediff = 2  # 2sec
     new_timestamp = timestamp + datetime.timedelta(seconds=timediff)
