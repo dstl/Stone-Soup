@@ -1255,7 +1255,12 @@ def batch_multivariate_normal_logpdf(vectors, states):
         number_of_states = len(ndim_states)
 
         # shape (number_of_states, ndim, ndim)
-        lower_cholesky = np.linalg.cholesky(ndim_covariances)
+        try:
+            lower_cholesky = np.linalg.cholesky(ndim_covariances)
+        except:
+            ndim_covariances = np.array([find_nearest_positive_definite(state.covar) for state in ndim_states])
+            lower_cholesky = np.linalg.cholesky(ndim_covariances)
+
         log_covariance_determinants = 2 * np.sum(
             np.log(np.diagonal(lower_cholesky, axis1=-2, axis2=-1)), axis=-1
         )
