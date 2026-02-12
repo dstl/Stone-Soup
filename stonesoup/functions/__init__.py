@@ -2,6 +2,7 @@
 
 import copy
 import warnings
+from collections import defaultdict
 from functools import lru_cache
 
 import numpy as np
@@ -1220,3 +1221,52 @@ def is_cholesky_decomposable(matrix):
         return True
     except np.linalg.LinAlgError:
         return False
+
+
+def batch_multivariate_normal_logpdf(vectors, states):
+    """
+    Vectorised calculation for the multi-variate normal logpdf of N `StateVector` objects to N
+    `GaussianState` objects.
+
+    The logpdf of vectors[m] will be calculated from states[m].
+
+    Parameters
+    ==========
+    vectors: list[StateVector]
+        Sequence of N `StateVector`objects.
+    states: list[GaussianState]
+        Sequence of N `GaussianState` objects.
+    """
+    logpdfs = np.empty(len(states))
+
+    # group states by dimension
+    grouped_states = defaultdict(list)
+    for n, state in enumerate(states):
+        grouped_states[state.ndim].append((n, vectors[n].flatten(), state))
+
+    for ndim in grouped_states.keys():
+        indices = [indexed_state[0] for indexed_state in grouped_states[ndim]]
+        ndim_vectors = np.vstack(
+            [index_state[1] for index_state in grouped_states[ndim]]
+        )
+        ndim_states = [indexed_state[2] for indexed_state in grouped_states[ndim]]
+        ndim_means = np.vstack([state.mean.T for state in ndim_states])
+        ndim_covariances = np.array([state.covar for state in ndim_states])
+        number_of_states = len(ndim_states)
+
+        # shape (number_of_states, ndim, ndim)
+        lower_cholesky = np.linalg.cholesky(ndim_covariances)
+        log_covariance_determinants = 2 * np.sum(
+            np.log(np.diagonal(lower_cholesky, axis1=-2, axis2=-1)), axis=-1
+        )
+        deviations = (ndim_vectors - ndim_means).reshape(number_of_states, ndim, 1)
+        whitened_deviations = np.linalg.solve(lower_cholesky, deviations)
+        squared_mahalanobis_distances = np.sum(whitened_deviations**2, axis=(1, 2))
+
+        logpdfs[indices] = -0.5 * (
+            log_covariance_determinants
+            + squared_mahalanobis_distances
+            + ndim * np.log(2 * np.pi)
+        )
+
+    return logpdfs
