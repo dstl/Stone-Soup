@@ -1225,17 +1225,22 @@ def is_cholesky_decomposable(matrix):
 
 def batch_multivariate_normal_logpdf(vectors, states):
     """
-    Vectorised calculation for the multi-variate normal logpdf of N `StateVector` objects to N
-    `GaussianState` objects.
+    Vectorised calculation for the multi-variate normal logpdf of N :class:`StateVector` objects
+    to N :class:`GaussianState` objects.
 
-    The logpdf of vectors[m] will be calculated from states[m].
+    The logpdf of vectors[m] will be calculated from the distribution states[m].
 
     Parameters
-    ==========
-    vectors: list[StateVector]
-        Sequence of N `StateVector`objects.
-    states: list[GaussianState]
-        Sequence of N `GaussianState` objects.
+    ----------
+    vectors: list[:class:`StateVector`]
+        Sequence of N :class:`StateVector`objects.
+    states: list[:class:`GaussianState`]
+        Sequence of N :class:`GaussianState` objects.
+
+    Returns
+    -------
+    : :class:`numpy.ndarray`
+        Numpy array of shape (N,) of logpdf values.
     """
     logpdfs = np.empty(len(states))
 
@@ -1257,15 +1262,16 @@ def batch_multivariate_normal_logpdf(vectors, states):
         # shape (number_of_states, ndim, ndim)
         try:
             lower_cholesky = np.linalg.cholesky(ndim_covariances)
-        except:
-            ndim_covariances = np.array([find_nearest_positive_definite(state.covar) for state in ndim_states])
+        except np.linalg.LinAlgError:
+            ndim_covariances = np.array(
+                [find_nearest_positive_definite(state.covar) for state in ndim_states])
             lower_cholesky = np.linalg.cholesky(ndim_covariances)
 
         log_covariance_determinants = 2 * np.sum(
             np.log(np.diagonal(lower_cholesky, axis1=-2, axis2=-1)), axis=-1
         )
         deviations = (ndim_vectors - ndim_means).reshape(number_of_states, ndim, 1)
-        whitened_deviations = np.linalg.solve(lower_cholesky, deviations)
+        whitened_deviations = np.linalg.solve(lower_cholesky, deviations.astype(np.float64))
         squared_mahalanobis_distances = np.sum(whitened_deviations**2, axis=(1, 2))
 
         logpdfs[indices] = -0.5 * (

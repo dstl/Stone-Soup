@@ -485,7 +485,7 @@ def test_batch_multivariate_normal_logpdf():
             mean = np.random.uniform(0, 10, size=dimension)
             covariance = np.diag(np.random.uniform(0, 2, size=dimension))
             vector = np.random.multivariate_normal(mean, covariance)
-            
+
             means.append(mean)
             covariances.append(covariance)
             vectors.append(vector)
