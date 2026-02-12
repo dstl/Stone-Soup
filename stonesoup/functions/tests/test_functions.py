@@ -4,10 +4,12 @@ from numpy import deg2rad
 from numpy import linalg as LA
 from pytest import approx, raises
 from scipy.linalg import LinAlgError, cholesky
+from scipy.stats import multivariate_normal
 import warnings
 
 from ...types.array import CovarianceMatrix, Matrix, StateVector, StateVectors
 from ...types.state import GaussianState, State
+from ...types.detection import Detection
 from .. import (
     cart2angles,
     cart2sphere,
@@ -29,6 +31,7 @@ from .. import (
     rotz,
     sphere2cart,
     stochastic_cubature_rule_points,
+    batch_multivariate_normal_logpdf
 )
 
 
@@ -465,3 +468,40 @@ def test_stochastic_integration(order, nx):
 def test_stochastic_integration_invalid_order():
     with pytest.raises(ValueError, match="This order of SIF is not supported"):
         stochastic_cubature_rule_points(5, 2)
+
+
+def test_batch_multivariate_normal_logpdf():
+    """Test batched calculation vs Scipy's multivariate_normal.logpdf calculation"""
+
+    n_samples = [5, 10, 6]
+    dimensions = [2, 3, 12]
+    means = list()
+    covariances = list()
+    vectors = list()
+
+    for n, sample_size in enumerate(n_samples):
+        for _ in range(sample_size):
+            dimension = dimensions[n]
+            mean = np.random.uniform(0, 10, size=dimension)
+            covariance = np.diag(np.random.uniform(0, 2, size=dimension))
+            vector = np.random.multivariate_normal(mean, covariance)
+            
+            means.append(mean)
+            covariances.append(covariance)
+            vectors.append(vector)
+
+    states = [
+        GaussianState(state_vector=mean, covar=covariance)
+        for mean, covariance in zip(means, covariances)
+    ]
+    detections = [Detection(state_vector=vector) for vector in vectors]
+
+    detection_vectors = [det.state_vector for det in detections]
+    batch_logpdf_results = batch_multivariate_normal_logpdf(detection_vectors, states)
+
+    scipy_logpdf_results = []
+    for vector, mean, covariance in zip(vectors, means, covariances):
+        logpdf = multivariate_normal.logpdf(vector, mean, covariance)
+        scipy_logpdf_results.append(logpdf)
+
+    assert np.allclose(batch_logpdf_results, np.array(scipy_logpdf_results), atol=1e-8)
