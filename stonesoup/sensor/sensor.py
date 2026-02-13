@@ -427,10 +427,11 @@ class VisibilityInformed2DSensor(SimpleSensor):
         for n in range(relative_edges.shape[1]):
             denom = relative_ray[1, :]*relative_edges[0, n] \
                 - relative_ray[0, :]*relative_edges[1, n]
-            alpha = (relative_edges[1, n]*relative_sensor_to_edge[0, n]
-                     - relative_edges[0, n]*relative_sensor_to_edge[1, n])/denom
-            beta = (relative_ray[0, :]*relative_sensor_to_edge[1, n]
-                    - relative_ray[1, :]*relative_sensor_to_edge[0, n])/denom
+            with np.errstate(divide='ignore'):
+                alpha = (relative_edges[1, n]*relative_sensor_to_edge[0, n]
+                         - relative_edges[0, n]*relative_sensor_to_edge[1, n])/denom
+                beta = (relative_ray[0, :]*relative_sensor_to_edge[1, n]
+                        - relative_ray[1, :]*relative_sensor_to_edge[0, n])/denom
 
             intersections[n, :] = np.logical_and.reduce((alpha >= 0,
                                                          alpha <= 1,
