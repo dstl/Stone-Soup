@@ -14,7 +14,8 @@ from ..prediction import (
     ParticleStatePrediction, ParticleMeasurementPrediction,
     RaoBlackwellisedParticleStatePrediction, MultiModelParticleStatePrediction,
     BernoulliParticleStatePrediction,
-    ASDGaussianStatePrediction, ASDGaussianMeasurementPrediction, KernelParticleStatePrediction)
+    ASDGaussianStatePrediction, ASDGaussianMeasurementPrediction, KernelParticleStatePrediction,
+    AugmentedGaussianStatePrediction)
 from ..state import (
     State, GaussianState, SqrtGaussianState, TaggedWeightedGaussianState, ParticleState)
 from ..track import Track
@@ -310,3 +311,33 @@ def test_kernel_particle_state_prediction():
     assert np.array_equal(weights, prediction.weight)
     assert np.array_equal(np.diag(weights), prediction.kernel_covar)
     assert timestamp == prediction.timestamp
+
+
+def test_augmentedgaussianstateprediction():
+    """ AugmentedGaussianStatePrediction test """
+
+    with pytest.raises(TypeError):
+        AugmentedGaussianStatePrediction()
+
+    mean = np.array([[-1.8513], [0.9994], [0], [0]]) * 1e4
+    covar = np.array([[2.2128, 0, 0, 0],
+                      [0.0002, 2.2130, 0, 0],
+                      [0.3897, -0.00004, 0.0128, 0],
+                      [0, 0.3897, 0.0013, 0.0135]]) * 1e3
+    cross_covar = np.array([[2.2128],
+                            [0.0002],
+                            [0.3897],
+                            [0]]) * 1e3
+    timestamp = datetime.datetime.now()
+
+    with pytest.raises(TypeError):
+        AugmentedGaussianStatePrediction(mean)
+
+    # Test state prediction
+    state_prediction = AugmentedGaussianStatePrediction(
+        state_vector=mean, covar=covar, cross_covar=cross_covar, timestamp=timestamp)
+    assert np.array_equal(mean, state_prediction.mean)
+    assert np.array_equal(covar, state_prediction.covar)
+    assert np.array_equal(cross_covar, state_prediction.cross_covar)
+    assert state_prediction.ndim == mean.shape[0]
+    assert state_prediction.timestamp == timestamp

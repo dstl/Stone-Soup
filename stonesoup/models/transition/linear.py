@@ -12,6 +12,7 @@ from ..base import (LinearModel, GaussianModel, TimeVariantModel,
                     TimeInvariantModel)
 from ...base import Property
 from ...types.array import CovarianceMatrix
+from ...types.state import StateVector
 
 
 class LinearGaussianTransitionModel(
@@ -148,8 +149,8 @@ class ConstantNthDerivative(LinearGaussianTransitionModel, TimeVariantModel):
         dt = abs(time_interval_sec)
         N = self.constant_derivative
         if N == 1:
-            covar = np.array([[dt**3 / 3, dt**2 / 2],
-                              [dt**2 / 2, dt]])
+            covar = np.array([[dt ** 3 / 3, dt ** 2 / 2],
+                              [dt ** 2 / 2, dt]])
         else:
             Fmat = self.matrix(abs(time_interval), **kwargs)
             Q = np.zeros((N + 1, N + 1))
@@ -158,7 +159,7 @@ class ConstantNthDerivative(LinearGaussianTransitionModel, TimeVariantModel):
             covar = np.zeros((N + 1, N + 1))
             for l in range(0, N + 1):  # noqa: E741
                 for k in range(0, N + 1):
-                    covar[l, k] = (igrand[l, k]*dt / (1 + N*2 - l - k))
+                    covar[l, k] = (igrand[l, k] * dt / (1 + N * 2 - l - k))
         covar *= self.noise_diff_coeff
         return CovarianceMatrix(covar)
 
@@ -336,7 +337,7 @@ class NthDerivativeDecay(LinearGaussianTransitionModel, TimeVariantModel):
         for i in range(0, N + 1):
             FCont[i, N] = np.exp(-K * t) * (-1) ** (N - i) / K ** (N - i)
             for n in range(1, N - i + 1):
-                FCont[i, N] -= (-1) ** n * t ** (N - i - n) /\
+                FCont[i, N] -= (-1) ** n * t ** (N - i - n) / \
                                (math.factorial(N - i - n) * K ** n)
             for j in range(i+1, N):
                 FCont[i, j] = (t ** (j - i)) / math.factorial(j - i)
@@ -513,6 +514,7 @@ class SingerApproximate(Singer):
     @property
     def decay_derivative(self):
         return 2
+
     r"""This is a class implementation of a discrete, time-variant 1D Singer
     Transition Model, with covariance approximation applicable for smaller time
     intervals.
@@ -565,6 +567,7 @@ class SingerApproximate(Singer):
                         \frac{dt^3}{6} & \frac{dt^2}{2} & dt
                         \end{bmatrix}
     """
+
     def covar(self, time_interval, **kwargs):
         """Returns the transition model noise covariance matrix.
 
@@ -585,14 +588,14 @@ class SingerApproximate(Singer):
 
         # Only leading terms get calculated for speed.
         covar = np.array(
-            [[time_interval_sec**5 / 20,
-              time_interval_sec**4 / 8,
-              time_interval_sec**3 / 6],
-             [time_interval_sec**4 / 8,
-              time_interval_sec**3 / 3,
-              time_interval_sec**2 / 2],
-             [time_interval_sec**3 / 6,
-              time_interval_sec**2 / 2,
+            [[time_interval_sec ** 5 / 20,
+              time_interval_sec ** 4 / 8,
+              time_interval_sec ** 3 / 6],
+             [time_interval_sec ** 4 / 8,
+              time_interval_sec ** 3 / 3,
+              time_interval_sec ** 2 / 2],
+             [time_interval_sec ** 3 / 6,
+              time_interval_sec ** 2 / 2,
               time_interval_sec]]
         ) * self.noise_diff_coeff
 
@@ -629,7 +632,7 @@ class KnownTurnRateSandwich(LinearGaussianTransitionModel, TimeVariantModel):
         : :class:`int`
             The number of combined model state dimensions.
         """
-        return sum(model.ndim_state for model in self.model_list)+4
+        return sum(model.ndim_state for model in self.model_list) + 4
 
     def matrix(self, time_interval, **kwargs):
         """Model matrix :math:`F`
@@ -645,15 +648,15 @@ class KnownTurnRateSandwich(LinearGaussianTransitionModel, TimeVariantModel):
         transition_matrices = [
             model.matrix(time_interval) for model in self.model_list]
         sandwich = block_diag(z, *transition_matrices, z)
-        sandwich[0:2, 0:2] = np.array([[1, np.sin(turn_ratedt)/self.turn_rate],
-                                      [0, np.cos(turn_ratedt)]])
+        sandwich[0:2, 0:2] = np.array([[1, np.sin(turn_ratedt) / self.turn_rate],
+                                       [0, np.cos(turn_ratedt)]])
         sandwich[0:2, -2:] = np.array(
-            [[0, (np.cos(turn_ratedt)-1)/self.turn_rate],
+            [[0, (np.cos(turn_ratedt) - 1) / self.turn_rate],
              [0, -np.sin(turn_ratedt)]])
         sandwich[-2:, 0:2] = np.array(
-            [[0, (1-np.cos(turn_ratedt))/self.turn_rate],
+            [[0, (1 - np.cos(turn_ratedt)) / self.turn_rate],
              [0, np.sin(turn_ratedt)]])
-        sandwich[-2:, -2:] = np.array([[1, np.sin(turn_ratedt)/self.turn_rate],
+        sandwich[-2:, -2:] = np.array([[1, np.sin(turn_ratedt) / self.turn_rate],
                                        [0, np.cos(turn_ratedt)]])
         return sandwich
 
@@ -742,3 +745,43 @@ class KnownTurnRate(KnownTurnRateSandwich):
         """For a turn in adjacent state vectors,
          no transition models go in between"""
         return []
+
+
+class LinearTransitionModel(LinearGaussianTimeInvariantTransitionModel):
+    r"""Linear Gaussian Time Invariant Transition Model with bias."""
+
+    bias_value: StateVector = Property(doc="Bias value")
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        if not isinstance(self.bias_value, StateVector):
+            self.bias_value = StateVector(self.bias_value)
+
+    def bias(self, **kwargs):
+        return self.bias_value
+
+    def function(self, state, noise=False, **kwargs):
+        """Model function :math:`F_k*x(t)+b_k+w_k`
+
+        Parameters
+        ----------
+        state: :class:`~.State`
+            An input state
+        noise: :class:`numpy.ndarray` or bool
+            An externally generated random process noise sample (the default is
+            `False`, in which case no noise will be added
+            if 'True', the output of :meth:`~.Model.rvs` is added)
+
+        Returns
+        -------
+        :class:`numpy.ndarray` of shape (:py:attr:`~ndim_meas`, 1)
+            The model function evaluated given the provided time interval.
+        """
+
+        if isinstance(noise, bool) or noise is None:
+            if noise:
+                noise = self.rvs(num_samples=state.state_vector.shape[1], **kwargs)
+            else:
+                noise = 0
+
+        return self.matrix(**kwargs) @ state.state_vector + self.bias(**kwargs) + noise

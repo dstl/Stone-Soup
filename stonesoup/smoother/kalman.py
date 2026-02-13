@@ -4,14 +4,20 @@ from functools import partial
 import numpy as np
 
 from ..base import Property
-from ..functions import (gauss2sigma, unscented_transform, cub_points_and_tf)
+from ..functions import (gauss2sigma, unscented_transform, cub_points_and_tf, slr_definition)
 from ..models.base import LinearModel
+from ..models.measurement.base import MeasurementModel
+from ..models.measurement.linear import GeneralLinearGaussian
 from ..models.transition.base import TransitionModel
-from ..models.transition.linear import LinearGaussianTransitionModel
+from ..models.transition.linear import LinearGaussianTransitionModel, LinearTransitionModel
+from ..predictor.kalman import AugmentedUnscentedKalmanPredictor, AugmentedKalmanPredictor
+from ..types.hypothesis import SingleHypothesis
 from ..types.multihypothesis import MultipleHypothesis
 from ..types.prediction import Prediction
 from ..types.state import GaussianState
+from ..types.track import Track
 from ..types.update import Update
+from ..updater.kalman import KalmanUpdater, UnscentedKalmanUpdater
 from .base import Smoother
 
 
@@ -406,3 +412,174 @@ class StochasticIntegrationSmoother(KalmanSmoother):
         Pxxps = IPxx
 
         return Pxxps @ np.linalg.inv(prediction.covar)
+
+
+class IPLSKalmanSmoother(UnscentedKalmanSmoother):
+    r"""
+    The Iterated Posterior Linearisation Smoother (IPLS), implemented using Unscented Transform.
+
+    This smoother is based on performing statistical linear regression (SLR) of the dynamic and
+    measurement functions with respect to the current posterior approximation. It builds on
+    the unscented Kalman smoother by iteratively refining the affine approximation of the
+    non-linear system, and thus improving the smoothing accuracy over iterations.
+
+    The key idea is to relinearise both the transition and measurement models using updated
+    posterior moments obtained from the previous smoothing iteration. This allows all
+    available measurements to influence the affine approximation, rather than just those
+    prior to the time step in question.
+
+    The smoothing process starts with an initial pass using the Unscented Kalman Smoother,
+    and then repeats the following loop `n_iterations` times:
+
+    1. Linearise the transition and measurement models around the current smoothed trajectory
+       using SLR with sigma-points.
+    2. Apply the standard Kalman smoother to the track using the updated affine models.
+    3. Replace the previous trajectory with the smoothed one and repeat.
+
+    The dynamic and measurement functions are linearised as:
+
+    .. math::
+
+        f_k(x) &\approx F_k x + a_k + \epsilon_k \\
+        h_k(x) &\approx H_k x + b_k + \xi_k
+
+    where :math:`\epsilon_k \sim \mathcal{N}(0, \Lambda_k)` and
+    :math:`\xi_k \sim \mathcal{N}(0, \Omega_k)` account for the linearisation error.
+
+    This smoother is suitable for non-linear systems with additive Gaussian noise and
+    unimodal posteriors. It is derivative-free and only requires the ability to simulate
+    the dynamic and measurement functions.
+
+    References
+    ----------
+    [1] A. F. García-Fernández, L. Svensson, S. Särkkä, "Iterated Posterior Linearization
+    Smoother", IEEE Transactions on Automatic Control, vol. 62, no. 4, 2017.
+    """
+
+    measurement_model: MeasurementModel = Property(default=None,
+                                                   doc="The measurement model to be used.")
+    n_iterations: int = Property(
+        default=5,
+        doc="Number of smoothing iterations.")
+
+    def state_prediction_no_noise(self, state, transition_model, timestamp):
+        return AugmentedUnscentedKalmanPredictor(
+            beta=self.beta, kappa=self.kappa, transition_model=transition_model
+        ).predict(
+            prior=state,
+            timestamp=timestamp
+        )
+
+    def measurement_prediction_no_noise(self, state, measurement_model):
+        return UnscentedKalmanUpdater(
+            beta=self.beta, kappa=self.kappa
+        ).predict_measurement(
+            predicted_state=state,
+            measurement_model=measurement_model,
+            measurement_noise=False
+        )
+
+    def smooth(self, track, **kwargs):
+        """
+        Execute the IPLS algorithm.
+
+        Parameters
+        ----------
+        track : :class:`~.Track`
+            The input track.
+
+        Returns
+        -------
+         : :class:`~.Track`
+            Smoothed track
+
+        """
+
+        # Return the original track if 0 iterations are requested
+        if self.n_iterations == 0:
+            return track
+
+        # A filtered track is the input to this smoother.
+
+        # initialising by performing sigma-point smoothing via the UKF smoother
+        smoothed_track = UnscentedKalmanSmoother(transition_model=self.transition_model,
+                                                 alpha=self.alpha,
+                                                 beta=self.beta,
+                                                 kappa=self.kappa).smooth(track)
+
+        for _ in range(1, self.n_iterations):
+
+            track_forward = Track(track[0])  # starting the new forward track to be
+            previous_state = track_forward[0]
+
+            for current_state, base_state in zip(smoothed_track[1:], track[1:]):
+
+                # Compute SLR parameters (transition)
+                if isinstance(base_state, Prediction):
+                    transition_model = base_state.transition_model
+                else:
+                    transition_model = base_state.hypothesis.prediction.transition_model
+
+                if transition_model is None:
+                    transition_model = self.transition_model
+                trans_fun = partial(
+                    self.state_prediction_no_noise,
+                    transition_model=transition_model,
+                    timestamp=current_state.timestamp
+                )
+                f_matrix, a_vector, lambda_cov_matrix = slr_definition(
+                    previous_state, trans_fun, force_symmetry=True)
+
+                # Perform linear time update (transition)
+                time_interval = current_state.timestamp - previous_state.timestamp
+                q_matrix = transition_model.covar(time_interval=time_interval)
+                transition_model_linearised = LinearTransitionModel(
+                    transition_matrix=f_matrix,
+                    bias_value=a_vector,
+                    covariance_matrix=lambda_cov_matrix+q_matrix
+                )
+                prediction_linear = AugmentedKalmanPredictor(transition_model_linearised).predict(
+                    track_forward[-1], timestamp=current_state.timestamp
+                )
+
+                if not isinstance(current_state, Prediction):
+                    # Compute SLR parameters (measurement)
+                    measurement_model = current_state.hypothesis.measurement.measurement_model
+                    if measurement_model is None:
+                        measurement_model = self.measurement_model
+                    meas_fun = partial(
+                        self.measurement_prediction_no_noise,
+                        measurement_model=measurement_model
+                    )
+                    h_matrix, b_vector, omega_cov_matrix = slr_definition(
+                        current_state, meas_fun, force_symmetry=True)
+                    r_matrix = measurement_model.covar()
+
+                    # Perform linear measurement update
+                    measurement_model_linearized = GeneralLinearGaussian(
+                        ndim_state=measurement_model.ndim_state,
+                        mapping=measurement_model.mapping,
+                        meas_matrix=h_matrix,
+                        bias_value=b_vector,
+                        noise_covar=omega_cov_matrix+r_matrix
+                    )
+
+                    # Get the actual measurement plus its prediction using the predicted pdf
+                    measurement = current_state.hypothesis.measurement
+                    measurement.measurement_model = measurement_model_linearized
+                    hypothesis = SingleHypothesis(prediction=prediction_linear,
+                                                  measurement=measurement)
+                    update_linear = KalmanUpdater().update(hypothesis)
+                    # restores the model (ensures visualisation is OK)
+                    update_linear.hypothesis.measurement.measurement_model = measurement_model
+                else:
+                    # Use prediction instead of data update
+                    update_linear = prediction_linear
+
+                track_forward.append(update_linear)
+
+                previous_state = current_state
+
+            smoothed_track = KalmanSmoother(transition_model=None).smooth(track_forward)
+
+        return smoothed_track

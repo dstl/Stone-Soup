@@ -1,9 +1,10 @@
 import numpy as np
 
 from ...base import Property
-from ...types.array import CovarianceMatrix
+from ...types.array import CovarianceMatrix, Matrix
 from ..base import LinearModel, GaussianModel
 from .base import MeasurementModel
+from ...types.state import StateVector
 
 
 # TODO: Probably should call this LinearGaussianMeasurementModel
@@ -95,3 +96,62 @@ class LinearGaussian(MeasurementModel, LinearModel, GaussianModel):
         """
 
         return self.noise_covar
+
+
+class GeneralLinearGaussian(LinearGaussian):
+    r"""This is an implementation of a time-invariant Linear-Gaussian Measurement Model,
+    which allows for an explicitly specified measurement matrix and a bias term.
+
+    The model is described by the following equations:
+
+    .. math::
+
+      y_k = H_k*x_k + b_k + v_k,\ \ \ \   v_k\sim \mathcal{N}(0,R)
+
+    where ``H_k`` is a (:py:attr:`~ndim_meas`, :py:attr:`~ndim_state`) \
+    matrix, ``b_k`` is a (:py:attr:`~ndim_meas`, 1) vector and ``v_k`` is Gaussian distributed.
+
+    """
+
+    meas_matrix: Matrix = Property(doc="Measurement matrix")
+    bias_value: StateVector = Property(doc="Bias value")
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+
+        if not isinstance(self.meas_matrix, Matrix):
+            self.meas_matrix = Matrix(self.meas_matrix)
+        if not isinstance(self.bias_value, StateVector):
+            self.bias_value = StateVector(self.bias_value)
+
+    def matrix(self, **kwargs):
+        return self.meas_matrix
+
+    def bias(self, **kwargs):
+        return self.bias_value
+
+    def function(self, state, noise=False, **kwargs):
+        """Model function :math:`H_k*x_t + b_k + v_k`
+
+        Parameters
+        ----------
+        state: :class:`~.State`
+            An input state
+        noise: :class:`numpy.ndarray` or bool
+            An externally generated random process noise sample (the default is
+            `False`, in which case no noise will be added
+            if 'True', the output of :meth:`~.Model.rvs` is added)
+
+        Returns
+        -------
+        :class:`numpy.ndarray` of shape (:py:attr:`~ndim_meas`, 1)
+            The model function evaluated given the provided time interval.
+        """
+
+        if isinstance(noise, bool) or noise is None:
+            if noise:
+                noise = self.rvs(num_samples=state.state_vector.shape[1], **kwargs)
+            else:
+                noise = 0
+
+        return self.matrix(**kwargs)@state.state_vector + self.bias(**kwargs) + noise
