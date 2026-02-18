@@ -443,3 +443,136 @@ class MultiUpdateExpectedKLDivergence(ExpectedKLDivergence):
             all_detections.update({sensor: detections})
 
         return all_detections
+
+
+# Mo's reward function 
+# MathsRewardFunction here - end goal - a generic wrapper that holds the logic that a reward function goes through
+# and it ca be given a maths class that creates the specific maths re. the beahviour we are after
+# This class defines a general reward function for sensor management.
+# It doesn't hardcode how the reward is calculated — instead, it uses a maths class to do that.
+# This general reward function:
+                                # Simulates sensor actions.
+                                # Predicts target states.
+                                # Simulates measurements.
+                                # Updates tracks and calculates uncertainty reduction.
+# class MathsRewardFunction(RewardFunction):
+#     """
+#     The reward is based on how much uncertainty is reduced after updating the tracks.
+
+#     Given a configuration of sensors and actions, a metric is calculated for the potential
+#     reduction in the uncertainty of the tracks that would occur if the sensing configuration
+#     were used to make an observation. A larger value indicates a greater reduction in
+#     uncertainty.
+#     """
+    
+#     # These are the tools used in the reward function:
+#     # these are not default values | they are types unless you specifically state default=.....
+#     predictor: KalmanPredictor = Property(doc="Predictor used to predict the track to a new state")
+#     updater: ExtendedKalmanUpdater = Property(doc="Updater used to update the track to the new state.")
+#     #maths_class: BaseMathsClass = Property(doc="The maths class containing a function to be used in the reward calculation.")
+#     greater_is_better: bool = Property(doc="Whether a greater value from the Maths class is associated witha better reward.")
+    
+#     def __call__(self, config: Mapping[Sensor, Sequence[Action]], tracks: Set[Track],
+#                  metric_time: datetime, *args, **kwargs):
+#         """
+#         This method is called to calculate the reward for a given sensor configuration.
+#         It returns a number that tells us how good the configuration is.
+
+#         For a given configuration of sensors and actions this reward function calculates the
+#         potential uncertainty reduction of each track by
+#         computing the difference between the covariance matrix norms of the prediction
+#         and the posterior assuming a predicted measurement corresponding to that prediction.
+
+#         This requires a mapping of sensors to action(s)
+#         to be evaluated by reward function, a set of tracks at given time and the time at which
+#         the actions would be carried out until.
+
+#         The metric returned is the total potential reduction in uncertainty across all tracks.
+
+#         Returns
+#         -------
+#         : float
+#             Metric of uncertainty for given configuration
+
+#         """
+#         # Start with a reward value of 0
+#         config_metric = 0
+
+#         # Create a set to hold simulated sensors
+#         predicted_sensors = set()
+#         memo = {}
+
+#         #STEP 1: Simulate sensor actions
+#         # For each sensor/platform in the configuration
+#         for actionable, actions in config.items():
+#             # Make a copy of the sensor/platform
+#             predicted_actionable = copy.deepcopy(actionable, memo)
+#             # Add the proposed actions to the sensor
+#             predicted_actionable.add_actions(actions)
+#             # Simulate the sensor acting at the given time (without noise) i.e. do the action 
+#             predicted_actionable.act(metric_time, noise=False)
+#             # If it's a sensor, add it to our list of sensors
+#             if isinstance(actionable, Sensor):
+#                 predicted_sensors.add(predicted_actionable)  # checks if it's a sensor
+
+#         #STEP 2: Predict where each track will be (by one step)
+#         # # Create dictionary of predictions for the tracks in the configuration
+#         predicted_tracks = set()
+#         for track in tracks:
+#             # Make a copy of the track 
+#             predicted_track = copy.copy(track)
+#             # Predict the next state of the track
+#             predicted_track.append(self.predictor.predict(predicted_track, timestamp=metric_time))
+#             # Add the predicted track to the set
+#             predicted_tracks.add(predicted_track)
+        
+#         # Use the maths class to calculate a metric based on predicted tracks
+#         #predicted_metric = self.maths_class.calculate(predicted_tracks)
+#         predicted_metric = sum(np.linalg.norm(track.covar) for track in predicted_tracks)
+#         print(f"predicted_metric: {predicted_metric}")
+
+#         #step 3: Simulate sensor measurements
+#         for sensor in predicted_sensors:
+#             # Simulate detections from the sensor
+#             # Only keep detections that are TrueDetections (i.e., real ones) [nb. ssumes one detection per track]
+#             detections = {detection.groundtruth_path: detection
+#                           for detection in sensor.measure(predicted_tracks, noise=False)
+#                           if isinstance(detection, TrueDetection)}
+
+#             # STEP 4: Update tracks using the detections 
+#             # Create a hypothesis and then do an update using that hypothesis
+#             # empty set to save all updates for each track                        
+#             for predicted_track, detection in detections.items():
+#                 # Generate hypothesis based on prediction/previous update and detection
+#                 hypothesis = SingleHypothesis(predicted_track.state, detection)
+#                 # Update the track using the hypothesis 
+#                 # Do the update based on this hypothesis and store covariance matrix
+#                 update = self.updater.update(hypothesis)                
+#                 '''   EVERYTHING ABOVE WILL BE GENERIC '''
+#                 ''' everything BELOW will be the interchangeable metric part '''
+#                 # Add the updated state to the track
+#                 # Replace prediction with update
+#                 predicted_track.append(update)
+
+#         # Get the last (updated) state from each track
+#         updated_states = [predicted_track[-1] for predicted_track in predicted_tracks] # output a list of updated states 
+
+#         # Use the maths class to calculate a metric based on updated states
+#         # use the general maths class here
+#         # update_metric = self.maths_class.calculate(updated_states)
+#         update_metric = sum(np.linalg.norm(track.covar) for track in predicted_tracks)
+#         print(f"update_metric total: {update_metric}")
+        
+#         # Calculate the reward: difference between predicted and updated metrics
+#         config_metric = predicted_metric - update_metric
+#         print(f"config_metric total: {config_metric}")
+
+#         # If lower metric is better, flip the sign so higher reward means better result
+#         # if the value we have is not true (smaller value is better in the case of uncertainty to get a bigger reward)
+#         if not self.greater_is_better:
+#             # multiply our current value by -1
+#             config_metric *= -1
+
+#         # Return the final reward value i.e. return the value of configuration metric
+#         return config_metric
+

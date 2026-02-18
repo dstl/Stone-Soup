@@ -178,6 +178,9 @@ class BruteForceSensorManager(SensorManager):
             if reward > min(best_rewards):
                 selected_configs[np.argmin(best_rewards)] = config
                 best_rewards[np.argmin(best_rewards)] = reward
+        
+        print("Best rewards from BruteForceSensorManager: ", best_rewards)
+        
         if return_reward:
             # Return mapping of sensors and chosen actions for sensors
             # Also returns rewards
