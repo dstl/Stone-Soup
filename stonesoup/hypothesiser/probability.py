@@ -1,12 +1,13 @@
 from functools import lru_cache
 
-from scipy.stats import multivariate_normal, chi2
+from scipy.stats import chi2
 from scipy.linalg import det
 from scipy.special import gamma
 import numpy as np
 
 from .base import Hypothesiser
 from ..base import Property
+from ..functions import batch_multivariate_normal_logpdf
 from ..measures import SquaredMahalanobis
 from ..types.detection import MissedDetection
 from ..types.hypothesis import SingleProbabilityHypothesis
@@ -124,7 +125,7 @@ class PDAHypothesiser(Hypothesiser):
         : :class:`~.MultipleHypothesis`
             A container of :class:`~.SingleProbabilityHypothesis` objects
         """
-
+        detections = list(detections)
         hypotheses = list()
         validated_measurements = 0
         measure = SquaredMahalanobis(state_covar_inv_cache_size=None)
@@ -140,19 +141,27 @@ class PDAHypothesiser(Hypothesiser):
                 probability
                 ))
 
-        # True detection hypotheses
-        for detection in detections:
-            # Re-evaluate prediction
-            prediction = self.predictor.predict(
-                track, timestamp=detection.timestamp, **kwargs)
-            # Compute measurement prediction and probability measure
-            measurement_prediction = self.updater.predict_measurement(
-                prediction, detection.measurement_model, **kwargs)
-            # Calculate difference before to handle custom types (mean defaults to zero)
-            # This is required as log pdf coverts arrays to floats
-            log_prob = multivariate_normal.logpdf(
-                (detection.state_vector - measurement_prediction.mean).ravel(),
-                cov=measurement_prediction.covar)
+        predictions = [
+            self.predictor.predict(track, timestamp=detection.timestamp, **kwargs)
+            for detection in detections
+        ]
+
+        measurement_predictions = [
+            self.updater.predict_measurement(
+                predictions[n], detection.measurement_model, **kwargs
+            )
+            for n, detection in enumerate(detections)
+        ]
+
+        logpdfs = batch_multivariate_normal_logpdf(
+            [detection.state_vector for detection in detections],
+            measurement_predictions,
+        )
+
+        for n, detection in enumerate(detections):
+            prediction = predictions[n]
+            measurement_prediction = measurement_predictions[n]
+            log_prob = logpdfs[n]
             probability = Probability(log_prob, log_value=True)
 
             if measure(measurement_prediction, detection) \
