@@ -1225,17 +1225,17 @@ def is_cholesky_decomposable(matrix):
 
 def batch_multivariate_normal_logpdf(vectors, states):
     r"""
-    Vectorised calculation for the multi-variate normal logpdf of N :class:`StateVector` objects
-    to N :class:`GaussianState` objects.
+    Vectorised calculation for the multi-variate normal logpdf of N :class:`~.StateVector` objects
+    to N :class:`~.GaussianState` objects.
 
     The logpdf of vectors[m] will be calculated from the distribution states[m].
 
     Parameters
     ----------
-    vectors: list of :class:`StateVector`
-        Sequence of N :class:`StateVector`objects.
-    states: list of :class:`GaussianState`
-        Sequence of N :class:`GaussianState` objects.
+    vectors: list of :class:`~.StateVector`
+        Sequence of N :class:`~.StateVector` objects.
+    states: list of :class:`~.GaussianState`
+        Sequence of N :class:`~.GaussianState` objects.
 
     Returns
     -------
