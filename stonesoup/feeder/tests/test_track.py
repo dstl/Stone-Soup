@@ -3,7 +3,7 @@ import numpy as np
 
 from ...types.state import GaussianState
 from ...types.track import Track
-from ..track import Tracks2GaussianDetectionFeeder
+from ..track import Tracks2GaussianDetectionFeeder, ReplayTrackFeeder
 
 t1 = Track(GaussianState([1, 1, 1, 1], np.diag([2, 2, 2, 2]), timestamp=2))
 t2 = Track([GaussianState([1, 1, 1, 1], np.diag([2, 2, 2, 2]), timestamp=1),
@@ -12,6 +12,8 @@ t3 = Track([GaussianState([1, 1], np.diag([2, 2]), timestamp=0),
             GaussianState([2, 1], np.diag([2, 2]), timestamp=1),
             GaussianState([3, 1], np.diag([2, 2]), timestamp=2)])
 t4 = Track(GaussianState([1, 0, 1, 0, 1, 0], np.diag([2, 2, 2, 2, 2, 2]), timestamp=2))
+
+times = [0, 1, 2]
 
 
 @pytest.mark.parametrize(
@@ -53,3 +55,22 @@ def test_Track2GaussianDetectionFeeder(tracks):
                               if detection.metadata['track_id'] == track.id))
         assert np.all(detection.state_vector == track.state_vector)
         assert np.all(detection.covar == track.covar)
+
+
+@pytest.mark.parametrize(("tracks", "times"),
+                         [([t1], times), ([t1], None),
+                          ([t1, t2], times), ([t1, t2], None),
+                          ([t2, t3], times), ([t2, t3], None),
+                          ([t1, t2, t3, t4], times), ([t1, t2, t3, t4], None)])
+def test_ReplayTrackFeeder(tracks, times):
+    feeder = ReplayTrackFeeder(reader=tracks, times=times)
+    feeder_times = []
+    feeder_tracks = set()
+    for new_time, new_tracks in feeder:
+        feeder_times.append(new_time)
+        feeder_tracks |= new_tracks
+    if times is not None:
+        assert times == feeder_times
+    assert len(tracks) == len(feeder_tracks)
+    assert (sorted([len(track) for track in tracks]) ==
+            sorted([len(track) for track in feeder_tracks]))
