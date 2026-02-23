@@ -20,18 +20,23 @@ from ...measures import Mahalanobis
 from ...dataassociator.neighbour import GNNWith2DAssignment
 from ...sensor.radar.radar import RadarRotatingBearingRange
 from ...sensor.action.dwell_action import ChangeDwellAction
+from ...movable.action.move_position_action import MovePositionAction
+from ...platform.base import FixedPlatform
+from ...sensor.sensor import Sensor
 
 
 def test_optuna_manager(params):
     predictor = params['predictor']
     updater = params['updater']
     sensor_set = params['sensor_set']
+    platform_set = params['platform_set']
     timesteps = params['timesteps']
     tracks = params['tracks']
     truths = params['truths']
 
     reward_function = UncertaintyRewardFunction(predictor, updater)
-    optunasensormanager = OptunaSensorManager(sensor_set, reward_function=reward_function,
+    optunasensormanager = OptunaSensorManager(sensor_set, platform_set,
+                                              reward_function=reward_function,
                                               timeout=0.1)
 
     hypothesiser = DistanceHypothesiser(predictor, updater, measure=Mahalanobis(),
@@ -45,10 +50,10 @@ def test_optuna_manager(params):
         chosen_actions = optunasensormanager.choose_actions(tracks, timestep)
         measurements = set()
         for chosen_action in chosen_actions:
-            for sensor, actions in chosen_action.items():
-                sensor.add_actions(actions)
+            for actionable, actions in chosen_action.items():
+                actionable.add_actions(actions)
+                actionable.act(timestep)
         for sensor in sensor_set:
-            sensor.act(timestep)
             sensor_history[timestep][sensor] = copy.copy(sensor)
             dwell_centres[timestep] = sensor.dwell_centre[0][0]
             measurements |= sensor.measure(OrderedSet(truth[timestep] for truth in truths),
@@ -68,9 +73,13 @@ def test_optuna_manager(params):
     assert isinstance(chosen_actions, list)
 
     for chosen_actions in chosen_actions:
-        for sensor, actions in chosen_action.items():
-            assert isinstance(sensor, RadarRotatingBearingRange)
-            assert isinstance(actions[0], ChangeDwellAction)
+        for actionable, actions in chosen_action.items():
+            if isinstance(actionable, Sensor):
+                assert isinstance(actionable, RadarRotatingBearingRange)
+                assert isinstance(actions[0], ChangeDwellAction)
+            else:
+                assert isinstance(actionable, FixedPlatform)
+                assert isinstance(actions[0], MovePositionAction)
 
     # Check sensor following track as expected
     assert dwell_centres[timesteps[5]] - np.radians(135) < 1e-3
