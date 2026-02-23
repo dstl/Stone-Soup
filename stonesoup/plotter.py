@@ -1,6 +1,7 @@
 import warnings
 from abc import ABC, abstractmethod
 from collections.abc import Collection, Iterable
+from dataclasses import dataclass
 from datetime import datetime, timedelta
 from enum import IntEnum
 from itertools import chain
@@ -24,12 +25,16 @@ except ImportError:
     go = None
 
 from .base import Base, Property
+from .dataassociator import Associator
+from .metricgenerator import MetricGenerator
+from .metricgenerator.manager import MultiManager
 from .models.base import LinearModel, Model
 from .types import detection
 from .types.array import StateVector
 from .types.groundtruth import GroundTruthPath
 from .types.metric import SingleTimeMetric
 from .types.state import State, StateMutableSequence
+from .types.track import Track
 from .types.update import Update
 
 
@@ -3579,3 +3584,125 @@ class AnimatedPolarPlotterly(PolarPlotterly):
 
                 frame.data = data_
                 frame.traces = traces_
+
+
+@dataclass
+class RAG:
+    r"""Dataclass to store the cutoff values for Red-Amber-Green scoring.
+    Values are given as a distance to the metric target value.
+    Green is scored if :math:`x \leq` :attr:`GREEN`.
+    Amber is scored if :attr:`Green` :math:`< x \leq` :attr:`AMBER`.
+    Red is scored if :math:`x >` :attr:`AMBER`.
+    """
+    GREEN: float
+    AMBER: float
+
+
+class RAGPlotterly(Plotterly):
+    """
+    Plotterly plotter to display tracks according to their performance in a given metric.
+    """
+    colours = {0: "black",
+               1: "red",
+               2: "yellow",
+               3: "green"}
+
+    def __init__(self, metric_name: str, target_value: float,
+                 rag_boundaries: RAG, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.metric_name = metric_name
+        self.target_value = target_value
+        self.rag_boundaries = rag_boundaries
+
+    @staticmethod
+    def generate_metrics(tracks: set[Track], truths: set[GroundTruthPath], associator: Associator,
+                         metric: MetricGenerator) -> dict:
+        """Method to produce a set of metrics between each track and truth pair
+
+        Parameters
+        ----------
+        tracks : set[Track]
+        truths : set[GroundTruthPath]
+        associator : Associator
+            Associator used to narrow down track, truth pairs.
+        metric : MetricGenerator
+            The base metric type with which to produce metrics.
+
+        Returns
+        -------
+        dict
+            Calculated metrics for track, truth pairs.
+        """
+        associations, _ = associator.associated_and_unassociated_tracks(tracks, truths)
+        metric_generators = []
+        for track in tracks:
+            for association in associations:
+                if track in association.objects:
+                    truth = next(iter(association.objects - {track}))
+                    metric_generators.append(metric(generator_name=(track.id, truth.id),
+                                                    tracks_key=track.id,
+                                                    truths_key=truth.id))
+        metric_manager = MultiManager(metric_generators, associator)
+        metric_data = {sms.id: {sms} for sms in [*tracks, *truths]}
+        metric_manager.add_data(metric_data)
+        metrics = metric_manager.generate_metrics()
+        return metrics
+
+    def get_rag_from_value(self, values: list[float]) -> int:
+        """Method to produce a Red-Amber-Green score based on a given set of metric values.
+
+        Parameters
+        ----------
+        values : list[float]
+            A list of metric values for a given track
+
+        Returns
+        -------
+        int
+            A score ranging from 1: Red to 3: Green.
+        """
+        values = sorted(values, key=lambda x: abs(x-self.target_value))
+        value = values[0]
+        if abs(value - self.target_value) < self.rag_boundaries.GREEN:
+            return 3
+        if abs(value - self.target_value) < self.rag_boundaries.AMBER:
+            return 2
+        return 1
+
+    def plot_tracks(self, tracks, mapping, metrics, colours=None):
+        if colours is None:
+            colours = self.colours
+        for track in tracks:
+            colour_dict = {}
+            metric_sets = [metric_set[self.metric_name].value
+                           for metric_id, metric_set in metrics.items()
+                           if track.id in metric_id]
+            if len(metric_sets) == 0:
+                colour_dict = {state.timestamp: 0 for state in track}
+            for metric_states in zip(*metric_sets):
+                values = [metric_state.value for metric_state in metric_states]
+                times = {metric_state.timestamp for metric_state in metric_states}
+                assert len(times) == 1
+                time = next(iter(times))
+                colour_dict[time] = self.get_rag_from_value(values)
+
+            tracklet = Track(id=track.id)
+            tracklet_colour = None
+            for state in track.states:
+                tracklet.append(state)
+                state_colour = colour_dict[state.timestamp]
+                if tracklet_colour is None:
+                    pass
+                elif tracklet_colour == state_colour:
+                    pass
+                elif tracklet_colour != state_colour:
+                    super().plot_tracks(tracklet, mapping, label=track.id,
+                                        marker=dict(color=colours[tracklet_colour]))
+                    tracklet = Track(id=track.id)
+                    tracklet.append(state)
+
+                tracklet.append(state)
+                tracklet_colour = state_colour
+            if len(tracklet.states) > 0:
+                super().plot_tracks(tracklet, mapping, label=track.id,
+                                    marker=dict(color=colours[tracklet_colour]))
