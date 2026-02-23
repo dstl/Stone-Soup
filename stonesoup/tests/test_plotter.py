@@ -316,14 +316,11 @@ def test_plotterly_1d():
     plotter1d.plot_ground_truths(truth, [0])
     plotter1d.plot_measurements(true_measurements, [0])
     plotter1d.plot_tracks(track, [0])
+    plotter1d.plot_tracks(track, [0], uncertainty=True)
 
     # check that particle=True does not plot
     with pytest.raises(NotImplementedError):
         plotter1d.plot_tracks(track, [0], particle=True)
-
-    # check that uncertainty=True does not plot
-    with pytest.raises(NotImplementedError):
-        plotter1d.plot_tracks(track, [0], uncertainty=True)
 
 
 def test_plotterly_2d():
