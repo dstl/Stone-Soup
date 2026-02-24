@@ -5,7 +5,8 @@ from functools import lru_cache
 
 import numpy as np
 from scipy.integrate import quad
-from scipy.linalg import block_diag
+from scipy.linalg import block_diag, expm, solve
+from scipy.special import erf
 
 from .base import TransitionModel, CombinedGaussianTransitionModel
 from ..base import (LinearModel, GaussianModel, TimeVariantModel,
@@ -597,6 +598,411 @@ class SingerApproximate(Singer):
         ) * self.noise_diff_coeff
 
         return CovarianceMatrix(covar)
+
+
+class SimpleMarkovianGP(LinearGaussianTransitionModel, TimeVariantModel):
+    r"""Discrete model implementing a Markovian zero-mean Gaussian process (GP).
+
+    By default, the GP has the Squared Exponential (SE) covariance function (kernel).
+    The :py:meth:`kernel` can be overridden to implement different kernels.
+
+    We apply the Markovian approximation :math:`P(x_t \mid x_{1:t-1}) \approx P(x_t \mid \mathbf{x}_{t-1})`,
+    limiting the state vector to length :math:`d`, containing the last :math:`d` states.
+
+    Specify hyperparameters for the SE kernel through :py:attr:`kernel_params`.
+    For SE-based models, the hyperparameters are length_scale and kernel_variance.
+    """
+
+    window_size: int = Property(doc="Size of the state vector :math:`d`")
+    epsilon: float = Property(
+        doc="Small constant added to diagonal of covariance matrix", default=1e-6)
+    kernel_params: dict = Property(doc="Dictionary containing the keyword arguments for the kernel.")
+
+    @property
+    def requires_track(self):
+        return True
+    
+    @property
+    def ndim_state(self):
+        return self.window_size
+
+    def kernel(self, t1, t2, **kwargs) -> np.ndarray:
+        """SE Covariance function (kernel) of the Gaussian Process.
+
+        Computes the covariance matrix between two time vectors using a
+        kernel function.
+        Override this method to implement different kernels.
+
+        Parameters
+        ----------
+        t1 : array-like, shape (n_samples_1,)
+        
+        t2 : array-like, shape (n_samples_2,)
+
+        Returns
+        -------
+        np.ndarray, shape (n_samples_1, n_samples_2)
+            The covariance matrix between the input arrays `t1` and `t2`.
+            Each entry (i, j) represents the covariance between `t1[i]` and `t2[j]`.
+        """
+        l = self.kernel_params["length_scale"]
+        var = self.kernel_params["kernel_variance"]
+        t1 = t1.reshape(-1, 1)
+        t2 = t2.reshape(1, -1)
+        return var * np.exp(-0.5 * ((t1 - t2)/l) ** 2)
+
+    def matrix(self, track, time_interval, **kwargs):
+        """Model matrix :math:`F`
+
+        Returns
+        -------
+        : :class:`numpy.ndarray` of shape\
+        (:py:attr:`~ndim_state`, :py:attr:`~ndim_state`)
+        """
+        d = self.window_size
+        t = self._get_time_vector(track, time_interval)
+
+        gp_weights, _ = self._gp_pred_wrapper(t, t)
+        Fmat = np.eye(d, k=-1)
+        Fmat[0, :len(gp_weights)] = gp_weights.T
+
+        return Fmat
+
+    def covar(self, track, time_interval, **kwargs):
+        """Returns the transition model noise covariance matrix.
+
+        Parameters
+        ----------
+        track : :class:`~.Track`
+            The track containing the states to obtain the time vector
+        time_interval : :class:`datetime.timedelta`
+            A time interval :math:`dt`
+
+        Returns
+        -------
+        :class:`stonesoup.types.state.CovarianceMatrix` of shape\
+        (:py:attr:`~ndim_state`, :py:attr:`~ndim_state`)
+            The process noise covariance.
+        """
+        d = self.ndim_state
+        t = self._get_time_vector(track, time_interval)
+
+        _, noise_var = self._gp_pred_wrapper(t, t)
+        covar = np.zeros((d, d))
+        covar[0, 0] = 1
+        return CovarianceMatrix(covar * noise_var)
+    
+    def _get_time_vector(self, track, time_interval):
+        return self._get_time_vector_markov1(track, time_interval)
+    
+    def _get_time_vector_markov1(self, track, time_interval):
+        """
+        Generates a time vector containing the time elapsed (in seconds)
+        from the start time of the track.
+
+        The time vector includes:
+            - The prediction time: (last state timestamp + time_interval)
+            - The timestamps of the last `window_size` states in the track.
+
+        Parameters:
+            track: The track containing the states.
+            time_interval: The time interval for prediction.
+        
+        Returns:
+            time_vector (ndarray): A 2D array of elapsed times (d+1 x 1).
+
+        Markov approx 2 assumes a constatn time interval. 
+        Window spans absolute time time-interval*window_size
+        """
+        d = min(self.window_size, len(track.states))
+        start_time = track.states[0].timestamp
+
+        prediction_time = track.states[-1].timestamp + time_interval
+        time_vector = np.array([(prediction_time - start_time).total_seconds()])
+        for i in range(0, d):
+            state_time = track.states[-1 - i].timestamp
+            time_vector = np.append(time_vector, (state_time - start_time).total_seconds())
+        return time_vector.reshape(-1, 1)
+    
+    def _gp_pred_wrapper(self, t1, t2):
+        """Prepare inputs and call cached GP prediction helper function."""
+        t1 = tuple(np.round(np.atleast_1d(t1).flatten(), 10))
+        t2 = tuple(np.round(np.atleast_1d(t2).flatten(), 10))
+        return self._gp_pred(t1, t2)
+    
+    @lru_cache
+    def _gp_pred(self, t1, t2):
+        """Cached GP prediction: compute weights and noise variance."""
+        t1 = np.array(t1)
+        t2 = np.array(t2)
+        C = self.kernel(t1, t2)
+        C = C + np.eye(np.shape(C)[0]) * self.epsilon
+        gp_weights = solve(C[1:, 1:], C[1:, 0])
+        noise_var = C[0, 0] - C[0, 1:] @ gp_weights
+        return gp_weights, noise_var
+
+
+
+class DynamicsInformedIntegratedGP(SimpleMarkovianGP):
+    r"""Discrete time-variant 1D Dynamics Informed Integrated Gaussian Process (iDGP) model,
+    where velocity is modelled as a first order DE, with a GP as driving noise.
+
+    By default, the driving GP has the SE covariance function.
+    :py:meth:`scalar_kernel()` can be overridden to implement different kernels for cases where
+    the driving GP has a different kernel.
+    """
+
+    markov_approx: int = Property(doc="Order of Markov Approximation. 1 or 2", default=1)
+    dynamics_coeff: float = Property(doc="Coefficient a of equation dx/dt = ax + bg(t)")
+    gp_coeff: float = Property(doc="Coefficient b of equation dx/dt = ax + bg(t)")
+    prior_var: float = Property(
+        doc="Variance of prior x_0. Added to covariance function during initialisation", default=0)
+
+    @property
+    def ndim_state(self):
+        return self.window_size + 1 if self.markov_approx == 1 else self.window_size
+
+    def matrix(self, track, time_interval, **kwargs):
+        a = self.dynamics_coeff
+        d = self.window_size
+        dt = time_interval.total_seconds()
+        Fmat = super().matrix(track=track, time_interval=time_interval, **kwargs)
+        # Add extra dimension for augmented mean
+        if self.markov_approx == 1:
+            Fmat = np.pad(Fmat, ((0, 1), (0, 1)))
+            Fmat[-1, -1] = np.exp(a * dt)
+        else:
+            # Compute term for x_{k-d} (after initialisation)
+            t_d = self._get_time_vector_markov2(track, time_interval)
+            if len(track.states) >= self.window_size:
+                Fmat[0, -1] = np.exp(a * dt * d) - np.dot(Fmat[0, :-1], np.exp(a * t_d[1:]))
+
+        return Fmat
+    
+    def _get_time_vector(self, track, time_interval):
+        if self.markov_approx == 1:
+            return self._get_time_vector_markov1(track, time_interval)
+        return self._get_time_vector_markov2(track, time_interval)
+    
+    def _get_time_vector_markov2(self, track, time_interval):
+        d = min(self.window_size, len(track.states))
+        dt = time_interval.total_seconds()
+    
+        if len(track.states) < self.window_size:
+            # include prior at t = 0
+            return np.linspace(d * dt, 0, d + 1).reshape(-1, 1)
+        else:
+            return np.linspace(d * dt, dt, d).reshape(-1, 1)
+
+    def kernel(self, t1, t2):
+        t1 = np.atleast_2d(t1).reshape(-1, 1)
+        t2 = np.atleast_2d(t2).reshape(-1, 1)
+        K = np.zeros((len(t1), len(t2)))
+
+        # if t1 == t2, compute upper triangular matrix only
+        if np.array_equal(t1, t2):
+            for i in range(len(t1)):
+                for j in range(i, len(t2)):
+                    # K[i, j] = self._invoke_scalar_kernel(float(t1[i]), float(t2[j]))
+                    K[i, j] = self._scalar_kernel_wrapper(t1[i], t2[j])
+                    if i != j:
+                        K[j, i] = K[i, j]
+        
+        # Compute full matrix
+        else:
+            for i in range(len(t1)):
+                for j in range(len(t2)):
+                    # K[i, j] = self._invoke_scalar_kernel(float(t1[i]), float(t2[j]))
+                    K[i, j] = self._scalar_kernel_wrapper(t1[i], t2[j])
+
+        # Include prior variance if the current window includes the prior
+        if t1[-1] == 0:
+            K += self.prior_var
+
+        return K
+
+    def _scalar_kernel_wrapper(self, t1, t2):
+        return self._scalar_kernel(float(t1), float(t2))
+
+    @lru_cache
+    def _scalar_kernel(self, t1, t2):
+        """iDSE kernel."""
+        a = self.dynamics_coeff
+        b = self.gp_coeff
+        l = self.kernel_params["length_scale"]
+        var = self.kernel_params["kernel_variance"]
+        return (b ** 2) * var * np.sqrt(np.pi / 2) * l * (
+                    DynamicsInformedIntegratedGP._h(a, l, t2, t1)
+                    + DynamicsInformedIntegratedGP._h(a, l, t1, t2)
+                )
+
+    @staticmethod
+    @lru_cache
+    def _h(a, l, t1, t2):
+        """Helper function for iDSE kernel."""
+        l_s = l * np.sqrt(2)
+        gma = -a * l_s / 2
+        t1_s = t1 / l_s
+        t2_s = t2 / l_s
+        diff_s = (t1 - t2) / l_s
+        
+        return ((np.exp(gma ** 2)) / (-2 * a)) * (
+            np.exp(a * (t1 - t2)) * (erf(diff_s - gma) + erf(t2_s + gma))
+            - np.exp(a * (t1 + t2)) * (erf(t1_s - gma) + erf(gma))
+        )
+
+
+class DynamicsInformedTwiceIntegratedGP(DynamicsInformedIntegratedGP):
+    r"""Discrete time-variant 1D Dynamics Informed Twice Integrated Gaussian Process (iiDGP) model,
+    where acceleration is modelled as a first order DE, with a GP as driving noise.
+    This model is implemented with the first Markovian approximation only.
+    """
+
+    @property
+    def markov_approx(self):
+        return 1  # markov_approx = 2 not implemented
+
+    @property
+    def ndim_state(self):
+        return self.window_size + 2
+
+    def matrix(self, track, time_interval, **kwargs):
+        d = self.window_size
+        dt = time_interval.total_seconds()
+
+        Fmat = np.zeros((self.ndim_state, self.ndim_state))
+        Fmat[:d, :d] = super().matrix(track, time_interval, **kwargs)[:d, :d]
+
+        A_mean = np.array([[0, 1],
+                            [0, self.dynamics_coeff]])
+        Fmat_mean = expm(A_mean * dt)  # 2x2 sub-transition matrix for [mean_pos, mean_vel]
+        Fmat[d:, d:] = Fmat_mean
+        return Fmat
+    
+    @lru_cache
+    def _scalar_kernel(self, t1, t2):
+        """iiDSE kernel."""
+        a = self.dynamics_coeff
+        b = self.gp_coeff
+        l = self.kernel_params["length_scale"]
+        var = self.kernel_params["kernel_variance"]
+        gma = -l * a / np.sqrt(2)
+        return -((np.sqrt(2 * np.pi) * (b**2) * var * l * np.exp(gma**2))/(4 * a))\
+                * (DynamicsInformedTwiceIntegratedGP._h(l, a, t1, t2)
+                   + DynamicsInformedTwiceIntegratedGP._h(l, a, t2, t1))
+
+    @staticmethod
+    @lru_cache
+    def _h(l, a, t1, t2):
+        """Helper function for iiDSE kernel."""
+        gma = -l * a / np.sqrt(2)
+        l_s = l * np.sqrt(2)
+        diff_s = (t2 - t1) / l_s
+        t1_s = t1 / l_s
+        t2_s = t2 / l_s
+        pdf = IntegratedGP._gaussian_pdf
+
+        s1 = (
+            diff_s * erf(diff_s) 
+            + t1_s * erf(-t1_s) 
+            - t2_s * erf(t2_s) 
+            + l_s * (pdf(t2, t1, l) - pdf(t1, 0, l) - pdf(t2, 0, l))
+            + 1 / np.sqrt(np.pi)
+        )
+
+        s2 = (
+            - np.exp(a*(t2 - t1)) * (erf(diff_s - gma) + erf(t1_s + gma))
+            + (2*np.exp(a * t2) - np.exp(a * (t1 + t2)) ) * (erf(t2_s - gma) + erf(gma))
+            + np.exp(-gma**2) * ((np.exp(a * t1) - 2) * erf(t2_s)
+                                + np.exp(a * t2) * erf(t1_s)
+                                + erf(diff_s))
+            )
+
+        result = (l_s * np.exp(-gma**2) / a) * s1  + (1 / (a**2)) * (s2)
+        return result
+
+
+class IntegratedGP(DynamicsInformedIntegratedGP):
+    r"""Class implementation of the iGP model,
+    where the driving GP has the Squared Exponential (SE) covariance function (kernel).
+
+    To implement driving GPs with differnet kernels, override scalar_kernel() with covariance function of
+    GP modelling position.
+    """
+
+    @property
+    def dynamics_coeff(self):
+        return 0
+    
+    @property
+    def gp_coeff(self):
+        return 1
+
+    @lru_cache
+    def _scalar_kernel(self, t1, t2):
+        """iSE kernel."""
+        l = self.kernel_params["length_scale"]
+        var = self.kernel_params["kernel_variance"]
+        return np.sqrt(2 * np.pi) * l * var * (
+                    IntegratedGP._h(l, t1, 0) + IntegratedGP._h(l, 0, t2)
+                    - IntegratedGP._h(l, t1, t2) - 2 / np.sqrt(2 * np.pi)
+                    ) 
+
+    @staticmethod
+    @lru_cache
+    def _h(l, t1, t2):
+        """Helper function for iSE kernel."""        
+        return (t1 - t2) * IntegratedGP._gaussian_cdf((t1 - t2) / l) + l**2 * IntegratedGP._gaussian_pdf(t1, t2, l)
+    
+    # use helper functions instead of scipy.stats.norm for faster execution
+    @staticmethod
+    def _gaussian_pdf(x, mu=0, sigma=1):
+        return np.exp(-0.5 * ((x - mu) / sigma)**2) / (sigma * np.sqrt(2 * np.pi))
+    
+    @staticmethod
+    def _gaussian_cdf(x, mu=0, sigma=1):
+        return 0.5 * (1 + erf((x - mu) / (sigma * np.sqrt(2))))
+
+
+class TwiceIntegratedGP(DynamicsInformedTwiceIntegratedGP):
+    r"""Class implementation of the iiGP model,
+    where the driving GP has the Squared Exponential (SE) covariance function (kernel).
+    """
+
+    @property
+    def dynamics_coeff(self):
+        return 0
+    
+    @property
+    def gp_coeff(self):
+        return 1
+
+    @lru_cache
+    def _scalar_kernel(self, t1, t2):
+        """iiSE kernel."""
+        l = self.kernel_params["length_scale"]
+        var = self.kernel_params["kernel_variance"]
+        h = IntegratedGP._h
+        h2 = TwiceIntegratedGP._h2
+        pdf = IntegratedGP._gaussian_pdf
+    
+        s1 = 0.5 * t2 * h2(l, t1) - 0.5 * t1 * h2(l, -t2)
+
+        s2 = (1 / 6) * ((t1 - t2) ** 2 * h(l, t1, t2) - t1 ** 2 * h(l, t1, 0) - t2 ** 2 * h(l, 0, t2)
+                        + l ** 4 * (pdf(0, t2, l) + pdf(t1, 0, l) - pdf(t1, t2, l)))
+
+        s3 = 0.5 * l ** 2 * (h(l, t1, t2) - h(l, 0, t2) - h(l, t1, 0))
+
+        s4 = (l / np.sqrt(2 * np.pi)) * (t1 * t2 - l ** 2 / 3)
+
+        return np.sqrt(2 * np.pi) * l * var * (s1 + s2 + s3 - s4)
+
+    @staticmethod
+    @lru_cache
+    def _h2(l, t):
+        """Helper function for iiSE kernel."""
+        cdf = IntegratedGP._gaussian_cdf        
+        return t * IntegratedGP._h(l, t, 0) + l**2 * cdf(t / l) - l**2 * cdf(0)
 
 
 class KnownTurnRateSandwich(LinearGaussianTransitionModel, TimeVariantModel):
