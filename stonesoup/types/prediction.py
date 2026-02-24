@@ -8,7 +8,9 @@ from .state import (State, GaussianState, EnsembleState,
                     ParticleState, MultiModelParticleState, RaoBlackwellisedParticleState,
                     SqrtGaussianState, InformationState, TaggedWeightedGaussianState,
                     WeightedGaussianState, CategoricalState, ASDGaussianState,
-                    BernoulliParticleState, KernelParticleState, ASDTaggedWeightedGaussianState)
+                    BernoulliParticleState, KernelParticleState, ASDTaggedWeightedGaussianState,
+                    ModelAugmentedWeightedGaussianState,
+                    ExpandedModelAugmentedWeightedGaussianState)
 from ..base import Property
 from ..models.transition.base import TransitionModel
 from ..types.state import CreatableFromState, CompositeState, PointMassState
@@ -271,3 +273,23 @@ class CompositeMeasurementPrediction(MeasurementPrediction, CompositeState):
 
 
 MeasurementPrediction.register(CompositeState)  # noqa: E305
+
+
+class ModelAugmentedWeightedGaussianStatePrediction(
+        Prediction,
+        ModelAugmentedWeightedGaussianState):
+    """ ModelAugmentedWeightedGaussianStatePrediction type
+
+    This is a Gaussian state prediction object with an associated
+    weight and multiple model properties.
+    """
+
+
+class ExpandedModelAugmentedWeightedGaussianStatePrediction(
+        Prediction,
+        ExpandedModelAugmentedWeightedGaussianState):
+    """ ExpandedModelAugmentedWeightedGaussianStatePrediction type
+
+    This is a simple Gaussian state prediction object with an associated
+    weight and multiple model properties.
+    """
