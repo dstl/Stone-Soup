@@ -2,6 +2,7 @@
 
 import copy
 import warnings
+from collections import defaultdict
 from functools import lru_cache
 
 import numpy as np
@@ -669,9 +670,9 @@ def gm_reduce_single(means, covars, weights):
     ----------
     means : :class:`~.StateVectors`
         The means of the GM components
-    covars : np.array of shape (num_dims, num_dims, num_components)
+    covars : :class:`numpy.ndarray` of shape (num_dims, num_dims, num_components)
         The covariance matrices of the GM components
-    weights : np.array of shape (num_components,)
+    weights : :class:`numpy.ndarray` of shape (num_components,)
         The weights of the GM components
 
     Returns
@@ -754,14 +755,13 @@ def build_rotation_matrix(angle_vector: np.ndarray):
 
     Parameters
     ----------
-        angle_vector : :class:`numpy.ndarray` of shape (3, 1): the rotations
-        about the :math:'x, y, z' axes.
-        In aircraft/radar terms these correspond to
+    angle_vector : :class:`numpy.ndarray` of shape (3, 1)
+        the rotations about the :math:'x, y, z' axes. In aircraft/radar terms these correspond to
         [roll, pitch/elevation, yaw/azimuth]
 
     Returns
     -------
-        :class:`numpy.ndarray` of shape (3, 3)
+    : :class:`numpy.ndarray` of shape (3, 3)
             The model (3D) rotation matrix.
     """
     return _build_rotation_matrix(angle_vector[0, 0], angle_vector[1, 0], angle_vector[2, 0])
@@ -783,14 +783,13 @@ def build_rotation_matrix_xyz(angle_vector: np.ndarray):
 
     Parameters
     ----------
-        angle_vector : :class:`numpy.ndarray` of shape (3, 1): the rotations
-        about the :math:'x, y, z' axes.
-        In aircraft/radar terms these correspond to
+    angle_vector : :class:`numpy.ndarray` of shape (3, 1)
+        the rotations about the :math:'x, y, z' axes.  In aircraft/radar terms these correspond to
         [roll, pitch/elevation, yaw/azimuth]
 
     Returns
     -------
-        :class:`numpy.ndarray` of shape (3, 3)
+    : :class:`numpy.ndarray` of shape (3, 3)
             The model (3D) rotation matrix.
     """
     return _build_rotation_matrix_xyz(angle_vector[0, 0], angle_vector[1, 0], angle_vector[2, 0])
@@ -1159,3 +1158,126 @@ def cub_points_and_tf(nx, order, sqrtCov, mean, transFunct, state):
     trsfPoints = transFunct(state_copy)
 
     return points, w, trsfPoints
+
+
+def find_nearest_positive_definite(matrix, max_iterations=20):
+    r"""Find the nearest positive definite matrix usable for cholesky factorization.
+
+    The nearest measure is in terms of Frobenius norm.
+
+    Parameters
+    ----------
+    matrix : numpy.ndarray
+        Base matrix to find the nearest positive definite from
+
+    Returns
+    -------
+     : numpy.ndarray
+        The nearest positive definite matrix
+    """
+    if is_cholesky_decomposable(matrix):
+        return matrix
+
+    # make matrix symetric
+    matrix = (matrix + matrix.T) / 2
+
+    # set negative eigenvalues to zero for positive semi definitife matrix
+    eigval, eigvec = np.linalg.eig(matrix)
+    eigval[eigval < 0] = 0
+
+    # matrix reconstruction
+    matrix = eigvec @ np.diag(eigval) @ eigvec.T
+
+    # find the closest positive definite matrix
+    eps = np.eye(matrix.shape[0]) * np.spacing(np.linalg.norm(matrix))
+    k = 1
+    while True:
+        matrix += eps * k**2
+        if is_cholesky_decomposable(matrix):
+            break
+
+        if k == max_iterations:
+            raise ValueError("Cannot find the nearest positive definite matrix.""")
+        k += 1
+
+    return matrix
+
+
+def is_cholesky_decomposable(matrix):
+    r"""Test if given matrix is usable for cholesky decomposition.
+
+    Parameters
+    ----------
+    matrix: numpy.ndarray
+        Matrix to test
+
+    Returns
+    -------
+     : bool
+        An indication whether given matrix is usable for chelesky decomposition
+    """
+    try:
+        _ = np.linalg.cholesky(matrix)
+        return True
+    except np.linalg.LinAlgError:
+        return False
+
+
+def batch_multivariate_normal_logpdf(vectors, states):
+    r"""
+    Vectorised calculation for the multi-variate normal logpdf of N :class:`~.StateVector` objects
+    to N :class:`~.GaussianState` objects.
+
+    The logpdf of vectors[m] will be calculated from the distribution states[m].
+
+    Parameters
+    ----------
+    vectors: list of :class:`~.StateVector`
+        Sequence of N :class:`~.StateVector` objects.
+    states: list of :class:`~.GaussianState`
+        Sequence of N :class:`~.GaussianState` objects.
+
+    Returns
+    -------
+    : :class:`numpy.ndarray`
+        Numpy array of shape (N,) of logpdf values.
+    """
+    logpdfs = np.empty(len(states))
+
+    # group states by dimension
+    grouped_states = defaultdict(list)
+    for n, state in enumerate(states):
+        grouped_states[state.ndim].append((n, vectors[n].flatten(), state))
+
+    for ndim in grouped_states.keys():
+        indices = [indexed_state[0] for indexed_state in grouped_states[ndim]]
+        ndim_vectors = np.vstack(
+            [index_state[1] for index_state in grouped_states[ndim]]
+        )
+        ndim_states = [indexed_state[2] for indexed_state in grouped_states[ndim]]
+        ndim_means = np.vstack([state.mean.T for state in ndim_states])
+        ndim_covariances = np.array([state.covar for state in ndim_states])
+        number_of_states = len(ndim_states)
+
+        # shape (number_of_states, ndim, ndim)
+        try:
+            lower_cholesky = np.linalg.cholesky(ndim_covariances)
+        except np.linalg.LinAlgError:
+            ndim_covariances = np.array(
+                [find_nearest_positive_definite(state.covar) for state in ndim_states])
+            lower_cholesky = np.linalg.cholesky(ndim_covariances)
+
+        log_covariance_determinants = 2 * np.sum(
+            np.log(np.diagonal(lower_cholesky, axis1=-2, axis2=-1)), axis=-1
+        )
+        deviations = (ndim_vectors - ndim_means).reshape(number_of_states, ndim, 1)
+        whitened_deviations = np.linalg.solve(lower_cholesky, deviations.astype(np.float64))
+        squared_mahalanobis_distances = np.sum(whitened_deviations**2, axis=(1, 2))
+
+        logpdfs[indices] = -0.5 * (
+            log_covariance_determinants
+            + squared_mahalanobis_distances
+            + ndim * np.log(2 * np.pi)
+        )
+
+    return logpdfs

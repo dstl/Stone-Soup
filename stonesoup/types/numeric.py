@@ -1,4 +1,4 @@
-from math import log, log1p, exp, trunc, ceil, floor
+from math import trunc, ceil, floor
 from numbers import Real, Integral
 
 import numpy as np
@@ -23,10 +23,7 @@ class Probability(Real):
         if log_value:
             self._log_value = value
         else:
-            try:
-                self._log_value = self._log(value)
-            except ValueError:
-                raise ValueError("value must be greater than 0")
+            self._log_value = self._log(value)
 
     @property
     def log_value(self):
@@ -39,7 +36,12 @@ class Probability(Real):
         elif other == 0:
             return float("-inf")
         else:
-            return log(other)
+            with np.errstate(invalid="raise"):
+                try:
+                    log_value = np.log(other)
+                except FloatingPointError:
+                    raise ValueError("value must be greater than 0")
+            return log_value
 
     def __hash__(self):
         value = float(self)
@@ -89,7 +91,7 @@ class Probability(Real):
         if log_s == float("-inf"):  # Just return largest value
             return Probability(log_l, log_value=True)
 
-        return Probability(log_l + log1p(exp(log_s - log_l)),
+        return Probability(log_l + np.log1p(np.exp(log_s - log_l)),
                            log_value=True)
 
     def __radd__(self, other):
@@ -110,11 +112,11 @@ class Probability(Real):
         if log_s == float("-inf"):  # Just return largest value
             return Probability(log_l, log_value=True)
 
-        exp_diff = exp(log_s - log_l)
+        exp_diff = np.exp(log_s - log_l)
         if exp_diff == 1:  # Diff too small, so result is effectively zero
             return Probability(float("-inf"), log_value=True)
 
-        return Probability(log_l + log1p(-exp_diff),
+        return Probability(log_l + np.log1p(-exp_diff),
                            log_value=True)
 
     def __rsub__(self, other):
@@ -132,11 +134,11 @@ class Probability(Real):
         if log_s == float("-inf"):  # Just return largest value
             return Probability(log_l, log_value=True)
 
-        exp_diff = exp(log_s - log_l)
+        exp_diff = np.exp(log_s - log_l)
         if exp_diff == 1:  # Diff too small, so result is effectively zero
             return Probability(float("-inf"), log_value=True)
 
-        return Probability(log_l + log1p(-exp_diff),
+        return Probability(log_l + np.log1p(-exp_diff),
                            log_value=True)
 
     def __imul__(self, other):
@@ -155,7 +157,7 @@ class Probability(Real):
                 return Probability(self.log_value + self._log(other),
                                    log_value=True)
             else:
-                return exp(self.log_value + self._log(other))
+                return np.exp(self.log_value + self._log(other))
         except ValueError:
             return float(self) * other
 
@@ -212,7 +214,7 @@ class Probability(Real):
         return Probability(self)
 
     def __float__(self):
-        return exp(self.log_value)
+        return float(np.exp(self.log_value))
 
     def __round__(self, ndigits=None):
         value = round(float(self), ndigits)

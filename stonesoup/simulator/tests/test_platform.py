@@ -2,6 +2,7 @@ import datetime
 from copy import deepcopy
 
 import numpy as np
+import pytest
 
 from stonesoup.platform.base import MovingPlatform
 from ...models.transition.linear import CombinedLinearGaussianTransitionModel, ConstantVelocity
@@ -22,9 +23,10 @@ def build_platform(sensors, x_velocity):
     return platform
 
 
+@pytest.mark.parametrize("platform_detectable", [True, False])
 def test_platform_detection_simulator(sensor_model1,
                                       sensor_model2,
-                                      transition_model1):
+                                      platform_detectable):
 
     platform1 = build_platform([sensor_model1], 1)
     platform2 = build_platform([sensor_model2], 2)
@@ -33,9 +35,13 @@ def test_platform_detection_simulator(sensor_model1,
                      datetime.timedelta(seconds=i),
                      set()) for i in range(10))
     detector = PlatformDetectionSimulator(ground_truth,
-                                          [platform1, platform2])
+                                          [platform1, platform2],
+                                          platform_detectable)
 
     for n, (time, detections) in enumerate(detector):
+        if not platform_detectable:
+            assert not detections
+            continue
 
         # Detection count at each step.
         assert len(detections) == 1

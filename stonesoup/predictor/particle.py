@@ -37,7 +37,7 @@ class ParticlePredictor(Predictor):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         if self.proposal is None:
-            self.proposal = DynamicsProposal(self.transition_model)
+            self.proposal = DynamicsProposal(self.transition_model, self.control_model)
 
     @predict_lru_cache()
     def predict(self, prior, timestamp=None, measurement=None, **kwargs):
@@ -105,7 +105,7 @@ class ParticleFlowKalmanPredictor(ParticlePredictor):
 
         if self.kalman_predictor is None:
             self.kalman_predictor = ExtendedKalmanPredictor(
-                self.transition_model)
+                self.transition_model, self.control_model)
 
     def predict(self, prior, *args, **kwargs):
         particle_prediction = super().predict(prior, *args, **kwargs)
@@ -413,7 +413,7 @@ class VisibilityInformedBernoulliParticlePredictor(BernoulliParticlePredictor):
     target and estimates its existence. This implementation modifies the weight
     prediction step to account for particles that are predicted to be inside
     obstacles and not visible to the sensor. This is based on the work by
-    Glover et al. [#vibpf]
+    Glover et al. [#vibpf]_
 
     This should be used in conjunction with the
     :class:`~.VisibilityInformedBernoulliParticleUpdater` but also works with

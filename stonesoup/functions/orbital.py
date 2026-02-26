@@ -37,8 +37,8 @@ def stumpff_s(z):
         Output value, :math:`S(z)` in the same format and same size as input.
 
     .. deprecated:: 1.9
-        This function will be removed in Stone Soup 1.10. Orbital functions have moved to the
-        astrodynamics plugin.
+        This function will be removed in Stone Soup 1.10. Orbital functions have moved to
+        the astrodynamics plugin.
     """
     gti = z > 0
     lti = z < 0
@@ -82,8 +82,8 @@ def stumpff_c(z):
         Output value, :math:`C(z)` in same format and size as input
 
     .. deprecated:: 1.9
-        This function will be removed in Stone Soup 1.10. Orbital functions have moved to the
-        astrodynamics plugin.
+        This function will be removed in Stone Soup 1.10. Orbital functions have moved to
+        the astrodynamics plugin.
     """
     gti = z > 0
     lti = z < 0
@@ -136,8 +136,8 @@ def universal_anomaly_newton(o_state_vector, delta_t,
     .. [1] Curtis H.D. 2010, Orbital Mechanics for Engineering Students, 3rd Ed., Elsevier
 
     .. deprecated:: 1.9
-        This function will be removed in Stone Soup 1.10. Orbital functions have moved to the
-        astrodynamics plugin.
+        This function will be removed in Stone Soup 1.10. Orbital functions have moved to
+        the astrodynamics plugin.
     """
 
     # This should really have the calculation abstracted out and then do
@@ -209,8 +209,8 @@ def lagrange_coefficients_from_universal_anomaly(o_state_vector, delta_t,
             Methods, Princeton University Press
 
     .. deprecated:: 1.9
-        This function will be removed in Stone Soup 1.10. Orbital functions have moved to the
-        astrodynamics plugin.
+        This function will be removed in Stone Soup 1.10. Orbital functions have moved to
+        the astrodynamics plugin.
     """
     # First get the universal anomaly using Newton's method
     chii = universal_anomaly_newton(o_state_vector, delta_t,
@@ -269,8 +269,8 @@ def eccentric_anomaly_from_mean_anomaly(mean_anomaly, eccentricity,
         Eccentric anomaly of the orbit
 
     .. deprecated:: 1.9
-        This function will be removed in Stone Soup 1.10. Orbital functions have moved to the
-        astrodynamics plugin.
+        This function will be removed in Stone Soup 1.10. Orbital functions have moved to
+        the astrodynamics plugin.
     """
 
     if mean_anomaly < np.pi:
@@ -311,8 +311,8 @@ def tru_anom_from_mean_anom(mean_anomaly, eccentricity, precision=1e-8, max_iter
         True anomaly
 
     .. deprecated:: 1.9
-        This function will be removed in Stone Soup 1.10. Orbital functions have moved to the
-        astrodynamics plugin.
+        This function will be removed in Stone Soup 1.10. Orbital functions have moved to
+        the astrodynamics plugin.
     """
     cos_ecc_anom = np.cos(eccentric_anomaly_from_mean_anomaly(
         mean_anomaly, eccentricity, precision=precision, max_iterations=max_iterations))
@@ -346,8 +346,8 @@ def perifocal_position(eccentricity, semimajor_axis, true_anomaly):
         :math:`[r_x, r_y, r_z]` position in perifocal coordinates
 
     .. deprecated:: 1.9
-        This function will be removed in Stone Soup 1.10. Orbital functions have moved to the
-        astrodynamics plugin.
+        This function will be removed in Stone Soup 1.10. Orbital functions have moved to
+        the astrodynamics plugin.
     """
 
     # Cache some trigonometric functions
@@ -382,8 +382,8 @@ def perifocal_velocity(eccentricity, semimajor_axis, true_anomaly, grav_paramete
         :math:`[\dot{r}_x, \dot{r}_y, \dot{r}_z]` velocity in perifocal coordinates
 
     .. deprecated:: 1.9
-        This function will be removed in Stone Soup 1.10. Orbital functions have moved to the
-        astrodynamics plugin.
+        This function will be removed in Stone Soup 1.10. Orbital functions have moved to
+        the astrodynamics plugin.
     """
 
     # Cache some trigonometric functions
@@ -419,8 +419,8 @@ def perifocal_to_geocentric_matrix(inclination, raan, argp):
         coordinates
 
     .. deprecated:: 1.9
-        This function will be removed in Stone Soup 1.10. Orbital functions have moved to the
-        astrodynamics plugin.
+        This function will be removed in Stone Soup 1.10. Orbital functions have moved to
+        the astrodynamics plugin.
     """
     # Cache some trig functions
     s_incl = np.sin(inclination)
@@ -476,8 +476,8 @@ def keplerian_to_rv(state_vector, grav_parameter=3.986004418e14):
     No checking undertaken. Assumes Keplerian elements rendered correctly as above
 
     .. deprecated:: 1.9
-        This function will be removed in Stone Soup 1.10. Orbital functions have moved to the
-        astrodynamics plugin.
+        This function will be removed in Stone Soup 1.10. Orbital functions have moved to
+        the astrodynamics plugin.
     """
 
     # The (hidden) function which does this on a single StateVector
@@ -526,8 +526,8 @@ def mod_inclination(x):
         Angle in radians in the range :math:`0` to :math:`+\pi`
 
     .. deprecated:: 1.9
-        This function will be removed in Stone Soup 1.10. Orbital functions have moved to the
-        astrodynamics plugin.
+        This function will be removed in Stone Soup 1.10. Orbital functions have moved to
+        the astrodynamics plugin.
     """
 
     x = x % np.pi
@@ -550,8 +550,8 @@ def mod_elongitude(x):
         Angle in radians in the range :math:`0` to :math:`+2 \pi`
 
     .. deprecated:: 1.9
-    This function will be removed in Stone Soup 1.10. Orbital functions have moved to the
-    astrodynamics plugin.
+    This function will be removed in Stone Soup 1.10. Orbital functions have moved to
+    the astrodynamics plugin.
     """
 
     x = x % (2 * np.pi)
