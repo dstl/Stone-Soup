@@ -7,16 +7,48 @@ import numpy as np
 
 from ..base import Property
 from ..functions import dotproduct
-from ..functions.orbital import keplerian_to_rv, tru_anom_from_mean_anom
+from ..functions.orbital import (keplerian_to_rv, tru_anom_from_mean_anom,
+                                 mod_elongitude, mod_inclination)
 from . import Type
 from .array import StateVector, StateVectors, Matrix
 from .state import State, GaussianState, ParticleState
-from .angle import Inclination, EclipticLongitude
+from .angle import Angle
 from ..reader.astronomical import TLEDictReader
 
 warnings.simplefilter("default")  # To show warnings to user
 warnings.warn('Orbital types are deprecated and will be removed in Stone Soup 1.10. '
               'Orbital functionality has moved to the astrodynamics plugin.', DeprecationWarning)
+
+
+class Inclination(Angle):
+    """(Orbital) Inclination angle class.
+
+    Inclination handles modulo arithmetic for adding and subtracting angles.
+    The return type for addition and subtraction is Inclination.
+    Multiplication or division produces a float object rather than Inclination.
+    .. deprecated:: 1.9
+        This function will be removed in Stone Soup 1.10. Orbital functions have moved to the
+        astrodynamics plugin.
+    """
+    @staticmethod
+    def mod_angle(value):
+        return mod_inclination(value)
+
+
+class EclipticLongitude(Angle):
+    """(Orbital) Ecliptic Longitude angle class.
+
+    Ecliptic Longitude handles modulo arithmetic for adding and subtracting angles.
+    The return type for addition and subtraction is Ecliptic Longitude.
+    Multiplication or division produces a float object rather than Ecliptic Longitude.
+    .. deprecated:: 1.9
+        This function will be removed in Stone Soup 1.10. Orbital functions have moved to the
+        astrodynamics plugin.
+    """
+    @staticmethod
+    def mod_angle(value):
+        return mod_elongitude(value)
+
 
 class CoordinateSystem(Enum):
     """Enumerates the allowable coordinate systems. See OrbitalState help for full explanation of
@@ -122,7 +154,8 @@ class Orbital(Type):
     .. [3] Broucke, R. A. & Cefola, P. J. 1972, Celestial Mechanics, Volume 5, Issue 3, pp. 303-310
 
     .. deprecated:: 1.9
-        This function will be removed in Stone Soup 1.10. Orbital functions have moved to the astrodynamics plugin.
+        This function will be removed in Stone Soup 1.10. Orbital functions have moved to the
+        astrodynamics plugin.
     """
 
     coordinates: CoordinateSystem = Property(
@@ -752,7 +785,8 @@ class OrbitalState(Orbital, State):
            Aerospace Engineering Series
 
     .. deprecated:: 1.9
-        This function will be removed in Stone Soup 1.10. Orbital functions have moved to the astrodynamics plugin.
+        This function will be removed in Stone Soup 1.10. Orbital functions have moved to the
+        astrodynamics plugin.
     """
 
 
@@ -764,7 +798,8 @@ class GaussianOrbitalState(Orbital, GaussianState):
     All methods provided by :class:`~.Orbital` are available.
 
     .. deprecated:: 1.9
-        This function will be removed in Stone Soup 1.10. Orbital functions have moved to the astrodynamics plugin.
+        This function will be removed in Stone Soup 1.10. Orbital functions have moved to the
+        astrodynamics plugin.
     """
 
 
@@ -776,5 +811,6 @@ class ParticleOrbitalState(Orbital, ParticleState):
     All methods provided by :class:`~.Orbital` are available.
 
     .. deprecated:: 1.9
-        This function will be removed in Stone Soup 1.10. Orbital functions have moved to the astrodynamics plugin.
+        This function will be removed in Stone Soup 1.10. Orbital functions have moved to the
+        astrodynamics plugin.
     """
