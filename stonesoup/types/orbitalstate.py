@@ -7,47 +7,15 @@ import numpy as np
 
 from ..base import Property
 from ..functions import dotproduct
-from ..functions.orbital import (keplerian_to_rv, tru_anom_from_mean_anom,
-                                 mod_elongitude, mod_inclination)
+from ..functions.orbital import keplerian_to_rv, tru_anom_from_mean_anom
 from . import Type
 from .array import StateVector, StateVectors, Matrix
 from .state import State, GaussianState, ParticleState
-from .angle import Angle
 from ..reader.astronomical import TLEDictReader
 
 warnings.simplefilter("default")  # To show warnings to user
 warnings.warn('Orbital types are deprecated and will be removed in Stone Soup 1.10. '
               'Orbital functionality has moved to the astrodynamics plugin.', DeprecationWarning)
-
-
-class Inclination(Angle):
-    """(Orbital) Inclination angle class.
-
-    Inclination handles modulo arithmetic for adding and subtracting angles.
-    The return type for addition and subtraction is Inclination.
-    Multiplication or division produces a float object rather than Inclination.
-    .. deprecated:: 1.9
-        This function will be removed in Stone Soup 1.10. Orbital functions have moved to the
-        astrodynamics plugin.
-    """
-    @staticmethod
-    def mod_angle(value):
-        return mod_inclination(value)
-
-
-class EclipticLongitude(Angle):
-    """(Orbital) Ecliptic Longitude angle class.
-
-    Ecliptic Longitude handles modulo arithmetic for adding and subtracting angles.
-    The return type for addition and subtraction is Ecliptic Longitude.
-    Multiplication or division produces a float object rather than Ecliptic Longitude.
-    .. deprecated:: 1.9
-        This function will be removed in Stone Soup 1.10. Orbital functions have moved to the
-        astrodynamics plugin.
-    """
-    @staticmethod
-    def mod_angle(value):
-        return mod_elongitude(value)
 
 
 class CoordinateSystem(Enum):
