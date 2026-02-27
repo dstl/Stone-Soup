@@ -3662,10 +3662,11 @@ class RAGPlotterly(Plotterly):
         return 1
 
     def plot_tracks(self, tracks: set[Track], mapping: tuple, metrics: dict, metric_name: str,
-                    target_value: float, rag_boundaries: RAG, colours=None, label=None):
+                    target_value: float, rag_boundaries: RAG, colours=None, label=None, **kwargs):
         if colours is None:
             colours = self.colours
         for track in tracks:
+            _label = label if label is not None else track.id
             colour_dict = {}
             metric_sets = [metric_set[metric_name].value
                            for metric_id, metric_set in metrics.items()
@@ -3689,13 +3690,13 @@ class RAGPlotterly(Plotterly):
                 elif tracklet_colour == state_colour:
                     pass
                 elif tracklet_colour != state_colour:
-                    super().plot_tracks(tracklet, mapping, label=track.id,
-                                        marker=dict(color=colours[tracklet_colour]))
+                    super().plot_tracks(tracklet, mapping, label=_label,
+                                        marker=dict(color=colours[tracklet_colour]), **kwargs)
                     tracklet = Track(id=track.id)
                     tracklet.append(state)
 
                 tracklet.append(state)
                 tracklet_colour = state_colour
             if len(tracklet.states) > 0:
-                super().plot_tracks(tracklet, mapping, label=track.id,
-                                    marker=dict(color=colours[tracklet_colour]))
+                super().plot_tracks(tracklet, mapping, label=_label,
+                                    marker=dict(color=colours[tracklet_colour]), **kwargs)
