@@ -4,7 +4,6 @@ from math import trunc, ceil, floor
 import numpy as np
 
 from ..functions import mod_bearing, mod_elevation
-from ..functions.orbital import mod_inclination, mod_elongitude
 
 
 class Angle(Real):
@@ -258,9 +257,13 @@ class Inclination(Angle):
     Inclination handles modulo arithmetic for adding and subtracting angles.
     The return type for addition and subtraction is Inclination.
     Multiplication or division produces a float object rather than Inclination.
+    .. deprecated:: 1.9
+        This function will be removed in Stone Soup 1.10. Orbital functions have moved to the
+        astrodynamics plugin.
     """
     @staticmethod
     def mod_angle(value):
+        from ..functions.orbital import mod_inclination
         return mod_inclination(value)
 
 
@@ -270,7 +273,11 @@ class EclipticLongitude(Angle):
     Ecliptic Longitude handles modulo arithmetic for adding and subtracting angles.
     The return type for addition and subtraction is Ecliptic Longitude.
     Multiplication or division produces a float object rather than Ecliptic Longitude.
+    .. deprecated:: 1.9
+        This function will be removed in Stone Soup 1.10. Orbital functions have moved to the
+        astrodynamics plugin.
     """
     @staticmethod
     def mod_angle(value):
+        from ..functions.orbital import mod_elongitude
         return mod_elongitude(value)
