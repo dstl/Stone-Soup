@@ -11,6 +11,7 @@ from ..functions.orbital import keplerian_to_rv, tru_anom_from_mean_anom
 from . import Type
 from .array import StateVector, StateVectors, Matrix
 from .state import State, GaussianState, ParticleState
+from .angle import Inclination, EclipticLongitude
 from ..reader.astronomical import TLEDictReader
 
 warnings.simplefilter("default")  # To show warnings to user
@@ -122,8 +123,8 @@ class Orbital(Type):
     .. [3] Broucke, R. A. & Cefola, P. J. 1972, Celestial Mechanics, Volume 5, Issue 3, pp. 303-310
 
     .. deprecated:: 1.9
-        This function will be removed in Stone Soup 1.10. Orbital functions have moved to the
-        astrodynamics plugin.
+        This function will be removed in Stone Soup 1.10. Orbital functions have moved to
+        the astrodynamics plugin.
     """
 
     coordinates: CoordinateSystem = Property(
@@ -753,8 +754,8 @@ class OrbitalState(Orbital, State):
            Aerospace Engineering Series
 
     .. deprecated:: 1.9
-        This function will be removed in Stone Soup 1.10. Orbital functions have moved to the
-        astrodynamics plugin.
+        This function will be removed in Stone Soup 1.10. Orbital functions have moved to
+        the astrodynamics plugin.
     """
 
 
@@ -766,8 +767,8 @@ class GaussianOrbitalState(Orbital, GaussianState):
     All methods provided by :class:`~.Orbital` are available.
 
     .. deprecated:: 1.9
-        This function will be removed in Stone Soup 1.10. Orbital functions have moved to the
-        astrodynamics plugin.
+        This function will be removed in Stone Soup 1.10. Orbital functions have moved to
+        the astrodynamics plugin.
     """
 
 
@@ -779,6 +780,6 @@ class ParticleOrbitalState(Orbital, ParticleState):
     All methods provided by :class:`~.Orbital` are available.
 
     .. deprecated:: 1.9
-        This function will be removed in Stone Soup 1.10. Orbital functions have moved to the
-        astrodynamics plugin.
+        This function will be removed in Stone Soup 1.10. Orbital functions have moved to
+        the astrodynamics plugin.
     """

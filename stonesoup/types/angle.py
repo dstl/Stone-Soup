@@ -250,6 +250,7 @@ class Latitude(Elevation):
     Multiplication or division produces a float object rather than Latitude.
     """
 
+
 class Inclination(Angle):
     """(Orbital) Inclination angle class.
 
