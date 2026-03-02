@@ -1384,8 +1384,8 @@ class Plotterly(_Plotter):
         """Plots track(s)
 
         Plots each track generated, generating a legend automatically. If ``uncertainty=True``,
-        uncertainty is visualised: vertical error bars (1D), error ellipses (2D), or error bars (3D).
-        Tracks are plotted as solid lines with point markers and default colors.
+        uncertainty is visualised: vertical error bars (1D), error ellipses (2D), or error bars
+        (3D). Tracks are plotted as solid lines with point markers and default colors.
 
         Users can change line style, color and marker using keyword arguments.
 
@@ -1484,17 +1484,17 @@ class Plotterly(_Plotter):
                             err_y.append(np.nan)
 
                     scatter_kwargs_1d_error_y = dict(
-                        type='data', array=err_y, 
+                        type='data', array=err_y,
                     )
-                    scatter_kwargs = merge_dicts(scatter_kwargs, dict(error_y=scatter_kwargs_1d_error_y))
-                
+                    scatter_kwargs = merge_dicts(scatter_kwargs,
+                                                 dict(error_y=scatter_kwargs_1d_error_y))
 
                 self.fig.add_scatter(
                     x=[state.timestamp for state in track],
                     y=[float(getattr(state, 'mean', state.state_vector)[mapping[0]])
                        for state in track],
                     text=[self._format_state_text(state) for state in track],
-                    **scatter_kwargs)        
+                    **scatter_kwargs)
 
             elif self.dimension == 2:  # plot 2D tracks
 
