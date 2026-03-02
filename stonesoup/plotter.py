@@ -1383,8 +1383,8 @@ class Plotterly(_Plotter):
                     ellipse_points=30, err_freq=1, same_color=False, **kwargs):
         """Plots track(s)
 
-        Plots each track generated, generating a legend automatically. If ``uncertainty=True``
-        error ellipses are plotted.
+        Plots each track generated, generating a legend automatically. If ``uncertainty=True``,
+        uncertainty is visualised: vertical error bars (1D), error ellipses (2D), or error bars (3D).
         Tracks are plotted as solid lines with point markers and default colors.
 
         Users can change line style, color and marker using keyword arguments.
@@ -1398,7 +1398,8 @@ class Plotterly(_Plotter):
             List of items specifying the mapping of the position
             components of the state space.
         uncertainty : bool
-            If True, function plots uncertainty ellipses.
+            If True, function plots uncertainty: vertical error bars (1D), ellipses (2D),
+            or error bars (3D).
         particle : bool
             If True, function plots particles.
         label: str
@@ -1469,15 +1470,31 @@ class Plotterly(_Plotter):
 
             if self.dimension == 1:  # plot 1D tracks
 
-                if uncertainty or particle:
+                if particle:
                     raise NotImplementedError
+
+                if uncertainty:
+                    err_y = []
+                    for count, state in enumerate(track):
+                        if count % err_freq == 0:
+                            HH = np.eye(track.ndim)[mapping, :]  # Get position mapping matrix
+                            cov = HH @ state.covar @ HH.T
+                            err_y.append(np.sqrt(cov[0, 0]))
+                        else:
+                            err_y.append(np.nan)
+
+                    scatter_kwargs_1d_error_y = dict(
+                        type='data', array=err_y, 
+                    )
+                    scatter_kwargs = merge_dicts(scatter_kwargs, dict(error_y=scatter_kwargs_1d_error_y))
+                
 
                 self.fig.add_scatter(
                     x=[state.timestamp for state in track],
                     y=[float(getattr(state, 'mean', state.state_vector)[mapping[0]])
                        for state in track],
                     text=[self._format_state_text(state) for state in track],
-                    **scatter_kwargs)
+                    **scatter_kwargs)        
 
             elif self.dimension == 2:  # plot 2D tracks
 
