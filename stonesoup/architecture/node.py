@@ -45,8 +45,7 @@ class Node(Base):
         self.data_held = {"fused": {}, "created": {}, "unfused": {}}
         self.messages_to_pass_on = []
 
-    def update(self, time_pertaining, time_arrived, data_piece, category, track=None,
-               use_arrival_time=False):
+    def update(self, time_pertaining, time_arrived, data_piece, category, track=None):
         """
         Updates this Node's data_held using a new data piece.
 
@@ -63,8 +62,6 @@ class Node(Base):
         track : Track, optional
             Track to which the data piece is assigned, if it contains a Hypothesis
             (default is None).
-        use_arrival_time : bool, optional
-            If True, make `data.timestamp` equal to `time_arrived` (default is False).
 
         Returns
         -------
@@ -93,17 +90,9 @@ class Node(Base):
         added, self.data_held[category] = _dict_set(self.data_held[category],
                                                     new_data_piece, time_pertaining)
 
-        if use_arrival_time and isinstance(self, FusionNode) and \
-                category in ("created", "unfused"):
-            data = copy.copy(data_piece.data)
-            data.timestamp = time_arrived
-            if data not in self.fusion_queue.received:
-                self.fusion_queue.received.add(data)
-                self.fusion_queue.put((time_pertaining, {data}))
-
-        elif isinstance(self, FusionNode) and \
-                category in ("created", "unfused") and \
-                data_piece.data not in self.fusion_queue.received:
+        if (isinstance(self, FusionNode)
+                and category in ("created", "unfused")
+                and data_piece.data not in self.fusion_queue.received):
             self.fusion_queue.received.add(data_piece.data)
             self.fusion_queue.put((time_pertaining, {data_piece.data}))
 

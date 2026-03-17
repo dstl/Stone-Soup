@@ -255,8 +255,7 @@ NH_edges = Edges([Edge((sensornode1, fusion_node1), edge_latency=0),
 # sphinx_gallery_thumbnail_path = '_static/sphinx_gallery/ArchTutorial_3.png'
 
 
-NH_architecture = InformationArchitecture(NH_edges, current_time=start_time,
-                                          use_arrival_time=True)
+NH_architecture = InformationArchitecture(NH_edges, current_time=start_time)
 NH_architecture
 
 # %%
@@ -358,8 +357,7 @@ H_edges = Edges([Edge((sensornode1B, fusion_node1B), edge_latency=0),
 # the second route for information to travel from Sensor Node 1 to
 # Fusion Node 1.
 
-H_architecture = InformationArchitecture(H_edges, current_time=start_time,
-                                         use_arrival_time=True)
+H_architecture = InformationArchitecture(H_edges, current_time=start_time)
 H_architecture
 
 # %%

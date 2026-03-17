@@ -41,8 +41,7 @@ def test_node(data_pieces, times, nodes):
                     times['b'],
                     data_pieces['fail'],
                     "fused",
-                    track=Track([]),
-                    use_arrival_time=False)
+                    track=Track([]))
 
 
 def test_sensor_node(nodes):
@@ -163,18 +162,10 @@ def test_update(tracker):
     assert h_data.data == new_data_piece.data
     assert h_data.time_arrived == new_data_piece.time_arrived
 
-    # Test placing data into fusion queue - use_arrival_time=False
+    # Test placing data into fusion queue
     D = FusionNode(tracker=tracker)
-    D.update(dt1, dt1, d_data, 'created', use_arrival_time=False)
+    D.update(dt1, dt1, d_data, 'created')
     assert d_data.data in D.fusion_queue.received
-
-    # Test placing data into fusion queue - use_arrival_time=True
-    D = FusionNode(tracker=tracker)
-    D.update(dt1, dt1, d_data, 'created', use_arrival_time=True)
-    copied_data = D.fusion_queue.received.pop()
-    assert sum(copied_data.state_vector - d_data.data.state_vector) == 0
-    assert copied_data.measurement_model == d_data.data.measurement_model
-    assert copied_data.metadata == d_data.data.metadata
 
 
 def test_fuse(generator_params, ground_truths, timesteps):
