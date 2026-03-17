@@ -278,7 +278,7 @@ for sn in NH_architecture.sensor_nodes:
     NH_sensors.append(sn.sensor)
     for timestep in sn.data_held['created'].keys():
         for datapiece in sn.data_held['created'][timestep]:
-            NH_dets.add(datapiece.data)
+            NH_dets.update(datapiece.data)
 
 # %%
 # Plot the tracks stored at Non-Hierarchical Node C
@@ -380,7 +380,7 @@ for sn in H_architecture.sensor_nodes:
     H_sensors.append(sn.sensor)
     for timestep in sn.data_held['created'].keys():
         for datapiece in sn.data_held['created'][timestep]:
-            H_dets.add(datapiece.data)
+            H_dets.update(datapiece.data)
 
 # %%
 # Plot the tracks stored at Hierarchical Node C

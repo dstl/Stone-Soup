@@ -1,4 +1,5 @@
 import copy
+from collections.abc import Iterable
 from datetime import datetime
 
 import numpy as np
@@ -24,7 +25,9 @@ def test_node(data_pieces, times, nodes):
     node.update(times['a'], times['b'], data_pieces['a'], "fused")
     new_data_piece = node.data_held['fused'][times['a']].pop()
     assert new_data_piece.originator == nodes['a']
-    assert isinstance(new_data_piece.data, Track) and len(new_data_piece.data) == 0
+    assert isinstance(new_data_piece.data, Iterable)
+    assert isinstance(next(iter(new_data_piece.data), None), Track)
+    assert len(next(iter(new_data_piece.data))) == 0
     assert new_data_piece.time_arrived == times['b']
 
     with pytest.raises(TypeError):
@@ -113,9 +116,9 @@ def test_update(tracker):
     dt0 = "This ain't no datetime object"
     dt1 = datetime.now()
 
-    t_data = DataPiece(A, A, Track([]), dt1)
-    d_data = DataPiece(A, A, Detection(state_vector=StateVector(np.random.rand(4, 1)),
-                                       timestamp=dt1), dt1)
+    t_data = DataPiece(A, A, {Track([])}, dt1)
+    d_data = DataPiece(
+        A, A, {Detection(state_vector=StateVector(np.random.rand(4, 1)), timestamp=dt1)}, dt1)
     h_data = DataPiece(A, A, Hypothesis(), dt1)
 
     # Test invalid time inputs
@@ -165,7 +168,7 @@ def test_update(tracker):
     # Test placing data into fusion queue
     D = FusionNode(tracker=tracker)
     D.update(dt1, dt1, d_data, 'created')
-    assert d_data.data in D.fusion_queue.received
+    assert d_data in D.fusion_queue.received
 
 
 def test_fuse(generator_params, ground_truths, timesteps):

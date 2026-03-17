@@ -1,5 +1,6 @@
 import copy
 import threading
+from collections.abc import Iterable
 from datetime import datetime
 from queue import Queue, Empty
 
@@ -75,8 +76,9 @@ class Node(Base):
         if category not in self.data_held.keys():
             raise ValueError(f"category must be one of {self.data_held.keys()}")
         if not track:
-            if not isinstance(data_piece.data, Detection) and \
-                    not isinstance(data_piece.data, Track):
+            if (not isinstance(data_piece.data, Iterable) or (
+                    not isinstance(next(iter(data_piece.data), None), Detection)
+                    and not isinstance(next(iter(data_piece.data), None), Track))):
                 raise TypeError(f"Data provided without accompanying Track must be a Detection or "
                                 f"a Track, not a "
                                 f"{type(data_piece.data).__name__}")
@@ -92,9 +94,9 @@ class Node(Base):
 
         if (isinstance(self, FusionNode)
                 and category in ("created", "unfused")
-                and data_piece.data not in self.fusion_queue.received):
-            self.fusion_queue.received.add(data_piece.data)
-            self.fusion_queue.put((time_pertaining, {data_piece.data}))
+                and data_piece not in self.fusion_queue.received):
+            self.fusion_queue.received.add(data_piece)
+            self.fusion_queue.put((time_pertaining, data_piece.data))
 
         return added
 
@@ -159,6 +161,7 @@ class FusionNode(Node):
 
         added = False
         updated_tracks = set()
+        time = None
         while True:
             waiting_for_data = self.fusion_queue.waiting_for_data
             try:
@@ -167,14 +170,14 @@ class FusionNode(Node):
                 if not self._tracking_thread.is_alive() or waiting_for_data:
                     break
             else:
-                _, tracks = data
+                time, tracks = data
                 self.tracks.update(tracks)
                 updated_tracks = updated_tracks.union(tracks)
 
-        for track in updated_tracks:
-            data_piece = DataPiece(self, self, copy.copy(track), track.timestamp, True)
-            added, self.data_held['fused'] = _dict_set(
-                self.data_held['fused'], data_piece, track.timestamp)
+        if updated_tracks:
+            data_piece = DataPiece(
+                self, self, {copy.copy(track) for track in updated_tracks}, time, True)
+            added, self.data_held['fused'] = _dict_set(self.data_held['fused'], data_piece, time)
         return added
 
     @staticmethod

@@ -226,7 +226,7 @@ class Edge(Base):
         """Data modified by the sender that has not been sent to the
         recipient."""
         unsent = []
-        if isinstance(type(self.sender.data_held), type(None)) or self.sender.data_held is None:
+        if self.sender.data_held is None:
             return unsent
         else:
             for status in ["fused", "created"]:

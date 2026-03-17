@@ -514,11 +514,14 @@ class Architecture(Base):
             for detection in sensor_node.sensor.measure(current_ground_truths, noise, **kwargs):
                 all_detections[sensor_node].add(detection)
 
-            for data in all_detections[sensor_node]:
+            if all_detections[sensor_node]:
                 # The sensor acquires its own data instantly
-                sensor_node.update(data.timestamp, data.timestamp,
-                                   DataPiece(sensor_node, sensor_node, data, data.timestamp),
-                                   'created')
+                sensor_node.update(
+                    self.current_time, self.current_time,
+                    DataPiece(
+                        sensor_node, sensor_node, all_detections[sensor_node], self.current_time
+                    ),
+                    'created')
 
         return all_detections
 

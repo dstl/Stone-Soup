@@ -223,7 +223,7 @@ for sn in network_arch.sensor_nodes:
     na_sensors.append(sn.sensor)
     for timestep in sn.data_held['created'].keys():
         for datapiece in sn.data_held['created'][timestep]:
-            na_dets.add(datapiece.data)
+            na_dets.update(datapiece.data)
 
 # %%
 # Plot
@@ -269,7 +269,7 @@ for sn in information_arch.sensor_nodes:
     ia_sensors.append(sn.sensor)
     for timestep in sn.data_held['created'].keys():
         for datapiece in sn.data_held['created'][timestep]:
-            ia_dets.add(datapiece.data)
+            ia_dets.update(datapiece.data)
 
 # %%
 plotter = Plotterly()
