@@ -257,6 +257,7 @@ class Inclination(Angle):
     Inclination handles modulo arithmetic for adding and subtracting angles.
     The return type for addition and subtraction is Inclination.
     Multiplication or division produces a float object rather than Inclination.
+
     .. deprecated:: 1.9
         This function will be removed in Stone Soup 1.10. Orbital functions have moved to the
         astrodynamics plugin.
@@ -273,6 +274,7 @@ class EclipticLongitude(Angle):
     Ecliptic Longitude handles modulo arithmetic for adding and subtracting angles.
     The return type for addition and subtraction is Ecliptic Longitude.
     Multiplication or division produces a float object rather than Ecliptic Longitude.
+
     .. deprecated:: 1.9
         This function will be removed in Stone Soup 1.10. Orbital functions have moved to the
         astrodynamics plugin.
