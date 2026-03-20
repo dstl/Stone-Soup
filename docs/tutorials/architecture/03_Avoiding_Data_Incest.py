@@ -71,7 +71,7 @@ mm = LinearGaussian(ndim_state=4,
 mm2 = LinearGaussian(ndim_state=4,
                      mapping=[0, 2],
                      noise_covar=CovarianceMatrix(np.diag([0.5, 0.5])),
-                     seed=6)
+                     seed=12)
 
 # %%
 from stonesoup.sensor.sensor import SimpleSensor
@@ -97,7 +97,7 @@ sensor1.clutter_model.distribution = sensor1.clutter_model.random_state.uniform
 sensor2 = DummySensor(measurement_model=mm2,
                       position=np.array([[10], [20]]),
                       clutter_model=ClutterModel(clutter_rate=5,
-                                                 dist_params=((-100, 100), (-50, 60)), seed=6))
+                                                 dist_params=((-100, 100), (-50, 60)), seed=12))
 sensor2.clutter_model.distribution = sensor2.clutter_model.random_state.uniform
 
 # %%
