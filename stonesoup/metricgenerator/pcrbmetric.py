@@ -8,7 +8,7 @@ from .base import MetricGenerator
 from ..base import Property
 from ..types.state import GaussianState
 from ..types.groundtruth import GroundTruthState, GroundTruthPath
-from ..types.array import StateVectors
+from ..types.array import StateVectors, StateVector
 from ..models.transition import TransitionModel
 from ..models.measurement import MeasurementModel
 from ..types.metric import TimeRangeMetric
@@ -186,7 +186,7 @@ class PCRBMetric(MetricGenerator):
         num_sensors = sensor_locations.shape[1]
         for i in range(num_sensors):
 
-            sensor_location = sensor_locations[:, i]
+            sensor_location = StateVector(sensor_locations[:, i])
             measurement_model_cp = copy(measurement_model)
             if hasattr(measurement_model_cp, 'translation_offset'):
                 measurement_model_cp.translation_offset = sensor_location
