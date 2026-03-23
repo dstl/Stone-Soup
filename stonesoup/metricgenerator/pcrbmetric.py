@@ -55,7 +55,7 @@ class PCRBMetric(MetricGenerator):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         if self.position_mapping is None:
-            self.position_mapping = self.measurement_models[0].mapping # just take the first one
+            self.position_mapping = self.measurement_models[0].mapping #  just take the first one
 
     def compute_metric(self, manager, **kwargs):
         groundtruth_paths = self._get_data(manager, self.truths_key)
@@ -190,7 +190,6 @@ class PCRBMetric(MetricGenerator):
             # inverse of measurement covariance
             measurement_cov_invs.append(inv(measurement_models[sensor_i].covar()))
 
-        
         for location_i in range(num_sensor_locations):
             for sensor_i in range(num_sensors):
                 sensor_location = StateVector(sensor_locations[:, location_i])
