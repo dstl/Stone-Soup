@@ -10,7 +10,8 @@ from ...types.state import GaussianState
 from ...types.track import Track
 
 
-def test_pda(predictor, updater):
+@pytest.mark.parametrize('normalise', [True, False])
+def test_pda(predictor, updater, normalise):
 
     timestamp = datetime.datetime.now()
     track = Track([GaussianState(np.array([[0]]), np.array([[1]]), timestamp)])
@@ -20,7 +21,7 @@ def test_pda(predictor, updater):
 
     hypothesiser = PDAHypothesiser(predictor, updater,
                                    clutter_spatial_density=1.2e-2,
-                                   prob_detect=0.9, prob_gate=0.99)
+                                   prob_detect=0.9, prob_gate=0.99, normalise=normalise)
 
     mulltihypothesis = \
         hypothesiser.hypothesise(track, detections, timestamp)
@@ -38,10 +39,15 @@ def test_pda(predictor, updater):
     assert any(isinstance(hypothesis.measurement, MissedDetection)
                for hypothesis in mulltihypothesis)
 
+    if normalise:
+        assert float(sum(hypothesis.weight for hypothesis in mulltihypothesis)) == pytest.approx(1)
+    else:
+        assert float(sum(hypothesis.weight for hypothesis in mulltihypothesis)) != pytest.approx(1)
+
     hypothesiser = PDAHypothesiser(predictor, updater,
                                    clutter_spatial_density=1.2e-2,
                                    prob_detect=0.9, prob_gate=0.99,
-                                   include_all=True)
+                                   include_all=True, normalise=normalise)
 
     mulltihypothesis = \
         hypothesiser.hypothesise(track, detections, timestamp)
@@ -58,8 +64,13 @@ def test_pda(predictor, updater):
     assert any(isinstance(hypothesis.measurement, MissedDetection)
                for hypothesis in mulltihypothesis)
 
+    if normalise:
+        assert float(sum(hypothesis.weight for hypothesis in mulltihypothesis)) == pytest.approx(1)
+    else:
+        assert float(sum(hypothesis.weight for hypothesis in mulltihypothesis)) != pytest.approx(1)
+
     hypothesiser = PDAHypothesiser(predictor, updater,
-                                   prob_detect=0.9, prob_gate=0.99)
+                                   prob_detect=0.9, prob_gate=0.99, normalise=normalise)
 
     mulltihypothesis = \
         hypothesiser.hypothesise(track, detections, timestamp)
@@ -76,6 +87,11 @@ def test_pda(predictor, updater):
     assert detection1 in {hypothesis.measurement for hypothesis in mulltihypothesis}
     assert any(isinstance(hypothesis.measurement, MissedDetection)
                for hypothesis in mulltihypothesis)
+
+    if normalise:
+        assert float(sum(hypothesis.weight for hypothesis in mulltihypothesis)) == pytest.approx(1)
+    else:
+        assert float(sum(hypothesis.weight for hypothesis in mulltihypothesis)) != pytest.approx(1)
 
 
 def test_invalid_pda_arguments(predictor, updater):

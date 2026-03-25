@@ -150,7 +150,7 @@ def test_shortest_path_model(eval_fixture, graph):
 
     # Seed for reproducibility
     seed = 1994
-    np.random.seed(seed)
+    rng = np.random.RandomState(seed)
 
     # State related variables
     num_particles = 10
@@ -163,9 +163,9 @@ def test_shortest_path_model(eval_fixture, graph):
     time_interval = new_timestamp - old_timestamp
     prior_sv = StateVectors([
         np.zeros((num_particles,)),  # r
-        mvn.rvs(0, speed, (num_particles,)),  # r_dot
-        np.random.choice([1, 2], num_particles),  # edge
-        np.random.choice(init_destinations, (num_particles,)),  # destination node
+        mvn.rvs(0, speed, (num_particles,), rng),  # r_dot
+        rng.choice([1, 2], num_particles),  # edge
+        rng.choice(init_destinations, (num_particles,)),  # destination node
         np.full((num_particles,), 1)  # source node
     ])
     state = ParticleState(prior_sv, timestamp=old_timestamp)

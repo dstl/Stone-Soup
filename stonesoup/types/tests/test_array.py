@@ -45,6 +45,14 @@ def test_statevectors_mean():
 
     assert np.allclose(np.average(svs, axis=1), mean)
     assert np.allclose(np.mean(svs, axis=1, keepdims=True), mean)
+    assert np.allclose(np.mean(svs.astype(object), axis=1, keepdims=True), mean)
+
+    assert np.allclose(np.mean(svs, axis=1, where=np.array([True, True, False])), [[1.5, 4.5]])
+    assert np.allclose(
+        np.mean(svs, axis=1, dtype=int, where=np.array([True, True, False])), [[1, 4]])
+
+    with pytest.raises(TypeError):
+        np.average(svs, axis=1, keepdims=False)
 
 
 def test_standard_statevector_indexing():

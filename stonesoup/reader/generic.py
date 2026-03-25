@@ -97,7 +97,7 @@ class _DictionaryReader(_DictReader):
 
 class _CSVReader(_DictReader, TextFileReader):
     csv_options: Mapping = Property(
-        default={}, doc='Keyword arguments for the underlying csv reader')
+        default_factory=dict, doc='Keyword arguments for the underlying csv reader')
 
     @property
     def dict_reader(self) -> Iterator[dict]:

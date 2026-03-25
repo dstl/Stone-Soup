@@ -4,9 +4,12 @@ from numpy import deg2rad
 from numpy import linalg as LA
 from pytest import approx, raises
 from scipy.linalg import LinAlgError, cholesky
+from scipy.stats import multivariate_normal
+import warnings
 
 from ...types.array import CovarianceMatrix, Matrix, StateVector, StateVectors
 from ...types.state import GaussianState, State
+from ...types.detection import Detection
 from .. import (
     cart2angles,
     cart2sphere,
@@ -28,6 +31,7 @@ from .. import (
     rotz,
     sphere2cart,
     stochastic_cubature_rule_points,
+    batch_multivariate_normal_logpdf
 )
 
 
@@ -178,6 +182,17 @@ def test_gm_reduce_single():
     assert np.allclose(covar, np.array([[3.675, 3.35],
                                         [3.2, 3.3375]]))
 
+    # Test that negative means do not cause numeric warnings
+    with warnings.catch_warnings():
+        warnings.filterwarnings(
+            "error", r".*invalid value encountered in (multiply|divide).*", RuntimeWarning
+        )
+
+        mean, covar = gm_reduce_single(-means, covars, weights)
+        assert np.allclose(-mean, np.array([[4], [5]]))
+        assert np.allclose(covar, np.array([[3.675, 3.35],
+                                            [3.2, 3.3375]]))
+
 
 def test_bearing():
     bearing_in = [10., 170., 190., 260., 280., 350., 705]
@@ -218,7 +233,8 @@ def test_gauss2sigma(mean):
         assert sigma_point_state_vector[0, 0] == approx(mean + n*covar**0.5)
 
 
-def test_gauss2sigma_bad_covar():
+@pytest.mark.parametrize("gauss2x", [(gauss2sigma), (gauss2cubature)])
+def test_gauss2sigma_bad_covar(gauss2x):
     covar = np.array(
         [[ 0.05201447,  0.02882126, -0.00569971, -0.00733617],  # noqa: E201
          [ 0.02882126,  0.01642966, -0.00862847, -0.00673035],  # noqa: E201
@@ -227,7 +243,7 @@ def test_gauss2sigma_bad_covar():
     state = GaussianState([[0], [0], [0], [0]], covar)
 
     with pytest.warns(UserWarning, match="Matrix is not positive definite"):
-        sigma_points_states, mean_weights, covar_weights = gauss2sigma(state, kappa=0)
+        gauss2x(state)
 
 
 @pytest.mark.parametrize(
@@ -452,3 +468,40 @@ def test_stochastic_integration(order, nx):
 def test_stochastic_integration_invalid_order():
     with pytest.raises(ValueError, match="This order of SIF is not supported"):
         stochastic_cubature_rule_points(5, 2)
+
+
+def test_batch_multivariate_normal_logpdf():
+    """Test batched calculation vs Scipy's multivariate_normal.logpdf calculation"""
+
+    n_samples = [5, 10, 6]
+    dimensions = [2, 3, 12]
+    means = list()
+    covariances = list()
+    vectors = list()
+
+    for n, sample_size in enumerate(n_samples):
+        for _ in range(sample_size):
+            dimension = dimensions[n]
+            mean = np.random.uniform(0, 10, size=dimension)
+            covariance = np.diag(np.random.uniform(0, 2, size=dimension))
+            vector = np.random.multivariate_normal(mean, covariance)
+
+            means.append(mean)
+            covariances.append(covariance)
+            vectors.append(vector)
+
+    states = [
+        GaussianState(state_vector=mean, covar=covariance)
+        for mean, covariance in zip(means, covariances)
+    ]
+    detections = [Detection(state_vector=vector) for vector in vectors]
+
+    detection_vectors = [det.state_vector for det in detections]
+    batch_logpdf_results = batch_multivariate_normal_logpdf(detection_vectors, states)
+
+    scipy_logpdf_results = []
+    for vector, mean, covariance in zip(vectors, means, covariances):
+        logpdf = multivariate_normal.logpdf(vector, mean, covariance)
+        scipy_logpdf_results.append(logpdf)
+
+    assert np.allclose(batch_logpdf_results, np.array(scipy_logpdf_results), atol=1e-8)

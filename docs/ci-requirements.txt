@@ -8,3 +8,6 @@ torch
 # Additional requirement for RoadNet example
 geopandas
 networkx
+# Architectures
+graphviz
+pydot

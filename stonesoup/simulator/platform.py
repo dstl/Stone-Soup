@@ -18,6 +18,8 @@ class PlatformDetectionSimulator(DetectionSimulator):
         doc='Source of ground truth tracks used to generate detections for.')
     platforms: Sequence[Platform] = Property(
         doc='List of platforms in :class:`~.Platform` to generate sensor detections from.')
+    platforms_detectable: bool = Property(
+        default=True, doc='If sensor platforms are able to detect each other. Default ``True``')
 
     @BufferedGenerator.generator_method
     def detections_gen(self):
@@ -32,6 +34,9 @@ class PlatformDetectionSimulator(DetectionSimulator):
             # Make measurements from sensors
             for platform in self.platforms:
                 for sensor in platform.sensors:
-                    truths_to_be_measured = truths.union(self.platforms) - {platform}
+                    if self.platforms_detectable:
+                        truths_to_be_measured = truths.union(self.platforms) - {platform}
+                    else:
+                        truths_to_be_measured = truths
                     detections = sensor.measure(truths_to_be_measured)
                     yield time, detections

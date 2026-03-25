@@ -48,9 +48,9 @@ class PlatformMountable(Base, ABC):
         if position is not None or orientation is not None:
             if position is None:
                 # assuming 3d for a default platform
-                position = StateVector([0, 0, 0])
+                position = StateVector([0., 0., 0.])
             if orientation is None:
-                orientation = StateVector([0, 0, 0])
+                orientation = StateVector([0., 0., 0.])
             controller = FixedMovable(
                 states=State(state_vector=position),
                 position_mapping=list(range(len(position))),
@@ -63,11 +63,11 @@ class PlatformMountable(Base, ABC):
         if self.movement_controller is None:
             return
         if self.mounting_offset is None:
-            self.mounting_offset = StateVector([0]
+            self.mounting_offset = StateVector([0.]
                                                * len(self.movement_controller.position_mapping))
 
         if self.rotation_offset is None:
-            self.rotation_offset = StateVector([0] * 3)
+            self.rotation_offset = StateVector([0.] * 3)
 
     @movement_controller.setter
     def movement_controller(self, value):

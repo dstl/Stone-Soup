@@ -1,5 +1,6 @@
 """Test for updater.particle module"""
 import datetime
+import warnings
 from functools import partial
 
 import numpy as np
@@ -100,9 +101,12 @@ def test_multi_model(
     assert isinstance(prediction, MultiModelParticleStatePrediction)
 
     measurement_model = LinearGaussian(6, [0, 3], np.diag([2, 2]))
-    updater = MultiModelParticleUpdater(
-        measurement_model, predictor, resampler=resampler, regulariser=regulariser,
-        constraint_func=constraint_func)
+    with warnings.catch_warnings():
+        if regulariser and not resampler:
+            warnings.filterwarnings('ignore')
+        updater = MultiModelParticleUpdater(
+            measurement_model, predictor, resampler=resampler, regulariser=regulariser,
+            constraint_func=constraint_func)
 
     # Detection close to where known turn rate model would place particles
     detection = Detection([[0.5, 7.]], timestamp, measurement_model=measurement_model)

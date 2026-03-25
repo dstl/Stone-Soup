@@ -101,6 +101,10 @@ class SingleDistanceHypothesis(SingleHypothesis):
 class SingleProbabilityHypothesis(ProbabilityHypothesis, SingleHypothesis):
     """Single Measurement Probability scored hypothesis subclass."""
 
+    def __hash__(self):
+        return hash((self.probability, self.prediction, self.measurement,
+                    self.measurement_prediction))
+
 
 class JointHypothesis(Type, UserDict):
     """Joint Hypothesis base type
@@ -303,7 +307,7 @@ class CompositeProbabilityHypothesis(CompositeHypothesis, SingleProbabilityHypot
         doc="Probability that detection is true location of prediction. Default is `None`, "
             "whereby probability is calculated as the product of sub-hypotheses' probabilities")
     sub_hypotheses: Sequence[SingleProbabilityHypothesis] = Property(
-        default=None,
+        default_factory=list,
         doc="Sequence of probability-scored sub-hypotheses comprising the composite hypothesis."
     )
 

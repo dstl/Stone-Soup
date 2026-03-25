@@ -218,7 +218,8 @@ class SimpleMeasurementInitiator(GaussianInitiator):
             mapped_dimensions = measurement_model.mapping
 
             prior_state_vector[mapped_dimensions, :] = 0
-            prior_covar[mapped_dimensions, :] = 0
+            for dim in mapped_dimensions:
+                prior_covar[dim, :] = prior_covar[:, dim] = 0
             C0 = inv_model_matrix @ model_covar @ inv_model_matrix.T
             C0 = C0 + prior_covar + np.diag(np.array([self.diag_load] * C0.shape[0]))
             tracks.add(Track([Update.from_state(

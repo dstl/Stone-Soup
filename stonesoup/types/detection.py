@@ -14,12 +14,7 @@ class Detection(State):
         doc="The measurement model used to generate the detection (the default is ``None``)")
 
     metadata: MutableMapping = Property(
-        default=None, doc='Dictionary of metadata items for Detections.')
-
-    def __init__(self, state_vector, *args, **kwargs):
-        super().__init__(state_vector, *args, **kwargs)
-        if self.metadata is None:
-            self.metadata = {}
+        default_factory=dict, doc='Dictionary of metadata items for Detections.')
 
 
 class GaussianDetection(Detection, GaussianState):

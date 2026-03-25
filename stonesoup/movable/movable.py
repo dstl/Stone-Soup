@@ -195,7 +195,7 @@ class FixedMovable(Movable):
         .. note:: Position and orientation are read/write properties in this class.
         """
     orientation: StateVector = Property(
-        default=None,
+        default_factory=lambda: StateVector([[0.], [0.], [0.]]),
         doc='A fixed orientation of the static platform. Defaults to the zero vector')
 
     def __init__(self, *args, **kwargs):
@@ -204,8 +204,6 @@ class FixedMovable(Movable):
             raise ValueError('Velocity mapping should not be set for a FixedMovable')
         super().__init__(*args, **kwargs)
         self.velocity_mapping = None
-        if self.orientation is None:
-            self.orientation = StateVector([0, 0, 0])
 
     def _set_position(self, value: StateVector) -> None:
         self.state_vector[self.position_mapping, :] = value
@@ -216,7 +214,7 @@ class FixedMovable(Movable):
 
         For a fixed platform this is always a zero vector of length :attr:`ndim`.
         """
-        return StateVector([0] * self.ndim)
+        return StateVector([0.] * self.ndim)
 
     @property
     def is_moving(self) -> bool:
@@ -276,8 +274,9 @@ class MovingMovable(Movable):
         """
 
         if not self.is_moving:
-            self._property_orientation = StateVector([0, 0, 0])
-            warnings.warn('A default initial orientation has been set as StateVector([0, 0, 0])')
+            self._property_orientation = StateVector([0., 0., 0.])
+            warnings.warn(
+                'A default initial orientation has been set as StateVector([0., 0., 0.])')
 
         # For low velocity platforms, calculate orientation based on previous position
         if len(self) >= 2 and np.linalg.norm(self.velocity) < 1e-6 and 2 <= self.ndim <= 3:
@@ -291,16 +290,16 @@ class MovingMovable(Movable):
                 elevation = 0
             else:
                 _, bearing, elevation = cart2sphere(*(c_pos - p_pos))
-            self._property_orientation = StateVector([0, elevation, bearing])
+            self._property_orientation = StateVector([0., elevation, bearing])
 
         elif self.is_moving:
             velocity = self.velocity
             if self.ndim == 3:
                 _, bearing, elevation = cart2sphere(*velocity.flat)
-                self._property_orientation = StateVector([0, elevation, bearing])
+                self._property_orientation = StateVector([0., elevation, bearing])
             elif self.ndim == 2:
                 _, bearing = cart2pol(*velocity.flat)
-                self._property_orientation = StateVector([0, 0, bearing])
+                self._property_orientation = StateVector([0., 0., bearing])
             else:
                 raise NotImplementedError('Orientation of a moving platform is only'
                                           'implemented for 2 and 3 dimensions')

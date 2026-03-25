@@ -233,7 +233,7 @@ class TrackToTruth(TwoTrackToTrackAssociator):
             "required to exceed a specified threshold in order for an "
             "association to be ended. Default is 2")
     measure: Measure = Property(
-        default=Euclidean(),
+        default_factory=Euclidean,
         doc="Distance measure to use. Default :class:`~.measures.Euclidean()`")
 
     def associate_tracks(self, tracks_set: set[Track], truth_set: set[GroundTruthPath]):

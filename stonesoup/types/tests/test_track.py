@@ -60,6 +60,9 @@ def test_track_id():
     assert isinstance(track.id, str)
     assert track.id == 'abc'
 
+    track = Track()
+    assert isinstance(track.id, str)
+
     track = Track(id=None)
     assert isinstance(track.id, str)
 

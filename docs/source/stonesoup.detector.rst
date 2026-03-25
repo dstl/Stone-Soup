@@ -12,8 +12,3 @@ TensorFlow
 .. automodule:: stonesoup.detector.tensorflow
     :show-inheritance:
 
-TensorNets
-----------
-.. automodule:: stonesoup.detector.tensornets
-    :show-inheritance:
-

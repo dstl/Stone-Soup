@@ -18,19 +18,13 @@ class AdaptiveKernelKalmanUpdater(Updater):
      estimate.
     """
     kernel: Kernel = Property(
-        default=None,
+        default_factory=QuadraticKernel,
         doc="Default is None. If None, the default :class:`QuadraticKernel` is used.")
     lambda_updater: float = Property(
         default=1e-3,
         doc="Used to incorporate prior knowledge of the distribution. If the "
             "true distribution is Gaussian, the value of 2 is optimal. "
             "Default is 1e-3")
-
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-
-        if self.kernel is None:
-            self.kernel = QuadraticKernel()
 
     @lru_cache()
     def predict_measurement(self, state_prediction, measurement_model=None,

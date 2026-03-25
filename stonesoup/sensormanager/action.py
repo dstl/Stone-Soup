@@ -95,9 +95,11 @@ class ActionableProperty(Property):
     times."""
 
     def __init__(self, generator_cls, generator_kwargs_mapping=None,
-                 cls=None, *, default=inspect.Parameter.empty,
+                 cls=None, *,
+                 default=inspect.Parameter.empty, default_factory=inspect.Parameter.empty,
                  doc=None, readonly=False):
-        super().__init__(cls=cls, default=default, doc=doc, readonly=readonly)
+        super().__init__(cls=cls, default=default, default_factory=default_factory,
+                         doc=doc, readonly=readonly)
         self.generator_cls = generator_cls
         self.generator_kwargs_mapping = generator_kwargs_mapping
         if generator_kwargs_mapping is None:

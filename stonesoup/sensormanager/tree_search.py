@@ -1,9 +1,9 @@
 import copy
 import itertools as it
-from datetime import timedelta
-from typing import Callable
-from enum import Enum
 import warnings
+from datetime import timedelta
+from collections.abc import Callable
+from enum import Enum
 
 import numpy as np
 

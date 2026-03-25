@@ -74,7 +74,7 @@ class ESSResampler(Resampler):
                                 doc='Threshold compared with ESS to decide whether to resample. \
                                     Default is number of particles divided by 2, \
                                         set in resample method')
-    resampler: Resampler = Property(default=SystematicResampler(),
+    resampler: Resampler = Property(default_factory=SystematicResampler,
                                     doc='Resampler to wrap, which is called \
                                         when ESS below threshold')
 
