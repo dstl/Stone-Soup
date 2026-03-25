@@ -6,7 +6,7 @@ import numpy as np
 import scipy as sp
 from scipy.stats import multivariate_normal
 
-from ..linear import MarkovianGP
+from ..gaussian_process import MarkovianGP
 from ..base import CombinedGaussianTransitionModel
 from ....types.state import State
 from ....types.track import Track
