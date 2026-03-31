@@ -41,9 +41,10 @@ class TransitionMatrix(Base):
         history_length = len(state.model_histories)
         if history_length <= 1 and self.num_components > 1:
             history_length += 1
-        if str(history_length) not in [x for x in self.transition_matrices.keys()]:
-            history_length = max([x for x in self.transition_matrices.keys()]) + 1
-        return self.transition_matrices[np.max([0, history_length - 1])]
+        # Clamp the index to the valid range of available transition matrices
+        max_key = max(self.transition_matrices.keys())
+        index = max(0, min(history_length - 1, max_key))
+        return self.transition_matrices[index]
 
     @property
     def get_all_transition_matrices(self):
