@@ -188,8 +188,8 @@ class SquaredMahalanobis(Measure):
 
         Parameters
         ----------
-        state1 : :class:`~.State` with shape (n, 1)
-        state2 : :class:`~.State` with shape (n, m)
+        state1 : :class:`~.State` whose `state_vector` has shape (n, 1)
+        state2 : :class:`~.State` whose `state_vector` has shape (n, m)
 
         Returns
         -------
@@ -219,8 +219,8 @@ class SquaredMahalanobis(Measure):
 
         delta = -(v.T-u)
 
-        # Return the diagonal elements with einsum
-        return np.einsum('ij,ji->i', np.dot(delta, vi), delta.T).squeeze()[()]
+        # Return the diagonal elements of A@B@A.T
+        return np.einsum('ij,jk,ik->i', delta, vi, delta).squeeze()[()]
 
     @staticmethod
     def _inv_cov(state, mapping=None):
