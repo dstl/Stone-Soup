@@ -48,9 +48,9 @@ def test_euclideanweighted():
 
 def test_mahalanobis():
     measure = measures.Mahalanobis()
-    assert measure(state_u, state_v) == distance.mahalanobis(u[:, 0],
-                                                             v[:, 0],
-                                                             np.linalg.inv(ui))
+    assert measure(state_u, state_v) == pytest.approx(distance.mahalanobis(u[:, 0],
+                                                                           v[:, 0],
+                                                                           np.linalg.inv(ui)))
 
 
 def test_hellinger():
@@ -141,13 +141,13 @@ def test_hellinger_partial_mapping(mapping_type):
 def test_mahalanobis_full_mapping(mapping_type):
     mapping = mapping_type(np.arange(len(u)))
     measure = measures.Mahalanobis(mapping=mapping)
-    assert measure(state_u, state_v) == distance.mahalanobis(u[:, 0],
-                                                             v[:, 0],
-                                                             np.linalg.inv(ui))
+    assert measure(state_u, state_v) == pytest.approx(distance.mahalanobis(u[:, 0],
+                                                                           v[:, 0],
+                                                                           np.linalg.inv(ui)))
     measure = measures.Mahalanobis(mapping=mapping, mapping2=mapping)
-    assert measure(state_u, state_v) == distance.mahalanobis(u[:, 0],
-                                                             v[:, 0],
-                                                             np.linalg.inv(ui))
+    assert measure(state_u, state_v) == pytest.approx(distance.mahalanobis(u[:, 0],
+                                                                           v[:, 0],
+                                                                           np.linalg.inv(ui)))
 
 
 def test_mahalanobis_partial_mapping(mapping_type):
