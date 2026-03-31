@@ -40,12 +40,6 @@ class Architecture(Base):
         doc="If True, the undirected version of the graph must be connected, ie. all nodes should "
             "be connected via some path. Set this to False to allow an unconnected architecture. "
             "Default is True")
-    use_arrival_time: bool = Property(
-        default=False,
-        doc="If True, the timestamp on data passed around the network will not be assigned when "
-            "it is opened by the fusing node - simulating an architecture where time of recording "
-            "is not registered by the sensor nodes"
-    )
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -520,11 +514,14 @@ class Architecture(Base):
             for detection in sensor_node.sensor.measure(current_ground_truths, noise, **kwargs):
                 all_detections[sensor_node].add(detection)
 
-            for data in all_detections[sensor_node]:
+            if all_detections[sensor_node]:
                 # The sensor acquires its own data instantly
-                sensor_node.update(data.timestamp, data.timestamp,
-                                   DataPiece(sensor_node, sensor_node, data, data.timestamp),
-                                   'created')
+                sensor_node.update(
+                    self.current_time, self.current_time,
+                    DataPiece(
+                        sensor_node, sensor_node, all_detections[sensor_node], self.current_time
+                    ),
+                    'created')
 
         return all_detections
 
@@ -575,12 +572,12 @@ class InformationArchitecture(Architecture):
             # TODO: Future work - Introduce failed edges functionality
 
             # Initial update of message categories
-            edge.update_messages(self.current_time, use_arrival_time=self.use_arrival_time)
+            edge.update_messages(self.current_time)
             for data_piece, time_pertaining in edge.unsent_data:
                 edge.send_message(data_piece, time_pertaining, data_piece.time_arrived)
 
             # Need to re-run update messages so that messages aren't left as 'pending'
-            edge.update_messages(self.current_time, use_arrival_time=self.use_arrival_time)
+            edge.update_messages(self.current_time)
 
         for fuse_node in self.fusion_nodes:
             fuse_node.fuse()
@@ -646,8 +643,7 @@ class NetworkArchitecture(Architecture):
             # Initial update of message categories
             edge.update_messages(
                 self.current_time,
-                to_network_node=to_network_node,
-                use_arrival_time=self.use_arrival_time)
+                to_network_node=to_network_node)
 
             # Send available messages from nodes to the edges
             if edge.sender in self.information_arch.all_nodes:
@@ -661,8 +657,7 @@ class NetworkArchitecture(Architecture):
             # Need to re-run update messages so that messages aren't left as 'pending'
             edge.update_messages(
                 self.current_time,
-                to_network_node=to_network_node,
-                use_arrival_time=self.use_arrival_time)
+                to_network_node=to_network_node)
 
         for fuse_node in self.fusion_nodes:
             fuse_node.fuse()

@@ -71,7 +71,7 @@ mm = LinearGaussian(ndim_state=4,
 mm2 = LinearGaussian(ndim_state=4,
                      mapping=[0, 2],
                      noise_covar=CovarianceMatrix(np.diag([0.5, 0.5])),
-                     seed=6)
+                     seed=12)
 
 # %%
 from stonesoup.sensor.sensor import SimpleSensor
@@ -97,7 +97,7 @@ sensor1.clutter_model.distribution = sensor1.clutter_model.random_state.uniform
 sensor2 = DummySensor(measurement_model=mm2,
                       position=np.array([[10], [20]]),
                       clutter_model=ClutterModel(clutter_rate=5,
-                                                 dist_params=((-100, 100), (-50, 60)), seed=6))
+                                                 dist_params=((-100, 100), (-50, 60)), seed=12))
 sensor2.clutter_model.distribution = sensor2.clutter_model.random_state.uniform
 
 # %%
@@ -255,8 +255,7 @@ NH_edges = Edges([Edge((sensornode1, fusion_node1), edge_latency=0),
 # sphinx_gallery_thumbnail_path = '_static/sphinx_gallery/ArchTutorial_3.png'
 
 
-NH_architecture = InformationArchitecture(NH_edges, current_time=start_time,
-                                          use_arrival_time=True)
+NH_architecture = InformationArchitecture(NH_edges, current_time=start_time)
 NH_architecture
 
 # %%
@@ -279,7 +278,7 @@ for sn in NH_architecture.sensor_nodes:
     NH_sensors.append(sn.sensor)
     for timestep in sn.data_held['created'].keys():
         for datapiece in sn.data_held['created'][timestep]:
-            NH_dets.add(datapiece.data)
+            NH_dets.update(datapiece.data)
 
 # %%
 # Plot the tracks stored at Non-Hierarchical Node C
@@ -358,8 +357,7 @@ H_edges = Edges([Edge((sensornode1B, fusion_node1B), edge_latency=0),
 # the second route for information to travel from Sensor Node 1 to
 # Fusion Node 1.
 
-H_architecture = InformationArchitecture(H_edges, current_time=start_time,
-                                         use_arrival_time=True)
+H_architecture = InformationArchitecture(H_edges, current_time=start_time)
 H_architecture
 
 # %%
@@ -382,7 +380,7 @@ for sn in H_architecture.sensor_nodes:
     H_sensors.append(sn.sensor)
     for timestep in sn.data_held['created'].keys():
         for datapiece in sn.data_held['created'][timestep]:
-            H_dets.add(datapiece.data)
+            H_dets.update(datapiece.data)
 
 # %%
 # Plot the tracks stored at Hierarchical Node C

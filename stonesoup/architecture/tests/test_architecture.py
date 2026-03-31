@@ -512,8 +512,8 @@ def test_information_arch_measure(edge_lists, ground_truths, times):
             assert isinstance(detection, TrueDetection)
 
     for node in network.sensor_nodes:
-        # Check that each sensor node has data held for the detection of all 3 targets
-        assert len(node.data_held['created'][datetime.datetime(1306, 12, 25, 23, 47, 59)]) == 3
+        # Check that each sensor node has data held for the detection of all 1 targets
+        assert len(node.data_held['created'][network.current_time].pop().data) == 3
 
 
 def test_information_arch_measure_no_noise(edge_lists, ground_truths, times):
@@ -571,7 +571,7 @@ def test_fully_propagated(edge_lists, times, ground_truths):
     for node in network.sensor_nodes:
         # Check that each sensor node has data held for the detection of all 3 targets
         for key in node.data_held['created'].keys():
-            assert len(node.data_held['created'][key]) == 3
+            assert len(next(iter(node.data_held['created'][key])).data) == 3
 
     # Network should not be fully propagated
     assert network.fully_propagated is False
@@ -743,7 +743,7 @@ def test_net_arch_fully_propagated(generator_params, ground_truths):
     for node in arch.sensor_nodes:
         # Check that each sensor node has data held for the detection of all 3 targets
         for key in node.data_held['created'].keys():
-            assert len(node.data_held['created'][key]) == 3
+            assert len(next(iter(node.data_held['created'][key])).data) == 3
 
     edge = {edge for edge in arch.edges if
             isinstance(edge.nodes[0], RepeaterNode) and
@@ -756,8 +756,8 @@ def test_net_arch_fully_propagated(generator_params, ground_truths):
         DataPiece(
             edge.sender,
             edge.sender,
-            Track([GaussianState([1, 2, 3, 4], np.diag([1, 1, 1, 1]),
-                                 datetime.datetime(2016, 1, 2, 3, 4, 5))]),
+            {Track([GaussianState([1, 2, 3, 4], np.diag([1, 1, 1, 1]),
+                                  datetime.datetime(2016, 1, 2, 3, 4, 5))])},
             datetime.datetime(2016, 1, 2, 3, 4, 5),
         ),
     )
