@@ -188,32 +188,39 @@ class SquaredMahalanobis(Measure):
 
         Parameters
         ----------
-        state1 : :class:`~.State`
-        state2 : :class:`~.State`
+        state1 : :class:`~.State` whose `state_vector` has shape (n, 1)
+        state2 : :class:`~.State` whose `state_vector` has shape (n, m)
 
         Returns
         -------
-        float
+        Union(float, np.ndarray)
             Squared Mahalanobis distance between a pair of input :class:`~.State`
-            objects
+            objects. Returns a 1D array if state2 has >1 length along axis 1.
 
         """
         state_vector1 = getattr(state1, 'mean', state1.state_vector)
         state_vector2 = getattr(state2, 'mean', state2.state_vector)
 
+        if len(state_vector1) != len(state_vector2):
+            raise ValueError(
+                f"Shape mismatch between state1 and state2 along axis 0, \
+                    {len(state_vector1)} != {len(state_vector2)}."
+            )
+
         if self.mapping is not None:
             u = state_vector1[self.mapping, 0]
-            v = state_vector2[self.mapping2, 0]
+            v = state_vector2[self.mapping2, :]
             # extract the mapped covariance data
             vi = self._inv_cov(state1, tuple(self.mapping))
         else:
             u = state_vector1[:, 0]
-            v = state_vector2[:, 0]
+            v = state_vector2[:, :]
             vi = self._inv_cov(state1)
 
-        delta = u - v
+        delta = -(v.T-u)
 
-        return np.dot(np.dot(delta, vi), delta)
+        # Return the diagonal elements of A@B@A.T
+        return np.einsum('ij,jk,ik->i', delta, vi, delta).squeeze()[()]
 
     @staticmethod
     def _inv_cov(state, mapping=None):
