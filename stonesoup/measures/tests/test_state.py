@@ -55,9 +55,10 @@ def test_mahalanobis():
                                                                            np.linalg.inv(ui)))
     result_nm = measure(state_u, state_vm)
     for i, vec in enumerate(vm):
-        assert result_nm[i] == pytest.approx(distance.mahalanobis(u[:, 0], 
-                                                                  vec[:, 0], 
+        assert result_nm[i] == pytest.approx(distance.mahalanobis(u[:, 0],
+                                                                  vec[:, 0],
                                                                   np.linalg.inv(ui)))
+
 
 def test_hellinger():
     v = StateVector([[11.], [10.], [10.], [2.]])
@@ -152,8 +153,8 @@ def test_mahalanobis_full_mapping(mapping_type):
                                                                            np.linalg.inv(ui)))
     result_nm = measure(state_u, state_vm)
     for i, vec in enumerate(vm):
-        assert result_nm[i] == pytest.approx(distance.mahalanobis(u[:, 0], 
-                                                                  vec[:, 0], 
+        assert result_nm[i] == pytest.approx(distance.mahalanobis(u[:, 0],
+                                                                  vec[:, 0],
                                                                   np.linalg.inv(ui)))
     measure = measures.Mahalanobis(mapping=mapping, mapping2=mapping)
     assert measure(state_u, state_v) == pytest.approx(distance.mahalanobis(u[:, 0],
@@ -161,8 +162,8 @@ def test_mahalanobis_full_mapping(mapping_type):
                                                                            np.linalg.inv(ui)))
     result_nm = measure(state_u, state_vm)
     for i, vec in enumerate(vm):
-        assert result_nm[i] == pytest.approx(distance.mahalanobis(u[:, 0], 
-                                                                  vec[:, 0], 
+        assert result_nm[i] == pytest.approx(distance.mahalanobis(u[:, 0],
+                                                                  vec[:, 0],
                                                                   np.linalg.inv(ui)))
 
 
@@ -175,8 +176,8 @@ def test_mahalanobis_partial_mapping(mapping_type):
                              [11, 10], np.linalg.inv(reduced_ui))
     result_nm = measure(state_u, state_vm)
     for i, vec in enumerate(vm):
-        assert result_nm[i] == pytest.approx(distance.mahalanobis(u[mapping, 0], 
-                                                                  vec[mapping, 0], 
+        assert result_nm[i] == pytest.approx(distance.mahalanobis(u[mapping, 0],
+                                                                  vec[mapping, 0],
                                                                   np.linalg.inv(reduced_ui)))
     mapping = np.array([0, 3])
     reduced_ui = CovarianceMatrix(np.diag([100, 10]))
@@ -186,8 +187,8 @@ def test_mahalanobis_partial_mapping(mapping_type):
                              [11, 2], np.linalg.inv(reduced_ui))
     result_nm = measure(state_u, state_vm)
     for i, vec in enumerate(vm):
-        assert result_nm[i] == pytest.approx(distance.mahalanobis(u[mapping, 0], 
-                                                                  vec[mapping, 0], 
+        assert result_nm[i] == pytest.approx(distance.mahalanobis(u[mapping, 0],
+                                                                  vec[mapping, 0],
                                                                   np.linalg.inv(reduced_ui)))
 
     mapping = mapping_type([0, 1])
@@ -197,8 +198,8 @@ def test_mahalanobis_partial_mapping(mapping_type):
                              [11, 10], np.linalg.inv(reduced_ui))
     result_nm = measure(state_u, state_vm)
     for i, vec in enumerate(vm):
-        assert result_nm[i] == pytest.approx(distance.mahalanobis(u[mapping, 0], 
-                                                                  vec[mapping, 0], 
+        assert result_nm[i] == pytest.approx(distance.mahalanobis(u[mapping, 0],
+                                                                  vec[mapping, 0],
                                                                   np.linalg.inv(reduced_ui)))
     mapping = np.array([0, 3])
     measure = measures.Mahalanobis(mapping=mapping, mapping2=mapping)
@@ -207,8 +208,8 @@ def test_mahalanobis_partial_mapping(mapping_type):
                              [11, 2], np.linalg.inv(reduced_ui))
     result_nm = measure(state_u, state_vm)
     for i, vec in enumerate(vm):
-        assert result_nm[i] == pytest.approx(distance.mahalanobis(u[mapping, 0], 
-                                                                  vec[mapping, 0], 
+        assert result_nm[i] == pytest.approx(distance.mahalanobis(u[mapping, 0],
+                                                                  vec[mapping, 0],
                                                                   np.linalg.inv(reduced_ui)))
 
     mapping = mapping_type([0, 1])
