@@ -129,7 +129,7 @@ sensor_y = 0
 measurement_model = CartesianToBearingRange(
     ndim_state=4,
     mapping=(0, 2),
-    noise_covar=np.diag([np.radians(0.2) ** 2, 1]),  # Covariance matrix. 0.2 degree error in
+    noise_covar=np.diag([np.radians(5) ** 2, 1]),  # Covariance matrix. 5 degree error in
     # bearing and 1 metre in range
     translation_offset=np.array([[sensor_x], [sensor_y]])  # Offset measurements to location of
     # sensor in cartesian.

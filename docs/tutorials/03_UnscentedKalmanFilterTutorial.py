@@ -113,10 +113,10 @@ from stonesoup.models.measurement.nonlinear import CartesianToBearingRange
 sensor_x = 50
 sensor_y = 0
 
-# Make noisy measurement (with bearing error = 0.2 degrees).
+# Make noisy measurement (with bearing error = 5 degrees).
 measurement_model = CartesianToBearingRange(ndim_state=4,
                                             mapping=(0, 2),
-                                            noise_covar=np.diag([np.radians(0.2) ** 2, 1]),
+                                            noise_covar=np.diag([np.radians(5) ** 2, 1]),
                                             translation_offset=np.array([[sensor_x], [sensor_y]]))
 
 # %%
@@ -196,7 +196,7 @@ sensor_y = 0
 measurement_model = CartesianToBearingRange(
     ndim_state=4,
     mapping=(0, 2),
-    noise_covar=np.diag([np.radians(5) ** 2, 0.1]),  # bearing error = 5 degrees (accurate range)
+    noise_covar=np.diag([np.radians(25) ** 2, 0.1]),  # bearing error = 25 degrees (accurate range)
     translation_offset=np.array([[sensor_x], [sensor_y]])
 )
 
