@@ -155,6 +155,14 @@ class DirectionActionsGenerator(ActionGenerator):
                                         end_time=self.end_time,
                                         target_value=direction)
 
+    def action_from_value(self, value):
+        if value not in self:
+            return None
+
+        return ChangeDirectionAction(generator=self,
+                                     end_time=self.end_time,
+                                     target_value=value)
+
 
 # %%
 # Actionable Sensor
