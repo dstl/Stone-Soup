@@ -4,6 +4,7 @@ from collections.abc import Sequence, Collection
 
 import numpy as np
 from ordered_set import OrderedSet
+from scipy.stats import multivariate_normal
 
 from ..base import Property
 from ..models.measurement import MeasurementModel
@@ -113,9 +114,9 @@ class MultiTargetGroundTruthSimulator(SingleTargetGroundTruthSimulator):
         if state_vector is not None:
             vector = state_vector
         else:
-            vector = self.initial_state.state_vector + \
-                self.initial_state.covar @ \
-                random_state.randn(self.initial_state.ndim, 1)
+            vector = self.initial_state.state_vector \
+                + multivariate_normal.rvs(
+                    cov=self.initial_state.covar, random_state=random_state).reshape(-1, 1)
 
         gttrack = GroundTruthPath()
         gttrack.append(GroundTruthState(
