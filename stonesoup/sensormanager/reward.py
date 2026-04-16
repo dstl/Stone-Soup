@@ -443,3 +443,167 @@ class MultiUpdateExpectedKLDivergence(ExpectedKLDivergence):
             all_detections.update({sensor: detections})
 
         return all_detections
+
+
+class QuadraticInformationGain(RewardFunction, QuadraticDistance):
+    """
+    The quadratic information gain reward function. An implementation 
+    is provided for the GM-PHD filter under the Gaussian kernel parametrisation.
+    """
+
+    num_samples: int = Property(doc='Number of samples to use in the Monte Carlo computation of the measurement average')
+    
+    filter_data: dict = Property(doc='Dictionary containing data for the particular filter model in question')
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.state_dim = self.filter_data['state dimension']
+        #########################################
+        ########### Gaussian kernel #############
+        #########################################
+        if self.kernel == 'Gaussian':
+
+            # unpack kernel specific parameters
+            allowed_keys = {'covariance'}
+
+            if self.kernel_parameters is not None:
+                unknown = set(self.kernel_parameters) - allowed_keys
+                if unknown:
+                    raise ValueError(f"Unknown parameter(s) for vectorised_gaussian_eval: {', '.join(unknown)}.")
+                
+                R = self.kernel_parameters['covariance']
+
+                # check dimension symmetry and positive-definiteness
+                if R.shape != (self.state_dim, self.state_dim) or not np.allclose(R, R.T, rtol=1e-10, atol=1e-10) or np.any(np.linalg.eigvals(R) < 0):
+                    raise ValueError(f'The {self.kernel} kernel covariance matrix must be symmetric and positive-definite with shape ({self.state_dim}, {self.state_dim}).')
+            else:
+                raise ValueError(f'No covariance matrix was provided for the {self.kernel} kernel.')
+        else: 
+            raise NotImplementedError(f'The Quadratic Information Gain with the {self.kernel} kernel parametrisation is not implemented.')
+            
+        #################################
+        ######### GM-PHD Update #########
+        #################################
+        if self.filter_data['filter model'] != 'GMPHD':
+            raise NotImplementedError(f'The Quadratic Information Gain for the {self.filter_data['filter model']} filter is not implemented.')
+        
+
+    def __call__(self, config: Mapping[Sensor, Sequence[Action]], tracks: Set[Track],
+                 metric_time: datetime.datetime, *args, **kwargs):
+        
+        reward = 0
+
+        # compute gm-phd prediction gaussian mixture given the previous gaussian mixture
+        pred_wghts=[]
+        pred_means=[]
+        pred_covcs=[]
+        for n, track in enumerate(tracks):
+            # print('prediction')
+            propagated_track = self.filter_data['predictor'].predict(track, timestamp=track.timestamp + datetime.timedelta(seconds=1))
+            pred_wghts.append(track.weight * self.filter_data['survival probability'])
+            pred_means.append(np.array(propagated_track.mean.flatten()))
+            pred_covcs.append(np.array(propagated_track.covar))
+        pred_wghts = np.asarray(pred_wghts)
+        pred_means = np.asarray(pred_means)
+        pred_covcs = np.asarray(pred_covcs)
+
+        predicted_mixture = [pred_wghts, pred_means, pred_covcs]
+
+        if len(predicted_mixture[0]) == 0:
+            reward = np.random.rand()
+            return reward # return a random reward if there are no predicted states, this leads to random action selection
+
+        # extract all sensors in this configuration
+        memo = {}
+        predicted_sensors = set()
+        # For each actionable in the configuration
+        for actionable, actions in config.items():
+            # print('unpacking sensors')
+            # Don't currently have an Actionable base for platforms hence either Platform or Sensor
+            if isinstance(actionable, Platform) or isinstance(actionable, Actionable):
+                predicted_actionable = copy.deepcopy(actionable, memo)
+                predicted_actionable.add_actions(actions)
+                predicted_actionable.act(metric_time)
+                if isinstance(actionable, Sensor):
+                    predicted_sensors.add(predicted_actionable)  # checks if its a sensor
+                elif isinstance(actionable, Platform):
+                    predicted_sensors.update(predicted_actionable.sensors)
+
+
+        for sensor in predicted_sensors:
+            # print('eval for each sensor')
+            ### sampling ###
+            #setup categorical distribution
+            num_samples = self.num_samples
+            num_choices = len(predicted_mixture[0]) + 1 # +1 for the clutter distribution
+            weights_list = [self.filter_data['clutter rate'], *list(self.filter_data['detection probability']*np.array(predicted_mixture[0]))]
+            
+            normalised_weights = weights_list/np.sum(weights_list)
+            choices = np.random.choice(np.arange(num_choices), p=normalised_weights, size=num_samples)
+            
+            #generate samples from the measurement distribution. ONLY WORKING FOR POLAR SENSORS
+            p_sampled = False # flag for if the prediction gets sampled
+            samples = np.zeros((num_samples, 2))
+            for n in range(num_choices):
+                # print('sampling')
+                idx = np.where(choices == n)[0]
+                if idx.size:
+                    if n == 0:
+                        #clutter
+                        thetas = np.random.uniform(sensor.dwell_centre.item()-sensor.fov_angle/2, sensor.dwell_centre.item()+sensor.fov_angle/2,  size=idx.size)
+                        rs = np.random.uniform(0, sensor.max_range, size=idx.size)
+                        samps = np.stack((thetas, rs), axis=1)
+                        
+                    else:
+                        #prediction
+                        p_sampled = True
+                        jacobian = sensor.measurement_model.jacobian(GroundTruthState(state_vector=predicted_mixture[1][n-1]))
+                        samps = np.random.multivariate_normal(mean = np.array([float(x) for x in np.array(cart2pol(predicted_mixture[1][n-1][0]-sensor.position.flatten()[0], predicted_mixture[1][n-1][2]-sensor.position.flatten()[1]))[::-1]]),
+                                                            cov = sensor.noise_covar + jacobian @ predicted_mixture[2][n-1] @ jacobian.T, size=idx.size)
+                        
+                        #convert theta to [-pi, pi] and range to [0, +inf)
+                        samps[:,0] = (samps[:,0] + np.pi) % (2*np.pi) - np.pi
+                        samps[:,1] = np.abs(samps[:,1])
+
+                        #check which samples are in fov
+                        remove_mask = []
+                        for id_n, id in enumerate(idx):
+                            if not (sensor.dwell_centre.item()-sensor.fov_angle/2 <= samps[id_n][0] <= sensor.dwell_centre.item()+sensor.fov_angle/2) or not (samps[id_n][1] <= sensor.max_range):
+                                remove_mask.append(id)
+
+                    samples[idx] = samps
+            
+            # remove out of fov samples
+            if p_sampled:
+                samples = np.delete(samples, remove_mask, axis=0)
+                num_samples = len(samples)
+
+            # return a reward of 0 if number of samples is zero
+            if num_samples == 0:
+                return reward
+            
+            #project prediction components according to the jacobian
+            jacobians = [sensor.measurement_model.jacobian(GroundTruthState(state_vector=predicted_mixture[1][k])) for k in range(len(predicted_mixture[1]))]
+            jacobians_T = [jaco.T for jaco in jacobians]
+            projected_prediction_means = np.asarray([jacobians[n] @ predicted_mixture[1][n].T for n in range(len(predicted_mixture[1]))])
+            projected_predicted_covs_half = np.asarray([predicted_mixture[2][n] @ jacobians_T[n] for n in range(len(predicted_mixture[1]))])
+            half_projected_predicted_covs = np.asarray([jacobians[n] @ predicted_mixture[2][n] for n in range(len(predicted_mixture[1]))])
+            projected_predicted_covs = np.asarray([jacobians[n] @ predicted_mixture[2][n] @ jacobians_T[n] for n in range(len(predicted_mixture[1]))])
+
+            #compute reward
+            qs = self.vectorised_gaussian_eval(False, True, dim=2, w1=predicted_mixture[0], m2=samples, m1=projected_prediction_means, const_cov=sensor.noise_covar, var_cov1= projected_predicted_covs).flatten() # j, z
+            Ks = projected_predicted_covs_half @ np.linalg.inv(sensor.noise_covar + projected_predicted_covs) # i
+            means = (predicted_mixture[1][:, None, :] + (Ks[:, None, :, :] @ (samples[None, :, :] - projected_prediction_means[:, None, :])[..., None])[..., 0]).reshape(-1, 4) # i, z
+            covs = np.repeat(predicted_mixture[2]-Ks @ half_projected_predicted_covs, num_samples, axis=0) # i
+            gamma = self.vectorised_gaussian_eval(False, True, dim=4, m1=means, m2=means, const_cov=self.kernel_parameters['covariance'], var_cov1=covs, var_cov2= covs) # i, j, z
+            rhos2 = (self.filter_data['clutter rate'] + self.filter_data['detection probability']*np.sum([predicted_mixture[0][k]*qs.reshape(len(predicted_mixture[0]), num_samples)[k] for k in range(len(predicted_mixture[0]))]))**2 # z
+
+            rhos2 = np.maximum(rhos2, 1e-12) # prevent divide by zero errors
+
+
+            reward += (self.filter_data['detection probability']**2/num_samples) * np.sum(np.repeat(predicted_mixture[0], num_samples)[None, :] * qs[None, :] * gamma / (rhos2))
+            
+            reward *= self.filter_data['clutter rate'] + self.filter_data['detection probability'] * np.sum(predicted_mixture[0]) # Monte Carlo estimator normalisation constant
+            
+        return reward
+        
