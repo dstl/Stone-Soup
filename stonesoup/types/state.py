@@ -4,7 +4,7 @@ import uuid
 import weakref
 from collections.abc import MutableMapping, MutableSequence, Sequence
 from numbers import Integral
-from typing import Any, Optional
+from typing import Any, Optional, TYPE_CHECKING
 
 import numpy as np
 from scipy.stats import multivariate_normal
@@ -14,6 +14,8 @@ from .array import StateVector, CovarianceMatrix, PrecisionMatrix, StateVectors
 from .base import Type
 from .particle import Particle, MultiModelParticle, RaoBlackwellisedParticle
 from .numeric import Probability
+if TYPE_CHECKING:
+    from ..models.transition import TransitionModel
 
 
 class State(Type):
@@ -1249,3 +1251,39 @@ class CompositeState(Type):
 
 
 State.register(CompositeState)  # noqa: E305
+
+
+class ModelAugmentedWeightedGaussianState(WeightedGaussianState):
+
+    model_histories: Sequence['TransitionModel'] = Property(
+        default=None,
+        doc="Transition model history. Most recent first.")
+    measurement_histories: Sequence[str] = Property(
+        default=None,
+        doc="Measurement history. Most recent first")
+    model_history_length: int = Property(
+        default=0,
+        doc="")
+    measurement_history_length: int = Property(
+        default=0,
+        doc="")
+    existence: Probability = Property(
+        default=None,
+        doc="The probability of existence")
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        if self.model_histories is None:
+            self.model_histories = []
+        if self.existence is None:
+            self.existence = Probability(1)
+
+
+class ExpandedModelAugmentedWeightedGaussianState(ModelAugmentedWeightedGaussianState):
+    model: 'TransitionModel' = Property(doc="")
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.model_histories = [*self.model_histories, self.model]
+        max_model_length = self.model_history_length + 1
+        self.model_histories = self.model_histories[-max_model_length:]
