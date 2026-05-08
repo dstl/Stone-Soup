@@ -80,9 +80,7 @@ ospa_EKF_PF = OSPAMetric(c=40, p=1, generator_name='OSPA_EKF-PF',
 # 
 # This kernel has a single parameter given by the symmetric, positive-definite covariance matrix $R$. Here we set $R=$ `kernel_cov` $=rI$, where $r=10$, by setting `kernel_parameters={'covariance':kernel_cov}`. The value of $r$ may be changed to influence the strictness of the metric. 
 # 
-# A more detailed exposition of this metric and its usage within stoneoup can be found in the "Applications of the quadratic distance to multi-target tracking" example worksheet [^4].
-
-# In[8]:
+# A more detailed exposition of this metric and its usage within stonesoup can be found in the "Applications of the quadratic distance to multi-target tracking" example worksheet. [#]_
 
 
 from stonesoup.metricgenerator.quadraticdistance import QuadraticDistance
@@ -575,7 +573,6 @@ siap_table = SIAPTableGenerator(siap_averages_PF).compute_metric()
 
 
 from stonesoup.plotter import MetricPlotter
-from matplotlib import pyplot as plt
 
 graph = MetricPlotter()
 graph.plot_metrics(metrics, generator_names=['OSPA_EKF-truth',
@@ -586,12 +583,15 @@ graph.plot_metrics(metrics, generator_names=['OSPA_EKF-truth',
                                              'Quadratic_Distance_EKF-truth',
                                              'Quadratic_Distance_PF-truth',
                                              'Quadratic_Distance_EKF-PF'],
+                  # metric_names=["OSPA distances",
+                  #               "SIAP Position Accuracy at times"]
+                  # uncomment and run to see effect
                    color=['orange', 'green', 'blue'])
 
 # update y-axis label and title; other subplots are displaying auto-generated title and labels
 graph.axes[0].set(ylabel='OSPA metrics', title='OSPA distances over time')
 graph.axes[1].set(ylabel='Quadratic Distance', title='Quadratic distance over time')
-plt.show()
+graph.fig.show()
 
 
 # From these plots, we can see that we lose some track accuracy towards the end of the
@@ -631,10 +631,10 @@ graph.set_ax_title(['Extended Kalman Filter', 'Particle Filter'])  # set title f
 # [^1] *D. Schuhmacher, B. Vo and B. Vo*, **A Consistent Metric for Performance Evaluation of
 #    Multi-Object Filters**, IEEE Trans. Signal Processing 2008
 # 
-# [^2] *Daniel E. Clark, Idyano Leroy, Peter R. Richards, Sean M. O'Rourke*, **Quadratic error 
+# .. [#] *Daniel E. Clark, Idyano Leroy, Peter R. Richards, Sean M. O'Rourke*, **Quadratic error 
 #    for point patterns**. TechRxiv. July 24, 2025.
 #    
-# [^3] *Karoly S., Wilson J., Dutchyshyn H., Maluda J.*, **Single Integrated Air Picture (SIAP)
+# .. [#] *Karoly S., Wilson J., Dutchyshyn H., Maluda J.*, **Single Integrated Air Picture (SIAP)
 #    Attributes Version 2.0**, DTIC Technical Report 2003
 # 
 # [^4] stonesoup link to "Application of the quadratic distance to multi-target tracking" worksheet
