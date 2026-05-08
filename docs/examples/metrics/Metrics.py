@@ -73,7 +73,8 @@ ospa_EKF_PF = OSPAMetric(c=40, p=1, generator_name='OSPA_EKF-PF',
                          tracks_key='EKF_tracks', truths_key='PF_tracks')
 
 
-# Next, we create generators for the quadratic distance metric using the :class:`~.QuadraticDistance` class. This metric computes the quadratic distance between two objects. These objects may take many forms, however, this implementation allows for point set and Gaussian mixture objects.[^2]
+# %%
+# Next, we create generators for the quadratic distance metric using the :class:`~.QuadraticDistance` class. This metric computes the quadratic distance between two objects. These objects may take many forms, however, this implementation allows for point set and Gaussian mixture objects. [#]_
 # 
 # The metric is parametrised by a kernel, $\Lambda(x,y)$, which determines the association between two elements of the compared objects. In this case we compute the quadratic distance for the Gaussian kernel parametrisation where $\Lambda(x,y)=\exp(-\frac{1}{2}(x-y)^\top R^{-1} (x-y))$, by setting `kernel='Gaussian'` in the generator.
 # 
