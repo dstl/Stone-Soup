@@ -16,6 +16,8 @@ class _BaseFixedLagTracker(_TrackerMixInNext, Tracker):
     updater = Property('Updater to update the tracks with the measurements')
     lag = Property('The lag in time steps',
                    default=3)
+    _lag_assoc_buffer = Property('Buffer to store the associations for the lag',
+                                 default=[])
 
     # initialisation
     def __init__(self, *args, **kwargs):
@@ -45,18 +47,6 @@ class _BaseFixedLagTracker(_TrackerMixInNext, Tracker):
                 break
         return time, detections
 
-
-class FixedLagTracker(_BaseFixedLagTracker):
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        self._track = None  # current track
-        self._lag_assoc_buffer = []  # associations
-        self.lag_times = []  # to store the lag times to reconstruct the states
-
-    @property
-    def tracks(self) -> set[Track]:
-        return {self._track} if self._track else set()
-
     def _fill_lag_buffer(self, associations):
         """
             Fill the lag storage with associations
@@ -66,15 +56,31 @@ class FixedLagTracker(_BaseFixedLagTracker):
         if associations['detections']:
             for det in associations['detections']:
                 hyphotesis = SingleHypothesis(prediction=associations['prediction'],
-                                              measurement=det)  # assuming single measurement for simplicity
-            state_post = self.updater.update(hyphotesis)  # assuming single measurement for simplicity
+                                              measurement=det)
+                # assuming single measurement for simplicity
+            state_post = self.updater.update(hyphotesis)
+            # assuming single measurement for simplicity
             self._track.append(state_post)
         else:
             self._track.append(associations['prediction'])
 
     def _process_lag(self):
+        raise NotImplementedError
+
+
+class FixedLagTracker(_BaseFixedLagTracker):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self._track = None  # current track
+
+    @property
+    def tracks(self) -> set[Track]:
+        return {self._track} if self._track else set()
+
+    def _process_lag(self):
         """
-        Main function to process the lag, update the states and weights in the lag buffer and then update the track with the new measurement
+        Main function to process the lag, update the states and weights in the
+        lag buffer and then update the track with the new measurement
         """
 
         new_weights_lag = {}  # use the dictionary in case to maximise the transfer on the MTT case
@@ -130,17 +136,19 @@ class FixedLagTracker(_BaseFixedLagTracker):
             self._track[lag_position] = new_prediction  # update the state in the lag position
             self._track[lag_position].log_weight = temp_weights  # update the weights
 
-        new_weights = (new_weights_lag[self._track]['oldweights'] + new_weights_lag[self._track]['logposterior'] -
+        new_weights = (new_weights_lag[self._track]['oldweights'] +
+                       new_weights_lag[self._track]['logposterior'] -
                        new_weights_lag[self._track]['logprior'])
 
         # normalise the weights
         new_weights -= logsumexp(new_weights)
 
+        track_pos = len(self._track) - (self.lag + 1)
         # now update the weights at the lag position
-        self._track[len(self._track) - (self.lag + 1)].log_weight = new_weights
+        self._track[track_pos].log_weight = new_weights
 
         # in case do the resample
-        self._track[len(self._track) - (self.lag + 1)] = self.updater.resampler.resample(self._track[len(self._track) - (self.lag + 1)])
+        self._track[track_pos] = self.updater.resampler.resample(self._track[track_pos])
 
         # after considered we should ditch the oldest element
         self._lag_assoc_buffer.pop(0)
@@ -183,8 +191,10 @@ class FixedLagTracker(_BaseFixedLagTracker):
                 if current_data['detections']:
                     for det in current_data['detections']:
                         hyphotesis = SingleHypothesis(prediction=current_data['prediction'],
-                                                      measurement=det)  # assuming single measurement for simplicity
-                    state_post = self.updater.update(hyphotesis)  # assuming single detection for simplicity
+                                                      measurement=det)
+                        # assuming single measurement for simplicity
+                    state_post = self.updater.update(hyphotesis)
+                    # assuming single detection for simplicity
                     self._track.append(state_post)
                 else:
                     self._track.append(current_data['prediction'])
@@ -203,9 +213,12 @@ class FixedLagTracker(_BaseFixedLagTracker):
                 # update the track with the new measurement
                 if self._lag_assoc_buffer[-1]['detections']:
                     for det in self._lag_assoc_buffer[-1]['detections']:
-                        hyphotesis = SingleHypothesis(prediction=self._lag_assoc_buffer[-1]['prediction'],
-                                                      measurement=det)  # assuming single measurement for simplicity
-                    state_post = self.updater.update(hyphotesis)  # assuming single detection for simplicity
+                        current_pred = self._lag_assoc_buffer[-1]['prediction']
+                        hyphotesis = SingleHypothesis(prediction=current_pred,
+                                                      measurement=det)
+                        # assuming single measurement for simplicity
+                    state_post = self.updater.update(hyphotesis)
+                    # assuming single detection for simplicity
                     self._track.append(state_post)
                 else:
                     self._track.append(self._lag_assoc_buffer[-1]['prediction'])
