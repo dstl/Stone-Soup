@@ -176,9 +176,7 @@ class Plotter(_Plotter):
         and labels as str
     """
 
-    def __init__(self, dimension=Dimension.TWO, **kwargs):
-        figure_kwargs = {"figsize": (10, 6)}
-        figure_kwargs.update(kwargs)
+    def __init__(self, dimension=Dimension.TWO, fig=None, ax=None, **kwargs):
         if isinstance(dimension, type(Dimension.TWO)):
             self.dimension = dimension
         elif isinstance(dimension, int):
@@ -187,12 +185,24 @@ class Plotter(_Plotter):
             raise TypeError("%s is an unsupported type for \'dimension\'; "
                             "expected type %s" % (type(dimension), type(Dimension.TWO)))
         # Generate plot axes
-        self.fig = plt.figure(**figure_kwargs)
+        if fig is not None:
+            self.fig = fig
+        else:
+            figure_kwargs = {"figsize": (10, 6)}
+            figure_kwargs.update(kwargs)
+            self.fig = plt.figure(**figure_kwargs)
+
         if self.dimension is Dimension.TWO:  # 2D axes
-            self.ax = self.fig.add_subplot(1, 1, 1)
+            if ax is not None:
+                self.ax = ax
+            else:
+                self.ax = self.fig.add_subplot(1, 1, 1)
             self.ax.axis('equal')
         else:  # 3D axes
-            self.ax = self.fig.add_subplot(111, projection='3d')
+            if ax is not None:
+                self.ax = ax
+            else:
+                self.ax = self.fig.add_subplot(111, projection='3d')
             self.ax.axis('auto')
             self.ax.set_zlabel("$z$")
         self.ax.set_xlabel("$x$")
@@ -1383,9 +1393,9 @@ class Plotterly(_Plotter):
                     ellipse_points=30, err_freq=1, same_color=False, **kwargs):
         """Plots track(s)
 
-        Plots each track generated, generating a legend automatically. If ``uncertainty=True``
-        error ellipses are plotted.
-        Tracks are plotted as solid lines with point markers and default colors.
+        Plots each track generated, generating a legend automatically. If ``uncertainty=True``,
+        uncertainty is visualised: vertical error bars (1D), error ellipses (2D), or error bars
+        (3D). Tracks are plotted as solid lines with point markers and default colors.
 
         Users can change line style, color and marker using keyword arguments.
 
@@ -1398,7 +1408,8 @@ class Plotterly(_Plotter):
             List of items specifying the mapping of the position
             components of the state space.
         uncertainty : bool
-            If True, function plots uncertainty ellipses.
+            If True, function plots uncertainty: vertical error bars (1D), ellipses (2D),
+            or error bars (3D).
         particle : bool
             If True, function plots particles.
         label: str
@@ -1469,8 +1480,24 @@ class Plotterly(_Plotter):
 
             if self.dimension == 1:  # plot 1D tracks
 
-                if uncertainty or particle:
+                if particle:
                     raise NotImplementedError
+
+                if uncertainty:
+                    err_y = []
+                    for count, state in enumerate(track):
+                        if count % err_freq == 0:
+                            HH = np.eye(track.ndim)[mapping, :]  # Get position mapping matrix
+                            cov = HH @ state.covar @ HH.T
+                            err_y.append(np.sqrt(cov[0, 0]))
+                        else:
+                            err_y.append(np.nan)
+
+                    scatter_kwargs_1d_error_y = dict(
+                        type='data', array=err_y,
+                    )
+                    scatter_kwargs = merge_dicts(scatter_kwargs,
+                                                 dict(error_y=scatter_kwargs_1d_error_y))
 
                 self.fig.add_scatter(
                     x=[state.timestamp for state in track],

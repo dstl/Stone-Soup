@@ -83,10 +83,8 @@ class Probability(Real):
         log_other = self._log(other)
         if self.log_value > log_other:
             log_l, log_s = self.log_value, log_other
-        elif self.log_value < log_other:
+        elif self.log_value <= log_other:
             log_l, log_s = log_other, self.log_value
-        else:  # Must be equal, so just double value
-            return self * 2
 
         if log_s == float("-inf"):  # Just return largest value
             return Probability(log_l, log_value=True)

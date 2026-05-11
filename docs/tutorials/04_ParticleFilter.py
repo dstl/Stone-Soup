@@ -116,7 +116,7 @@ sensor_y = 0
 measurement_model = CartesianToBearingRange(
     ndim_state=4,
     mapping=(0, 2),
-    noise_covar=np.diag([np.radians(0.2), 1]),
+    noise_covar=np.diag([np.radians(5) ** 2, 1]),
     translation_offset=np.array([[sensor_x], [sensor_y]])
 )
 

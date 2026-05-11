@@ -321,9 +321,12 @@ def test_plotterly_1d():
     with pytest.raises(NotImplementedError):
         plotter1d.plot_tracks(track, [0], particle=True)
 
-    # check that uncertainty=True does not plot
-    with pytest.raises(NotImplementedError):
-        plotter1d.plot_tracks(track, [0], uncertainty=True)
+    # check that uncertainty=True plots vertical error bars
+    plotter1d.plot_tracks(track, [0], uncertainty=True)
+    assert plotter1d.fig.data[-1].error_y is not None
+    # Verify error_y array contains non-NaN values (at least at err_freq points)
+    err_array = plotter1d.fig.data[-1].error_y.array
+    assert np.any(~np.isnan(err_array))
 
 
 def test_plotterly_2d():
