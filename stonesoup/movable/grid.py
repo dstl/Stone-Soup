@@ -88,15 +88,10 @@ class NStepDirectionalGridMovable(_GridActionableMovable):
     of each axis. This movable implements the :class:`~.NStepDirectionalGridActionGenerator`"""
 
     generator = NStepDirectionalGridActionGenerator
-    _generator_kwargs = _GridActionableMovable._generator_kwargs | {'n_steps', 'step_size'}
+    _generator_kwargs = _GridActionableMovable._generator_kwargs | {'n_steps'}
 
     n_steps: int = Property(
         default=1,
         doc="The number of steps that can be moved in either direction "
             "along specified dimensions"
-    )
-
-    step_size: int = Property(
-        default=1,
-        doc="The number of grid cells per step"
     )

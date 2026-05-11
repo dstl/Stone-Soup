@@ -120,14 +120,9 @@ class NStepDirectionalGridActionGenerator(GridActionGenerator):
             "along specified dimensions"
     )
 
-    step_size: int = Property(
-        default=1,
-        doc="The number of grid cells per step"
-    )
-
     @property
     def max_state_change(self):
-        return self.step_size * self.n_steps * self.resolution
+        return self.n_steps * self.resolution
 
     def __iter__(self):
         yield MovePositionAction(generator=self,

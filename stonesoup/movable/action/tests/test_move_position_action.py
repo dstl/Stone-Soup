@@ -16,7 +16,6 @@ from ...max_speed import MaxSpeedActionableMovable
     [
         (
                 {'n_steps': 1,
-                 'step_size': 1,
                  'action_mapping': (0, 1),
                  'action_space': None,
                  'resolution': 1},
@@ -24,7 +23,6 @@ from ...max_speed import MaxSpeedActionableMovable
                 (0, 1, 2)  # position_mapping
         ), (
                 {'n_steps': 1,
-                 'step_size': 1,
                  'action_mapping': (0, 1),
                  'action_space': None,
                  'resolution': 1},
@@ -32,7 +30,6 @@ from ...max_speed import MaxSpeedActionableMovable
                 (0, 1)  # position_mapping
         ), (
                 {'n_steps': 1,
-                 'step_size': 1,
                  'action_mapping': (1,),
                  'action_space': None,
                  'resolution': 1},
@@ -40,7 +37,6 @@ from ...max_speed import MaxSpeedActionableMovable
                 (0, 1)  # position_mapping
         ), (
                 {'n_steps': 2,
-                 'step_size': 1,
                  'action_mapping': (0, 1),
                  'action_space': None,
                  'resolution': 1},
@@ -48,7 +44,6 @@ from ...max_speed import MaxSpeedActionableMovable
                 (0, 1, 2)  # position_mapping
         ), (
                 {'n_steps': 2,
-                 'step_size': 1,
                  'action_mapping': (0, 1),
                  'action_space': None,
                  'resolution': None},
@@ -56,7 +51,6 @@ from ...max_speed import MaxSpeedActionableMovable
                 (0, 1, 2)  # position_mapping
         ), (
                 {'n_steps': 2,
-                 'step_size': 1,
                  'action_mapping': (0, 1),
                  'action_space': StateVectors([[0, 5], [-1, 5]]),
                  'resolution': 1},
@@ -64,7 +58,6 @@ from ...max_speed import MaxSpeedActionableMovable
                 (0, 1, 2)  # position_mapping
         ), (
                 {'n_steps': 2,
-                 'step_size': 1,
                  'action_mapping': (0, 1, 2),
                  'action_space': StateVectors([[0, 5], [-1, 5], [-1, 1]]),
                  'resolution': 1},
@@ -81,9 +74,8 @@ def test_n_step_directional_grid_action_gen(generator_params, state, position_ma
     start_timestamp = datetime.now()
     end_timestamp = start_timestamp + timedelta(seconds=1)
 
-    n_steps, step_size, action_mapping, action_space, resolution = \
+    n_steps, action_mapping, action_space, resolution = \
         (generator_params.get(key) for key in ['n_steps',
-                                               'step_size',
                                                'action_mapping',
                                                'action_space',
                                                'resolution'])
@@ -102,11 +94,10 @@ def test_n_step_directional_grid_action_gen(generator_params, state, position_ma
 
     # Check that parameters have been set correctly
     assert generator.n_steps == n_steps
-    assert generator.step_size == step_size
     assert generator.action_mapping == action_mapping
     assert np.all(generator.action_space == action_space)
     assert generator.resolution == resolution
-    assert generator.max_state_change == step_size * n_steps
+    assert generator.max_state_change == n_steps * resolution
 
     # Check that actions are generated correctly
     generator_set = set()
@@ -117,8 +108,8 @@ def test_n_step_directional_grid_action_gen(generator_params, state, position_ma
         actions.append(elements[0].target_value)
         assert elements[0].target_value in generator
 
-    deltas = np.linspace(-1*n_steps*step_size*resolution,
-                         n_steps*step_size*resolution,
+    deltas = np.linspace(-1*n_steps*resolution,
+                         n_steps*resolution,
                          2*n_steps+1)
 
     eval_actions = [state]
