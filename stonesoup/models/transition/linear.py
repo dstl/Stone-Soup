@@ -1,5 +1,6 @@
 import math
 from collections.abc import Sequence
+from numbers import Real
 from functools import lru_cache
 
 import numpy as np
@@ -116,6 +117,16 @@ class ConstantNthDerivative(LinearGaussianTransitionModel, TimeVariantModel):
             "identical to constant acceleration")
     noise_diff_coeff: float = Property(
         doc="The Nth derivative noise diffusion coefficient (Variance) :math:`q`")
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+
+        # Check that the noise_diff_coeff is actually a float
+        if not (isinstance(self.noise_diff_coeff, self._properties['noise_diff_coeff'].cls) or
+                isinstance(self.noise_diff_coeff, Real)):
+            raise TypeError("'noise_diff_coeff' should be a {} instance. Instead it "
+                            "is {}".format(self._properties['noise_diff_coeff'].cls,
+                                           type(self.noise_diff_coeff)))
 
     @property
     def ndim_state(self):
@@ -304,6 +315,15 @@ class NthDerivativeDecay(LinearGaussianTransitionModel, TimeVariantModel):
             "singer")
     noise_diff_coeff: float = Property(doc="The noise diffusion coefficient :math:`q`")
     damping_coeff: float = Property(doc="The Nth derivative damping coefficient :math:`K`")
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+
+        # Check that the noise_diff_coeff is actually a float
+        if not (isinstance(self.noise_diff_coeff, self._properties['noise_diff_coeff'].cls) or
+                isinstance(self.noise_diff_coeff, Real)):
+            raise TypeError("'noise_diff_coeff' should be a {} instance. Instead it "
+                            "is {}".format(float, type(self.noise_diff_coeff)))
 
     @property
     def ndim_state(self):

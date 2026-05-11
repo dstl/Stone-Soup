@@ -39,6 +39,11 @@ def test_singer(singer_model_params, sign):
     # CombinedGaussianTransitionModel object
     dim = len(state_vec) // 3  # pos, vel, acc for each dimension
     if dim == 1:
+        # Test non-float noise_diff_coeff error
+        with pytest.raises(TypeError, match="'noise_diff_coeff' should be a "
+                           "<class 'float'> instance. Instead it is <class 'list'>"):
+            Singer(noise_diff_coeff=[noise_diff_coeffs[0]],
+                   damping_coeff=damping_coeffs[0])
         model_obj = Singer(noise_diff_coeff=noise_diff_coeffs[0],
                            damping_coeff=damping_coeffs[0])
     else:

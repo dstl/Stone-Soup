@@ -165,15 +165,13 @@ class Intervals(Type):
     """
 
     intervals: MutableSequence[Interval] = Property(
-        default=None,
+        default_factory=list,
         doc="Container of :class:`Interval`")
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
-        if self.intervals is None:
-            self.intervals = list()
-        elif not isinstance(self.intervals, MutableSequence):
+        if not isinstance(self.intervals, MutableSequence):
             if isinstance(self.intervals, (Interval, tuple)):
                 self.intervals = [self.intervals]
             elif isinstance(self.intervals, Intervals):

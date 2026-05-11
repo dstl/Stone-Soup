@@ -93,7 +93,7 @@ class IsotropicPlume(GaussianModel, MeasurementModel):
     )
 
     translation_offset: StateVector = Property(
-        default=None,
+        default_factory=lambda: StateVector([[0.], [0.], [0.]]),
         doc="A 3x1 array specifying the Cartesian origin offset in terms of :math:`x,y,z` "
             "coordinates.")
 
@@ -106,15 +106,6 @@ class IsotropicPlume(GaussianModel, MeasurementModel):
         default=0.1,
         doc="Measurement threshold. Should be set high enough to minimise false detections."
     )
-
-    def __init__(self, *args, **kwargs):
-        """
-        Ensure that the translation offset is initiated
-        """
-        super().__init__(*args, **kwargs)
-        # Set values to defaults if not provided
-        if self.translation_offset is None:
-            self.translation_offset = StateVector([0.] * 3)
 
     def covar(self, **kwargs) -> CovarianceMatrix:
         raise NotImplementedError('Covariance for IsotropicPlume is dependant on the '

@@ -172,18 +172,18 @@ state_vector = [np.random.uniform(-range_value, range_value, 1),
 # Calculate start and end points for truthlets given the starting conditions
 for i in range(number_of_targets):
     # Sets number of segments from range of random numbers
-    number_of_segments = int(np.random.choice(range(1, max_segments), 1))
+    number_of_segments = np.random.randint(1, max_segments)
 
     # Set length of first truthlet segment
-    truthlet0_length = np.random.choice(range(max_track_start), 1)
+    truthlet0_length = np.random.randint(0, max_track_start)
 
     # Set lengths of each of the truthlet segments
-    truthlet_lengths = np.random.choice(range(min_segment_length, max_segment_length),
-                                        number_of_segments)
+    truthlet_lengths = np.random.randint(min_segment_length, max_segment_length,
+                                         number_of_segments)
 
     # Set lengths of each disjoint section
-    disjoint_lengths = np.random.choice(range(min_disjoint_length, max_disjoint_length),
-                                        number_of_segments)
+    disjoint_lengths = np.random.randint(min_disjoint_length, max_disjoint_length,
+                                         number_of_segments)
 
     # Sum pairs of truthlets and disjoints, and set the start-point of the truth path
     segment_pair_lengths = np.insert(truthlet_lengths + disjoint_lengths, 0, truthlet0_length,

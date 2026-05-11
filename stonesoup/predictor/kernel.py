@@ -40,18 +40,12 @@ class AdaptiveKernelKalmanPredictor(KalmanPredictor):
     :math:`{V}_{k}` represents the finite matrix representation of the transition residual matrix.
     """
     kernel: Kernel = Property(
-        default=None,
+        default_factory=QuadraticKernel,
         doc="Default is None. If None, the default :class:`~QuadraticKernel` is used.")
     lambda_predictor: float = Property(
         default=1e-3,
         doc=r":math:`\lambda_{\tilde{K}}`. Regularisation parameter used to stabilise the inverse "
             r"Gram matrix. Range is :math:`\left[10^{-4}, 10^{-2}\right]`")
-
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-
-        if self.kernel is None:
-            self.kernel = QuadraticKernel()
 
     @predict_lru_cache()
     def predict(self, prior, timestamp=None, proposal=None, **kwargs):

@@ -16,7 +16,7 @@ class MultipleHypothesis(Type, Sequence):
     """
 
     single_hypotheses: Sequence[SingleHypothesis] = Property(
-        default=None,
+        default_factory=list,
         doc="The initial list of :class:`~.SingleHypothesis`. Default `None` "
             "which initialises with empty list.")
     normalise: bool = Property(
@@ -27,17 +27,13 @@ class MultipleHypothesis(Type, Sequence):
         default=1,
         doc="When normalising, weights will sum to this. Default is 1.")
 
-    def __init__(self, single_hypotheses=None, normalise=False, *args,
-                 **kwargs):
-        if single_hypotheses is None:
-            single_hypotheses = []
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
 
         if any(not isinstance(hypothesis, SingleHypothesis)
-               for hypothesis in single_hypotheses):
+               for hypothesis in self.single_hypotheses):
             raise ValueError("Cannot form MultipleHypothesis out of "
                              "non-SingleHypothesis inputs!")
-
-        super().__init__(single_hypotheses, normalise, *args, **kwargs)
 
         # normalise the weights of 'single_hypotheses', if indicated
         if self.normalise:
@@ -128,7 +124,7 @@ class MultipleCompositeHypothesis(Type, Sequence):
     """
 
     single_hypotheses: Sequence[CompositeHypothesis] = Property(
-        default=None,
+        default_factory=list,
         doc="The initial list of :class:`~.CompositeHypothesis`. Default `None` which initialises "
             "with empty list.")
     normalise: bool = Property(
@@ -138,17 +134,13 @@ class MultipleCompositeHypothesis(Type, Sequence):
         default=1,
         doc="When normalising, weights will sum to this. Default is 1.")
 
-    def __init__(self, single_hypotheses=None, normalise=False, *args,
-                 **kwargs):
-        if single_hypotheses is None:
-            single_hypotheses = []
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
 
         if not all(isinstance(hypothesis, CompositeHypothesis)
-                   for hypothesis in single_hypotheses):
+                   for hypothesis in self.single_hypotheses):
             raise ValueError("Cannot form MultipleHypothesis out of "
                              "non-CompositeHypothesis inputs!")
-
-        super().__init__(single_hypotheses, normalise, *args, **kwargs)
 
         # normalise the weights of 'single_hypotheses', if indicated
         if self.normalise:

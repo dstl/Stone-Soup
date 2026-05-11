@@ -2,7 +2,7 @@
 from abc import abstractmethod
 
 from ..base import Property
-from ..reader import Reader, DetectionReader, GroundTruthReader
+from ..reader import Reader, DetectionReader, GroundTruthReader, TrackReader
 from ..buffered_generator import BufferedGenerator
 
 
@@ -42,4 +42,16 @@ class GroundTruthFeeder(Feeder, GroundTruthReader):
 
     @BufferedGenerator.generator_method
     def groundtruth_paths_gen(self):
+        yield from self.data_gen()
+
+
+class TrackFeeder(Feeder, TrackReader):
+    """Track feeder base class
+
+    Feeder consumes and outputs :class:`.Track` data and can be used to modify the sequence,
+    duplicate or drop data.
+    """
+
+    @BufferedGenerator.generator_method
+    def tracks_gen(self):
         yield from self.data_gen()

@@ -195,7 +195,7 @@ class FixedMovable(Movable):
         .. note:: Position and orientation are read/write properties in this class.
         """
     orientation: StateVector = Property(
-        default=None,
+        default_factory=lambda: StateVector([[0.], [0.], [0.]]),
         doc='A fixed orientation of the static platform. Defaults to the zero vector')
 
     def __init__(self, *args, **kwargs):
@@ -204,8 +204,6 @@ class FixedMovable(Movable):
             raise ValueError('Velocity mapping should not be set for a FixedMovable')
         super().__init__(*args, **kwargs)
         self.velocity_mapping = None
-        if self.orientation is None:
-            self.orientation = StateVector([0., 0., 0.])
 
     def _set_position(self, value: StateVector) -> None:
         self.state_vector[self.position_mapping, :] = value

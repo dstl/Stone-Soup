@@ -28,12 +28,12 @@ def dummy_constraint_function(particles):
     "transition_model, model_flag, constraint_func",
     [
         (
-            CombinedLinearGaussianTransitionModel([ConstantVelocity([0.05])]),  # transition_model
+            CombinedLinearGaussianTransitionModel([ConstantVelocity(0.05)]),  # transition_model
             False,  # model_flag
             None  # constraint_function
         ),
         (
-            CombinedLinearGaussianTransitionModel([ConstantVelocity([0.05])]),  # transition_model
+            CombinedLinearGaussianTransitionModel([ConstantVelocity(0.05)]),  # transition_model
             True,  # model_flag
             None  # constraint_function
         ),
@@ -43,7 +43,7 @@ def dummy_constraint_function(particles):
             None  # constraint_function
         ),
         (
-            CombinedLinearGaussianTransitionModel([ConstantVelocity([0.05])]),  # transition_model
+            CombinedLinearGaussianTransitionModel([ConstantVelocity(0.05)]),  # transition_model
             False,  # model_flag
             dummy_constraint_function  # constraint_function
         )

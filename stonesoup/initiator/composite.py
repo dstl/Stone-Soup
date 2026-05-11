@@ -1,5 +1,5 @@
 import warnings
-from typing import Sequence
+from collections.abc import Sequence
 
 from .base import Initiator
 from ..base import Property

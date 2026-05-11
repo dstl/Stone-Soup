@@ -35,7 +35,11 @@ def test_ca(ca_model_params, sign):
     # CombinedLinearGaussianTransitionModel object
     dim = len(state_vec) // 3  # pos, vel, acc for each dimension
     if dim == 1:
-        model_obj = ConstantAcceleration(noise_diff_coeff=noise_diff_coeffs[0])
+        model_obj = ConstantAcceleration(noise_diff_coeff=noise_diff_coeffs[0][0])
+        # Test non-float noise_diff_coeff error
+        with pytest.raises(TypeError, match="'noise_diff_coeff' should be a "
+                           "<class 'float'> instance. Instead it is <class 'list'>"):
+            ConstantAcceleration(noise_diff_coeff=[noise_diff_coeffs[0]])
     else:
         model_list = [ConstantAcceleration(
             noise_diff_coeff=noise_diff_coeffs[i]) for i in range(0, dim)]
