@@ -48,16 +48,24 @@ dev = [
     "coverage>=7.2",
     "flake8",
     "folium",
+    "graphviz",
     "h5py",
+    "networkx",
     "ortools",
     "pandas",
     "pillow",
+    "pydot",
     "pytest-cov",
     "pytest-remotedata",
     "pytest-skip-slow",
     "Sphinx",
     "sphinx-gallery>=0.17",
     "sphinx_rtd_theme>=1.2",
+]
+docs = [
+    "geopandas",
+    "pyehm",
+    "torch",
 ]
 video = [
     "ffmpeg-python",

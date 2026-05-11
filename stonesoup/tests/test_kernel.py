@@ -163,7 +163,6 @@ proposal = KernelParticleState(state_vector=StateVectors(samples.T),
 def test_kernel(kernel_class, output, state1, state2):
     kernel_covar = kernel_class(state1, state2)
     sv1 = state1.state_vector if isinstance(state1, State) else state1
-    print(state2, state2 is None)
     if state2 is not None:
         sv2 = state2.state_vector if isinstance(state2, State) else state2
     else:
@@ -270,11 +269,9 @@ def test_multiple_kwargs(kernel_class):
     state2 = StateVectors([[2, 2, 2], [3, 3, 3], [4, 4, 4], [5, 5, 5]])
     kernel = kernel_class()
     for kwargs in kwargs_list:
-        print(kernel)
         kernel2 = kernel_class(**{k: v for k, v in kwargs.items() if k in type(kernel).properties})
         covar1 = kernel(state1, state2, **kwargs)
         covar2 = kernel2(state1, state2)
-        print(kernel, kernel2)
         assert np.allclose(covar1, covar2)
 
 
