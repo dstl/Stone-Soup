@@ -37,7 +37,4 @@ def test_model_reducer():
                            transition_model_list=transitions,
                            model_history_length=1)
     reduced_states = reducer.reduce(augmented_states, timestamp)
-    # assert all(getattr(prior, name) == getattr(reduced_states, name)
-    #            for name in type(prior).properties)
-    # assert transition_probabilities == reducer.transition_probabilities
     assert len(prior) == len(reduced_states)

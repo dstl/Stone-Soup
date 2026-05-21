@@ -78,15 +78,8 @@ prior1 = ModelAugmentedWeightedGaussianState(
     ids=["2updates", "4updates"]
 )
 def test_model_augmentor2(priors, model_augmentor, priors_class, request):
-    print(request.node.callspec.id)
     for state in priors:
         state.model_histories = [prior]
-    print(model_augmentor.transition_probabilities.get_all_transition_matrices)
     augmented_states = model_augmentor.augment(priors)
-    print(len(priors), len(model_augmentor.transition_models))
-    print("augmented states: ", len(augmented_states))
-    print("priors: ", len(priors))
-    print(type(augmented_states[0]))
-    print(type(priors_class))
     assert len(augmented_states) == len(priors)*len(model_augmentor.transition_models)
     assert isinstance(augmented_states[0], priors_class)

@@ -59,5 +59,4 @@ def test_calculate_likelihood(states, full_output):
         histories: int = Property(default=None, doc="Depth of history to be stored")
     reducer = Dummy()
     reduced_states = reducer.calculate_likelihood(states, prior.timestamp)
-    print(reduced_states)
     assert full_output == 0
