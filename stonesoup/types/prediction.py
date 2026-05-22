@@ -280,7 +280,7 @@ class ModelAugmentedWeightedGaussianStatePrediction(
         ModelAugmentedWeightedGaussianState):
     """ ModelAugmentedWeightedGaussianStatePrediction type
 
-    This is a Gaussian state prediction object with an associated
+    This is a weighted Gaussian state prediction object with an associated
     weight and multiple model properties.
     """
 
@@ -290,6 +290,6 @@ class ExpandedModelAugmentedWeightedGaussianStatePrediction(
         ExpandedModelAugmentedWeightedGaussianState):
     """ ExpandedModelAugmentedWeightedGaussianStatePrediction type
 
-    This is a simple Gaussian state prediction object with an associated
+    This is a weighted Gaussian state prediction object with an associated
     weight and multiple model properties.
     """

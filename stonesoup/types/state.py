@@ -172,7 +172,7 @@ class CreatableFromState:
 class PointMassState(State):
     """PointMassState State type
 
-    For the Lagrangina Point Mass filter.
+    For the Lagrangian Point Mass filter.
     """
 
     state_vector: StateVectors = Property(doc="State vectors.")
@@ -1254,7 +1254,13 @@ State.register(CompositeState)  # noqa: E305
 
 
 class ModelAugmentedWeightedGaussianState(WeightedGaussianState):
+    """
+    Model Augmented Weighted Gaussian State Type.
 
+    This state extends a weighted Gaussian state with additional information used
+    by multiple model algorithms that require model augmentation. It stores a history
+    of transition models, along with history lengths.
+    """
     model_histories: Sequence['TransitionModel'] = Property(
         default=None,
         doc="Transition model history. Most recent first.")
@@ -1263,10 +1269,10 @@ class ModelAugmentedWeightedGaussianState(WeightedGaussianState):
         doc="Measurement history. Most recent first")
     model_history_length: int = Property(
         default=0,
-        doc="")
+        doc="Maximum length of the stored transition model history.")
     measurement_history_length: int = Property(
         default=0,
-        doc="")
+        doc="Maximum length of the stored measurement history.")
     existence: Probability = Property(
         default=None,
         doc="The probability of existence")
@@ -1280,7 +1286,15 @@ class ModelAugmentedWeightedGaussianState(WeightedGaussianState):
 
 
 class ExpandedModelAugmentedWeightedGaussianState(ModelAugmentedWeightedGaussianState):
-    model: 'TransitionModel' = Property(doc="")
+    """
+    Expanded Model Augmented Weighted Gaussian State Type.
+
+    This state extends the ModelAugmentedWeightedGaussianState by including a reference to the
+    current transition model as a parameter, which is also stored in the model history.
+    This allows for easier access to the current model while still maintaining a history of
+    past models for use in multiple model algorithms.
+    """
+    model: 'TransitionModel' = Property(doc="Current transition model for this state.")
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)

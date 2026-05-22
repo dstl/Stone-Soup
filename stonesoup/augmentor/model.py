@@ -7,10 +7,28 @@ from .base import Augmentor
 
 
 class ModelAugmentor(Augmentor):
-    """Model Augmentor"""
+    """Augmentor that expands states by transition model hypotheses.
+
+    The ModelAugmentor creates an augmented hypothesis set by combining each
+    input state with every transition model in :attr:`transition_models`.
+    Each augmented state carries the model-specific weight and history required
+    by model-augmented prediction and update routines.
+    """
 
     def augment(self, states, *args, **kwargs):
-        """Augments the prior states and the transition models (combinatorically)."""
+        """Augment a sequence of states with all available transition models.
+
+        Parameters
+        ----------
+        states : :class:`~.GaussianMixture` of :class:`~.ModelAugmentedWeightedGaussianState`
+            Input states to expand into model-conditioned hypotheses.
+
+        Returns
+        -------
+        :class:`~.GaussianMixture` of :class:`~.ModelAugmentedWeightedGaussianState`
+            A mixture containing an augmented state for each input state and
+            each transition model.
+        """
         new_states = []
         for i, state in enumerate(states):
             for j, model in enumerate(self.transition_models):

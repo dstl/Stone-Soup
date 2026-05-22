@@ -14,10 +14,16 @@ from ..types.update import Update
 
 
 class Reducer(Base):
+    """Base reducer for multiple model framework Gaussian mixture states.
+
+    Reducers are responsible for computing likelihoods and reducing the number of
+    hypotheses in a mixture while preserving the most probable model-conditioned
+    states.
+    """
     transition_probabilities: TransitionMatrix = Property(
-        doc="Transition Probability Matrix")
+        doc="Transition probability matrix used when combining model hypotheses.")
     transition_model_list: Optional[Sequence[TransitionModel]] = Property(
-        default=None, doc="List of models to be used.")
+        default=None, doc="List of transition models available for reduction.")
     model_history_length: Optional[int] = Property(
         default=None, doc="number of previous models to store in history.")
 
@@ -25,6 +31,20 @@ class Reducer(Base):
         super().__init__(*args, **kwargs)
 
     def calculate_likelihood(self, states, timestamp):
+        """Calculate state likelihoods for a Gaussian mixture.
+
+        Parameters
+        ----------
+        states : :class:`~.GaussianMixture` of :class:`~.ModelAugmentedWeightedGaussianState`
+            A :class:`~.GaussianMixture` object containing the current hypotheses.
+        timestamp : datetime.datetime
+            The timestamp for which likelihoods are being evaluated.
+
+        Returns
+        -------
+        states : :class:`~.GaussianMixture` of :class:`~.ModelAugmentedWeightedGaussianState`
+            Updated mixture with likelihood-weighted component weights.
+        """
         if isinstance(states, list):
             try:
                 (isinstance(states[0][0], WeightedGaussianState))

@@ -158,7 +158,7 @@ class ModelAugmentedWeightedGaussianStateUpdate(
         ModelAugmentedWeightedGaussianState):
     """ ModelAugmentedWeightedGaussianStateUpdate type
 
-    This is a Gaussian state update object with an associated
+    This is a weighted Gaussian state update object with an associated
     weight and multiple model properties.
     """
 
@@ -168,6 +168,6 @@ class ExpandedModelAugmentedWeightedGaussianStateUpdate(
         ExpandedModelAugmentedWeightedGaussianState):
     """ ExpandedModelAugmentedWeightedGaussianStateUpdate type
 
-    This is a Gaussian state update object with an associated
+    This is a weighted Gaussian state update object with an associated
     weight and multiple model properties.
     """

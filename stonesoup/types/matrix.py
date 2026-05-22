@@ -4,6 +4,15 @@ from ..base import Base, Property
 
 
 class TransitionMatrix(Base):
+    """
+    Transition Probability Matrix (TPM) for use in model reduction and model augmentation.
+
+    The TPM is used to determine the probability of transitioning from one model to another
+    based on the model history of a state. The TPM can be defined for different lengths of model
+    history, allowing for more complex transition dynamics to be captured. The class provides a
+    method to retrieve the appropriate transition matrix based on the model history of a given
+    state.
+    """
     transition_matrix: np.ndarray = Property(
         doc="Transition Probability matrix.")
     num_components: int = Property(default=0, doc="Number of states.")

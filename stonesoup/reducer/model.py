@@ -10,6 +10,13 @@ from ..types.state import ModelAugmentedWeightedGaussianState
 
 
 class ModelReducer(Reducer):
+    """Reducer implementing model-based mixture reduction.
+
+    The ModelReducer groups hypotheses by their recent transition model history and
+    reduces each history-specific subset to a single augmented weighted Gaussian
+    state.
+    """
+
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.reduction_histories = [list(x) for x in product(self.transition_model_list,
@@ -17,6 +24,20 @@ class ModelReducer(Reducer):
         self.reduced_output = []
 
     def reduce(self, states, timestamp):
+        """Reduce a mixture of states by model history and update weights.
+
+        Parameters
+        ----------
+        states : :class:`~.GaussianMixture` of :class:`~.ModelAugmentedWeightedGaussianState`
+            Mixture of states to be reduced based on model histories.
+        timestamp : datetime.datetime
+            Timestamp used when recalculating likelihoods after reduction.
+
+        Returns
+        -------
+        :class:`~.GaussianMixture` of :class:`~.ModelAugmentedWeightedGaussianState`
+            Reduced mixture with updated component weights.
+        """
         temp = []
         if len(self.transition_probabilities[states[0]].ravel()) == len(states.weights):
             m_ij_weights = (
