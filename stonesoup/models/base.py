@@ -329,7 +329,7 @@ class GaussianModel(Model):
             raise ValueError("Cannot generate pdf from None-type covariance")
 
         # Calculate difference before to handle custom types (mean defaults to zero)
-        # This is required as log pdf coverts arrays to floats
+        # This is required as log pdf converts arrays to floats
         likelihood = np.atleast_1d(
             multivariate_normal.logpdf((state1.state_vector - self.function(state2, **kwargs)).T,
                                        cov=covar))

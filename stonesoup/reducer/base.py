@@ -26,6 +26,13 @@ class Reducer(Base):
         default=None, doc="List of transition models available for reduction.")
     model_history_length: Optional[int] = Property(
         default=None, doc="Number of previous models to store in history.")
+    seed: Optional[int] = Property(default=None, doc="Seed for random number generation")
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.random_state = (np.random.RandomState(self.seed)
+                             if self.seed is not None
+                             else np.random.mtrand._rand)
 
     def calculate_likelihood(self, states, timestamp):
         """Calculate state likelihoods for a Gaussian mixture.
@@ -74,5 +81,5 @@ class Reducer(Base):
         return states
 
     @abstractmethod
-    def reduce(self, states, timestamp, **kwargs):
+    def reduce(self, states, timestamp, random_state=None, **kwargs):
         raise NotImplementedError

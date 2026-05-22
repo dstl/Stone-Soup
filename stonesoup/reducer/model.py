@@ -23,7 +23,7 @@ class ModelReducer(Reducer):
                                                              repeat=self.model_history_length)]
         self.reduced_output = []
 
-    def reduce(self, states, timestamp):
+    def reduce(self, states, timestamp, random_state=None):
         """Reduce a mixture of states by model history and update weights.
 
         Parameters
@@ -38,6 +38,8 @@ class ModelReducer(Reducer):
         :class:`~.GaussianMixture` of :class:`~.ModelAugmentedWeightedGaussianState`
             Reduced mixture with updated component weights.
         """
+        random_state = random_state if random_state is not None else self.random_state
+
         temp = []
         if len(self.transition_probabilities[states[0]].ravel()) == len(states.weights):
             m_ij_weights = (
@@ -46,7 +48,7 @@ class ModelReducer(Reducer):
         elif len(self.transition_probabilities[states[0]].ravel())**2 == len(states.weights):
             m_ij_weights = (
                 self.transition_probabilities.transition_matrices[1].ravel() *
-                (states.weights/np.sum(states.weights)))*np.random.rand(len(states.weights))
+                (states.weights/np.sum(states.weights)))*random_state.rand(len(states.weights))
         else:
             m_ij_weights = (
                 self.transition_probabilities[states[0]]
@@ -62,7 +64,7 @@ class ModelReducer(Reducer):
                 hist_state = GaussianMixture(hist_state)
             means = StateVectors([state.state_vector for state in hist_state])
             covars = np.stack([state.covar for state in hist_state], axis=2)
-            weights = np.asarray(hist_state.weights * np.random.rand(len(hist_state.weights)))
+            weights = np.asarray(hist_state.weights * random_state.rand(len(hist_state.weights)))
 
             mean, covar = gm_reduce_single(means, covars, weights)
             temp.append(ModelAugmentedWeightedGaussianState.from_state(
