@@ -39,16 +39,16 @@ def test_base():
 
 
 @pytest.mark.parametrize(
-    "states, full_output",
+    "states, full_output, expected_weight",
     [(GaussianMixture(components=[prior, prior]),
-      0),
+      0, 1),
      ([prior, prior],
-      0),
+      0, 1),
      ([[prior], [prior]],
-      0)],
+      0, 1)],
     ids=["GM", "List", "List(List)"]
 )
-def test_calculate_likelihood(states, full_output):
+def test_calculate_likelihood(states, full_output, expected_weight):
     Reducer.__abstractmethods__ = set()
 
     @dataclass
@@ -60,3 +60,5 @@ def test_calculate_likelihood(states, full_output):
     reducer = Dummy()
     reduced_states = reducer.calculate_likelihood(states, prior.timestamp)
     assert full_output == 0
+    for state in reduced_states:
+        assert state.weight == expected_weight
