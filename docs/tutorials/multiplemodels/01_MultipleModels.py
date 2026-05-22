@@ -31,10 +31,6 @@ from stonesoup.reducer import IdentityReducer, ModelReducer
 
 import numpy as np
 
-from stonesoup.models.transition.linear import (CombinedLinearGaussianTransitionModel as CLGTM,
-                                                ConstantVelocity as CV,
-                                                KnownTurnRate as CT)
-
 # %%
 # Ground truth and detections
 # ---------------------------
@@ -43,7 +39,7 @@ from datetime import datetime, timedelta
 
 from stonesoup.models.measurement.linear import LinearGaussian
 from stonesoup.models.transition.linear import (CombinedLinearGaussianTransitionModel,
-                                                ConstantVelocity, KnownTurnRate as ConstantTurn)
+                                                ConstantVelocity, KnownTurnRate)
 from stonesoup.types.groundtruth import GroundTruthPath, GroundTruthState
 from stonesoup.types.numeric import Probability
 from stonesoup.plotter import Plotter
@@ -58,13 +54,12 @@ rate1 = 0.01634
 rate2 = 0.0232
 gtcv = CombinedLinearGaussianTransitionModel([ConstantVelocity(noise),
                                               ConstantVelocity(noise)])
-gtctl2 = CombinedLinearGaussianTransitionModel([ConstantTurn(np.array([noise, noise]), rate2)])
-gtctr1 = CombinedLinearGaussianTransitionModel([ConstantTurn(np.array([noise, noise]), -rate1)])
+gtctl2 = CombinedLinearGaussianTransitionModel([KnownTurnRate(np.array([noise, noise]), rate2)])
+gtctr1 = CombinedLinearGaussianTransitionModel([KnownTurnRate(np.array([noise, noise]), -rate1)])
 
 # %%
 truths = set()
 segment_lengths = [150, 200, 40, 165, 45]
-segment_lengths = [int(x) for x in segment_lengths]
 models = [gtcv, gtctr1, gtcv, gtctl2, gtcv]
 segment_ids = [j for n, i in enumerate(segment_lengths) for j in [n]*i]
 
@@ -126,10 +121,10 @@ all_measurements, measurements = generate_measurements(
 # %%
 import matplotlib
 matplotlib.rcParams.update({"font.size": 18})
-gtplotter = Plotter()
+plotter = Plotter()
 ms = [m for _, m in all_measurements]
-gtplotter.plot_ground_truths(truths, [0, 2], linewidth=2)
-gtplotter.fig
+plotter.plot_ground_truths(truths, [0, 2], linewidth=2)
+plotter.fig
 
 # %%
 from matplotlib import pyplot as plt
@@ -150,7 +145,8 @@ plt.show()
 # model.
 
 start_time = datetime.now().replace(hour=0, minute=0, second=0, microsecond=0)
-cv = CLGTM([CV(1e-5), CV(1e-5)])
+cv = CombinedLinearGaussianTransitionModel([ConstantVelocity(1e-5),
+                                            ConstantVelocity(1e-5)])
 measurement_model_noise = 1e-3
 transitioning_probabilities = TransitionMatrix(np.atleast_2d(1), 1)
 prior_state_vector = [[truth[0].state_vector[0]], [0], [truth[0].state_vector[2]], [0]]
@@ -230,7 +226,6 @@ KF_track = MultipleModelTracker(model_augmentor, model_reducer, predictors, upda
                                 measurement_reducer, priors, all_measurements)
 
 # %%
-plotter = Plotter()
 plotter.plot_tracks(KF_track, [0, 2], color="orange", track_label="KF [CV]")
 plotter.fig
 # %%
@@ -240,8 +235,8 @@ plotter.fig
 # Now we can extend the simple Kalman filter into the GPB1 by adding in more models.
 # This example GPB1 algorithm has three models; turn left, straight ahead and turn right.
 
-ctl = CLGTM([CT(np.array([1e-5, 1e-5]), 0.01)])
-ctr = CLGTM([CT(np.array([1e-5, 1e-5]), -0.01)])
+ctl = CombinedLinearGaussianTransitionModel([KnownTurnRate(np.array([1e-5, 1e-5]), 0.01)])
+ctr = CombinedLinearGaussianTransitionModel([KnownTurnRate(np.array([1e-5, 1e-5]), -0.01)])
 transition_models_list = [ctl, cv, ctr]
 transitioning_probabilities = TransitionMatrix([0.25, 0.5, 0.25], 3)
 
