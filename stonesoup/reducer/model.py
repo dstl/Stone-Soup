@@ -49,8 +49,8 @@ class ModelReducer(Reducer):
                 (states.weights/np.sum(states.weights)))*np.random.rand(len(states.weights))
         else:
             m_ij_weights = (
-                self.transition_probabilities[states[0]] @
-                (states.weights/np.sum(states.weights)))
+                self.transition_probabilities[states[0]]
+                @ (states.weights/np.sum(states.weights)))
         for history in self.reduction_histories:
             hist_state = []
             for state in states:

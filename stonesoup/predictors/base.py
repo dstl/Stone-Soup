@@ -15,14 +15,14 @@ class Predictors(Base):
     """
     predictor_class: Type[Predictor] = Property(
         doc="The Predictor class to instantiate for each transition model.")
-    transitions: Sequence[LinearGaussianTransitionModel] = Property(
+    transition_models: Sequence[LinearGaussianTransitionModel] = Property(
         doc="Sequence of transition models used to create predictor instances.")
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self._predictors = []
-        for transition in self.transitions:
-            self._predictors.append(self.predictor_class(transition))
+        for transition_model in self.transition_models:
+            self._predictors.append(self.predictor_class(transition_model))
 
     @property
     def predictors(self):

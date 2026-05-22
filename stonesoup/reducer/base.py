@@ -25,10 +25,7 @@ class Reducer(Base):
     transition_model_list: Optional[Sequence[TransitionModel]] = Property(
         default=None, doc="List of transition models available for reduction.")
     model_history_length: Optional[int] = Property(
-        default=None, doc="number of previous models to store in history.")
-
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
+        default=None, doc="Number of previous models to store in history.")
 
     def calculate_likelihood(self, states, timestamp):
         """Calculate state likelihoods for a Gaussian mixture.
@@ -59,23 +56,18 @@ class Reducer(Base):
         if len(states.components) > 1:
             if states.timestamp == timestamp:
                 if isinstance(states[0], (Prediction, Update)):
-                    if isinstance(states[0], ExpandedModelAugmentedWeightedGaussianState):
-                        pass
-                    else:
+                    if not isinstance(states[0], ExpandedModelAugmentedWeightedGaussianState):
                         Likelihood_j = []
-                        for i in range(len(states)):
+                        for state in states:
                             Likelihood_j.append(mvn.pdf(
-                                states[i].hypothesis.measurement.state_vector.T,
-                                states[i].hypothesis.measurement_prediction.mean.ravel(),
-                                states[i].hypothesis.measurement_prediction.covar))
+                                state.hypothesis.measurement.state_vector.T,
+                                state.hypothesis.measurement_prediction.mean.ravel(),
+                                state.hypothesis.measurement_prediction.covar))
                         c_j = self.transition_probabilities[states[0]].T @ states.weights
                         weights = Likelihood_j * c_j.ravel()
                         weights = weights / np.sum(weights)
                         for i in range(len(states)):
                             states[i].weight = weights[i]
-            else:
-                pass
-
         else:
             if isinstance(states, list):
                 states = GaussianMixture(states)

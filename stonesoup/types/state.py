@@ -16,6 +16,7 @@ from .particle import Particle, MultiModelParticle, RaoBlackwellisedParticle
 from .numeric import Probability
 if TYPE_CHECKING:
     from ..models.transition import TransitionModel
+    from .detection import Detection
 
 
 class State(Type):
@@ -1264,9 +1265,9 @@ class ModelAugmentedWeightedGaussianState(WeightedGaussianState):
     model_histories: Sequence['TransitionModel'] = Property(
         default=None,
         doc="Transition model history. Most recent first.")
-    measurement_histories: Sequence[str] = Property(
-        default=None,
-        doc="Measurement history. Most recent first")
+    measurement_histories: Sequence['Detection'] = Property(
+        default_factory=list,
+        doc="Measurement history. Most recent first.")
     model_history_length: int = Property(
         default=0,
         doc="Maximum length of the stored transition model history.")
@@ -1274,15 +1275,8 @@ class ModelAugmentedWeightedGaussianState(WeightedGaussianState):
         default=0,
         doc="Maximum length of the stored measurement history.")
     existence: Probability = Property(
-        default=None,
-        doc="The probability of existence")
-
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        if self.model_histories is None:
-            self.model_histories = []
-        if self.existence is None:
-            self.existence = Probability(1)
+        default=Probability(1),
+        doc="The probability of existence.")
 
 
 class ExpandedModelAugmentedWeightedGaussianState(ModelAugmentedWeightedGaussianState):

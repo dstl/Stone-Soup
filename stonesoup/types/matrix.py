@@ -1,9 +1,10 @@
 import numpy as np
 
-from ..base import Base, Property
+from ..base import Property
+from .base import Type
 
 
-class TransitionMatrix(Base):
+class TransitionMatrix(Type):
     """
     Transition Probability Matrix (TPM) for use in model reduction and model augmentation.
 
