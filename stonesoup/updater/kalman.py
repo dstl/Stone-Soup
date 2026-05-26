@@ -13,7 +13,7 @@ from ..models.base import LinearModel
 from ..models.measurement.linear import LinearGaussian
 from ..models.measurement import MeasurementModel
 from ..functions import (gauss2sigma, unscented_transform, cubature_transform,
-                         cub_points_and_tf)
+                         cub_points_and_tf, find_nearest_positive_definite)
 from ..measures import Measure, Euclidean
 
 
@@ -71,6 +71,10 @@ class KalmanUpdater(Updater):
         default=False,
         doc="A flag to force the output covariance matrix to be symmetric by way of a simple "
             "geometric combination of the matrix and transpose. Default is False.")
+    force_positive_definite_covariance: bool = Property(
+        default=False,
+        doc="A flag to force the output covariance matrix to be positive definite. "
+            "Default is False.")
     use_joseph_cov: bool = Property(
         default=False,
         doc="Bool dictating the method of covariance calculation. If use_joseph_cov is True then "
@@ -314,7 +318,9 @@ class KalmanUpdater(Updater):
                                               hypothesis.measurement,
                                               hypothesis.measurement_prediction)
 
-        if self.force_symmetric_covariance:
+        if self.force_positive_definite_covariance:
+            posterior_covariance = find_nearest_positive_definite(posterior_covariance)
+        elif self.force_symmetric_covariance:
             posterior_covariance = \
                 (posterior_covariance + posterior_covariance.T)/2
 

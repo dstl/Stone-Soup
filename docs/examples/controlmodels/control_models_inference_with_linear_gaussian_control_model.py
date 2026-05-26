@@ -310,7 +310,8 @@ plotter.fig
 # With the baseline simulation complete, we now initialise the filter which considers
 # control input. Since this change only impacts the prediction process, the updater
 # created earlier can be used. The only difference here is we now pass two inputs to
-# the predictor: :class:`~.measurement_model` and :class:`~.control_model`
+# the predictor: :class:`~.KalmanPredictor.measurement_model` and
+# :class:`~.KalmanPredictor.control_model`
 
 
 predictor_with_ctrl = KalmanPredictor(transition_model, control_model)

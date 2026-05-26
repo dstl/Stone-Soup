@@ -115,7 +115,7 @@ class GOSPAMetric(MetricGenerator):
 
         Parameters
         ----------
-        object_with_states: object containing a list of states
+        object_with_states: object containing a list of :class:`~.State`
             Method of state extraction depends on the type of the object
         return_ids: If we should return obj ids as well.
 
@@ -280,8 +280,8 @@ class GOSPAMetric(MetricGenerator):
 
         Parameters
         ----------
-        track_states: list of states
-        truth_states: list of states
+        track_states: list of :class:`~.State`
+        truth_states: list of :class:`~.State`
         complete: bool
             Cost matrix will be square, with :attr:`~.c` present for where
             there is a mismatch in cardinality

@@ -55,11 +55,7 @@ class LinearControlModel(ControlModel, LinearModel, GaussianModel):
 
         return self.control_noise
 
-    def function(self, control_input, noise=False, **kwargs) -> StateVector:
-        """This needs to be overwritten because noise is added before the transformation
-        rather than after it.
-
-        """
+    def function(self, control_input, prior=None, noise=False, **kwargs) -> StateVector:
         # have to accept that control input might be None and then adjust (including to add noise).
         if control_input is None:
             control_vector = StateVector(np.zeros(self.ndim_ctrl))

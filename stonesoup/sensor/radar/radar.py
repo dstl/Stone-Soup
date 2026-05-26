@@ -17,7 +17,7 @@ from ...models.measurement.nonlinear import \
 from ...sensor.action.dwell_action import DwellActionsGenerator
 from ...sensor.action.tilt_action import TiltActionsGenerator
 from ...sensormanager.action import ActionableProperty
-from ...sensor.sensor import Sensor, SimpleSensor
+from ...sensor.sensor import Sensor, VisibilityInformed2DSensor
 from ...types.array import CovarianceMatrix
 from ...types.angle import Angle
 from ...types.detection import TrueDetection, Detection
@@ -26,7 +26,7 @@ from ...types.numeric import Probability
 from ...types.state import StateVector
 
 
-class RadarBearingRange(SimpleSensor):
+class RadarBearingRange(VisibilityInformed2DSensor):
     """A simple radar sensor that generates measurements of targets, using a
     :class:`~.CartesianToBearingRange` model, relative to its position.
 
@@ -65,13 +65,18 @@ class RadarBearingRange(SimpleSensor):
             measurement_model = self.measurement_model
         measurement_vector = measurement_model.function(state, noise=False)
         true_range = measurement_vector[1, 0]  # Bearing(0), Range(1)
-        return true_range <= self.max_range
+        detectable = true_range <= self.max_range
+        visible = self.is_visible(state)
+        return detectable & visible
 
     def is_clutter_detectable(self, state: Detection) -> bool:
-        return state.state_vector[1, 0] <= self.max_range
+        clutter_cart = self.measurement_model.inverse_function(state)
+        visible = self.is_visible(clutter_cart)
+        detectable = state.state_vector[1, 0] <= self.max_range
+        return detectable and visible
 
 
-class RadarBearing(SimpleSensor):
+class RadarBearing(VisibilityInformed2DSensor):
     """A simple radar sensor that generates measurements of targets, using a
     :class:`~.Cartesian2DToBearing` model, relative to its position.
 
@@ -123,8 +128,10 @@ class RadarBearing(SimpleSensor):
                 rotation_offset=measurement_model.rotation_offset
             )
         measurement_vector = tmp_meas_model.function(state, noise=False)
-        true_range = measurement_vector[1, 0]  # Bearing(0), Range(1)
-        return true_range <= self.max_range
+        true_range = measurement_vector[1, :]  # Bearing(0), Range(1)
+        detectable = true_range <= self.max_range
+        visible = self.is_visible(state)
+        return detectable & visible
 
     def is_clutter_detectable(self, state: Detection) -> bool:
         return True
@@ -200,10 +207,14 @@ class RadarRotatingBearingRange(RadarBearingRange):
         # Check if state falls within sensor's FOV
         fov_min = -self.fov_angle / 2
         fov_max = +self.fov_angle / 2
-        bearing_t = measurement_vector[0, 0]
-        true_range = measurement_vector[1, 0]
+        bearing_t = measurement_vector[0, :]
+        true_range = measurement_vector[1, :]
 
-        return fov_min <= bearing_t <= fov_max and true_range <= self.max_range
+        detectable = np.logical_and(fov_min <= bearing_t, bearing_t <= fov_max) & \
+            (true_range <= self.max_range)
+        visible = self.is_visible(state)
+
+        return detectable & visible
 
     def is_clutter_detectable(self, state: Detection) -> bool:
         measurement_vector = state.state_vector
@@ -214,7 +225,11 @@ class RadarRotatingBearingRange(RadarBearingRange):
         bearing_t = measurement_vector[0, 0]
         true_range = measurement_vector[1, 0]
 
-        return fov_min <= bearing_t <= fov_max and true_range <= self.max_range
+        detectable = fov_min <= bearing_t <= fov_max and true_range <= self.max_range
+        clutter_cart = self.measurement_model.inverse_function(state)
+        visible = self.is_visible(clutter_cart)
+
+        return detectable and visible
 
 
 class RadarRotatingBearing(RadarBearing):
@@ -308,10 +323,13 @@ class RadarRotatingBearing(RadarBearing):
         # Check if state falls within sensor's FOV
         fov_min = -self.fov_angle / 2
         fov_max = +self.fov_angle / 2
-        bearing_t = measurement_vector[0, 0]
-        true_range = measurement_vector[1, 0]
+        bearing_t = measurement_vector[0, :]
+        true_range = measurement_vector[1, :]
+        detectable = np.logical_and(fov_min <= bearing_t, bearing_t <= fov_max) & \
+            (true_range <= self.max_range)
+        visible = self.is_visible(state)
 
-        return fov_min <= bearing_t <= fov_max and true_range <= self.max_range
+        return detectable & visible
 
 
 class RadarElevationBearingRange(RadarBearingRange):

@@ -78,6 +78,9 @@ def test_probability_addition():
     assert approx(0.2) == probability1 + 0
     assert approx(0.2) == 0 + probability1
 
+    assert isinstance(probability1 + probability2, Probability)
+    assert isinstance(probability1 + probability1, Probability)
+
 
 def test_probability_subtraction():
     probability1 = Probability(0.2)

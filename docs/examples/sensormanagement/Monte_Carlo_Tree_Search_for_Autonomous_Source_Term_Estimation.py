@@ -122,7 +122,7 @@ for n_x, x in enumerate(np.linspace(0, 50, n_values)):
         pos_y[n_y] = y
         pos = StateVector([x, y, z])
         measurement_model.translation_offset = pos
-        intensity[n_x, n_y] = measurement_model.function(theta)
+        intensity[n_x, n_y] = measurement_model.function(theta).item()
 
 plotter.ax.set_xlim(left=0, right=50)
 plotter.ax.set_ylim(bottom=0, top=50)
