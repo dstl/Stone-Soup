@@ -990,7 +990,7 @@ class CartesianToElevationBearingRangeRate(_AngleNonLinearGaussianMeasurement, R
 
         x, y, z = xyz_pos
         vx, vy, vz = xyz_vel
-        x2, y2, z2 = x**2, y**2, z**2
+        x2, y2, z2 = x ** 2, y ** 2, z ** 2
         x2y2 = x2 + y2
         r2 = x2y2 + z2
         r = sqrt(r2)
@@ -1049,7 +1049,8 @@ class CartesianToElevationBearingRangeRate(_AngleNonLinearGaussianMeasurement, R
         return jac
 
 
-class CartesianToElevationRateBearingRateRangeRate(_AngleNonLinearGaussianMeasurement, ReversibleModel):
+class CartesianToElevationRateBearingRateRangeRate(_AngleNonLinearGaussianMeasurement,
+                                                   ReversibleModel):
     r"""This is a class implementation of a time-invariant measurement model, \
     where measurements are assumed to be received in the form of elevation \
     (:math:`\theta`),  bearing (:math:`\phi`), range (:math:`r`) and
@@ -1154,32 +1155,33 @@ class CartesianToElevationRateBearingRateRangeRate(_AngleNonLinearGaussianMeasur
         xyz_pos = state.state_vector[self.mapping, :] - self.translation_offset
 
         # Rotate coordinates based upon the sensor_velocity
-        xyz_rot = self.rotation_matrix @ xyz_pos
+        xyz_pos_rot = self.rotation_matrix @ xyz_pos
 
         # Determine the net velocity component in the engagement
         xyz_vel = state.state_vector[self.velocity_mapping, :] - self.velocity
 
-        pos = xyz_pos
-        vel = xyz_vel
+        # Rotate velocity into sensor frame
+        xyz_vel_rot = self.rotation_matrix @ xyz_vel
 
-        r2 = np.linalg.norm(pos) ** 2  # Squared norm of pos
-        r = np.sqrt(r2)  # Radius (magnitude)
-        azi = np.arctan2(pos[1], pos[0])  # Azimuth (atan2)
-        rxy2 = np.linalg.norm(pos[:2]) ** 2  # Squared norm
-        rxy = np.sqrt(rxy2)  # rxy
-        el = np.arctan2(pos[2], rxy)  # Elevation (atan2)
+        pos = xyz_pos_rot
+        vel = xyz_vel_rot
+
+        r, azi, el = cart2sphere(pos[0, :], pos[1, :], pos[2, :])
+        r2 = r ** 2  # Squared norm of pos
+        rxy = np.linalg.norm(pos[:2], axis=0)  # norm
+        rxy2 = rxy ** 2  # squared norm
 
         rDot = np.dot(pos.flatten(), vel.flatten()) / r  # Radial velocity (dot product)
         rxyDot = np.dot(pos[:2].flatten(), vel[:2].flatten()) / rxy  # rxy dot
         azimuthDot = (vel[1] * pos[0] - vel[0] * pos[1]) / rxy2  # Azimuth rate of change
         elevationDot = (vel[2] * rxy - rxyDot * pos[2]) / r2  # Elevation rate of change
 
-        return StateVector([el,
-                            azi,
-                            r,
-                            elevationDot,
-                            azimuthDot,
-                            rDot]) + noise
+        return StateVectors([el,
+                             azi,
+                             r,
+                             elevationDot,
+                             azimuthDot,
+                             rDot]) + noise
 
     def inverse_function(self, detection, **kwargs) -> StateVector:
         # Theta: elevation
@@ -1211,7 +1213,7 @@ class CartesianToElevationRateBearingRateRangeRate(_AngleNonLinearGaussianMeasur
 
         out_vector[self.mapping, :] = out_vector[self.mapping, :] + self.translation_offset
         out_vector[self.velocity_mapping, :] = out_vector[self.velocity_mapping, :] \
-                                               + self.velocity
+            + self.velocity
 
         return out_vector
 
@@ -1334,7 +1336,7 @@ class RangeRangeRateBinning(CartesianToElevationBearingRangeRate):
             if noise:
                 out[2] = np.floor(out[2] / self.range_res) * self.range_res + self.range_res / 2
                 out[3] = np.floor(out[3] / self.range_rate_res) * \
-                         self.range_rate_res + self.range_rate_res / 2
+                    self.range_rate_res + self.range_rate_res / 2
 
         return out
 
