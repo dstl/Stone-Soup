@@ -3614,6 +3614,9 @@ def plot_sensor_fov(fig_, sensor_set, sensor_history, color='blue', alpha=0.2, l
     for _ in sensor_set:
         fig_.add_trace(go.Scatter(
             mode='lines', line=go.scatter.Line(color='black')))
+        fig_.add_trace(go.Scatter(
+            mode='markers', marker=dict(color=color, size=6),
+            showlegend=False, hoverinfo='skip'))
 
     for frame in fig_.frames:
         traces_ = list(frame.traces)
@@ -3639,7 +3642,12 @@ def plot_sensor_fov(fig_, sensor_set, sensor_history, color='blue', alpha=0.2, l
             data_.append(go.Scatter(x=arc_x, y=arc_y, fill='toself', fillcolor=color,
                                     line=dict(color=color), opacity=alpha, name=label,
                                     mode='lines'))
-            traces_.append(trace_base + n_)
+            traces_.append(trace_base + 2 * n_)
+
+            data_.append(go.Scatter(x=[sensor_.position[0]], y=[sensor_.position[1]],
+                                    mode='markers', marker=dict(color=color, size=6),
+                                    showlegend=False, hoverinfo='skip'))
+            traces_.append(trace_base + 2 * n_ + 1)
 
         frame.traces = traces_
         frame.data = data_
