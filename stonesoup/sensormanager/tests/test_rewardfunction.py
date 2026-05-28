@@ -1,7 +1,9 @@
 import pytest
 import numpy as np
 
-from ..reward import RewardFunction, AdditiveRewardFunction, MultiplicativeRewardFunction
+from ..shape import AreaOfInterest
+from ..reward import (RewardFunction, AdditiveRewardFunction,
+                      MultiplicativeRewardFunction, AOIAccess2DRewardFunction)
 
 
 class DummyRewardFunction(RewardFunction):
@@ -98,3 +100,60 @@ def test_unequal_additive():
         weights=[1, 2, 3])
     with pytest.raises(IndexError):
         additive(config=None, tracks=None, metric_time=None)
+
+
+class DummyTrack:
+    def __init__(self, state_vector):
+        self.state_vector = state_vector
+
+
+@pytest.mark.parametrize(
+    "area_kwargs, interest_thresholds, access_thresholds, default_score, expected_score",
+    [
+        (
+            {"xmin": 0.0, "xmax": 10.0, "ymin": 0.0, "ymax": 10.0,
+             "interest": 5, "access": 4},
+            {1: DummyRewardFunction(score=10)},
+            {1: DummyRewardFunction(score=20)},
+            1,
+            30,
+        ),
+        (
+            {"xmin": 0.0, "xmax": 10.0, "ymin": 0.0, "ymax": 10.0,
+             "interest": 5, "access": 0},
+            {1: DummyRewardFunction(score=7)},
+            None,
+            1,
+            7,
+        ),
+        (
+            {"xmin": 0.0, "xmax": 10.0, "ymin": 0.0, "ymax": 10.0,
+             "interest": 0, "access": 5},
+            None,
+            {1: DummyRewardFunction(score=11)},
+            1,
+            11,
+        ),
+        (
+            {"xmin": 0.0, "xmax": 10.0, "ymin": 0.0, "ymax": 10.0,
+             "interest": 0, "access": 0},
+            {1: DummyRewardFunction(score=7)},
+            {1: DummyRewardFunction(score=11)},
+            2,
+            2,
+        ),
+    ],
+)
+def test_aoi_access2d_threshold_matching(area_kwargs, interest_thresholds,
+                                         access_thresholds, default_score,
+                                         expected_score):
+    area = AreaOfInterest(**area_kwargs)
+    aoi_reward = AOIAccess2DRewardFunction(
+        interest_thresholds=interest_thresholds,
+        access_thresholds=access_thresholds,
+        default_reward=DummyRewardFunction(score=default_score),
+        areas=[area],
+        target_mapping=(0, 1),
+    )
+
+    assert aoi_reward(config=None, tracks={DummyTrack([5.0, 5.0])}, metric_time=None) == expected_score  # noqa: E501
