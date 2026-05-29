@@ -1,20 +1,29 @@
 #!/usr/bin/env python
 
 """
-============================
-3 - Areas of interest/access
-============================
+=======================================
+Areas of interest based Reward Function
+=======================================
 """
 
 # %%
 # This notebook introduces sensor management which factors in environmental information
-# such as areas of interest.
+# related to the location the sensor is operating in.
+#
+# We use the :class:`~.AreaOfInterest` object, which has functionality for setting levels
+# of "interest" within defined x, y boundaries, and the :class:`~.AOIAccessRewardFunction`
+# to define different behaviour for the sensor platform by switching between different
+# reward functions.
+#
+# Here we will define three areas with different levels of interest, to simulate a scenario
+# where the sensor platform gets closer to the target to make obserations as the target
+# moves into a higher interest area.
 
 # %%
 # Setting Up the Scenario
 # -----------------------
-# We generate a ground truth of a target following a constant velocity with an amount of
-# noise that makes the truth interesting.
+# First we generate a ground truth of a target following a constant velocity with some
+# noise and plot this.
 
 import numpy as np
 from datetime import datetime, timedelta
@@ -43,10 +52,6 @@ for k in range(1, duration):
         timestamp=timesteps[k]))
 truths.append(truth)
 
-# %%
-# Visualising the ground truth
-# ----------------------------
-
 from stonesoup.plotter import AnimatedPlotterly
 plotter = AnimatedPlotterly(timesteps, tail_length=1)
 plotter.plot_ground_truths(truth, [0, 2])
@@ -55,6 +60,11 @@ plotter.fig
 # %%
 # Creating the Platform and Sensor
 # --------------------------------
+#
+# Next we create the taskable sensor platform and attach a
+# :class:`~.RadarRotatingBearingRange` sensor. We also
+# create a target sensor, for the purpose of modelling the target's field of
+# view, for use in the :class:`~.FOVInteractionRewardFunction`.
 
 from stonesoup.platform import MovingPlatform
 from stonesoup.movable.max_speed import MaxSpeedActionableMovable
@@ -74,7 +84,7 @@ sensor = RadarRotatingBearingRange(
 
     resolution=Angle(np.radians(360)))
 
-target_sensor1 = RadarRotatingBearingRange(
+target_sensor = RadarRotatingBearingRange(
     position_mapping=(0, 2),
     noise_covar=np.array([[np.radians(1)**2, 0], [0, 1**2]]),
     ndim_state=4,
@@ -110,8 +120,9 @@ updater = ExtendedKalmanUpdater(measurement_model=None)
 # %%
 # Creating Areas of Interest
 # --------------------------
-# The default area is defined by the x, y minimum and maximum coordinates as
-# :math:`x, y \in (-\infty, \infty)`.
+# Different areas of interest can be defined by setting minimim/maximum values for x
+# and y using the :class:`~.AreaOfInterest`. Here we have 3 areas of different
+# levels of interest.
 
 from stonesoup.sensormanager.shape import AreaOfInterest
 
@@ -122,6 +133,21 @@ area3 = AreaOfInterest(xmin=1500, interest=10)
 # %%
 # Creating a Sensor Manager
 # -------------------------
+#
+# Now we create a sensor manager, providing it with the sensor, the sensor
+# platform, and a reward function.
+#
+# We define a different reward function for each area of interest.
+# In areas of low interest we use a combination of the :class:`~.FOVInteractionRewardFunction`
+# and the :class:`~.UncertaintyRewardFunction`, ensuring the sensor platform stays outside a
+# set distance from the target while continuing to track it.
+# In areas of medium interest this distance
+# is reduced, and in areas of high interest the :class:`~.FOVInteractionRewardFunction`
+# not used so the sensor platform can get as close as it likes.
+#
+# The :class:`~.AOIAccessRewardFunction` is used to switch between these reward functions as the
+# target moves through the different areas of interest, based on the target's location and the
+# defined interest thresholds for each area.
 
 from stonesoup.sensormanager.reward import (
     UncertaintyRewardFunction, MultiplicativeRewardFunction, FOVInteractionRewardFunction,
@@ -133,12 +159,12 @@ reward_func_A = UncertaintyRewardFunction(predictor, updater)
 
 reward_func_B = FOVInteractionRewardFunction(
     predictor, updater, sensor_fov_radius=sensor.max_range,
-    target_fov_radius=target_sensor1.max_range + 100,
+    target_fov_radius=target_sensor.max_range + 100,
     fov_scale=1)
 
 reward_func_C = FOVInteractionRewardFunction(
     predictor, updater, sensor_fov_radius=sensor.max_range,
-    target_fov_radius=target_sensor1.max_range,
+    target_fov_radius=target_sensor.max_range,
     fov_scale=0.75)
 
 reward_func_AB = MultiplicativeRewardFunction([reward_func_A, reward_func_B])
@@ -157,23 +183,19 @@ sensormanager = BruteForceSensorManager(sensors={sensor},
                                         reward_function=reward_func_aoi,)
 
 # %%
-# Creating a Track
-# ----------------
+# Creating a Tracker
+# ------------------
+#
+# Next we initialise a track and build a tracker.
 
 from stonesoup.types.state import GaussianState
 from stonesoup.types.track import Track
 
-prior1 = GaussianState(truths[0][0].state_vector,
-                       covar=np.diag([0.5, 0.5, 0.5, 0.5] + np.random.normal(0, 5e-4, 4)),
-                       timestamp=start_time)
+prior = GaussianState(truths[0][0].state_vector,
+                      covar=np.diag([0.5, 0.5, 0.5, 0.5] + np.random.normal(0, 5e-4, 4)),
+                      timestamp=start_time)
 
-tracks = {Track([prior1])}
-
-# %%
-# Creating a Hypothesiser and Data Associator
-# -------------------------------------------
-#
-# The final tracking components required are the hypothesiser and data associator.
+tracks = {Track([prior])}
 
 from stonesoup.hypothesiser.distance import DistanceHypothesiser
 from stonesoup.measures import Mahalanobis
@@ -188,7 +210,8 @@ data_associator = GNNWith2DAssignment(hypothesiser)
 # -------------------------
 #
 # At each timestep the sensor manager generates the optimal actions for our sensor and
-# platform. The sensor manager's :meth:`~.SensorManager.choose_actions` method is called.
+# platform. These actions are taken before the sensor makes detections and the track
+# is updated.
 
 from ordered_set import OrderedSet
 from collections import defaultdict
@@ -199,7 +222,6 @@ from stonesoup.sensor.sensor import Sensor
 all_measurements = set()
 sensor_history = defaultdict(dict)
 for timestep in timesteps[1:]:
-    print(timestep)
 
     chosen_actions = sensormanager.choose_actions(tracks, timestep)
     measurements = set()
@@ -227,10 +249,7 @@ for timestep in timesteps[1:]:
 # Plotting
 # --------
 #
-# The FOV-based reward function in an actionable platform is able to follow the target as it moves
-# across the action space, keeping it within the sensor's range but outside the FOV of the target.
-# As the target moves through areas of interest, the sensor manager adjusts the sensor's FOV to
-# prioritise tracking the target despite the change of access and interest parameters of each area.
+# Now we use the animated plotter to see what behaviour has been achieved.
 
 from stonesoup.plotter import plot_sensor_fov
 import plotly.graph_objects as go
@@ -242,19 +261,19 @@ plotter.plot_tracks(tracks, mapping=(0, 2))
 plotter.plot_measurements(all_measurements, mapping=(0, 2))
 
 track_list = list(tracks)
-target_platform1 = PathBasedPlatform(path=track_list[0], sensors=[target_sensor1],
-                                     position_mapping=[0, 2])
-target_sensor_history1 = defaultdict(dict)
+target_platform = PathBasedPlatform(path=track_list[0], sensors=[target_sensor],
+                                    position_mapping=[0, 2])
+target_sensor_history = defaultdict(dict)
 
 for timestep in timesteps[1:]:
-    target_platform1.move(timestep)
-    target_sensor_history1[timestep][target_sensor1] = copy.deepcopy(target_sensor1)
-target_sensor_set1 = {target_sensor1}
+    target_platform.move(timestep)
+    target_sensor_history[timestep][target_sensor] = copy.deepcopy(target_sensor)
+target_sensor_set = {target_sensor}
 sensor_set = {sensor}
 
 plot_sensor_fov(plotter.fig, sensor_set, sensor_history)
 
-plot_sensor_fov(plotter.fig, target_sensor_set1, target_sensor_history1, label="Target FOV",
+plot_sensor_fov(plotter.fig, target_sensor_set, target_sensor_history, label="Target FOV",
                 color="red")
 plotter.fig.add_trace(go.Scatter(x=[1500, 1500], y=[-300, 500], mode='lines',
                                  line=dict(color='#888'),
@@ -273,9 +292,18 @@ plotter.fig.add_trace(go.Scatter(x=[-400, 800, 2000],
 plotter.fig
 
 # %%
+# The actionable platform is able to follow the target as it moves
+# across the action space, initially remaining outside the distance set for
+# areas of low interest, then getting closer as it moves into areas of higher interest.
+#
+# This is a relatively simple example but demonstrates how the sensor manager can
+# switch reward function, and therefore change behaviour, based on information about
+# its environment.
+#
 # Metrics
 # -------
 #
+# To check the impact this has on the tracking performance we compute some metrics.
 
 from stonesoup.metricgenerator.ospametric import OSPAMetric
 ospa_generatorA = OSPAMetric(c=40, p=1,
@@ -309,22 +337,27 @@ metric_manager.add_data({'truths': truths, 'tracksA': tracks})
 metrics = metric_manager.generate_metrics()
 
 # %%
-# Plot OSPA metric
+# First we plot Sum of Covariance Norms metric.
+
+fig3 = MetricPlotter()
+fig3.plot_metrics(metrics, metric_names=['Sum of Covariance Norms Metric'])
+
+# %%
+# We can see from this that initially, when the sensor platform is staying further
+# from the target, the track uncertainty is higher, and as it moves into an area of
+# high interest, it gets closer to the target and the track uncertainty reduces.
+#
+# Next we plot the OSPA and SIAP metrics
 
 from stonesoup.plotter import MetricPlotter
 
-fig = MetricPlotter()
-fig.plot_metrics(metrics, metric_names=['OSPA distances'])
-
-# %%
-# Plot SIAP metrics
+fig1 = MetricPlotter()
+fig1.plot_metrics(metrics, metric_names=['OSPA distances'])
 
 fig2 = MetricPlotter()
 fig2.plot_metrics(metrics, metric_names=['SIAP Position Accuracy at times',
                                          'SIAP Velocity Accuracy at times'])
 
 # %%
-# Plot uncertainty metric
-
-fig3 = MetricPlotter()
-fig3.plot_metrics(metrics, metric_names=['Sum of Covariance Norms Metric'])
+# These metrics show a similar tracking performance across the simulation,
+# even where track uncertainty is greater.
