@@ -228,6 +228,11 @@ plotter.fig
 # FOV of the target. Combining with the :class:`~.UncertaintyRewardFunction` ensures
 # a good track is maintained, as well as keeping an appropriate proximity to the target.
 #
+# Due to the simplified model of the sensor platform, it is assumed that it can move
+# immediately to any location possible within its maximum speed. This means that in between
+# timesteps it can appear to travel through the target's field of view. More advanced platform
+# simulation is needed to avoid this.
+#
 # This was a simple example demonstrating how an actionable platform can use a composite reward
 # function to create interesting new interactions.
 #
