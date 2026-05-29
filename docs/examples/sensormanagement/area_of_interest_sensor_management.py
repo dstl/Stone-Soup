@@ -86,7 +86,7 @@ target_sensor1 = RadarRotatingBearingRange(
 
 platform = MovingPlatform(
     movement_controller=MaxSpeedActionableMovable(
-        states=[State([-500, 500],
+        states=[State([-500, 700],
                       timestamp=start_time)],
         position_mapping=(0, 1),
         action_mapping=(0, 1),
@@ -115,9 +115,9 @@ updater = ExtendedKalmanUpdater(measurement_model=None)
 
 from stonesoup.sensormanager.shape import AreaOfInterest
 
-area1 = AreaOfInterest(xmax=0, interest=4, access=0)
-area2 = AreaOfInterest(xmin=0, interest=7, access=5)
-area3 = AreaOfInterest(xmin=1500, interest=10, access=9)
+area1 = AreaOfInterest(xmax=0, interest=4)
+area2 = AreaOfInterest(xmin=0, interest=7)
+area3 = AreaOfInterest(xmin=1500, interest=10)
 
 # %%
 # Creating a Sensor Manager
@@ -133,22 +133,22 @@ reward_func_A = UncertaintyRewardFunction(predictor, updater)
 
 reward_func_B = FOVInteractionRewardFunction(
     predictor, updater, sensor_fov_radius=sensor.max_range,
-    target_fov_radius=target_sensor1.max_range,
-    fov_scale=0.75)
+    target_fov_radius=target_sensor1.max_range + 100,
+    fov_scale=1)
 
 reward_func_C = FOVInteractionRewardFunction(
     predictor, updater, sensor_fov_radius=sensor.max_range,
-    target_fov_radius=target_sensor1.max_range + 100,  # extra cautious!
-    fov_scale=1)
+    target_fov_radius=target_sensor1.max_range,
+    fov_scale=0.75)
 
 reward_func_AB = MultiplicativeRewardFunction([reward_func_A, reward_func_B])
 reward_func_AC = MultiplicativeRewardFunction([reward_func_A, reward_func_C])
 
 
 reward_func_aoi = AOIAccess2DRewardFunction(default_reward=reward_func_AC,
-                                            interest_thresholds={3: reward_func_A,
-                                                                 5: reward_func_AB,
-                                                                 9: reward_func_AC},
+                                            interest_thresholds={3: reward_func_AB,
+                                                                 5: reward_func_AC,
+                                                                 9: reward_func_A},
                                             areas=[area1, area2, area3],
                                             target_mapping=[0, 2])
 
@@ -267,9 +267,9 @@ plotter.fig.add_trace(go.Scatter(x=[0, 0], y=[-300, 500], mode='lines',
 plotter.fig.add_trace(go.Scatter(x=[-400, 800, 2000],
                                  y=[0, 0, 0], mode="text", name="Areas of Interest",
                                  line=dict(color='#888'),
-                                 text=["Interest: 4</br></br>Access: 0",
-                                       "Interest: 7</br></br>Access: 5",
-                                       "Interest: 10</br></br>Access: 9"]))
+                                 text=["Interest: 4",
+                                       "Interest: 7",
+                                       "Interest: 10"]))
 plotter.fig
 
 # %%
