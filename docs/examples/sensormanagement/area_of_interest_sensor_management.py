@@ -339,8 +339,10 @@ metrics = metric_manager.generate_metrics()
 # %%
 # First we plot Sum of Covariance Norms metric.
 
-fig3 = MetricPlotter()
-fig3.plot_metrics(metrics, metric_names=['Sum of Covariance Norms Metric'])
+from stonesoup.plotter import MetricPlotter
+
+fig1 = MetricPlotter()
+fig1.plot_metrics(metrics, metric_names=['Sum of Covariance Norms Metric'])
 
 # %%
 # We can see from this that initially, when the sensor platform is staying further
@@ -349,13 +351,11 @@ fig3.plot_metrics(metrics, metric_names=['Sum of Covariance Norms Metric'])
 #
 # Next we plot the OSPA and SIAP metrics
 
-from stonesoup.plotter import MetricPlotter
-
-fig1 = MetricPlotter()
-fig1.plot_metrics(metrics, metric_names=['OSPA distances'])
-
 fig2 = MetricPlotter()
-fig2.plot_metrics(metrics, metric_names=['SIAP Position Accuracy at times',
+fig2.plot_metrics(metrics, metric_names=['OSPA distances'])
+
+fig3 = MetricPlotter()
+fig3.plot_metrics(metrics, metric_names=['SIAP Position Accuracy at times',
                                          'SIAP Velocity Accuracy at times'])
 
 # %%
