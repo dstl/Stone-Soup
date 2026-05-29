@@ -542,7 +542,7 @@ class AOIAccess2DRewardFunction(RewardFunction):
             track_y = track.state_vector[self.target_mapping[1]]
 
             for area in self.areas:
-                if area.xmin < track_x < area.xmax and area.ymin < track_y < area.ymax:  # should this be sensor location??? No?  # noqa: E501
+                if area.xmin < track_x < area.xmax and area.ymin < track_y < area.ymax:
                     interest_reward = None
                     if self.interest_thresholds is not None:
                         for threshold, reward in self.interest_thresholds.items():
@@ -555,7 +555,7 @@ class AOIAccess2DRewardFunction(RewardFunction):
                             if threshold <= area.access:
                                 access_reward = reward
 
-                    if interest_reward and access_reward:  # could add in weights here too
+                    if interest_reward and access_reward:
                         reward_func = AdditiveRewardFunction([interest_reward, access_reward])
                     elif interest_reward:
                         reward_func = interest_reward
