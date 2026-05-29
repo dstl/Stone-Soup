@@ -234,11 +234,9 @@ plotter.fig
 # simulation is needed to avoid this.
 #
 # This was a simple example demonstrating how an actionable platform can use a composite reward
-# function to create interesting new interactions.
-#
-# This could be extended to handle multiple targets, but this requires a
-# :class:`~.FOVInteractionRewardFunction` for each target, which can be combined into a
-# single reward function as follows:
+# function to create interesting new interactions. This could be extended to handle multiple
+# targets, which would require a :class:`~.FOVInteractionRewardFunction` for each target,
+# combined into a single reward function as follows:
 #
 # .. math::
 #           R = (FOV Reward_{A} + FOV Reward_{B} + ... + FOV Reward_{N}) * UncertaintyReward
