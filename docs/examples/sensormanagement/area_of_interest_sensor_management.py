@@ -16,7 +16,7 @@ Areas of interest based Reward Function
 # reward functions.
 #
 # Here we will define three areas with different levels of interest, to simulate a scenario
-# where the sensor platform gets closer to the target to make obserations as the target
+# where the sensor platform gets closer to the target to make observations as the target
 # moves into a higher interest area.
 
 # %%
@@ -120,7 +120,7 @@ updater = ExtendedKalmanUpdater(measurement_model=None)
 # %%
 # Creating Areas of Interest
 # --------------------------
-# Different areas of interest can be defined by setting minimim/maximum values for x
+# Different areas of interest can be defined by setting minimum/maximum values for x
 # and y using the :class:`~.AreaOfInterest`. Here we have 3 areas of different
 # levels of interest.
 
@@ -142,8 +142,8 @@ area3 = AreaOfInterest(xmin=1500, interest=10)
 # and the :class:`~.UncertaintyRewardFunction`, ensuring the sensor platform stays outside a
 # set distance from the target while continuing to track it.
 # In areas of medium interest this distance
-# is reduced, and in areas of high interest the :class:`~.FOVInteractionRewardFunction`
-# not used so the sensor platform can get as close as it likes.
+# is reduced, and in areas of high interest the :class:`~.FOVInteractionRewardFunction` is
+# not used, so the sensor platform can get as close as it likes.
 #
 # The :class:`~.AOIAccessRewardFunction` is used to switch between these reward functions as the
 # target moves through the different areas of interest, based on the target's location and the
