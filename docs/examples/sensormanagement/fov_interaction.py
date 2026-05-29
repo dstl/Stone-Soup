@@ -134,7 +134,7 @@ track = Track([prior])
 # and a reward function.
 #
 # In this case the :class:`~.FOVInteractionRewardFunction` and the
-# :class:`~.UncertaintyRewardFunction` reward functions are combined using an
+# :class:`~.UncertaintyRewardFunction` reward functions are combined using a
 # :class:`~.MultiplicativeRewardFunction`. Each time the sensor manager calls its reward function,
 # both are calculated and the results multiplied to give the final reward.
 #
@@ -231,7 +231,7 @@ plotter.fig
 # This was a simple example demonstrating how an actionable platform can use a composite reward
 # function to create interesting new interactions.
 #
-# This could be extended to handle multiple targets, but this requries a
+# This could be extended to handle multiple targets, but this requires a
 # :class:`~.FOVInteractionRewardFunction` for each target, which can be combined into a
 # single reward function as follows:
 #
