@@ -92,8 +92,9 @@ np.random.seed(1991)
 # Defining the Control Model Class
 # ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 #
-# To define the control model class, we will create a variant of :class:`~.LinearControlModel` and
+# To define the control model class, we can create a variant of :class:`~.LinearControlModel` and
 # overwrite the :attr:`~.LinearControlModel.matrix` attribute according to the above expression.
+# For example:
 
 
 from stonesoup.models.control.linear import LinearControlModel
@@ -135,6 +136,27 @@ class ConstantAccelerationLinearControlModel(LinearControlModel):
 
         return self.control_matrix
 
+# %%
+# For the family of constant Nth derivative transition models (constant velocity, acceleration,
+# etc.), the control model can be defined using :class:`~.TransitionBasedLinearControlModel`
+# class. This class takes an existing transition model as input and defines the control model
+# based on it.
+
+
+from stonesoup.models.control.linear import TransitionBasedLinearControlModel
+from stonesoup.models.transition.linear import (ConstantAcceleration, ConstantVelocity,
+                                                CombinedLinearGaussianTransitionModel)
+
+transition_model = CombinedLinearGaussianTransitionModel([ConstantVelocity(0.0005),
+                                                          ConstantVelocity(0.0005)])
+transition_model_cm = CombinedLinearGaussianTransitionModel([ConstantAcceleration(0.0005),
+                                                             ConstantAcceleration(0.0005)])
+control_model = TransitionBasedLinearControlModel(
+    np.array([[1., 0], [1., 0], [0, 1.], [0, 1.]]),
+    control_noise=np.diag([0.005, 0.005]),
+    transition_model=transition_model_cm,
+    mapping=[2, 5])
+
 
 # %%
 # Generate Ground Truth
@@ -148,33 +170,10 @@ class ConstantAccelerationLinearControlModel(LinearControlModel):
 # In this example, the target will undergo two manoeuvres. The first starts at 40 seconds,
 # lasts 50 seconds and will be a turn to the right; the second manoeuvre
 # at 120 seconds, again lasting 50 seconds, will be a turn to the left. Nominally, the
-# target will traverse according to nearly constant velocity when not manoeuvering.
-#
-# First we define the models and populate the required parameters. Note that the first
-# input to the `ConstantAccelerationLinearControlModel` class is a control matrix. This
-# ensures the number of control dimensions is set correctly and will not be used by the
-# model. This is evident as the `control_matrix` property is getting overwritten above
-# when calling `matrix` which is dependant on the possibly time interval where the action
-# is applied.
-
-
-# Transition model
-from stonesoup.models.transition.linear import CombinedLinearGaussianTransitionModel, \
-                                               ConstantVelocity
-transition_model = CombinedLinearGaussianTransitionModel([ConstantVelocity(0.0005),
-                                                          ConstantVelocity(0.0005)])
-
-# Control model
-control_model = ConstantAccelerationLinearControlModel(np.array([[1., 0],
-                                                                 [1., 0],
-                                                                 [0, 1.],
-                                                                 [0, 1.]]),
-                                                       control_noise=np.diag([0.005,
-                                                                              0.005]))
+# target will traverse according to nearly constant velocity when not manoeuvring.
 
 # %%
 # We can then calculate the control inputs and subsequent ground truth states.
-
 
 from stonesoup.types.state import State
 from stonesoup.types.groundtruth import GroundTruthPath, GroundTruthState
@@ -232,7 +231,7 @@ plotter.fig
 # ^^^^^^^^^^^^^^^^^^^^^
 # Now some measurements of the target throughout the simulation are generated using a
 # range-bearing sensor. This will require inference via an :class:`~.ExtendedKalmanUpdater`
-# but is more realisic than adopting a linear measurement model.
+# but is more realistic than adopting a linear measurement model.
 
 
 from stonesoup.models.measurement.nonlinear import CartesianToBearingRange
