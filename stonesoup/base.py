@@ -244,6 +244,7 @@ def clearable_cached_property(*property_names: str):
 
 class BaseRepr(Repr):
     max_base_depth = 3
+
     def __init__(self):
         self.maxlevel = 3
         self.maxtuple = 4
@@ -517,12 +518,24 @@ class Base(metaclass=BaseMeta):
                             f'{next(iter(kwargs))!r}')
 
     def __setattr__(self, name, value):
-        if isinstance(value, list) and not isinstance(value, BaseList):
+        if isinstance(value, list) and not isinstance(value, BaseList) \
+                and any(isinstance(item, Base) for item in value):
+            existing = self.__dict__.get(name)
+            if isinstance(existing, BaseList) and list.__eq__(existing, value):
+                return
             value = BaseList(value)
-        elif isinstance(value, dict) and not isinstance(value, BaseDict):
-            value = BaseDict(value)
-        elif isinstance(value, set) and not isinstance(value, BaseSet):
+        elif isinstance(value, set) and not isinstance(value, BaseSet) \
+                and any(isinstance(item, Base) for item in value):
+            existing = self.__dict__.get(name)
+            if isinstance(existing, BaseSet) and set.__eq__(existing, value):
+                return
             value = BaseSet(value)
+        elif isinstance(value, dict) and not isinstance(value, BaseDict) \
+                and any(isinstance(item, Base) for item in value.values()):
+            existing = self.__dict__.get(name)
+            if isinstance(existing, BaseDict) and dict.__eq__(existing, value):
+                return
+            value = BaseDict(value)
         super().__setattr__(name, value)
 
     def __repr__(self):
@@ -747,6 +760,7 @@ def Freezable(cls: type):
     cls.property_dict = ImmutableMixIn.property_dict
     globals()[new_name] = new_cls
     return cls
+
 
 def base_repr(obj):
     """Convenience function for print non-Stone Soup lists using

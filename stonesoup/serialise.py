@@ -44,7 +44,7 @@ import numpy as np
 import ruamel.yaml
 from ruamel.yaml.constructor import ConstructorError
 
-from .base import Base, Property
+from .base import Base, Property, BaseList, BaseSet, BaseDict
 from .types.angle import Angle
 from .types.array import Matrix, StateVector
 from .types.numeric import Probability
@@ -94,6 +94,11 @@ def init_typ(yaml):
     # Declarative classes
     yaml.representer.add_multi_representer(Base, declarative_to_yaml)
     yaml.constructor.add_multi_constructor('!stonesoup.', declarative_from_yaml)
+
+    # Base container subclasses - treat as plain counterparts for serialisation
+    yaml.representer.add_representer(BaseList, yaml.representer.yaml_representers[list])
+    yaml.representer.add_representer(BaseSet, yaml.representer.yaml_representers[set])
+    yaml.representer.add_representer(BaseDict, yaml.representer.yaml_representers[dict])
 
 
 class YAML(ruamel.yaml.YAML):

@@ -92,7 +92,7 @@ def test_composite_updater(num_updaters):
     # Test instantiation errors
     with pytest.raises(
             ValueError,
-            match="Sub-updaters must be defined as an ordered list, not <class 'set'>"):
+            match="Sub-updaters must be defined as an ordered list"):
         CompositeUpdater(set(sub_updaters))
 
     with pytest.raises(ValueError, match="Cannot create an empty composite updater"):
