@@ -216,7 +216,7 @@ class ConstantTurnSandwich(ConstantTurn):
 
 
 class SimpleHarmonicTransitionModel(TransitionModel, GaussianModel):
-    r"""Simple harmonic motion (SHM) in one dimension with additive Gaussian noise
+    r"""Simple harmonic motion (SHM) in one dimension with additive Gaussian noise.
     
     
     The model is described by the single differential equation:
@@ -227,36 +227,35 @@ class SimpleHarmonicTransitionModel(TransitionModel, GaussianModel):
         \frac{d^2 \zeta}{dt^2} = -\omega^2 \zeta
 
 
-    where $\zeta$ quantifies the displacement from the equilibrium point ($\zeta = 0$) and $\omega
-    is the angular frequency of the system.
+    where :math:`\zeta` quantifies the displacement from the equilibrium point (:math:`\zeta = 0`) 
+    and :math:`\omega` is the angular frequency of the system.
     
     The solution to the equation at a particular time in the future is completely defined by the
-    current state (i.e. it's a Markovian system) and can be found over a fixed interval $\Delta t$
-    via:
+    current state (i.e. it's a Markovian system) and can be found over a fixed interval 
+    :math:`\Delta t` via:
     
     .. math ::
-    
         :nowrap:
 
-        \begin{eqnarray}
-            \zeta_{t + \Delta t} &= 
-            \zeta_t \cos ( \omega \Delta t) + \frac{\dot{\zeta}_t}{\omega} \sin (\omega \Delta t)
-
-            \dot{\zeta}_{t + \Delta t} &= 
-            \dot{\zeta}_{t} \cos ( \omega \Delta t) - \omega  \zeta_t \sin (\omega \Delta t)
-        \end{eqnarray}
+        \begin{align}
+                \zeta_{t + \Delta t} & = \zeta_t \cos ( \omega \Delta t) + 
+                \frac{\dot{\zeta}_t}{\omega} \sin (\omega \Delta t) \\
+                \dot{\zeta}_{t + \Delta t} & = \dot{\zeta}_{t} \cos ( \omega \Delta t) - \omega
+                \zeta_t \sin (\omega \Delta t)
+        \end{align}
         
-    This class outputs solutions in $[\zeta, \dot{\zeta}]$ coordinates. As SHM is
+    This class outputs solutions in :math:`[\zeta, \dot{\zeta}]` coordinates. As SHM is
     dimensionally-independent, higher dimensional solutions can be constructed by stacking, using a 
     :class:`~.CombinedGaussianTransitionModel` class.
     
     As a :class:`~.GaussianTransitionModel` class, additive noise is Gauss-distributed and computed
-    for the continuous time function via the matrix exponential (i.e. using van Loan's method).
+    for the continuous time function via the matrix exponential (i.e. using Van Loan's method).
     
     """
 
     omega : float = Property(doc = "Angular frequency")
-    q : float = Property(doc = "Noise covariance magnitude (per unit time interval)")
+    q : float = Property(doc = "Magnitude of the standard deviation of the noise (per unit time " \
+                               "interval)")
 
     @property
     def ndim_state(self):
@@ -265,7 +264,7 @@ class SimpleHarmonicTransitionModel(TransitionModel, GaussianModel):
         Returns
         -------
         : :class:`int`
-            The number of combined state dimensions is two (position and velocity).
+            The number of combined state dimensions (two -- position and velocity).
             
         """
         return 2
@@ -274,7 +273,7 @@ class SimpleHarmonicTransitionModel(TransitionModel, GaussianModel):
     def function(self, state: State, noise: Union[bool, np.ndarray] = False,
                  **kwargs) -> Union[StateVector, StateVectors]:
         
-        """returns the state vector(s) at a future time, given the current state vector(s) and the
+        """Returns the state vector(s) at a future time, given the current state vector(s) and the
         time interval to propagate over. The time interval is passed via the keyword arguments, 
         and the noise can either be a boolean (in which case the noise is generated within the 
         function) or an array of the same shape as the state vector(s) (in which case this is added
@@ -292,9 +291,16 @@ class SimpleHarmonicTransitionModel(TransitionModel, GaussianModel):
         noise : bool or np.ndarray, optional
             If bool, whether to add noise to the output (default False). If np.ndarray, the noise
             to be added to the output. Should be of the same shape as the state vector(s).
-        **kwargs
-            time_interval : timedelta
-                The time interval to propagate over.        
+        **kwargs : various
+            Additional keyword arguments, including:
+                
+                time_interval (:class:`~datetime.timedelta`) - The time interval to propagate over
+
+        Returns
+        -------
+        : :class:`stonesoup.types.state.StateVector` or :class:`stonesoup.types.state.StateVectors`
+             The state vector(s) at the future time, with noise added if specified    
+            
         """
         def _return_sv(state_vector, omega, time_secs, noise):
             """Operates on a single state vector"""
@@ -333,14 +339,28 @@ class SimpleHarmonicTransitionModel(TransitionModel, GaussianModel):
     
     def covar(self, time_interval, **kwargs):
         r"""Uses the matrix exponential (Van Loan's method) to compute the process noise
-        covariance matrix from the input standard deviation parameter ($q$ - which has units of 
-        acceleration) and the time interval. 
+        covariance matrix from the input standard deviation parameter (:math:`q`) and the time 
+        interval. 
+        
+        Parameters
+        ----------
+        time_interval : :class:`~datetime.timedelta`
+            The time interval to propagate over
+        **kwargs
+            Additional keyword arguments (not used)
 
+        Returns
+        -------
+        : :class:`stonesoup.types.state.CovarianceMatrix` of shape\
+        (:py:attr:`~ndim_state`, :py:attr:`~ndim_state`)
+            The process noise covariance matrix for the given time interval    
+
+        
         Reference:
 
         .. [1] Van Loan, C. F. (1978). Computing integrals involving the matrix exponential. 
-        IEEE Transactions on Automatic Control, 23(3), 395-404.
-        
+           IEEE Transactions on Automatic Control, 23(3), 395-404.
+
         """
 
         # Timestep
@@ -353,7 +373,7 @@ class SimpleHarmonicTransitionModel(TransitionModel, GaussianModel):
         Q = np.array([[0., 0.],
                       [0., self.q**2]])
 
-        # van Loan's block matrix and its exponential
+        # Van Loan's block matrix and its exponential
         M = np.block([[-F, Q],
                       [Q*0., F.T]])
         Phi = expm(M*dt)
