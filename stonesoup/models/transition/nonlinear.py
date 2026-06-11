@@ -1,4 +1,3 @@
-from abc import abstractmethod
 import copy
 from collections.abc import Sequence
 from typing import Union
@@ -215,47 +214,44 @@ class ConstantTurnSandwich(ConstantTurn):
         return CovarianceMatrix(C_t)
 
 
-class SimpleHarmonicTransitionModel(TransitionModel, GaussianModel):
+class SimpleHarmonicMotion(TransitionModel, GaussianModel):
     r"""Simple harmonic motion (SHM) in one dimension with additive Gaussian noise.
-    
-    
+
     The model is described by the single differential equation:
 
     .. math::
-        
-        
+
         \frac{d^2 \zeta}{dt^2} = -\omega^2 \zeta
 
-
-    where :math:`\zeta` quantifies the displacement from the equilibrium point (:math:`\zeta = 0`) 
+    where :math:`\zeta` quantifies the displacement from the equilibrium point (:math:`\zeta = 0`)
     and :math:`\omega` is the angular frequency of the system.
-    
+
     The solution to the equation at a particular time in the future is completely defined by the
-    current state (i.e. it's a Markovian system) and can be found over a fixed interval 
+    current state (i.e. it's a Markovian system) and can be found over a fixed interval
     :math:`\Delta t` via:
-    
+
     .. math ::
         :nowrap:
 
         \begin{align}
-                \zeta_{t + \Delta t} & = \zeta_t \cos ( \omega \Delta t) + 
+                \zeta_{t + \Delta t} & = \zeta_t \cos ( \omega \Delta t) +
                 \frac{\dot{\zeta}_t}{\omega} \sin (\omega \Delta t) \\
                 \dot{\zeta}_{t + \Delta t} & = \dot{\zeta}_{t} \cos ( \omega \Delta t) - \omega
                 \zeta_t \sin (\omega \Delta t)
         \end{align}
-        
+
     This class outputs solutions in :math:`[\zeta, \dot{\zeta}]` coordinates. As SHM is
-    dimensionally-independent, higher dimensional solutions can be constructed by stacking, using a 
+    dimensionally-independent, higher dimensional solutions can be constructed by stacking, using a
     :class:`~.CombinedGaussianTransitionModel` class.
-    
+
     As a :class:`~.GaussianTransitionModel` class, additive noise is Gauss-distributed and computed
     for the continuous time function via the matrix exponential (i.e. using Van Loan's method).
-    
+
     """
 
-    omega : float = Property(doc = "Angular frequency")
-    q : float = Property(doc = "Magnitude of the standard deviation of the noise (per unit time " \
-                               "interval)")
+    omega: float = Property(doc="Angular frequency")
+    noise_stdev_mag: float = Property(doc="Magnitude of the standard deviation of the noise "
+                                          "(per unit time interval)")
 
     @property
     def ndim_state(self):
@@ -265,46 +261,41 @@ class SimpleHarmonicTransitionModel(TransitionModel, GaussianModel):
         -------
         : :class:`int`
             The number of combined state dimensions (two -- position and velocity).
-            
+
         """
         return 2
 
-        
     def function(self, state: State, noise: Union[bool, np.ndarray] = False,
                  **kwargs) -> Union[StateVector, StateVectors]:
-        
+
         """Returns the state vector(s) at a future time, given the current state vector(s) and the
-        time interval to propagate over. The time interval is passed via the keyword arguments, 
-        and the noise can either be a boolean (in which case the noise is generated within the 
+        time interval to propagate over. The time interval is passed via the keyword arguments,
+        and the noise can either be a boolean (in which case the noise is generated within the
         function) or an array of the same shape as the state vector(s) (in which case this is added
-        to the output). 
-        
-        TODO: confirm that this function can handle both single state vectors and multiple state 
-        vectors (i.e. StateVectors) as input, and that the noise is generated/added correctly in 
-        both cases.
+        to the output).
 
         Parameters
         ----------
         state : State
-            The state to be propagated. The state vector(s) should be in the form [position, 
+            The state to be propagated. The state vector(s) should be in the form [position,
             velocity].
         noise : bool or np.ndarray, optional
             If bool, whether to add noise to the output (default False). If np.ndarray, the noise
             to be added to the output. Should be of the same shape as the state vector(s).
         **kwargs : various
             Additional keyword arguments, including:
-                
+
                 time_interval (:class:`~datetime.timedelta`) - The time interval to propagate over
 
         Returns
         -------
         : :class:`stonesoup.types.state.StateVector` or :class:`stonesoup.types.state.StateVectors`
-             The state vector(s) at the future time, with noise added if specified    
-            
+             The state vector(s) at the future time, with noise added if specified
+
         """
         def _return_sv(state_vector, omega, time_secs, noise):
             """Operates on a single state vector"""
-            
+
             c1 = state_vector[0]  # Position
             c2 = state_vector[1]/omega  # Velocity/omega
 
@@ -318,16 +309,16 @@ class SimpleHarmonicTransitionModel(TransitionModel, GaussianModel):
                     noise = 0
 
             return StateVector([xout, vout]) + noise
-            
+
         time_secs = kwargs['time_interval'].total_seconds()
-        
+
         # Depending on the input either do this singly or iterate over the StateVectors
         if type(state.state_vector) is StateVector:
-            
+
             return _return_sv(state.state_vector, self.omega, time_secs, noise)
-        
+
         elif type(state.state_vector) is StateVectors:
-            
+
             svo = []
             for sv in state.state_vector:
                 svo.append(_return_sv(sv, self.omega, time_secs, noise))
@@ -336,12 +327,11 @@ class SimpleHarmonicTransitionModel(TransitionModel, GaussianModel):
         else:
             # Catch the fact that you need either a StateVector or StateVectors type
             raise TypeError("Input must be StateVector or StateVectors type")
-    
+
     def covar(self, time_interval, **kwargs):
         r"""Uses the matrix exponential (Van Loan's method) to compute the process noise
-        covariance matrix from the input standard deviation parameter (:math:`q`) and the time 
-        interval. 
-        
+        covariance matrix from the input standard deviation parameter and the time interval.
+
         Parameters
         ----------
         time_interval : :class:`~datetime.timedelta`
@@ -353,12 +343,11 @@ class SimpleHarmonicTransitionModel(TransitionModel, GaussianModel):
         -------
         : :class:`stonesoup.types.state.CovarianceMatrix` of shape\
         (:py:attr:`~ndim_state`, :py:attr:`~ndim_state`)
-            The process noise covariance matrix for the given time interval    
+            The process noise covariance matrix for the given time interval
 
-        
         Reference:
 
-        .. [1] Van Loan, C. F. (1978). Computing integrals involving the matrix exponential. 
+        .. [1] Van Loan, C. F. (1978). Computing integrals involving the matrix exponential.
            IEEE Transactions on Automatic Control, 23(3), 395-404.
 
         """
@@ -366,21 +355,22 @@ class SimpleHarmonicTransitionModel(TransitionModel, GaussianModel):
         # Timestep
         dt = time_interval.total_seconds()
 
-        # Transition matrix
-        F = np.array([[0, 1.],
+        # Calculates the differential
+        # state transition matrix
+        dF = np.array([[0, 1.],
                       [-self.omega**2, 0.]])
         # Covariance matrix per unit time
-        Q = np.array([[0., 0.],
-                      [0., self.q**2]])
+        dQ = np.array([[0., 0.],
+                      [0., self.noise_stdev_mag**2]])
 
         # Van Loan's block matrix and its exponential
-        M = np.block([[-F, Q],
-                      [Q*0., F.T]])
+        M = np.block([[-dF, dQ],
+                      [dQ*0., dF.T]])
         Phi = expm(M*dt)
 
         # Extract the discretized state transition and process noise matrices
-        G = Phi[0:2,2:4]
-        F2 = Phi[2:4,2:4]
-        
+        G = Phi[0:2, 2:4]
+        F2 = Phi[2:4, 2:4]
+
         # Assemble the discrete process noise covariance matrix
-        return CovarianceMatrix(F2.T @ G)  
+        return CovarianceMatrix(F2.T @ G)
