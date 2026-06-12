@@ -74,15 +74,19 @@ class LinearControlModel(ControlModel, LinearModel, GaussianModel):
 
 
 class TransitionBasedLinearControlModel(LinearControlModel):
-    r"""A model that applies a Nth Derivative Transition Model over a specified time period.
+    r"""A model that applies an Nth Derivative Transition Model over a specified time period.
     This is just a :class:`~.LinearControlModel` which accepts a time_interval input
-    to matrix to compute the control matrix.
+    to compute the control matrix.
 
     A derivative ordered state vector is assumed
     (e.g., :math:`[x, \dot{x}, \ldots, y, \dot{y}, \dots]^T`).:
     """
     transition_model: TransitionModel = Property(default=ConstantAcceleration(1), doc="")
     mapping: list = Property(default=[2], doc="")
+    output_in_state_vector: bool = Property(
+        default=False,
+        doc="This flag determines whether the control input is dimensions are already in the state"
+            "vector (True) or not (False).")
 
     def matrix(self, time_interval, **kwargs) -> np.ndarray:
         r"""
@@ -98,8 +102,11 @@ class TransitionBasedLinearControlModel(LinearControlModel):
         : :class:`numpy.ndarray`
             the control-input model matrix, :math:`B_k`
         """
-        self.control_matrix = np.eye(self.transition_model.ndim)[
-            [x for x in range(self.transition_model.ndim) if x not in self.mapping]] @ \
+        identity = np.eye(self.transition_model.ndim)
+        permutation_matrix = identity if self.output_in_state_vector \
+            else identity[[x for x in range(self.transition_model.ndim) if
+                           x not in self.mapping]]
+        self.control_matrix = permutation_matrix @ \
             self.transition_model.matrix(time_interval=time_interval) @ \
-            np.eye(self.transition_model.ndim)[self.mapping].T
+            identity[self.mapping].T
         return self.control_matrix

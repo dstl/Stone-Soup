@@ -54,3 +54,20 @@ def test_transition_based_control_model(transition_model, mapping, control_model
 
     assert np.allclose(matrix, control_model_output)
     assert matrix.shape[1] == len(mapping)
+
+
+def test_transition_based_control_model_output_in_state_vector():
+    control_model = TransitionBasedLinearControlModel(
+        control_matrix=np.array([[1., 0, 0],
+                                 [0, 1., 0],
+                                 [0, 0, 1.]]),
+        control_noise=np.diag([0.005, 0.005, 0.005]),
+        transition_model=ConstantAcceleration(1),
+        mapping=[2],
+        output_in_state_vector=True
+    )
+
+    matrix = control_model.matrix(time_interval=timedelta(seconds=10))
+
+    assert matrix.shape == (control_model.transition_model.ndim,
+                            len(control_model.mapping))

@@ -172,9 +172,6 @@ control_model = TransitionBasedLinearControlModel(
 # at 120 seconds, again lasting 50 seconds, will be a turn to the left. Nominally, the
 # target will traverse according to nearly constant velocity when not manoeuvring.
 
-# %%
-# We can then calculate the control inputs and subsequent ground truth states.
-
 from stonesoup.types.state import State
 from stonesoup.types.groundtruth import GroundTruthPath, GroundTruthState
 from stonesoup.types.array import Matrix
