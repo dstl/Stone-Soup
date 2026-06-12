@@ -148,41 +148,35 @@ def fov_reward():
         target_mapping=[0, 2])
 
 
-def test_target_in_sensor_fov_and_not_in_target_fov(fov_reward):
-    sensor = DummySensor(State([10, 0, 10, 0]))
+@pytest.mark.parametrize(
+        "sensor_state, track_state, expected_reward",
+        [
+            (
+                State([10, 0, 10, 0]),
+                State([10, 0, 10, 0]),
+                1.0
+            ),
+            (
+                State([100, 0, 100, 0]),
+                State([0, 0, 0, 0]),
+                -1.0
+            ),
+            (
+                State([9, 0, 9, 0]),
+                State([10, 0, 10, 0]),
+                1.0
+            ),
+            (
+                State([0, 0, 0, 0]),
+                State([15, 0, 0, 0]),
+                2.0
+            )
+        ]
+)
+def test_fov_interaction_reward(fov_reward, sensor_state, track_state, expected_reward):
+    sensor = DummySensor(sensor_state)
     config = {sensor: [DummyAction()]}
-    tracks = {Track(State([10, 0, 10, 0]))}
+    tracks = {Track(track_state)}
     metric_time = datetime.now()
     reward = fov_reward(config, tracks, metric_time)
-    # distance = 0, so tracking_reward=2, lack_of_stealth_penalty=-1
-    assert reward == 1.0
-
-
-def test_target_outside_sensor_fov(fov_reward):
-    sensor = DummySensor(State([100, 0, 100, 0]))
-    config = {sensor: [DummyAction()]}
-    tracks = {Track(State([0, 0, 0, 0]))}
-    metric_time = datetime.now()
-    reward = fov_reward(config, tracks, metric_time)
-    # distance > sensor_fov_radius, so tracking_reward=-1, lack_of_stealth_penalty=0
-    assert reward == -1.0
-
-
-def test_target_in_sensor_fov_and_in_target_fov(fov_reward):
-    sensor = DummySensor(State([9, 0, 9, 0]))
-    config = {sensor: [DummyAction()]}
-    tracks = {Track(State([10, 0, 10, 0]))}
-    metric_time = datetime.now()
-    reward = fov_reward(config, tracks, metric_time)
-    # distance ~1.414 < 20 and < 10, so tracking_reward=2, lack_of_stealth_penalty=-1
-    assert reward == 1.0
-
-
-def test_target_in_sensor_fov_but_not_in_target_fov(fov_reward):
-    sensor = DummySensor(State([0, 0, 0, 0]))
-    config = {sensor: [DummyAction()]}
-    tracks = {Track(State([15, 0, 0, 0]))}
-    metric_time = datetime.now()
-    reward = fov_reward(config, tracks, metric_time)
-    # distance ~14.14 < 20, so tracking_reward=2, lack_of_stealth_penalty=0
-    assert reward == 2.0
+    assert reward == expected_reward
