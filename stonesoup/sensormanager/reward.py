@@ -486,6 +486,7 @@ class FOVInteractionRewardFunction(RewardFunction):
         float
             The calculated reward.
         """
+        measure = Euclidean(self.sensor_mapping, self.target_mapping)
 
         predicted_sensors = set()
         memo = {}
@@ -499,20 +500,24 @@ class FOVInteractionRewardFunction(RewardFunction):
 
         # Create dictionary of predictions for the tracks in the configuration
         predicted_tracks = set()
+        # This loops are not currently used for multiple tracks but are left in for future
+        # compatibility with multiple targets
         for track in tracks:
             predicted_track = copy.copy(track)
             predicted_track.append(self.predictor.predict(predicted_track, timestamp=metric_time))
             predicted_tracks.add(predicted_track)
         no_tracks = int(len(predicted_tracks))
-
+        # This loop is not currently used for multiple sensors but is left in for future
+        # compatibility with multiple sensors
         for sensor in predicted_sensors:
             sensor_pos = sensor.position if isinstance(sensor.position, State) else State(sensor.position)  # noqa: E501
 
         total_reward = 0
+        # This loop is not currently used for multiple tracks but is left in for future
+        # compatibility with multiple targets
         for target in predicted_tracks:
             target_pos = target
 
-            measure = Euclidean(self.sensor_mapping, self.target_mapping)
             distance = measure(sensor_pos, target_pos)
             # Reward for keeping the target in the sensor's FOV
             tracking_reward = (2 * no_tracks
