@@ -453,12 +453,22 @@ class FOVInteractionRewardFunction(RewardFunction):
     This function rewards the sensor for keeping the target in its FOV while
     penalising it for entering the target's FOV.
     """
-    predictor: KalmanPredictor = Property(doc="")
-    updater: ExtendedKalmanUpdater = Property(doc="")
-    sensor_fov_radius: float = Property(default=20.0, doc="")
-    target_fov_radius: float = Property(default=10.0, doc="")
-    sensor_mapping: list[int] = Property(default=(0, 1), doc="")
-    target_mapping: list[int] = Property(default=(0, 2), doc="")
+    predictor: KalmanPredictor = Property(
+        doc="The predictor used to predict the track to a new state.")
+    updater: ExtendedKalmanUpdater = Property(
+        doc="The updater used to update the track to the new state.")
+    sensor_fov_radius: float = Property(
+        default=20.0, doc="The radius of the sensor platform's field of view.")
+    target_fov_radius: float = Property(
+        default=10.0, doc="The assumed radius of the target's field of view.")
+    sensor_mapping: list[int] = Property(
+        default=(0, 1),
+        doc="The mapping of sensor platform coordinates. Used to calculate the distance between"
+            "the sensor and target in the reward function.")
+    target_mapping: list[int] = Property(
+        default=(0, 2),
+        doc="The mapping of target coordinates. Used to calculate the distance between the"
+            "sensor and target in the reward function.")
     fov_scale: float = Property(default=1.0, doc="")
 
     def __call__(self,  config: Mapping[Sensor, Sequence[Action]], tracks: set[Track],
