@@ -366,8 +366,9 @@ class Plotter(_Plotter):
             self.legend_dict[name] = clutter_handle
 
         # Generate legend
-        artists.append(self.ax.legend(handles=self.legend_dict.values(),
-                                      labels=self.legend_dict.keys()))
+        if self.legend_dict:
+            artists.append(self.ax.legend(handles=self.legend_dict.values(),
+                                          labels=self.legend_dict.keys()))
         return artists
 
     def plot_tracks(self, tracks, mapping, uncertainty=False, particle=False, label="Tracks",
