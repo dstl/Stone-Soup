@@ -474,8 +474,8 @@ class QuadraticInformationGain(RewardFunction, QuadraticDistance):
                 unknown = set(self.kernel_parameters) - allowed_keys
                 if unknown:
                     raise ValueError(
-                        f"Unknown parameter(s) for QuadraticInformationGain: {
-                            ', '.join(unknown)}.")
+                        f"Unknown parameter(s) for QuadraticInformationGain:"
+                        f"{', '.join(unknown)}.")
 
                 R = self.kernel_parameters['covariance']
 
