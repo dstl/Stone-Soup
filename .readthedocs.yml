@@ -6,7 +6,7 @@ sphinx:
 build:
   os: ubuntu-lts-latest
   tools:
-    python: "3.12"
+    python: "3.14"
   apt_packages:
     - libnss3
     - libatk-bridge2.0-0
