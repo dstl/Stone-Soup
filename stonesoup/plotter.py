@@ -1524,6 +1524,41 @@ class Plotterly(_Plotter):
 
             elif self.dimension == 2:  # plot 2D tracks
 
+                if uncertainty:
+                    name = track_kwargs['legendgroup'] + "<br>(Ellipses)"
+                    add_legend = name not in {trace.legendgroup for trace in self.fig.data}
+                    ellipse_kwargs = dict(
+                        mode='none', fill='toself', fillcolor=track_colors[track],
+                        opacity=0.2, hoverinfo='skip',
+                        legendgroup=name, name=name,
+                        legendrank=track_kwargs['legendrank'] + 10)
+                    for state in track:
+                        points = self._generate_ellipse_points(state, mapping, ellipse_points)
+                        if add_legend:
+                            ellipse_kwargs['showlegend'] = True
+                            add_legend = False
+                        else:
+                            ellipse_kwargs['showlegend'] = False
+
+                        self.fig.add_scatter(x=points[0, :], y=points[1, :], **ellipse_kwargs)
+
+                if particle:
+                    name = track_kwargs['legendgroup'] + "<br>(Particles)"
+                    add_legend = name not in {trace.legendgroup for trace in self.fig.data}
+                    for state in track:
+                        particle_kwargs = dict(
+                            mode='markers', marker=dict(size=2),
+                            opacity=0.4, hoverinfo='skip',
+                            legendgroup=name, name=name,
+                            legendrank=track_kwargs['legendrank'] + 20)
+                        if add_legend:
+                            particle_kwargs['showlegend'] = True
+                            add_legend = False
+                        else:
+                            particle_kwargs['showlegend'] = False
+                        data = state.state_vector[mapping[:2], :]
+                        self.fig.add_scattergl(x=data[0], y=data[1], **particle_kwargs)
+
                 self.fig.add_scatter(
                     x=[float(getattr(state, 'mean', state.state_vector)[mapping[0]])
                        for state in track],
@@ -1574,44 +1609,6 @@ class Plotterly(_Plotter):
             track_colors[track] = (self.fig.data[-1].line.color
                                    or self.fig.data[-1].marker.color
                                    or self.get_next_color())
-
-        # earlier checking means this only applies to 2D.
-        if uncertainty and self.dimension == 2:
-            name = track_kwargs['legendgroup'] + "<br>(Ellipses)"
-            add_legend = name not in {trace.legendgroup for trace in self.fig.data}
-            for track in tracks:
-                ellipse_kwargs = dict(
-                    mode='none', fill='toself', fillcolor=track_colors[track],
-                    opacity=0.2, hoverinfo='skip',
-                    legendgroup=name, name=name,
-                    legendrank=track_kwargs['legendrank'] + 10)
-                for state in track:
-                    points = self._generate_ellipse_points(state, mapping, ellipse_points)
-                    if add_legend:
-                        ellipse_kwargs['showlegend'] = True
-                        add_legend = False
-                    else:
-                        ellipse_kwargs['showlegend'] = False
-
-                    self.fig.add_scatter(x=points[0, :], y=points[1, :], **ellipse_kwargs)
-
-        if particle and self.dimension == 2:
-            name = track_kwargs['legendgroup'] + "<br>(Particles)"
-            add_legend = name not in {trace.legendgroup for trace in self.fig.data}
-            for track in tracks:
-                for state in track:
-                    particle_kwargs = dict(
-                        mode='markers', marker=dict(size=2),
-                        opacity=0.4, hoverinfo='skip',
-                        legendgroup=name, name=name,
-                        legendrank=track_kwargs['legendrank'] + 20)
-                    if add_legend:
-                        particle_kwargs['showlegend'] = True
-                        add_legend = False
-                    else:
-                        particle_kwargs['showlegend'] = False
-                    data = state.state_vector[mapping[:2], :]
-                    self.fig.add_scattergl(x=data[0], y=data[1], **particle_kwargs)
 
     @staticmethod
     def _generate_ellipse_points(state, mapping, n_points=30):
