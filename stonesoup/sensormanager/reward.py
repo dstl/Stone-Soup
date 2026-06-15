@@ -489,18 +489,18 @@ class QuadraticInformationGain(RewardFunction, QuadraticDistance):
                         f"({self.state_dim}, {self.state_dim}).")
             else:
                 raise ValueError(
-                    f'No covariance matrix was provided for the {
-                        self.kernel} kernel.')
+                    f'No covariance matrix was provided for the'
+                    f'{self.kernel} kernel.')
         else:
             raise NotImplementedError(
-                f'The Quadratic Information Gain with the {
-                    self.kernel} kernel parametrisation is not implemented.')
+                f'The Quadratic Information Gain with the' 
+                f'{self.kernel} kernel parametrisation is not implemented.')
 
         # GM-PHD Update
         if self.filter_data['filter model'] != 'GMPHD':
             raise NotImplementedError(
-                f'The Quadratic Information Gain for the {
-                    self.filter_data['filter model']} filter is not implemented.')
+                f'The Quadratic Information Gain for the'
+                f'{self.filter_data['filter model']} filter is not implemented.')
 
     def __call__(self, config: Mapping[Sensor, Sequence[Action]], tracks: set[Track],
                  metric_time: datetime.datetime, *args, **kwargs):

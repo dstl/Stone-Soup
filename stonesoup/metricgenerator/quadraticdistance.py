@@ -432,8 +432,8 @@ class QuadraticDistance(MetricGenerator):
         unknown = set(kwargs) - allowed_keys
         if unknown:
             raise ValueError(
-                f"Unknown parameter(s) for vectorised_gaussian_eval: {
-                    ', '.join(unknown)}")
+                f"Unknown parameter(s) for vectorised_gaussian_eval:"
+                f"{', '.join(unknown)}")
 
         means1 = kwargs.pop("m1")
         means2 = kwargs.pop("m2")
@@ -522,8 +522,8 @@ class QuadraticDistance(MetricGenerator):
                 unknown = set(self.kernel_parameters) - allowed_keys
                 if unknown:
                     raise ValueError(
-                        f"Unknown parameter(s) for compute_Q_distance: {
-                            ', '.join(unknown)}.")
+                        f"Unknown parameter(s) for compute_Q_distance:"
+                        f"{', '.join(unknown)}.")
 
                 R = self.kernel_parameters['covariance']
 
@@ -536,8 +536,8 @@ class QuadraticDistance(MetricGenerator):
 
             else:
                 raise ValueError(
-                    f'No covariance matrix was provided for the {
-                        self.kernel} kernel.')
+                    f'No covariance matrix was provided for the' 
+                    f'{self.kernel} kernel.')
 
             # quadratic error calculations for all combinations of point and track comparison
             distance = np.inf  # default value
@@ -575,8 +575,8 @@ class QuadraticDistance(MetricGenerator):
                                     timestamp=timestamps.pop(), generator=self)
         else:
             raise NotImplementedError(
-                f'The Quadratic Distance with the {
-                    self.kernel} kernel parametrisation is not implemented.')
+                f'The Quadratic Distance with the' 
+                f'{self.kernel} kernel parametrisation is not implemented.')
 
 
 class MeanQuadraticError(QuadraticDistance):
@@ -766,8 +766,8 @@ class MeanQuadraticError(QuadraticDistance):
                 unknown = set(self.kernel_parameters) - allowed_keys
                 if unknown:
                     raise ValueError(
-                        f"Unknown parameter(s) for compute_MQE: {
-                            ', '.join(unknown)}.")
+                        f"Unknown parameter(s) for compute_MQE:"
+                        f"{', '.join(unknown)}.")
 
                 R = self.kernel_parameters['covariance']
 
@@ -780,12 +780,12 @@ class MeanQuadraticError(QuadraticDistance):
                         f'({self.state_dim}, {self.state_dim}).')
             else:
                 raise ValueError(
-                    f'No covariance matrix was provided for the {
-                        self.kernel} kernel.')
+                    f'No covariance matrix was provided for the' 
+                    f'{self.kernel} kernel.')
         else:
             raise NotImplementedError(
-                f'The Mean Quadratic Error with the {
-                    self.kernel} kernel parametrisation is not implemented.')
+                f'The Mean Quadratic Error with the' 
+                f'{self.kernel} kernel parametrisation is not implemented.')
 
         # GM-PHD Update
         if self.filter_data['filter model'] == 'GMPHD':
@@ -809,8 +809,8 @@ class MeanQuadraticError(QuadraticDistance):
 
         else:
             raise NotImplementedError(
-                f'The Mean Quadratic Error for the {
-                    self.filter_data['filter model']} filter is not implemented.')
+                f'The Mean Quadratic Error for the'
+                f'{self.filter_data['filter model']} filter is not implemented.')
 
         return SingleTimeMetric(title='MQE', value=distance,
                                 timestamp=timestamps.pop(), generator=self)
