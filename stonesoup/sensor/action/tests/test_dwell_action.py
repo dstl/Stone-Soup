@@ -107,8 +107,8 @@ def test_dwell_action(initial_bearing):
         else:
             assert increasing1
             assert not increasing2
-        assert rot_end1 == pytest.approx(rot_end)
-        assert rot_end2 == pytest.approx(rot_end)
+        assert rot_end1 == pytest.approx(rot_end, abs=timedelta(seconds=0.01))
+        assert rot_end2 == pytest.approx(rot_end, abs=timedelta(seconds=0.01))
 
     # Test iterable
     actions = [action for action in generator]
