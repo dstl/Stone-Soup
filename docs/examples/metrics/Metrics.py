@@ -589,12 +589,15 @@ graph.plot_metrics(metrics, generator_names=['OSPA_EKF-truth',
                                              'Quadratic_Distance_EKF-truth',
                                              'Quadratic_Distance_PF-truth',
                                              'Quadratic_Distance_EKF-PF'],
+                  # metric_names=["OSPA distances",
+                  #               "SIAP Position Accuracy at times"]
+                  # uncomment and run to see effect
                    color=['orange', 'green', 'blue'])
 
 # update y-axis label and title; other subplots are displaying auto-generated title and labels
 graph.axes[0].set(ylabel='OSPA metrics', title='OSPA distances over time')
 graph.axes[1].set(ylabel='Quadratic Distance', title='Quadratic distance over time')
-plt.show()
+graph.fig.show()
 
 
 # From these plots, we can see that we lose some track accuracy towards the end of the
