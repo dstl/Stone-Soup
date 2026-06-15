@@ -536,7 +536,7 @@ class QuadraticDistance(MetricGenerator):
 
             else:
                 raise ValueError(
-                    f'No covariance matrix was provided for the' 
+                    f'No covariance matrix was provided for the'
                     f'{self.kernel} kernel.')
 
             # quadratic error calculations for all combinations of point and track comparison
@@ -575,7 +575,7 @@ class QuadraticDistance(MetricGenerator):
                                     timestamp=timestamps.pop(), generator=self)
         else:
             raise NotImplementedError(
-                f'The Quadratic Distance with the' 
+                f'The Quadratic Distance with the'
                 f'{self.kernel} kernel parametrisation is not implemented.')
 
 
@@ -780,11 +780,11 @@ class MeanQuadraticError(QuadraticDistance):
                         f'({self.state_dim}, {self.state_dim}).')
             else:
                 raise ValueError(
-                    f'No covariance matrix was provided for the' 
+                    f'No covariance matrix was provided for the'
                     f'{self.kernel} kernel.')
         else:
             raise NotImplementedError(
-                f'The Mean Quadratic Error with the' 
+                f'The Mean Quadratic Error with the'
                 f'{self.kernel} kernel parametrisation is not implemented.')
 
         # GM-PHD Update

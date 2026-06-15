@@ -493,7 +493,7 @@ class QuadraticInformationGain(RewardFunction, QuadraticDistance):
                     f'{self.kernel} kernel.')
         else:
             raise NotImplementedError(
-                f'The Quadratic Information Gain with the' 
+                f'The Quadratic Information Gain with the'
                 f'{self.kernel} kernel parametrisation is not implemented.')
 
         # GM-PHD Update
