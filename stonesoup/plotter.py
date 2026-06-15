@@ -1482,7 +1482,22 @@ class Plotterly(_Plotter):
             if self.dimension == 1:  # plot 1D tracks
 
                 if particle:
-                    raise NotImplementedError
+                    name = track_kwargs['legendgroup'] + "<br>(Particles)"
+                    add_legend = name not in {trace.legendgroup for trace in self.fig.data}
+                    for state in track:
+                        particle_kwargs = dict(
+                            mode='markers', marker=dict(size=2),
+                            opacity=0.4, hoverinfo='skip',
+                            legendgroup=name, name=name,
+                            legendrank=track_kwargs['legendrank'] + 20)
+                        if add_legend:
+                            particle_kwargs['showlegend'] = True
+                            add_legend = False
+                        else:
+                            particle_kwargs['showlegend'] = False
+                        data = state.state_vector[mapping[0], :]
+                        self.fig.add_scattergl(x=[state.timestamp]*len(data), y=data,
+                                               **particle_kwargs)
 
                 if uncertainty:
                     err_y = []
