@@ -1451,7 +1451,7 @@ def test_models_with_particles(h, ModelClass, state_vec, R,
             cov=R)
 
 
-position_measurement_sets = [
+position_measurement_sets_rates = [
     # Case 1: Pure X-axis, no velocity
     (
         (0, 0, 0, 0, 0, 0),
@@ -1523,7 +1523,7 @@ position_measurement_sets = [
 
 
 @pytest.mark.parametrize('sensor_state, target_state, expected_measurement',
-                         position_measurement_sets)
+                         position_measurement_sets_rates)
 @pytest.mark.parametrize('model_class, measure_mapping, use_velocity',
                          [(CartesianToElevationRateBearingRateRangeRate,
                           [0, 1, 2, 3, 4, 5], True)])
