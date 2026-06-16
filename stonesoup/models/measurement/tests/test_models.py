@@ -8,7 +8,8 @@ from ..nonlinear import (
     CartesianToElevationBearingRange, CartesianToBearingRange,
     CartesianToElevationBearing, Cartesian2DToBearing, CartesianToBearingRangeRate,
     CartesianToElevationBearingRangeRate, RangeRangeRateBinning,
-    CartesianToAzimuthElevationRange, CartesianToBearingRangeRate2D)
+    CartesianToAzimuthElevationRange, CartesianToBearingRangeRate2D,
+    CartesianToElevationRateBearingRateRangeRate)
 
 from ...base import ReversibleModel
 from ...measurement.linear import LinearGaussian
@@ -17,6 +18,7 @@ from ....functions import pol2cart
 from ....functions import rotz, rotx, roty, cart2sphere, cart2az_el_rg
 from ....types.angle import Bearing, Elevation, Azimuth
 from ....types.array import StateVector, StateVectors
+from ....types.detection import Detection
 from ....types.state import State, CovarianceMatrix, ParticleState
 
 
@@ -105,7 +107,8 @@ def az_el_rng(state_vector, pos_map, translation_offset, rotation_offset):
      Cartesian2DToBearing,
      CartesianToBearingRangeRate,
      CartesianToBearingRangeRate2D,
-     CartesianToElevationBearingRangeRate]
+     CartesianToElevationBearingRangeRate,
+     CartesianToElevationRateBearingRateRangeRate]
 )
 def test_none_covar(model_class):
     with pytest.raises(ValueError, match="Covariance should have ndim of 2: got 0"):
@@ -1446,3 +1449,174 @@ def test_models_with_particles(h, ModelClass, state_vec, R,
              - h(single_state_vec, model.mapping, model.translation_offset, model.rotation_offset)
              ).T,
             cov=R)
+
+
+position_measurement_sets = [
+    # Case 1: Pure X-axis, no velocity
+    (
+        (0, 0, 0, 0, 0, 0),
+        (1, 0, 0, 0, 0, 0),
+        (0.0, 0.0, 1.0, 0.0, 0.0, 0.0),
+    ),
+    # Case 2: Pure Y-axis, no velocity
+    (
+        (0, 0, 0, 0, 0, 0),
+        (0, 5, 0, 0, 0, 0),
+        (0.0, np.pi/2, 5.0, 0.0, 0.0, 0.0),
+    ),
+    # Case 3: Directly above (Z-axis) — azimuth undefined, expect 0 or NaN
+    # (
+    #     (0, 0, 0, 0, 0, 0),
+    #     (0, 0, 10, 0, 0, 0),
+    #     (np.pi/2, 0.0, 10.0, np.nan, np.nan, 0.0),
+    # ),
+    # Case 4: 45 degree elevation along X
+    (
+        (0, 0, 0, 0, 0, 0),
+        (1, 0, 1, 0, 0, 0),
+        (np.pi/4, 0.0, np.sqrt(2), 0.0, 0.0, 0.0),
+    ),
+    # Case 5: All three axes equal
+    (
+        (0, 0, 0, 0, 0, 0),
+        (1, 1, 1, 0, 0, 0),
+        (np.asin(1/np.sqrt(3)), np.pi/4, np.sqrt(3), 0.0, 0.0, 0.0),
+    ),
+    # Case 6: Purely radial velocity (moving directly away)
+    (
+        (0, 0, 0, 0, 0, 0),
+        (3, 4, 0, 3, 4, 0),
+        (0.0, np.atan2(4, 3), 5.0, 0.0, 0.0, 5.0),
+    ),
+    # Case 7: Purely tangential velocity in XY plane (circular orbit)
+    (
+        (0, 0, 0, 0, 0, 0),
+        (1, 0, 0, 0, 1, 0),
+        (0.0, 0.0, 1.0, 0.0, 1.0, 0.0),
+    ),
+    # Case 8: All three rate components non-zero
+    (
+        (0, 0, 0, 0, 0, 0),
+        (3, 0, 4, 1, 2, -1),
+        (np.asin(4/5), 0.0, 5.0, -0.28, 2/3, -0.2),
+    ),
+    # Case 9: Negative quadrant (third quadrant in XY)
+    (
+        (0, 0, 0, 0, 0, 0),
+        (-1, -1, 0, 0, 0, 0),
+        (0.0, -3*np.pi/4, np.sqrt(2), 0.0, 0.0, 0.0),
+    ),
+    # Case 10: Sensor at non-zero position and velocity
+    (
+        (1, 1, 2, 1, 1, 1),
+        (3, 4, 5, 1, 2, 3),
+        (
+            np.asin(3 / np.sqrt(22)),   # el
+            np.atan2(3, 2),     # az
+            np.sqrt(22),                # range
+            17 / (22 * np.sqrt(13)),    # del
+            2 / 13,                     # daz
+            9 / np.sqrt(22),            # drange
+        ),
+    ),
+]
+
+
+@pytest.mark.parametrize('sensor_state, target_state, expected_measurement',
+                         position_measurement_sets)
+@pytest.mark.parametrize('model_class, measure_mapping, use_velocity',
+                         [(CartesianToElevationRateBearingRateRangeRate,
+                          [0, 1, 2, 3, 4, 5], True)])
+def test_rates(sensor_state, target_state, expected_measurement, model_class,
+               measure_mapping, use_velocity):
+
+    sensor_state = StateVector(sensor_state)
+    target_state = State(StateVector(target_state), timestamp=None)
+    expected_measurement = StateVector([Elevation(expected_measurement[0]),
+                                        Bearing(expected_measurement[1]),
+                                        expected_measurement[2],  # range
+                                        expected_measurement[3],  # elevation rate
+                                        expected_measurement[4],  # bearing rate
+                                        expected_measurement[5]])  # range rate
+    pos_mapping = [0, 1, 2]
+    vel_mapping = [3, 4, 5]
+    sensor_velocity = sensor_state[vel_mapping]
+    # _, bearing, elevation = cart2sphere(*sensor_velocity)
+    # orientation = StateVector([0, elevation, bearing])
+    orientation = StateVector([0, 0, 0])
+    model = model_class(ndim_state=6,
+                        translation_offset=sensor_state[pos_mapping],
+                        rotation_offset=orientation,
+                        mapping=pos_mapping,
+                        velocity_mapping=vel_mapping,
+                        noise_covar=np.eye(len(expected_measurement)))
+    if use_velocity:
+        model.velocity = sensor_velocity
+    actual_measurement = model.function(target_state, noise=False)
+    assert np.allclose(actual_measurement, expected_measurement[measure_mapping], rtol=1e-9)
+
+
+position_input_sets = [
+    # Case 1: Pure X-axis, no velocity
+    [1, 0, 0, 0, 0, 0],
+    # Case 2: Pure Y-axis, no velocity
+    [0, 5, 0, 0, 0, 0],
+    # Case 3: Directly above (Z-axis) — azimuth undefined, expect 0 or NaN
+    # (
+    #     (0, 0, 0, 0, 0, 0),
+    #     (0, 0, 10, 0, 0, 0),
+    #     (np.pi/2, 0.0, 10.0, np.nan, np.nan, 0.0),
+    # ),
+    # Case 4: 45 degree elevation along X
+    [1, 0, 1, 0, 0, 0],
+    # Case 5: All three axes equal
+    [1, 1, 1, 0, 0, 0],
+    # Case 6: Purely radial velocity (moving directly away)
+    [3, 4, 0, 3, 4, 0],
+    # Case 7: Purely tangential velocity in XY plane (circular orbit)
+    [1, 0, 0, 0, 1, 0],
+    # Case 8: All three rate components non-zero
+    [3, 0, 4, 1, 2, -1],
+    # Case 9: Negative quadrant (third quadrant in XY)
+    [-1, -1, 0, 0, 0, 0]
+]
+
+
+@pytest.mark.parametrize('input_state',
+                         position_input_sets)
+def test_inverse_rates(input_state):
+    input_state = State(StateVector(input_state))
+    measurement_model = CartesianToElevationRateBearingRateRangeRate(
+        ndim_state=6,
+        mapping=np.array([0, 1, 2]),
+        velocity_mapping=np.array([3, 4, 5]),
+        noise_covar=np.array([[0, 0, 0, 0],
+                              [0, 0, 0, 0],
+                              [0, 0, 0, 0],
+                              [0, 0, 0, 0]]))
+
+    measurement = Detection(measurement_model.function(input_state), timestamp=None)
+    inv_state = measurement_model.inverse_function(measurement)
+
+    assert np.allclose(input_state.state_vector, inv_state)
+
+
+def test_state_vectors():
+    input_sv = StateVector([1, 0, 0, 0, 0, 0])
+    expected_sv = StateVector([0.0, 0.0, 1.0, 0.0, 0.0, 0.0])
+
+    input_state = State(StateVectors((input_sv, input_sv)))
+    expected_measurement = StateVectors((expected_sv, expected_sv))
+
+    measurement_model = CartesianToElevationRateBearingRateRangeRate(
+        ndim_state=6,
+        mapping=np.array([0, 1, 2]),
+        velocity_mapping=np.array([3, 4, 5]),
+        noise_covar=np.array([[0, 0, 0, 0],
+                              [0, 0, 0, 0],
+                              [0, 0, 0, 0],
+                              [0, 0, 0, 0]]))
+
+    actual_measurement = measurement_model.function(input_state, noise=False)
+
+    assert np.allclose(actual_measurement, expected_measurement, rtol=1e-9)
