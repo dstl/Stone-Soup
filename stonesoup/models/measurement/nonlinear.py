@@ -1107,7 +1107,7 @@ class CartesianToElevationRateBearingRateRangeRate(_AngleNonLinearGaussianMeasur
             0 & 0 & \sigma_{r}^2 & 0& 0 & 0\\
             0 & 0 & 0 & \sigma_{\dot{\theta}}^2 & 0 & 0\\
             0 & 0 & 0 & 0 & \sigma_{\dot{\phi}}^2 & 0\\
-            0 & 0 & 0 & 0 & 9 & \sigma_{\dot{r}}^2\\
+            0 & 0 & 0 & 0 & 0 & \sigma_{\dot{r}}^2\\
             \end{bmatrix}
 
     The :py:attr:`mapping` property of the model is a 3 element vector, \
