@@ -26,7 +26,7 @@
 # to name a few may be utilised. The quadratic distance for point patterns, developed in [1], is
 # a metric on the space of point patterns (multi-target state representations). The metric can
 # compare, point patterns (sets of target states), distribution mixtures (sets of target state
-# estimates with uncertainty) and random point patterns, descriped by point processes. This notion
+# estimates with uncertainty) and random point patterns, described by point processes. This notion
 # allows for a well understood geometric intuition to be applied in the context of multi-target
 # tracking.
 #
@@ -112,7 +112,7 @@
 # decays exponentially with the distance between them in the state space. The distance
 # between these state vectors is measured by the Euclidean distance weighted by the inverse
 # covariance matrix $R^{-1}$. A large covariance implies that the distance between these
-# points is considered small even if they are sparsely seperated. Conversely, if the
+# points is considered small even if they are sparsely separated. Conversely, if the
 # covariance is small, then the distance between points close in proximity may be considered
 # large. Infinitely many kernel choices may be considered and the interested reader is referred
 # to the following resources [4]. For the remainder of this tutorial, the Gaussian kernel is
@@ -152,7 +152,7 @@
 # In the context of multi-target filtering, it is common to make decisions regarding the
 # actions of available sensors prior to obtaining measurements. In order to do this the
 # action maximising the information gain is chosen. The information gain is commonly
-# formulated as a function of the predicted and updated probability distirbutions. If we
+# formulated as a function of the predicted and updated probability distributions. If we
 # consider the above expression in the case where $\boldsymbol X$ denotes the predicted
 # point process and $\varphi(\boldsymbol Z)$ denotes the intensity of the posterior point
 # process as a function of the measurmeent point process, then we can develop the following
@@ -189,7 +189,7 @@
 # ### Ground Truths
 # Firstly, a time-varying multi-target population is generated. Increasing
 # the number of timesteps, number of initial targets, death probability or
-# birth probability will chnage the difficulty of the multi-target
+# birth probability will change the difficulty of the multi-target
 # tracking scenario.
 
 # In[46]:
@@ -892,12 +892,12 @@ plt.show()
 #
 # ### Quadratic Distance (graph 2)
 # The quadratic distance in this case is used to evaluate the estimation accuracy of the tracks
-# produced by the filters. A useful feature of this metric is that it can accomodate a variety
+# produced by the filters. A useful feature of this metric is that it can accommodate a variety
 # of inputs. here we use this feature to show the difference between the full Gaussian mixture
 # and the extracted means as estimates of the true multi-target state. When comparing the full
 # Gaussian mixtures (tracks) to the truths, we see that the penalty is reduced. This can be
 # interpreted as a reduction in penalty in the case of uncertainty. For example, an estimate
-# which is wrong and has high confidence will be intuitively punished more than a worng estimate
+# which is wrong and has high confidence will be intuitively punished more than a wrong estimate
 # with lower confidence. We also use this feature to compare the tracks of the two filters which
 # allows for the direct investigation of how and when the two methods differ.
 #
@@ -918,7 +918,7 @@ plt.show()
 #
 # #### Truths - Tracks (Random)(BROWN): Quadratic distance between the truths and the
 # Gaussian tracks from the randomly managed filter
-# The second largest penalty is awarded to the tracks fo the randomly managed filter.
+# The second largest penalty is awarded to the tracks of the randomly managed filter.
 # This is slightly smaller than the means of the randomly managed filter's intensity due
 # to the inclusion of uncertainty in local state estimates.
 #
@@ -940,7 +940,7 @@ plt.show()
 # error induced by the sensor configurations. The reward function in the optimal sensor
 # management approach seeks to minimise the expected MQE and subsequently the quadratic
 # distance. However, due to the numerical approximation of the reward function, this may
-# not always be successfully acheived.
+# not always be successfully achieved.
 #
 # By selecting a kernel with larger kernel covariance magnitude, the
 # metric will show more varied behaviour. If the covariance magnitude of
@@ -957,7 +957,7 @@ plt.show()
 # implementations for different kernels and different filter
 # parameterisations. If one wishes to do this, please copy and paste the
 # current implementation for the Gaussian kernel or GM-PHD filter and
-# alter it accordingly to accomodate the desired kernel and filter.
+# alter it accordingly to accommodate the desired kernel and filter.
 
 # ### References
 # [1] Daniel E. Clark, Idyano Leroy, Peter R. Richards, Sean M. O Rourke, Quadratic error

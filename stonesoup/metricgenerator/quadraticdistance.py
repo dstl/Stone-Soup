@@ -400,7 +400,7 @@ class QuadraticDistance(MetricGenerator):
         Batch evaluates weighted gaussian densities of the form
         $\\omega_i\\omega_j\\mathcal{N}(m_i; m_j, R + P_i + P_j), i = \\{1, \\dots, N\\}, ,
         j = \\{1, \\dots, M\\}$
-        where using the keyword arguements the following parameters may be given:
+        where using the keyword arguments the following parameters may be given:
 
         Parameters
         ----------
