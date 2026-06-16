@@ -810,7 +810,7 @@ class MeanQuadraticError(QuadraticDistance):
         else:
             raise NotImplementedError(
                 f'The Mean Quadratic Error for the'
-                f'{self.filter_data['filter model']} filter is not implemented.')
+                f'{self.filter_data["filter model"]} filter is not implemented.')
 
         return SingleTimeMetric(title='MQE', value=distance,
                                 timestamp=timestamps.pop(), generator=self)

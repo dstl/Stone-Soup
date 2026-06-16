@@ -500,7 +500,7 @@ class QuadraticInformationGain(RewardFunction, QuadraticDistance):
         if self.filter_data['filter model'] != 'GMPHD':
             raise NotImplementedError(
                 f'The Quadratic Information Gain for the'
-                f'{self.filter_data['filter model']} filter is not implemented.')
+                f'{self.filter_data["filter model"]} filter is not implemented.')
 
     def __call__(self, config: Mapping[Sensor, Sequence[Action]], tracks: set[Track],
                  metric_time: datetime.datetime, *args, **kwargs):
