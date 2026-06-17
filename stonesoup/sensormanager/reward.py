@@ -26,7 +26,7 @@ from ..updater.particle import ParticleUpdater
 from ..resampler.particle import SystematicResampler
 from ..types.groundtruth import GroundTruthState
 from ..dataassociator.base import DataAssociator
-from .shape import AreaOfInterest
+from ..types.shape import AreaOfInterest
 
 
 class RewardFunction(Base, ABC):

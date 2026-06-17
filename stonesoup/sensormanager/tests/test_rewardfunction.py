@@ -1,7 +1,7 @@
 import pytest
 import numpy as np
 
-from ..shape import AreaOfInterest
+from ...types.shape import AreaOfInterest
 from ..reward import (RewardFunction, AdditiveRewardFunction,
                       MultiplicativeRewardFunction, AOIAccess2DRewardFunction)
 

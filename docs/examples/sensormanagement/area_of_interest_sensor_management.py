@@ -129,7 +129,7 @@ updater = ExtendedKalmanUpdater(measurement_model=None)
 # Area 2 is defined as being between x = 0 and x = 1500, with an interest level of 7.
 # Area 3 is defined as being everything to the right of x = 1500, with an interest level of 10.
 
-from stonesoup.sensormanager.shape import AreaOfInterest
+from stonesoup.types.shape import AreaOfInterest
 
 area1 = AreaOfInterest(xmax=0, interest=4)
 area2 = AreaOfInterest(xmin=0, xmax=1500, interest=7)

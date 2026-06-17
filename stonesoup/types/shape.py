@@ -1,6 +1,6 @@
 import numpy as np
 
-from stonesoup.base import Base, Property
+from ..base import Base, Property
 
 
 class Area(Base):
