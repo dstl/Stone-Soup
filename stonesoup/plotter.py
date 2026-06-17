@@ -3609,13 +3609,32 @@ class AnimatedPolarPlotterly(PolarPlotterly):
                 frame.traces = traces_
 
 
-def plot_sensor_fov(fig_, sensor_set, sensor_history, color='blue', alpha=0.2, label="Sensor FOV"):
+def plot_sensor_fov(fig_, sensor_set, sensor_history, colour='blue', alpha=0.2,
+                    label="Sensor FOV"):
+    """
+    Plots the field of view of sensors on a given figure. Used in AnimatedPlotterly to plot sensor
+    FOVs.
+
+    Parameters
+    ----------
+    fig_: plotly figure object
+    sensor_set: Collection of :class:`~.Sensor`
+        Set of sensors
+    sensor_history: dict
+        Dictionary mapping timestamps to sensor states
+    colour: str
+        Colour of the sensor FOV
+    alpha: float
+        Indicating the transparency of the sensor FOV
+    label: string
+        Label for the sensor FOV
+    """
     trace_base = len(fig_.data)
     for _ in sensor_set:
         fig_.add_trace(go.Scatter(
             mode='lines', line=go.scatter.Line(color='black')))
         fig_.add_trace(go.Scatter(
-            mode='markers', marker=dict(color=color, size=6),
+            mode='markers', marker=dict(color=colour, size=6),
             showlegend=False, hoverinfo='skip'))
 
     for frame in fig_.frames:
@@ -3623,7 +3642,7 @@ def plot_sensor_fov(fig_, sensor_set, sensor_history, color='blue', alpha=0.2, l
         data_ = list(frame.data)
 
         timestring = frame.name
-        timestamp = datetime.strptime(timestring, "%Y-%m-%d %H:%M:%S")
+        timestamp = datetime.fromisoformat(timestring)
 
         for n_, sensor_ in enumerate(sensor_set):
             if timestamp in sensor_history:
@@ -3639,13 +3658,13 @@ def plot_sensor_fov(fig_, sensor_set, sensor_history, color='blue', alpha=0.2, l
             else:
                 continue
 
-            data_.append(go.Scatter(x=arc_x, y=arc_y, fill='toself', fillcolor=color,
-                                    line=dict(color=color), opacity=alpha, name=label,
+            data_.append(go.Scatter(x=arc_x, y=arc_y, fill='toself', fillcolor=colour,
+                                    line=dict(color=colour), opacity=alpha, name=label,
                                     mode='lines'))
             traces_.append(trace_base + 2 * n_)
 
             data_.append(go.Scatter(x=[sensor_.position[0]], y=[sensor_.position[1]],
-                                    mode='markers', marker=dict(color=color, size=6),
+                                    mode='markers', marker=dict(color=colour, size=6),
                                     showlegend=False, hoverinfo='skip'))
             traces_.append(trace_base + 2 * n_ + 1)
 
