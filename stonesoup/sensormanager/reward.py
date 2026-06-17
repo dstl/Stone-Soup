@@ -470,6 +470,9 @@ class FOVInteractionRewardFunction(RewardFunction):
         doc="The mapping of target coordinates. Used to calculate the distance between the"
             "sensor and target in the reward function.")
     fov_scale: float = Property(default=1.0, doc="")
+    track_weight: float = Property(
+        default=2.0,
+        doc="The weight of the reward for keeping the target in the sensor's FOV.")
 
     def __call__(self,  config: Mapping[Sensor, Sequence[Action]], tracks: set[Track],
                  metric_time: datetime, *args, **kwargs) -> float:
@@ -519,8 +522,7 @@ class FOVInteractionRewardFunction(RewardFunction):
             target_pos = target
 
             distance = measure(sensor_pos, target_pos)
-            # Reward for keeping the target in the sensor's FOV
-            tracking_reward = (2 * no_tracks
+            tracking_reward = (self.track_weight * no_tracks
                                if distance <= self.sensor_fov_radius * self.fov_scale
                                else -no_tracks)
             # Penalty for entering the target's FOV
