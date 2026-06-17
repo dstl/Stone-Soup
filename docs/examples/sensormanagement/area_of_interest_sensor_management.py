@@ -123,11 +123,16 @@ updater = ExtendedKalmanUpdater(measurement_model=None)
 # Different areas of interest can be defined by setting minimum/maximum values for x
 # and y using the :class:`~.AreaOfInterest`. Here we have 3 areas of different
 # levels of interest.
+#
+# Area 1 is defined as being everything to the left of the origin (x = 0),
+# with an interest level of 4.
+# Area 2 is defined as being between x = 0 and x = 1500, with an interest level of 7.
+# Area 3 is defined as being everything to the right of x = 1500, with an interest level of 10.
 
 from stonesoup.sensormanager.shape import AreaOfInterest
 
 area1 = AreaOfInterest(xmax=0, interest=4)
-area2 = AreaOfInterest(xmin=0, interest=7)
+area2 = AreaOfInterest(xmin=0, xmax=1500, interest=7)
 area3 = AreaOfInterest(xmin=1500, interest=10)
 
 # %%
