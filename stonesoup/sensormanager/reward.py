@@ -5,27 +5,26 @@ from collections.abc import Mapping, Sequence
 
 import numpy as np
 
-from ..measures import KLDivergence
-from ..platform import Platform
-from ..sensormanager.action import Actionable
-from ..types.detection import TrueDetection
 from ..base import Base, Property
-from ..predictor.base import Predictor
-from ..predictor.particle import ParticlePredictor
+from ..dataassociator import DataAssociator
+from ..measures import Euclidean, KLDivergence
+from ..platform import Platform
+from ..predictor import Predictor
 from ..predictor.kalman import KalmanPredictor
-from ..updater.kalman import ExtendedKalmanUpdater
-from ..types.track import Track
-from ..types.hypothesis import SingleHypothesis
-from ..sensor.sensor import Sensor
-from ..sensormanager.action import Action
-from ..types.prediction import Prediction
-from ..updater.base import Updater
-from ..updater.particle import ParticleUpdater
+from ..predictor.particle import ParticlePredictor
 from ..resampler.particle import SystematicResampler
+from ..sensor.sensor import Sensor
+from ..sensormanager.action import Action, Actionable
+from ..types.detection import TrueDetection
 from ..types.groundtruth import GroundTruthState
-from ..dataassociator.base import DataAssociator
-from ..measures.state import Euclidean
+from ..types.hypothesis import SingleHypothesis
+from ..types.prediction import Prediction
+from ..types.shape import AreaOfInterest
 from ..types.state import State
+from ..types.track import Track
+from ..updater import Updater
+from ..updater.kalman import ExtendedKalmanUpdater
+from ..updater.particle import ParticleUpdater
 
 
 class RewardFunction(Base, ABC):
@@ -531,3 +530,63 @@ class FOVInteractionRewardFunction(RewardFunction):
             total_reward += tracking_reward + lack_of_stealth_penalty
 
         return total_reward
+
+
+class AOIRewardFunction2D(RewardFunction):
+    """
+    A reward function which enables the use of different reward functions,
+    depending on the :class:`~.AreaOfInterest` the target is located in.
+
+    This function takes thresholds for how interested the sensor manager is in a particular area
+    (e.g. how important is achieving good tracking performance),
+    and how accessible an area is (e.g. how much risk is there for a sensor operating in that
+    area),
+    with mappings to a particular reward function to use when that
+    threshold is met.
+
+    The :class:`~.AdditiveRewardFunction` is used to combine the interest
+    and access reward functions if both thresholds are met. If no thresholds are met,
+    the default reward function is used.
+    """
+    interest_thresholds: Mapping[int, RewardFunction] = Property(default=None,
+                                                                 doc="Mapping of interest "
+                                                                 "thresholds to reward functions")
+    access_thresholds: Mapping[int, RewardFunction] = Property(default=None,
+                                                               doc="Mapping of access "
+                                                               "thresholds to reward functions")
+    default_reward: RewardFunction = Property(doc="Default reward function")
+    areas: Sequence[AreaOfInterest] = Property(doc="List of areas")
+    target_mapping: tuple[int, int] = Property(doc="Position mapping for the target")
+
+    def __call__(self, config: Mapping[Sensor, Sequence[Action]], tracks: set[Track],
+                 metric_time: datetime, *args, **kwargs):
+
+        reward_func = self.default_reward
+        for track in tracks:
+            track_x = track.state_vector[self.target_mapping[0]]
+            track_y = track.state_vector[self.target_mapping[1]]
+
+            for area in self.areas:
+                if area.xmin < track_x < area.xmax and area.ymin < track_y < area.ymax:
+                    interest_reward = None
+                    if self.interest_thresholds is not None:
+                        for threshold, reward in self.interest_thresholds.items():
+                            if threshold <= area.interest:
+                                interest_reward = reward
+
+                    access_reward = None
+                    if self.access_thresholds is not None:
+                        for threshold, reward in self.access_thresholds.items():
+                            if threshold <= area.access:
+                                access_reward = reward
+
+                    if interest_reward and access_reward:
+                        reward_func = AdditiveRewardFunction([interest_reward, access_reward])
+                    elif interest_reward:
+                        reward_func = interest_reward
+                    elif access_reward:
+                        reward_func = access_reward
+                    else:
+                        reward_func = self.default_reward
+
+        return reward_func(config, tracks, metric_time, *args, **kwargs)
