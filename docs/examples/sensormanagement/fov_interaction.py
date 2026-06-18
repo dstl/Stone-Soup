@@ -216,7 +216,7 @@ sensor_set = {sensor}
 
 plot_sensor_fov(plotter.fig, sensor_set, sensor_history)
 plot_sensor_fov(plotter.fig, target_sensor_set, target_sensor_history, label="Target FOV",
-                color="red")
+                colour="red")
 plotter.fig
 
 # %%
