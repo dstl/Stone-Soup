@@ -523,6 +523,21 @@ class FOVInteractionRewardFunction(RewardFunction):
 
 
 class AOIAccess2DRewardFunction(RewardFunction):
+    """
+    A reward function which enables the use of different reward functions,
+    depending on the :class:`~.AreaOfInterest` the target is located in.
+
+    This function takes thresholds for how interested the sensor manager is in a particular area
+    (e.g. how important is achieving good tracking performance),
+    and how accessible an area is (e.g. how much risk is there for a sensor operating in that 
+    area),
+    with mappings to a particular reward function to use when that
+    threshold is met.
+
+    The :class:`~.AdditiveRewardFunction` is used to combine the interest
+    and access reward functions if both thresholds are met. If no thresholds are met,
+    the default reward function is used.
+    """
     interest_thresholds: Mapping[int, RewardFunction] = Property(default=None,
                                                                  doc="Mapping of interest "
                                                                  "thresholds to reward functions")
@@ -531,7 +546,7 @@ class AOIAccess2DRewardFunction(RewardFunction):
                                                                "thresholds to reward functions")
     default_reward: RewardFunction = Property(doc="Default reward function")
     areas: Sequence[AreaOfInterest] = Property(doc="List of areas")
-    target_mapping: Sequence = Property(doc="Position mapping for the target")
+    target_mapping: tuple[int, int] = Property(doc="Position mapping for the target")
 
     def __call__(self, config: Mapping[Sensor, Sequence[Action]], tracks: set[Track],
                  metric_time: datetime, *args, **kwargs):
