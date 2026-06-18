@@ -23,8 +23,8 @@ class AreaOfInterest(Area):
     Defines an area of interest in 2D space, with an associated interest level and access level.
     """
     interest: int = Property(default=1,
-                             doc="Interest level of the area."
+                             doc="Interest level of the area. "
                                  "0: Low interest, 10: high interest.")
     access: int = Property(default=1,
-                           doc="Access level of the area."
+                           doc="Access level of the area. "
                                "0: full access, 10: high threat/no go area.")
