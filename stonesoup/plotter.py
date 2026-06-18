@@ -3624,11 +3624,7 @@ def plot_sensor_fov(fig_, sensor_set, sensor_history, color='blue', alpha=0.2, l
         timestamp = datetime.strptime(timestring, "%Y-%m-%d %H:%M:%S")
 
         for n_, sensor_ in enumerate(sensor_set):
-            # x = [0, 0]
-            # y = [0, 0]
-            # print(type(sensor_))
             if timestamp in sensor_history:
-                # print("A")
                 sensor_ = sensor_history[timestamp][sensor_]
                 theta = sensor_.dwell_centre.flatten()[0]
                 angles = np.linspace(theta - sensor_.fov_angle/2, theta + sensor_.fov_angle/2, 100)
@@ -3639,7 +3635,6 @@ def plot_sensor_fov(fig_, sensor_set, sensor_history, color='blue', alpha=0.2, l
                                                       sensor_.max_range * np.sin(angles)) +
                          [sensor_.position[1]])
             else:
-                # print("B")
                 continue
 
             data_.append(go.Scatter(x=arc_x, y=arc_y, fill='toself', fillcolor=color,
