@@ -109,6 +109,12 @@ OrbitalState Types
 .. automodule:: stonesoup.types.orbitalstate
     :show-inheritance:
 
+Shape Types
+-----------
+
+.. automodule:: stonesoup.types.shape
+    :show-inheritance:
+
 Time Types
 ----------------
 
