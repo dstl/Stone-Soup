@@ -198,7 +198,6 @@ for timestep in timesteps[1:]:
 #
 
 
-from stonesoup.plotter import plot_sensor_fov
 from stonesoup.platform.base import PathBasedPlatform
 
 plotter = AnimatedPlotterly(timesteps, tail_length=0.3)
@@ -214,9 +213,8 @@ for timestep in timesteps[1:]:
 target_sensor_set = {target_sensor}
 sensor_set = {sensor}
 
-plot_sensor_fov(plotter.fig, sensor_set, sensor_history)
-plot_sensor_fov(plotter.fig, target_sensor_set, target_sensor_history, label="Target FOV",
-                colour="red")
+plotter.plot_sensor_fov(sensor_set, sensor_history)
+plotter.plot_sensor_fov(target_sensor_set, target_sensor_history, label="Target FOV", colour="red")
 plotter.fig
 
 # %%
