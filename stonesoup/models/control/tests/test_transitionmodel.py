@@ -41,10 +41,6 @@ from ...transition.linear import (ConstantAcceleration,
 def test_transition_based_control_model(transition_model, mapping, control_model_output):
 
     control_model = TransitionBasedLinearControlModel(
-        control_matrix=np.array([[1., 0],
-                                 [1., 0],
-                                 [0, 1.],
-                                 [0, 1.]]),
         control_noise=np.diag([0.005, 0.005]),
         transition_model=transition_model,
         mapping=mapping
@@ -58,9 +54,6 @@ def test_transition_based_control_model(transition_model, mapping, control_model
 
 def test_transition_based_control_model_output_in_state_vector():
     control_model = TransitionBasedLinearControlModel(
-        control_matrix=np.array([[1., 0, 0],
-                                 [0, 1., 0],
-                                 [0, 0, 1.]]),
         control_noise=np.diag([0.005, 0.005, 0.005]),
         transition_model=ConstantAcceleration(1),
         mapping=[2],

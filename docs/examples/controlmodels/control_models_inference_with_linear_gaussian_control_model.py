@@ -97,16 +97,20 @@ np.random.seed(1991)
 # For example:
 
 
-from stonesoup.models.control.linear import LinearControlModel
+from stonesoup.models.control.linear import BaseLinearControlModel
 
 
-class ConstantAccelerationLinearControlModel(LinearControlModel):
+class ConstantAccelerationLinearControlModel(BaseLinearControlModel):
     """A model that applies a constant acceleration over a specified time period.
     This is just a :class:`~.LinearControlModel` which accepts a time_interval input
     to matrix to compute the control matrix.
 
     A location and velocity state vector with location and velocity interleaved is assumed.
     """
+
+    @property
+    def ndim_ctrl(self):
+        return 2
 
     def matrix(self, time_interval, **kwargs) -> np.ndarray:
         r"""
@@ -132,9 +136,7 @@ class ConstantAccelerationLinearControlModel(LinearControlModel):
         for i in range(0, self.ndim):
             control_matrix[2*i:2*i+2, i:i+1] = onedm
 
-        self.control_matrix = control_matrix
-
-        return self.control_matrix
+        return control_matrix
 
 # %%
 # For the family of constant Nth derivative transition models (constant velocity, acceleration,
@@ -152,7 +154,6 @@ transition_model = CombinedLinearGaussianTransitionModel([ConstantVelocity(0.000
 transition_model_cm = CombinedLinearGaussianTransitionModel([ConstantAcceleration(0.0005),
                                                              ConstantAcceleration(0.0005)])
 control_model = TransitionBasedLinearControlModel(
-    np.array([[1., 0], [1., 0], [0, 1.], [0, 1.]]),
     control_noise=np.diag([0.005, 0.005]),
     transition_model=transition_model_cm,
     mapping=[2, 5])
