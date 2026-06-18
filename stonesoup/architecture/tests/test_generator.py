@@ -229,9 +229,6 @@ def test_net_generate_decentralised(generator_params):
         # Check node types
         assert len(arch.fusion_nodes) == sum([1, 1])
         assert len(arch.sensor_nodes) == sum([3, 1])
-        for edge in arch.edges:
-            print((edge.nodes[0].label, edge.nodes[1].label))
-        print(len(arch.repeater_nodes))
         assert len(arch.edges) == 2 * len(arch.repeater_nodes)
 
         for node in arch.fusion_nodes:

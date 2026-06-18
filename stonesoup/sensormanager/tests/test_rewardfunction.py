@@ -1,7 +1,15 @@
+from datetime import datetime
+
 import pytest
 import numpy as np
 
-from ..reward import RewardFunction, AdditiveRewardFunction, MultiplicativeRewardFunction
+from ...base import Property
+from ..reward import (RewardFunction, AdditiveRewardFunction, MultiplicativeRewardFunction,
+                      FOVInteractionRewardFunction, AOIRewardFunction2D)
+from ...sensor.sensor import Sensor
+from ...types.state import State
+from ...types.track import Track
+from ...types.shape import AreaOfInterest
 
 
 class DummyRewardFunction(RewardFunction):
@@ -10,6 +18,36 @@ class DummyRewardFunction(RewardFunction):
 
     def __call__(self, config, tracks, metric_time, *args, **kwargs):
         return self.score
+
+
+class DummyUpdater:
+    pass
+
+
+class DummySensor(Sensor):
+    position: State = Property()
+
+    def add_actions(self, actions):
+        pass
+
+    def act(self, metric_time, noise=False):
+        pass
+
+    def measure(self, ground_truths, noise, **kwargs):
+        pass
+
+    def measurement_model(self):
+        pass
+
+
+class DummyAction:
+    pass
+
+
+class DummyPredictor:
+    def predict(self, track, timestamp=None):
+        # Just return a dummy state (as a list or object)
+        return State([10, 0, 10, 0])
 
 
 @pytest.mark.parametrize(
@@ -98,3 +136,105 @@ def test_unequal_additive():
         weights=[1, 2, 3])
     with pytest.raises(IndexError):
         additive(config=None, tracks=None, metric_time=None)
+
+
+@pytest.fixture
+def fov_reward():
+    return FOVInteractionRewardFunction(
+        predictor=DummyPredictor(),
+        updater=DummyUpdater(),
+        sensor_fov_radius=20.0,
+        target_fov_radius=10.0,
+        sensor_mapping=[0, 2],
+        target_mapping=[0, 2])
+
+
+@pytest.mark.parametrize(
+        "sensor_state, track_state, expected_reward",
+        [
+            (
+                State([10, 0, 10, 0]),
+                State([10, 0, 10, 0]),
+                1.0
+            ),
+            (
+                State([100, 0, 100, 0]),
+                State([0, 0, 0, 0]),
+                -1.0
+            ),
+            (
+                State([9, 0, 9, 0]),
+                State([10, 0, 10, 0]),
+                1.0
+            ),
+            (
+                State([0, 0, 0, 0]),
+                State([15, 0, 0, 0]),
+                2.0
+            )
+        ]
+)
+def test_fov_interaction_reward(fov_reward, sensor_state, track_state, expected_reward):
+    sensor = DummySensor(sensor_state)
+    config = {sensor: [DummyAction()]}
+    tracks = {Track(track_state)}
+    metric_time = datetime.now()
+    reward = fov_reward(config, tracks, metric_time)
+    assert reward == expected_reward
+
+
+class DummyTrack:
+    def __init__(self, state_vector):
+        self.state_vector = state_vector
+
+
+@pytest.mark.parametrize(
+    "area_kwargs, interest_thresholds, access_thresholds, default_score, expected_score",
+    [
+        (
+            {"xmin": 0.0, "xmax": 10.0, "ymin": 0.0, "ymax": 10.0,
+             "interest": 5, "access": 4},
+            {1: DummyRewardFunction(score=10)},
+            {1: DummyRewardFunction(score=20)},
+            1,
+            30,
+        ),
+        (
+            {"xmin": 0.0, "xmax": 10.0, "ymin": 0.0, "ymax": 10.0,
+             "interest": 5, "access": 0},
+            {1: DummyRewardFunction(score=7)},
+            None,
+            1,
+            7,
+        ),
+        (
+            {"xmin": 0.0, "xmax": 10.0, "ymin": 0.0, "ymax": 10.0,
+             "interest": 0, "access": 5},
+            None,
+            {1: DummyRewardFunction(score=11)},
+            1,
+            11,
+        ),
+        (
+            {"xmin": 0.0, "xmax": 10.0, "ymin": 0.0, "ymax": 10.0,
+             "interest": 0, "access": 0},
+            {1: DummyRewardFunction(score=7)},
+            {1: DummyRewardFunction(score=11)},
+            2,
+            2,
+        ),
+    ],
+)
+def test_aoi_reward2d_threshold_matching(area_kwargs, interest_thresholds,
+                                         access_thresholds, default_score,
+                                         expected_score):
+    area = AreaOfInterest(**area_kwargs)
+    aoi_reward = AOIRewardFunction2D(
+        interest_thresholds=interest_thresholds,
+        access_thresholds=access_thresholds,
+        default_reward=DummyRewardFunction(score=default_score),
+        areas=[area],
+        target_mapping=(0, 1),
+    )
+
+    assert aoi_reward(config=None, tracks={DummyTrack([5.0, 5.0])}, metric_time=None) == expected_score  # noqa: E501

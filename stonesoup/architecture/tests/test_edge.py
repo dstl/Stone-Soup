@@ -14,7 +14,7 @@ def test_data_piece(nodes, times):
         _ = DataPiece()
 
     data_piece = DataPiece(node=nodes['a'], originator=nodes['a'],
-                           data=Track([]), time_arrived=times['a'])
+                           data={Track([])}, time_arrived=times['a'])
     assert data_piece.sent_to == set()
     assert data_piece.track is None
 
@@ -77,7 +77,7 @@ def test_update_messages():
 
     time_created = datetime.datetime.now()
     time_sent = time_created
-    data = DataPiece(A, A, Track([]), time_created)
+    data = DataPiece(A, A, {Track([])}, time_created)
 
     # Add message to edge
     edge.send_message(data, time_created, time_sent)
@@ -187,24 +187,24 @@ def test_message_destinations(times, radar_nodes):
 
     # Create a message without defining a destination
     message1 = Message(edge1, datetime.datetime(2016, 1, 2, 3, 4, 5), start_time,
-                       DataPiece(node1, node1, Track([]),
+                       DataPiece(node1, node1, {Track([])},
                                  datetime.datetime(2016, 1, 2, 3, 4, 5)))
 
     # Create a message with node 2 as a destination
     message2 = Message(edge1, datetime.datetime(2016, 1, 2, 3, 4, 5), start_time,
-                       DataPiece(node1, node1, Track([]),
+                       DataPiece(node1, node1, {Track([])},
                                  datetime.datetime(2016, 1, 2, 3, 4, 5)),
                        destinations={node2})
 
     # Create a message with as a defined destination that isn't node 2
     message3 = Message(edge1, datetime.datetime(2016, 1, 2, 3, 4, 5), start_time,
-                       DataPiece(node1, node1, Track([]),
+                       DataPiece(node1, node1, {Track([])},
                                  datetime.datetime(2016, 1, 2, 3, 4, 5)),
                        destinations={node3})
 
     # Create message that has node2 and node3 as a destination
     message4 = Message(edge1, datetime.datetime(2016, 1, 2, 3, 4, 5), start_time,
-                       DataPiece(node1, node1, Track([]),
+                       DataPiece(node1, node1, {Track([])},
                                  datetime.datetime(2016, 1, 2, 3, 4, 5)),
                        destinations={node2, node3})
 

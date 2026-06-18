@@ -133,7 +133,7 @@ class Edge(Base):
         # Message not opened by repeater node, remove node from 'sent_to'
         message_copy.data_piece.sent_to.add(self)
 
-    def update_messages(self, current_time, to_network_node=False, use_arrival_time=False):
+    def update_messages(self, current_time, to_network_node=False):
         """
         Updates the category of messages stored in edge.messages_held if latency time has passed.
         Adds messages that have 'arrived' at recipient to the relevant holding area of the node.
@@ -144,8 +144,6 @@ class Edge(Base):
             Current time in simulation.
         to_network_node : bool, optional
             True if recipient node is not in the information architecture (default is False).
-        use_arrival_time : bool, optional
-            True if arriving data should use arrival time as its timestamp (default is False).
         """
         # Check info type is what we expect
         to_remove = set()  # Needed as we can't change size of a set during iteration
@@ -168,15 +166,13 @@ class Edge(Base):
                         # Add data to recipient's data_held
                         self.recipient.update(message.time_pertaining,
                                               message.arrival_time,
-                                              message.data_piece, "unfused",
-                                              use_arrival_time=use_arrival_time)
+                                              message.data_piece, "unfused")
 
                     elif not to_network_node and self.recipient in message.destinations:
                         # Add data to recipient's data held, and message to messages_to_pass_on
                         self.recipient.update(message.time_pertaining,
                                               message.arrival_time,
-                                              message.data_piece, "unfused",
-                                              use_arrival_time=use_arrival_time)
+                                              message.data_piece, "unfused")
                         message.destinations = None
                         self.recipient.messages_to_pass_on.append(message)
 
@@ -230,7 +226,7 @@ class Edge(Base):
         """Data modified by the sender that has not been sent to the
         recipient."""
         unsent = []
-        if isinstance(type(self.sender.data_held), type(None)) or self.sender.data_held is None:
+        if self.sender.data_held is None:
             return unsent
         else:
             for status in ["fused", "created"]:

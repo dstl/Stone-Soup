@@ -80,9 +80,9 @@ def nodes():
 @pytest.fixture
 def data_pieces(times, nodes):
     data_piece_a = DataPiece(node=nodes['a'], originator=nodes['a'],
-                             data=Track([]), time_arrived=times['a'])
+                             data={Track([])}, time_arrived=times['a'])
     data_piece_b = DataPiece(node=nodes['a'], originator=nodes['b'],
-                             data=Track([]), time_arrived=times['b'])
+                             data={Track([])}, time_arrived=times['b'])
     data_piece_fail = DataPiece(node=nodes['a'], originator=nodes['b'],
                                 data="Not a compatible data type", time_arrived=times['b'])
     data_piece_hyp = DataPiece(node=nodes['a'], originator=nodes['b'],
