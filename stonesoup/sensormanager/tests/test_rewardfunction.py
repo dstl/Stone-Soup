@@ -3,7 +3,7 @@ import numpy as np
 
 from ...types.shape import AreaOfInterest
 from ..reward import (RewardFunction, AdditiveRewardFunction,
-                      MultiplicativeRewardFunction, AOIAccess2DRewardFunction)
+                      MultiplicativeRewardFunction, AOIRewardFunction2D)
 
 
 class DummyRewardFunction(RewardFunction):
@@ -144,11 +144,11 @@ class DummyTrack:
         ),
     ],
 )
-def test_aoi_access2d_threshold_matching(area_kwargs, interest_thresholds,
+def test_aoi_reward2d_threshold_matching(area_kwargs, interest_thresholds,
                                          access_thresholds, default_score,
                                          expected_score):
     area = AreaOfInterest(**area_kwargs)
-    aoi_reward = AOIAccess2DRewardFunction(
+    aoi_reward = AOIRewardFunction2D(
         interest_thresholds=interest_thresholds,
         access_thresholds=access_thresholds,
         default_reward=DummyRewardFunction(score=default_score),

@@ -156,7 +156,7 @@ area3 = AreaOfInterest(xmin=1500, interest=10)
 
 from stonesoup.sensormanager.reward import (
     UncertaintyRewardFunction, MultiplicativeRewardFunction, FOVInteractionRewardFunction,
-    AOIAccess2DRewardFunction)
+    AOIRewardFunction2D)
 
 from stonesoup.sensormanager.base import BruteForceSensorManager
 
@@ -176,7 +176,7 @@ reward_func_AB = MultiplicativeRewardFunction([reward_func_A, reward_func_B])
 reward_func_AC = MultiplicativeRewardFunction([reward_func_A, reward_func_C])
 
 
-reward_func_aoi = AOIAccess2DRewardFunction(default_reward=reward_func_AC,
+reward_func_aoi = AOIRewardFunction2D(default_reward=reward_func_AC,
                                             interest_thresholds={3: reward_func_AB,
                                                                  5: reward_func_AC,
                                                                  9: reward_func_A},

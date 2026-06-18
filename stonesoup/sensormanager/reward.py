@@ -522,7 +522,7 @@ class FOVInteractionRewardFunction(RewardFunction):
         return total_reward
 
 
-class AOIAccess2DRewardFunction(RewardFunction):
+class AOIRewardFunction2D(RewardFunction):
     """
     A reward function which enables the use of different reward functions,
     depending on the :class:`~.AreaOfInterest` the target is located in.
