@@ -3340,6 +3340,72 @@ class AnimatedPlotterly(_Plotter):
         # we have called a plotting function so update flag (used in _resize)
         self.plotting_function_called = True
 
+    def plot_sensor_fov(self, sensor_set, sensor_history, colour='blue', alpha=0.2,
+                        label="Sensor FOV"):
+        """
+        Plots the field of view of sensors.
+
+        Parameters
+        ----------
+        fig_: plotly figure object
+        sensor_set: Collection of :class:`~.Sensor`
+            Set of sensors
+        sensor_history: dict
+            Dictionary mapping timestamps to sensor states
+        colour: str
+            Colour of the sensor FOV
+        alpha: float
+            Indicating the transparency of the sensor FOV
+        label: string
+            Label for the sensor FOV
+        """
+        trace_base = len(self.fig.data)
+        for _ in sensor_set:
+            self.fig.add_trace(go.Scatter(
+                mode='lines', line=go.scatter.Line(color='black')))
+            self.fig.add_trace(go.Scatter(
+                mode='markers', marker=dict(color=colour, size=6),
+                showlegend=False, hoverinfo='skip'))
+
+        for frame in self.fig.frames:
+            traces_ = list(frame.traces)
+            data_ = list(frame.data)
+
+            timestring = frame.name
+            timestamp = datetime.fromisoformat(timestring)
+
+            for n_, sensor_ in enumerate(sensor_set):
+                if timestamp in sensor_history:
+                    sensor_ = sensor_history[timestamp][sensor_]
+                    theta = sensor_.dwell_centre.flatten()[0]
+                    angles = np.linspace(
+                        theta - sensor_.fov_angle/2, theta + sensor_.fov_angle/2, 100)
+                    arc_x = [
+                        sensor_.position[0],
+                        *(sensor_.position[0] + sensor_.max_range*np.cos(angles)),
+                        sensor_.position[0]
+                        ]
+                    arc_y = [
+                        sensor_.position[1],
+                        *(sensor_.position[1] + sensor_.max_range*np.sin(angles)),
+                        sensor_.position[1]
+                        ]
+                else:
+                    continue
+
+                data_.append(go.Scatter(x=arc_x, y=arc_y, fill='toself', fillcolor=colour,
+                                        line=dict(color=colour), opacity=alpha, name=label,
+                                        mode='lines'))
+                traces_.append(trace_base + 2 * n_)
+
+                data_.append(go.Scatter(x=[sensor_.position[0]], y=[sensor_.position[1]],
+                                        mode='markers', marker=dict(color=colour, size=6),
+                                        showlegend=False, hoverinfo='skip'))
+                traces_.append(trace_base + 2 * n_ + 1)
+
+            frame.traces = traces_
+            frame.data = data_
+
     def plot_obstacles(self, obstacles, label="Obstacles", resize=True,
                        **kwargs):
         """Plots obstacle(s)
