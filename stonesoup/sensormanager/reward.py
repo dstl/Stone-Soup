@@ -529,7 +529,7 @@ class AOIRewardFunction2D(RewardFunction):
 
     This function takes thresholds for how interested the sensor manager is in a particular area
     (e.g. how important is achieving good tracking performance),
-    and how accessible an area is (e.g. how much risk is there for a sensor operating in that 
+    and how accessible an area is (e.g. how much risk is there for a sensor operating in that
     area),
     with mappings to a particular reward function to use when that
     threshold is met.
