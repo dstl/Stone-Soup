@@ -237,19 +237,6 @@ def test_plot_density_equal_x_y():
         plotter.plot_density({truth}, index=None)
 
 
-def test_plot_complex_uncertainty():
-    plotter = Plotter()
-    track = Track([
-        GaussianState(
-            state_vector=[0, 0],
-            covar=[[10, -1], [1, 10]])
-    ])
-    with pytest.warns(UserWarning, match="Can not plot uncertainty for all states due to complex "
-                                         "eigenvalues or eigenvectors"):
-
-        plotter.plot_tracks(track, mapping=[0, 1], uncertainty=True)
-
-
 def test_animation_plotter():
     animation_plotter = AnimationPlotter()
     animation_plotter.plot_ground_truths(truth, [0, 2])

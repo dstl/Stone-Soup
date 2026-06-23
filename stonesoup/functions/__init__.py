@@ -1182,7 +1182,7 @@ def find_nearest_positive_definite(matrix, max_iterations=20):
     matrix = (matrix + matrix.T) / 2
 
     # set negative eigenvalues to zero for positive semi definitife matrix
-    eigval, eigvec = np.linalg.eig(matrix)
+    eigval, eigvec = np.linalg.eigh(matrix)
     eigval[eigval < 0] = 0
 
     # matrix reconstruction

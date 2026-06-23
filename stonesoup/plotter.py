@@ -479,11 +479,7 @@ class Plotter(_Plotter):
                         check += 1
                         if check % err_freq:
                             continue
-                        w, v = np.linalg.eig(HH @ state.covar @ HH.T)
-                        if np.iscomplexobj(w) or np.iscomplexobj(v):
-                            warnings.warn("Can not plot uncertainty for all states due to complex "
-                                          "eigenvalues or eigenvectors", UserWarning)
-                            continue
+                        w, v = np.linalg.eigh(HH @ state.covar @ HH.T)
                         max_ind = np.argmax(w)
                         min_ind = np.argmin(w)
                         orient = np.arctan2(v[1, max_ind], v[0, max_ind])
@@ -511,7 +507,7 @@ class Plotter(_Plotter):
                     check = err_freq
                     for state in track:
                         if not check % err_freq:
-                            w, v = np.linalg.eig(HH @ state.covar @ HH.T)
+                            w, v = np.linalg.eigh(HH @ state.covar @ HH.T)
 
                             xl = state.state_vector[mapping[0]]
                             yl = state.state_vector[mapping[1]]
@@ -1602,7 +1598,7 @@ class Plotterly(_Plotter):
     def _generate_ellipse_points(state, mapping, n_points=30):
         """Generate error ellipse points for given state and mapping"""
         HH = np.eye(state.ndim)[mapping, :]  # Get position mapping matrix
-        w, v = np.linalg.eig(HH @ state.covar @ HH.T)
+        w, v = np.linalg.eigh(HH @ state.covar @ HH.T)
         max_ind = np.argmax(w)
         min_ind = np.argmin(w)
         orient = np.arctan2(v[1, max_ind], v[0, max_ind])
