@@ -1,0 +1,4 @@
+jupyterlab
+folium
+plotly
+-e .
