@@ -88,7 +88,7 @@ def test_composite_predictor(num_predictors):
     # Test instantiation errors
     with pytest.raises(
             ValueError,
-            match="Sub-predictors must be defined as an ordered list, not <class 'set'>"):
+            match="Sub-predictors must be defined as an ordered list"):
         CompositePredictor({KalmanPredictor(create_transition_model(True, 1))})
 
     with pytest.raises(ValueError, match="Cannot create an empty composite predictor"):

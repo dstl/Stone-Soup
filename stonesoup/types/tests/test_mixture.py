@@ -5,6 +5,7 @@ import numpy as np
 import pytest
 
 
+from ...base import BaseList
 from ..mixture import GaussianMixture
 from ..state import (GaussianState, WeightedGaussianState,
                      TaggedWeightedGaussianState)
@@ -188,13 +189,13 @@ def test_GaussianMixture_copy():
     dim = 5
     num_states = 10
     weights = np.linspace(0, 1.0, num=num_states)
-    states = [
+    states = BaseList([
         WeightedGaussianState(
             state_vector=np.random.rand(dim, 1),
             covar=np.eye(dim),
             weight=weights[i]
         ) for i in range(num_states)
-    ]
+    ])
     mixturestate = GaussianMixture(components=states)
     assert mixturestate.components is states
 

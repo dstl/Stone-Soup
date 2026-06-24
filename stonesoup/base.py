@@ -53,6 +53,7 @@ This is equivalent to the following:
 
 
 """
+import contextvars
 import inspect
 import sys
 import textwrap
@@ -66,6 +67,8 @@ from typing import Any, get_args, get_origin
 
 if sys.version_info >= (3, 14):
     from annotationlib import Format, call_annotate_function, get_annotate_from_class_namespace
+
+_repr_depth = contextvars.ContextVar('_repr_depth', default=0)
 
 
 class Property:
@@ -240,20 +243,40 @@ def clearable_cached_property(*property_names: str):
 
 
 class BaseRepr(Repr):
+    max_base_depth = 3
+
     def __init__(self):
-        self.maxlevel = 10
-        self.maxtuple = 10
-        self.maxlist = 10
-        self.maxarray = 10
-        self.maxdict = 20
-        self.maxset = 10
-        self.maxfrozenset = 10
-        self.maxdeque = 10
+        self.maxlevel = 3
+        self.maxtuple = 4
+        self.maxlist = 4
+        self.maxarray = 6
+        self.maxdict = 6
+        self.maxset = 6
+        self.maxfrozenset = 6
+        self.maxdeque = 6
         self.maxstring = 500
         self.maxlong = 40
         self.maxother = 50000
         self.fillvalue = '...'
         self.indent = None
+        self._current_level = None
+        # max depth before collapsing a nested Base object
+
+    def repr(self, x):
+        token = _repr_depth.set(0)
+        try:
+            return super().repr(x)
+        finally:
+            _repr_depth.reset(token)
+
+    def repr1(self, x, level):
+        # Keep _repr_depth in sync with Repr's level counter
+        depth = self.maxlevel - level
+        token = _repr_depth.set(depth)
+        try:
+            return super().repr1(x, level)
+        finally:
+            _repr_depth.reset(token)
 
     def repr_list(self, obj, level):
         if len(obj) > self.maxlist:
@@ -265,13 +288,23 @@ class BaseRepr(Repr):
             return '[{}]'.format(',\n '.join(self.repr1(x, level - 1) for x in obj))
 
     def whitespace_remove(self, maxlen_whitespace, val):
-        """Remove excess whitespace, replacing with ellipses"""
-        large_whitespace = ' ' * (maxlen_whitespace+1)
-        fixed_whitespace = ' ' * maxlen_whitespace
-        while (excess := val.find(large_whitespace)) != -1:   # Find the excess whitespace, if any
-            line_end = ''.join(val[excess:].partition('\n')[1:])
-            val = ''.join([val[0:excess], fixed_whitespace, self.fillvalue, line_end])
-        return val
+        """Cap leading indentation, and truncate excessive inline whitespace with ellipses"""
+        lines = val.split('\n')
+        result = []
+        for line in lines:
+            stripped = line.lstrip(' ')
+            indent = len(line) - len(stripped)
+            if indent > maxlen_whitespace and len(stripped) > 0:
+                # Leading indent: cap silently
+                line = ' ' * maxlen_whitespace + stripped
+            # Now check for excessive inline whitespace within the line
+            large_whitespace = ' ' * (maxlen_whitespace + 1)
+            fixed_whitespace = ' ' * maxlen_whitespace
+            while (excess := line.find(large_whitespace)) != -1:
+                line_end = ''.join(line[excess:].partition('\n')[1:])
+                line = ''.join([line[0:excess], fixed_whitespace, self.fillvalue, line_end])
+            result.append(line)
+        return '\n'.join(result)
 
 
 class BaseMeta(ABCMeta):
@@ -484,19 +517,47 @@ class Base(metaclass=BaseMeta):
             raise TypeError(f'{cls.__name__} got an unexpected keyword argument '
                             f'{next(iter(kwargs))!r}')
 
+    def __setattr__(self, name, value):
+        if isinstance(value, list) and not isinstance(value, BaseList) \
+                and any(isinstance(item, Base) for item in value):
+            existing = self.__dict__.get(name)
+            if isinstance(existing, BaseList) and list.__eq__(existing, value):
+                return
+            value = BaseList(value)
+        elif isinstance(value, set) and not isinstance(value, BaseSet) \
+                and any(isinstance(item, Base) for item in value):
+            existing = self.__dict__.get(name)
+            if isinstance(existing, BaseSet) and set.__eq__(existing, value):
+                return
+            value = BaseSet(value)
+        elif isinstance(value, dict) and not isinstance(value, BaseDict) \
+                and any(isinstance(item, Base) for item in value.values()):
+            existing = self.__dict__.get(name)
+            if isinstance(existing, BaseDict) and dict.__eq__(existing, value):
+                return
+            value = BaseDict(value)
+        super().__setattr__(name, value)
+
     def __repr__(self):
-        # Indents every line
+        depth = _repr_depth.get(0)
+        if depth >= Base._repr.max_base_depth:
+            return f'{type(self).__name__}(...)'
+
         whitespace = ' ' * 4 if Base._repr.indent is None else Base._repr.indent
-        max_len_whitespace = 80  # Ensures whitespace doesn't get rid of space on RHS too much
-        max_out = 50000  # Keeps total length from being too excessive
+        max_len_whitespace = 80
+        max_out = 50000
         params = []
+
+        # Calculate the level that corresponds to our current depth
+        current_level = Base._repr.maxlevel - depth - 1
+
         for name in type(self).properties:
             value = getattr(self, name)
-            extra_whitespace = ' ' * (len(name) + 1) + whitespace  # Lines up rows of arrays
-            repr_value = Base._repr.repr(value)
+            extra_whitespace = ' ' * (len(name) + 1) + whitespace
+            repr_value = Base._repr.repr1(value, current_level)  # pass depth-adjusted level
             if '\n' in repr_value:
-                value = repr_value.replace('\n', '\n' + extra_whitespace)
-            params.append(f'{whitespace}{name}={value}')
+                repr_value = repr_value.replace('\n', '\n' + extra_whitespace)
+            params.append(f'{whitespace}{name}={repr_value}')
         value = "{}(\n{})".format(type(self).__name__, ",\n".join(params))
         rep = Base._repr.whitespace_remove(max_len_whitespace, value)
         fillvalue = Base._repr.fillvalue
@@ -506,6 +567,37 @@ class Base(metaclass=BaseMeta):
     if sys.version_info < (3, 11):
         def __getstate__(self):
             return self.__dict__
+
+
+class BaseList(list):
+    def __repr__(self):
+        token = _repr_depth.set(0)
+        try:
+            return BaseMeta._repr.repr_list(self, BaseMeta._repr.maxlevel)
+        finally:
+            _repr_depth.reset(token)
+
+    __str__ = __repr__
+
+
+class BaseDict(dict):
+    def __repr__(self):
+        token = _repr_depth.set(0)
+        try:
+            return BaseMeta._repr.repr_dict(self, BaseMeta._repr.maxlevel)
+        finally:
+            _repr_depth.reset(token)
+    __str__ = __repr__
+
+
+class BaseSet(set):
+    def __repr__(self):
+        token = _repr_depth.set(0)
+        try:
+            return BaseMeta._repr.repr_set(self, BaseMeta._repr.maxlevel)
+        finally:
+            _repr_depth.reset(token)
+    __str__ = __repr__
 
 
 class ImmutableMeta(BaseMeta):
@@ -668,3 +760,15 @@ def Freezable(cls: type):
     cls.property_dict = ImmutableMixIn.property_dict
     globals()[new_name] = new_cls
     return cls
+
+
+def base_repr(obj):
+    """Convenience function for print non-Stone Soup lists using
+    BaseList repr"""
+    token = _repr_depth.set(0)
+    try:
+        if isinstance(obj, list):
+            return BaseMeta._repr.repr_list(obj, BaseMeta._repr.maxlevel)
+        return BaseMeta._repr.repr(obj)
+    finally:
+        _repr_depth.reset(token)
