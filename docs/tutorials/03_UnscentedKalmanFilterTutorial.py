@@ -270,7 +270,7 @@ ekf_pred_meas = extended_updater.predict_measurement(prediction)
 # Plot UKF's predicted measurement distribution
 from matplotlib.patches import Ellipse
 from stonesoup.plotter import Plotter
-w, v = np.linalg.eig(ukf_pred_meas.covar)
+w, v = np.linalg.eigh(ukf_pred_meas.covar)
 max_ind = np.argmax(w)
 min_ind = np.argmin(w)
 orient = np.arctan2(v[1, max_ind], v[0, max_ind])
@@ -283,7 +283,7 @@ ax.add_artist(ukf_ellipse)
 
 
 # Plot EKF's predicted measurement distribution
-w, v = np.linalg.eig(ekf_pred_meas.covar)
+w, v = np.linalg.eigh(ekf_pred_meas.covar)
 max_ind = np.argmax(w)
 min_ind = np.argmin(w)
 orient = np.arctan2(v[1, max_ind], v[0, max_ind])
