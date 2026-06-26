@@ -707,9 +707,9 @@ class IteratedKalmanPredictor(ExtendedKalmanPredictor):
     """
     nsteps: int = Property(default=1, doc="number of iterations")
 
-    include_end_point: bool = Property(default=False, 
-                                       doc="Whether to include the end point in the iteration. "
-                                       "Default is False.")
+    include_end_point: bool = Property(default=False,
+                                       doc="whether to include the end point in the iteration, "
+                                       "false by default")
 
     def _transition_matrix(self, prior, linearisation_point=None, time_interval=None, **kwargs):
         r"""Returns the transition matrix as a product of Jacobians calculated at each
