@@ -1,3 +1,4 @@
+from copy import copy
 from functools import partial
 
 import numpy as np
@@ -683,3 +684,68 @@ class StochasticIntegrationPredictor(KalmanPredictor):
             transition_model=self.transition_model,
             prior=prior,
         )
+
+
+class IteratedKalmanPredictor(ExtendedKalmanPredictor):
+    r"""The simplest version of an iterated predictor. This recalculates the transition matrix at a
+    fixed (user-specified) number of equally-spaced intermediate points in between the prior and
+    the prediction. The hope/expectation is that that will produce a more accurate linearization of
+    the gradient of the function at that point, though that is not guaranteed and no checks on the
+    suitability of the solution are made. There are no convergence criteria, and no checks for
+    incremental improvement through the iteration are undertaken.
+
+    The transition matrix is calculated as the product of the intermediate steps,
+
+    .. math::
+
+        J(f)|_{k|k-1} = \prod_{i=0}^{n-1} J(f)|_{k-1 + i/n}
+
+    The default number of steps is 1, which reduces this to the standard extended Kalman predictor.
+    The option to include the end point in the iteration is provided. This allows the user to
+    specify whether the transition matrix is additionally calculated at the predicted state; the
+    default is to conclude the iteration at the last intermediate point.
+    """
+    nsteps: int = Property(default=1, doc="number of iterations")
+
+    include_end_point: bool = Property(default=False, 
+                                       doc="Whether to include the end point in the iteration. "
+                                       "Default is False.")
+
+    def _transition_matrix(self, prior, linearisation_point=None, time_interval=None, **kwargs):
+        r"""Returns the transition matrix as a product of Jacobians calculated at each
+        intermediate point.
+
+        Parameters
+        ----------
+        prior : :class:`~.State`
+            :math:`\mathbf{x}_{k-1}`
+        linearisation_point : :class:`~State`, optional
+            Initial state, first linearisation point. If default (`None`) prior will be used.
+        **kwargs : various, optional
+            These are passed to :meth:`~.TransitionModel.matrix` or
+            :meth:`~.TransitionModel.jacobian`
+
+        Returns
+        -------
+        : :class:`numpy.ndarray`
+            The output transition matrix is the product of the matrices calculated at each
+            intermediate point
+        """
+
+        if linearisation_point is None:
+            linearisation_point = prior
+        y = copy(linearisation_point)  # TODO: find a better copy-safe method of doing this
+
+        transition_matrix = np.eye(self.transition_model.ndim_state)
+
+        for i in range(self.nsteps):
+            J1 = self.transition_model.jacobian(y, time_interval=time_interval/float(self.nsteps))
+            y.state_vector = \
+                self.transition_model.function(y, time_interval=time_interval/float(self.nsteps))
+            transition_matrix = J1 @ transition_matrix
+
+        if self.include_end_point:
+            J1 = self.transition_model.jacobian(y, time_interval=time_interval/float(self.nsteps))
+            transition_matrix = J1 @ transition_matrix
+
+        return transition_matrix
