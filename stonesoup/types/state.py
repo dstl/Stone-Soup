@@ -762,6 +762,64 @@ class ParticleState(State):
         return state
 
     @classmethod
+    def from_gaussian_state(cls, gaussian_state: GaussianState, num_vectors: int, **kwargs
+                            ) -> 'ParticleState':
+        """
+        Returns an ParticleState instance, from a given
+        GaussianState object.
+
+        Parameters
+        ----------
+        gaussian_state : :class:`~.GaussianState`
+            The GaussianState used to create the new ParticleState.
+        num_vectors : int
+            The number of desired column vectors present in the particle.
+        Returns
+        -------
+        :class:`~.ParticleState`
+            Instance of ParticleState.
+        """
+        mean = gaussian_state.mean
+        covar = gaussian_state.covar
+        timestamp = gaussian_state.timestamp
+
+        return cls(state_vector=cls.generate_particles(mean, covar, num_vectors),
+                   timestamp=timestamp,
+                   **kwargs)
+
+    @staticmethod
+    def generate_particles(mean: np.ndarray, covar: np.ndarray, num_vectors: int) -> StateVectors:
+        """
+        Returns a StateVectors wrapped particle cloud of state vectors, from a given
+        mean and covariance matrix.
+
+        Parameters
+        ----------
+        mean : :class:`~.numpy.ndarray`
+            The mean value of the distribution being sampled to generate
+            ensemble.
+        covar : :class:`~.numpy.ndarray`
+            The covariance matrix of the distribution being sampled to
+            generate particles.
+        num_vectors : int
+            The number of desired column vectors present in the particles,
+            or the number of "samples".
+        Returns
+        -------
+        :class:`~.StateVectors`
+            Resulting instance of StateVectors.
+        """
+        if not isinstance(mean, StateVector):
+            mean = StateVector(mean)
+        ndim = mean.shape[0]
+        vectors = np.atleast_2d(
+            multivariate_normal.rvs(np.zeros(ndim), covar, num_vectors))
+        if ndim > 1:
+            vectors = vectors.T
+
+        return StateVectors(vectors) + mean
+
+    @classmethod
     def from_state(cls, state: 'State', *args: Any, target_type: Optional[Type] = None,
                    **kwargs: Any) -> 'State':
 
