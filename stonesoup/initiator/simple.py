@@ -1,7 +1,6 @@
 import copy
 
 import numpy as np
-from scipy.stats import multivariate_normal
 
 from .base import GaussianInitiator, ParticleInitiator, Initiator
 from ..base import Property
@@ -12,7 +11,6 @@ from ..models.measurement import MeasurementModel
 from ..types.hypothesis import SingleHypothesis
 from ..types.mixture import GaussianMixture
 from ..types.numeric import Probability
-from ..types.particle import Particle
 from ..types.state import State, GaussianState, ParticleState, TaggedWeightedGaussianState, \
     ASDGaussianState, EnsembleState
 from ..types.track import Track
@@ -347,17 +345,15 @@ class GaussianParticleInitiator(ParticleInitiator):
 
         # Create prior particle state
         try:
-            samples = multivariate_normal.rvs(self.initiator.prior_state.state_vector.ravel(),
-                                              self.initiator.prior_state.covar,
-                                              size=self.number_particles)
+            state = self.initiator.prior_state
+
         except AttributeError:
             raise AttributeError("No prior state")
-        particles = [
-            Particle(sample.reshape(-1, 1), weight=self.weight)
-            for sample in samples]
 
-        self.prior_state = ParticleState(
-            particles,
+        self.prior_state = ParticleState.from_gaussian_state(
+            state,
+            self.number_particles,
+            weight=[self.weight]*self.number_particles,
             fixed_covar=self.initiator.prior_state.covar if self.use_fixed_covar else None
         )
 
@@ -383,18 +379,15 @@ class GaussianParticleInitiator(ParticleInitiator):
         tracks = self.initiator.initiate(detections, timestamp, **kwargs)
 
         for track in tracks:
-            samples = multivariate_normal.rvs(track.state_vector.ravel(),
-                                              track.covar,
-                                              size=self.number_particles)
-            particles = [
-                Particle(sample.reshape(-1, 1), weight=self.weight)
-                for sample in samples]
-            track[-1] = ParticleStateUpdate(
-                None,
-                track.hypothesis,
-                particle_list=particles,
-                fixed_covar=track.covar if self.use_fixed_covar else None,
-                timestamp=track.timestamp)
+            gaussian_state = GaussianState(track.state_vector,
+                                           track.covar,
+                                           track.timestamp)
+            track[-1] = ParticleStateUpdate.from_gaussian_state(
+                gaussian_state,
+                self.number_particles,
+                hypothesis=track.hypothesis,
+                weight=[self.weight]*self.number_particles,
+                fixed_covar=track.covar if self.use_fixed_covar else None)
 
         return tracks
 
