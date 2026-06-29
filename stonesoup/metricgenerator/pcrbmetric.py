@@ -8,7 +8,7 @@ from .base import MetricGenerator
 from ..base import Property
 from ..types.state import GaussianState
 from ..types.groundtruth import GroundTruthState, GroundTruthPath
-from ..types.array import StateVectors
+from ..types.array import StateVectors, StateVector
 from ..models.transition import TransitionModel
 from ..models.measurement import MeasurementModel
 from ..types.metric import TimeRangeMetric
@@ -32,8 +32,9 @@ class PCRBMetric(MetricGenerator):
     prior: GaussianState = Property(doc="The prior used to initiate the track")
     transition_model: TransitionModel = Property(
         doc="The transition model used to propagate the track's state")
-    measurement_model: MeasurementModel = Property(
-        doc="The measurement model that projects a track into measurement space (and vice versa")
+    measurement_models: Sequence[MeasurementModel] = Property(
+        doc="The measurement models that projects a track into measurement space "
+        "(and vice versa), all sensor models assumed located at each `sensor_location`")
     sensor_locations: StateVectors = Property(
         doc="The locations of the sensors (currently assuming sensors are static)")
     position_mapping: Sequence[int] = Property(
@@ -54,7 +55,7 @@ class PCRBMetric(MetricGenerator):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         if self.position_mapping is None:
-            self.position_mapping = self.measurement_model.mapping
+            self.position_mapping = self.measurement_models[0].mapping #  just take the first one
 
     def compute_metric(self, manager, **kwargs):
         groundtruth_paths = self._get_data(manager, self.truths_key)
@@ -67,7 +68,7 @@ class PCRBMetric(MetricGenerator):
 
         for gnd_path in groundtruth_paths:
             pcrb_metric = self._compute_pcrb_single(self.prior, self.transition_model,
-                                                    self.measurement_model, gnd_path,
+                                                    self.measurement_models, gnd_path,
                                                     self.sensor_locations, self.irf,
                                                     self.position_mapping, self.velocity_mapping)
             time_range = TimeRange(gnd_path.states[0].timestamp, gnd_path.timestamp)
@@ -79,7 +80,7 @@ class PCRBMetric(MetricGenerator):
 
     @classmethod
     def _compute_pcrb_single(cls, prior: GaussianState, transition_model: TransitionModel,
-                             measurement_model: MeasurementModel, groundtruth: GroundTruthPath,
+                             measurement_models: MeasurementModel, groundtruth: GroundTruthPath,
                              sensor_locations: StateVectors, irf_overall: float,
                              position_mapping: Sequence[int], velocity_mapping: Sequence[int]):
         """ Compute the PCRB for a single Ground truth path
@@ -145,7 +146,7 @@ class PCRBMetric(MetricGenerator):
             curr_time = state.timestamp
 
             # Determine measurement contribution (total_j_z) - including clutter (if applicable)
-            total_j_z = cls._calculate_j_z(state, sensor_locations, measurement_model, irf[:, i])
+            total_j_z = cls._calculate_j_z(state, sensor_locations, measurement_models, irf[:, i])
 
             # Determine F and Q matrices
             dt = curr_time - prev_time
@@ -175,28 +176,33 @@ class PCRBMetric(MetricGenerator):
         return metric
 
     @staticmethod
-    def _calculate_j_z(state, sensor_locations, measurement_model, irf):
+    def _calculate_j_z(state, sensor_locations, measurement_models, irf):
 
         # allocate memory / initialisation
         overall_j_z = np.zeros((state.ndim, state.ndim))
 
-        # inverse of measurement covariance
-        measurement_cov_inv = inv(measurement_model.covar())
+        num_sensor_locations = sensor_locations.shape[1]
+        num_sensors = len(measurement_models)
 
-        num_sensors = sensor_locations.shape[1]
-        for i in range(num_sensors):
+        # precalculate inverses outside of loop
+        measurement_cov_invs = []
+        for sensor_i in range(num_sensors):
+            # inverse of measurement covariance
+            measurement_cov_invs.append(inv(measurement_models[sensor_i].covar()))
 
-            sensor_location = sensor_locations[:, i]
-            measurement_model_cp = copy(measurement_model)
-            if hasattr(measurement_model_cp, 'translation_offset'):
-                measurement_model_cp.translation_offset = sensor_location
+        for location_i in range(num_sensor_locations):
+            for sensor_i in range(num_sensors):
+                sensor_location = StateVector(sensor_locations[:, location_i])
+                measurement_model_cp = copy.copy(measurement_models[sensor_i])
+                if hasattr(measurement_model_cp, 'translation_offset'):
+                    measurement_model_cp.translation_offset = sensor_location
 
-            h_matrix = measurement_model_cp.jacobian(state)
+                h_matrix = measurement_model_cp.jacobian(state)
 
-            j_z = h_matrix.T @ measurement_cov_inv @ h_matrix
+                j_z = h_matrix.T @ measurement_cov_invs[sensor_i] @ h_matrix
 
-            # increment
-            overall_j_z += irf[i] * j_z
+                # increment
+                overall_j_z += irf[location_i] * j_z
 
         return overall_j_z
 
