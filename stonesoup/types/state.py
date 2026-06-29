@@ -1114,7 +1114,8 @@ class EnsembleState(State):
         default=None, doc="Timestamp of the state. Default None.")
 
     @classmethod
-    def from_gaussian_state(cls, gaussian_state, num_vectors, **kwargs):
+    def from_gaussian_state(cls, gaussian_state: GaussianState, num_vectors: int, **kwargs
+                            ) -> 'EnsembleState':
         """
         Returns an EnsembleState instance, from a given
         GaussianState object.
@@ -1139,7 +1140,7 @@ class EnsembleState(State):
                    **kwargs)
 
     @staticmethod
-    def generate_ensemble(mean, covar, num_vectors):
+    def generate_ensemble(mean: np.ndarray, covar: np.ndarray, num_vectors: int) -> StateVectors:
         """
         Returns a StateVectors wrapped ensemble of state vectors, from a given
         mean and covariance matrix.
@@ -1157,8 +1158,8 @@ class EnsembleState(State):
             or the number of "samples".
         Returns
         -------
-        :class:`~.EnsembleState`
-            Instance of EnsembleState.
+        :class:`~.StateVectors`
+            Instance of StateVectors.
         """
         if not isinstance(mean, StateVector):
             mean = StateVector(mean)
