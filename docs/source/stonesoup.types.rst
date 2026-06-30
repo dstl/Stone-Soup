@@ -34,6 +34,12 @@ Detection Types
 .. automodule:: stonesoup.types.detection
     :show-inheritance:
 
+Detector Context Types
+----------------------
+
+.. automodule:: stonesoup.types.detector_context
+    :show-inheritance:
+
 Graph Types
 -----------
 .. automodule:: stonesoup.types.graph
@@ -132,5 +138,4 @@ Update Types
 
 .. automodule:: stonesoup.types.update
     :show-inheritance:
-
 
