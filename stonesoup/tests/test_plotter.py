@@ -304,9 +304,9 @@ def test_plotterly_1d():
     plotter1d.plot_measurements(true_measurements, [0])
     plotter1d.plot_tracks(track, [0])
 
-    # check that particle=True does not plot
-    with pytest.raises(NotImplementedError):
-        plotter1d.plot_tracks(track, [0], particle=True)
+    # check that particle=True plots particles
+    plotter1d.plot_tracks(track, [0], particle=True)
+    assert "Tracks<br>(Particles)" in {data.legendgroup for data in plotter1d.fig.data}
 
     # check that uncertainty=True plots vertical error bars
     plotter1d.plot_tracks(track, [0], uncertainty=True)
