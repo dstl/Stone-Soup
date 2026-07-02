@@ -50,11 +50,6 @@ class Reducer(Base):
             Updated mixture with likelihood-weighted component weights.
         """
         if isinstance(states, list):
-            try:
-                (isinstance(states[0][0], WeightedGaussianState))
-            except TypeError or IndexError:
-                print(len(states))
-
             if isinstance(states[0], list):
                 if isinstance(states[0][0], WeightedGaussianState):
                     states = GaussianMixture(states[0])
