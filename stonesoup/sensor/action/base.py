@@ -73,6 +73,9 @@ class AngleActionsGenerator(RealNumberActionGenerator):
     rpm: float = Property(default=60,
                           doc="The number of rotations per minute (RPM).")
 
+    max_angle: float = Property(default=np.inf)
+    min_angle: float = Property(default=-np.inf)
+
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.epsilon = Angle(np.radians(1e-6))
@@ -114,11 +117,11 @@ class AngleActionsGenerator(RealNumberActionGenerator):
 
     @property
     def min(self):
-        return Angle(self.initial_value - self.angle_delta)
+        return max(Angle(self.initial_value - self.angle_delta), self.min_angle)
 
     @property
     def max(self):
-        return Angle(self.initial_value + self.angle_delta)
+        return min(Angle(self.initial_value + self.angle_delta), self.max_angle)
 
     def __contains__(self, item):
 
