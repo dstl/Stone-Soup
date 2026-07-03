@@ -13,9 +13,17 @@ except ImportError:
 import numpy as np
 
 from .base import PlatformMountable
-from ..sensormanager.action import Actionable
+from .action.dwell_action import StationaryDwellActionsGenerator
+from .action.tilt_action import TiltActionsGenerator
 from ..base import Property
 from ..models.clutter.clutter import ClutterModel
+from ..models.measurement import MeasurementModel
+from ..models.measurement.nonlinear import (CartesianToBearingRange,
+                                            CartesianToElevationBearingRange)
+from ..models.measurement.linear import LinearGaussian
+from ..sensormanager.action import Actionable, ActionableProperty
+from ..types.angle import Angle
+from ..types.array import CovarianceMatrix
 from ..types.detection import TrueDetection, Detection
 from ..types.groundtruth import GroundTruthState
 from ..types.state import ParticleState, State, StateVector
@@ -439,3 +447,245 @@ class VisibilityInformed2DSensor(SimpleSensor):
                                                          beta <= 1))
 
         return intersections
+
+
+class Generic2DSensor(VisibilityInformed2DSensor):
+    """
+    Generic :class:`~.SimpleSensor` implementation which takes a 2D input truth state and produces
+    measurements using a desired measurement model.
+    """
+    measurement_model_class: MeasurementModel = Property(
+        default=CartesianToBearingRange,
+        doc="The :class:`stonesoup.models.measurement.MeasurementModel` desired to make"
+            "measurements")
+    ndim_state: int = Property(
+        default=2,
+        doc="Number of state dimensions. This is utilised by (and follows in format) "
+            "the underlying measurement model")
+    position_mapping: tuple[int, int] = Property(
+        doc="Mapping between the target's state space and the sensor's "
+            "measurement capability")
+    velocity_mapping: tuple[int, int] = Property(default=None)
+    noise_covar: CovarianceMatrix = Property(
+        doc="The sensor noise covariance matrix. This is utilised by "
+            "(and follows in format) the underlying measurement model")
+
+    min_range: float = Property(default=0,
+                                doc="The minimum detection range of the radar (in meters)")
+    max_range: float = Property(default=np.inf,
+                                doc="The maximum detection range of the radar (in meters)")
+    fov_angle: float = Property(default=2*np.pi)
+
+    dwell_centre: StateVector = ActionableProperty(
+        doc="A `state_vector` property that describes the rotation angle of the centre of the "
+            "sensor's current FOV (i.e. the dwell centre) relative to the positive x-axis of the "
+            "sensor frame/orientation. The angle is positive if the rotation is in the "
+            "counter-clockwise direction when viewed by an observer looking down the z-axis of "
+            "the sensor frame, towards the origin. Angle units are in radians",
+        generator_cls=StationaryDwellActionsGenerator,
+        generator_kwargs_mapping={"rpm": "rpm", "resolution": "resolution",
+                                  "min_angle": "min_dwell", "max_angle": "max_dwell"})
+    min_dwell: float = Property(default=-np.inf)
+    max_dwell: float = Property(default=np.inf)
+
+    rpm: float = Property(
+        doc="The number of antenna rotations per minute (RPM)")
+    resolution: Angle = Property(
+        default=Angle(np.radians(1)),
+        doc="Resolution of the dwell_centre. Used by the :class:`~.DwellActionsGenerator` "
+            "during sensor management.")
+
+    def create_measurement_model(self, measurement_model=None, check_visibility=False
+                                 ) -> MeasurementModel:
+        """Method to generate a measurement model using the sensor's attributes
+
+        Parameters
+        ----------
+        measurement_model : MeasurementModel, optional
+            Measurement model to produce new model from, by default None
+        check_visibility : bool, optional
+            Boolean dictating whether this model is being used to check visibility,
+            by default False
+
+        Returns
+        -------
+        MeasurementModel
+        """
+
+        if measurement_model is None:
+            model_class = self.measurement_model_class
+            ndim_state = self.ndim_state
+            mapping = self.position_mapping
+            noise_covar = self.noise_covar
+            translation_offset = self.position
+            orientation = self.orientation
+            if orientation is None:
+                orientation = StateVector([0, 0, 0])
+            rotation_offset = StateVector([[orientation[0, 0]],
+                                           [orientation[1, 0]],
+                                           [orientation[2, 0] + self.dwell_centre[0, 0]]])
+            velocity_mapping = self.velocity_mapping
+            velocity = self.velocity
+        else:
+            model_class = type(measurement_model)
+            ndim_state = measurement_model.ndim_state
+            mapping = measurement_model.mapping
+            noise_covar = measurement_model.noise_covar
+            translation_offset = getattr(measurement_model, "translation_offset", None)
+            rotation_offset = getattr(measurement_model, "rotation_offset", None)
+            velocity_mapping = getattr(measurement_model, "velocity_mapping", None)
+            velocity = getattr(measurement_model, "velocity", None)
+
+        if check_visibility:
+            model_class = CartesianToBearingRange
+        if isinstance(model_class, LinearGaussian):
+            if self.velocity_mapping is not None and measurement_model is None:
+                mapping = tuple(*self.position_mapping, *self.velocity_mapping)
+            return LinearGaussian(ndim_state=ndim_state,
+                                  mapping=mapping,
+                                  noise_covar=self.noise_covar)
+        model = model_class(ndim_state=ndim_state,
+                            mapping=mapping,
+                            noise_covar=noise_covar,
+                            translation_offset=translation_offset,
+                            rotation_offset=rotation_offset)
+        model.velocity_mapping = velocity_mapping
+        model.velocity = velocity
+        return model
+
+    @property
+    def measurement_model(self):
+        return self.create_measurement_model()
+
+    def measure(self, ground_truths: set[GroundTruthState], noise: Union[np.ndarray, bool] = True,
+                **kwargs) -> set[TrueDetection]:
+
+        if self.timestamp is None:
+            # Read timestamp from ground truth
+            try:
+                self.timestamp = next(iter(ground_truths)).timestamp
+            except StopIteration:
+                # No ground truths to get timestamp from
+                return set()
+
+        return super().measure(ground_truths, noise, **kwargs)
+
+    def is_detectable(self, state, measurement_model=None):
+        measurement_model = self.create_measurement_model(measurement_model=measurement_model,
+                                                          check_visibility=True)
+        measurement_vector = measurement_model.function(state, noise=False)
+        return self._is_detectable(measurement_vector) & self.is_visible(state)
+
+    # TODO: Need way of making this method generic.
+    # Clutter is in measurement model state space and therefore the indices of e, b and r are not set
+    def is_clutter_detectable(self, state: Detection) -> bool:
+        measurement_vector = state.state_vector
+        return self._is_detectable(measurement_vector)
+
+    def _is_detectable(self, measurement_vector: StateVector) -> bool:
+        fov_min = -self.fov_angle / 2
+        fov_max = +self.fov_angle / 2
+
+        bearing_t = measurement_vector[0, :]
+        true_range = measurement_vector[1, :]
+        return (np.logical_and(fov_min <= bearing_t, bearing_t <= fov_max) &
+                np.logical_and(self.min_range <= true_range, true_range <= self.max_range))
+
+
+class Generic3DSensor(Generic2DSensor):
+    """
+    Generic :class:`~.SimpleSensor` implementation which takes a 3D input truth state and produces
+    measurements using a desired measurement model.
+    """
+    measurement_model_class: MeasurementModel = Property(default=CartesianToElevationBearingRange)
+    ndim_state: int = Property(
+        default=3
+    )
+    position_mapping: tuple[int, int, int] = Property()
+    velocity_mapping: tuple[int, int, int] = Property(default=None)
+
+    vertical_extent: float = Property(default=np.pi)
+    tilt_centre: StateVector = ActionableProperty(
+        generator_cls=TiltActionsGenerator,
+        generator_kwargs_mapping={"rpm": "rpm", "resolution": "resolution",
+                                  "min_angle": "min_tilt", "max_angle": "max_tilt"}
+    )
+    min_tilt: float = Property(default=-np.pi/2)
+    max_tilt: float = Property(default=np.pi/2)
+
+    def create_measurement_model(self, measurement_model=None, check_visibility=False):
+        """Method to generate a measurement model using the sensor's attributes
+
+        Parameters
+        ----------
+        measurement_model : MeasurementModel, optional
+            Measurement model to produce new model from, by default None
+        check_visibility : bool, optional
+            Boolean dictating whether this model is being used to check visibility,
+            by default False
+
+        Returns
+        -------
+        MeasurementModel
+        """
+        if measurement_model is None:
+            model_class = self.measurement_model_class
+            ndim_state = self.ndim_state
+            mapping = self.position_mapping
+            noise_covar = self.noise_covar
+            translation_offset = self.position
+            orientation = self.orientation
+            if orientation is None:
+                orientation = StateVector([0, 0, 0])
+            rotation_offset = StateVector([[orientation[0, 0]],
+                                           [orientation[1, 0] + self.tilt_centre[0, 0]],
+                                           [orientation[2, 0] + self.dwell_centre[0, 0]]])
+            velocity_mapping = self.velocity_mapping
+            velocity = self.velocity
+        else:
+            model_class = type(measurement_model)
+            ndim_state = measurement_model.ndim_state
+            mapping = measurement_model.mapping
+            noise_covar = measurement_model.noise_covar
+            translation_offset = getattr(measurement_model, "translation_offset", None)
+            rotation_offset = getattr(measurement_model, "rotation_offset", None)
+            velocity_mapping = getattr(measurement_model, "velocity_mapping", None)
+            velocity = getattr(measurement_model, "velocity", None)
+
+        if check_visibility:
+            model_class = CartesianToElevationBearingRange
+        if isinstance(model_class, LinearGaussian):
+            mapping = self.position_mapping
+            if self.velocity_mapping is not None and measurement_model is None:
+                mapping = tuple(*self.position_mapping, *self.velocity_mapping)
+            return LinearGaussian(ndim_state=self.ndim_state,
+                                  mapping=mapping,
+                                  noise_covar=self.noise_covar)
+        model = model_class(ndim_state=ndim_state,
+                            mapping=mapping,
+                            noise_covar=noise_covar,
+                            translation_offset=translation_offset,
+                            rotation_offset=rotation_offset)
+        model.velocity_mapping = velocity_mapping
+        model.velocity = velocity
+        return model
+
+    def is_detectable(self, state, measurement_model=None):
+        measurement_model = self.create_measurement_model(measurement_model=measurement_model,
+                                                          check_visibility=True)
+        measurement_vector = measurement_model.function(state, noise=False)
+        return self._is_detectable(measurement_vector)
+
+    def _is_detectable(self, measurement_vector: StateVector) -> bool:
+        ver_min = -self.vertical_extent / 2
+        ver_max = +self.vertical_extent / 2
+
+        fov_min = -self.fov_angle / 2
+        fov_max = +self.fov_angle / 2
+
+        elevation_t = measurement_vector[0, :]
+        bearing_t = measurement_vector[1, :]
+        true_range = measurement_vector[2, :]
+        return (np.logical_and(ver_min <= elevation_t, elevation_t <= ver_max) &
+                np.logical_and(fov_min <= bearing_t, bearing_t <= fov_max) &
+                np.logical_and(self.min_range <= true_range, true_range <= self.max_range))
