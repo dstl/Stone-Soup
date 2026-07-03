@@ -162,8 +162,8 @@ def test_sqrt_kalman():
 
 
 def test_iterated():
-    # Test that the iterated kalman predictor returns same result as the EKF for number of 
-    # iterations = 1. And then doesn't for a larger number of iterations. 
+    # Test that the iterated kalman predictor returns same result as the EKF for number of
+    # iterations = 1. And then doesn't for a larger number of iterations.
 
     # Define time related variables
     timestamp = datetime.datetime.now()
@@ -202,7 +202,7 @@ def test_iterated():
 
     assert np.allclose(prediction.mean,
                        eval_prediction.mean, 0, atol=1.e-14)
-    # TODO: When the non-linear model is implemented change the following assertion to be False. 
+    # TODO: When the non-linear model is implemented change the following assertion to be False.
     # TODO: For now, it is True as the EKF and Iterated KF will return the same for a linear model.
     assert np.allclose(prediction.covar,
                        eval_prediction.covar, 0, atol=1.e-14)
