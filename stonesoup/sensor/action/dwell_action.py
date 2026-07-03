@@ -80,3 +80,17 @@ class DwellActionsGenerator(AngleActionsGenerator):
                                  end_time=self.end_time,
                                  target_value=angle_action.target_value,
                                  increasing_angle=angle_action.increasing_angle)
+
+
+class StationaryDwellActionsGenerator(DwellActionsGenerator):
+    """
+    :class:`~.DwellActionsGenerator` with a default action of staying still instead of rotating
+    """
+
+    @property
+    def default_action(self):
+        return ChangeDwellAction(rotation_end_time=self.end_time,
+                                 generator=self,
+                                 end_time=self.end_time,
+                                 target_value=self.initial_value,
+                                 increasing_angle=None)
