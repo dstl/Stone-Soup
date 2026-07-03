@@ -159,3 +159,51 @@ def test_sqrt_kalman():
                        atol=1.e-14)
     assert np.allclose(prediction.covar, sqrt_prediction.covar, 0, atol=1.e-14)
     assert prediction.timestamp == sqrt_prediction.timestamp
+
+
+def test_iterated():
+    # Test that the iterated kalman predictor returns same result as the EKF for number of 
+    # iterations = 1. And then doesn't for a larger number of iterations. 
+
+    # Define time related variables
+    timestamp = datetime.datetime.now()
+    timediff = 2  # 2sec
+    new_timestamp = timestamp + datetime.timedelta(seconds=timediff)
+    time_interval = new_timestamp - timestamp
+
+    # Define prior state
+    prior_mean = np.array([[-6.45], [0.7]])
+    prior_covar = np.array([[4.1123, 0.0013],
+                            [0.0013, 0.0365]])
+    prior = GaussianState(prior_mean,
+                          prior_covar,
+                          timestamp=timestamp)
+
+    # TODO: wait for suitable 1d non-linear model to be implemented. For now, just use a linear
+    # model.
+    transition_model = ConstantVelocity(noise_diff_coeff=0.1)
+
+    transition_model_matrix = transition_model.matrix(time_interval=time_interval)
+    transition_model_covar = transition_model.covar(time_interval=time_interval)
+
+    # Calculate evaluation variables
+    eval_prediction = GaussianStatePrediction(
+        transition_model_matrix @ prior.mean,
+        transition_model_matrix@prior.covar@transition_model_matrix.T + transition_model_covar)
+
+    # Initialise an iterated predictor
+    predictor = IteratedKalmanPredictor(transition_model=transition_model, nsteps=25)
+
+    # Perform and assert state prediction
+    prediction = predictor.predict(prior=prior, timestamp=new_timestamp)
+
+    # Assert presence of transition model
+    assert hasattr(prediction, 'transition_model')
+
+    assert np.allclose(prediction.mean,
+                       eval_prediction.mean, 0, atol=1.e-14)
+    # TODO: When the non-linear model is implemented change the following assertion to be False. 
+    # TODO: For now, it is True as the EKF and Iterated KF will return the same for a linear model.
+    assert np.allclose(prediction.covar,
+                       eval_prediction.covar, 0, atol=1.e-14)
+    assert prediction.timestamp == new_timestamp

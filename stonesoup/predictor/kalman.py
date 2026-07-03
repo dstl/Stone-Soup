@@ -734,7 +734,7 @@ class IteratedKalmanPredictor(ExtendedKalmanPredictor):
 
         if linearisation_point is None:
             linearisation_point = prior
-        y = copy(linearisation_point)  # TODO: find a better copy-safe method of doing this
+        y = copy(linearisation_point)
 
         transition_matrix = np.eye(self.transition_model.ndim_state)
 
