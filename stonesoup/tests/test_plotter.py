@@ -1,10 +1,12 @@
 import warnings
 from datetime import datetime, timedelta
+from dataclasses import dataclass
 
 import matplotlib.pyplot as plt
 import numpy as np
 import pytest
 
+from stonesoup.dataassociator.tracktotrack import TrackToTruth
 from stonesoup.dataassociator.neighbour import NearestNeighbour
 from stonesoup.hypothesiser.distance import DistanceHypothesiser
 from stonesoup.measures import Mahalanobis
@@ -14,7 +16,7 @@ from stonesoup.models.transition.linear import CombinedLinearGaussianTransitionM
 from stonesoup.platform.base import Obstacle
 from stonesoup.platform.shape import Shape
 from stonesoup.plotter import Plotter, Dimension, AnimatedPlotterly, AnimationPlotter, Plotterly, \
-    PolarPlotterly, AnimatedPolarPlotterly, merge_dicts
+    PolarPlotterly, AnimatedPolarPlotterly, RAGPlotterly, RAG, merge_dicts
 from stonesoup.predictor.kalman import KalmanPredictor
 from stonesoup.sensor.radar.radar import RadarElevationBearingRange
 from stonesoup.types.detection import TrueDetection, Clutter
@@ -674,3 +676,46 @@ def test_obstacles(plotters, obstacles):
         plotters.plot_measurements(all_measurements, [0, 1])
         plotters.plot_tracks(track, [0, 1])
         plotters.plot_obstacles(obstacles)
+
+
+@dataclass
+class TestMetric:
+    generator_name: str = "test_metric"
+    tracks_key: str = "track"
+    truths_key: str = "truth"
+
+    def compute_metric(self, manager):
+        return TestMetricValue(value=1, timestamp=0)
+
+
+@dataclass
+class TestMetricValue:
+    title = "TestMetric"
+    value: float = 0
+    timestamp: int = None
+
+
+def test_rag_generate_metrics():
+    truth_1 = GroundTruthPath([GroundTruthState([i, 0], timestamp=i) for i in range(10)])
+    truth_2 = GroundTruthPath([GroundTruthState([i+2, 0], timestamp=i) for i in range(10)])
+    track_1 = Track([State([i, 0], timestamp=i) for i in range(10)])
+    track_2 = Track([State([i+2, 0], timestamp=i) for i in range(10)])
+
+    associator = TrackToTruth(association_threshold=1)
+    metrics = RAGPlotterly.generate_metrics({track_1, track_2}, {truth_1, truth_2},
+                                            associator, TestMetric)
+    assert set(metrics) == {(track_1.id, truth_1.id),
+                            (track_2.id, truth_2.id)}
+
+
+def test_rag_plot():
+    track = Track([State([0, 0], timestamp=0),
+                   State([1, 1], timestamp=1),
+                   State([2, 2], timestamp=2)], id="track_1")
+    plotter = RAGPlotterly()
+    metrics = {("track_1", 1): {"Test Metric": TestMetricValue(value=[
+        TestMetricValue(value=0.5, timestamp=0),
+        TestMetricValue(value=1.5, timestamp=1),
+        TestMetricValue(value=2.5, timestamp=2)])}}
+    plotter.plot_tracks({track}, [0, 1], metrics, metric_name="Test Metric", target_value=0,
+                        rag_boundaries=RAG(GREEN=1, AMBER=2))
