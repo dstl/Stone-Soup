@@ -46,6 +46,8 @@ class Track(StateMutableSequence):
 
     def __copy__(self):
         inst = super().__copy__()
+        init_metadata_name = type(self).init_metadata._property_name
+        inst.__dict__[init_metadata_name] = copy.copy(self.__dict__[init_metadata_name])
         inst.__dict__['metadatas'] = list(copy.copy(md) for md in self.__dict__['metadatas'])
         return inst
 
