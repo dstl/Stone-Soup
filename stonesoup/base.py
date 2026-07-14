@@ -517,27 +517,6 @@ class Base(metaclass=BaseMeta):
             raise TypeError(f'{cls.__name__} got an unexpected keyword argument '
                             f'{next(iter(kwargs))!r}')
 
-    def __setattr__(self, name, value):
-        if isinstance(value, list) and not isinstance(value, BaseList) \
-                and any(isinstance(item, Base) for item in value):
-            existing = self.__dict__.get(name)
-            if isinstance(existing, BaseList) and list.__eq__(existing, value):
-                return
-            value = BaseList(value)
-        elif isinstance(value, set) and not isinstance(value, BaseSet) \
-                and any(isinstance(item, Base) for item in value):
-            existing = self.__dict__.get(name)
-            if isinstance(existing, BaseSet) and set.__eq__(existing, value):
-                return
-            value = BaseSet(value)
-        elif isinstance(value, dict) and not isinstance(value, BaseDict) \
-                and any(isinstance(item, Base) for item in value.values()):
-            existing = self.__dict__.get(name)
-            if isinstance(existing, BaseDict) and dict.__eq__(existing, value):
-                return
-            value = BaseDict(value)
-        super().__setattr__(name, value)
-
     def __repr__(self):
         depth = _repr_depth.get(0)
         if depth >= Base._repr.max_base_depth:
@@ -567,37 +546,6 @@ class Base(metaclass=BaseMeta):
     if sys.version_info < (3, 11):
         def __getstate__(self):
             return self.__dict__
-
-
-class BaseList(list):
-    def __repr__(self):
-        token = _repr_depth.set(0)
-        try:
-            return BaseMeta._repr.repr_list(self, BaseMeta._repr.maxlevel)
-        finally:
-            _repr_depth.reset(token)
-
-    __str__ = __repr__
-
-
-class BaseDict(dict):
-    def __repr__(self):
-        token = _repr_depth.set(0)
-        try:
-            return BaseMeta._repr.repr_dict(self, BaseMeta._repr.maxlevel)
-        finally:
-            _repr_depth.reset(token)
-    __str__ = __repr__
-
-
-class BaseSet(set):
-    def __repr__(self):
-        token = _repr_depth.set(0)
-        try:
-            return BaseMeta._repr.repr_set(self, BaseMeta._repr.maxlevel)
-        finally:
-            _repr_depth.reset(token)
-    __str__ = __repr__
 
 
 class ImmutableMeta(BaseMeta):
