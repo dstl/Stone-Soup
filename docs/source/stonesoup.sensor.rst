@@ -31,3 +31,8 @@ Gas
 ---
 .. automodule:: stonesoup.sensor.gas
     :show-inheritance:
+
+Detection Probability
+---------------------
+.. automodule:: stonesoup.sensor.detection_probability
+    :show-inheritance:
