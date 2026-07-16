@@ -136,9 +136,13 @@ def test_simple_radar(h, sensorclass, ndim_state, pos_mapping, noise_covar, posi
                translation_offset=position,
                rotation_offset=radar.orientation)
     if bearing_only_flag:
-        assert (np.equal(measurement.state_vector, eval_m[0]).all())
+        assert np.allclose(
+            measurement.state_vector.astype(np.float64),
+            eval_m.astype(np.float64)[0])
     else:
-        assert (np.equal(measurement.state_vector, eval_m).all())
+        assert np.allclose(
+            measurement.state_vector.astype(np.float64),
+            eval_m.astype(np.float64))
 
     # Assert is TrueDetection type
     assert isinstance(measurement, TrueDetection)
