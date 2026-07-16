@@ -16,14 +16,15 @@ from ...models.measurement.nonlinear import \
      Cartesian2DToBearing, CartesianToBearingRangeRate2D)
 from ...sensor.action.dwell_action import DwellActionsGenerator
 from ...sensormanager.action import ActionableProperty
+from ...sensor.sensor import (Sensor, VisibilityInformed2DSensor, Rotating2DSensor,
+                              Generic3DSensor, Rotating3DSensor)
 from ...types.array import StateVector
-from ...sensor.sensor import Sensor, Generic2DSensor, Generic3DSensor
 from ...types.detection import TrueDetection
 from ...types.groundtruth import GroundTruthState
 from ...types.numeric import Probability
 
 
-class RadarBearingRange(Generic2DSensor):
+class RadarBearingRange(VisibilityInformed2DSensor):
     """A simple radar sensor that generates measurements of targets, using a
     :class:`~.CartesianToBearingRange` model, relative to its position.
 
@@ -38,7 +39,7 @@ class RadarBearingRange(Generic2DSensor):
     rpm = 0
 
 
-class RadarBearing(Generic2DSensor):
+class RadarBearing(VisibilityInformed2DSensor):
     """A simple radar sensor that generates measurements of targets, using a
     :class:`~.Cartesian2DToBearing` model, relative to its position.
 
@@ -53,7 +54,7 @@ class RadarBearing(Generic2DSensor):
     rpm = 0
 
 
-class RadarRotatingBearingRange(Generic2DSensor):
+class RadarRotatingBearingRange(VisibilityInformed2DSensor, Rotating2DSensor):
     """A simple rotating radar, with set field-of-view (FOV) angle, range and\
      rotations per minute (RPM), that generates measurements of targets, using\
      a :class:`~.CartesianToBearingRange` model, relative to its\
@@ -77,7 +78,7 @@ class RadarRotatingBearingRange(Generic2DSensor):
                                   "min_angle": "min_dwell", "max_angle": "max_dwell"})
 
 
-class RadarRotatingBearing(Generic2DSensor):
+class RadarRotatingBearing(VisibilityInformed2DSensor, Rotating2DSensor):
     """A simple rotating radar, with set field-of-view (FOV) angle, range and\
      rotations per minute (RPM), that generates measurements of targets, using\
      a :class:`~.Cartesian2DToBearing` model, relative to its\
@@ -117,7 +118,7 @@ class RadarElevationBearingRange(Generic3DSensor):
     rpm = 0
 
 
-class RadarRotatingElevationBearingRange(Generic3DSensor):
+class RadarRotatingElevationBearingRange(Rotating3DSensor):
     """
     A rotating radar, with set field-of-view (FOV) angle, range and rotations per minute (RPM),
     that generates measurements of targets, using a :class:`~.CartesianToElevationBearingRange`
