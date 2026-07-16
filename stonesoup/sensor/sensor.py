@@ -15,6 +15,7 @@ import numpy as np
 from .base import PlatformMountable
 from .action.dwell_action import StationaryDwellActionsGenerator
 from .action.tilt_action import TiltActionsGenerator
+from .detection_probability import DetectionProbability, ConstantDetectionProbability
 from ..base import Property
 from ..models.clutter.clutter import ClutterModel
 from ..models.measurement import MeasurementModel
@@ -106,7 +107,8 @@ class SimpleSensor(Sensor, ABC):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.random_state = np.random.RandomState(self.seed) if self.seed is not None else None
+        self.random_state = (np.random.RandomState(self.seed) if self.seed is not None
+                             else np.random)
 
     def measure(self, ground_truths: set[GroundTruthState], noise: Union[np.ndarray, bool] = True,
                 random_state=None, **kwargs) -> set[TrueDetection]:
@@ -605,6 +607,69 @@ class VisibilityInformed2DSensor(Generic2DSensor):
         return intersections
 
 
+class ProbabilityOfDetectionSensor(Generic2DSensor):
+    probability_of_detection: DetectionProbability = Property(
+        default_factory=ConstantDetectionProbability,
+        doc="A :class:`.DetectionProbability` used to determine the probability of making a "
+            "detection of a given target"
+    )
+
+    def measure(self, ground_truths: set[GroundTruthState], noise: Union[np.ndarray, bool] = True,
+                random_state=None, **kwargs) -> set[TrueDetection]:
+        if self.timestamp is None:
+            try:
+                self.timestamp = next(iter(ground_truths)).timestamp
+            except StopIteration:
+                return set()
+
+        measurement_model = self.measurement_model
+        p_d_measurement_model = self.create_measurement_model(check_visibility=True)
+
+        detectable_ground_truths = [truth for truth in ground_truths
+                                    if self.is_detectable(truth, measurement_model)]
+        random_state = random_state if random_state is not None else self.random_state
+
+        if noise is True:
+            if len(detectable_ground_truths) > 1:
+                noise_vectors_iter = iter(measurement_model.rvs(len(detectable_ground_truths),
+                                                                random_state=random_state,
+                                                                **kwargs))
+            else:
+                noise_vectors_iter = iter([measurement_model.rvs(random_state=random_state,
+                                                                 **kwargs)])
+
+        detections = set()
+        for truth in detectable_ground_truths:
+            p_d = self.probability_of_detection(
+                p_d_measurement_model.function(truth, noise=False, **kwargs))
+            if random_state.random() > p_d:
+                continue
+
+            measurement_vector = measurement_model.function(truth, noise=False, **kwargs)
+
+            if noise is True:
+                measurement_noise = next(noise_vectors_iter)
+            else:
+                measurement_noise = noise
+
+            # Add in measurement noise to the measurement vector
+            measurement_vector += measurement_noise
+
+            detection = TrueDetection(measurement_vector,
+                                      measurement_model=measurement_model,
+                                      timestamp=truth.timestamp,
+                                      groundtruth_path=truth)
+            detections.add(detection)
+
+        # Generate clutter at this time step
+        if self.clutter_model is not None:
+            self.clutter_model.measurement_model = measurement_model
+            clutter = self.clutter_model.function(ground_truths)
+            detectable_clutter = [cltr for cltr in clutter
+                                  if self.is_clutter_detectable(cltr)]
+            detections = set.union(detections, detectable_clutter)
+
+        return detections
 
 
 class Generic3DSensor(Generic2DSensor):
