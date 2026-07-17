@@ -291,6 +291,29 @@ def gauss2sigma(state, alpha=1.0, beta=2.0, kappa=None):
     return sigma_points_states, mean_weights, covar_weights
 
 
+def _points_diff(points, mean):
+    """Difference of `points` from `mean`, row-by-row.
+
+    Equivalent to ``points - mean``, except that for rows of :class:`~.Angle`
+    (e.g. :class:`~.Bearing`/:class:`~.Elevation`) the difference is wrapped
+    to its minimal representation using the row's vectorised `mod_angle`,
+    rather than relying on element-wise :class:`~.Angle` arithmetic, which
+    forces a Python-level loop over every sigma point as `numpy` cannot
+    vectorise `object` dtype arrays.
+    """
+    points_array = np.asarray(points)
+    if points_array.dtype != np.object_:
+        return points_array - np.asarray(mean)
+
+    mean_array = np.asarray(mean)
+    diff = np.empty(points_array.shape, dtype=np.float64)
+    for dim, row in enumerate(points_array):
+        row_diff = row.astype(np.float64) - float(mean_array[dim, 0])
+        mod_angle = getattr(type(row[0]), 'mod_angle', None)
+        diff[dim] = mod_angle(row_diff) if mod_angle is not None else row_diff
+    return diff
+
+
 def sigma2gauss(sigma_points, mean_weights, covar_weights, covar_noise=None):
     """Calculate estimated mean and covariance from a given set of sigma points
 
@@ -316,9 +339,9 @@ def sigma2gauss(sigma_points, mean_weights, covar_weights, covar_noise=None):
 
     mean = np.average(sigma_points, axis=1, weights=mean_weights).reshape(-1, 1)
 
-    points_diff = sigma_points - mean
+    points_diff = _points_diff(sigma_points, mean)
 
-    covar = points_diff @ np.diag(covar_weights) @ (points_diff.T)
+    covar = (points_diff * covar_weights) @ points_diff.T
     if covar_noise is not None:
         covar = covar + covar_noise
     return mean.view(StateVector), covar.view(CovarianceMatrix)
@@ -378,7 +401,8 @@ def unscented_transform(sigma_points_states, mean_weights, covar_weights,
 
     # Calculate cross-covariance
     cross_covar = (
-        (sigma_points-sigma_points[:, 0:1]) @ np.diag(covar_weights) @ (sigma_points_t-mean).T
+        ((sigma_points-sigma_points[:, 0:1]) * covar_weights)
+        @ _points_diff(sigma_points_t, mean).T
     ).view(CovarianceMatrix)
 
     return mean, covar, cross_covar, sigma_points_t, mean_weights, covar_weights
