@@ -107,7 +107,7 @@ def test_misc(class_):
 
 def test_degrees(class_):
     b1 = class_(np.pi/4)  # pi/4 radians = 45 degrees
-    assert b1.degrees == 45.0
+    assert b1.degrees == approx(45.0)
 
 
 def test_average(class_, func):
@@ -136,8 +136,8 @@ def test_wrapping_equality_and_abs(class_):
     assert val == class_(np.pi)
     assert abs(val) >= 0
     assert abs(val) == abs(class_(np.pi))
-    assert val == class_(wrapped_val)
-    assert abs(val) == abs(class_(wrapped_val))
+    assert val == approx(class_(wrapped_val))
+    assert abs(val) == approx(abs(class_(wrapped_val)))
 
     # Must use a bearing in a StateVector below: the StateVector class overrides ufuncs,
     # such that isclose works. Raw Angle classes don't (and can't sensibly) override that

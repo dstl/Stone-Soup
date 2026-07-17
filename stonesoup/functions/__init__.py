@@ -731,15 +731,14 @@ def mod_elevation(x):
     -------
     float
         Angle in radians in the range math: :math:`-\pi/2` to :math:`+\pi/2`
+
+    Note
+    ----
+    Uses the identity :math:`\arcsin(\sin(x))`, which folds any angle into
+    :math:`[-\pi/2, \pi/2]` with the same symmetry as elevation wrapping.
     """
     isscalar = np.isscalar(x)
-    x = np.asarray(x) % (2*np.pi)  # limit to 2*pi
-    N = x // (np.pi / 2)  # Count # of 90 deg multiples
-
-    x = np.where(N == 1, np.pi - x, x)
-    x = np.where(N == 2, np.pi - x, x)
-    x = np.where(N == 3, x - 2.0 * np.pi, x)
-    x = np.where(N == 4, 0.0, x)  # handle the edge case
+    x = np.arcsin(np.sin(np.asarray(x, dtype=float)))
 
     return x.item() if isscalar else x
 
