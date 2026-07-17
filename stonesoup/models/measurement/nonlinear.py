@@ -5,13 +5,13 @@ from typing import Union
 
 from math import sqrt
 import numpy as np
-from scipy.linalg import inv, pinv, block_diag
+from scipy.linalg import inv, pinv
 from scipy.stats import multivariate_normal
 
 from ...base import Property, clearable_cached_property
 from ...types.numeric import Probability
 
-from ...functions import cart2pol, pol2cart, \
+from ...functions import block_diag, cart2pol, pol2cart, \
     cart2sphere, sphere2cart, cart2angles, \
     build_rotation_matrix, cart2az_el_rg, az_el_rg2cart
 from ...types.array import StateVector, CovarianceMatrix, StateVectors

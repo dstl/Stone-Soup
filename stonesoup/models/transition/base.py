@@ -3,10 +3,10 @@ from abc import abstractmethod
 from collections.abc import Sequence
 
 import numpy as np
-from scipy.linalg import block_diag
 
 from ..base import Model, GaussianModel
 from ...base import Property
+from ...functions import block_diag
 from ...types.array import StateVector, StateVectors
 
 

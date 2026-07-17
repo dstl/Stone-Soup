@@ -16,6 +16,38 @@ from ..types.numeric import Probability
 from ..types.state import State
 
 
+def block_diag(*arrays):
+    """Create a block diagonal matrix from the provided 2-D (or lower) arrays.
+
+    A lightweight, drop-in replacement for :func:`scipy.linalg.block_diag` for the plain
+    :class:`numpy.ndarray` inputs Stone Soup calls it with (no batching, no array-API
+    dispatch), which is substantially faster for the small matrices typical of combined
+    transition/measurement models.
+
+    Parameters
+    ----------
+    *arrays : numpy.ndarray
+        Input arrays, treated as 2-D (scalar and 1-D inputs are promoted, as per
+        :func:`numpy.atleast_2d`).
+
+    Returns
+    -------
+    : numpy.ndarray
+        Array with the inputs arranged on the diagonal.
+    """
+    arrays = [np.atleast_2d(array) for array in arrays]
+    shapes = [array.shape for array in arrays]
+    dtype = np.result_type(*(array.dtype for array in arrays))
+    out = np.zeros((sum(shape[0] for shape in shapes), sum(shape[1] for shape in shapes)),
+                   dtype=dtype)
+    row = col = 0
+    for array, (n_rows, n_cols) in zip(arrays, shapes):
+        out[row:row+n_rows, col:col+n_cols] = array
+        row += n_rows
+        col += n_cols
+    return out
+
+
 def grid_creation(xp_aux, Pp_aux, sFactor, nx, Npa):
     """Grid for point mass filter
 
