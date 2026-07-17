@@ -1,5 +1,6 @@
 import copy
 from collections.abc import Sequence
+from turtle import st
 
 import numpy as np
 
@@ -210,3 +211,155 @@ class ConstantTurnSandwich(ConstantTurn):
         C_t[-3:, 0:2] = C_ct[-3:, 0:2]
 
         return CovarianceMatrix(C_t)
+    
+
+class DecayTransition(TransitionModel):
+    r"""This transition model simulates the decay of an active substance. During transition, a
+    certain fraction of the remaining active components will decay. This depends on the half life.
+    The process is stochastic with the probability of an individual decay within a time interval
+    $\Delta t$ being
+
+    .. math::
+
+        p(1 \rightarrow 0) = 1 - \exp -\lamba \Delta t
+
+    where $\lambda$ is the decay constant, related to the half life, $T$ via,
+
+    .. math::
+
+        \lambda = \frac{\log_e (2)}{T} 
+
+    """
+    def ndim_state(self):
+        """ndim_state getter method
+
+        Returns
+        -------
+        : :class:`int`
+            The dimension is singular being a binary undecayed/decayed (1/0) indicator. 
+        """
+        return 1
+
+    def decay_const(self, state):
+        r"""Returns the decay constant calculated from the half life provided in the states
+
+        Returns
+        -------
+        : :class:`float`
+            The decay constant, $\lambda$.
+        """
+        # TODO: check and handle that this property exists?
+        return np.log(2)/state.halflife.total_seconds()
+
+    def prob_decay(self, state, time_interval):
+        r"""Probability of a decay within a given time interval
+
+        Returns
+        -------
+        : :class:`float`
+            The probability of a decay within the time interval, $\Delta t$.
+        """
+        return 1 - np.exp(-self.decay_const(state)*time_interval.total_seconds())
+
+    def function(self, state,  time_interval):
+        """Returns a state vector after decay. A stochastic process, unless the seed is set
+        (TODO: set seed?).
+
+        Parameters
+        ----------
+        state : :class:`~.State`
+            The state which will transition
+        time_interval : :class:`~.timedelta`
+            The time interval over which to transition the state
+
+        Returns
+        -------
+        : :class:`~.StateVector`
+            The state vector after decay
+        """
+        out_state_vector = copy.copy(state.state_vector)
+        for i, element in enumerate(state.state_vector):
+            if element == 1 and np.random.uniform() < self.prob_decay(state, time_interval):
+                out_state_vector[i] *= 0
+
+        return out_state_vector
+
+    def covar(self, state,  time_interval):
+        """Returns the covariance of the state vector over a defined time interval. Not a
+        stochastic process; only depends onthe half life and the time interval. This is a single
+        number repeated down the diagonal for those elements that are undecayed.
+
+        Parameters
+        ----------
+        state : :class:`~.State`
+            The state from which to calculate the covariance
+        time_interval : :class:`~.timedelta`
+            The time interval over which to calculate the covariance
+
+        Returns
+        -------
+        : :class:`stonesoup.types.state.CovarianceMatrix` of shape\
+        (:py:attr:`~ndim_state`, :py:attr:`~ndim_state`)
+            The covariance matrix of the state vector
+
+        """
+        covar = self.prob_decay(state, time_interval) * (1 - self.prob_decay(state, time_interval))
+
+        return CovarianceMatrix(np.diag(state.state_vector*covar))
+
+    def pdf(self, state_fin, state_ini, time_interval):
+        """What's the probability of arriving at a particular state given the current state
+        and time interval? There's likely a quicker way to do this based on summing the vectors
+        directly rather than looping, but this is a simple implementation that's not likely to be
+        used often.
+
+        Parameters
+        ----------
+        state_fin : :class:`~.State`
+            The state to which the transition will be made
+        state_ini : :class:`~.State`
+            The state from which the transition was made
+        time_interval : :class:`~.timedelta`
+            The time interval over which to calculate the probability of transition
+
+        Returns
+        -------
+        : :class:`float`
+            The probability of transitioning from state_ini to state_fin over the time interval
+
+        Note
+        ----
+        This calculates the probability of transitioning from a partiular distribution of decayed
+        elements to another particular distribution of decayed elements. It's therefore likely to
+        be a very small number, especially for large state vectors. It's not the same as
+        calculating the probability of a particular number of decays, which may be a more useful
+        metric and is goverend by standard binomial statistics.
+
+        """
+        prob = 1
+        for i, element in enumerate(state_ini.state_vector):
+            if element == 1:
+                if state_fin.state_vector[i] == 1:
+                    prob *= (1 - self.prob_decay(state_ini, time_interval))
+                else:
+                    prob *= self.prob_decay(state_ini, time_interval)
+            else:
+                if state_fin.state_vector[i] == 1:
+                    # This should never happen, but if it does, we'd want to kill the loop
+                    prob *= 0.
+                else:
+                    prob *= 1
+
+        return prob
+
+    def rvs(self, state, time_interval, num_samples=1):
+        """Generate a random sample from the transition distribution. This is equivalent to
+        calling the function method n times, but is provided for consistency with other transition
+        models. The random seed cannnot yet be set.
+
+        """
+        samples = []
+        for i in range(num_samples):
+            samples.append(self.function(state, time_interval))
+
+        return StateVectors(samples)
