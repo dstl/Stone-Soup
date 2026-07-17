@@ -4,6 +4,7 @@ import copy
 import warnings
 from collections import defaultdict
 from functools import lru_cache
+from math import asin, sin
 
 import numpy as np
 from numpy import linalg as LA
@@ -737,10 +738,13 @@ def mod_elevation(x):
     Uses the identity :math:`\arcsin(\sin(x))`, which folds any angle into
     :math:`[-\pi/2, \pi/2]` with the same symmetry as elevation wrapping.
     """
-    isscalar = np.isscalar(x)
-    x = np.arcsin(np.sin(np.asarray(x, dtype=float)))
+    if np.isscalar(x):
+        # math.sin/asin avoid the numpy array-creation overhead of the vectorised
+        # path below, which matters as this runs on every scalar Elevation
+        # construction.
+        return asin(sin(x))
 
-    return x.item() if isscalar else x
+    return np.arcsin(np.sin(np.asarray(x, dtype=np.float64)))
 
 
 def build_rotation_matrix(angle_vector: np.ndarray):
