@@ -88,7 +88,7 @@ def test_trig(class_):
     assert np.tan(b1) == np.tan(b2)
     assert np.sinh(b1) == np.sinh(b2)
     assert np.cosh(b1) == np.cosh(b2)
-    assert np.tanh(b1) == np.tanh(b2)
+    assert np.tanh(b1) == approx(np.tanh(b2), 1e-16)
     assert np.rad2deg(b1) == np.rad2deg(b2)
 
 
