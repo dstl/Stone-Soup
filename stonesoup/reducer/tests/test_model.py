@@ -33,8 +33,10 @@ def test_model_reducer():
                                histories=1)
     prior = GaussianMixture(components=[state, state])
     augmented_states = augmentor.augment(prior)
+    assert isinstance(augmented_states, GaussianMixture)
     reducer = ModelReducer(transition_probabilities=transition_probabilities,
                            transition_model_list=transitions,
                            model_history_length=1)
     reduced_states = reducer.reduce(augmented_states, timestamp)
+    assert isinstance(reduced_states, GaussianMixture)
     assert len(prior) == len(reduced_states)

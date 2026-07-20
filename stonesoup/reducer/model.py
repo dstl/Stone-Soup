@@ -40,7 +40,7 @@ class ModelReducer(Reducer):
         """
         random_state = random_state if random_state is not None else self.random_state
 
-        temp = []
+        temp = GaussianMixture([])
         if len(self.transition_probabilities[states[0]].ravel()) == len(states.weights):
             m_ij_weights = (
                 self.transition_probabilities[states[0]].ravel() *
