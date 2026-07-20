@@ -1480,13 +1480,13 @@ position_measurement_sets_rates = [
     (
         (0, 0, 0, 0, 0, 0),
         (1, 1, 1, 0, 0, 0),
-        (np.asin(1/np.sqrt(3)), np.pi/4, np.sqrt(3), 0.0, 0.0, 0.0),
+        (np.arcsin(1/np.sqrt(3)), np.pi/4, np.sqrt(3), 0.0, 0.0, 0.0),
     ),
     # Case 6: Purely radial velocity (moving directly away)
     (
         (0, 0, 0, 0, 0, 0),
         (3, 4, 0, 3, 4, 0),
-        (0.0, np.atan2(4, 3), 5.0, 0.0, 0.0, 5.0),
+        (0.0, np.arctan2(4, 3), 5.0, 0.0, 0.0, 5.0),
     ),
     # Case 7: Purely tangential velocity in XY plane (circular orbit)
     (
@@ -1498,7 +1498,7 @@ position_measurement_sets_rates = [
     (
         (0, 0, 0, 0, 0, 0),
         (3, 0, 4, 1, 2, -1),
-        (np.asin(4/5), 0.0, 5.0, -0.28, 2/3, -0.2),
+        (np.arcsin(4/5), 0.0, 5.0, -0.28, 2/3, -0.2),
     ),
     # Case 9: Negative quadrant (third quadrant in XY)
     (
@@ -1511,8 +1511,8 @@ position_measurement_sets_rates = [
         (1, 1, 2, 1, 1, 1),
         (3, 4, 5, 1, 2, 3),
         (
-            np.asin(3 / np.sqrt(22)),   # el
-            np.atan2(3, 2),     # az
+            np.arcsin(3 / np.sqrt(22)),   # el
+            np.arctan2(3, 2),     # az
             np.sqrt(22),                # range
             17 / (22 * np.sqrt(13)),    # del
             2 / 13,                     # daz
