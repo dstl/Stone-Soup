@@ -23,7 +23,7 @@ class TransitionMatrix(Type):
         # Ensure transition_matrix is in the right format (rows sum to 1)
         self.transition_matrix = np.atleast_2d(self.transition_matrix)
 
-        if self.num_components:
+        if self.num_components > 1:
             if self.num_components != self.transition_matrix.shape[1]:
                 raise ValueError("num_components (%d) is not compatible with transition_matrix "
                                  "number of columns (%d)." % (self.num_components,

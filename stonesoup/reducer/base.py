@@ -9,7 +9,7 @@ from ..models.transition import TransitionModel
 from ..types.matrix import TransitionMatrix
 from ..types.mixture import GaussianMixture
 from ..types.prediction import Prediction
-from ..types.state import WeightedGaussianState, ExpandedModelAugmentedWeightedGaussianState
+from ..types.state import ExpandedModelAugmentedWeightedGaussianState
 from ..types.update import Update
 
 
