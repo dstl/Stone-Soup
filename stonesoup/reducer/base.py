@@ -49,12 +49,10 @@ class Reducer(Base):
         states : :class:`~.GaussianMixture` of :class:`~.ModelAugmentedWeightedGaussianState`
             Updated mixture with likelihood-weighted component weights.
         """
-        if isinstance(states, list):
-            if isinstance(states[0], list):
-                if isinstance(states[0][0], WeightedGaussianState):
-                    states = GaussianMixture(states[0])
-            else:
-                states = GaussianMixture(states)
+
+        if not isinstance(states, GaussianMixture):
+            raise TypeError("States needs to be a GaussianMixture")
+
         if len(states.components) > 1:
             if states.timestamp == timestamp:
                 if isinstance(states[0], (Prediction, Update)):
