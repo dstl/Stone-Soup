@@ -58,7 +58,11 @@ def test_calculate_likelihood(states, full_output, expected_weight):
                                                                 doc="List of transition models")
         histories: int = Property(default=None, doc="Depth of history to be stored")
     reducer = Dummy()
-    reduced_states = reducer.calculate_likelihood(states, prior.timestamp)
-    assert full_output == 0
-    for state in reduced_states:
-        assert state.weight == expected_weight
+    if isinstance(states, GaussianMixture):
+        reduced_states = reducer.calculate_likelihood(states, prior.timestamp)
+        assert full_output == 0
+        for state in reduced_states:
+            assert state.weight == expected_weight
+    else:
+        with pytest.raises(TypeError):
+            reducer.calculate_likelihood(states, prior.timestamp)
