@@ -22,6 +22,22 @@ class TransitionMatrix(Type):
         super().__init__(*args, **kwargs)
         # Ensure transition_matrix is in the right format (rows sum to 1)
         self.transition_matrix = np.atleast_2d(self.transition_matrix)
+
+        if self.num_components:
+            if self.num_components != self.transition_matrix.shape[1]:
+                raise ValueError("num_components (%d) is not compatible with transition_matrix "
+                                 "number of columns (%d)." % (self.num_components,
+                                                              self.transition_matrix.shape[1]))
+
+            num_rows = self.transition_matrix.shape[0]
+            if num_rows > 1:
+                history_length = int(round(np.log(num_rows) / np.log(self.num_components)))
+                if self.num_components ** history_length != num_rows:
+                    raise ValueError("transition_matrix number of rows (%d) is not compatible "
+                                     "with num_components (%d). Rows must equal "
+                                     "num_components**history_length." % (num_rows,
+                                                                          self.num_components,))
+
         transition_matrix = (self.transition_matrix /
                              np.tile(np.sum(self.transition_matrix, axis=1),
                                      (self.transition_matrix.shape[1], 1)).T)
