@@ -44,6 +44,19 @@ def test_transition_matrix(transitioning_probabilities, full_output):
         assert np.allclose(v1, v2)
 
 
+def test_transition_matrix_num_components_mismatch():
+    with pytest.raises(ValueError,
+                       match="num_components.*transition_matrix"):
+        TransitionMatrix([[0.95, 0.05], [0.25, 0.75]], num_components=3)
+
+
+def test_transition_matrix_num_components_multi_history():
+    tpm = TransitionMatrix([[0.75, 0.25], [0.6, 0.4], [0.2, 0.8], [0.9, 0.1]], num_components=2)
+    assert 2 in tpm.get_all_transition_matrices.keys()
+    assert tpm.transition_matrix.shape == (4, 2)
+    assert tpm.num_components == 2
+
+
 @pytest.mark.parametrize(
     "model_length, num_components, output",
     [(0,
@@ -62,7 +75,7 @@ def test_transition_matrix(transitioning_probabilities, full_output):
       )],
     ids=["KF", "GPB1", "GPB2:1/2", "GPB2:2/2"]
 )
-def test_transition_state(model_length, num_components, output, request):
+def test_transition_state(model_length, num_components, output):
     tpm = TransitionMatrix([[0.95, 0.05], [0.25, 0.75]], num_components)
     prior = ModelAugmentedWeightedGaussianState(
         state_vector=[[0], [1], [0], [1]],
