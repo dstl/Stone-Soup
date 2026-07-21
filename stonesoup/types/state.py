@@ -4,7 +4,7 @@ import uuid
 import weakref
 from collections.abc import MutableMapping, MutableSequence, Sequence
 from numbers import Integral
-from typing import Any, Optional
+from typing import Any, Optional, TYPE_CHECKING
 
 import numpy as np
 from scipy.stats import multivariate_normal
@@ -14,6 +14,9 @@ from .array import StateVector, CovarianceMatrix, PrecisionMatrix, StateVectors
 from .base import Type
 from .particle import Particle, MultiModelParticle, RaoBlackwellisedParticle
 from .numeric import Probability
+if TYPE_CHECKING:
+    from ..models.transition import TransitionModel
+    from .detection import Detection
 
 
 class State(Type):
@@ -170,7 +173,7 @@ class CreatableFromState:
 class PointMassState(State):
     """PointMassState State type
 
-    For the Lagrangina Point Mass filter.
+    For the Lagrangian Point Mass filter.
     """
 
     state_vector: StateVectors = Property(doc="State vectors.")
@@ -1308,3 +1311,46 @@ class CompositeState(Type):
 
 
 State.register(CompositeState)  # noqa: E305
+
+
+class ModelAugmentedWeightedGaussianState(WeightedGaussianState):
+    """
+    Model Augmented Weighted Gaussian State Type.
+
+    This state extends a weighted Gaussian state with additional information used
+    by multiple model algorithms that require model augmentation. It stores a history
+    of transition models, along with history lengths.
+    """
+    model_histories: Sequence['TransitionModel'] = Property(
+        default=None,
+        doc="Transition model history. Most recent first.")
+    measurement_histories: Sequence['Detection'] = Property(
+        default_factory=list,
+        doc="Measurement history. Most recent first.")
+    model_history_length: int = Property(
+        default=0,
+        doc="Maximum length of the stored transition model history.")
+    measurement_history_length: int = Property(
+        default=0,
+        doc="Maximum length of the stored measurement history.")
+    existence: Probability = Property(
+        default=Probability(1),
+        doc="The probability of existence.")
+
+
+class ExpandedModelAugmentedWeightedGaussianState(ModelAugmentedWeightedGaussianState):
+    """
+    Expanded Model Augmented Weighted Gaussian State Type.
+
+    This state extends the ModelAugmentedWeightedGaussianState by including a reference to the
+    current transition model as a parameter, which is also stored in the model history.
+    This allows for easier access to the current model while still maintaining a history of
+    past models for use in multiple model algorithms.
+    """
+    model: 'TransitionModel' = Property(doc="Current transition model for this state.")
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.model_histories = [*self.model_histories, self.model]
+        max_model_length = self.model_history_length + 1
+        self.model_histories = self.model_histories[-max_model_length:]

@@ -60,6 +60,12 @@ Interval Types
 .. automodule:: stonesoup.types.interval
     :show-inheritance:
 
+Matrix Types
+------------
+
+.. automodule:: stonesoup.types.matrix
+    :show-inheritance:
+
 Metric Types
 ------------
 
