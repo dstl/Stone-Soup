@@ -215,12 +215,12 @@ bearing_measurement_model = Cartesian2DToBearing(ndim_state=4,
     "detection",
     [
         # Irreversible detection
-        Detection(state_vector=[0, 100],
+        Detection(state_vector=[0],
                   timestamp=start_time,
                   measurement_model=bearing_measurement_model
                   ),
         # Irreversible detection 2
-        Detection(state_vector=[0, 100],
+        Detection(state_vector=[0],
                   timestamp=start_time,
                   measurement_model=CombinedReversibleGaussianMeasurementModel(
                       [bearing_measurement_model])
