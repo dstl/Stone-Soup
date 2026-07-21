@@ -373,10 +373,10 @@ class QuadraticDistance(MetricGenerator):
 
         quadratic_distances = []
 
-        measured_states_at_times = defaultdict(set)
-        truth_states_at_times = defaultdict(set)
+        measured_states_at_times = defaultdict(list)
+        truth_states_at_times = defaultdict(list)
         for state in measured_states:
-            measured_states_at_times[state.timestamp].append(state)
+            measured_states_at_times[state.timestamp].add(state)
         for state in truth_states:
             truth_states_at_times[state.timestamp].add(state)
         for timestamp in timestamps:
