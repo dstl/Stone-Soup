@@ -601,9 +601,9 @@ class MeanQuadraticError(QuadraticDistance):
         truths_states, self.truths_type, self.state_dim = self.extract_states(
             manager.states_sets[self.truths_key])
         hypotheses = manager.states_sets[self.hypotheses_key]
-        return self.compute_over_time(tracks_states, hypotheses, truths_states)
+        return self.compute_over_time(tracks_states, truths_states, hypotheses)
 
-    def compute_over_time(self, measured_states, hypotheses, truth_states):
+    def compute_over_time(self, measured_states, truth_states, hypotheses):
         """
         Computes the mean quadratic error over time between the measured and true states passed to
         this function.
@@ -628,10 +628,10 @@ class MeanQuadraticError(QuadraticDistance):
             for state in chain(measured_states, truth_states)})
 
         mqes = []
-        measured_states_at_times = defaultdict(set)
-        truth_states_at_times = defaultdict(set)
+        measured_states_at_times = defaultdict(list)
+        truth_states_at_times = defaultdict(list)
         for state in measured_states:
-            measured_states_at_times[state.timestamp].add(state)
+            measured_states_at_times[state.timestamp].append(state)
         for state in truth_states:
             truth_states_at_times[state.timestamp].append(state)
         for n, timestamp in enumerate(timestamps[1:]):
