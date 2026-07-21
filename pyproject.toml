@@ -75,9 +75,6 @@ video = [
 tensorflow = [
     "tensorflow>=2.2.0",
 ]
-orbital = [
-    "astropy",
-]
 mfa = [
     "ortools",
 ]
