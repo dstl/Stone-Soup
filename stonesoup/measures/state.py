@@ -522,6 +522,14 @@ class AngularDifference(Measure):
         \theta_{2} = \arctan(\dot{y}_{2}, \dot{x}_{2}
         \Delta\theta = \theta_{1} - \theta_{2}
     """
+    mapping: np.ndarray = Property(
+        doc="Mapping array which specifies which elements within the"
+            " state vectors are to be used to calculate the heading.")
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        if len(self.mapping) != 2:
+            raise IndexError("AngularDifference assumes 2 dimensions to calculate angle.")
 
     def __call__(self, state1, state2):
         r"""Calculate the angular difference between a pair of state vectors
