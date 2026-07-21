@@ -59,6 +59,9 @@ def test_mahalanobis():
                                                                   vec[:, 0],
                                                                   np.linalg.inv(ui)))
 
+    with pytest.raises(ValueError, match="mismatch between state1 and state2"):
+        measure = measure(state_u, State([0, 1]))
+
 
 def test_hellinger():
     v = StateVector([[11.], [10.], [10.], [2.]])
@@ -218,6 +221,12 @@ def test_mahalanobis_partial_mapping(mapping_type):
     assert measure(state_u, state_v) == \
         distance.mahalanobis([10, 1],
                              [11, 2], np.linalg.inv(reduced_ui))
+
+    mapping = mapping_type([0, 1])
+    mapping2 = np.array([0, 2, 3])
+    measure = measures.Mahalanobis(mapping=mapping, mapping2=mapping2)
+    with pytest.raises(ValueError, match="mismatch between mapping and mapping2"):
+        measure(state_u, state_v)
 
 
 def test_euclidean_full_mapping(mapping_type):

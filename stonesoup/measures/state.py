@@ -201,23 +201,28 @@ class SquaredMahalanobis(Measure):
         state_vector1 = getattr(state1, 'mean', state1.state_vector)
         state_vector2 = getattr(state2, 'mean', state2.state_vector)
 
-        if len(state_vector1) != len(state_vector2):
-            raise ValueError(
-                f"Shape mismatch between state1 and state2 along axis 0, \
-                    {len(state_vector1)} != {len(state_vector2)}."
-            )
-
         if self.mapping is not None:
+            if len(self.mapping) != len(self.mapping2):
+                raise ValueError(
+                    f"Shape mismatch between mapping and mapping2, "
+                    f"{len(self.mapping)} != {len(self.mapping2)}."
+                )
             u = state_vector1[self.mapping, 0]
             v = state_vector2[self.mapping2, :]
             # extract the mapped covariance data
             vi = self._inv_cov(state1, tuple(self.mapping))
         else:
+            if len(state_vector1) != len(state_vector2):
+                raise ValueError(
+                    f"Shape mismatch between state1 and state2 along axis 0, \
+                        {len(state_vector1)} != {len(state_vector2)}."
+                )
+
             u = state_vector1[:, 0]
             v = state_vector2[:, :]
             vi = self._inv_cov(state1)
 
-        delta = -(v.T-u)
+        delta = np.asarray(-(v.T-u), np.float64)
 
         # Return the diagonal elements of A@B@A.T
         return np.einsum('ij,jk,ik->i', delta, vi, delta).squeeze()[()]
