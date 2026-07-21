@@ -308,7 +308,7 @@ expected_2d = [
 
 
 @pytest.mark.parametrize(
-    'state, expected', zip(testdata_2d, expected_2d),
+    'state, expected', list(zip(testdata_2d, expected_2d)),
     ids=["Static", "pos offset", "x vel", "y vel", "-x vel", "-y vel",
          "x,y vel", "-x,-y vel", "x,-y vel", "-x,y vel"])
 def test_2d_platform(state, expected, move, radars_2d,
@@ -541,8 +541,8 @@ def expected_orientations_2d():
 
 
 @pytest.mark.parametrize('state, expected_platform_orientation, expected_sensor_orientations',
-                         zip(*zip(*test_platform_base.orientation_tests_2d),
-                             expected_orientations_2d()))
+                         list(zip(*zip(*test_platform_base.orientation_tests_2d),
+                                  expected_orientations_2d())))
 def test_rotation_offsets_2d(state, expected_platform_orientation, expected_sensor_orientations,
                              move, radars_2d, rotation_offsets_2d):
     # Define time related variables
@@ -572,8 +572,8 @@ def test_rotation_offsets_2d(state, expected_platform_orientation, expected_sens
 
 
 @pytest.mark.parametrize('state, expected_platform_orientation, expected_sensor_orientations',
-                         zip(*zip(*test_platform_base.orientation_tests_3d),
-                             expected_orientations_3d()))
+                         list(zip(*zip(*test_platform_base.orientation_tests_3d),
+                                  expected_orientations_3d())))
 def test_rotation_offsets_3d(state, expected_platform_orientation, expected_sensor_orientations,
                              move, radars_3d, rotation_offsets_3d):
     # Define time related variables

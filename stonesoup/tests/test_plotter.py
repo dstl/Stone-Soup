@@ -1,4 +1,3 @@
-import warnings
 from datetime import datetime, timedelta
 
 import matplotlib.pyplot as plt
@@ -237,6 +236,7 @@ def test_plot_density_equal_x_y():
         plotter.plot_density({truth}, index=None)
 
 
+@pytest.mark.filterwarnings("ignore:Animation was deleted without rendering anything")
 def test_animation_plotter():
     animation_plotter = AnimationPlotter()
     animation_plotter.plot_ground_truths(truth, [0, 2])
@@ -247,13 +247,6 @@ def test_animation_plotter():
     animation_plotter_with_title.plot_ground_truths(truth, [0, 2])
     animation_plotter_with_title.plot_tracks(track, [0, 2])
     animation_plotter_with_title.run()
-    with warnings.catch_warnings():
-        warnings.filterwarnings(
-            'ignore',
-            "Animation was deleted without rendering anything"
-        )
-        del animation_plotter
-        del animation_plotter_with_title
 
 
 def test_animated_plotterly():

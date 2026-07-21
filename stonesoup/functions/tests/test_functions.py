@@ -48,7 +48,7 @@ def test_grid_creation():
 
     mean_diffs = np.array([np.mean(np.diff(sublist)) for sublist in gridDimOld])
 
-    eigVal, eigVect = LA.eig(varX0)
+    eigVect = np.real(LA.eig(varX0)[1])
 
     assert np.allclose(meanX0, np.mean(predGrid, axis=1), 0, atol=1.0e-1)
     assert np.all(meanX0 == xOld.ravel())
