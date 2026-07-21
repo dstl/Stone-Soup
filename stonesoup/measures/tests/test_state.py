@@ -40,12 +40,31 @@ def test_euclidean():
     measure = measures.Euclidean()
     assert measure(state_u, state_v) == distance.euclidean(u[:, 0], v[:, 0])
 
+    with pytest.raises(ValueError, match="mismatch between state1 and state2"):
+        measure = measure(state_u, State([0, 1]))
+
+    mapping = np.array([0, 1])
+    mapping2 = np.array([0, 2, 3])
+    measure = measures.Euclidean(mapping=mapping, mapping2=mapping2)
+
+    with pytest.raises(ValueError, match="mismatch between mapping and mapping2"):
+        measure(state_u, state_v)
+
 
 def test_euclideanweighted():
     weight = np.array([1, 2, 3, 1])
     measure = measures.EuclideanWeighted(weight)
     assert measure(state_u, state_v) == distance.euclidean(u[:, 0], v[:, 0], weight)
     assert measure(stateB_u, stateB_v) == distance.euclidean(u[:, 0], v[:, 0], weight)
+
+    with pytest.raises(ValueError, match="mismatch between state1 and state2"):
+        measure = measure(state_u, State([0, 1]))
+
+    mapping = np.array([0, 1])
+    mapping2 = np.array([0, 2, 3])
+    measure = measures.EuclideanWeighted(weight, mapping=mapping, mapping2=mapping2)
+    with pytest.raises(ValueError, match="mismatch between mapping and mapping2"):
+        measure(state_u, state_v)
 
 
 def test_mahalanobis():
