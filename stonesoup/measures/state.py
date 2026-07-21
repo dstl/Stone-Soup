@@ -548,12 +548,9 @@ class AngularDifference(Measure):
         state_vector1 = getattr(state1, "mean", state1.state_vector)
         state_vector2 = getattr(state2, "mean", state2.state_vector)
 
-        if self.mapping is not None:
-            angle1 = Angle(np.arctan2(*state_vector1[self.mapping, 0][::-1]))
-            angle2 = Angle(np.arctan2(*state_vector2[self.mapping, 0][::-1]))
-            return angle1 - angle2
-        else:
-            raise NotImplementedError('AngularDifference requires a mapping to be defined')
+        angle1 = Angle(np.arctan2(*state_vector1[self.mapping, 0][::-1]))
+        angle2 = Angle(np.arctan2(*state_vector2[self.mapping2, 0][::-1]))
+        return angle1 - angle2
 
 
 class AngularDifferenceWithLeftRightAmbiguity(AngularDifference):

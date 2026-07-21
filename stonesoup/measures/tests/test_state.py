@@ -527,13 +527,8 @@ def test_angular_difference():
 
 
 def test_angular_difference_no_mapping():
-    state1 = State(StateVector([[1.], [0.]]))
-    state2 = State(StateVector([[0.], [1.]]))
-    measure = measures.AngularDifference()
-
-    assert measure.mapping is None
-    with pytest.raises(NotImplementedError):
-        measure(state1, state2)
+    with pytest.raises(TypeError):
+        measures.AngularDifference()
 
 
 def test_angular_difference_with_ambiguity():
