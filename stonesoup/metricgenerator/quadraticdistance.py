@@ -633,7 +633,7 @@ class MeanQuadraticError(QuadraticDistance):
         for state in measured_states:
             measured_states_at_times[state.timestamp].add(state)
         for state in truth_states:
-            truth_states_at_times[state.timestamp].add(state)
+            truth_states_at_times[state.timestamp].append(state)
         for n, timestamp in enumerate(timestamps[1:]):
             meas_points = measured_states_at_times[timestamp]
             truth_points = truth_states_at_times[timestamp]
