@@ -378,7 +378,7 @@ class QuadraticDistance(MetricGenerator):
         for state in measured_states:
             measured_states_at_times[state.timestamp].add(state)
         for state in truth_states:
-            truth_states_at_times[state.timestamp].add(state)
+            truth_states_at_times[state.timestamp].append(state)
         for timestamp in timestamps:
             meas_points = measured_states_at_times[timestamp]
             truth_points = truth_states_at_times[timestamp]
