@@ -3,7 +3,6 @@ from abc import abstractmethod
 from functools import lru_cache
 
 import numpy as np
-from scipy.spatial import distance
 
 from .base import BaseMeasure
 from ..base import Property
@@ -37,6 +36,11 @@ class Measure(BaseMeasure):
                              " set mapping to include all dimensions.")
         if self.mapping2 is None and self.mapping is not None:
             self.mapping2 = self.mapping
+        elif self.mapping is not None and len(self.mapping) != len(self.mapping2):
+            raise ValueError(
+                f"Shape mismatch between mapping and mapping2, "
+                f"{len(self.mapping)} != {len(self.mapping2)}."
+            )
 
     @abstractmethod
     def __call__(self, state1, state2):
@@ -89,10 +93,19 @@ class Euclidean(Measure):
         state_vector2 = getattr(state2, 'mean', state2.state_vector)
 
         if self.mapping is not None:
-            return distance.euclidean(state_vector1[self.mapping, 0],
-                                      state_vector2[self.mapping2, 0])
+            u = state_vector1[self.mapping, :]
+            v = state_vector2[self.mapping2, :]
         else:
-            return distance.euclidean(state_vector1[:, 0], state_vector2[:, 0])
+            if len(state_vector1) != len(state_vector2):
+                raise ValueError(
+                    f"Shape mismatch between state1 and state2 along axis 0, \
+                        {len(state_vector1)} != {len(state_vector2)}."
+                )
+            u = state_vector1[:, :]
+            v = state_vector2[:, :]
+
+        delta = np.asarray(v - u, dtype=np.float64)
+        return np.linalg.norm(delta, axis=0).squeeze()[()]
 
 
 class EuclideanWeighted(Measure):
@@ -137,13 +150,19 @@ class EuclideanWeighted(Measure):
         state_vector2 = getattr(state2, 'mean', state2.state_vector)
 
         if self.mapping is not None:
-            return distance.euclidean(state_vector1[self.mapping, 0],
-                                      state_vector2[self.mapping2, 0],
-                                      self.weighting)
+            u = state_vector1[self.mapping, :]
+            v = state_vector2[self.mapping2, :]
         else:
-            return distance.euclidean(state_vector1[:, 0],
-                                      state_vector2[:, 0],
-                                      self.weighting)
+            if len(state_vector1) != len(state_vector2):
+                raise ValueError(
+                    f"Shape mismatch between state1 and state2 along axis 0, \
+                        {len(state_vector1)} != {len(state_vector2)}."
+                )
+            u = state_vector1[:, :]
+            v = state_vector2[:, :]
+
+        delta = np.sqrt(self.weighting)[:, np.newaxis] * np.asarray(v - u, dtype=np.float64)
+        return np.linalg.norm(delta, axis=0).squeeze()[()]
 
 
 class SquaredMahalanobis(Measure):
@@ -202,23 +221,23 @@ class SquaredMahalanobis(Measure):
         state_vector1 = getattr(state1, 'mean', state1.state_vector)
         state_vector2 = getattr(state2, 'mean', state2.state_vector)
 
-        if len(state_vector1) != len(state_vector2):
-            raise ValueError(
-                f"Shape mismatch between state1 and state2 along axis 0, \
-                    {len(state_vector1)} != {len(state_vector2)}."
-            )
-
         if self.mapping is not None:
             u = state_vector1[self.mapping, 0]
             v = state_vector2[self.mapping2, :]
             # extract the mapped covariance data
             vi = self._inv_cov(state1, tuple(self.mapping))
         else:
+            if len(state_vector1) != len(state_vector2):
+                raise ValueError(
+                    f"Shape mismatch between state1 and state2 along axis 0, \
+                        {len(state_vector1)} != {len(state_vector2)}."
+                )
+
             u = state_vector1[:, 0]
             v = state_vector2[:, :]
             vi = self._inv_cov(state1)
 
-        delta = -(v.T-u)
+        delta = np.asarray(-(v.T-u), dtype=np.float64)
 
         # Return the diagonal elements of A@B@A.T
         return np.einsum('ij,jk,ik->i', delta, vi, delta).squeeze()[()]
