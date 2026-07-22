@@ -45,10 +45,8 @@ def test_euclidean():
 
     mapping = np.array([0, 1])
     mapping2 = np.array([0, 2, 3])
-    measure = measures.Euclidean(mapping=mapping, mapping2=mapping2)
-
     with pytest.raises(ValueError, match="mismatch between mapping and mapping2"):
-        measure(state_u, state_v)
+        measures.Euclidean(mapping=mapping, mapping2=mapping2)
 
 
 def test_euclideanweighted():
@@ -62,9 +60,8 @@ def test_euclideanweighted():
 
     mapping = np.array([0, 1])
     mapping2 = np.array([0, 2, 3])
-    measure = measures.EuclideanWeighted(weight, mapping=mapping, mapping2=mapping2)
     with pytest.raises(ValueError, match="mismatch between mapping and mapping2"):
-        measure(state_u, state_v)
+        measures.EuclideanWeighted(weight, mapping=mapping, mapping2=mapping2)
 
 
 def test_mahalanobis():
@@ -243,9 +240,8 @@ def test_mahalanobis_partial_mapping(mapping_type):
 
     mapping = mapping_type([0, 1])
     mapping2 = np.array([0, 2, 3])
-    measure = measures.Mahalanobis(mapping=mapping, mapping2=mapping2)
     with pytest.raises(ValueError, match="mismatch between mapping and mapping2"):
-        measure(state_u, state_v)
+        measures.Mahalanobis(mapping=mapping, mapping2=mapping2)
 
 
 def test_euclidean_full_mapping(mapping_type):

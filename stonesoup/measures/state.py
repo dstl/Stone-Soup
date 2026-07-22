@@ -35,6 +35,11 @@ class Measure(BaseMeasure):
                              " set mapping to include all dimensions.")
         if self.mapping2 is None and self.mapping is not None:
             self.mapping2 = self.mapping
+        elif self.mapping is not None and len(self.mapping) != len(self.mapping2):
+            raise ValueError(
+                f"Shape mismatch between mapping and mapping2, "
+                f"{len(self.mapping)} != {len(self.mapping2)}."
+            )
 
     @abstractmethod
     def __call__(self, state1, state2):
@@ -87,11 +92,6 @@ class Euclidean(Measure):
         state_vector2 = getattr(state2, 'mean', state2.state_vector)
 
         if self.mapping is not None:
-            if len(self.mapping) != len(self.mapping2):
-                raise ValueError(
-                    f"Shape mismatch between mapping and mapping2, "
-                    f"{len(self.mapping)} != {len(self.mapping2)}."
-                )
             u = state_vector1[self.mapping, :]
             v = state_vector2[self.mapping2, :]
         else:
@@ -149,11 +149,6 @@ class EuclideanWeighted(Measure):
         state_vector2 = getattr(state2, 'mean', state2.state_vector)
 
         if self.mapping is not None:
-            if len(self.mapping) != len(self.mapping2):
-                raise ValueError(
-                    f"Shape mismatch between mapping and mapping2, "
-                    f"{len(self.mapping)} != {len(self.mapping2)}."
-                )
             u = state_vector1[self.mapping, :]
             v = state_vector2[self.mapping2, :]
         else:
@@ -226,11 +221,6 @@ class SquaredMahalanobis(Measure):
         state_vector2 = getattr(state2, 'mean', state2.state_vector)
 
         if self.mapping is not None:
-            if len(self.mapping) != len(self.mapping2):
-                raise ValueError(
-                    f"Shape mismatch between mapping and mapping2, "
-                    f"{len(self.mapping)} != {len(self.mapping2)}."
-                )
             u = state_vector1[self.mapping, 0]
             v = state_vector2[self.mapping2, :]
             # extract the mapped covariance data
