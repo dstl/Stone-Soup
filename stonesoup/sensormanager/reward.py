@@ -25,6 +25,12 @@ from ..types.track import Track
 from ..updater import Updater
 from ..updater.kalman import ExtendedKalmanUpdater
 from ..updater.particle import ParticleUpdater
+from ..resampler.particle import SystematicResampler
+from ..types.groundtruth import GroundTruthState
+from ..dataassociator.base import DataAssociator
+from ..metricgenerator.quadraticdistance import QuadraticDistance
+from ..functions import cart2pol
+from ..types.angle import Bearing
 
 
 class RewardFunction(Base, ABC):
@@ -446,147 +452,252 @@ class MultiUpdateExpectedKLDivergence(ExpectedKLDivergence):
         return all_detections
 
 
-class FOVInteractionRewardFunction(RewardFunction):
+class QuadraticInformationGain(RewardFunction, QuadraticDistance):
     """
-    A reward function for the FOV interaction scenario.
-    This function rewards the sensor for keeping the target in its FOV while
-    penalising it for entering the target's FOV.
+    The quadratic information gain reward function. An implementation
+    is provided for the GM-PHD filter under the Gaussian kernel parametrisation.
     """
-    predictor: KalmanPredictor = Property(
-        doc="The predictor used to predict the track to a new state.")
-    updater: ExtendedKalmanUpdater = Property(
-        doc="The updater used to update the track to the new state.")
-    sensor_fov_radius: float = Property(
-        default=20.0, doc="The radius of the sensor platform's field of view.")
-    target_fov_radius: float = Property(
-        default=10.0, doc="The assumed radius of the target's field of view.")
-    sensor_mapping: list[int] = Property(
-        default=(0, 1),
-        doc="The mapping of sensor platform coordinates. Used to calculate the distance between"
-            "the sensor and target in the reward function.")
-    target_mapping: list[int] = Property(
-        default=(0, 2),
-        doc="The mapping of target coordinates. Used to calculate the distance between the"
-            "sensor and target in the reward function.")
-    fov_scale: float = Property(default=1.0, doc="")
-    track_weight: float = Property(
-        default=2.0,
-        doc="The weight of the reward for keeping the target in the sensor's FOV.")
 
-    def __call__(self,  config: Mapping[Sensor, Sequence[Action]], tracks: set[Track],
-                 metric_time: datetime, *args, **kwargs) -> float:
-        """
-        Calculate the reward for a given sensor and predicted target state.
-        Parameters
-        ----------
-        sensor : Sensor
-            The sensor platform.
-        predicted_state : State
-            The predicted state of the target.
-        Returns
-        -------
-        float
-            The calculated reward.
-        """
-        measure = Euclidean(self.sensor_mapping, self.target_mapping)
+    num_samples: int = Property(
+        doc='Number of samples to use in the Monte Carlo computation of the measurement average')
 
-        predicted_sensors = set()
-        memo = {}
-        # For each sensor/platform in the configuration
-        for actionable, actions in config.items():
-            predicted_actionable = copy.deepcopy(actionable, memo)
-            predicted_actionable.add_actions(actions)
-            predicted_actionable.act(metric_time, noise=False)
-            if isinstance(actionable, Sensor):
-                predicted_sensors.add(predicted_actionable)  # checks if it's a sensor
+    filter_data: dict = Property(
+        doc='Dictionary containing data for the particular filter model in question')
 
-        # Create dictionary of predictions for the tracks in the configuration
-        predicted_tracks = set()
-        # This loops are not currently used for multiple tracks but are left in for future
-        # compatibility with multiple targets
-        for track in tracks:
-            predicted_track = copy.copy(track)
-            predicted_track.append(self.predictor.predict(predicted_track, timestamp=metric_time))
-            predicted_tracks.add(predicted_track)
-        no_tracks = int(len(predicted_tracks))
-        # This loop is not currently used for multiple sensors but is left in for future
-        # compatibility with multiple sensors
-        for sensor in predicted_sensors:
-            sensor_pos = sensor.position if isinstance(sensor.position, State) else State(sensor.position)  # noqa: E501
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.state_dim = self.filter_data['state dimension']
 
-        total_reward = 0
-        # This loop is not currently used for multiple tracks but is left in for future
-        # compatibility with multiple targets
-        for target in predicted_tracks:
-            target_pos = target
+        # Gaussian kernel
+        if self.kernel == 'Gaussian':
 
-            distance = measure(sensor_pos, target_pos)
-            tracking_reward = (self.track_weight * no_tracks
-                               if distance <= self.sensor_fov_radius * self.fov_scale
-                               else -no_tracks)
-            # Penalty for entering the target's FOV
-            lack_of_stealth_penalty = (-no_tracks if distance <= self.target_fov_radius else 0.0)
-            # Combine the reward and penalty
-            total_reward += tracking_reward + lack_of_stealth_penalty
+            # unpack kernel specific parameters
+            allowed_keys = {'covariance'}
 
-        return total_reward
+            if self.kernel_parameters is not None:
+                unknown = set(self.kernel_parameters) - allowed_keys
+                if unknown:
+                    raise ValueError(
+                        f"Unknown parameter(s) for QuadraticInformationGain:"
+                        f"{', '.join(unknown)}.")
 
+                R = self.kernel_parameters['covariance']
 
-class AOIRewardFunction2D(RewardFunction):
-    """
-    A reward function which enables the use of different reward functions,
-    depending on the :class:`~.AreaOfInterest` the target is located in.
+                # check dimension symmetry and positive-definiteness
+                if R.shape != (self.state_dim, self.state_dim) or not np.allclose(
+                        R, R.T, rtol=1e-10, atol=1e-10) or np.any(np.linalg.eigvals(R) < 0):
+                    raise ValueError(
+                        f"The {self.kernel} kernel covariance"
+                        f"matrix must be symmetric and"
+                        f"positive-definite with shape"
+                        f"({self.state_dim}, {self.state_dim}).")
+            else:
+                raise ValueError(
+                    f'No covariance matrix was provided for the'
+                    f'{self.kernel} kernel.')
+        else:
+            raise NotImplementedError(
+                f'The Quadratic Information Gain with the'
+                f'{self.kernel} kernel parametrisation is not implemented.')
 
-    This function takes thresholds for how interested the sensor manager is in a particular area
-    (e.g. how important is achieving good tracking performance),
-    and how accessible an area is (e.g. how much risk is there for a sensor operating in that
-    area),
-    with mappings to a particular reward function to use when that
-    threshold is met.
-
-    The :class:`~.AdditiveRewardFunction` is used to combine the interest
-    and access reward functions if both thresholds are met. If no thresholds are met,
-    the default reward function is used.
-    """
-    interest_thresholds: Mapping[int, RewardFunction] = Property(default=None,
-                                                                 doc="Mapping of interest "
-                                                                 "thresholds to reward functions")
-    access_thresholds: Mapping[int, RewardFunction] = Property(default=None,
-                                                               doc="Mapping of access "
-                                                               "thresholds to reward functions")
-    default_reward: RewardFunction = Property(doc="Default reward function")
-    areas: Sequence[AreaOfInterest] = Property(doc="List of areas")
-    target_mapping: tuple[int, int] = Property(doc="Position mapping for the target")
+        # GM-PHD Update
+        if self.filter_data['filter model'] != 'GMPHD':
+            raise NotImplementedError(
+                f'The Quadratic Information Gain for the'
+                f'{self.filter_data["filter model"]} filter is not implemented.')
 
     def __call__(self, config: Mapping[Sensor, Sequence[Action]], tracks: set[Track],
-                 metric_time: datetime, *args, **kwargs):
+                 metric_time: datetime.datetime, *args, **kwargs):
 
-        reward_func = self.default_reward
-        for track in tracks:
-            track_x = track.state_vector[self.target_mapping[0]]
-            track_y = track.state_vector[self.target_mapping[1]]
+        reward = 0
 
-            for area in self.areas:
-                if area.xmin < track_x < area.xmax and area.ymin < track_y < area.ymax:
-                    interest_reward = None
-                    if self.interest_thresholds is not None:
-                        for threshold, reward in self.interest_thresholds.items():
-                            if threshold <= area.interest:
-                                interest_reward = reward
+        # compute gm-phd prediction gaussian mixture given the previous gaussian mixture
+        pred_wghts = []
+        pred_means = []
+        pred_covcs = []
+        for n, track in enumerate(tracks):
 
-                    access_reward = None
-                    if self.access_thresholds is not None:
-                        for threshold, reward in self.access_thresholds.items():
-                            if threshold <= area.access:
-                                access_reward = reward
+            propagated_track = self.filter_data['predictor'].predict(
+                track, timestamp=track.timestamp + datetime.timedelta(seconds=1))
+            pred_wghts.append(track.weight * self.filter_data['survival probability'])
+            pred_means.append(np.array(propagated_track.mean.flatten()))
+            pred_covcs.append(np.array(propagated_track.covar))
+        pred_wghts = np.asarray(pred_wghts)
+        pred_means = np.asarray(pred_means)
+        pred_covcs = np.asarray(pred_covcs)
 
-                    if interest_reward and access_reward:
-                        reward_func = AdditiveRewardFunction([interest_reward, access_reward])
-                    elif interest_reward:
-                        reward_func = interest_reward
-                    elif access_reward:
-                        reward_func = access_reward
+        predicted_mixture = [pred_wghts, pred_means, pred_covcs]
+
+        # return a random reward if there are no predicted states,
+        # this leads to random action selection.
+        if len(predicted_mixture[0]) == 0:
+            reward = np.random.rand()
+            return reward
+
+        # extract all sensors in this configuration
+        memo = {}
+        predicted_sensors = set()
+        # For each actionable in the configuration
+        for actionable, actions in config.items():
+
+            # Don't currently have an Actionable base for platforms hence either Platform or Sensor
+            if isinstance(actionable, Platform) or isinstance(actionable, Actionable):
+                predicted_actionable = copy.deepcopy(actionable, memo)
+                predicted_actionable.add_actions(actions)
+                predicted_actionable.act(metric_time)
+                if isinstance(actionable, Sensor):
+                    predicted_sensors.add(predicted_actionable)  # checks if its a sensor
+                elif isinstance(actionable, Platform):
+                    predicted_sensors.update(predicted_actionable.sensors)
+
+        for sensor in predicted_sensors:
+
+            # sampling
+            # setup categorical distribution
+            num_samples = self.num_samples
+            num_choices = len(predicted_mixture[0]) + 1  # +1 for the clutter distribution
+            weights_list = [
+                self.filter_data['clutter rate'],
+                *
+                list(
+                    self.filter_data['detection probability'] *
+                    np.array(
+                        predicted_mixture[0]))]
+
+            normalised_weights = weights_list / np.sum(weights_list)
+            choices = np.random.choice(
+                np.arange(num_choices),
+                p=normalised_weights,
+                size=num_samples)
+
+            # generate samples from the measurement distribution
+            p_sampled = False  # flag for if the projected prediction ever gets sampled
+            samples = np.zeros((num_samples, 2))
+            for n in range(num_choices):
+
+                idx = np.where(choices == n)[0]
+                if idx.size:
+                    if n == 0:
+                        # clutter samples
+                        thetas = np.random.uniform(
+                            sensor.dwell_centre.item() - sensor.fov_angle / 2,
+                            sensor.dwell_centre.item() + sensor.fov_angle / 2,
+                            size=idx.size) + Bearing(0.)
+                        rs = np.random.uniform(0, sensor.max_range, size=idx.size)
+                        samps = np.stack((thetas, rs), axis=1)
+
                     else:
-                        reward_func = self.default_reward
+                        # projected prediction samples
+                        p_sampled = True
+                        jacobian = sensor.measurement_model.jacobian(
+                            GroundTruthState(state_vector=predicted_mixture[1][n - 1]))
+                        projected_mean = np.array([float(x) for x in np.array(
+                            cart2pol(predicted_mixture[1][n - 1][0] - sensor.position.flatten()[0],
+                                     predicted_mixture[1][n - 1][2] - sensor.position.flatten()[1])
+                                     )[::-1]])
 
-        return reward_func(config, tracks, metric_time, *args, **kwargs)
+                        samps = np.random.multivariate_normal(mean=projected_mean,
+                                                              cov=sensor.noise_covar + jacobian @
+                                                              predicted_mixture[2][n - 1] @
+                                                              jacobian.T, size=idx.size)
+
+                        # convert theta to [-pi, pi] and range to [0, +inf)
+                        samps[:, 0] = (samps[:, 0] + np.pi) % (2 * np.pi) - np.pi
+                        samps[:, 1] = np.abs(samps[:, 1])
+
+                        # check which samples are in fov
+                        remove_mask = []
+                        for id_n, id in enumerate(idx):
+                            if not ((sensor.dwell_centre.item() - sensor.fov_angle
+                                    / 2 <= samps[id_n][0] <= sensor.dwell_centre.item()
+                                    + sensor.fov_angle / 2) or not
+                                    (samps[id_n][1] <= sensor.max_range)):
+
+                                remove_mask.append(id)
+
+                    samples[idx] = samps
+
+            # remove out of fov samples
+            if p_sampled:
+                samples = np.delete(samples, remove_mask, axis=0)
+                num_samples = len(samples)
+
+            # return a reward of 0 if number of samples is zero
+            if num_samples == 0:
+                return reward
+
+            # project prediction components according to the jacobian
+            jacobians = [sensor.measurement_model.jacobian(GroundTruthState(
+                state_vector=predicted_mixture[1][k])) for k in range(len(predicted_mixture[1]))]
+
+            jacobians_T = [jaco.T for jaco in jacobians]
+
+            projected_prediction_means = np.asarray(
+                [jacobians[n] @ predicted_mixture[1][n].T
+                 for n in range(len(predicted_mixture[1]))])
+
+            projected_predicted_covs_half = np.asarray(
+                [predicted_mixture[2][n] @ jacobians_T[n]
+                 for n in range(len(predicted_mixture[1]))])
+
+            half_projected_predicted_covs = np.asarray(
+                [jacobians[n] @ predicted_mixture[2][n]
+                 for n in range(len(predicted_mixture[1]))])
+
+            projected_predicted_covs = np.asarray(
+                [jacobians[n] @ predicted_mixture[2][n] @ jacobians_T[n]
+                 for n in range(len(predicted_mixture[1]))])
+
+            # compute reward
+            qs = self.vectorised_gaussian_eval(
+                False,
+                True,
+                dim=2,
+                w1=predicted_mixture[0],
+                m2=samples,
+                m1=projected_prediction_means,
+                const_cov=sensor.noise_covar,
+                var_cov1=projected_predicted_covs).flatten()  # j, z
+            # i
+            Ks = projected_predicted_covs_half @ np.linalg.inv(
+                sensor.noise_covar + projected_predicted_covs)
+            means = (predicted_mixture[1][:, None, :]
+                     + (Ks[:, None, :, :]
+                        @ (samples[None, :, :]
+                        - projected_prediction_means[:, None, :])
+                        [..., None])[..., 0]).reshape(-1, 4)  # i, z
+
+            covs = np.repeat(
+                predicted_mixture[2] -
+                Ks @ half_projected_predicted_covs,
+                num_samples,
+                axis=0)  # i
+
+            gamma = self.vectorised_gaussian_eval(
+                False,
+                True,
+                dim=4,
+                m1=means,
+                m2=means,
+                const_cov=self.kernel_parameters['covariance'],
+                var_cov1=covs,
+                var_cov2=covs)  # i, j, z
+
+            rhos2 = (self.filter_data['clutter rate']
+                     + self.filter_data['detection probability']
+                     * np.sum([predicted_mixture[0][k]
+                               * qs.reshape(len(predicted_mixture[0]),
+                                            num_samples)[k]
+                               for k in range(len(predicted_mixture[0]))]))**2
+
+            rhos2 = np.maximum(rhos2, 1e-12)  # prevent divide by zero errors
+
+            reward += ((self.filter_data['detection probability']**2 / num_samples)
+                       * np.sum(np.repeat(predicted_mixture[0], num_samples)[None, :]
+                                * qs[None, :] * gamma / (rhos2)))
+
+            reward *= (self.filter_data['clutter rate']
+                       + self.filter_data['detection probability']
+                       * np.sum(predicted_mixture[0]))
+
+        return reward
