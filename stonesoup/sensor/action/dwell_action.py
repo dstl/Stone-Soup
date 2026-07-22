@@ -2,7 +2,7 @@ from collections.abc import Iterator
 
 from ...types.angle import Bearing
 from ...functions import mod_bearing
-from .base import ChangeAngleAction, AngleActionsGenerator
+from .base import ChangeAngleAction, AngleActionGenerator
 
 
 class ChangeDwellAction(ChangeAngleAction):
@@ -31,7 +31,7 @@ class ChangeDwellAction(ChangeAngleAction):
         return dwell_centre
 
 
-class DwellActionsGenerator(AngleActionsGenerator):
+class DwellActionsGenerator(AngleActionGenerator):
     """Generates possible actions for changing the dwell centre of a sensor in a given
     time period."""
 
@@ -40,7 +40,7 @@ class DwellActionsGenerator(AngleActionsGenerator):
         return ChangeDwellAction(rotation_end_time=self.end_time,
                                  generator=self,
                                  end_time=self.end_time,
-                                 target_value=self.initial_value,
+                                 target_value=self.current_value,
                                  increasing_angle=True)
 
     def __iter__(self) -> Iterator[ChangeDwellAction]:

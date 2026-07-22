@@ -56,6 +56,12 @@ class ActionGenerator(Base):
     def __iter__(self) -> Iterator[Action]:
         raise NotImplementedError()
 
+    @abstractmethod
+    def action_from_value(self, value):
+        """Given a value for the attribute, generates the action would
+          achieve that value."""
+        raise NotImplementedError
+
     @property
     def current_value(self):
         """Return the current value of the owner's attribute."""
@@ -73,20 +79,34 @@ class RealNumberActionGenerator(ActionGenerator):
     @property
     @abstractmethod
     def initial_value(self):
+        """Initial action value, for use where a :class:`~.SensorManager` requires an
+          `initial_value` for optimisation."""
         raise NotImplementedError
 
     @property
     @abstractmethod
     def min(self):
+        """Minimum action value."""
         raise NotImplementedError
 
     @property
     @abstractmethod
     def max(self):
+        """Maximum action value."""
         raise NotImplementedError
 
-    @abstractmethod
-    def action_from_value(self, value):
+
+class StateVectorActionGenerator(ActionGenerator):
+    """Action generator for :class:`~.StateVector` types."""
+
+    @property
+    def action_mapping(self):
+        """The state dimensions that actions are applied to."""
+        raise NotImplementedError
+
+    @property
+    def max_state_change(self):
+        """Maximum magnitude of change in state vector."""
         raise NotImplementedError
 
 
