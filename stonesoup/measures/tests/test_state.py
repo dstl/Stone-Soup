@@ -542,7 +542,7 @@ def test_angular_difference_with_ambiguity():
 
     assert isinstance(result1, Angle)
     assert isinstance(result2, Angle)
-    assert float(result2) == float(result2)
+    assert float(result1) == float(result2)
 
 
 def test_angular_difference_wrong_mapping():
