@@ -81,7 +81,7 @@ def grid_creation(xp_aux, Pp_aux, sFactor, nx, Npa):
 
     """
 
-    eigVal, eigVect = LA.eig(
+    eigVal, eigVect = LA.eigh(
         Pp_aux
     )  # eigenvalue and eigenvectors for setting up the grid
     gridBound = np.sqrt(eigVal) * sFactor  # Boundaries of grid
