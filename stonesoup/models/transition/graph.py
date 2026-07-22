@@ -2,10 +2,10 @@ from collections import defaultdict
 from typing import Optional, Union
 
 import numpy as np
-from scipy.linalg import block_diag
 from scipy.stats import multivariate_normal
 
 from stonesoup.base import Property
+from stonesoup.functions import block_diag
 from stonesoup.functions.graph import normalise_re
 from stonesoup.models.base import TimeVariantModel
 from stonesoup.models.transition import TransitionModel

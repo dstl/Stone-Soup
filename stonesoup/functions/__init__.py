@@ -4,6 +4,7 @@ import copy
 import warnings
 from collections import defaultdict
 from functools import lru_cache
+from math import asin, sin
 
 import numpy as np
 from numpy import linalg as LA
@@ -13,6 +14,38 @@ from scipy.stats import ortho_group
 from ..types.array import CovarianceMatrix, StateVector, StateVectors
 from ..types.numeric import Probability
 from ..types.state import State
+
+
+def block_diag(*arrays):
+    """Create a block diagonal matrix from the provided 2-D (or lower) arrays.
+
+    A lightweight, drop-in replacement for :func:`scipy.linalg.block_diag` for the plain
+    :class:`numpy.ndarray` inputs Stone Soup calls it with (no batching, no array-API
+    dispatch), which is substantially faster for the small matrices typical of combined
+    transition/measurement models.
+
+    Parameters
+    ----------
+    *arrays : numpy.ndarray
+        Input arrays, treated as 2-D (scalar and 1-D inputs are promoted, as per
+        :func:`numpy.atleast_2d`).
+
+    Returns
+    -------
+    : numpy.ndarray
+        Array with the inputs arranged on the diagonal.
+    """
+    arrays = [np.atleast_2d(array) for array in arrays]
+    shapes = [array.shape for array in arrays]
+    dtype = np.result_type(*(array.dtype for array in arrays))
+    out = np.zeros((sum(shape[0] for shape in shapes), sum(shape[1] for shape in shapes)),
+                   dtype=dtype)
+    row = col = 0
+    for array, (n_rows, n_cols) in zip(arrays, shapes):
+        out[row:row+n_rows, col:col+n_cols] = array
+        row += n_rows
+        col += n_cols
+    return out
 
 
 def grid_creation(xp_aux, Pp_aux, sFactor, nx, Npa):
@@ -258,6 +291,29 @@ def gauss2sigma(state, alpha=1.0, beta=2.0, kappa=None):
     return sigma_points_states, mean_weights, covar_weights
 
 
+def _points_diff(points, mean):
+    """Difference of `points` from `mean`, row-by-row.
+
+    Equivalent to ``points - mean``, except that for rows of :class:`~.Angle`
+    (e.g. :class:`~.Bearing`/:class:`~.Elevation`) the difference is wrapped
+    to its minimal representation using the row's vectorised `mod_angle`,
+    rather than relying on element-wise :class:`~.Angle` arithmetic, which
+    forces a Python-level loop over every sigma point as `numpy` cannot
+    vectorise `object` dtype arrays.
+    """
+    points_array = np.asarray(points)
+    if points_array.dtype != np.object_:
+        return points_array - np.asarray(mean)
+
+    mean_array = np.asarray(mean)
+    diff = np.empty(points_array.shape, dtype=np.float64)
+    for dim, row in enumerate(points_array):
+        row_diff = row.astype(np.float64) - float(mean_array[dim, 0])
+        mod_angle = getattr(type(row[0]), 'mod_angle', None)
+        diff[dim] = mod_angle(row_diff) if mod_angle is not None else row_diff
+    return diff
+
+
 def sigma2gauss(sigma_points, mean_weights, covar_weights, covar_noise=None):
     """Calculate estimated mean and covariance from a given set of sigma points
 
@@ -283,9 +339,9 @@ def sigma2gauss(sigma_points, mean_weights, covar_weights, covar_noise=None):
 
     mean = np.average(sigma_points, axis=1, weights=mean_weights).reshape(-1, 1)
 
-    points_diff = sigma_points - mean
+    points_diff = _points_diff(sigma_points, mean)
 
-    covar = points_diff @ np.diag(covar_weights) @ (points_diff.T)
+    covar = (points_diff * covar_weights) @ points_diff.T
     if covar_noise is not None:
         covar = covar + covar_noise
     return mean.view(StateVector), covar.view(CovarianceMatrix)
@@ -345,7 +401,8 @@ def unscented_transform(sigma_points_states, mean_weights, covar_weights,
 
     # Calculate cross-covariance
     cross_covar = (
-        (sigma_points-sigma_points[:, 0:1]) @ np.diag(covar_weights) @ (sigma_points_t-mean).T
+        ((sigma_points-sigma_points[:, 0:1]) * covar_weights)
+        @ _points_diff(sigma_points_t, mean).T
     ).view(CovarianceMatrix)
 
     return mean, covar, cross_covar, sigma_points_t, mean_weights, covar_weights
@@ -737,10 +794,13 @@ def mod_elevation(x):
     Uses the identity :math:`\arcsin(\sin(x))`, which folds any angle into
     :math:`[-\pi/2, \pi/2]` with the same symmetry as elevation wrapping.
     """
-    isscalar = np.isscalar(x)
-    x = np.arcsin(np.sin(np.asarray(x, dtype=float)))
+    if np.isscalar(x):
+        # math.sin/asin avoid the numpy array-creation overhead of the vectorised
+        # path below, which matters as this runs on every scalar Elevation
+        # construction.
+        return asin(sin(x))
 
-    return x.item() if isscalar else x
+    return np.arcsin(np.sin(np.asarray(x, dtype=np.float64)))
 
 
 def build_rotation_matrix(angle_vector: np.ndarray):
