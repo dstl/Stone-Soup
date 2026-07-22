@@ -7,6 +7,7 @@ from scipy.spatial import distance
 
 from .base import BaseMeasure
 from ..base import Property
+from ..types.angle import Angle
 from ..types.state import State, ParticleState, GaussianState
 
 
@@ -506,3 +507,67 @@ class KLDivergence(Measure):
                                       'ParticleState or GaussianState types')
 
         return kld
+
+
+class AngularDifference(Measure):
+    r"""Angular Difference measure
+
+    This measure returns the difference in angles between a pair of :class:`~.State` objects.
+
+    The angular difference, :math:`\Delta\theta` between a pair of angles :math:`\theta_{1}` and
+    :math:`\theta_{2}` calculated from a mapping such as velocity is defined as:
+
+    .. math::
+        \theta_{1} = \arctan(\dot{y}_{1}, \dot{x}_{1}
+        \theta_{2} = \arctan(\dot{y}_{2}, \dot{x}_{2}
+        \Delta\theta = \theta_{1} - \theta_{2}
+    """
+    mapping: np.ndarray = Property(
+        doc="Mapping array which specifies which elements within the"
+            " state vectors are to be used to calculate the heading.")
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        if len(self.mapping) != 2:
+            raise IndexError("AngularDifference assumes 2 dimensions to calculate angle.")
+
+    def __call__(self, state1, state2):
+        r"""Calculate the angular difference between a pair of state vectors
+
+        Parameters
+        ----------
+        state1 : :class:`~.State`
+        state2 : :class:`~.State`
+
+        Returns
+        -------
+        Angle
+            Angular difference between two input :class:`~.State`
+
+        """
+        state_vector1 = getattr(state1, "mean", state1.state_vector)
+        state_vector2 = getattr(state2, "mean", state2.state_vector)
+
+        angle1 = Angle(np.arctan2(*state_vector1[self.mapping, 0][::-1]))
+        angle2 = Angle(np.arctan2(*state_vector2[self.mapping2, 0][::-1]))
+        return angle1 - angle2
+
+
+class AngularDifferenceWithLeftRightAmbiguity(AngularDifference):
+    r"""Angular Difference measure
+
+    This measure returns the difference in angles between a pair of :class:`~.State` objects with
+    :math:`180^{\degree}` ambiguity.
+
+    The angular difference with 180 ambiguity, :math:`\Delta\theta` between a pair of angles
+    :math:`\theta_{1}` and :math:`\theta_{2}` calculated from a mapping such as velocity is
+    defined as:
+
+    .. math::
+        \theta_{1} = \arctan(\dot{y}_{1}, \dot{x}_{1}
+        \theta_{2} = \arctan(\dot{y}_{2}, \dot{x}_{2}
+        \Delta\theta = \arcsin(|\sin(\theta_{1} - \theta_{2})|)
+    """
+    def __call__(self, state1, state2):
+        angle_diff = super().__call__(state1, state2)
+        return Angle(np.arcsin(np.abs(np.sin(angle_diff))))

@@ -7,6 +7,7 @@ from scipy.spatial import distance
 from scipy.stats import multivariate_normal
 
 from .. import state as measures
+from ...types.angle import Angle
 from ...types.array import StateVector, CovarianceMatrix, StateVectors
 from ...types.state import GaussianState, State, ParticleState, ASDState
 
@@ -512,3 +513,38 @@ def test_gaussian_kld_raise_errors():
 
     with pytest.raises(ValueError):
         measure(state1, state2)
+
+
+def test_angular_difference():
+    state1 = State(StateVector([[1.], [0.]]))
+    state2 = State(StateVector([[0.], [1.]]))
+    measure = measures.AngularDifference(mapping=[0, 1])
+
+    result = measure(state1, state2)
+
+    assert isinstance(result, Angle)
+    assert float(result) == pytest.approx(-np.pi / 2)
+
+
+def test_angular_difference_no_mapping():
+    with pytest.raises(TypeError):
+        measures.AngularDifference()
+
+
+def test_angular_difference_with_ambiguity():
+    state = State(StateVector([0., 1.]))
+    state1 = State(StateVector([1., 1.]))
+    state2 = State(StateVector([-1., 1.]))
+    measure = measures.AngularDifferenceWithLeftRightAmbiguity(mapping=[0, 1])
+
+    result1 = measure(state, state1)
+    result2 = measure(state, state2)
+
+    assert isinstance(result1, Angle)
+    assert isinstance(result2, Angle)
+    assert float(result1) == float(result2)
+
+
+def test_angular_difference_wrong_mapping():
+    with pytest.raises(IndexError):
+        measures.AngularDifference(mapping=[1, 2, 3])
