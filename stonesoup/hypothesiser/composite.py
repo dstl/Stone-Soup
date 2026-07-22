@@ -11,7 +11,7 @@ from ..types.multihypothesis import MultipleHypothesis
 class CompositeHypothesiser(Hypothesiser):
     """Composite hypothesiser type
 
-        A composition of ordered sub-hyposisers (:class:`~.Hypothesiser`). Hypothesises each
+        A composition of ordered sub-hypothesisers (:class:`~.Hypothesiser`). Hypothesises each
         sub-state of a track-detection pair using a corresponding sub-hypothesiser.
     """
 

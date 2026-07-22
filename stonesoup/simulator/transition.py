@@ -17,7 +17,7 @@ def create_smooth_transition_models(initial_state, x_coords, y_coords, times, tu
     r"""Generate a list of constant-turn and constant acceleration transition models alongside a
     list of transition times to provide smooth transitions between 2D cartesian coordinates and
     time pairs.
-    An assumption is that the initial_state's x, y coordinates are the first elements of x_ccords
+    An assumption is that the initial_state's x, y coordinates are the first elements of x_coords
     and y_coords respectively. Ie. The platform starts at the first coordinates.
 
     Parameters

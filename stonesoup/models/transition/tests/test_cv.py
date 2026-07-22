@@ -11,7 +11,7 @@ from ....types.state import State
 
 @pytest.mark.parametrize('sign', [1, -1])
 def test_cvmodel(sign):
-    """ ConstanVelocity Transition Model test """
+    """ ConstantVelocity Transition Model test """
 
     # State related variables
     state = State(np.array([[3.0], [1.0]]))
@@ -63,8 +63,7 @@ def test_cvmodel(sign):
         mean=np.array(F@state.state_vector).ravel(),
         cov=Q)
 
-    # Propagate a state vector throught the model
-    # (with internal noise)
+    # Propagate a state vector through the model (with internal noise)
     new_state_vec_w_inoise = cv.function(
         state,
         noise=True,
@@ -83,8 +82,7 @@ def test_cvmodel(sign):
         mean=np.array(F@state.state_vector).ravel(),
         cov=Q)
 
-    # Propagate a state vector throught the model
-    # (with external noise)
+    # Propagate a state vector through the model (with external noise)
     noise = cv.rvs(timestamp=new_timestamp, time_interval=time_interval)
     new_state_vec_w_enoise = cv.function(
         state,

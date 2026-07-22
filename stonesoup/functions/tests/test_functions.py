@@ -141,7 +141,7 @@ def test_jacobian_param():
 
     # Sample functions to compute Jacobian on
     def fun(x, value=0.0):
-        """ function for jabcobian parameter passing"""
+        """ function for jacobian parameter passing"""
         return value*x.state_vector
 
     x = 4

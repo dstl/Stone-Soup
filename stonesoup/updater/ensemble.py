@@ -159,7 +159,7 @@ class EnsembleUpdater(KalmanUpdater):
             The posterior state which contains an ensemble of state vectors
             and a timestamp.
         """
-        # Assigning more readible variable names
+        # Assigning more readable variable names
         hypothesis = self._check_measurement_prediction(hypothesis)
         pred_state = hypothesis.prediction
         meas_mean = hypothesis.measurement.state_vector
@@ -214,7 +214,7 @@ class EnsembleSqrtUpdater(EnsembleUpdater):
 
         K_{k} = P_{xz} P_{zz}^{-1}
 
-    The cross covariance and measurement covariance respectivley are approximated
+    The cross covariance and measurement covariance respectively are approximated
     via the sample square root covariances:
 
     .. math::
@@ -223,7 +223,7 @@ class EnsembleSqrtUpdater(EnsembleUpdater):
 
         P_{zz} \approx \tilde{Z}_k (\tilde{Z}_k)^T + R_k
 
-    and the posterior covariance is propaged through time via:
+    and the posterior covariance is propagated through time via:
 
     .. math::
 
@@ -253,7 +253,7 @@ class EnsembleSqrtUpdater(EnsembleUpdater):
     def update(self, hypothesis, **kwargs):
         r"""The Ensemble Square Root Kalman update method. The Ensemble Square
         Root filter propagates the mean and square root covariance through time,
-        and samples a new ensemble. This has the advantage of not peturbing the
+        and samples a new ensemble. This has the advantage of not perturbing the
         measurement with statistical noise, and thus is less prone to sampling
         error for small ensembles.
 
@@ -269,7 +269,7 @@ class EnsembleSqrtUpdater(EnsembleUpdater):
             The posterior state which contains an ensemble of state vectors
             and a timestamp.
         """
-        # More readible variable names
+        # More readable variable names
         hypothesis = self._check_measurement_prediction(hypothesis)
         pred_state = hypothesis.prediction.mean
         pred_state_sqrt_covar = hypothesis.prediction.sqrt_covar

@@ -30,7 +30,7 @@ class OptimalPathToDestinationTransitionModel(TransitionModel, TimeVariantModel)
 
     where :math:`e_k` denotes the edge the target is currently on, :math:`r_k` is the distance
     travelled along the edge, :math:`d_k` is the destination node, and :math:`s_k` is the source
-    node. The notation :math:`\cdots` denotes additional state variables thar are propagated using
+    node. The notation :math:`\cdots` denotes additional state variables that are propagated using
     the selected `transition_model` along with `r_k` (e.g. velocity :math:`\dot{r}_k`).
 
     The transition model provides the ability to resample the destination node with a given
@@ -172,7 +172,7 @@ class OptimalPathToDestinationTransitionModel(TransitionModel, TimeVariantModel)
             raise ValueError("Cannot generate pdf from None-type covariance")
 
         # Calculate difference before to handle custom types (mean defaults to zero)
-        # This is required as log pdf coverts arrays to floats
+        # This is required as log pdf converts arrays to floats
         likelihood = np.atleast_1d(
             multivariate_normal.logpdf((state1.state_vector - self.function(state2, **kwargs)).T,
                                        cov=covar, allow_singular=True))

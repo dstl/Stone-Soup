@@ -55,8 +55,7 @@ def test_oumodel(sign):
     assert np.allclose(Q, ou.covar(
         timestamp=new_timestamp, time_interval=time_interval), rtol=1e-10)
 
-    # Propagate a state vector throught the model
-    # (without noise)
+    # Propagate a state vector through the model (without noise)
     new_state_vec_wo_noise = ou.function(
         state,
         timestamp=new_timestamp,

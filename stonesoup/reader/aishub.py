@@ -31,7 +31,7 @@ class JSON_AISDetectionReader(DetectionReader, TextFileReader):
     * TIME is in Linux Epoch format
     * LONGITUDE and LATITUDE are (long/lat degrees)*(600,000)
     * MMSI is unique ship identifier
-    * The AIS detection attributes for lattitude, longitude, and timestamp are
+    * The AIS detection attributes for latitude, longitude, and timestamp are
       saved as the attributes of a 'Detection'; the other attributes are saved
       as the dictionary 'metadata' attribute of a 'Detection'.
     """
