@@ -246,7 +246,7 @@ NH_edges = Edges([Edge((sensornode1, fusion_node1), edge_latency=0),
 #   Here it is fused with information from Sensor Node 2 (S2). This
 #   resulting information is then passed to Fusion Node 1.
 #
-# Ultimately, F1 is recieving information from S1, and information from
+# Ultimately, F1 is receiving information from S1, and information from
 # F2 which is based on the same information from S1. This can cause a
 # bias towards the information created at S1. In this example, we would
 # expect to see overconfidence in the form of unrealistically small

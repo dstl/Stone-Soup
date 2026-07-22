@@ -4,7 +4,7 @@
 Introduction to Bayesian Search - A Simple 1D Example
 =====================================================
 This scenario provides the simplest example of using Bayesian search in Stone Soup.
- 
+
 The paper accompanying this work, '*Open Source Tools for Bayesian Search*' `[1] <#references>`_,
 can be found `here <https://doi.org/10.1117/12.3012763>`_.
 """
@@ -19,17 +19,17 @@ can be found `here <https://doi.org/10.1117/12.3012763>`_.
 # `[2] <#references>`_, and there are
 # `many examples <https://en.wikipedia.org/wiki/Bayesian_search_theory>`_ of its application in the
 # real world.
-# 
+#
 # Bayesian search makes use of Bayesian statistics to incorporate prior beliefs about targets,
 # represented as a probability distributions, into the calculation of optimal search behaviours.
 # The process is as follows:
-# 
+#
 # #.  Apply an initial probability distribution to the search space according to any prior beliefs
 #     we hold about the target locations.
 # #.  Take the action that corresponds to the maximisation of some parameter of interest (e.g.
 #     probability of target detection).
 # #.  Update the probability distribution based on what we observe.
-# #.  Repeat steps 2 and 3 until the probability of targets remaining undetected drops below a 
+# #.  Repeat steps 2 and 3 until the probability of targets remaining undetected drops below a
 #     threshold.
 #
 # There are many ways of extending this base process. For example, other parameters, such as
@@ -41,11 +41,11 @@ can be found `here <https://doi.org/10.1117/12.3012763>`_.
 # When implementing Bayesian search, it is mathematically convenient to divide the search space
 # into a number of discrete cells. Each cell can then be assigned a probability of containing a
 # target.
-# 
+#
 # Two equations are used to perform the update step (step 3). Adapting the notation from
 # `[1] <#references>`_, we will here use :math:`w_{k}^{C}` and :math:`w_{k}^{¬C}` to represent the
-# probability that a cell contains a target at timestep :math:`k` for an observed (:math:`C`) and 
-# unobserved (:math:`¬C`) cell, respectively. :math:`p_d` is used to represent the probability of 
+# probability that a cell contains a target at timestep :math:`k` for an observed (:math:`C`) and
+# unobserved (:math:`¬C`) cell, respectively. :math:`p_d` is used to represent the probability of
 # detecting a target when looking in a cell containing a target.
 #
 # If, after observation, a target is not detected, we update each cell's probabilities such
@@ -54,13 +54,13 @@ can be found `here <https://doi.org/10.1117/12.3012763>`_.
 # .. math::
 #           w_k^{C} = w_{k-1}^{C}{\frac {1-p_d} {1-w_{k-1}^{C} p_d}}
 #   :label: eq_1
-#  
+#
 # if a cell is within our field of view, and:
 #
 # .. math::
 #           w_k^{¬C} = {\frac {w_{k-1}^{¬C}} {1-w_{k-1}^{C} p_d}}
 #   :label: eq_2
-#  
+#
 # if it is not.
 #
 # Assuming an accurate but imperfect method of observation (:math:`0 < p_d < 1`), this has the
@@ -79,7 +79,7 @@ can be found `here <https://doi.org/10.1117/12.3012763>`_.
 # -----------------------------
 # Stone Soup's existing sensor management infrastructure can be readily adapted to undertake
 # Bayesian search.
-# 
+#
 # The search space and corresponding probability distribution need to be represented in such a way
 # that allows them to interact with the :class:`~.SensorManager`. One way of achieving this is with
 # the :class:`~.ParticleState` class. The :class:`~.ParticleState`'s
@@ -100,7 +100,7 @@ can be found `here <https://doi.org/10.1117/12.3012763>`_.
 # We assume that the sensor never locates the target, but we record the probability that the target
 # should have been found by a given timestep. We will control the sensor using three
 # different search algorithms, one of which will be Bayesian search.
-# 
+#
 # The idea here is to gain some intuition of the logic and mathematics underpinning Bayesian
 # search, before applying it to higher-fidelity scenarios.
 
@@ -135,7 +135,7 @@ timesteps = [start_time + timedelta(seconds=k) for k in range(simulation_length)
 # ---------------------
 # In this example we will be using a bearings-only sensor, with a fixed position, a 45 degree field
 # of view (FOV) and a maximum rotation speed of 180 degrees per second.
-# 
+#
 # We also define our probability of detection here, which will be used later when updating the
 # probability distribution in our search space at each timestep.
 
@@ -161,7 +161,7 @@ sensor = RadarRotatingBearing(
     dwell_centre=StateVector([np.pi]),
     clutter_model=None,
     resolution=np.radians(res)  # resolution of sensor equal to distance between search cells
-) 
+)
 sensor.timestamp = start_time
 
 
@@ -186,15 +186,15 @@ def sumofweightsreward(config, undetectmap, timestamp):
         predicted_sensor.add_actions(actions)
         predicted_sensor.act(timestamp)
         predicted_sensors.add(predicted_sensor)
-        
+
     # total probability of cells within our sensor's FOV
     total_prob = 0
-    
-    # calcuate the reward for each simulated action
+
+    # calculate the reward for each simulated action
     for sensor in predicted_sensors:
-        
+
         # assume no detection
-        
+
         for j, particle in enumerate(undetectmap.state_vector):
             pstate = ParticleState(particle)
             weight = undetectmap.weight[j]
@@ -202,7 +202,7 @@ def sumofweightsreward(config, undetectmap, timestamp):
             # if particle in sensor's FOV, add the probability to running total
             if sensor.is_detectable(pstate):
                 total_prob += weight
-                
+
     return float(total_prob)
 
 
@@ -213,7 +213,7 @@ def sumofweightsreward(config, undetectmap, timestamp):
 # management algorithms:
 #
 # *  for **Bayesian search** we will use the :class:`~.OptimizeBruteSensorManager`, which uses a
-#    brute force search over a defined input grid (see `scipy.optimze.brute()
+#    brute force search over a defined input grid (see `scipy.optimize.brute()
 #    <https://docs.scipy.org/doc/scipy/reference/generated/scipy.optimize.brute.html#brute>`_) to
 #    calculate the probability of target detection corresponding to each action from a subset of
 #    those available to the sensor.
@@ -277,7 +277,7 @@ prior_weights = prior_weights / np.sum(prior_weights)
 # As mentioned earlier in the example, we need a way of getting the probability distribution to
 # interact with a Stone Soup :class:`~.SensorManager`. We need to represent both the search cell
 # location and its probability of containing the target at each timestep.
-# 
+#
 # There's more than one way of doing this in Stone Soup. In the original paper
 # `[1] <#references>`_, :class:`~.Track` and :class:`~.Truth` objects were used to achieve this,
 # but here we will adopt a slightly more efficient approach, making use of :class:`~.ParticleState`
@@ -327,9 +327,9 @@ def search_loop(prior, sensor, sensormanager, timesteps, prob_det, seq_flag=Fals
     search_cell_info = [prior]
     sensor_info = [copy(sensor)]
     prob_found_list = [0]
-    
+
     for timestep in timesteps[1:]:
-        
+
         # update the search cell states with a new timestamp
         next_state = ParticleState(prior.state_vector, weight=current_state.weight,
                                    timestamp=timestep)
@@ -338,7 +338,7 @@ def search_loop(prior, sensor, sensormanager, timesteps, prob_det, seq_flag=Fals
         if seq_flag:
             sensor.timestamp = timestep
             sensor.dwell_centre = sensor.dwell_centre + sensor.fov_angle
-            
+
         else:
             chosen_actions = sensormanager.choose_actions(next_state, timestep)
 
@@ -347,21 +347,21 @@ def search_loop(prior, sensor, sensormanager, timesteps, prob_det, seq_flag=Fals
                     sens.add_actions(actions)
 
             sensor.act(timestep)
-            
+
         # add state of sensor into a set for plotting later
         sensor_info.append(copy(sensor))
-            
+
         # bespoke Bayesian search updater for cell probabilities
         weight_in_view = 0
         # for each particle/search cell
         for j, particle in enumerate(next_state.state_vector):
-            
+
             pstate = ParticleState(particle)
             weight = next_state.weight[j]
-            
+
             # update particles according to eq. 1 and 2 above
             if sensor.is_detectable(pstate):
-                weight_in_view += weight 
+                weight_in_view += weight
                 # all other particles adjusted according to probability of not finding target in
                 # cell j (eq.2)
                 next_state.weight = next_state.weight/(1-weight*prob_det)
@@ -370,14 +370,14 @@ def search_loop(prior, sensor, sensormanager, timesteps, prob_det, seq_flag=Fals
 
         # updated search cell states becomes the prior for next time step
         current_state = next_state
-        
+
         # save search cell state
         search_cell_info.append(copy(next_state))
-        
+
         # update probability of finding target by now. Use eq.6 of paper
         prob_found = prob_found_list[-1]
         prob_found_list.append(prob_found + (1-prob_found) * weight_in_view * prob_det)
-    
+
     print(f"Time taken = {time.time() - st}s")
     return sensor_info, search_cell_info, prob_found_list
 
@@ -423,7 +423,7 @@ sensor_history_s, search_cell_history_s, probs_s = search_loop(prior, sensor3, N
 #
 #     # function that takes particles from our tracking history and converts them to tracks
 #     def particles_to_tracks(search_cell_history, sim_length, n_cells, x_pos, y_pos, timesteps):
-#    
+#
 #         weights = [[float(weight) for weight in cell_group.weight]
 #                for cell_group in search_cell_history]
 #
@@ -434,7 +434,7 @@ sensor_history_s, search_cell_history_s, probs_s = search_loop(prior, sensor3, N
 #                             timestamp=timesteps[j])
 #                             for j in range(sim_length)])
 #                             for i in range(n_cells)]
-#    
+#
 #         return tracks
 #
 #     # create a list of tracks for each of our search algorithms
@@ -594,8 +594,8 @@ sensor_history_s, search_cell_history_s, probs_s = search_loop(prior, sensor3, N
 #     <br>
 
 # %%
-# | 
-# 
+# |
+#
 # In this plot we see optimised Bayesian search in effect, as the cell probabilities are updated at
 # each timestep and the sensor moves to observe the next most likely cell.
 

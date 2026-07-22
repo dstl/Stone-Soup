@@ -143,7 +143,7 @@ for k in range(num_steps):
     detections2 = set()
 
     # Introduce the delay every fifth scan
-    if not k%5 and k>0:
+    if not k % 5 and k > 0:
         delay = extra_delay
     else:
         delay = 0
@@ -152,8 +152,8 @@ for k in range(num_steps):
         if np.random.rand() <= prob_detect:  # for simplicity both scans get a detection at the same time
             measurement = sensor_1_mm.function(truth[k], noise=True)
             detections1.add(TrueDetection(state_vector=measurement,
-                                         groundtruth_path=truth,
-                                         timestamp=truth[k].timestamp))
+                                          groundtruth_path=truth,
+                                          timestamp=truth[k].timestamp))
 
             measurement = sensor_2_mm.function(truth[k], noise=True)
             detections2.add(TrueDetection(state_vector=measurement,
@@ -199,7 +199,7 @@ for k in range(num_steps):
 # both sensors.
 #
 
-#Load the kalman filter components
+# Load the kalman filter components
 from stonesoup.updater.kalman import UnscentedKalmanUpdater
 from stonesoup.predictor.kalman import UnscentedKalmanPredictor
 
@@ -210,7 +210,7 @@ updater = UnscentedKalmanUpdater(measurement_model=sensor_1_mm)
 from stonesoup.dataassociator.probability import JPDA
 from stonesoup.hypothesiser.probability import PDAHypothesiser
 
-hypothesiser =  PDAHypothesiser(
+hypothesiser = PDAHypothesiser(
     predictor=predictor,
     updater=updater,
     clutter_spatial_density=clutter_spatial_density,
@@ -263,13 +263,13 @@ for k in range(len(scan_s1)):  # loop over the scans
             # Use measurement-model inversion to obtain a predicted X-Y state
             predicted_location = State(
                 state_vector=StateVector(sensor_2_mm.inverse_function(detections_2, noise=False)),
-                                       timestamp=timestamps[k])
+                timestamp=timestamps[k])
 
             # Use inverse dynamics to move from Tau-> t_K
             oos_location = transition_model.function(predicted_location,
                                                      noise=False,
                                                      time_interval=detections_2.timestamp -
-                                                                   timestamps[k])
+                                                     timestamps[k])
 
             pseudo_state = State(state_vector=StateVector(oos_location),
                                  timestamp=timestamps[k])
@@ -342,9 +342,9 @@ plotter.plot_ground_truths(truths, [0, 2])
 plotter.plot_measurements(scan_s1, [0, 2], label='scan1', measurement_model=sensor_1_mm)
 plotter.plot_measurements(scan_s2, [0, 2], label='scan2', measurement_model=sensor_1_mm)
 plotter.plot_tracks(oosm_tracks, [0, 2], label='OOSM Tracks',
-                    line= dict(color='orange'))
+                    line=dict(color='orange'))
 plotter.plot_tracks(noOsm_tracks, [0, 2], label='no-OOSM Tracks',
-                    line= dict(color='red'))
+                    line=dict(color='red'))
 plotter.fig
 
 # %%
@@ -354,9 +354,9 @@ plotter.fig
 from stonesoup.metricgenerator.ospametric import OSPAMetric
 
 ospa_oosm_truth = OSPAMetric(c=40, p=1, generator_name='OSPA_OOSM-truth',
-                            tracks_key='oosm_track', truths_key='truths')
+                             tracks_key='oosm_track', truths_key='truths')
 ospa_nooosm_truth = OSPAMetric(c=40, p=1, generator_name='OSPA_NoOOSM-truth',
-                           tracks_key='noOosm_track', truths_key='truths')
+                               tracks_key='noOosm_track', truths_key='truths')
 
 from stonesoup.metricgenerator.manager import MultiManager
 from stonesoup.dataassociator.tracktotrack import TrackToTruth

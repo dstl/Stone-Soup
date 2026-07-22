@@ -138,7 +138,7 @@ class DirectionActionsGenerator(ActionGenerator):
 
     def __contains__(self, item):
         """Can switch to any direction in any time frame (as long as it is sensible. e.g. we
-        shouldn't expect to be able to look in the direction "up" or "weast")."""
+        shouldn't expect to be able to look in the direction "up" or "wast")."""
         if isinstance(item, ChangeDirectionAction):
             item = item.target_value  # grab the target value of the action to check against
 
