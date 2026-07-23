@@ -87,7 +87,7 @@ def test_update_messages():
     edge.update_messages(time_created)
     assert len(edge.messages_held['pending']) == 1
 
-    # Try again a secomd later
+    # Try again a second later
     edge.update_messages(time_created + datetime.timedelta(seconds=1))
     assert len(edge.messages_held['pending']) == 0
 

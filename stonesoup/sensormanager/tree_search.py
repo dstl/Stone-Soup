@@ -104,11 +104,11 @@ class MonteCarloTreeSearchSensorManager(SensorManager):
 
     discount_factor: float = Property(
         default=0.9,
-        doc="The discount factor is applied to rewards beyond the immidiate future timestep "
+        doc="The discount factor is applied to rewards beyond the immediate future timestep "
             "to reduce the reward of future nodes to reflect the increasing level of uncertainty "
             "the further into the horizon the search progresses. It is applied multiplicatively "
             "such that the factor will be raised by power of the number of timesteps "
-            "beyond the immidiate future timestep.")
+            "beyond the immediate future timestep.")
 
     search_depth: int = Property(
         default=None,
@@ -212,7 +212,7 @@ class MonteCarloTreeSearchSensorManager(SensorManager):
                 reward, future_reward, updates = self.simulate_action(nodes[-1], nodes[node_indx])
 
                 nodes[-1]['tracks'] = updates
-                nodes[-1]['reward'] = reward  # store immidiate reward as 'reward'
+                nodes[-1]['reward'] = reward  # store immediate reward as 'reward'
 
                 for sensor, actions in selected_config.items():
                     sensor.add_actions(actions)

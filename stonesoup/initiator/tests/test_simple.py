@@ -198,7 +198,7 @@ def test_linear_measurement_non_direct(meas_init):
         def pdf(self):
             pass
 
-        def rvs(slef):
+        def rvs(self):
             pass
 
     measurement_model = _LinearMeasurementModel()
@@ -392,12 +392,12 @@ def test_skip_in_multi_measurement(measurement_model_class, skip_non_reversible)
                     measurement_model=measurement_model
                     )
 
-    interal_initiator = SinglePointInitiator(
+    internal_initiator = SinglePointInitiator(
         prior_state=GaussianState([[0], [0]], np.diag([15, 15])))
 
     measurement_initiator = create_multi_measurement_initiator(
         MultiMeasurementInitiator,
-        initiator=interal_initiator,
+        initiator=internal_initiator,
         measurement_model=None,
         skip_non_reversible=skip_non_reversible)
 

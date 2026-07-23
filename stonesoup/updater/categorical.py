@@ -96,7 +96,7 @@ class HMMUpdater(Updater):
 
         if not isinstance(measurement_model, MarkovianMeasurementModel):
             raise ValueError(
-                "HMMUpdater must be used in conjuction with HiddenMarkovianMeasurementModel types"
+                "HMMUpdater must be used in conjunction with HiddenMarkovianMeasurementModel types"
             )
 
         return measurement_model

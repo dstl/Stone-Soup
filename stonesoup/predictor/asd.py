@@ -180,7 +180,7 @@ class ASDKalmanPredictor(KalmanPredictor):
 
             P_right_lower = prior.multi_covar[t_index * ndim:, t_index * ndim:]
 
-            # Calculate what would be the orignal predicted covariance
+            # Calculate what would be the original predicted covariance
             p_state_pred = GaussianState(
                 x_pred_m, correlation_matrices[t_index]['P'], prior.timestamp)
             p_p_pred = self._predicted_covariance(

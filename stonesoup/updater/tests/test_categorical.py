@@ -36,7 +36,7 @@ def test_hmm_updater():
     with pytest.raises(ValueError, match="No measurement model specified"):
         updater._check_measurement_model(None)
     updater.measurement_model = measurement_model
-    with pytest.raises(ValueError, match="HMMUpdater must be used in conjuction with "
+    with pytest.raises(ValueError, match="HMMUpdater must be used in conjunction with "
                                          "HiddenMarkovianMeasurementModel types"):
         updater._check_measurement_model(LinearGaussian(np.eye(3),
                                                         mapping=(0, 1, 2),

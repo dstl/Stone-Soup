@@ -724,9 +724,7 @@ def test_rangeratemodels(h, modelclass, state_vec, ndim_state, pos_mapping, vel_
     # StateVector is subclass of Matrix, so need to check explicitly.
     assert not isinstance(rvs, StateVector)
 
-    # Project a state throught the model
-    # Project a state through the model
-    # (without noise)
+    # Project a state through the model (without noise)
     meas_pred_wo_noise = model.function(state)
     assert np.array_equal(meas_pred_wo_noise, h(state_vec,
                                                 model.mapping,
@@ -766,8 +764,7 @@ def test_rangeratemodels(h, modelclass, state_vec, ndim_state, pos_mapping, vel_
          ).ravel(),
         cov=noise_covar)
 
-    # Propagate a state vector throught the model
-    # (with external noise)
+    # Propagate a state vector through the model (with external noise)
     noise = model.rvs()
     meas_pred_w_enoise = model.function(state,
                                         noise=noise)
@@ -991,8 +988,7 @@ def test_rangeratemodels_with_particles(h, modelclass, state_vec, ndim_state, po
              ).T,
             cov=noise_covar)
 
-    # Propagate a state vector throught the model
-    # (with external noise)
+    # Propagate a state vector through the model (with external noise)
     noise = model.rvs()
     meas_pred_w_enoise = model.function(state,
                                         noise=noise)

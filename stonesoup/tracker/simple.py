@@ -134,7 +134,7 @@ class SingleTargetMixtureTracker(_TrackerMixInNext, Tracker):
                 covars = np.stack([state.covar for state in posterior_states], axis=2)
                 weights = np.asarray(posterior_state_weights)
 
-                # Recuce the mixture of states to one posterior estimate Gaussian
+                # Reduce the mixture of states to one posterior estimate Gaussian
                 post_mean, post_covar = gm_reduce_single(means, covars, weights)
 
                 missed_detection_weight = next(hyp.weight for hyp in multihypothesis if not hyp)

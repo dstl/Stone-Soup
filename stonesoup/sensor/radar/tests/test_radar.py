@@ -598,7 +598,7 @@ def test_rotating_radar_3d(sensorclass, radar_position, radar_orientation, state
 
 def test_raster_scan_radar():
     # Input arguments
-    # TODO: pytest parametarization
+    # TODO: pytest parametrisation
     timestamp = datetime.datetime.now()
     noise_covar = CovarianceMatrix(np.array([[0.015, 0],
                                              [0, 0.1]]))

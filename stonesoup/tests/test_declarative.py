@@ -49,12 +49,12 @@ def test_sub_subclass_remove_property(base):
 def test_init_unordered(base):
     with pytest.raises(TypeError):
         class _TestUnordered(base):
-            def __init__(self, property_b, *args, **kwrags):
+            def __init__(self, property_b, *args, **kwargs):
                 pass
 
     with pytest.raises(TypeError):
         class _TestUnordered(base):  # noqa: F811
-            def __init__(self, property_b, property_a, *args, **kwrags):
+            def __init__(self, property_b, property_a, *args, **kwargs):
                 pass
 
 

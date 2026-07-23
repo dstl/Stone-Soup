@@ -161,7 +161,7 @@ class _AngleNonLinearGaussianMeasurement(NonLinearGaussianMeasurement):
             raise ValueError("Cannot generate pdf from None-type covariance")
 
         # Calculate difference before to handle custom types (mean defaults to zero)
-        # This is required as log pdf coverts arrays to floats
+        # This is required as log pdf converts arrays to floats
         vector = state1.state_vector.astype(np.float64) - self._function(state2, **kwargs)
         for dim, val in enumerate(self._typed_vector().ravel()):
             mod_angle = getattr(type(val), 'mod_angle', None)

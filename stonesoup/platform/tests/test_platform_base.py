@@ -887,7 +887,7 @@ def test_path_no_states_no_tm():
       None,  # simplices
       )
      ],
-    ids=['test_defined_simpleces', 'test_undefined_simplices', 'test_5_sides', 'test_no_shape'])
+    ids=['test_defined_simplices', 'test_undefined_simplices', 'test_5_sides', 'test_no_shape'])
 def test_obstacle(shape_data, position1, orientation1, position2, orientation2,
                   simplices):
 

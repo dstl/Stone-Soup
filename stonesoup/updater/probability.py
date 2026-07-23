@@ -14,7 +14,7 @@ class PDAUpdater(ExtendedKalmanUpdater):
     differs slightly from the Kalman updater it inherits from in that instead of a single
     hypothesis object, the :meth:`update` method takes a hypotheses object returned by a
     :class:`~.PDA` (or similar) data associator. Functionally this is a list of single hypothesis
-    objects which group tracks together with associated measuments and probabilities.
+    objects which group tracks together with associated measurements and probabilities.
 
     The :class:`~.ExtendedKalmanUpdater` is used in order to inherit the ability to cope with
     (slight) non-linearities. Other inheritance structures should be trivial to implement.

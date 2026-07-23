@@ -204,7 +204,7 @@ class RecursiveEnsembleUpdater(ExtendedKalmanUpdater, EnsembleUpdater):
             The posterior state which contains an ensemble of state vectors
             and a timestamp.
         """
-        # Assigning more readible variable names
+        # Assigning more readable variable names
         hypothesis = self._check_measurement_prediction(hypothesis)
         num_vectors = hypothesis.prediction.num_vectors
 

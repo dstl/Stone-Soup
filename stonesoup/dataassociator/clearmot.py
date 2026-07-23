@@ -96,7 +96,7 @@ class ClearMotAssociator(TwoTrackToTrackAssociator):
                                                              )
 
             # in case either the truth or tracks are empty, continue with the next timestep,
-            # since there is nothing left to associate anymore
+            # since there is nothing left to associate any more
             if not remaining_truth_ids_at_current_time or not remaining_track_ids_at_current_time:
                 matches_over_time.append(matches_current)
                 matches_previous = matches_current
@@ -193,7 +193,7 @@ class ClearMotAssociator(TwoTrackToTrackAssociator):
             return matches_current, truth_ids_at_current_time, track_ids_at_current_time
 
         # we iterate over each match and check if it is still valid (i.e. below the
-        # assication threshold - if true, we keep it and add it to current set,
+        # association threshold - if true, we keep it and add it to current set,
         # if not we do not maintain the match
         for (track_id, truth_id) in matches_previous:
             try:

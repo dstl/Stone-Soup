@@ -170,7 +170,7 @@ class CreatableFromState:
 class PointMassState(State):
     """PointMassState State type
 
-    For the Lagrangina Point Mass filter.
+    For the Lagrangian Point Mass filter.
     """
 
     state_vector: StateVectors = Property(doc="State vectors.")
