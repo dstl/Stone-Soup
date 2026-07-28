@@ -200,7 +200,7 @@ class KalmanUpdater(Updater):
 
             # Calculate Kalman gain
             kalman_gain = hypothesis.measurement_prediction.cross_covar @ \
-                np.linalg.inv(hypothesis.measurement_prediction.covar)
+                np.linalg.pinv(hypothesis.measurement_prediction.covar)
 
             measurement_model = self._check_measurement_model(
                 hypothesis.measurement.measurement_model)
@@ -222,7 +222,7 @@ class KalmanUpdater(Updater):
 
         else:
             kalman_gain = hypothesis.measurement_prediction.cross_covar @ \
-                np.linalg.inv(hypothesis.measurement_prediction.covar)
+                np.linalg.pinv(hypothesis.measurement_prediction.covar)
 
             post_cov = hypothesis.prediction.covar - kalman_gain @ \
                 hypothesis.measurement_prediction.covar @ kalman_gain.T
