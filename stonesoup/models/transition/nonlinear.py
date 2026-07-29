@@ -1,6 +1,5 @@
 import copy
 from collections.abc import Sequence
-from turtle import st
 
 import numpy as np
 
@@ -211,7 +210,7 @@ class ConstantTurnSandwich(ConstantTurn):
         C_t[-3:, 0:2] = C_ct[-3:, 0:2]
 
         return CovarianceMatrix(C_t)
-    
+
 
 class DecayTransition(TransitionModel):
     r"""This transition model simulates the decay of an active substance. During transition, a
@@ -227,7 +226,7 @@ class DecayTransition(TransitionModel):
 
     .. math::
 
-        \lambda = \frac{\log_e (2)}{T} 
+        \lambda = \frac{\log_e (2)}{T}
 
     """
     def ndim_state(self):
@@ -236,7 +235,7 @@ class DecayTransition(TransitionModel):
         Returns
         -------
         : :class:`int`
-            The dimension is singular being a binary undecayed/decayed (1/0) indicator. 
+            The dimension is singular being a binary undecayed/decayed (1/0) indicator.
         """
         return 1
 
@@ -305,7 +304,7 @@ class DecayTransition(TransitionModel):
         """
         covar = self.prob_decay(state, time_interval) * (1 - self.prob_decay(state, time_interval))
 
-        return CovarianceMatrix(np.diag(state.state_vector*covar))
+        return CovarianceMatrix([np.diag(state.state_vector*covar)])
 
     def pdf(self, state_fin, state_ini, time_interval):
         """What's the probability of arriving at a particular state given the current state
