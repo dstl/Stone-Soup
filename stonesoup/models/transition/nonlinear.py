@@ -216,17 +216,17 @@ class DecayTransition(TransitionModel):
     r"""This transition model simulates the decay of an active substance. During transition, a
     certain fraction of the remaining active components will decay. This depends on the half life.
     The process is stochastic with the probability of an individual decay within a time interval
-    $\Delta t$ being
+    :math:`\Delta t` being
 
     .. math::
 
-        p(1 \rightarrow 0) = 1 - \exp -\lamba \Delta t
+        p(1 \rightarrow 0) = 1 - \exp(- \lambda \Delta t)
 
-    where $\lambda$ is the decay constant, related to the half life, $T$ via,
+    where :math:`\lambda` is the decay constant, related to the half life, :math:`T` via,
 
     .. math::
 
-        \lambda = \frac{\log_e (2)}{T}
+        \lambda = \frac{\log_e 2}{T}
 
     """
     def ndim_state(self):
@@ -235,17 +235,17 @@ class DecayTransition(TransitionModel):
         Returns
         -------
         : :class:`int`
-            The dimension is singular being a binary undecayed/decayed (1/0) indicator.
+            The dimension is singular, being a binary undecayed/decayed (1/0) indicator.
         """
         return 1
 
     def decay_const(self, state):
-        r"""Returns the decay constant calculated from the half life provided in the states
+        r"""Returns the decay constant calculated from the half life provided in the state
 
         Returns
         -------
         : :class:`float`
-            The decay constant, $\lambda$.
+            The decay constant, :math:`\lambda`.
         """
         # TODO: check and handle that this property exists?
         return np.log(2)/state.halflife.total_seconds()
@@ -256,7 +256,7 @@ class DecayTransition(TransitionModel):
         Returns
         -------
         : :class:`float`
-            The probability of a decay within the time interval, $\Delta t$.
+            The probability of a decay within the time interval, :math:`\Delta t`.
         """
         return 1 - np.exp(-self.decay_const(state)*time_interval.total_seconds())
 
@@ -285,7 +285,7 @@ class DecayTransition(TransitionModel):
 
     def covar(self, state,  time_interval):
         """Returns the covariance of the state vector over a defined time interval. Not a
-        stochastic process; only depends onthe half life and the time interval. This is a single
+        stochastic process; only depends on the half life and the time interval. This is a single
         number repeated down the diagonal for those elements that are undecayed.
 
         Parameters
@@ -332,7 +332,7 @@ class DecayTransition(TransitionModel):
         elements to another particular distribution of decayed elements. It's therefore likely to
         be a very small number, especially for large state vectors. It's not the same as
         calculating the probability of a particular number of decays, which may be a more useful
-        metric and is goverend by standard binomial statistics.
+        metric and is governed by standard binomial statistics.
 
         """
         prob = 1
@@ -353,8 +353,8 @@ class DecayTransition(TransitionModel):
 
     def rvs(self, state, time_interval, num_samples=1):
         """Generate a random sample from the transition distribution. This is equivalent to
-        calling the function method n times, but is provided for consistency with other transition
-        models. The random seed cannnot yet be set.
+        calling the function method :math:`n` times, but is provided for consistency with other
+        transition models. The random seed cannnot yet be set.
 
         """
         samples = []
