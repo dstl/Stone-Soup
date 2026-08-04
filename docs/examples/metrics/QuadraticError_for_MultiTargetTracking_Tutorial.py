@@ -1,8 +1,12 @@
 #!/usr/bin/env python
 # coding: utf-8
 
-# # Applications of the Quadratic Distance to Multi-Target Tracking
-#
+"""
+===============
+Applications of the Quadratic Distance to Multi-Target Tracking
+===============
+"""
+
 # This tutorial demonstrates the usage of the quadratic distance in the context of multi-target
 # tracking sensor management and performance evaluation. An accessible background section is
 # provided which gives ample detail on the formulation of the quadratic distance, the mean
