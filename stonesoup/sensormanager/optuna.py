@@ -65,32 +65,26 @@ class OptunaSensorManager(SensorManager):
                         with warnings.catch_warnings():
                             warnings.simplefilter("ignore", UserWarning)
                             value = trial.suggest_float(
-                                f'{i}{j}', generator.min, generator.max + generator.epsilon,
+                                f'{i}_{j}', generator.min, generator.max + generator.epsilon,
                                 step=getattr(generator, 'resolution', None))
                     elif isinstance(generator, StateVectorActionGenerator):
                         with warnings.catch_warnings():
                             warnings.simplefilter("ignore", UserWarning)
                             value = np.zeros(generator.current_value.shape)
                             for index in generator.action_mapping:
-                                # calculate maximum travel distance remaining for each dimension
-                                max_index_change = float(np.sqrt(generator.max_state_change**2 -
-                                                         sum(value**2)))
-                                max_index_change, resolution = self.sample_parameters(
-                                    max_index_change,
-                                    generator)
                                 value[index] = trial.suggest_float(
-                                    f'{i}{j}{index}',
-                                    -max_index_change, max_index_change + generator.epsilon,
-                                    step=resolution
-                                )
-                            value = generator.current_value + value
+                                    f'{i}_{j}_{index}',
+                                    generator.min[index],
+                                    generator.max[index] + generator.epsilon,
+                                    step=getattr(generator, 'resolution', None))
                     else:
                         raise TypeError(f"type {type(generator)} not handled yet")
                     action = generator.action_from_value(value)
                     if action is not None:
                         config[sensor].append(action)
                     else:
-                        config[sensor].append(generator.default_action)
+                        raise optuna.TrialPruned()
+
             return config
 
         def optimise_func(trial):
@@ -107,14 +101,14 @@ class OptunaSensorManager(SensorManager):
         for i, (sensor, generators) in enumerate(all_action_generators.items()):
             for j, generator in enumerate(generators):
                 if isinstance(generator, RealNumberActionGenerator):
-                    action = generator.action_from_value(best_params[f'{i}{j}'])
+                    action = generator.action_from_value(best_params[f'{i}_{j}'])
                 elif isinstance(generator, StateVectorActionGenerator):
                     if not hasattr(generator, "action_from_value"):
                         raise TypeError(f"type {type(generator)} not handled yet")
                     value = np.zeros(generator.current_value.shape)
                     for index in generator.action_mapping:
-                        value[index] = best_params[f'{i}{j}{index}']
-                    action = generator.action_from_value(value=generator.current_value + value)
+                        value[index] = best_params[f'{i}_{j}_{index}']
+                    action = generator.action_from_value(value=value)
                 else:
                     raise TypeError(f"generator type {type(generator)} not supported")
                 if action is not None:

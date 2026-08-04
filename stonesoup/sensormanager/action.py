@@ -109,6 +109,18 @@ class StateVectorActionGenerator(ActionGenerator):
         """Maximum magnitude of change in state vector."""
         raise NotImplementedError
 
+    @property
+    def min(self):
+        """Minimum action values. Returns :class:`~.StateVector` containing
+        minimum values for each dimension in the action mapping."""
+        raise NotImplementedError
+
+    @property
+    def max(self):
+        """Maximum action values. Returns :class:`~.StateVector` containing
+        maximum values for each dimension in the action mapping."""
+        raise NotImplementedError
+
 
 class ActionableProperty(Property):
     """Property that is modified via an :class:`~.Action` with defined, non-equal start and end

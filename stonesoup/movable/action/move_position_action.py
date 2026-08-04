@@ -84,6 +84,16 @@ class MovePositionActionGenerator(StateVectorActionGenerator):
                                   end_time=self.end_time,
                                   target_value=self.current_value)
 
+    @property
+    def max(self):
+        """Maximum action value for each dimension of position."""
+        return self.current_value + self.max_state_change
+
+    @property
+    def min(self):
+        """Minimim action value for each dimension of position"""
+        return self.current_value - self.max_state_change
+
 
 class GridActionGenerator(MovePositionActionGenerator):
     """This is the base class for generators that generate actions in a grid like fashion."""
@@ -117,15 +127,15 @@ class NStepDirectionalGridActionGenerator(GridActionGenerator):
 
     @property
     def max_state_change(self):
-        return self.step_size * self.n_steps
+        return self.step_size * self.n_steps * self.resolution
 
     def __iter__(self):
         yield MovePositionAction(generator=self,
                                  end_time=self.end_time,
                                  target_value=self.current_value)
 
-        action_deltas = np.linspace(-1*self.n_steps*self.step_size*self.resolution,
-                                    self.n_steps*self.step_size*self.resolution,
+        action_deltas = np.linspace(-1*self.max_state_change,
+                                    self.max_state_change,
                                     2*self.n_steps+1)
 
         for dim in self.action_mapping:
