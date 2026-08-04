@@ -25,9 +25,6 @@ from ..types.track import Track
 from ..updater import Updater
 from ..updater.kalman import ExtendedKalmanUpdater
 from ..updater.particle import ParticleUpdater
-from ..resampler.particle import SystematicResampler
-from ..types.groundtruth import GroundTruthState
-from ..dataassociator.base import DataAssociator
 from ..metricgenerator.quadraticdistance import QuadraticDistance
 from ..functions import cart2pol
 from ..types.angle import Bearing
@@ -596,6 +593,7 @@ class AOIRewardFunction2D(RewardFunction):
                         reward_func = self.default_reward
 
         return reward_func(config, tracks, metric_time, *args, **kwargs)
+
 
 class QuadraticInformationGain(RewardFunction, QuadraticDistance):
     """
