@@ -865,13 +865,6 @@ Running the tracker
 
   .. container:: sphx-glr-footer sphx-glr-footer-example
 
-    .. container:: binder-badge
-
-      .. image:: images/binder_badge_logo.svg
-        :target: https://mybinder.org/v2/gh/dstl/Stone-Soup/main?filepath=notebooks/auto_demos/Video_Processing.ipynb
-        :alt: Launch binder
-        :width: 150 px
-
     .. container:: sphx-glr-download sphx-glr-download-jupyter
 
       :download:`Download Jupyter notebook: Video_Processing.ipynb <Video_Processing.ipynb>`
@@ -879,10 +872,6 @@ Running the tracker
     .. container:: sphx-glr-download sphx-glr-download-python
 
       :download:`Download Python source code: Video_Processing.py <Video_Processing.py>`
-
-    .. container:: sphx-glr-download sphx-glr-download-zip
-
-      :download:`Download zipped: Video_Processing.zip <Video_Processing.zip>`
 
 
 .. only:: html
