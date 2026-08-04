@@ -451,6 +451,7 @@ class MultiUpdateExpectedKLDivergence(ExpectedKLDivergence):
 
         return all_detections
 
+
 class FOVInteractionRewardFunction(RewardFunction):
     """
     A reward function for the FOV interaction scenario.
