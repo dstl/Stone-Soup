@@ -1,9 +1,11 @@
 #!/usr/bin/env python
 # coding: utf-8
 
-#
-# # Metrics example
-#
+"""
+===============
+Metrics example
+===============
+"""
 
 # This example demonstrates different metrics available in Stone Soup and how they
 # can be used with the :class:`~.MultiManager` to assess tracking performance. It also
