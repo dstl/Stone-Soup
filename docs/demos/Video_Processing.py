@@ -10,13 +10,14 @@ Video processing, Object detection & Tracking
 # This notebook will guide you progressively through the steps necessary to:
 #
 # 1. Use the Stone Soup :class:`~.FrameReader` components to open and process video data;
-# 2. Use the :class:`~.TensorFlowBoxObjectDetector` to detect objects in video data, making use of TensorFlow object detection models;
+# 2. Use the :class:`~.UltralyticsBoxObjectDetector` to detect objects in video data, making use of Ultralytics_ YOLO object detection models;
 # 3. Build a :class:`~.MultiTargetTracker` to perform tracking of multiple object in video data.
 #
 # .. _MoviePy: https://zulko.github.io/moviepy/index.html
 # .. _ffmpeg-python: https://github.com/kkroening/ffmpeg-python
 # .. _FFmpeg: https://www.ffmpeg.org/download.html
-# .. _pytube: https://python-pytube.readthedocs.io/en/latest/
+# .. _Ultralytics: https://docs.ultralytics.com/
+# .. _yt-dlp: https://github.com/yt-dlp/yt-dlp
 
 # %%
 # Software dependencies
@@ -31,13 +32,13 @@ Video processing, Object detection & Tracking
 # accurately some of its extra dependencies) make use of FFmpeg to read and output video. Download
 # links and installation instructions for FFmpeg can be found `here <https://www.ffmpeg.org/download.html>`__.
 #
-# TensorFlow
-# ~~~~~~~~~~
-# TensorFlow is a free and open-source software library for dataflow and differentiable programming
-# across a range of tasks, such machine learning. TensorFlow includes an Object Detection API that
-# makes it easy to construct, train and deploy object detection models, as well as a collection of
-# pre-trained models that can be used for out-of-the-box inference. A quick TensorFlow installation
-# tutorial can be found `here <https://tensorflow-object-detection-api-tutorial.readthedocs.io/en/latest/install.html>`__.
+# Ultralytics
+# ~~~~~~~~~~~
+# Ultralytics_ is a free and open-source library that provides an easy-to-use interface to the YOLO
+# family of object detection models. It ships with a collection of pre-trained models that can be
+# used for out-of-the-box inference, and downloads the requested model weights automatically on
+# first use. Installation instructions can be found in the
+# `Ultralytics quickstart guide <https://docs.ultralytics.com/quickstart/>`__.
 #
 # Stone Soup
 # ~~~~~~~~~~
@@ -48,16 +49,17 @@ Video processing, Object detection & Tracking
 #
 #     git clone "https://github.com/dstl/Stone-Soup.git"
 #     cd Stone-Soup
-#     python -m pip install -e .[dev,video,tensorflow]
+#     python -m pip install -e .[dev,video,ultralytics]
 #
-# Pytube
+# yt-dlp
 # ~~~~~~
-# We will also use pytube_ to download a Youtube video for the purposes of this tutorial. In the
-# same Terminal window, run the following command to install ``pytube``:
+# We will also use yt-dlp_ to download a YouTube video for the purposes of this tutorial. This is
+# installed as part of the ``video`` extra above, but can also be installed on its own by running
+# the following command in the same Terminal window:
 #
 # .. code::
 #
-#     pip install pytube
+#     pip install yt-dlp
 
 # %%
 # Using the Stone Soup :class:`~.FrameReader` classes
@@ -81,14 +83,15 @@ Video processing, Object detection & Tracking
 # shown below will download the video and save it your working directory as ``sample1.mp4``.
 
 import os
-from pytube import YouTube
+import yt_dlp
 VIDEO_FILENAME = 'sample1'
 VIDEO_EXTENTION = '.mp4'
 VIDEO_PATH = os.path.join(os.getcwd(), VIDEO_FILENAME+VIDEO_EXTENTION)
 
 if not os.path.exists(VIDEO_PATH):
-    yt = YouTube('http://www.youtube.com/watch?v=MNn9qKG2UFI')
-    yt.streams.get_by_itag(18).download(filename=VIDEO_PATH)
+    ydl_opts = {'outtmpl': VIDEO_PATH, 'format': '18'}  # format 18 is 360p mp4
+    with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+        ydl.download(['https://www.youtube.com/watch?v=MNn9qKG2UFI'])
 
 # %%
 # Building the video reader
@@ -107,12 +110,11 @@ frame_reader = VideoClipReader(VIDEO_PATH, start_time, end_time)
 
 # %%
 # It is also possible to apply clip transformations and effects, as per the
-# `MoviePy documentation <https://zulko.github.io/moviepy/getting_started/effects.html>`_.
+# `MoviePy documentation <https://zulko.github.io/moviepy/getting_started/modifying.html>`_.
 # The underlying MoviePy :class:`~VideoFileClip` instance can be accessed through the
 # :attr:`~.VideoClipReader.clip` class property. For example, we can crop out 100 pixels from
 # the top and left of the frames, as they are read by the reader, as shown below.
-from moviepy.video.fx import all
-frame_reader.clip = all.crop(frame_reader.clip, 100, 100)
+frame_reader.clip = frame_reader.clip.cropped(x1=100, y1=100)
 num_frames = len(list(frame_reader.clip.iter_frames()))
 
 # %%
@@ -173,91 +175,44 @@ for timestamp, frame in frame_reader:
 ani = animation.ArtistAnimation(fig, artists, interval=20, blit=True, repeat_delay=200)
 
 # %%
-# Using the :class:`~.TensorFlowBoxObjectDetector` class
-# ------------------------------------------------------
-# We now continue by demonstrating how to use the :class:`~.TensorFlowBoxObjectDetector` to detect
-# objects, and more specifically cars, within the frames read in by our ``video_reader``. The
-# :class:`~.TensorFlowBoxObjectDetector` can utilise both pre-trained and custom-trained TensorFlow
-# object detection models which generate detection in the form of bounding boxes. In this example,
-# we will make use of a pre-trained model from the
-# `TensorFlow detection model zoo <https://github.com/tensorflow/models/blob/master/research/object_detection/g3doc/tf2_detection_zoo.md>`_,
-# but the process of using a custom-trained TensorFlow model is the same.
+# Using the :class:`~.UltralyticsBoxObjectDetector` class
+# -------------------------------------------------------
+# We now continue by demonstrating how to use the :class:`~.UltralyticsBoxObjectDetector` to detect
+# objects, and more specifically cars, within the frames read in by our ``frame_reader``. The
+# :class:`~.UltralyticsBoxObjectDetector` can utilise both pre-trained and custom-trained
+# Ultralytics_ YOLO models which generate detections in the form of bounding boxes. In this
+# example, we will make use of a small pre-trained model, but the process of using a
+# custom-trained YOLO model is the same.
 
 # %%
-# Downloading the model
-# ~~~~~~~~~~~~~~~~~~~~~
-# The code snippet shown below is used to download the object detection model that we will feed
-# into the :class:`~.TensorFlowBoxObjectDetector`, as well as the label file (.pbtxt) which
-# contains a list of strings used to add the correct label to each detection (e.g. car).
+# The model
+# ~~~~~~~~~
+# Unlike some other object detection frameworks, Ultralytics handles model management for us: when
+# we reference a pre-trained model by name (e.g. ``yolo11n.pt``), the corresponding weights are
+# downloaded automatically the first time they are required and cached for subsequent runs. There
+# is therefore no need to manually download a model or a separate label file.
 #
-# The particular detection algorithm we will use is the Faster-RCNN, with an Inception
-# Resnet v2 backbone and running in Atrous mode with low proposals, pre-trained on the MSCOCO
-# dataset.
-#
-# .. warning::
-#
-#   **The downloaded model has a size of approximately 500 MB**. Therefore it is advised that you
-#   run the script on a stable (ideally not mobile) internet connection. The files will only be
-#   downloaded the first time the script is run. In consecutive runs the code will skip this step,
-#   provided that ``PATH_TO_MODEL`` and ``PATH_TO_LABELS`` are valid paths.
-
-import os
-os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'    # Suppress TensorFlow logging (1)
-import pathlib
-import tensorflow as tf
-
-tf.get_logger().setLevel('ERROR')           # Suppress TensorFlow logging (2)
-
-# Enable GPU dynamic memory allocation
-gpus = tf.config.experimental.list_physical_devices('GPU')
-for gpu in gpus:
-    tf.config.experimental.set_memory_growth(gpu, True)
-
-# Download and extract model
-def download_model(model_name):
-    base_url = 'http://download.tensorflow.org/models/object_detection/'
-    model_file = model_name + '.tar.gz'
-    model_dir = tf.keras.utils.get_file(fname=model_name,
-                                        origin=base_url + model_file,
-                                        untar=True)
-    model_dir = pathlib.Path(model_dir)/"saved_model"
-    return str(model_dir)
-
-MODEL_NAME = 'faster_rcnn_inception_resnet_v2_atrous_lowproposals_coco_2018_01_28'
-PATH_TO_MODEL = download_model(MODEL_NAME)
-
-# Download labels file
-def download_labels(filename):
-    base_url = 'https://raw.githubusercontent.com/tensorflow/models/master/research/object_detection/data/'
-    label_dir = tf.keras.utils.get_file(fname=filename,
-                                        origin=base_url + filename,
-                                        untar=False)
-    label_dir = pathlib.Path(label_dir)
-    return str(label_dir)
-
-LABEL_FILENAME = 'mscoco_label_map.pbtxt'
-PATH_TO_LABELS = download_labels(LABEL_FILENAME)
-
+# The particular model we will use is
+# `YOLO11 <https://docs.ultralytics.com/models/yolo11/>`_ in its smallest (``nano``) configuration,
+# pre-trained on the MS COCO dataset. Larger variants (e.g. ``yolo11s.pt``, ``yolo11m.pt``) trade
+# inference speed for accuracy.
 
 # %%
 # Building the detector
 # ~~~~~~~~~~~~~~~~~~~~~
 # Next, we proceed to initialise our detector object. To do this, we require the ``frame_reader``
-# object we built previously, as well as a path to the (downloaded) ``saved_model`` directory and
-# label (.pbtxt) file, which we have already defined above under the ``PATH_TO_MODEL`` and
-# ``PATH_TO_LABELS`` variables.
+# object we built previously, as well as the name (or path) of the YOLO model we wish to use.
 #
-# The :class:`~.TensorFlowBoxObjectDetector` object can optionally be configured to digest frames
+# The :class:`~.UltralyticsBoxObjectDetector` object can optionally be configured to digest frames
 # from the provided reader asynchronously, and only perform detection on the last frame digested,
-# by setting ``run_async=True``.This is suitable when the detector is applied to readers generating
-# a live feed (e.g. the :class:`~.FFmpegVideoStreamReader`), where real-time processing is
-# paramount. Since we are using a :class:`~.VideoClipReader` in this example, we set
+# by setting ``run_async=True``. This is suitable when the detector is applied to readers
+# generating a live feed (e.g. the :class:`~.FFmpegVideoStreamReader`), where real-time
+# processing is paramount. Since we are using a :class:`~.VideoClipReader` in this example, we set
 # ``run_async=False``, which is also the default setting.
-from stonesoup.detector.tensorflow import TensorFlowBoxObjectDetector
+from stonesoup.detector.ultralytics import UltralyticsBoxObjectDetector
 
 run_async = False                           # Configure the detector to run in synchronous mode
-detector = TensorFlowBoxObjectDetector(frame_reader, PATH_TO_MODEL, PATH_TO_LABELS,
-                                       run_async=run_async)
+detector = UltralyticsBoxObjectDetector(frame_reader, 'yolo11n.pt', run_async=run_async)
 
 # %%
 # Filtering-out unwanted detections
@@ -267,17 +222,18 @@ detector = TensorFlowBoxObjectDetector(frame_reader, PATH_TO_MODEL, PATH_TO_LABE
 # :class:`~.MetadataValueFilter`, which allows us to filter detections by applying a custom
 # operator on particular fields of the :attr:`~.Detection.metadata` property of detections.
 #
-# Each detection generated by :class:`~.TensorFlowBoxObjectDetector` carries the following
+# Each detection generated by :class:`~.UltralyticsBoxObjectDetector` carries the following
 # :attr:`~.Detection.metadata` fields:
 #
-#  - ``raw_box``: The raw bounding box containing the normalised coordinates ``[y_0, x_0, y_1, x_1]``, as generated by TensorFlow.
+#  - ``raw_box``: The raw bounding box containing the normalised coordinates ``[y_0, x_0, y_1, x_1]``.
 #  - ``class``: A dict with keys ``id`` and ``name`` relating to the id and name of the detection class.
 #  - ``score``: A float in the range ``(0, 1]`` indicating the detector's confidence.
 #
-# Detection models trained on the MSCOCO dataset, such as the one we downloaded, are able to detect
-# 90 different classes of objects (see the `downloaded .pbtxt file <https://github.com/tensorflow/models/blob/master/research/object_detection/data/mscoco_label_map.pbtxt>`_
-# for a full list). Instead, as we discussed at the beginning of the tutorial, we wish to limit the
-# detections to only those classified as cars. This can be done as follows:
+# Detection models trained on the MS COCO dataset, such as the one we are using, are able to detect
+# 80 different classes of objects (see the `Ultralytics COCO documentation
+# <https://docs.ultralytics.com/datasets/detect/coco/>`_ for a full list). Instead, as we discussed
+# at the beginning of the tutorial, we wish to limit the detections to only those classified as
+# cars. This can be done as follows:
 from stonesoup.feeder.filter import MetadataValueFilter
 detector = MetadataValueFilter(detector, 'class', lambda x: x['name'] == 'car')
 
@@ -298,7 +254,7 @@ detector = MetadataValueFilter(detector, 'raw_box', lambda x: x[3]-x[1] < 0.2)
 # %%
 # Reading and visualising detections
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-# Detections generated by the :class:`~.TensorFlowBoxObjectDetector` have a 4-dimensional
+# Detections generated by the :class:`~.UltralyticsBoxObjectDetector` have a 4-dimensional
 # :attr:`~.Detection.state_vector` in the form of a bounding boxes that captures the area of the
 # frame where an object is detected. Each bounding box is represented by a vector of the form
 # ``[x, y, w, h]``, where ``x, y`` denote the relative pixel coordinates of the top-left corner,
@@ -316,7 +272,7 @@ def draw_detections(image, detections, show_class=False, show_score=False):
     image: :class:`PIL.Image`
         Image on which to draw the detections
     detections: : set of :class:`~.Detection`
-        A set of detections generated by :class:`~.TensorFlowBoxObjectDetector`
+        A set of detections generated by :class:`~.UltralyticsBoxObjectDetector`
     show_class: bool
         Whether to draw the class of the object. Default is ``False``
     show_score: bool
@@ -345,9 +301,9 @@ def draw_detections(image, detections, show_class=False, show_score=False):
     return image
 
 
-fig2, ax2 = plt.subplots(num="TensorFlowBoxObjectDetector output")
+fig2, ax2 = plt.subplots(num="UltralyticsBoxObjectDetector output")
 artists2 = []
-print("Running TensorFlowBoxObjectDetector example... Be patient...")
+print("Running UltralyticsBoxObjectDetector example... Be patient...")
 for timestamp, detections in detector:
     if not (len(artists2)+1) % 10:
         print("Frame: {}/{}".format(len(artists2)+1, num_frames))
@@ -399,7 +355,7 @@ transition_model = CombinedLinearGaussianTransitionModel(t_models)
 # Measurement Model
 # *****************
 # Continuing, we define the measurement state :math:`\mathrm{y}_k`, which follows naturally from
-# the form of the detections generated by the :class:`~.TensorFlowBoxObjectDetector` we previously
+# the form of the detections generated by the :class:`~.UltralyticsBoxObjectDetector` we previously
 # discussed:
 #
 # .. math::

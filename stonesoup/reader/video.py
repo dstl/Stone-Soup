@@ -14,7 +14,7 @@ from urllib.parse import ParseResult
 import numpy as np
 try:
     import ffmpeg
-    import moviepy.editor as mpy
+    from moviepy import VideoFileClip
 except ImportError as error:
     raise ImportError(
         "Usage of video processing classes requires that the optional"
@@ -50,7 +50,7 @@ class VideoClipReader(FileReader, FrameReader):
             return image[:, :, [2, 1, 0]]
 
         reader = VideoClipReader("path_to_file")
-        reader.clip = reader.clip.fl_image(arrange_bgr)
+        reader.clip = reader.clip.image_transform(arrange_bgr)
 
         for timestamp, frame in reader:
             # The generated frame.pixels will now
@@ -73,8 +73,8 @@ class VideoClipReader(FileReader, FrameReader):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         end_time_sec = self.end_time.total_seconds() if self.end_time is not None else None
-        self.clip = mpy.VideoFileClip(str(self.path)) \
-            .subclip(self.start_time.total_seconds(), end_time_sec)
+        self.clip = VideoFileClip(str(self.path)) \
+            .subclipped(self.start_time.total_seconds(), end_time_sec)
 
     @BufferedGenerator.generator_method
     def frames_gen(self):
