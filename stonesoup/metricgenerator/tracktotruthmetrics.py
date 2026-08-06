@@ -59,6 +59,8 @@ class SIAPMetrics(MetricGenerator):
         r"""Compute metrics:
 
         .. math::
+            :no-wrap:
+
             \begin{alignat*}{3}
                 \textrm{Name} &\quad \textrm{At Time} &&\quad \textrm{TimeRange}\\
                 C &\quad \frac{JT({t})}{J({t})} &&\quad \frac{\sum_{t_{start}}^{t_{end}}JT({t})}
@@ -534,6 +536,8 @@ class IDSIAPMetrics(SIAPMetrics):
         r"""Compute metrics:
 
         .. math::
+            :no-wrap:
+
             \begin{alignat*}{3}
                 \textrm{Name} &\quad \textrm{At Time} &&\quad \textrm{TimeRange}\\
                 C &\quad \frac{JT({t})}{J({t})} &&\quad \frac{\sum_{t_{start}}^{t_{end}}JT({t})}

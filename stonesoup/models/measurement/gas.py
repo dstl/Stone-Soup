@@ -49,6 +49,8 @@ class IsotropicPlume(GaussianModel, MeasurementModel):
     The concentration is calculated according to
 
     .. math::
+        :no-wrap:
+
         \begin{multline}
         \mathcal{M}(\vec{x}_k, \Theta_k) = \frac{Q}{4\pi\Vert\vec{x}_k-\vec{p}^s\Vert}
         \cdot\text{exp}\left[\frac{-\Vert\vec{x}_k-\vec{p}^s\Vert}{\lambda}\right]\cdot\\
