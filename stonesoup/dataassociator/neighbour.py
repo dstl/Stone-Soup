@@ -1,4 +1,5 @@
 import itertools
+from math import isfinite
 
 import numpy as np
 from scipy.optimize import linear_sum_assignment
@@ -6,8 +7,52 @@ from scipy.optimize import linear_sum_assignment
 from .base import DataAssociator
 from ..base import Property
 from ..hypothesiser import Hypothesiser
-from ..types.hypothesis import SingleHypothesis, JointHypothesis, \
-    ProbabilityHypothesis
+from ..types.hypothesis import SingleDistanceHypothesis, SingleHypothesis, \
+    JointHypothesis, ProbabilityHypothesis
+
+
+def _finite_missed_distances(hypotheses):
+    """Replace infinite missed detection distances with a finite distance.
+
+    The default missed distance of :class:`~.DistanceHypothesiser` is infinite. As a
+    result, the total distance of every joint hypothesis containing a missed detection
+    is also infinite, such that these joint hypotheses cannot be distinguished from one
+    another. This affects any association where a missed detection is unavoidable, such
+    as when there are more tracks than (gated) detections.
+
+    Infinite missed detection distances are therefore replaced with a distance
+    marginally greater than the greatest finite distance, keeping a missed detection
+    less favourable than any detection, whilst allowing joint hypotheses to be compared.
+
+    Note this modifies the hypotheses in place.
+
+    Parameters
+    ----------
+    hypotheses : dict of :class:`~.Track`: :class:`~.MultipleHypothesis`
+        Hypotheses, including missed detections, for each track
+    """
+    # Single pass: gather the infinite missed detection hypotheses, whilst tracking the
+    # greatest finite detection distance. There is typically only one missed detection
+    # hypothesis per track, so only these need be held on to.
+    missed_hypotheses = []
+    max_distance = -np.inf
+    for track_hypotheses in hypotheses.values():
+        for hypothesis in track_hypotheses:
+            if not isinstance(hypothesis, SingleDistanceHypothesis):
+                continue
+            distance = hypothesis.distance
+            if not hypothesis:
+                if not isfinite(distance):
+                    missed_hypotheses.append(hypothesis)
+            elif distance > max_distance and isfinite(distance):
+                max_distance = distance
+
+    # Nothing to do without both a missed detection hypothesis to replace, and a
+    # detection hypothesis for it to be less favourable than
+    if missed_hypotheses and isfinite(max_distance):
+        missed_distance = np.nextafter(max_distance, np.inf)
+        for hypothesis in missed_hypotheses:
+            hypothesis.distance = missed_distance
 
 
 class NearestNeighbour(DataAssociator):
@@ -58,6 +103,12 @@ class GlobalNearestNeighbour(DataAssociator):
 
     Scores and associates detections to a predicted state using the Global
     Nearest Neighbour method, assuming a distance-based hypothesis score.
+
+    Note
+    ----
+    Infinite missed detection distances (the default of :class:`~.DistanceHypothesiser`)
+    are replaced with a distance marginally greater than the greatest finite distance,
+    so that joint hypotheses including a missed detection remain comparable.
     """
 
     hypothesiser: Hypothesiser = Property(
@@ -67,6 +118,7 @@ class GlobalNearestNeighbour(DataAssociator):
 
         # Generate a set of hypotheses for each track on each detection
         hypotheses = self.generate_hypotheses(tracks, detections, timestamp, **kwargs)
+        _finite_missed_distances(hypotheses)
 
         # Link hypotheses into a set of joint_hypotheses and evaluate
         joint_hypotheses = self.enumerate_joint_hypotheses(hypotheses)
@@ -140,6 +192,12 @@ class GNNWith2DAssignment(DataAssociator):
     Associates detections to a predicted state using the
     Global Nearest Neighbour method, utilising a 2D matrix of
     distances and a "shortest path" assignment algorithm.
+
+    Note
+    ----
+    Infinite missed detection distances (the default of :class:`~.DistanceHypothesiser`)
+    are replaced with a distance marginally greater than the greatest finite distance,
+    so that an assignment including a missed detection remains feasible.
     """
 
     hypothesiser: Hypothesiser = Property(
@@ -165,6 +223,7 @@ class GNNWith2DAssignment(DataAssociator):
 
         # Generate a set of hypotheses for each track on each detection
         hypotheses = self.generate_hypotheses(tracks, detections, timestamp, **kwargs)
+        _finite_missed_distances(hypotheses)
 
         # Create dictionary for associations
         associations = {}
