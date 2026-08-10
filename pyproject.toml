@@ -69,11 +69,15 @@ docs = [
 ]
 video = [
     "ffmpeg-python",
-    "moviepy",
+    "moviepy>=2.0",
     "opencv-python",
+    "yt-dlp",
 ]
 tensorflow = [
     "tensorflow>=2.2.0",
+]
+ultralytics = [
+    "ultralytics",
 ]
 mfa = [
     "ortools",
