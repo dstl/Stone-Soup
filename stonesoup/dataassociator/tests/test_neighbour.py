@@ -5,6 +5,8 @@ import numpy as np
 
 from ..neighbour import (
     NearestNeighbour, GlobalNearestNeighbour, GNNWith2DAssignment)
+from ...hypothesiser.distance import DistanceHypothesiser
+from ...measures import Mahalanobis
 from ...types.detection import Detection
 from ...types.state import GaussianState
 from ...types.track import Track
@@ -57,6 +59,29 @@ def test_missed_detection_nearest_neighbour(associator):
     # Best hypothesis should be missed detection hypothesis
     assert all(not hypothesis.measurement
                for hypothesis in associations.values())
+
+
+@pytest.mark.parametrize(
+    'associator_class', [NearestNeighbour, GlobalNearestNeighbour, GNNWith2DAssignment])
+def test_infinite_missed_distance(associator_class, predictor, updater):
+    # Default missed distance is infinite, such that every joint hypothesis has an
+    # infinite distance where a missed detection is unavoidable: #824
+    associator = associator_class(
+        DistanceHypothesiser(predictor, updater, Mahalanobis()))
+
+    timestamp = datetime.datetime.now()
+    tracks = [
+        Track([GaussianState(np.array([[x, 0, x, 0]]), np.diag([1, 0.1, 1, 0.1]), timestamp)])
+        for x in (0, 3, 6)]
+    detection = Detection(np.array([[6, 6]]), timestamp)
+
+    # Tracks passed in order, nearest last, so that an arbitrary (first) choice is wrong
+    associations = associator.associate(tracks, {detection}, timestamp)
+
+    # Detection must be associated to the nearest (last) track, not an arbitrary one
+    assert associations[tracks[-1]].measurement is detection
+    assert not associations[tracks[0]]
+    assert not associations[tracks[1]]
 
 
 def test_probability_gnn(probability_associator):
