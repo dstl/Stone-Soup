@@ -98,6 +98,32 @@ def az_el_rng(state_vector, pos_map, translation_offset, rotation_offset):
     return StateVector([Azimuth(phi), Elevation(theta), rho])
 
 
+def assert_inverse_function_vectorised(model, state_vec):
+    """Check ``inverse_function`` handles multiple measurements at once.
+
+    Inverting a :class:`~.StateVectors` of measurements must give the same answer, column by
+    column, as inverting each measurement individually, and must return a
+    :class:`~.StateVectors` rather than a :class:`~.StateVector`.
+    """
+    # Perturb the states, so the measurements aren't all trivially identical. Generating them
+    # through the model keeps them valid, which scaling a measurement directly would not.
+    state_vecs = StateVectors([state_vec, state_vec*0.9, state_vec*1.1])
+    measurements = model.function(State(state_vecs), noise=False)
+
+    multiple = model.inverse_function(State(measurements))
+    assert isinstance(multiple, StateVectors)
+    assert not isinstance(multiple, StateVector)
+    assert multiple.shape == (model.ndim_state, 3)
+
+    for column, measurement in zip(multiple, measurements):
+        single = model.inverse_function(State(measurement))
+        # Single measurements must still give a StateVector, not a one column StateVectors
+        assert isinstance(single, StateVector)
+        assert single.shape == (model.ndim_state, 1)
+        assert np.allclose(np.asarray(column, dtype=np.float64),
+                           np.asarray(single, dtype=np.float64))
+
+
 @pytest.mark.parametrize(
     "model_class",
     [LinearGaussian,
@@ -281,6 +307,7 @@ def test_models(h, ModelClass, state_vec, R,
     if isinstance(model, ReversibleModel):
         J = model.inverse_function(State(meas_pred_wo_noise))
         assert np.allclose(J, state_vec)
+        assert_inverse_function_vectorised(model, state_vec)
 
     # Ensure ```lg.covar()``` returns R
     assert np.array_equal(R, model.covar())
@@ -710,6 +737,7 @@ def test_rangeratemodels(h, modelclass, state_vec, ndim_state, pos_mapping, vel_
     if isinstance(model, ReversibleModel):
         J = model.inverse_function(State(meas_pred_wo_noise))
         assert np.allclose(J, state_vec)
+        assert_inverse_function_vectorised(model, state_vec)
 
     # Ensure ```lg.covar()``` returns R
     assert np.array_equal(noise_covar, model.covar())
@@ -1076,6 +1104,17 @@ def test_inverse_function():
     assert approx(inv_measure_state[3], 0.02) == 17.10
     assert approx(inv_measure_state[4], 0.02) == 1736.48
     assert approx(inv_measure_state[5], 0.02) == 17.36
+
+    # Same measurement repeated should give the same answer in every column
+    measured_states = State(StateVectors([measured_state.state_vector]*3))
+
+    inv_measure_states = measure_model.inverse_function(measured_states)
+
+    assert isinstance(inv_measure_states, StateVectors)
+    assert inv_measure_states.shape == (6, 3)
+    for column in inv_measure_states:
+        assert np.allclose(np.asarray(column, dtype=np.float64),
+                           np.asarray(inv_measure_state, dtype=np.float64))
 
 
 def test_binning():
@@ -1595,6 +1634,28 @@ def test_inverse_rates(input_state):
     inv_state = measurement_model.inverse_function(measurement)
 
     assert np.allclose(input_state.state_vector, inv_state)
+
+
+def test_inverse_rates_state_vectors():
+    """Invert every case of :data:`position_input_sets` in a single call."""
+    input_states = State(StateVectors([StateVector(input_state)
+                                       for input_state in position_input_sets]))
+    measurement_model = CartesianToElevationRateBearingRateRangeRate(
+        ndim_state=6,
+        mapping=np.array([0, 1, 2]),
+        velocity_mapping=np.array([3, 4, 5]),
+        noise_covar=np.array([[0, 0, 0, 0],
+                              [0, 0, 0, 0],
+                              [0, 0, 0, 0],
+                              [0, 0, 0, 0]]))
+
+    measurements = Detection(measurement_model.function(input_states), timestamp=None)
+    inv_states = measurement_model.inverse_function(measurements)
+
+    assert isinstance(inv_states, StateVectors)
+    assert inv_states.shape == (6, len(position_input_sets))
+    assert np.allclose(np.asarray(input_states.state_vector, dtype=np.float64),
+                       np.asarray(inv_states, dtype=np.float64))
 
 
 def test_state_vectors():
