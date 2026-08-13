@@ -183,7 +183,8 @@ class ReversibleModel(Model):
     of the relevant linear-to-non-linear function"""
 
     @abstractmethod
-    def inverse_function(self, detection: 'Detection', **kwargs) -> StateVector:
+    def inverse_function(self, detection: 'Detection', **kwargs) \
+            -> Union[StateVector, StateVectors]:
         """Takes in the result of the function and
         computes the inverse function, returning the initial
         input of the function.
@@ -191,12 +192,16 @@ class ReversibleModel(Model):
         Parameters
         ----------
         detection: :class:`~.Detection`
-            Input state (non-linear format)
+            Input state (non-linear format). This may hold a single
+            :class:`~.StateVector`, or a :class:`~.StateVectors` of multiple
+            measurements, which are converted together.
 
         Returns
         -------
-        StateVector
-            The linear co-ordinates
+        :class:`~.StateVector` or :class:`~.StateVectors`
+            The linear co-ordinates. A :class:`~.StateVector` is returned for a
+            single measurement, and a :class:`~.StateVectors` of matching width
+            for multiple measurements.
         """
         raise NotImplementedError
 
