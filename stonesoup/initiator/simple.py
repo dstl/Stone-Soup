@@ -291,7 +291,7 @@ class MultiMeasurementInitiator(GaussianInitiator):
 
             for track, multihypothesis in associations.items():
                 if multihypothesis:
-                    if type(multihypothesis) == MultipleHypothesis:
+                    if multihypothesis is MultipleHypothesis:
                         for hypothesis in multihypothesis:
                             if not hypothesis:
                                 continue
