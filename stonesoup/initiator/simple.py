@@ -10,6 +10,7 @@ from ..models.base import LinearModel, ReversibleModel
 from ..models.measurement import MeasurementModel
 from ..types.hypothesis import SingleHypothesis
 from ..types.mixture import GaussianMixture
+from ..types.multihypothesis import MultipleHypothesis
 from ..types.numeric import Probability
 from ..types.state import State, GaussianState, ParticleState, TaggedWeightedGaussianState, \
     ASDGaussianState, EnsembleState
@@ -288,13 +289,20 @@ class MultiMeasurementInitiator(GaussianInitiator):
             associations = self.data_associator.associate(
                 self.holding_tracks, detections, timestamp)
 
-            for track, hypothesis in associations.items():
-                if hypothesis:
-                    state_post = self.updater.update(hypothesis)
-                    track.append(state_post)
-                    associated_detections.add(hypothesis.measurement)
+            for track, multihypothesis in associations.items():
+                if multihypothesis:
+                    if type(multihypothesis) == MultipleHypothesis:
+                        for hypothesis in multihypothesis:
+                            if not hypothesis:
+                                continue
+                            track.append(self.updater.update(hypothesis))
+                            associated_detections.add(hypothesis.measurement)
+                    else:
+                        state_post = self.updater.update(multihypothesis)
+                        track.append(state_post)
+                        associated_detections.add(multihypothesis.measurement)
                 else:
-                    track.append(hypothesis.prediction)
+                    track.append(multihypothesis.prediction)
 
                 if sum(1 for state in track if not self.updates_only or isinstance(state, Update))\
                         >= self.min_points:
