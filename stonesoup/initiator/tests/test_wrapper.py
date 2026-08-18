@@ -62,3 +62,11 @@ def test_states_length_limiter(max_len):
 
     assert len(track) == max_len
     assert len(track.metadatas) == max_len
+    assert track.states.maxlen == max_len
+    assert track.metadatas.maxlen == max_len
+
+    expected_timestamps = [state.timestamp for state in list(track.states)[1:]]
+    assert [state.timestamp for state in track[1:]] == expected_timestamps
+    assert [state.timestamp for state in track[::-1]] == [
+        state.timestamp for state in reversed(track.states)]
+    assert track.metadatas[:-1].maxlen == max_len
