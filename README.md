@@ -1,6 +1,7 @@
 <h1><img valign="middle" alt="Stone Soup Logo" src="https://raw.githubusercontent.com/dstl/Stone-Soup/main/docs/source/_static/stone_soup_logo.svg" height="100"> Stone Soup</h1>
 
 [![PyPI](https://img.shields.io/pypi/v/stonesoup?style=flat)](https://pypi.org/project/stonesoup)
+[![Python](https://img.shields.io/badge/python-%3E%3D3.10-blue?style=flat)](https://github.com/dstl/Stone-Soup/blob/main/pyproject.toml)
 [![Conda Version](https://img.shields.io/conda/vn/conda-forge/stonesoup.svg)](https://anaconda.org/conda-forge/stonesoup)
 [![CircleCI branch](https://img.shields.io/circleci/project/github/dstl/Stone-Soup/main.svg?label=tests&style=flat)](https://circleci.com/gh/dstl/Stone-Soup)
 [![Codecov](https://img.shields.io/codecov/c/github/dstl/Stone-Soup.svg)](https://codecov.io/gh/dstl/Stone-Soup)
