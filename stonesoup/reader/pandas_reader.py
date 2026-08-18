@@ -1,5 +1,5 @@
 
-from collections.abc import Iterator
+from collections.abc import Iterable, Iterator
 
 try:
     import pandas as pd
@@ -12,20 +12,33 @@ from .generic import _DictDetectionReader, _DictGroundTruthReader, _DictReader, 
 
 
 class _DataFrameReader(_DictReader):
-    dataframe: pd.DataFrame = Property(doc="DataFrame containing the state data.")
+    dataframe: pd.DataFrame | Iterable[pd.DataFrame] = Property(
+        doc="DataFrame containing the state data, or an iterable yielding DataFrames in time "
+            "order."
+    )
 
     @property
     def dict_reader(self) -> Iterator[dict]:
-        yield from self.dataframe.to_dict(orient="records")
+        if isinstance(self.dataframe, pd.DataFrame):
+            dataframes = (self.dataframe,)
+        else:
+            dataframes = self.dataframe
+
+        for dataframe in dataframes:
+            if not isinstance(dataframe, pd.DataFrame):
+                raise TypeError(
+                    "dataframe must be a pandas DataFrame or an iterable yielding DataFrames")
+            yield from dataframe.to_dict(orient="records")
 
 
 class DataFrameGroundTruthReader(_DictGroundTruthReader, _DataFrameReader):
     """A custom reader for pandas DataFrames containing truth data.
 
-    The DataFrame must have columns containing all fields needed to generate the
-    ground truth state. Those states with the same ID will be put into
-    a :class:`~.GroundTruthPath` in sequence. All paths that are updated at the same time
-    are yielded together. Assume DataFrame is in time order.
+    The input may be a single DataFrame or an iterable yielding DataFrames. Each DataFrame must
+    have columns containing all fields needed to generate the ground truth state. When an iterable
+    is supplied, its DataFrames must collectively be in time order. States with the same ID are
+    put into a :class:`~.GroundTruthPath` in sequence, and all paths updated at the same time are
+    yielded together.
 
     Parameters
     ----------
@@ -35,8 +48,10 @@ class DataFrameGroundTruthReader(_DictGroundTruthReader, _DataFrameReader):
 class DataFrameDetectionReader(_DictDetectionReader, _DataFrameReader):
     """A custom detection reader for DataFrames containing detections.
 
-    The DataFrame must have columns containing all fields needed to generate the detection.
-    Detections at the same time are yielded together. Assume DataFrame is in time order.
+    The input may be a single DataFrame or an iterable yielding DataFrames. Each DataFrame must
+    have columns containing all fields needed to generate the detections. When an iterable is
+    supplied, its DataFrames must collectively be in time order. Detections at the same time are
+    yielded together.
 
     Parameters
     ----------
@@ -45,12 +60,13 @@ class DataFrameDetectionReader(_DictDetectionReader, _DataFrameReader):
 
 class DataFrameTrackReader(_DictTrackReader, _DataFrameReader):
     """A :class:`~.TrackReader` class for reading in :class:`~.Track` from
-    a pandas DataFrame.
+    pandas DataFrames.
 
-    The DataFrame must have columns containing all fields needed to generate the
-    track states. Those states with the same ID will be put into
-    a :class:`~.Track` in sequence. All paths that are updated at the same time
-    are yielded together. Assume DataFrame is in time order.
+    The input may be a single DataFrame or an iterable yielding DataFrames. Each DataFrame must
+    have columns containing all fields needed to generate the track states. When an iterable is
+    supplied, its DataFrames must collectively be in time order. States with the same ID are put
+    into a :class:`~.Track` in sequence, and all tracks updated at the same time are yielded
+    together.
 
     Parameters
     ----------
