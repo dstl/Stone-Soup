@@ -296,7 +296,12 @@ class SIAPMetrics(MetricGenerator):
         associations = manager.association_set.associations_at_timestamp(timestamp)
         association_objects = associations.object_set
 
-        return sum(1 for track in tracks if track in association_objects)
+        return sum(
+            1
+            for track in tracks
+            if track in association_objects
+            and timestamp in (state.timestamp for state in track.states)
+        )
 
     def accuracy_at_time(self, manager, timestamp, measure):
         """:math:`PA(t)` or :math:`VA(t)` (dependent on `measure`). Calculate the kinematic
@@ -318,14 +323,20 @@ class SIAPMetrics(MetricGenerator):
 
         Note
         ----
-            This method adds the 'distance' errors for each and every association. An alternative
-            would be to consider each true object and track at most once.
+            This method adds the 'distance' errors for each and every association that has both a
+            track state and truth state at the requested timestamp. Association time ranges can
+            span gaps in a track's actual state history; those gaps do not contribute an error.
         """
         associations = manager.association_set.associations_at_timestamp(timestamp)
         error_sum = 0
         for association in associations:
             truth, track = self.truth_track_from_association(association)
-            error_sum += measure(track[timestamp], truth[timestamp])
+            try:
+                track_state = track[timestamp]
+                truth_state = truth[timestamp]
+            except IndexError:
+                continue
+            error_sum += measure(track_state, truth_state)
         return error_sum
 
     @staticmethod
