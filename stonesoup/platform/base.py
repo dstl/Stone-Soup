@@ -108,6 +108,12 @@ class Platform(Base):
     def _tuple_or_none(value):
         return None if value is None else tuple(value)
 
+    @movement_controller.setter
+    def movement_controller(self, value):
+        self._property_movement_controller = value
+        for sensor in getattr(self, '_property_sensors', ()):
+            sensor.movement_controller = value
+
     @sensors.getter
     def sensors(self):
         return self._tuple_or_none(self._property_sensors)
