@@ -260,9 +260,8 @@ html_css_files = ['css/custom.css']
 # Now only 'ja' uses this config value
 # html_search_options = {'type': 'default'}
 
-# The name of a javascript file (relative to the configuration directory) that
-# implements a search results scorer. If empty, the default will be used.
-# html_search_scorer = 'scorer.js'
+# Prefer exact API object matches over pages that only mention the query.
+html_search_scorer = 'search_scorer.js'
 
 # Output file base name for HTML help builder.
 htmlhelp_basename = 'StoneSoupdoc'
