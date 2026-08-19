@@ -1,5 +1,6 @@
 from .base import MetricGenerator
 from ..base import Property
+from ..functions.interpolate import interpolate_state_mutable_sequence
 from ..measures import Measure
 from ..types.metric import SingleTimeMetric, TimeRangeMetric
 from ..types.time import TimeRange
@@ -227,7 +228,8 @@ class SIAPMetrics(MetricGenerator):
         return sum(
             1
             for path in ground_truths
-            if timestamp in (state.timestamp for state in path))
+            if path.states and path.states[0].timestamp <= timestamp <= path.states[-1].timestamp
+        )
 
     @staticmethod
     def num_associated_truths_at_time(manager, ground_truths, timestamp):
@@ -272,7 +274,8 @@ class SIAPMetrics(MetricGenerator):
         return sum(
             1
             for track in tracks
-            if timestamp in (state.timestamp for state in track.states))
+            if track.states and track.states[0].timestamp <= timestamp <= track.states[-1].timestamp
+        )
 
     @staticmethod
     def num_associated_tracks_at_time(manager, tracks, timestamp):
@@ -296,12 +299,7 @@ class SIAPMetrics(MetricGenerator):
         associations = manager.association_set.associations_at_timestamp(timestamp)
         association_objects = associations.object_set
 
-        return sum(
-            1
-            for track in tracks
-            if track in association_objects
-            and timestamp in (state.timestamp for state in track.states)
-        )
+        return sum(1 for track in tracks if track in association_objects)
 
     def accuracy_at_time(self, manager, timestamp, measure):
         """:math:`PA(t)` or :math:`VA(t)` (dependent on `measure`). Calculate the kinematic
@@ -323,17 +321,17 @@ class SIAPMetrics(MetricGenerator):
 
         Note
         ----
-            This method adds the 'distance' errors for each and every association that has both a
-            track state and truth state at the requested timestamp. Association time ranges can
-            span gaps in a track's actual state history; those gaps do not contribute an error.
+            This method adds the 'distance' errors for each and every association. Missing states
+            inside a track or truth time span are linearly interpolated using Stone Soup's standard
+            interpolation helper.
         """
         associations = manager.association_set.associations_at_timestamp(timestamp)
         error_sum = 0
         for association in associations:
             truth, track = self.truth_track_from_association(association)
             try:
-                track_state = track[timestamp]
-                truth_state = truth[timestamp]
+                track_state = interpolate_state_mutable_sequence(track, timestamp)
+                truth_state = interpolate_state_mutable_sequence(truth, timestamp)
             except IndexError:
                 continue
             error_sum += measure(track_state, truth_state)
