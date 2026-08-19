@@ -5,6 +5,7 @@ import pytest
 
 from ..manager import MultiManager
 from ..pcrbmetric import PCRBMetric
+from ...models.measurement.nonlinear import CartesianToBearingRange
 from ...types.groundtruth import GroundTruthState
 from ...types.array import StateVector, StateVectors, CovarianceMatrix
 from ...types.state import GaussianState
@@ -55,6 +56,24 @@ def test_calculate_j_z(state, sensor_locations, measurement_model, irf):
                                               [0., 0., 0., 0.],
                                               [0., 0., 0.2, 0.],
                                               [0., 0., 0., 0.]]))
+
+
+def test_calculate_j_z_multiple_sensor_locations():
+    state = GroundTruthState(StateVector([0., 0., 0., 0.]))
+    sensor_locations = StateVectors([
+        StateVector([[-1.], [0.]]),
+        StateVector([[1.], [0.]]),
+    ])
+    measurement_model = CartesianToBearingRange(
+        ndim_state=4,
+        mapping=[0, 2],
+        noise_covar=CovarianceMatrix(np.eye(2)),
+    )
+
+    overall_j_z = PCRBMetric._calculate_j_z(
+        state, sensor_locations, measurement_model, np.ones(2))
+
+    assert np.allclose(overall_j_z, np.diag([2., 0., 2., 0.]))
 
 
 @pytest.mark.parametrize(
