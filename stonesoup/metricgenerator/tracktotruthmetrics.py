@@ -228,7 +228,7 @@ class SIAPMetrics(MetricGenerator):
         return sum(
             1
             for path in ground_truths
-            if path.states and path.states[0].timestamp <= timestamp <= path.states[-1].timestamp
+            if path.states and path[0].timestamp <= timestamp <= path[-1].timestamp
         )
 
     @staticmethod
@@ -274,7 +274,7 @@ class SIAPMetrics(MetricGenerator):
         return sum(
             1
             for track in tracks
-            if track.states and track.states[0].timestamp <= timestamp <= track.states[-1].timestamp
+            if track.states and track[0].timestamp <= timestamp <= track[-1].timestamp
         )
 
     @staticmethod
