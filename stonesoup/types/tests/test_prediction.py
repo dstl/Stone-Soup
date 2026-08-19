@@ -14,7 +14,9 @@ from ..prediction import (
     ParticleStatePrediction, ParticleMeasurementPrediction,
     RaoBlackwellisedParticleStatePrediction, MultiModelParticleStatePrediction,
     BernoulliParticleStatePrediction,
-    ASDGaussianStatePrediction, ASDGaussianMeasurementPrediction, KernelParticleStatePrediction)
+    ASDGaussianStatePrediction, ASDGaussianMeasurementPrediction, KernelParticleStatePrediction,
+    ModelAugmentedWeightedGaussianStatePrediction,
+    ExpandedModelAugmentedWeightedGaussianStatePrediction)
 from ..state import (
     State, GaussianState, SqrtGaussianState, TaggedWeightedGaussianState, ParticleState)
 from ..track import Track
@@ -310,3 +312,11 @@ def test_kernel_particle_state_prediction():
     assert np.array_equal(weights, prediction.weight)
     assert np.array_equal(np.diag(weights), prediction.kernel_covar)
     assert timestamp == prediction.timestamp
+
+
+def test_mawgs_prediction():
+    with pytest.raises(TypeError):
+        ModelAugmentedWeightedGaussianStatePrediction()
+
+    with pytest.raises(TypeError):
+        ExpandedModelAugmentedWeightedGaussianStatePrediction()
