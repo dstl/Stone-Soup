@@ -1,5 +1,6 @@
 from .base import MetricGenerator
 from ..base import Property
+from ..functions.interpolate import interpolate_state_mutable_sequence
 from ..measures import Measure
 from ..types.metric import SingleTimeMetric, TimeRangeMetric
 from ..types.time import TimeRange
@@ -227,7 +228,8 @@ class SIAPMetrics(MetricGenerator):
         return sum(
             1
             for path in ground_truths
-            if timestamp in (state.timestamp for state in path))
+            if path.states and path[0].timestamp <= timestamp <= path[-1].timestamp
+        )
 
     @staticmethod
     def num_associated_truths_at_time(manager, ground_truths, timestamp):
@@ -272,7 +274,8 @@ class SIAPMetrics(MetricGenerator):
         return sum(
             1
             for track in tracks
-            if timestamp in (state.timestamp for state in track.states))
+            if track.states and track[0].timestamp <= timestamp <= track[-1].timestamp
+        )
 
     @staticmethod
     def num_associated_tracks_at_time(manager, tracks, timestamp):
@@ -318,14 +321,20 @@ class SIAPMetrics(MetricGenerator):
 
         Note
         ----
-            This method adds the 'distance' errors for each and every association. An alternative
-            would be to consider each true object and track at most once.
+            This method adds the 'distance' errors for each and every association. Missing states
+            inside a track or truth time span are linearly interpolated using Stone Soup's standard
+            interpolation helper.
         """
         associations = manager.association_set.associations_at_timestamp(timestamp)
         error_sum = 0
         for association in associations:
             truth, track = self.truth_track_from_association(association)
-            error_sum += measure(track[timestamp], truth[timestamp])
+            try:
+                track_state = interpolate_state_mutable_sequence(track, timestamp)
+                truth_state = interpolate_state_mutable_sequence(truth, timestamp)
+            except IndexError:
+                continue
+            error_sum += measure(track_state, truth_state)
         return error_sum
 
     @staticmethod
