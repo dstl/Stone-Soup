@@ -66,7 +66,7 @@ platform = Platform(
     movement_controller=NStepDirectionalGridMovable(states=[initial_state],
                                                     position_mapping=(0, 1),
                                                     n_steps=1,
-                                                    step_size=3,
+                                                    resolution=3,
                                                     action_mapping=(0, 1),
                                                     ))
 
