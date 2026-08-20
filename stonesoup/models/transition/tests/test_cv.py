@@ -5,7 +5,8 @@ import pytest
 import numpy as np
 from scipy.stats import multivariate_normal
 
-from ..linear import ConstantVelocity
+from ..linear import ConstantVelocity, LinearGaussianTimeInvariantTransitionModel
+from ....types.array import CovarianceMatrix
 from ....types.state import State
 
 
@@ -99,3 +100,19 @@ def test_cvmodel(sign):
         new_state_vec_w_enoise.T,
         mean=np.array(F@state.state_vector).ravel(),
         cov=Q)
+
+
+def test_gaussian_model_pdf_allows_singular_covariance():
+    covariance = CovarianceMatrix([[0.25, 0.5],
+                                   [0.5, 1.0]])
+    model = LinearGaussianTimeInvariantTransitionModel(
+        transition_matrix=np.eye(2), covariance_matrix=covariance)
+    prior = State([[0.0], [0.0]])
+    state = State([[0.5], [1.0]])
+
+    probability = model.pdf(state, prior)
+    expected = multivariate_normal.pdf(
+        state.state_vector.ravel(), mean=prior.state_vector.ravel(),
+        cov=covariance, allow_singular=True)
+
+    assert probability == approx(expected)
