@@ -10,6 +10,15 @@ Updaters
 Kalman
 ------
 
+.. note::
+    :class:`~stonesoup.updater.kalman.KalmanUpdater` requires a linear measurement model that
+    provides a :meth:`~stonesoup.models.base.LinearModel.matrix` method. Non-linear measurement
+    models, such as bearing-range models, should instead be used with an
+    :class:`~stonesoup.updater.kalman.ExtendedKalmanUpdater` or
+    :class:`~stonesoup.updater.kalman.UnscentedKalmanUpdater`. To use a standard Kalman filter,
+    measurements must be represented by a compatible linear model, for example Cartesian position
+    measurements.
+
 .. automodule:: stonesoup.updater.kalman
     :show-inheritance:
 
