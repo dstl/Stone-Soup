@@ -8,7 +8,29 @@ from .base import Writer
 
 
 class YAMLWriter(Writer):
-    """YAML Writer"""
+    """Write Stone Soup data sources to a YAML document stream.
+
+    At least one source must be supplied. The writer iterates over the first
+    available source in the order ``tracks_source``, ``detections_source``,
+    ``sensor_data_source``, then ``groundtruth_source``. At each timestamp it
+    writes the current data from every configured source into a separate YAML
+    document.
+
+    When multiple sources are supplied, they should therefore be synchronised
+    so their current values correspond to the timestamp yielded by the driving
+    source.
+
+    ``YAMLWriter`` opens :attr:`path` when it is constructed. Using it as a
+    context manager is recommended so the output file is closed reliably::
+
+        with YAMLWriter("output.yaml", detections_source=reader) as writer:
+            writer.write()
+
+    The output is a multi-document YAML stream with explicit document start
+    and end markers. Depending on the configured sources, each document can
+    contain ``tracks``, ``detections``, ``sensor_data`` and
+    ``groundtruth_paths`` in addition to its ``time`` value.
+    """
     path: Path = Property(doc="File to save data to. Str will be converted to Path")
     groundtruth_source: GroundTruthReader = Property(default=None)
     sensor_data_source: SensorDataReader = Property(default=None)
