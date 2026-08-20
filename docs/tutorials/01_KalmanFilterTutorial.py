@@ -321,6 +321,8 @@ updater = KalmanUpdater(measurement_model)
 # :class:`~.GaussianState` we mentioned earlier. As the name suggests, this parameterises the state
 # as :math:`\mathcal{N}(\mathbf{x}_0, P_0)`. By happy chance the initial values are chosen to match
 # the truth quite well. You might want to manipulate these to see what happens.
+# The diagonal entries of :math:`P_0` are variances, not standard deviations; a standard deviation
+# of :math:`\sigma` is represented on the diagonal by :math:`\sigma^2`.
 from stonesoup.types.state import GaussianState
 prior = GaussianState([[0], [1], [0], [1]], np.diag([1.5, 0.5, 1.5, 0.5]), timestamp=start_time)
 
