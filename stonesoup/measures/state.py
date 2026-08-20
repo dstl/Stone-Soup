@@ -284,7 +284,10 @@ class Mahalanobis(SquaredMahalanobis):
             objects
 
         """
-        return np.sqrt(super().__call__(state1, state2))
+        squared_distance = super().__call__(state1, state2)
+        if np.any(squared_distance < -1e-10):
+            raise ValueError("Squared Mahalanobis distance shouldn't be less than 0")
+        return np.sqrt(np.maximum(squared_distance, 0))
 
 
 class SquaredGaussianHellinger(Measure):
