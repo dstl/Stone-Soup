@@ -337,7 +337,7 @@ class GaussianModel(Model):
         # This is required as log pdf converts arrays to floats
         likelihood = np.atleast_1d(
             multivariate_normal.logpdf((state1.state_vector - self.function(state2, **kwargs)).T,
-                                       cov=covar))
+                                       cov=covar, allow_singular=True))
 
         if len(likelihood) == 1:
             likelihood = likelihood[0]
