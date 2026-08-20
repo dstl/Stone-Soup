@@ -4,6 +4,19 @@ Predictors
 .. automodule:: stonesoup.predictor
     :no-members:
 
+Prediction timing in trackers
+-----------------------------
+
+A predictor can evaluate a state at any timestamp supplied to its ``predict`` method. When a
+predictor is used inside a tracker, however, prediction times are normally driven by the timestamps
+yielded by the tracker's detector. The tracker does not automatically insert extra prediction
+states between two detector timestamps.
+
+If denser predicted states are required across a measurement gap, either call the predictor at the
+intermediate timestamps explicitly, or have the detector/input generator yield those intermediate
+timestamps with an empty detection set. The tracker will then advance existing tracks using their
+prediction when no detection is associated at that timestep.
+
 .. automodule:: stonesoup.predictor.base
     :show-inheritance:
 
