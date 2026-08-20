@@ -168,9 +168,12 @@ class CreatableFromState:
 
 
 class PointMassState(State):
-    """PointMassState State type
+    """Point-mass state on a multidimensional grid.
 
-    For the Lagrangian Point Mass filter.
+    Used by the Lagrangian point-mass filter, this state stores the grid
+    locations in :attr:`state_vector`, their associated masses in
+    :attr:`weight`, and the grid geometry used to recover moments such as the
+    mean and covariance.
     """
 
     state_vector: StateVectors = Property(doc="State vectors.")
@@ -211,9 +214,12 @@ State.register(PointMassState)  # noqa: E305
 
 
 class ASDState(Type):
-    """ASD State type
+    """Accumulated State Density state containing states from multiple timestamps.
 
-    For the use of Accumulated State Densities.
+    The state vectors are stacked in :attr:`multi_state_vector` and aligned
+    with :attr:`timestamps`, with the newest state first. :attr:`state_vector`
+    and :attr:`timestamp` expose that newest state. :attr:`max_nstep` controls
+    pruning during prediction; a value of 0 disables pruning.
     """
 
     multi_state_vector: StateVector = Property(
@@ -950,6 +956,12 @@ class MultiModelParticleState(ParticleState):
 
 
 class RaoBlackwellisedParticleState(ParticleState):
+    """Particle state with per-particle probabilities over a discrete model set.
+
+    Extends :class:`~.ParticleState` for Rao-Blackwellised multiple-model
+    filtering by storing :attr:`model_probabilities` with shape
+    ``(n_models, n_particles)``.
+    """
 
     model_probabilities: np.ndarray = Property(
         default=None,
