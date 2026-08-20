@@ -79,6 +79,19 @@ Use standard library and existing well maintained external libraries where
 possible. New external libraries should be licensed permissive (e.g MIT_) or
 weak copyleft (e.g. LGPL_)
 
+Commit Messages
+---------------
+Commit messages become part of the permanent project history and should make
+sense when read outside the context of their development branch.
+
+* Start with a concise summary that describes the change, preferably using the
+  imperative mood (for example, ``Fix association threshold handling``).
+* Avoid vague subjects such as ``fix``, ``updates`` or ``changes`` that do not
+  identify what was modified.
+* Use the commit body when useful to explain why a change is needed or to record
+  behaviour that is not obvious from the diff.
+* Reference the relevant issue when it provides useful context for the change.
+
 Pull Requests
 -------------
 Submissions should be done via Pull Requests on the `Stone Soup GitHub repo`_.
