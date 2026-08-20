@@ -61,6 +61,36 @@ def test_simple_sensor_seed():
         assert np.allclose(m3.state_vector, m4.state_vector)
 
 
+def test_simple_sensor_seed_independent_of_truth_order():
+    class DummySimpleSensor(SimpleSensor):
+        @property
+        def measurement_model(self):
+            return LinearGaussian(1, [0], np.diag([1]))
+
+        def is_detectable(self, state: GroundTruthState, measurement_model=None) -> bool:
+            return True
+
+        def is_clutter_detectable(self, state: Detection) -> bool:
+            return True
+
+    truth1 = GroundTruthState([[0]])
+    truth2 = GroundTruthState([[10]])
+    sensor1 = DummySimpleSensor(seed=1)
+    sensor2 = DummySimpleSensor(seed=1)
+
+    detections1 = sensor1.measure([truth1, truth2])
+    detections2 = sensor2.measure([truth2, truth1])
+
+    measurements1 = {detection.groundtruth_path: detection.state_vector
+                     for detection in detections1}
+    measurements2 = {detection.groundtruth_path: detection.state_vector
+                     for detection in detections2}
+
+    assert measurements1.keys() == measurements2.keys()
+    for truth in measurements1:
+        assert np.allclose(measurements1[truth], measurements2[truth])
+
+
 def test_sensor_position_orientation_setting():
     sensor = DummySensor(position=StateVector([0, 0, 1]))
     assert np.allclose(sensor.position, StateVector([0, 0, 1]))
