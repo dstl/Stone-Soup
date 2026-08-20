@@ -6,10 +6,13 @@ from .base import GaussianInitiator, ParticleInitiator, Initiator
 from ..base import Property
 from ..dataassociator import DataAssociator
 from ..deleter import Deleter
+from ..functions import gm_reduce_single
 from ..models.base import LinearModel, ReversibleModel
 from ..models.measurement import MeasurementModel
+from ..types.array import StateVectors
 from ..types.hypothesis import SingleHypothesis
 from ..types.mixture import GaussianMixture
+from ..types.multihypothesis import MultipleHypothesis
 from ..types.numeric import Probability
 from ..types.state import State, GaussianState, ParticleState, TaggedWeightedGaussianState, \
     ASDGaussianState, EnsembleState
@@ -288,13 +291,34 @@ class MultiMeasurementInitiator(GaussianInitiator):
             associations = self.data_associator.associate(
                 self.holding_tracks, detections, timestamp)
 
-            for track, hypothesis in associations.items():
-                if hypothesis:
-                    state_post = self.updater.update(hypothesis)
-                    track.append(state_post)
-                    associated_detections.add(hypothesis.measurement)
+            for track, multihypothesis in associations.items():
+                if multihypothesis:
+                    if isinstance(multihypothesis, MultipleHypothesis):
+                        posterior_states = []
+                        posterior_state_weights = []
+                        for hypothesis in multihypothesis:
+                            if not hypothesis:
+                                posterior_states.append(hypothesis.prediction)
+                            else:
+                                posterior_states.append(self.updater.update(hypothesis))
+                                associated_detections.add(hypothesis.measurement)
+                            posterior_state_weights.append(hypothesis.probability)
+
+                        means = StateVectors([state.state_vector for state in posterior_states])
+                        covars = np.stack([state.covar for state in posterior_states], axis=2)
+                        weights = np.asarray(posterior_state_weights)
+
+                        post_mean, post_covar = gm_reduce_single(means, covars, weights)
+                        track.append(GaussianState(
+                            post_mean, post_covar,
+                            multihypothesis,
+                            multihypothesis[0].measurement.timestamp))
+                    else:
+                        state_post = self.updater.update(multihypothesis)
+                        track.append(state_post)
+                        associated_detections.add(multihypothesis.measurement)
                 else:
-                    track.append(hypothesis.prediction)
+                    track.append(multihypothesis.prediction)
 
                 if sum(1 for state in track if not self.updates_only or isinstance(state, Update))\
                         >= self.min_points:
