@@ -30,6 +30,10 @@ def test_categorical_measurement_model():
                                [4 / 10, 1 / 4, 1 / 20]])
     assert np.allclose(model.emission_matrix, expected_array)
 
+    # Test matrix
+    assert np.allclose(model.matrix(), expected_array)
+    assert model.matrix().shape == (model.ndim_meas, model.ndim_state)
+
     # Test ndim
     assert model.ndim_state == 3
     assert model.ndim_meas == 4
@@ -41,6 +45,7 @@ def test_categorical_measurement_model():
     assert isinstance(new_vector, StateVector)
     assert new_vector.shape[0] == 4
     assert np.isclose(np.sum(new_vector), 1)
+    assert np.allclose(new_vector, model.matrix() @ state.state_vector)
 
     # Test mapping
     assert np.array_equal(model.mapping, [0, 1, 2])

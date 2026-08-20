@@ -52,6 +52,16 @@ class MarkovianMeasurementModel(MeasurementModel):
                 f"{len(self.measurement_categories)}"
             )
 
+    def matrix(self, **kwargs):
+        r"""Return the categorical emission matrix :math:`E`.
+
+        Returns
+        -------
+        : :class:`~.Matrix` of shape (:attr:`ndim_meas`, :attr:`ndim_state`)
+            The column-normalised matrix of conditional measurement-category probabilities.
+        """
+        return self.emission_matrix
+
     def function(self, state, **kwargs):
         r"""Applies the linear transformation:
 
@@ -71,7 +81,7 @@ class MarkovianMeasurementModel(MeasurementModel):
             of shape (:py:attr:`~ndim_meas, 1`). The resultant measurement vector.
         """
 
-        meas_vector = self.emission_matrix @ state.state_vector
+        meas_vector = self.matrix(**kwargs) @ state.state_vector
         meas_vector = meas_vector / np.sum(meas_vector)  # normalise
 
         return StateVector(meas_vector)
