@@ -128,6 +128,7 @@ Contents
     auto_tutorials/index
     auto_examples/index
     auto_demos/index
+    developing_components
     contributing
     copyright
 
