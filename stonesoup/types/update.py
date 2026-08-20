@@ -13,20 +13,30 @@ from ..base import Property
 
 
 class Update(Type, CreatableFromState):
-    """ Update type
+    """Update type.
 
-    The base update class. Updates are returned by :class:'~.Updater' objects
-    and contain the information that was used to perform the updating"""
+    The common base class for all update types. Updates are returned by
+    :class:`~.Updater` objects and contain the information that was used to
+    perform the update.
+
+    Update classes combine :class:`~.Update` with the corresponding state type.
+    For example, :class:`~.StateUpdate` combines ``Update`` and :class:`~.State`,
+    while :class:`~.GaussianStateUpdate` combines ``Update`` and
+    :class:`~.GaussianState`. Consequently, specialised update classes are
+    siblings of :class:`~.StateUpdate`, rather than subclasses of it.
+    """
 
     hypothesis: Hypothesis = Property(doc="Hypothesis used for updating")
 
 
 class StateUpdate(Update, State):
-    """ StateUpdate type
+    """StateUpdate type.
 
-    Most simple state update type, where everything only has time
-    and a state vector. Requires a prior state that was updated,
-    and the hypothesis used to update the prior.
+    Update counterpart of the plain :class:`~.State` type, containing a state
+    vector, timestamp and update hypothesis. Specialised update types such as
+    :class:`~.GaussianStateUpdate` inherit directly from :class:`~.Update` and
+    their corresponding specialised state type; they do not inherit from this
+    class.
     """
 
 
