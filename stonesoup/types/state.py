@@ -1327,4 +1327,4 @@ class DecayState(State):
         if isinstance(state_vector, int):
             state_vector = StateVector(np.ones(state_vector), dtype=np.int8)
 
-        super().__init__(state_vector, *args[1:], **kwargs)
+        super().__init__(state_vector, *args[0:], **kwargs)
