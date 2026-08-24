@@ -1322,11 +1322,9 @@ class DecayState(State):
 
     halflife: float = Property(doc="The half life (timedelta object)")
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, state_vector, *args, **kwargs):
 
-        if type(args[0]) is int:
-            state_vector = StateVector(np.ones(args[0]), dtype=np.int8)
-        elif type(args[0]) is StateVector:
-            state_vector = args[0]
+        if isinstance(state_vector, int):
+            state_vector = StateVector(np.ones(state_vector), dtype=np.int8)
 
         super().__init__(state_vector, *args[1:], **kwargs)
