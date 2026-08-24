@@ -334,21 +334,19 @@ class DecayTransition(TransitionModel):
         metric and is governed by standard binomial statistics.
 
         """
-        prob = 1
-        for i, element in enumerate(state_ini.state_vector):
-            if element == 1:
-                if state_fin.state_vector[i] == 1:
-                    prob *= (1 - self.prob_decay(state_ini, time_interval))
-                else:
-                    prob *= self.prob_decay(state_ini, time_interval)
-            else:
-                if state_fin.state_vector[i] == 1:
-                    # This should never happen, but if it does, we'd want to kill the loop
-                    prob *= 0.
-                else:
-                    prob *= 1
-
-        return prob
+    prob = np.ones(shape=state.state_vector.shape)
+    ini_ones = state_ini.state_vector == 1
+    ini_zeros = state_ini.state_vector == 0
+    fin_ones = state_fin.state_vector == 1
+    fin_zeros = state_fin.state_vector == 0
+    
+    if np.any(fin_ones & ini_zeros):
+        return 0.
+    
+    p_d = self.prob_decay(state_ini, time_interval)
+    prob[fin_ones & ini_ones] = 1 - p_d
+    prob[fin_zeros & ini_ones] = p_d
+    return np.prod(prob)
 
     def rvs(self, state, time_interval, num_samples=1):
         """Generate a random sample from the transition distribution. This is equivalent to
