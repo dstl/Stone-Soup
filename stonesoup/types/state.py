@@ -1313,10 +1313,10 @@ State.register(CompositeState)  # noqa: E305
 class DecayState(State):
     """Embodies a state with elements (atoms) that can transition from their undecayed state (1) to
     their decayed state (0). That is handled by the transition function. The state vector is of 1xN
-    StateVectors type and can be initialised either by specifying the number of atoms (N) or by
+    StateVector type and can be initialised either by specifying the number of atoms (N) or by
     providing a StateVector object. The half-life of the decay is governed by the halflife
-    attribute, which is a float representing the time it takes for half of the atoms to decay. The
-    half life is used in the transition function.
+    attribute, which is a float representing the expected time it takes for half of the atoms to
+    decay. The half life is used in the transition function.
 
     """
 

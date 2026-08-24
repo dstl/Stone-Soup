@@ -226,7 +226,7 @@ class DecayTransition(TransitionModel):
 
     .. math::
 
-        \lambda = \frac{\log_e 2}{T}
+        \lambda = \frac{\ln 2}{T}
 
     """
     def ndim_state(self):
