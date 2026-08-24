@@ -277,8 +277,11 @@ class DecayTransition(TransitionModel):
             The state vector after decay
         """
         out_state_vector = copy.copy(state.state_vector)
-        decay_postions = np.random.uniform(size=out_state_vector.shape) < self.prob_decay(state, time_interval)
-        out_state_vector *= decay_positions
+        undecay_positions = (
+            np.random.uniform(size=out_state_vector.shape)
+            > self.prob_decay(state, time_interval)
+        )
+        out_state_vector *= undecay_positions
 
         return out_state_vector
 
