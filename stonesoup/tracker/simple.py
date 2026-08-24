@@ -13,7 +13,9 @@ from ..types.array import StateVectors
 from ..types.prediction import GaussianStatePrediction
 from ..types.track import Track
 from ..types.update import GaussianStateUpdate
+from ..types.state import ParticleState
 from ..updater import Updater
+from ..predictor.particle import ParticlePredictor
 
 
 class SingleTargetTracker(_TrackerMixInNext, Tracker):
@@ -309,5 +311,78 @@ class MultiTargetMixtureTracker(_TrackerMixInNext, Tracker):
         self._tracks -= self.deleter.delete_tracks(self.tracks)
         self._tracks |= self.initiator.initiate(
             unassociated_detections, time)
+
+        return time, self.tracks
+
+
+class BayesianSearchMultiTargetTracker(MultiTargetTracker):
+
+    search_state: ParticleState = Property(
+        doc="State object which stores particles representing grid cells "
+            "and associated search weights")
+
+    detection_probability: float = Property(
+        doc="Deteciton probability used to update search weights.")
+
+    search_predictor: ParticlePredictor = Property(
+        doc="Predictor used to predict the particle distribution"
+        "over the unknown target distribution")
+
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+
+        self._has_platforms = hasattr(self.detector, 'platforms')
+        self._has_sensors = hasattr(self.detector, 'sensors')
+
+        if not self._has_sensors and not self._has_platforms:
+            raise ValueError("Detector does not contain sensors or platforms.")
+
+        self._log_det_prob = np.log(self.detection_probability)
+
+    @property
+    def platforms(self):
+        if self._has_platforms:
+            return self.detector.platforms
+        else:
+            return []
+
+    @property
+    def sensors(self):
+        sensor_set = set()
+        if self._has_platforms:
+            for platform in self.platforms:
+                sensor_set.update(platform.sensors)
+
+        if self._has_sensors:
+            sensor_set.update(self.detector.sensors)
+
+        return sensor_set
+
+    def __next__(self):
+        time, _ = super(BayesianSearchMultiTargetTracker, self).__next__()
+
+        # Predict over undetected target distribution
+        prediction = self.search_predictor.predict(self.search_state,
+                                                   timestamp=time)
+
+        # Update particles using log maths and log weights
+        update = ParticleState.from_state(prediction)
+        for sensor in self.sensors:
+
+            # Get visible particles for the sensor in question
+            vis_parts = sensor.is_detectable(update)
+
+            # Calculate the multiplier for incrementing the existence probability for all other
+            # particles.
+            non_vis_multiplier = \
+                np.sum(-1*np.log1p(-np.exp(update.log_weight[vis_parts]+self._log_det_prob)))
+
+            update.log_weight += non_vis_multiplier
+
+            # Decrease existence probability for particles in the FOV
+            update.log_weight[vis_parts] += np.log1p(-self.detection_probability)
+
+        self.search_state = update
 
         return time, self.tracks

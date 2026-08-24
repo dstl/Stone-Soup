@@ -21,6 +21,7 @@ from ..types.hypothesis import SingleHypothesis
 from ..types.prediction import Prediction
 from ..types.shape import AreaOfInterest
 from ..types.state import State
+from ..types.prediction import ParticleState
 from ..types.track import Track
 from ..updater import Updater
 from ..updater.kalman import ExtendedKalmanUpdater
@@ -590,3 +591,71 @@ class AOIRewardFunction2D(RewardFunction):
                         reward_func = self.default_reward
 
         return reward_func(config, tracks, metric_time, *args, **kwargs)
+
+
+class ExistenceLikelihoodRewardFunction(RewardFunction):
+    """A function for rewarding sensing actions that cover the highest probability of
+    existence with the sensor FOV."""
+
+    predictor: ParticlePredictor = Property(doc="Predictor for predicting the movement of "
+                                                "undiscovered targets")
+
+    return_tracks: bool = Property(default=False,
+                                   doc="A flag for allowing the predicted track, "
+                                       "used to calculate the reward, to be "
+                                       "returned.")
+
+    detection_probability: float = Property(default=0.9,
+                                            doc="Detection probability for detecting an "
+                                                "undetected target in a search cell")
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+
+        self._log_det_prob = np.log(self.detection_probability)
+
+    def __call__(self, config: Mapping[Sensor, Sequence[Action]], tracks: set[Track],
+                 metric_time: datetime.datetime, search_state: ParticleState = None,
+                 *args, **kwargs):
+
+        if search_state is None:
+            ValueError('Search state has not been provided to the reward function.')
+
+        weight_sum = 0
+
+        memo = {}
+        predicted_sensors = set()
+        # For each actionable in the configuration
+        for actionable, actions in config.items():
+            # Don't currently have an Actionable base for platforms hence either Platform or Sensor
+            if isinstance(actionable, Platform) or isinstance(actionable, Actionable):
+                predicted_actionable = copy.deepcopy(actionable, memo)
+                predicted_actionable.add_actions(actions)
+                predicted_actionable.act(metric_time)
+                if isinstance(actionable, Sensor):
+                    predicted_sensors.add(predicted_actionable)  # checks if its a sensor
+                elif isinstance(actionable, Platform):
+                    predicted_sensors.update(predicted_actionable.sensors)
+
+        prediction = self.predictor.predict(copy.deepcopy(search_state),
+                                            timestamp=metric_time)
+
+        weight_in_view = 0
+        for sensor in predicted_sensors:
+
+            vis_parts = sensor.is_detectable(prediction)
+
+            weight_in_view += np.sum(prediction[vis_parts].weight)
+
+            non_vis_multiplier = \
+                np.sum(-1*np.log1p(-np.exp(prediction.log_weight[vis_parts]+self._log_det_prob)))
+
+            prediction.log_weight += non_vis_multiplier
+
+            prediction.log_weight[vis_parts] += np.log1p(-self.detection_probability)
+
+        # May need to add something that does tracking so tracks can be updated for MCTS
+        if self.return_tracks:
+            return weight_in_view, tracks
+        else:
+            return weight_in_view

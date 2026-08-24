@@ -167,7 +167,7 @@ class BruteForceSensorManager(SensorManager):
         selected_configs = [None] * nchoose
         for config in configs:
             # calculate reward for dictionary of sensors: actions
-            reward = self.reward_function(config, tracks, timestamp)
+            reward = self.reward_function(config, tracks, timestamp, **kwargs)
             if reward > min(best_rewards):
                 selected_configs[np.argmin(best_rewards)] = config
                 best_rewards[np.argmin(best_rewards)] = reward
@@ -218,7 +218,7 @@ class GreedySensorManager(SensorManager):
             selected_actions = [None] * nchoose
             for action in action_choices:
                 # calculate reward for each action
-                reward = self.reward_function({actionable: action}, tracks, timestamp)
+                reward = self.reward_function({actionable: action}, tracks, timestamp, **kwargs)
                 if reward > min(best_rewards):
                     selected_actions[np.argmin(best_rewards)] = action
                     best_rewards[np.argmin(best_rewards)] = reward
