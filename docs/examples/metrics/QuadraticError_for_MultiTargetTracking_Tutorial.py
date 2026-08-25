@@ -773,32 +773,38 @@ plotterB.fig
 kernel_cov = 100 * np.eye(4)
 
 # setup metric generators & multimanager
-quaderr_pp1 = QuadraticDistance(kernel='Gaussian',
+quaderr_pp1 = QuadraticDistance(state_dim=4,
+                                kernel='Gaussian',
                                 kernel_parameters={'covariance': kernel_cov},
                                 generator_name='Truths - Means (Random)',
                                 tracks_key='means1', truths_key='truths')
 
-quaderr_pt1 = QuadraticDistance(kernel='Gaussian',
+quaderr_pt1 = QuadraticDistance(state_dim=4,
+                                kernel='Gaussian',
                                 kernel_parameters={'covariance': kernel_cov},
                                 generator_name='Truths - Tracks (Random)',
                                 tracks_key='tracks1', truths_key='truths')
 
-quaderr_pp2 = QuadraticDistance(kernel='Gaussian',
+quaderr_pp2 = QuadraticDistance(state_dim=4,
+                                kernel='Gaussian',
                                 kernel_parameters={'covariance': kernel_cov},
                                 generator_name='Truths - Means (Quadratic)',
                                 tracks_key='means2', truths_key='truths')
 
-quaderr_pt2 = QuadraticDistance(kernel='Gaussian',
+quaderr_pt2 = QuadraticDistance(state_dim=4,
+                                kernel='Gaussian',
                                 kernel_parameters={'covariance': kernel_cov},
                                 generator_name='Truths - Tracks (Quadratic)',
                                 tracks_key='tracks2', truths_key='truths')
 
-quaderr_tt = QuadraticDistance(kernel='Gaussian',
+quaderr_tt = QuadraticDistance(state_dim=4,
+                               kernel='Gaussian',
                                kernel_parameters={'covariance': kernel_cov},
                                generator_name='Tracks (Random) - Tracks (Quadratic)',
                                tracks_key='tracks1', truths_key='tracks2')
 
-mquaderr_posterior_truth1 = MeanQuadraticError(filter_data=filter_data_dict,
+mquaderr_posterior_truth1 = MeanQuadraticError(state_dim=4,
+                                               filter_data=filter_data_dict,
                                                kernel='Gaussian',
                                                kernel_parameters={'covariance': kernel_cov},
                                                generator_name='Truths - Posterior (Random)',
@@ -806,7 +812,8 @@ mquaderr_posterior_truth1 = MeanQuadraticError(filter_data=filter_data_dict,
                                                hypotheses_key='hypotheses1',
                                                truths_key='truths')
 
-mquaderr_posterior_truth2 = MeanQuadraticError(filter_data=filter_data_dict,
+mquaderr_posterior_truth2 = MeanQuadraticError(state_dim=4,
+                                               filter_data=filter_data_dict,
                                                kernel='Gaussian',
                                                kernel_parameters={'covariance': kernel_cov},
                                                generator_name='Truths - Posterior (Quadratic)',
@@ -849,7 +856,6 @@ graph.plot_metrics(metrics, generator_names=['Truths - Means (Random)',
 # update y-axis label and title; other subplots are displaying auto-generated title and labels
 graph.axes[1].set(ylabel='Quadratic Distance', title='Quadratic Distance over time')
 graph.axes[0].set(ylabel='Mean Quadratic Error', title='Mean Quadratic Error over time')
-plt.savefig("plot.pdf", dpi=300)
 plt.show()
 
 
@@ -977,5 +983,5 @@ plt.show()
 # 2026.
 #
 # [4] Marc G. Genton, Classes of Kernels for Machine Learning:
-# A Statistics Perspectiv, Journal of Machine Learning Research 2, pp. 299-312, 2001.e
+# A Statistics Perspective, Journal of Machine Learning Research 2, pp. 299-312, 2001.e
 #
