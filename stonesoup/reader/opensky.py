@@ -80,7 +80,7 @@ class _OpenSkyNetworkReader(Reader):
                     if state[8]:  # On ground
                         continue
                     # Must have position (lon, lat, geo-alt)
-                    if not all(state[index] for index in (5, 6, 13)):
+                    if any(state[index] is None for index in (5, 6, 13)):
                         continue
                     timestamp = datetime.datetime.fromtimestamp(
                         state[3], datetime.timezone.utc).replace(tzinfo=None)
