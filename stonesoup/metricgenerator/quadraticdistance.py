@@ -21,7 +21,8 @@ class QuadraticDistance(MetricGenerator):
 
 
     """
-    kernel: str = Property(doc="kernel parametrisation of the quadratic distance.")
+    state_dim: int = Property(doc="The dimension of the states which are bring compared")
+    kernel: str = Property(doc="kernel parametrisation of the quadratic distance")
     kernel_parameters: dict = Property(
         doc="Required parameters for the kernel of the quadratic distance. Set of name-value"
             "pairs")
@@ -39,14 +40,14 @@ class QuadraticDistance(MetricGenerator):
     def __init__(self, *args, **kwargs):
         self.tracks_type = None
         self.truths_type = None
-        self.state_dim = None
         super().__init__(*args, **kwargs)
 
     def compute_metric(self, manager):
-        tracks_states, self.tracks_type, self.state_dim = self.extract_states(
+        tracks_states, self.tracks_type = self.extract_states(
             manager.states_sets[self.tracks_key])
-        truths_states, self.truths_type, self.state_dim = self.extract_states(
+        truths_states, self.truths_type = self.extract_states(
             manager.states_sets[self.truths_key])
+        
         return self.compute_over_time(tracks_states, truths_states)
 
     @staticmethod
@@ -57,51 +58,53 @@ class QuadraticDistance(MetricGenerator):
 
         Parameters
         ----------
-        object_with_states: object containing a list of states
+        object_with_states : list
+                            Object containing a list of states.
 
         Returns
         -------
-        state_list: A list of extracted states
+        state_list : list
+                    A list of extracted states.
 
-        state_type: The state type
-
-        state_dim: The state dimension
+        state_type : type
+                    The state type.
 
         """
 
         state_list = StateMutableSequence()
         ids = []
-        for i, element in enumerate(list(object_with_states)):
-            # extract state type
-            state_dim_set = set()
-            state_type_set = set()
-            for el in element:
-                state_dim_set = {np.array(getattr(el,
-                                                  'mean',
-                                                  el.state_vector)).flatten().shape[0]}
-                state_type_set = {type(el)}
-            if len(state_type_set) == 1 and len(state_dim_set) == 1:
-                state_type = list(state_type_set)[0]
-                state_dim = list(state_dim_set)[0]
-            else:
-                raise ValueError(
-                    'elements of the state sequence must share the same state type and state'
-                    'vectors must be of the same dimension.')
+        if len(list(object_with_states)) > 0:
+            for i, element in enumerate(list(object_with_states)):
+                # extract state type
+                state_type_set = set()
+                for el in element:
+                    state_type_set = {type(el)}
+                    print(type(el))
+                if len(state_type_set) == 1:
+                    state_type = list(state_type_set)[0]
+                    
+                else:
+                    raise ValueError(
+                        'elements of the state sequence must share the same state type and state '
+                        'vectors must be of the same dimension.')
 
-            if isinstance(element, StateMutableSequence):
-                states = list(element.last_timestamp_generator())
-                state_list.extend(states)
-                ids.extend([i] * len(states))
+                if isinstance(element, StateMutableSequence):
+                    states = list(element.last_timestamp_generator())
+                    state_list.extend(states)
+                    ids.extend([i] * len(states))
 
-            elif isinstance(element, State):
-                state_list.append(element)
-                ids.extend([i])
+                elif isinstance(element, State):
+                    state_list.append(element)
+                    ids.extend([i])
 
-            else:
-                raise ValueError(
-                    "{!r} has no state extraction method".format(element))
+                else:
+                    raise ValueError(
+                        "{!r} has no state extraction method".format(element))
 
-        return state_list, state_type, state_dim
+            return state_list, state_type
+        
+        else: # empty set
+            return [], State
 
     def quadratic_dist_pp(self, trth, trck, R):
         """
@@ -109,15 +112,19 @@ class QuadraticDistance(MetricGenerator):
 
         Parameters
         ----------
-        trth: list of point states, i.e. states with state_vector attributes.
+        trth : list
+                List of point states, i.e. states with state_vector attributes.
 
-        trck: list of point states, i.e. states with state_vector attributes.
+        trck : list
+                list of point states, i.e. states with state_vector attributes.
 
-        R: Gaussian kernel covariance matrix.
+        R : ndarray
+            Covariance matrix for the Gaussian kernel.
 
         Returns
         -------
-        d: Quadratic distance between the multi-object states.
+        d : float
+            Quadratic distance between the multi-object states.
 
         """
 
@@ -176,7 +183,7 @@ class QuadraticDistance(MetricGenerator):
                 const_cov=R)
 
         d = term1 - 2 * term2 + term3
-        return d.item()
+        return np.sqrt(d.item())
 
     def quadratic_dist_pt(self, trth, trck, R):
         """
@@ -185,16 +192,20 @@ class QuadraticDistance(MetricGenerator):
 
         Parameters
         ----------
-        trth: list of point states, i.e. states with state_vector attributes.
+        trth : list
+                List of point states, i.e. states with state_vector attributes.
 
-        trck: list of Gaussian states, i.e. states with state_vector and covar attributes.
-        May also be weighted Gaussian states.
+        trck : list
+                list of Gaussian states, i.e. states with state_vector and covar attributes.
+                May also be weighted Gaussian states.
 
-        R: Gaussian kernel covariance matrix.
+        R : ndarray
+            Covariance matrix for the Gaussian kernel.
 
         Returns
         -------
-        d: Quadratic distance between the multi-object states.
+        d : float
+            Quadratic distance between the multi-object states.
         """
 
         Phi = len(trth)
@@ -260,7 +271,7 @@ class QuadraticDistance(MetricGenerator):
                 var_cov2=trck_covs)
 
         d = term1 - 2 * term2 + term3
-        return d.item()
+        return np.sqrt(d.item())
 
     def quadratic_dist_tt(self, trth, trck, R):
         """
@@ -268,17 +279,21 @@ class QuadraticDistance(MetricGenerator):
 
         Parameters
         ----------
-        trth: list of Gaussian states, i.e. states with state_vector and covar attributes.
-        May also be weighted Gaussian states.
+        trth : list
+                List of Gaussian states, i.e. states with state_vector and covar attributes.
+                May also be weighted Gaussian states.
 
-        trck: list of Gaussian states, i.e. states with state_vector and covar attributes.
-        May also be weighted Gaussian states.
+        trck : list
+                List of Gaussian states, i.e. states with state_vector and covar attributes.
+                May also be weighted Gaussian states.
 
-        R: Gaussian kernel covariance matrix.
+        R : ndarray
+            Covariance matrix for the Gaussian kernel.
 
         Returns
         -------
-        d: Quadratic distance between the multi-object states.
+        d : float
+            Quadratic distance between the multi-object states.
         """
 
         Phi = len(trth)
@@ -349,7 +364,7 @@ class QuadraticDistance(MetricGenerator):
                 var_cov2=trck_covs)
 
         d = term1 - 2 * term2 + term3
-        return d.item()
+        return np.sqrt(d.item())
 
     def compute_over_time(self, measured_states, truth_states):
         """
@@ -358,12 +373,16 @@ class QuadraticDistance(MetricGenerator):
 
         Parameters
         ----------
-        measured_states: list of states
-        truth_states: list of states
+        measured_states : list
+                        List of extracted track states.
+
+        truth_states : list
+                    List of extracted truth states.
 
         Returns
         -------
         :class: `.~TimeRangeMetric`
+                    Values of the quadratic distance over time.
         """
 
         # Make a sorted list of all the unique timestamps used
@@ -404,35 +423,52 @@ class QuadraticDistance(MetricGenerator):
 
         Parameters
         ----------
-        w1: Corresponds to a list of weights given by $\\omega_i$ in the above expression.
-        w2: Corresponds to a list of weights given by $\\omega_j$ in the above expression.
-        m1: Corresponds to a list of means given by $m_i$ in the above expression.
-        m2: Corresponds to a list of means given by $m_j$ in the above expression.
-        const_cov: Corresponds to a covariance matrix given by $R$ in the above expression.
-        var_cov1: Corresponds to a list of covariance matrices given by $P_i$ in the above
-        expression.
-        var_cov2: Corresponds to a list of covariance matrices given by $P_j$ in the above
-        expression.
+        w1 : list
+                    Corresponds to a list of weights given by $\\omega_i$ in the above expression.
+        
+        w2 : list
+                    Corresponds to a list of weights given by $\\omega_j$ in the above expression.
+        
+        m1 : list
+                    Corresponds to a list of means given by $m_i$ in the above expression.
+       
+        m2 : list
+                    Corresponds to a list of means given by $m_j$ in the above expression.
+        
+        const_cov : ndarray
+                    Corresponds to a covariance matrix given by $R$ in the above expression.
+        
+        var_cov1 : ndarray
+                    Corresponds to a list of covariance matrices given by $P_i$ in the above
+                    expression.
 
-        dim: The dimension of the means. This must be the same for both sets.
+        var_cov2 : ndarray
+                    Corresponds to a list of covariance matrices given by $P_j$ in the above
+                    expression.
 
-        ret_sum: If true, this flag causes the function to return the sum of the batch
-        results. If false, an (N, M) matrix is returned.
+        dim : int
+                The dimension of the means. This must be the same for both sets.
 
-        normalise: if true, batch evaluations will be computed according to the normalised
-        Gaussian density, if false the density is unnormalised.
+        ret_sum : bool
+                    If true, this flag causes the function to return the sum of the batch
+                    results. If false, an (N, M) matrix is returned.
+
+        normalise : bool
+                    If true, batch evaluations will be computed according to the normalised
+                    Gaussian density, if false the density is unnormalised.
 
 
         Returns
         -------
-        values: a (N, M) matrix of evaluated gaussian densities for each combination of i, j.
+        values : ndarray
+                    A (N, M) matrix of evaluated gaussian densities for each combination of i, j.
         '''
         allowed_keys = {"dim", "w1", "w2", "m1", "m2", "const_cov", "var_cov1", "var_cov2"}
 
         unknown = set(kwargs) - allowed_keys
         if unknown:
             raise ValueError(
-                f"Unknown parameter(s) for vectorised_gaussian_eval:"
+                f"Unknown parameter(s) for vectorised_gaussian_eval: "
                 f"{', '.join(unknown)}")
 
         means1 = kwargs.pop("m1")
@@ -503,13 +539,14 @@ class QuadraticDistance(MetricGenerator):
         Returns
         -------
         :class: `.~SingleTimeMetric`
+                    Value of the quadratic distance at a single time instant.
         """
         timestamps = {
             state.timestamp
             for state in chain(track_states, truth_states)}
         if len(timestamps) > 1:
             raise ValueError(
-                'All states must be from the same time to perform quadratic distance'
+                'All states must be from the same time to perform quadratic distance '
                 'calculation.')
 
         # Gaussian kernel
@@ -522,7 +559,7 @@ class QuadraticDistance(MetricGenerator):
                 unknown = set(self.kernel_parameters) - allowed_keys
                 if unknown:
                     raise ValueError(
-                        f"Unknown parameter(s) for compute_Q_distance:"
+                        f"Unknown parameter(s) for compute_Q_distance: "
                         f"{', '.join(unknown)}.")
 
                 R = self.kernel_parameters['covariance']
@@ -530,13 +567,13 @@ class QuadraticDistance(MetricGenerator):
                 # check dimension symmetry and positive-definiteness
                 if R.shape != (self.state_dim, self.state_dim) or not np.allclose(
                         R, R.T, rtol=1e-10, atol=1e-10) or np.any(np.linalg.eigvals(R) < 0):
-                    raise ValueError(f'The {self.kernel} kernel covariance matrix must be'
-                                     f'symmetric and positive-definite with shape'
+                    raise ValueError(f'The {self.kernel} kernel covariance matrix must be '
+                                     f'symmetric and positive-definite with shape '
                                      f'({self.state_dim}, {self.state_dim}).')
 
             else:
                 raise ValueError(
-                    f'No covariance matrix was provided for the'
+                    f'No covariance matrix was provided for the '
                     f'{self.kernel} kernel.')
 
             # quadratic error calculations for all combinations of point and track comparison
@@ -557,6 +594,14 @@ class QuadraticDistance(MetricGenerator):
                    hasattr(self.tracks_type, 'covar'))):
 
                 distance = self.quadratic_dist_pt(truth_states, track_states, R)
+            
+            # quadratic error between a track set and a point set
+            elif ((hasattr(self.truths_type, 'state_vector') and
+                   hasattr(self.truths_type, 'covar')) and
+                  (hasattr(self.tracks_type, 'state_vector') and
+                   not hasattr(self.tracks_type, 'covar'))):
+
+                distance = self.quadratic_dist_pt(track_states, truth_states, R)
 
             # quadratic error between track sets
             elif ((hasattr(self.truths_type, 'state_vector') and
@@ -568,14 +613,14 @@ class QuadraticDistance(MetricGenerator):
 
             else:
                 raise ValueError(
-                    'Inputs to the quadratic error must be sets of means or sets of weighted'
+                    'Inputs to the quadratic error must be sets of means or sets of weighted '
                     '(or non-weighted) mean-covariance pairs.')
 
-            return SingleTimeMetric(title='Quadratic Distance', value=distance,
+            return SingleTimeMetric(title='Quadratic distance', value=distance,
                                     timestamp=timestamps.pop(), generator=self)
         else:
             raise NotImplementedError(
-                f'The Quadratic Distance with the'
+                f'The Quadratic Distance with the '
                 f'{self.kernel} kernel parametrisation is not implemented.')
 
 
@@ -596,9 +641,9 @@ class MeanQuadraticError(QuadraticDistance):
                                    default='hypotheses')
 
     def compute_metric(self, manager):
-        tracks_states, self.tracks_type, self.state_dim = self.extract_states(
+        tracks_states, self.tracks_type = self.extract_states(
             manager.states_sets[self.tracks_key])
-        truths_states, self.truths_type, self.state_dim = self.extract_states(
+        truths_states, self.truths_type = self.extract_states(
             manager.states_sets[self.truths_key])
         hypotheses = manager.states_sets[self.hypotheses_key]
         return self.compute_over_time(tracks_states, truths_states, hypotheses)
@@ -610,16 +655,20 @@ class MeanQuadraticError(QuadraticDistance):
 
         Parameters
         ----------
-        measured_states: list of states
+        measured_states : list
+                    List of extracted track states.
 
-        hypotheses: list of hypotheses objects, allowing for local computation of predicted
-        intensities
+        truth_states : list
+                    List of extracted truth states.
 
-        truth_states: list of states
+        hypotheses : list
+                    List of hypotheses objects, allowing for local computation of predicted
+                    intensities.
 
         Returns
         -------
         :class: `.~TimeRangeMetric`
+                    Values of the quadratic distance over time.
         """
 
         # Make a sorted list of all the unique timestamps used
@@ -661,23 +710,31 @@ class MeanQuadraticError(QuadraticDistance):
 
         Parameters
         ----------
-        estimator_states: List of weughted Gaussian states - the intensity of the point process
+        estimator_states : list
+                    List of weughted Gaussian states - the intensity of the point process.
 
-        hypotheses: list of hypothesis objects
+        hypotheses : list
+                    List of hypothesis objects.
 
-        updater: GM-PHD updater
+        updater : :class: `.~PHDUpdater`
+                    GM-PHD updater object.
 
-        detection_probability: probability of detection parameter of the GM-PHD filter
+        detection_probability : float
+                    Probability of detection parameter of the GM-PHD filter.
 
-        survival_probability: probability of survival parameter of the GM-PHD filter
+        survival_probability : float
+                    Probability of survival parameter of the GM-PHD filter.
 
-        clutter_rate: Poisson clutter rate parameter of the GM-PHD filter
+        clutter_rate : int
+                    Poisson clutter rate parameter of the GM-PHD filter.
 
-        R: Gaussian kernel covariance matrix
+        R : ndarray 
+                    Covariance matrix for the Gaussian kernel.
 
         Returns
         -------
-        mqe_cov_term: covariance term of the MQE
+        mqe_cov_term : float
+                    Covariance term of the MQE.
         '''
 
         # sum of posterior weights
@@ -739,13 +796,16 @@ class MeanQuadraticError(QuadraticDistance):
 
         Parameters
         ----------
-        parameter_states: states of the parameter intensity.
+        parameter_states : list
+                    States of the parameter intensity.
 
-        estimator_states: states of the estimator intensity.
+        estimator_states : list
+                    States of the estimator intensity.
 
         Returns
         -------
         :class: `.~SingleTimeMetric
+                    Value of the mean quadratic error at a single time instant.
         """
 
         timestamps = {
@@ -796,16 +856,25 @@ class MeanQuadraticError(QuadraticDistance):
             clutter_rate = self.filter_data['clutter rate']
             updater = self.filter_data['updater']
 
-            bias_squared_term = self.compute_Q_distance(parameter_states, estimator_states).value
-            covariance_term = self.kernel_smoothed_covariance(
-                estimator_states,
-                hypotheses,
-                updater,
-                detection_probability,
-                survival_probability,
-                clutter_rate,
-                R)
-            distance = bias_squared_term + covariance_term
+            # compute squared bias term
+            distance = bias_squared_term = self.compute_Q_distance(parameter_states, estimator_states).value**2
+            
+            # check for Gaussian mixture intensity
+            if (hasattr(self.tracks_type, 'state_vector') and
+                hasattr(self.tracks_type, 'covar')):
+                print('here')
+                print(self.tracks_type)
+                
+                covariance_term = self.kernel_smoothed_covariance(
+                    estimator_states,
+                    hypotheses,
+                    updater,
+                    detection_probability,
+                    survival_probability,
+                    clutter_rate,
+                    R)
+                
+                distance = bias_squared_term + covariance_term
 
         else:
             raise NotImplementedError(
