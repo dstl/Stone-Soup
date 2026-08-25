@@ -173,6 +173,8 @@ class CircleSamplePositionActionGenerator(SamplePositionActionGenerator):
         "sampling area."
     )
 
+    epsilon = 1e-6
+
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
@@ -181,6 +183,12 @@ class CircleSamplePositionActionGenerator(SamplePositionActionGenerator):
                              f"not have 2 dimensions. "
                              f":class:`~.CircleSamplePositionActionGenerator` "
                              f"is designed for 2D action generation only.")
+
+    def __contains__(self, item):
+        if isinstance(item, MovePositionAction):
+            item = item.target_value
+        distance = np.sqrt(sum((item - self.current_value)**2))
+        return distance <= self.maximum_travel + self.epsilon
 
     def __iter__(self):
 
