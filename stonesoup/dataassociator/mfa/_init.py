@@ -29,21 +29,20 @@ class Hyp:
     # Track ID for the purposes
     trackID: int
     # List of measurement indices to associate with this track, or 0 for unassociated.
-    measHistory: Sequence[int]
+    measHistory: Sequence[int] | Sequence[Sequence[int]]
     # Measurement indices for the sliding window length (either padded at start or truncated);
     # after compacting measurement indices, the numbers will be different to measHistory
     # (the measurement indices are compacted to 0, ..., n-1, with -1 for unassociated).
-    measHistorySlideWindow: np.ndarray
+    measHistorySlideWindow: Sequence[int] | Sequence[Sequence[int]]
     # Is this a dummy hypothesis i.e. not a real track, representing a false alarm
     isDummy: bool = False
 
     @staticmethod
     def create(trackID: int, cost: float, measHistory: Sequence[int], slide_window: int):
         if len(measHistory) < slide_window:
-            padding = (0,) * (slide_window - len(measHistory))
-            measHistorySlideWindow = np.concatenate((padding, measHistory), dtype=np.int32)
+            measHistorySlideWindow = [0] * (slide_window - len(measHistory)) + measHistory
         else:
-            measHistorySlideWindow = np.array(measHistory[-slide_window:], dtype=np.int32)
+            measHistorySlideWindow = measHistory[-slide_window:]
         return Hyp(cost, trackID, measHistory, measHistorySlideWindow, False)
 
 
@@ -57,7 +56,7 @@ def _add_dummy_tracks(hyps: list[Hyp], all_measurements: list[tuple[int, int]], 
     Each measurement has a hypothesis that it was used and another that it wasn't so that all of
     the measurement hypotheses are used by the assignment.
     """
-    zeros = np.zeros(slide_window, dtype=np.int32)
+    zeros = [0] * slide_window
     for trackID, (time_index, measurement) in enumerate(
             all_measurements, start=hyps[-1].trackID+1):
         # Track without measurement assigned (allow measurement to be assigned to real track)
@@ -69,7 +68,7 @@ def _add_dummy_tracks(hyps: list[Hyp], all_measurements: list[tuple[int, int]], 
             isDummy=True
         ))
         # Track with measurement assigned (measurement is false alarm)
-        zeros_with_measurement = np.copy(zeros)
+        zeros_with_measurement = zeros.copy()
         zeros_with_measurement[time_index] = measurement
         hyps.append(Hyp(
             cost=_DUMMY_TRACK_ASSIGNMENT_COST,
@@ -97,10 +96,8 @@ def _compact_measurement_indices(
             for index_packed, (t, index_original) in enumerate(measurements)
         })
     for h in hyps:
-        h.measHistorySlideWindow = np.array(
-            [meas_true_to_packed_index[t][m] for t, m in enumerate(h.measHistorySlideWindow)],
-            dtype=np.int32
-        )
+        h.measHistorySlideWindow = [meas_true_to_packed_index[t][m]
+                                    for t, m in enumerate(h.measHistorySlideWindow)]
 
 
 @dataclass
@@ -124,7 +121,7 @@ class TimeStepIndices:
     measurement_count: int
 
 
-def _get_hyp_indices(hyps: list[Hyp], slide_window: int):
+def _get_hyp_indices(hyps: list[Hyp], slide_window: int, multi_hyp: bool):
     """Computes useful indices mapping into the list of hypotheses.
 
     The main result is a list of HypInfo structures, which are used in the main algorithm step.
@@ -143,16 +140,19 @@ def _get_hyp_indices(hyps: list[Hyp], slide_window: int):
         track_to_hyp_map[hyp.trackID].append(hyp_index)
         for time_index, measurement in enumerate(hyp.measHistorySlideWindow):
             this_time_step_indices = time_step_indices[time_index]
-            if measurement == -1:
+            measurement = measurement if isinstance(measurement, int) else measurement[0]
+            if measurement == -1 or (multi_hyp and measurement == 0):  # Not compacted in multi_hyp
                 # The track has not been assigned to any actual measurement (undetected)
                 this_time_step_indices.trackNull_index[hyp.trackID].append(hyp_index)
             else:
                 # An actual measurement to track assignment
-                this_time_step_indices.measTrack_index[measurement, hyp.trackID].append(hyp_index)
                 this_time_step_indices.measIndex[measurement].append(hyp_index)
-                this_time_step_indices.measurement_count = max(
-                    this_time_step_indices.measurement_count, measurement + 1
-                )
+                if not multi_hyp:  # Not required in multi_hyp case
+                    this_time_step_indices.measTrack_index[measurement, hyp.trackID].append(
+                        hyp_index)
+                    this_time_step_indices.measurement_count = max(
+                        this_time_step_indices.measurement_count, measurement + 1
+                    )
 
     return time_step_indices, track_to_hyp_map
 
@@ -194,6 +194,8 @@ class HypInfo:
     constraint_matrix: np.array
     # The individual costs of the Hyp objects pulled out into a single array
     all_costs: np.array
+    # Whether there are multiple hypotheses per measurement per track
+    multi_hyp: bool
 
 
 def init_hyp_info(hyps: list[Hyp], slide_window: int):
@@ -203,13 +205,18 @@ def init_hyp_info(hyps: list[Hyp], slide_window: int):
         for time_index, measurement in enumerate(hyp.measHistorySlideWindow)
         if measurement != 0
     ))
+    multi_hyp = any(not isinstance(measurement, int) for _, measurement in all_measurements)
     _add_dummy_tracks(hyps, all_measurements, slide_window)
-    _compact_measurement_indices(hyps, all_measurements, slide_window)
-    time_step_indices, track_to_hyp_map = _get_hyp_indices(hyps, slide_window)
+    if not multi_hyp:
+        # in multi hypothesiser case, 2d cost matrices aren't used
+        # so no need to worry about compacting indices
+        _compact_measurement_indices(hyps, all_measurements, slide_window)
+    time_step_indices, track_to_hyp_map = _get_hyp_indices(hyps, slide_window, multi_hyp)
     return HypInfo(
         hyps=hyps,
         track_to_hyp_map=track_to_hyp_map,
         time_step_indices=time_step_indices,
         constraint_matrix=_get_constraints_matrix(hyps, time_step_indices, track_to_hyp_map),
         all_costs=np.array([hyp.cost for hyp in hyps], dtype=np.float64),
+        multi_hyp=multi_hyp
     )
