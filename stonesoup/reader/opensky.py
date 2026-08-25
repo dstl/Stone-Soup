@@ -167,6 +167,6 @@ class OpenSkyNetworkGroundTruthReader(_OpenSkyNetworkReader, GroundTruthReader):
                     path = groundtruth_dict[path_id]
 
                 path.append(GroundTruthState(state.state_vector, state.timestamp, metadata))
-                updated_paths.add(groundtruth_dict[path_id])
+                updated_paths.add(path)
 
             yield time, updated_paths
