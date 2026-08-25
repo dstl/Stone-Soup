@@ -136,17 +136,20 @@ ospa_EKF_PF = OSPAMetric(c=40, p=1, generator_name='OSPA_EKF-PF',
 r = 100
 kernel_cov = r * np.eye(4)
 
-quaderr_EKF_truth = QuadraticDistance(kernel='Gaussian',
+quaderr_EKF_truth = QuadraticDistance(state_dim=4,
+                                      kernel='Gaussian',
                                       kernel_parameters={'covariance': kernel_cov},
                                       generator_name='Quadratic_Distance_EKF-truth',
                                       tracks_key='EKF_tracks', truths_key='truths')
 
-quaderr_PF_truth = QuadraticDistance(kernel='Gaussian',
+quaderr_PF_truth = QuadraticDistance(state_dim=4,
+                                     kernel='Gaussian',
                                      kernel_parameters={'covariance': kernel_cov},
                                      generator_name='Quadratic_Distance_PF-truth',
                                      tracks_key='PF_tracks', truths_key='truths')
 
-quaderr_EKF_PF = QuadraticDistance(kernel='Gaussian',
+quaderr_EKF_PF = QuadraticDistance(state_dim=4,
+                                   kernel='Gaussian',
                                    kernel_parameters={'covariance': kernel_cov},
                                    generator_name='Quadratic_Distance_EKF-PF',
                                    tracks_key='EKF_tracks', truths_key='PF_tracks')
