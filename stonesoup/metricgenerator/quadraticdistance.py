@@ -47,7 +47,7 @@ class QuadraticDistance(MetricGenerator):
             manager.states_sets[self.tracks_key])
         truths_states, self.truths_type = self.extract_states(
             manager.states_sets[self.truths_key])
-        
+
         return self.compute_over_time(tracks_states, truths_states)
 
     @staticmethod
@@ -82,7 +82,7 @@ class QuadraticDistance(MetricGenerator):
                     print(type(el))
                 if len(state_type_set) == 1:
                     state_type = list(state_type_set)[0]
-                    
+
                 else:
                     raise ValueError(
                         'elements of the state sequence must share the same state type and state '
@@ -102,8 +102,8 @@ class QuadraticDistance(MetricGenerator):
                         "{!r} has no state extraction method".format(element))
 
             return state_list, state_type
-        
-        else: # empty set
+
+        else:  # empty set
             return [], State
 
     def quadratic_dist_pp(self, trth, trck, R):
@@ -425,19 +425,19 @@ class QuadraticDistance(MetricGenerator):
         ----------
         w1 : list
                     Corresponds to a list of weights given by $\\omega_i$ in the above expression.
-        
+
         w2 : list
                     Corresponds to a list of weights given by $\\omega_j$ in the above expression.
-        
+
         m1 : list
                     Corresponds to a list of means given by $m_i$ in the above expression.
-       
+
         m2 : list
                     Corresponds to a list of means given by $m_j$ in the above expression.
-        
+
         const_cov : ndarray
                     Corresponds to a covariance matrix given by $R$ in the above expression.
-        
+
         var_cov1 : ndarray
                     Corresponds to a list of covariance matrices given by $P_i$ in the above
                     expression.
@@ -594,7 +594,7 @@ class QuadraticDistance(MetricGenerator):
                    hasattr(self.tracks_type, 'covar'))):
 
                 distance = self.quadratic_dist_pt(truth_states, track_states, R)
-            
+
             # quadratic error between a track set and a point set
             elif ((hasattr(self.truths_type, 'state_vector') and
                    hasattr(self.truths_type, 'covar')) and
@@ -728,7 +728,7 @@ class MeanQuadraticError(QuadraticDistance):
         clutter_rate : int
                     Poisson clutter rate parameter of the GM-PHD filter.
 
-        R : ndarray 
+        R : ndarray
                     Covariance matrix for the Gaussian kernel.
 
         Returns
@@ -857,14 +857,15 @@ class MeanQuadraticError(QuadraticDistance):
             updater = self.filter_data['updater']
 
             # compute squared bias term
-            distance = bias_squared_term = self.compute_Q_distance(parameter_states, estimator_states).value**2
-            
+            distance = bias_squared_term = self.compute_Q_distance(parameter_states,
+                                                                   estimator_states).value**2
+
             # check for Gaussian mixture intensity
             if (hasattr(self.tracks_type, 'state_vector') and
-                hasattr(self.tracks_type, 'covar')):
+                    hasattr(self.tracks_type, 'covar')):
                 print('here')
                 print(self.tracks_type)
-                
+
                 covariance_term = self.kernel_smoothed_covariance(
                     estimator_states,
                     hypotheses,
@@ -873,7 +874,7 @@ class MeanQuadraticError(QuadraticDistance):
                     survival_probability,
                     clutter_rate,
                     R)
-                
+
                 distance = bias_squared_term + covariance_term
 
         else:
