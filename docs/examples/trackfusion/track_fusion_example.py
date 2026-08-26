@@ -98,6 +98,8 @@ groundtruth_simulation = SingleTargetGroundTruthSimulator(
 # ^^^^^^^^^^^^^^^^^^^^
 
 clutter_model = ClutterModel(
+    ndim_state=4,
+    mapping=(0, 2),
     clutter_rate=0.75,
     distribution=np.random.default_rng().uniform,
     dist_params=((0, 120), (-5, 105)))

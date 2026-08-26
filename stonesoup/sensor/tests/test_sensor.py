@@ -10,7 +10,6 @@ from ...movable import FixedMovable
 from ..radar.radar import RadarElevationBearingRangeRate, RadarBearingRange, \
     RadarElevationBearingRange
 from ...platform import FixedPlatform
-from ...types.detection import Detection
 from ...types.groundtruth import GroundTruthPath, GroundTruthState
 from ..base import PlatformMountable
 from ..sensor import Sensor, SensorSuite, SimpleSensor

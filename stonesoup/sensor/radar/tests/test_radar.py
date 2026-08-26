@@ -951,6 +951,8 @@ def test_clutter_model(radar, clutter_params):
     random_state = np.random.RandomState(seed=seed)
 
     model_test = ClutterModel(clutter_rate=clutter_rate,
+                              ndim_state=radar.ndim_state,
+                              mapping=radar.position_mapping,
                               distribution=random_state.uniform,
                               dist_params=clutter_params,
                               seed=random_state)

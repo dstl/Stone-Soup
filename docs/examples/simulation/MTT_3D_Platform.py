@@ -102,6 +102,8 @@ params = ((-10000, 10000),  # clutter min x and max x
           (-10000, 10000),  # clutter min y and max y
           (8000, 10000))  # clutter min z and max z
 clutter_model = ClutterModel(
+     ndim_state=6,
+     mapping=radar_mapping,
      clutter_rate=0.5,
      distribution=np.random.default_rng().uniform,
      dist_params=params

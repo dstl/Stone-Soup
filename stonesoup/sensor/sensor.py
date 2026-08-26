@@ -16,7 +16,7 @@ from .base import PlatformMountable
 from ..sensormanager.action import Actionable
 from ..base import Property
 from ..models.clutter.clutter import ClutterModel
-from ..types.detection import TrueDetection, Detection
+from ..types.detection import TrueDetection, Detection, Clutter
 from ..types.groundtruth import GroundTruthState
 from ..types.state import ParticleState, State, StateVector
 
@@ -101,7 +101,7 @@ class SimpleSensor(Sensor, ABC):
         self.random_state = np.random.RandomState(self.seed) if self.seed is not None else None
 
     def measure(self, ground_truths: set[GroundTruthState], noise: Union[np.ndarray, bool] = True,
-                random_state=None, **kwargs) -> set[TrueDetection]:
+                random_state=None, **kwargs) -> set[Detection]:
 
         measurement_model = self.measurement_model
 
@@ -142,7 +142,12 @@ class SimpleSensor(Sensor, ABC):
             clutter = self.clutter_model.function(ground_truths)
             detectable_clutter = [cltr for cltr in clutter
                                   if self.is_clutter_detectable(cltr)]
-            detections = set.union(detections, detectable_clutter)
+            for clutter in detectable_clutter:
+                measurement_vector = measurement_model.function(clutter)
+                detection = Clutter(state_vector=measurement_vector,
+                                    timestamp=clutter.timestamp,
+                                    measurement_model=measurement_model)
+                detections.add(detection)
 
         return detections
 
@@ -151,7 +156,7 @@ class SimpleSensor(Sensor, ABC):
         raise NotImplementedError
 
     @abstractmethod
-    def is_clutter_detectable(self, state: Detection) -> bool:
+    def is_clutter_detectable(self, state: State, measurement_model=None) -> bool:
         raise NotImplementedError
 
     def is_visible(self, state: State) -> bool:
