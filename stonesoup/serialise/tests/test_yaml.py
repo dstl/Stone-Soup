@@ -302,6 +302,15 @@ def test_particle_state(serialised_file):
     assert np.allclose(new_state.weight.astype(float), state.weight.astype(float))
 
 
+def test_basemeta_serialisation(serialised_file):
+    data = TestSensor
+    serialised_str = serialised_file.dumps(data)
+    recovered_data = serialised_file.load(serialised_str)
+    assert data == recovered_data
+    sensor = recovered_data()
+    assert isinstance(sensor, TestSensor)
+
+
 def test_dump(tmpdir, serialised_file):
     data = [1, 2, 3]
     with open(tmpdir.join('dump_file.yml'), 'w') as yaml_file:
