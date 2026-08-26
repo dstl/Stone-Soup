@@ -303,7 +303,7 @@ def test_mean_quadratic_error():
         new_mean = []
         for state in track:
             new_mean.append(State(state_vector=state.state_vector.copy(),
-                                timestamp=state.timestamp))
+                                  timestamp=state.timestamp))
         means.add(Track(new_mean))
 
     # metric initialisation
@@ -366,7 +366,7 @@ def test_mean_quadratic_error():
                       'means': means,
                       'tracks': posterior_tracks,
                       'hypotheses': hypotheses},
-                       overwrite=False)
+                     overwrite=False)
 
     metrics = manager.generate_metrics()
 
