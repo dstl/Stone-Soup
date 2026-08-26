@@ -42,9 +42,6 @@ def test_simple_sensor_seed():
         def is_detectable(self, state: GroundTruthState, measurement_model=None) -> bool:
             return True
 
-        def is_clutter_detectable(self, state: Detection) -> bool:
-            return True
-
     s1 = DummySimpleSensor()
     s2 = DummySimpleSensor()
     s4 = DummySimpleSensor(seed=1)
