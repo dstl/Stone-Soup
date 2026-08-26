@@ -85,18 +85,19 @@ class DummySensor(SimpleSensor):
     def is_detectable(self, *args, **kwargs):
         return True
 
-    def is_clutter_detectable(self, *args, **kwargs):
-        return True
-
 
 sensor1 = DummySensor(measurement_model=mm,
                       position=np.array([[10], [-20]]),
                       clutter_model=ClutterModel(clutter_rate=5,
+                                                 ndim_state=4,
+                                                 mapping=(0, 2),
                                                  dist_params=((-100, 100), (-50, 60)), seed=6))
 sensor1.clutter_model.distribution = sensor1.clutter_model.random_state.uniform
 sensor2 = DummySensor(measurement_model=mm2,
                       position=np.array([[10], [20]]),
                       clutter_model=ClutterModel(clutter_rate=5,
+                                                 ndim_state=4,
+                                                 mapping=(0, 2),
                                                  dist_params=((-100, 100), (-50, 60)), seed=12))
 sensor2.clutter_model.distribution = sensor2.clutter_model.random_state.uniform
 
