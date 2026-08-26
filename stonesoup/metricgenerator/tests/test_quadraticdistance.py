@@ -242,10 +242,11 @@ def test_mean_quadratic_error():
     )
 
     sensor.act(start_time + timedelta(seconds=1))
+    
     for truth in truths:
         measurements |= sensor.measure(OrderedSet(gt for gt in
-                                       truth[start_time + timedelta(seconds=1)]
-                                       for truth in truths
+                                       [truth[start_time + timedelta(seconds=1)]
+                                       for truth in truths]
                                        ), noise=True)
 
     # hypotheses
