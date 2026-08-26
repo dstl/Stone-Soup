@@ -4,7 +4,6 @@ from ..base import Property
 from ..models.measurement.nonlinear import CartesianToElevationBearing
 from ..sensor.sensor import SimpleSensor
 from ..types.array import CovarianceMatrix
-from ..types.detection import Detection
 from ..types.groundtruth import GroundTruthState
 
 
