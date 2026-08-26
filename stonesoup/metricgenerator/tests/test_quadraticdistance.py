@@ -156,20 +156,20 @@ def test_quadratic_distance():
 
     metrics = manager.generate_metrics()
 
-    assert (metrics['equal points']['Quadratic Distance'].value
-            == metrics['equal tracks']['Quadratic Distance'].value
+    assert (metrics['equal points']['Quadratic distance'].value
+            == metrics['equal tracks']['Quadratic distance'].value
             == 0)
 
-    assert (metrics['point - track']['Quadratic Distance'].value
-            == metrics['track - point']['Quadratic Distance'].value)
+    assert (metrics['point - track']['Quadratic distance'].value
+            == metrics['track - point']['Quadratic distance'].value)
 
-    assert (not (metrics['truths - means']['Quadratic Distance'].value
-                 == metrics['alt truths - means']['Quadratic Distance'].value))
+    assert (not (metrics['truths - means']['Quadratic distance'].value
+                 == metrics['alt truths - means']['Quadratic distance'].value))
 
-    assert (metrics['inequal tracks']['Quadratic Distance'].value > 0)
+    assert (metrics['inequal tracks']['Quadratic distance'].value > 0)
 
-    assert (metrics['means - means']['Quadratic Distance'].value
-            > metrics['inequal tracks']['Quadratic Distance'].value)
+    assert (metrics['means - means']['Quadratic distance'].value
+            > metrics['inequal tracks']['Quadratic distance'].value)
 
 
 def test_mean_quadratic_error():
