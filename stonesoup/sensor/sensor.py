@@ -140,8 +140,7 @@ class SimpleSensor(Sensor, ABC):
         if self.clutter_model is not None:
             self.clutter_model.measurement_model = measurement_model
             clutter = self.clutter_model.function(ground_truths)
-            detectable_clutter = [cltr for cltr in clutter
-                                  if self.is_clutter_detectable(cltr)]
+            detectable_clutter = [cltr for cltr in clutter if self.is_detectable(cltr)]
             for clutter in detectable_clutter:
                 measurement_vector = measurement_model.function(clutter)
                 detection = Clutter(state_vector=measurement_vector,
@@ -153,10 +152,6 @@ class SimpleSensor(Sensor, ABC):
 
     @abstractmethod
     def is_detectable(self, state: GroundTruthState, measurement_model=None) -> bool:
-        raise NotImplementedError
-
-    @abstractmethod
-    def is_clutter_detectable(self, state: State, measurement_model=None) -> bool:
         raise NotImplementedError
 
     def is_visible(self, state: State) -> bool:

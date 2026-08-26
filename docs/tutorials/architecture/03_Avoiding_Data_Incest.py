@@ -85,9 +85,6 @@ class DummySensor(SimpleSensor):
     def is_detectable(self, *args, **kwargs):
         return True
 
-    def is_clutter_detectable(self, *args, **kwargs):
-        return True
-
 
 sensor1 = DummySensor(measurement_model=mm,
                       position=np.array([[10], [-20]]),
