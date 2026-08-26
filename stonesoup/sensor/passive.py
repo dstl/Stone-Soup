@@ -40,6 +40,3 @@ class PassiveElevationBearing(SimpleSensor):
 
     def is_detectable(self, state: GroundTruthState, measurement_model=None) -> bool:
         return True
-
-    def is_clutter_detectable(self, state: Detection) -> bool:
-        return True
