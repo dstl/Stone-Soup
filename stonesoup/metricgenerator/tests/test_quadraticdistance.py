@@ -1,17 +1,15 @@
 """Qudaratic Distance / Mean Quadratic Error tests."""
 from datetime import datetime, timedelta
 import numpy as np
-import pytest
 from ordered_set import OrderedSet
 
 from ..quadraticdistance import QuadraticDistance, MeanQuadraticError
-from ...types.state import State, ParticleState, GaussianState
 
 from stonesoup.models.transition.linear import CombinedLinearGaussianTransitionModel
 from stonesoup.models.transition.linear import ConstantVelocity
 from stonesoup.updater.kalman import ExtendedKalmanUpdater
 from stonesoup.predictor.kalman import KalmanPredictor
-from stonesoup.types.state import State, TaggedWeightedGaussianState
+from stonesoup.types.state import TaggedWeightedGaussianState
 from stonesoup.types.groundtruth import GroundTruthPath, GroundTruthState
 from stonesoup.types.track import Track
 from stonesoup.types.array import CovarianceMatrix
@@ -27,7 +25,7 @@ from stonesoup.mixturereducer.gaussianmixture import GaussianMixtureReducer
 
 
 def test_quadratic_distance():
-    
+
     start_time = datetime.now()
 
     # test truths
@@ -63,7 +61,7 @@ def test_quadratic_distance():
 
         tracksA.add(Track([new_track_A]))
         tracksB.add(Track([new_track_B]))
-    
+
     # test means A & B
     meansA = set()
     for track in tracksA:
@@ -72,7 +70,7 @@ def test_quadratic_distance():
             new_mean.append(State(state_vector=state.state_vector.copy(),
                                 timestamp=state.timestamp))
         meansA.add(Track(new_mean))
-    
+
     meansB = set()
     for track in tracksB:
         new_mean = []
@@ -88,60 +86,58 @@ def test_quadratic_distance():
     # equal point sets
     quaderr_equal_pp = QuadraticDistance(state_dim=4,
                                          kernel='Gaussian',
-                                kernel_parameters={'covariance': kernel_cov},
-                                generator_name='equal points',
-                                tracks_key='truths', truths_key='truths')
+                                         kernel_parameters={'covariance': kernel_cov},
+                                         generator_name='equal points',
+                                         tracks_key='truths', truths_key='truths')
 
     # equal track sets
     quaderr_equal_tt = QuadraticDistance(state_dim=4,
                                          kernel='Gaussian',
-                                kernel_parameters={'covariance': kernel_cov},
-                                generator_name='equal tracks',
-                                tracks_key='tracks1', truths_key='tracks1')
+                                         kernel_parameters={'covariance': kernel_cov},
+                                         generator_name='equal tracks',
+                                         tracks_key='tracks1', truths_key='tracks1')
 
     # inequal track sets
     quaderr_inequal_tt = QuadraticDistance(state_dim=4,
                                            kernel='Gaussian',
-                                kernel_parameters={'covariance': kernel_cov},
-                                generator_name='inequal tracks',
-                                tracks_key='tracks2', truths_key='tracks1')
-                                                    
-    
+                                           kernel_parameters={'covariance': kernel_cov},
+                                           generator_name='inequal tracks',
+                                           tracks_key='tracks2', truths_key='tracks1')
+
     # point - track
     quaderr_pt = QuadraticDistance(state_dim=4,
                                    kernel='Gaussian',
-                                kernel_parameters={'covariance': kernel_cov},
-                                generator_name='point - track',
-                                tracks_key='tracks1', truths_key='truths')
-                            
+                                   kernel_parameters={'covariance': kernel_cov},
+                                   generator_name='point - track',
+                                   tracks_key='tracks1', truths_key='truths')
+
     # track - point
     quaderr_tp = QuadraticDistance(state_dim=4,
                                    kernel='Gaussian',
-                                kernel_parameters={'covariance': kernel_cov},
-                                generator_name='track - point',
-                                tracks_key='truths', truths_key='tracks1')
+                                   kernel_parameters={'covariance': kernel_cov},
+                                   generator_name='track - point',
+                                   tracks_key='truths', truths_key='tracks1')
 
     # truths - means
     quaderr_truths_means = QuadraticDistance(state_dim=4,
                                              kernel='Gaussian',
-                                kernel_parameters={'covariance': kernel_cov},
-                                generator_name='truths - means',
-                                tracks_key='means1', truths_key='truths')
-                            
+                                             kernel_parameters={'covariance': kernel_cov},
+                                             generator_name='truths - means',
+                                             tracks_key='means1', truths_key='truths')
+
     # alt truths - means
     quaderr_alt_truths_means = QuadraticDistance(state_dim=4,
                                                  kernel='Gaussian',
-                                kernel_parameters={'covariance': kernel_cov},
-                                generator_name='alt truths - means',
-                                tracks_key='means2', truths_key='truths')
+                                                 kernel_parameters={'covariance': kernel_cov},
+                                                 generator_name='alt truths - means',
+                                                 tracks_key='means2', truths_key='truths')
 
     # means - means
     quaderr_means_means = QuadraticDistance(state_dim=4,
                                             kernel='Gaussian',
-                                kernel_parameters={'covariance': kernel_cov},
-                                generator_name='means - means',
-                                tracks_key='means2', truths_key='means1')
-
+                                            kernel_parameters={'covariance': kernel_cov},
+                                            generator_name='means - means',
+                                            tracks_key='means2', truths_key='means1')
 
     manager = MultiManager([quaderr_equal_pp,
                             quaderr_equal_tt,
@@ -161,20 +157,27 @@ def test_quadratic_distance():
     metrics = manager.generate_metrics()
     
     
-    assert metrics['equal points']['Quadratic Distance'].value == metrics['equal tracks']['Quadratic Distance'].value == 0
-    assert metrics['point - track']['Quadratic Distance'].value == metrics['track - point']['Quadratic Distance'].value
-    assert not (metrics['truths - means']['Quadratic Distance'].value == metrics['alt truths - means']['Quadratic Distance'].value)
-    assert metrics['inequal tracks']['Quadratic Distance'].value > 0
-    assert metrics['means - means']['Quadratic Distance'].value > metrics['inequal tracks']['Quadratic Distance'].value
-
-
+    assert (metrics['equal points']['Quadratic Distance'].value
+            == metrics['equal tracks']['Quadratic Distance'].value
+            == 0)
+    
+    assert (metrics['point - track']['Quadratic Distance'].value
+            == metrics['track - point']['Quadratic Distance'].value)
+    
+    assert (not (metrics['truths - means']['Quadratic Distance'].value
+                 == metrics['alt truths - means']['Quadratic Distance'].value))
+    
+    assert (metrics['inequal tracks']['Quadratic Distance'].value > 0)
+    
+    assert (metrics['means - means']['Quadratic Distance'].value
+            > metrics['inequal tracks']['Quadratic Distance'].value)
 
 def test_mean_quadratic_error():
 
     start_time = datetime.now()
 
-    transition_model = CombinedLinearGaussianTransitionModel(
-    (ConstantVelocity(0.3), ConstantVelocity(0.3)))
+    transition_model = CombinedLinearGaussianTransitionModel((ConstantVelocity(0.3),
+                                                              ConstantVelocity(0.3)))
     # test truths
     # timestep 1
     truths = OrderedSet()
@@ -203,8 +206,8 @@ def test_mean_quadratic_error():
     prior_tracks = set()
     for truth in truths[0]:
         new_track = TaggedWeightedGaussianState(
-            state_vector=0.5*truth.state_vector,
-            covar=covar**2,
+            state_vector=0.5 * truth.state_vector,
+            covar=covar ** 2,
             weight=0.9,
             tag='birth',
             timestamp=start_time)
@@ -212,7 +215,6 @@ def test_mean_quadratic_error():
         prior_tracks.add(Track([new_track]))
 
     prior_states= set([track[-1] for track in prior_tracks])
-
 
     # test measurements
     measurements = set()
@@ -225,7 +227,7 @@ def test_mean_quadratic_error():
     sens_noise = np.array([[np.radians(0.01) ** 2, 0],
                         [0, 0.1 ** 2]])
     sens_rpm = 120
-    surveillance_area = (0.5 * sens_range**2 * sens_fov)
+    surveillance_area = (0.5 * sens_range ** 2 * sens_fov)
 
     sensor = RadarRotatingBearingRange(
         position_mapping=(0, 2),
@@ -238,9 +240,16 @@ def test_mean_quadratic_error():
         max_range=sens_range,
         resolution=sens_res
     )
+
     sensor.act(start_time + timedelta(seconds=1))
     for truth in truths:
-        measurements |= sensor.measure(OrderedSet(gt for gt in [truth[start_time + timedelta(seconds=1)] for truth in truths]), noise=True)
+        measurements |= sensor.measure(
+            OrderedSet( gt for gt in
+        truth[start_time + timedelta(seconds=1)]
+        for truth in truths
+    ),
+    noise=True,
+)
 
     # hypotheses
     hypotheses = []
@@ -248,40 +257,40 @@ def test_mean_quadratic_error():
     death_probability = 0.01
 
     kalman_predictor = KalmanPredictor(transition_model)
+
     extended_kalman_updater = ExtendedKalmanUpdater(measurement_model=None)
 
-    base_hypothesiser = DistanceHypothesiser(
-                        kalman_predictor,
-                        extended_kalman_updater,
-                        Mahalanobis(),
-                        missed_distance=10)
+    base_hypothesiser = DistanceHypothesiser(kalman_predictor,
+                                             extended_kalman_updater,
+                                             Mahalanobis(),
+                                             missed_distance=10)
 
-    hypothesiser = GaussianMixtureHypothesiser(base_hypothesiser, order_by_detection=True)
+    hypothesiser = GaussianMixtureHypothesiser(base_hypothesiser,
+                                               order_by_detection=True)
 
     hypothesis = hypothesiser.hypothesise(prior_states,
                                         measurements,
                                         timestamp=start_time + timedelta(seconds=1),
                                         # keep our hypotheses ordered by detection, not by track
                                         order_by_detection=True)
+
     hypotheses.append(Track(hypothesis))
 
     # posterior track
     clutter_spatial_density = clutter_rate / surveillance_area
 
-    updater = PHDUpdater(
-        extended_kalman_updater,
-        clutter_spatial_density=clutter_spatial_density,
-        prob_detection=probability_detection,
-        prob_survival=1 - death_probability)
+    updater = PHDUpdater(extended_kalman_updater,
+                         clutter_spatial_density=clutter_spatial_density,
+                         prob_detection=probability_detection,
+                         prob_survival=1 - death_probability)
 
     merge_threshold = 1
     prune_threshold = 1E-10
 
-    reducer = GaussianMixtureReducer(
-        prune_threshold=prune_threshold,
-        pruning=False,
-        merge_threshold=merge_threshold,
-        merging=False)
+    reducer = GaussianMixtureReducer(prune_threshold=prune_threshold,
+                                     pruning=False,
+                                     merge_threshold=merge_threshold,
+                                     merging=False)
 
     updated_states = updater.update(hypothesis)
 
@@ -360,9 +369,14 @@ def test_mean_quadratic_error():
                             'tracks': posterior_tracks,
                             'hypotheses': hypotheses
                             }, overwrite=False)
-                        
+
     metrics = manager.generate_metrics()
 
-    assert np.sqrt(metrics['mqe truths - posterior means']['MQE values'].value[0].value) == metrics['qd truths - posterior means']['Quadratic distances'].value[1].value
-    assert metrics['truths - posterior intensity']['MQE values'].value[0].value > metrics['mqe truths - posterior means']['MQE values'].value[0].value
-    assert not (metrics['truths - posterior intensity']['MQE values'].value[0].value == metrics['posterior intensity - truths']['MQE values'].value[0].value)
+    assert (np.sqrt(metrics['mqe truths - posterior means']['MQE values'].value[0].value)
+            == metrics['qd truths - posterior means']['Quadratic distances'].value[1].value)
+    
+    assert (metrics['truths - posterior intensity']['MQE values'].value[0].value
+            > metrics['mqe truths - posterior means']['MQE values'].value[0].value)
+    
+    assert (not (metrics['truths - posterior intensity']['MQE values'].value[0].value
+                 == metrics['posterior intensity - truths']['MQE values'].value[0].value))
