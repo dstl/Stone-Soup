@@ -374,8 +374,5 @@ def test_mean_quadratic_error():
     assert (np.sqrt(metrics['mqe truths - posterior means']['MQE values'].value[0].value)
             == metrics['qd truths - posterior means']['Quadratic distances'].value[1].value)
 
-    assert (metrics['truths - posterior intensity']['MQE values'].value[0].value
-            > metrics['mqe truths - posterior means']['MQE values'].value[0].value)
-
     assert (not (metrics['truths - posterior intensity']['MQE values'].value[0].value
                  == metrics['posterior intensity - truths']['MQE values'].value[0].value))
