@@ -90,10 +90,15 @@ class CircleSampleActionableMovable(_SampleActionableMovable):
     with :class:`~.CircleSamplePositionActionGenerator` """
 
     generator = CircleSamplePositionActionGenerator
-    _generator_kwargs = _SampleActionableMovable._generator_kwargs | {'maximum_travel'}
+    _generator_kwargs = _SampleActionableMovable._generator_kwargs | {'maximum_travel', 'use_qmc'}
 
     maximum_travel: float = Property(
         default=1.0,
         doc="Maximum possible travel distance. Specifies the radius of "
         "sampling area."
+    )
+
+    use_qmc: bool = Property(
+        default=False,
+        doc="Use a Sobol quasi-random sequence instead of pseudorandom sampling."
     )
