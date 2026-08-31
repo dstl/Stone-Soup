@@ -109,6 +109,14 @@ class _DictGroundTruthReader(GroundTruthReader, _DictReader):
     """An abstract reader for dictionaries containing truth data."""
 
     path_id_field: str = Property(doc='Name of column to be used as path ID')
+    store_data: bool = Property(
+        default=False,
+        doc='Keep the dictionary of ground truth paths after iteration')
+
+    @property
+    def groundtruth_dict(self) -> dict[str, GroundTruthPath] | None:
+        """Stored ground truth paths when :attr:`store_data` is enabled."""
+        return getattr(self, '_groundtruth_dict', None)
 
     @BufferedGenerator.generator_method
     def groundtruth_paths_gen(self) -> Iterator[tuple[datetime, set[GroundTruthPath]]]:
@@ -127,6 +135,7 @@ class _DictGroundTruthReader(GroundTruthReader, _DictReader):
         """
 
         groundtruth_dict = {}
+        self._groundtruth_dict = groundtruth_dict if self.store_data else None
         updated_paths = set()
         previous_time = None
         for row in self.dict_reader:
@@ -246,6 +255,14 @@ class _DictTrackReader(TrackReader, _DictReader):
     default_covar: np.ndarray = Property(doc="Default covariance matrix for the state.")
     covar_fields_index: dict[str, tuple[int]] = Property(
         doc="Dictionary mapping covariance field names to their indices in the covariance matrix.")
+    store_data: bool = Property(
+        default=False,
+        doc='Keep the dictionary of tracks after iteration')
+
+    @property
+    def track_dict(self) -> dict[str, Track] | None:
+        """Stored tracks when :attr:`store_data` is enabled."""
+        return getattr(self, '_track_dict', None)
 
     @property
     def _default_metadata_fields_to_ignore(self) -> set[str]:
@@ -256,6 +273,7 @@ class _DictTrackReader(TrackReader, _DictReader):
     def tracks_gen(self) -> Iterator[tuple[datetime, set[Track]]]:
 
         track_dict = {}
+        self._track_dict = track_dict if self.store_data else None
         updated_tracks = set()
         previous_time = None
         for row in self.dict_reader:
