@@ -13,7 +13,7 @@ from matplotlib.legend_handler import HandlerPatch
 from matplotlib.lines import Line2D
 from matplotlib.patches import Ellipse, Patch, Polygon
 from scipy.special import ellipeinc
-from scipy.stats import kde
+from scipy.stats import kde, multivariate_normal
 try:
     from plotly import colors
 except ImportError:
@@ -29,6 +29,7 @@ from .types import detection
 from .types.array import StateVector
 from .types.groundtruth import GroundTruthPath
 from .types.metric import SingleTimeMetric
+from .types.mixture import GaussianMixture
 from .types.state import State, StateMutableSequence
 from .types.update import Update
 
@@ -182,7 +183,7 @@ class Plotter(_Plotter):
         elif isinstance(dimension, int):
             self.dimension = Dimension(dimension)
         else:
-            raise TypeError("%s is an unsupported type for \'dimension\'; "
+            raise TypeError("%s is an unsupported type for 'dimension'; "
                             "expected type %s" % (type(dimension), type(Dimension.TWO)))
         # Generate plot axes
         if fig is not None:
@@ -686,16 +687,17 @@ class Plotter(_Plotter):
                            [state.state_vector[2] for state in ghosts],
                            linestyle="")
 
-    def plot_density(self, state_sequences: Collection[StateMutableSequence],
+    def plot_density(self, state_sequences: Union[Collection[StateMutableSequence],
+                                                  GaussianMixture],
                      index: Union[int, None] = -1,
                      mapping=(0, 2), n_bins=300, **kwargs):
         """
 
         Parameters
         ----------
-        state_sequences : a collection of :class:`~.StateMutableSequence`
-            Set of tracks which will be plotted. If not a set, and instead a single
-            :class:`~.Track` type, the argument is modified to be a set to allow for iteration.
+        state_sequences : a collection of :class:`~.StateMutableSequence` or
+            :class:`~.GaussianMixture`
+            State sequences or Gaussian mixture which will be plotted.
         index: int
             Which index of the StateMutableSequences should be plotted.
             Default value is '-1' which is the last state in the sequences.
@@ -709,28 +711,47 @@ class Plotter(_Plotter):
         """
         if len(state_sequences) == 0:
             raise ValueError("Skipping plotting density due to state_sequences being empty.")
-        if index is None:  # Plot all states in the sequence
-            x = np.array([a_state.state_vector[mapping[0]]
-                          for a_state_sequence in state_sequences
-                          for a_state in a_state_sequence])
-            y = np.array([a_state.state_vector[mapping[1]]
-                          for a_state_sequence in state_sequences
-                          for a_state in a_state_sequence])
-        else:  # Only plot one state out of the sequences
-            x = np.array([a_state_sequence.states[index].state_vector[mapping[0]]
-                          for a_state_sequence in state_sequences])
-            y = np.array([a_state_sequence.states[index].state_vector[mapping[1]]
-                          for a_state_sequence in state_sequences])
-        if np.allclose(x, y, atol=1e-10):
-            raise ValueError("Skipping plotting density due to x and y values are the same. "
-                             "This leads to a singular matrix in the kde function.")
-        # Evaluate a gaussian kde on a regular grid of n_bins x n_bins over data extents
-        k = kde.gaussian_kde([x, y])
-        xi, yi = np.mgrid[x.min():x.max():n_bins * 1j, y.min():y.max():n_bins * 1j]
-        zi = k(np.vstack([xi.flatten(), yi.flatten()]))
+
+        if isinstance(state_sequences, GaussianMixture):
+            mapping = list(mapping)
+            means = np.asarray([component.mean[mapping, 0]
+                                for component in state_sequences], dtype=np.float64)
+            covars = np.asarray([component.covar[np.ix_(mapping, mapping)]
+                                 for component in state_sequences], dtype=np.float64)
+            weights = np.asarray(state_sequences.weights, dtype=np.float64)
+
+            std_devs = np.sqrt(np.diagonal(covars, axis1=1, axis2=2))
+            lower = np.min(means - 3 * std_devs, axis=0)
+            upper = np.max(means + 3 * std_devs, axis=0)
+            xi, yi = np.mgrid[lower[0]:upper[0]:n_bins * 1j,
+                              lower[1]:upper[1]:n_bins * 1j]
+            positions = np.dstack((xi, yi))
+            zi = sum(weight * multivariate_normal.pdf(
+                positions, mean=mean, cov=covar, allow_singular=True)
+                     for mean, covar, weight in zip(means, covars, weights))
+        else:
+            if index is None:  # Plot all states in the sequence
+                x = np.array([a_state.state_vector[mapping[0]]
+                              for a_state_sequence in state_sequences
+                              for a_state in a_state_sequence])
+                y = np.array([a_state.state_vector[mapping[1]]
+                              for a_state_sequence in state_sequences
+                              for a_state in a_state_sequence])
+            else:  # Only plot one state out of the sequences
+                x = np.array([a_state_sequence.states[index].state_vector[mapping[0]]
+                              for a_state_sequence in state_sequences])
+                y = np.array([a_state_sequence.states[index].state_vector[mapping[1]]
+                              for a_state_sequence in state_sequences])
+            if np.allclose(x, y, atol=1e-10):
+                raise ValueError("Skipping plotting density due to x and y values are the same. "
+                                 "This leads to a singular matrix in the kde function.")
+            # Evaluate a gaussian kde on a regular grid of n_bins x n_bins over data extents
+            k = kde.gaussian_kde([x, y])
+            xi, yi = np.mgrid[x.min():x.max():n_bins * 1j, y.min():y.max():n_bins * 1j]
+            zi = k(np.vstack([xi.flatten(), yi.flatten()])).reshape(xi.shape)
 
         # Make the plot
-        self.ax.pcolormesh(xi, yi, zi.reshape(xi.shape), shading='auto', **kwargs)
+        self.ax.pcolormesh(xi, yi, zi, shading='auto', **kwargs)
 
     # Ellipse legend patch (used in Tutorial 3)
     @staticmethod
@@ -803,7 +824,7 @@ class MetricPlotter(ABC):
         Parameters
         ----------
         metrics : dict of :class:`~.Metric`
-            Dictionary of generated metrics to be plotted.
+            Dictionary of generated metrics which will be plotted.
         generator_names: list of str
             Generator(s) to extract specific metrics from :attr:`metrics` for plotting.
             Default None to take all metrics.
@@ -956,7 +977,7 @@ class MetricPlotter(ABC):
         self.fig, axes = plt.subplots(number_of_subplots, figsize=(10, 6*number_of_subplots))
         self.fig.subplots_adjust(hspace=0.3)
 
-        # extract data for each subplot and plot it
+        # extract data for each plot and plot it
         metric_types = self.extract_metric_types(metrics_to_plot)
 
         self.axes = axes if isinstance(axes, Iterable) else [axes]
@@ -1067,7 +1088,7 @@ class MetricPlotter(ABC):
         Parameters
         ----------
         titles: list of str
-            List of strings for title text for each axis.
+            List of strings for title text for each axis in figure.
 
         Returns
         -------
@@ -1087,7 +1108,7 @@ class Plotterly(_Plotter):
 
     Parameters
     ----------
-    dimension: enum \'Dimension\'
+    dimension: enum 'Dimension'
         Optional parameter to specify 1D, 2D, or 3D plotting.
     axis_labels: list
         Optional parameter to specify the axis labels for non-xy dimensions. Default None, i.e.,
@@ -1773,7 +1794,7 @@ class PolarPlotterly(_Plotter):
         elif isinstance(dimension, int):
             self.dimension = Dimension(dimension)
         else:
-            raise TypeError("%s is an unsupported type for \'dimension\'; "
+            raise TypeError("%s is an unsupported type for 'dimension'; "
                             "expected type %s" % (type(dimension), type(Dimension.TWO)))
         if self.dimension != dimension.TWO:
             raise TypeError("Only 2D plotting currently supported")
@@ -3482,7 +3503,7 @@ class AnimatedPolarPlotterly(PolarPlotterly):
         elif isinstance(dimension, int):
             self.dimension = Dimension(dimension)
         else:
-            raise TypeError(f"{type(dimension)} is an unsupported type for \'dimension\'; "
+            raise TypeError(f"{type(dimension)} is an unsupported type for 'dimension'; "
                             f"expected type {type(Dimension.TWO)}")
         if self.dimension != dimension.TWO:
             raise TypeError("Only 2D plotting currently supported")
