@@ -448,12 +448,12 @@ class RadarRotatingElevationBearingRange(RadarElevationBearingRange):
         fov_min = -self.fov_angle / 2
         fov_max = +self.fov_angle / 2
 
-        elevation_t = measurement_vector[0, 0]
-        bearing_t = measurement_vector[1, 0]
-        true_range = measurement_vector[2, 0]
-        return (ver_min <= elevation_t <= ver_max and
-                fov_min <= bearing_t <= fov_max and
-                true_range <= self.max_range)
+        elevation_t = measurement_vector[0, :]
+        bearing_t = measurement_vector[1, :]
+        true_range = measurement_vector[2, :]
+        return ((ver_min <= elevation_t) & (elevation_t <= ver_max) &
+                (fov_min <= bearing_t) & (bearing_t <= fov_max) &
+                (true_range <= self.max_range))
 
     def is_clutter_detectable(self, state: Detection) -> bool:
         measurement_vector = state.state_vector

@@ -70,7 +70,7 @@ class OptunaSensorManager(SensorManager):
         def optimise_func(trial):
             config = config_from_trial(trial)
 
-            return -self.reward_function(config, tracks, timestamp)
+            return -self.reward_function(config, tracks, timestamp, **kwargs)
 
         study = optuna.create_study()
         # will finish study after `timeout` seconds has elapsed.

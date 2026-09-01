@@ -332,30 +332,19 @@ class BayesianSearchMultiTargetTracker(MultiTargetTracker):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
-        self._has_platforms = hasattr(self.detector, 'platforms')
-        self._has_sensors = hasattr(self.detector, 'sensors')
-
-        if not self._has_sensors and not self._has_platforms:
-            raise ValueError("Detector does not contain sensors or platforms.")
-
         self._log_det_prob = np.log(self.detection_probability)
 
     @property
     def platforms(self):
-        if self._has_platforms:
-            return self.detector.platforms
-        else:
-            return []
+        return getattr(self.detector, "platforms", set())
 
     @property
     def sensors(self):
         sensor_set = set()
-        if self._has_platforms:
-            for platform in self.platforms:
-                sensor_set.update(platform.sensors)
+        for platform in self.platforms:
+            sensor_set.update(platform.sensors)
 
-        if self._has_sensors:
-            sensor_set.update(self.detector.sensors)
+        sensor_set.update(getattr(self.detector, "sensors", set()))
 
         return sensor_set
 
