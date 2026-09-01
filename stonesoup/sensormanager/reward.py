@@ -696,3 +696,42 @@ class ExistenceLikelihoodRewardFunction(RewardFunction):
             return weight_in_view, tracks
         else:
             return weight_in_view
+
+
+class DeletionUncertaintyReward(RewardFunction):
+    """Reward function which highly rewards looking at tracks if they are about to be deleted"""
+
+    predictor: KalmanPredictor = Property(doc="Predictor used to predict the track to a new state")
+    updater: ExtendedKalmanUpdater = Property(doc="Updater used to update "
+                                                  "the track to the new state.")
+    deleter: CovarianceBasedDeleter = Property()
+
+    def __call__(self, config: Mapping[Sensor, Sequence[Action]], tracks: set[Track],
+                 metric_time: datetime.datetime, *args, **kwargs):
+
+        # Reward value
+        config_metric = 1
+
+        predicted_sensors = set()
+        memo = {}
+        # For each sensor/platform in the configuration
+        for actionable, actions in config.items():
+            predicted_actionable = copy.deepcopy(actionable, memo)
+            predicted_actionable.add_actions(actions)
+            predicted_actionable.act(metric_time, noise=False)
+            if isinstance(actionable, Sensor):
+                predicted_sensors.add(predicted_actionable)  # checks if it's a sensor
+
+        # Create dictionary of predictions for the tracks in the configuration
+        predicted_tracks = set()
+        for track in tracks:
+            predicted_track = copy.copy(track)
+            predicted_track.append(self.predictor.predict(predicted_track, timestamp=metric_time))
+            predicted_tracks.add(predicted_track)
+
+        for track in predicted_tracks:
+            if np.sum(np.diag(track.state.covar)) > self.deleter.covar_trace_thresh:
+                for sensor in predicted_sensors:
+                    if sensor.is_detectable(track):
+                        config_metric = 100
+        return config_metric
