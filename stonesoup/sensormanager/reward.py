@@ -5,6 +5,8 @@ from collections.abc import Mapping, Sequence
 
 import numpy as np
 
+from stonesoup.deleter.error import CovarianceBasedDeleter
+
 from ..base import Base, Property
 from ..dataassociator import DataAssociator
 from ..measures import Euclidean, KLDivergence
@@ -562,8 +564,9 @@ class AOIRewardFunction2D(RewardFunction):
     def __call__(self, config: Mapping[Sensor, Sequence[Action]], tracks: set[Track],
                  metric_time: datetime, *args, **kwargs):
 
-        reward_func = self.default_reward
+        total_reward = 0
         for track in tracks:
+            reward_func = self.default_reward
             track_x = track.state_vector[self.target_mapping[0]]
             track_y = track.state_vector[self.target_mapping[1]]
 
@@ -590,7 +593,41 @@ class AOIRewardFunction2D(RewardFunction):
                     else:
                         reward_func = self.default_reward
 
-        return reward_func(config, tracks, metric_time, *args, **kwargs)
+            total_reward += reward_func(config, {track}, metric_time, *args, **kwargs)
+
+        return total_reward
+
+
+class AOIStaticRewardFunction(RewardFunction):
+
+    predictor: KalmanPredictor = Property(doc="Predictor used to predict the track to a new state")
+    aoi_reward: float = Property(
+        default=10.0)
+
+    def __call__(self, config: Mapping[Sensor, Sequence[Action]], tracks: set[Track],
+                 metric_time: datetime, *args, **kwargs):
+        predicted_sensors = set()
+        memo = {}
+        for actionable, actions in config.items():
+            predicted_actionable = copy.deepcopy(actionable, memo)
+            predicted_actionable.add_actions(actions)
+            predicted_actionable.act(metric_time, noise=False)
+            if isinstance(actionable, Sensor):
+                predicted_sensors.add(predicted_actionable)
+
+        predicted_tracks = set()
+        for track in tracks:
+            predicted_track = copy.copy(track)
+            predicted_track.append(self.predictor.predict(predicted_track, timestamp=metric_time))
+            predicted_tracks.add(predicted_track)
+
+        total_reward = 0.0
+        for sensor in predicted_sensors:
+            for track in predicted_tracks:
+                if sensor.is_detectable(track):
+                    total_reward += self.aoi_reward
+
+        return total_reward
 
 
 class ExistenceLikelihoodRewardFunction(RewardFunction):
