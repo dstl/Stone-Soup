@@ -18,7 +18,7 @@ from ..types.state import State, GaussianState, ParticleState, TaggedWeightedGau
     ASDGaussianState, EnsembleState
 from ..types.track import Track
 from ..types.update import ParticleStateUpdate, Update, \
-    GaussianMixtureUpdate, ASDGaussianStateUpdate, EnsembleStateUpdate
+    GaussianMixtureUpdate, GaussianStateUpdate, ASDGaussianStateUpdate, EnsembleStateUpdate
 from ..updater import Updater
 from ..updater.kalman import ExtendedKalmanUpdater
 
@@ -309,7 +309,7 @@ class MultiMeasurementInitiator(GaussianInitiator):
                         weights = np.asarray(posterior_state_weights)
 
                         post_mean, post_covar = gm_reduce_single(means, covars, weights)
-                        track.append(GaussianState(
+                        track.append(GaussianStateUpdate(
                             post_mean, post_covar,
                             multihypothesis,
                             multihypothesis[0].measurement.timestamp))
