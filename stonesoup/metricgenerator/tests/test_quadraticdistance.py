@@ -32,7 +32,7 @@ def test_quadratic_distance():
     truths = OrderedSet()
 
     num_init_targs = 5
-
+    np.random.seed(2007)
     for i in range(num_init_targs):
         x, y = np.random.uniform(-30, 30, 2)  # Range [-30, 30] for x and y
         x_vel, y_vel = (np.random.rand(2)) * 2 - 1  # Range [-1, 1] for x and y velocity
