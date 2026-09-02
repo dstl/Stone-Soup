@@ -132,12 +132,12 @@ class QuadraticDistance(MetricGenerator):
         Psi = len(trck)
 
         # set weights to one for non-weighted states
-        if hasattr(trth, 'weight'):
+        if hasattr(self.truths_type, 'weight'):
             trth_weights = np.array([t.weight for t in trth])
         else:
             trth_weights = np.ones(Phi)
 
-        if hasattr(trck, 'weight'):
+        if hasattr(self.tracks_type, 'weight'):
             trck_weights = np.array([t.weight for t in trck])
         else:
             trck_weights = np.ones(Psi)
@@ -212,12 +212,12 @@ class QuadraticDistance(MetricGenerator):
         Psi = len(trck)
 
         # set weights to one for non-weighted states
-        if hasattr(trth, 'weight'):
+        if hasattr(self.truths_type, 'weight'):
             trth_weights = np.array([t.weight for t in trth])
         else:
             trth_weights = np.ones(Phi)
 
-        if hasattr(trck, 'weight'):
+        if hasattr(self.tracks_type, 'weight'):
             trck_weights = np.array([t.weight for t in trck])
         else:
             trck_weights = np.ones(Psi)
@@ -300,12 +300,12 @@ class QuadraticDistance(MetricGenerator):
         Psi = len(trck)
 
         # set weights to one for non-weighted states
-        if hasattr(trth, 'weight'):
+        if hasattr(self.truths_type, 'weight'):
             trth_weights = np.array([t.weight for t in trth])
         else:
             trth_weights = np.ones(Phi)
 
-        if hasattr(trck, 'weight'):
+        if hasattr(self.tracks_type, 'weight'):
             trck_weights = np.array([t.weight for t in trck])
         else:
             trck_weights = np.ones(Psi)
