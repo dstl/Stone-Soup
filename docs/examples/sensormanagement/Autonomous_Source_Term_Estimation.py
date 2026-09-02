@@ -300,7 +300,7 @@ plotter.fig.colorbar(gas_distribution, label='Concentration')
 plotter.ax.plot(sensor_platform.movement_controller.states[0].state_vector[0],
                 sensor_platform.movement_controller.states[0].state_vector[1],
                 'go',
-               label='Start Location')
+                label='Start Location')
 
 # Plot initial particles and store line object for setting later
 parts, = plotter.ax.plot(track[0].state_vector[0],
@@ -310,7 +310,7 @@ parts, = plotter.ax.plot(track[0].state_vector[0],
                          linewidth=0,
                          label='Particles')
 
-# Plot scatter of detection locations, intially with large marker for the legend
+# Plot scatter of detection locations, initially with large marker for the legend
 detections = plotter.ax.scatter(sensor_x,
                                 sensor_y,
                                 s=np.array([10]*len(sensor_x)),
@@ -359,6 +359,6 @@ animation.FuncAnimation(plotter.fig, anim_func, interval=500, frames=len(track))
 #        a hazardous airborne release using an unmanned aerial vehicle", Journal of Field
 #        Robotics, Vol. 36, 797-917, 2019
 # .. [#] Hutchinson, Michael & Liu, Cunjia & Chen, Wen-Hua, "Information-based search
-#        for an atmospheric release using a mobile robot: algorithms and experiements",
+#        for an atmospheric release using a mobile robot: algorithms and experiments",
 #        IEEE Transactions on Control Systems Technology, Vol. 27, No. 6, 2388-2402, 2019
 #

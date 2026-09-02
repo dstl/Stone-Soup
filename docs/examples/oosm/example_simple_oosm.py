@@ -120,15 +120,15 @@ for k in range(num_steps):
     detections = set()
 
     # Introduce the delay
-    if k%5==0:
+    if k % 5 == 0:
         delay = 25
     else:
         delay = 0
 
     measurement = measurement_model.function(truth[k], noise=True)
     detections.add(TrueDetection(state_vector=measurement,
-                                  groundtruth_path=truth,
-                                  timestamp=truth[k].timestamp))
+                                 groundtruth_path=truth,
+                                 timestamp=truth[k].timestamp))
 
     # Scans for tracking and reordering
     scans.append((truth[k].timestamp + timedelta(seconds=delay), detections))
@@ -151,8 +151,6 @@ predictor = KalmanPredictor(transition_model)
 updater = KalmanUpdater(measurement_model)
 
 # create the prior
-from stonesoup.types.state import GaussianState
-
 prior = GaussianState(state_vector=[0, 1, -100, 0.3],
                       covar=np.diag([1, 1, 1, 1]),
                       timestamp=start_time)
@@ -203,7 +201,7 @@ plotter = AnimatedPlotterly(timesteps=timestamps)
 plotter.plot_ground_truths(truths, [0, 2])
 plotter.plot_measurements(scans_detections, [0, 2], label='Detections',
                           measurement_model=measurement_model)
-plotter.plot_tracks(track_lag, [0, 2], line= dict(color='grey'), label='Track with lag')
+plotter.plot_tracks(track_lag, [0, 2], line=dict(color='grey'), label='Track with lag')
 plotter.fig
 
 # %%
@@ -250,7 +248,7 @@ for k in range(len(arrival_time_ordered)):
         lag_storage.append(arrival_time_ordered[k][1])
 
         # if we are at the last iteration, loop over the stored detections
-        if k>=len(arrival_time_ordered)-1:
+        if k >= len(arrival_time_ordered)-1:
             for kk in range(0, 4):
                 for detection in lag_storage[kk]:
                     prediction = predictor.predict(prior, timestamp=detection.timestamp)
@@ -262,7 +260,7 @@ for k in range(len(arrival_time_ordered)):
 # Plotting the final track
 # ------------------------
 
-plotter.plot_tracks(track, [0, 2], line= dict(color='blue'), label='Track with OOSM treated')
+plotter.plot_tracks(track, [0, 2], line=dict(color='blue'), label='Track with OOSM treated')
 plotter.fig
 
 # %%

@@ -290,7 +290,7 @@ plotter.fig
 # The information architecture we have studied is hierarchical, and while the network
 # architecture isn't strictly a hierarchical graph, it does have one central node (Fusion Node 1)
 # receiving all information. The code below plots SIAP metrics for the
-# tracks maintained at Fusion Node 1 in both architecures. Some variation between the two is
+# tracks maintained at Fusion Node 1 in both architectures. Some variation between the two is
 # expected due to the randomness of the measurements, but we aim to show that the results from
 # both architectures are near identical.
 
@@ -365,7 +365,7 @@ SIAPDiffTableGenerator([network_siap_averages, information_siap_averages],
 # * Removing an edge from an information architecture will likely have an effect on performance.
 #
 # First, we must set up the two architectures, and remove an edge from each. In the network
-# architecture, there are multiple routes between some pairs of nodes. This redundency increases
+# architecture, there are multiple routes between some pairs of nodes. This redundancy increases
 # the resilience of the network when an edge, or node, is taken out of action. In this example,
 # we remove edges connecting repeater node r3, in turn, disabling a route from sensor node s0
 # to fusion node f0. As another route from s0 to f0 exists (via repeater node r4), the

@@ -184,12 +184,12 @@ updater2 = ExtendedKalmanUpdater(measurement_model_2)
 
 # Track priors
 prior1 = GaussianState(state_vector=np.array([0, 1, 0, 1]),
-                        covar=np.diag([1, 1, 1, 1]),
-                        timestamp=start_time)
+                       covar=np.diag([1, 1, 1, 1]),
+                       timestamp=start_time)
 
 prior2 = GaussianState(state_vector=np.array([0, 1, 0, 1]),
-                        covar=np.diag([1, 1, 1, 1]),
-                        timestamp=start_time+timedelta(seconds=5))
+                       covar=np.diag([1, 1, 1, 1]),
+                       timestamp=start_time+timedelta(seconds=5))
 prior3 = deepcopy(prior1)
 
 # %%

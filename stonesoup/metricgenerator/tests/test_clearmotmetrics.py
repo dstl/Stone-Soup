@@ -42,7 +42,7 @@ def test_clearmot_simple(trial_truths, trial_tracks, trial_timestamps):
     mota = metrics[1].value
 
     # because the track is associated with the complete extent of the truth,
-    # i.e. there are no false positves or misses
+    # i.e. there are no false positives or misses
     expected_mota = 1.0
     assert mota == pytest.approx(expected_mota)
 
@@ -108,7 +108,7 @@ def test_clearmot_with_false_positives_and_miss_matches(trial_truths, trial_trac
                                                         trial_timestamps, time_period):
     """Test with a single truth track and 3 hypothesis tracks, where:
     - the first and second track are assigned to the truth track, but have different IDs over
-        different periods of time, caussing an ID-mismatch
+        different periods of time, causing an ID-mismatch
     - the third track is track is not assigned, i.e. causing false positives over its lifetime
     """
     trial_manager = MultiManager()

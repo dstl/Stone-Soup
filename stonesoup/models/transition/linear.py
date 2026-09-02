@@ -5,12 +5,12 @@ from functools import lru_cache
 
 import numpy as np
 from scipy.integrate import quad
-from scipy.linalg import block_diag
 
 from .base import TransitionModel, CombinedGaussianTransitionModel
 from ..base import (LinearModel, GaussianModel, TimeVariantModel,
                     TimeInvariantModel)
 from ...base import Property
+from ...functions import block_diag
 from ...types.array import CovarianceMatrix
 
 

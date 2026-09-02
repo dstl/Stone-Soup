@@ -50,11 +50,6 @@ OpenSky Network
 .. automodule:: stonesoup.reader.opensky
     :show-inheritance:
 
-Astronomical
-------------
-.. automodule:: stonesoup.reader.astronomical
-    :show-inheritance:
-
 Pandas DataFrame
 ----------------
 .. automodule:: stonesoup.reader.pandas_reader

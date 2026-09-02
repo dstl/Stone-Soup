@@ -1,5 +1,5 @@
 from numbers import Real
-from math import trunc, ceil, floor
+from math import trunc, ceil, floor, sin, cos, tan, sinh, cosh, tanh, degrees
 
 import numpy as np
 
@@ -145,25 +145,25 @@ class Angle(Real):
         return trunc(self._value)
 
     def cos(self):
-        return np.cos(self._value)
+        return cos(self._value)
 
     def sin(self):
-        return np.sin(self._value)
+        return sin(self._value)
 
     def tan(self):
-        return np.tan(self._value)
+        return tan(self._value)
 
     def cosh(self):
-        return np.cosh(self._value)
+        return cosh(self._value)
 
     def sinh(self):
-        return np.sinh(self._value)
+        return sinh(self._value)
 
     def tanh(self):
-        return np.tanh(self._value)
+        return tanh(self._value)
 
     def rad2deg(self):
-        return np.rad2deg(self._value)
+        return degrees(self._value)
 
     @classmethod
     def average(cls, angles, weights=None):
@@ -181,6 +181,7 @@ class Angle(Real):
         : :class:`Angle`
             Circular mean of angles
         """
+        angles = np.asarray(angles, dtype=np.float64)
         if weights is None:
             weight_sum = 1
             weights = 1
@@ -249,37 +250,3 @@ class Latitude(Elevation):
     The return type for addition and subtraction is Latitude.
     Multiplication or division produces a float object rather than Latitude.
     """
-
-
-class Inclination(Angle):
-    """(Orbital) Inclination angle class.
-
-    Inclination handles modulo arithmetic for adding and subtracting angles.
-    The return type for addition and subtraction is Inclination.
-    Multiplication or division produces a float object rather than Inclination.
-
-    .. deprecated:: 1.9
-        This function will be removed in Stone Soup 1.10. Orbital functions have moved to the
-        astrodynamics plugin.
-    """
-    @staticmethod
-    def mod_angle(value):
-        from ..functions.orbital import mod_inclination
-        return mod_inclination(value)
-
-
-class EclipticLongitude(Angle):
-    """(Orbital) Ecliptic Longitude angle class.
-
-    Ecliptic Longitude handles modulo arithmetic for adding and subtracting angles.
-    The return type for addition and subtraction is Ecliptic Longitude.
-    Multiplication or division produces a float object rather than Ecliptic Longitude.
-
-    .. deprecated:: 1.9
-        This function will be removed in Stone Soup 1.10. Orbital functions have moved to the
-        astrodynamics plugin.
-    """
-    @staticmethod
-    def mod_angle(value):
-        from ..functions.orbital import mod_elongitude
-        return mod_elongitude(value)

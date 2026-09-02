@@ -54,17 +54,38 @@ def test_repr():
             transition_model.function(truth[k-1], noise=False, time_interval=timedelta(seconds=1)),
             timestamp=start_time+timedelta(seconds=k)))
     act_repr3 = repr(truth)
-    exp_repr3_part = '''
+    exp_repr3_part = '''GroundTruthPath(
+    states=[GroundTruthState(
+               state_vector=StateVector([[0],
+                                         [1],
+                                         [0],
+                                         [1]]),
+               timestamp=datetime.datetime(2021, 12, 9, 9, 32, 25, 449038),
+               metadata={}),
+            GroundTruthState(
+               state_vector=StateVector([[1.],
+                                         [1.],
+                                         [1.],
+                                         [1.]]),
+               timestamp=datetime.datetime(2021, 12, 9, 9, 32, 26, 449038),
+               metadata={}),
             ...
             ...
             ...
             GroundTruthState(
-               state_vector=StateVector([[96.],
+               state_vector=StateVector([[99.],
                                          [ 1.],
-                                         [96.],
+                                         [99.],
                                          [ 1.]]),
-               timestamp=2021-12-09 09:34:01.449038,
-               metadata={}),'''
+               timestamp=datetime.datetime(2021, 12, 9, 9, 34, 4, 449038),
+               metadata={}),
+            GroundTruthState(
+               state_vector=StateVector([[100.],
+                                         [  1.],
+                                         [100.],
+                                         [  1.]]),
+               timestamp=datetime.datetime(2021, 12, 9, 9, 34, 5, 449038),
+               metadata={})],'''
     # for i in range(0, len(exp_repr3_part)-1):
     #     if not exp_repr3_part[:i+1] in act_repr3:  # Useful for finding the cause of an error
     #         print(exp_repr3_part[:i+1])

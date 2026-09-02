@@ -278,7 +278,7 @@ class VisibilityInformed2DSensor(SimpleSensor):
     def measure(self, ground_truths: set[GroundTruthState], noise: Union[np.ndarray, bool] = True,
                 **kwargs) -> set[TrueDetection]:
 
-        # In the event that obstacles have been pased to the measure function,
+        # In the event that obstacles have been passed to the measure function,
         # they are removed from the set of known obstacles.
         if self.obstacles:
             ground_truths = ground_truths - self.obstacles
@@ -351,7 +351,7 @@ class VisibilityInformed2DSensor(SimpleSensor):
             return intersections
 
     def in_obstacle(self, state):
-        """Function for evaluating whether states are inside the boundry of obstacles
+        """Function for evaluating whether states are inside the boundary of obstacles
         in the environment. If no obstacles are provided, the method will return
         `True` or `True` array of equivalent shape of state.
 

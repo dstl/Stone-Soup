@@ -398,7 +398,7 @@ class UnscentedKalmanPredictor(KalmanPredictor):
 
 
 class SqrtKalmanPredictor(ExtendedKalmanPredictor):
-    r"""The version of the Kalman predictor that operates on the square root parameterisation of
+    r"""The version of the Kalman predictor that operates on the square root parametrisation of
     the Gaussian state, :class:`~.SqrtGaussianState`.
 
     The prediction is undertaken in one of two ways. The default is to work in exactly the same

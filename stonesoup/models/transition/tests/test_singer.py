@@ -156,8 +156,7 @@ def test_singer(singer_model_params, sign):
         mean=np.array(F@state_vec).ravel(),
         cov=Q)
 
-    # Propagate a state vector throught the model
-    # (with external noise)
+    # Propagate a state vector through the model (with external noise)
     noise = model_obj.rvs(timestamp=new_timestamp, time_interval=time_interval)
     new_state_vec_w_enoise = model_obj.function(
         state,

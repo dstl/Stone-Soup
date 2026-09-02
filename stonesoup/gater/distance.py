@@ -16,7 +16,7 @@ class DistanceGater(Gater):
     """ Distance based gater
 
     Uses a measure to calculate the distance between a hypothesis' measurement prediction and the
-    hypothised measurement, then removes any hypotheses whose calculated distance exceeds the
+    hypothesised measurement, then removes any hypotheses whose calculated distance exceeds the
     specified gate threshold.
     """
     measure: Measure = Property(

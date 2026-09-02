@@ -3,6 +3,15 @@ from .base import Initiator
 from ..base import Property
 
 
+class _SliceableDeque(collections.deque):
+    """Bounded deque with list-compatible slice access."""
+
+    def __getitem__(self, index):
+        if isinstance(index, slice):
+            return type(self)(list(self)[index], maxlen=self.maxlen)
+        return super().__getitem__(index)
+
+
 class StatesLengthLimiter(Initiator):
     """Wrapper that defines the length of track history stored in memory
 
@@ -26,6 +35,6 @@ class StatesLengthLimiter(Initiator):
     def initiate(self, *args, **kwargs):
         tracks = self.initiator.initiate(*args, **kwargs)
         for track in tracks:
-            track.states = collections.deque(track.states, self.max_length)
-            track.metadatas = collections.deque(track.metadatas, self.max_length)
+            track.states = _SliceableDeque(track.states, self.max_length)
+            track.metadatas = _SliceableDeque(track.metadatas, self.max_length)
         return tracks

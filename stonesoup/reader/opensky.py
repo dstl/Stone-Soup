@@ -93,7 +93,7 @@ class _OpenSkyNetworkReader(Reader):
                         {
                             'icao24': state[0],
                             'callsign': state[1],
-                            'orign_country': state[2],
+                            'origin_country': state[2],
                             'sensors': state[12],
                             'squawk': state[14],
                             'spi': state[15],

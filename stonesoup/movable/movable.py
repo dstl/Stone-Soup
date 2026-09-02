@@ -106,7 +106,7 @@ class Movable(StateMutableSequence, Actionable, ABC):
         Parameters
         ----------
         timestamp: :class:`datetime.datetime`
-            A timestamp signifying when the end of the maneuver
+            A timestamp signifying when the end of the manoeuvre
 
         Notes
         -----
@@ -334,7 +334,7 @@ class MovingMovable(Movable):
         Parameters
         ----------
         timestamp: :class:`datetime.datetime`, optional
-            A timestamp signifying when the end of the maneuver \
+            A timestamp signifying when the end of the manoeuvre \
             (the default is ``None``)
 
         Notes
@@ -399,7 +399,7 @@ class MultiTransitionMovable(MovingMovable):
         Parameters
         ----------
         timestamp: :class:`datetime.datetime`, optional
-            A timestamp signifying the end of the maneuver (the default is ``None``)
+            A timestamp signifying the end of the manoeuvre (the default is ``None``)
 
         Notes
         -----

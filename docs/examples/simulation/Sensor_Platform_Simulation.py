@@ -267,7 +267,7 @@ predictor = UnscentedKalmanPredictor(transition_model)
 
 # Create an Unscented Kalman Updater
 # Note our sensor adds a measurement model to detections
-updater = UnscentedKalmanUpdater(measurement_model=None)
+updater = UnscentedKalmanUpdater(measurement_model=None, force_positive_definite_covariance=True)
 
 # %%
 # When we build our updater, we do not provide a measurement model. This is because we have defined

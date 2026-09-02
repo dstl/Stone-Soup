@@ -32,7 +32,7 @@ slide_window = 3  # Slide window; used by MFA data associator
 # present within the slide window.
 
 def plot_covar(state, ax, color=None):
-    w, v = np.linalg.eig(
+    w, v = np.linalg.eigh(
         measurement_model.matrix() @ state.covar @ measurement_model.matrix().T)
     max_ind = np.argmax(w)
     min_ind = np.argmin(w)

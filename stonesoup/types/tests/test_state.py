@@ -838,7 +838,7 @@ def test_asd_state():
     assert np.array_equal(state.multi_state_vector, state_vector)
     assert state.max_nstep == 0
 
-    # Test mutliple timesteps
+    # Test multiple timesteps
     timestamp1 = datetime.datetime.now()
     timestamp2 = datetime.datetime.now()
     state_vector = np.array([[0], [1], [2], [3]])

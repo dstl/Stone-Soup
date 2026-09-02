@@ -3,10 +3,10 @@ from abc import abstractmethod
 from functools import lru_cache
 
 import numpy as np
-from scipy.spatial import distance
 
 from .base import BaseMeasure
 from ..base import Property
+from ..types.angle import Angle
 from ..types.state import State, ParticleState, GaussianState
 
 
@@ -36,6 +36,11 @@ class Measure(BaseMeasure):
                              " set mapping to include all dimensions.")
         if self.mapping2 is None and self.mapping is not None:
             self.mapping2 = self.mapping
+        elif self.mapping is not None and len(self.mapping) != len(self.mapping2):
+            raise ValueError(
+                f"Shape mismatch between mapping and mapping2, "
+                f"{len(self.mapping)} != {len(self.mapping2)}."
+            )
 
     @abstractmethod
     def __call__(self, state1, state2):
@@ -88,10 +93,19 @@ class Euclidean(Measure):
         state_vector2 = getattr(state2, 'mean', state2.state_vector)
 
         if self.mapping is not None:
-            return distance.euclidean(state_vector1[self.mapping, 0],
-                                      state_vector2[self.mapping2, 0])
+            u = state_vector1[self.mapping, :]
+            v = state_vector2[self.mapping2, :]
         else:
-            return distance.euclidean(state_vector1[:, 0], state_vector2[:, 0])
+            if len(state_vector1) != len(state_vector2):
+                raise ValueError(
+                    f"Shape mismatch between state1 and state2 along axis 0, \
+                        {len(state_vector1)} != {len(state_vector2)}."
+                )
+            u = state_vector1[:, :]
+            v = state_vector2[:, :]
+
+        delta = np.asarray(v - u, dtype=np.float64)
+        return np.linalg.norm(delta, axis=0).squeeze()[()]
 
 
 class EuclideanWeighted(Measure):
@@ -136,13 +150,19 @@ class EuclideanWeighted(Measure):
         state_vector2 = getattr(state2, 'mean', state2.state_vector)
 
         if self.mapping is not None:
-            return distance.euclidean(state_vector1[self.mapping, 0],
-                                      state_vector2[self.mapping2, 0],
-                                      self.weighting)
+            u = state_vector1[self.mapping, :]
+            v = state_vector2[self.mapping2, :]
         else:
-            return distance.euclidean(state_vector1[:, 0],
-                                      state_vector2[:, 0],
-                                      self.weighting)
+            if len(state_vector1) != len(state_vector2):
+                raise ValueError(
+                    f"Shape mismatch between state1 and state2 along axis 0, \
+                        {len(state_vector1)} != {len(state_vector2)}."
+                )
+            u = state_vector1[:, :]
+            v = state_vector2[:, :]
+
+        delta = np.sqrt(self.weighting)[:, np.newaxis] * np.asarray(v - u, dtype=np.float64)
+        return np.linalg.norm(delta, axis=0).squeeze()[()]
 
 
 class SquaredMahalanobis(Measure):
@@ -201,23 +221,23 @@ class SquaredMahalanobis(Measure):
         state_vector1 = getattr(state1, 'mean', state1.state_vector)
         state_vector2 = getattr(state2, 'mean', state2.state_vector)
 
-        if len(state_vector1) != len(state_vector2):
-            raise ValueError(
-                f"Shape mismatch between state1 and state2 along axis 0, \
-                    {len(state_vector1)} != {len(state_vector2)}."
-            )
-
         if self.mapping is not None:
             u = state_vector1[self.mapping, 0]
             v = state_vector2[self.mapping2, :]
             # extract the mapped covariance data
             vi = self._inv_cov(state1, tuple(self.mapping))
         else:
+            if len(state_vector1) != len(state_vector2):
+                raise ValueError(
+                    f"Shape mismatch between state1 and state2 along axis 0, \
+                        {len(state_vector1)} != {len(state_vector2)}."
+                )
+
             u = state_vector1[:, 0]
             v = state_vector2[:, :]
             vi = self._inv_cov(state1)
 
-        delta = -(v.T-u)
+        delta = np.asarray(-(v.T-u), dtype=np.float64)
 
         # Return the diagonal elements of A@B@A.T
         return np.einsum('ij,jk,ik->i', delta, vi, delta).squeeze()[()]
@@ -506,3 +526,67 @@ class KLDivergence(Measure):
                                       'ParticleState or GaussianState types')
 
         return kld
+
+
+class AngularDifference(Measure):
+    r"""Angular Difference measure
+
+    This measure returns the difference in angles between a pair of :class:`~.State` objects.
+
+    The angular difference, :math:`\Delta\theta` between a pair of angles :math:`\theta_{1}` and
+    :math:`\theta_{2}` calculated from a mapping such as velocity is defined as:
+
+    .. math::
+        \theta_{1} = \arctan(\dot{y}_{1}, \dot{x}_{1}
+        \theta_{2} = \arctan(\dot{y}_{2}, \dot{x}_{2}
+        \Delta\theta = \theta_{1} - \theta_{2}
+    """
+    mapping: np.ndarray = Property(
+        doc="Mapping array which specifies which elements within the"
+            " state vectors are to be used to calculate the heading.")
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        if len(self.mapping) != 2:
+            raise IndexError("AngularDifference assumes 2 dimensions to calculate angle.")
+
+    def __call__(self, state1, state2):
+        r"""Calculate the angular difference between a pair of state vectors
+
+        Parameters
+        ----------
+        state1 : :class:`~.State`
+        state2 : :class:`~.State`
+
+        Returns
+        -------
+        Angle
+            Angular difference between two input :class:`~.State`
+
+        """
+        state_vector1 = getattr(state1, "mean", state1.state_vector)
+        state_vector2 = getattr(state2, "mean", state2.state_vector)
+
+        angle1 = Angle(np.arctan2(*state_vector1[self.mapping, 0][::-1]))
+        angle2 = Angle(np.arctan2(*state_vector2[self.mapping2, 0][::-1]))
+        return angle1 - angle2
+
+
+class AngularDifferenceWithLeftRightAmbiguity(AngularDifference):
+    r"""Angular Difference measure
+
+    This measure returns the difference in angles between a pair of :class:`~.State` objects with
+    :math:`180^{\degree}` ambiguity.
+
+    The angular difference with 180 ambiguity, :math:`\Delta\theta` between a pair of angles
+    :math:`\theta_{1}` and :math:`\theta_{2}` calculated from a mapping such as velocity is
+    defined as:
+
+    .. math::
+        \theta_{1} = \arctan(\dot{y}_{1}, \dot{x}_{1}
+        \theta_{2} = \arctan(\dot{y}_{2}, \dot{x}_{2}
+        \Delta\theta = \arcsin(|\sin(\theta_{1} - \theta_{2})|)
+    """
+    def __call__(self, state1, state2):
+        angle_diff = super().__call__(state1, state2)
+        return Angle(np.arcsin(np.abs(np.sin(angle_diff))))

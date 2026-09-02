@@ -104,7 +104,7 @@ def test_road_network_building(nodes, edges, mode):
     assert network.number_of_nodes() == 0 and network.number_of_edges() == 0
 
 
-def test_road_netword_to_gdf(nodes, edges):
+def test_road_network_to_gdf(nodes, edges):
     """Test converting a road network to GeoDataFrame"""
     network = RoadNetwork()
     network.add_nodes_from(nodes)

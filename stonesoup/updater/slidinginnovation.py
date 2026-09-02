@@ -10,7 +10,7 @@ class SlidingInnovationUpdater(KalmanUpdater):
 
     The Sliding Innovation Filter (SIF) is a sub-optimal filter (in comparison to Kalman filter)
     which uses a switching gain to provide robustness to estimation problems that may be
-    ill-conditioned or contain modeling uncertainties or disturbances.
+    ill-conditioned or contain modelling uncertainties or disturbances.
 
     The main difference from Kalman filter is the calculation of the gain:
 

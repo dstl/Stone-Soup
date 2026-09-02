@@ -32,7 +32,7 @@ class PointProcessMultiTargetTracker(_TrackerMixInNext, Tracker):
         default=None,
         doc="The birth component. The weight should be "
             "equal to the mean of the expected number of "
-            "births per timestep (Poission distributed). "
+            "births per timestep (Poisson distributed). "
             "The tag should be "
             ":attr:`TaggedWeightedGaussianState.BIRTH`")
 

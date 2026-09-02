@@ -5,13 +5,13 @@ from typing import Union
 
 from math import sqrt
 import numpy as np
-from scipy.linalg import inv, pinv, block_diag
+from scipy.linalg import inv, pinv
 from scipy.stats import multivariate_normal
 
 from ...base import Property, clearable_cached_property
 from ...types.numeric import Probability
 
-from ...functions import cart2pol, pol2cart, \
+from ...functions import block_diag, cart2pol, pol2cart, \
     cart2sphere, sphere2cart, cart2angles, \
     build_rotation_matrix, cart2az_el_rg, az_el_rg2cart
 from ...types.array import StateVector, CovarianceMatrix, StateVectors
@@ -68,10 +68,10 @@ class CombinedReversibleGaussianMeasurementModel(ReversibleModel, GaussianModel,
 
         return inv_model_matrix @ state.state_vector
 
-    def inverse_function(self, detection, **kwargs) -> StateVector:
+    def inverse_function(self, detection, **kwargs) -> Union[StateVector, StateVectors]:
         state = copy.copy(detection)
         ndim_count = 0
-        state_vector = np.zeros((self.ndim_state, 1)).view(StateVector)
+        state_vector = np.zeros((self.ndim_state, detection.state_vector.shape[1]))
         for model in self.model_list:
             state.state_vector = detection.state_vector[ndim_count:model.ndim_meas + ndim_count, :]
             if isinstance(model, ReversibleModel):
@@ -83,7 +83,7 @@ class CombinedReversibleGaussianMeasurementModel(ReversibleModel, GaussianModel,
                     "Model {!r} not reversible".format(type(model)))
             ndim_count += model.ndim_meas
 
-        return state_vector
+        return StateVectors(state_vector)
 
     def covar(self, **kwargs) -> CovarianceMatrix:
         return block_diag(
@@ -161,7 +161,7 @@ class _AngleNonLinearGaussianMeasurement(NonLinearGaussianMeasurement):
             raise ValueError("Cannot generate pdf from None-type covariance")
 
         # Calculate difference before to handle custom types (mean defaults to zero)
-        # This is required as log pdf coverts arrays to floats
+        # This is required as log pdf converts arrays to floats
         vector = state1.state_vector.astype(np.float64) - self._function(state2, **kwargs)
         for dim, val in enumerate(self._typed_vector().ravel()):
             mod_angle = getattr(type(val), 'mod_angle', None)
@@ -271,18 +271,19 @@ class CartesianToElevationBearingRange(_AngleNonLinearGaussianMeasurement, Rever
 
         return StateVectors([theta, phi, rho]) + noise
 
-    def inverse_function(self, detection, **kwargs) -> StateVector:
-
-        theta, phi, rho = detection.state_vector
-        xyz = StateVector(sphere2cart(rho, phi, theta))
+    def inverse_function(self, detection, **kwargs) -> Union[StateVector, StateVectors]:
+        # Cast to float to drop the angle types, which don't survive the conversion below
+        state_vector = detection.state_vector.astype(np.float64)
+        theta, phi, rho = state_vector[0, :], state_vector[1, :], state_vector[2, :]
+        xyz = np.array(sphere2cart(rho, phi, theta))
 
         inv_rotation_matrix = inv(self.rotation_matrix)
         xyz = inv_rotation_matrix @ xyz
 
-        res = np.zeros((self.ndim_state, 1)).view(StateVector)
+        res = np.zeros((self.ndim_state, state_vector.shape[1]))
         res[self.mapping, :] = xyz + self.translation_offset
 
-        return res
+        return StateVectors(res)
 
     @staticmethod
     def _typed_vector():
@@ -369,24 +370,26 @@ class CartesianToBearingRange(_AngleNonLinearGaussianMeasurement, ReversibleMode
 
         return 2
 
-    def inverse_function(self, detection, **kwargs) -> StateVector:
+    def inverse_function(self, detection, **kwargs) -> Union[StateVector, StateVectors]:
         if not ((self.rotation_offset[0] == 0)
                 and (self.rotation_offset[1] == 0)):
             raise RuntimeError(
                 "Measurement model assumes 2D space. \
                 Rotation in 3D space is unsupported at this time.")
 
-        x, y = pol2cart(detection.state_vector[1, :], detection.state_vector[0, :])
+        # Cast to float to drop the angle types, which don't survive the conversion below
+        state_vector = detection.state_vector.astype(np.float64)
+        x, y = pol2cart(state_vector[1, :], state_vector[0, :])
 
-        xyz = np.array([x, y, np.zeros(detection.state_vector.shape[1])])
+        xyz = np.array([x, y, np.zeros(state_vector.shape[1])])
         inv_rotation_matrix = inv(self.rotation_matrix)
         xyz = inv_rotation_matrix @ xyz
         xy = xyz[0:2]
 
-        res = np.zeros((self.ndim_state, detection.state_vector.shape[1])).view(StateVector)
+        res = np.zeros((self.ndim_state, state_vector.shape[1]))
         res[self.mapping[:2], :] = xy + self.translation_offset[:2, :]
 
-        return res
+        return StateVectors(res)
 
     def _function(self, state, noise=False, **kwargs):
         if isinstance(noise, bool) or noise is None:
@@ -933,29 +936,24 @@ class CartesianToElevationBearingRangeRate(_AngleNonLinearGaussianMeasurement, R
                              rho,
                              rr]) + noise
 
-    def inverse_function(self, detection, **kwargs) -> StateVector:
-        theta, phi, rho, rho_rate = detection.state_vector
+    def inverse_function(self, detection, **kwargs) -> Union[StateVector, StateVectors]:
+        # Cast to float to drop the angle types, which don't survive the conversion below
+        state_vector = detection.state_vector.astype(np.float64)
+        theta, phi, rho, rho_rate = (state_vector[0, :], state_vector[1, :],
+                                     state_vector[2, :], state_vector[3, :])
 
-        x, y, z = sphere2cart(rho, phi, theta)
+        xyz = np.array(sphere2cart(rho, phi, theta))
         # because only rho_rate is known, only the components in
         # x,y and z of the range rate can be found.
-        x_rate, y_rate, z_rate = sphere2cart(rho_rate, phi, theta)
+        xyz_rate = np.array(sphere2cart(rho_rate, phi, theta))
 
         inv_rotation_matrix = inv(self.rotation_matrix)
 
-        out_vector = StateVector(np.zeros((self.ndim_state)))
-        out_vector[self.mapping, 0] = x, y, z
-        out_vector[self.velocity_mapping, 0] = x_rate, y_rate, z_rate
+        out_vector = np.zeros((self.ndim_state, state_vector.shape[1]))
+        out_vector[self.mapping, :] = inv_rotation_matrix @ xyz + self.translation_offset
+        out_vector[self.velocity_mapping, :] = inv_rotation_matrix @ xyz_rate + self.velocity
 
-        out_vector[self.mapping, :] = inv_rotation_matrix @ out_vector[self.mapping, :]
-        out_vector[self.velocity_mapping, :] = \
-            inv_rotation_matrix @ out_vector[self.velocity_mapping, :]
-
-        out_vector[self.mapping, :] = out_vector[self.mapping, :] + self.translation_offset
-        out_vector[self.velocity_mapping, :] = out_vector[self.velocity_mapping, :] \
-            + self.velocity
-
-        return out_vector
+        return StateVectors(out_vector)
 
     @staticmethod
     def _typed_vector():
@@ -1171,8 +1169,9 @@ class CartesianToElevationRateBearingRateRangeRate(_AngleNonLinearGaussianMeasur
         rxy = np.linalg.norm(pos[:2], axis=0)  # norm
         rxy2 = rxy ** 2  # squared norm
 
-        rDot = np.dot(pos.flatten(), vel.flatten()) / r  # Radial velocity (dot product)
-        rxyDot = np.dot(pos[:2].flatten(), vel[:2].flatten()) / rxy  # rxy dot
+        # Column-wise dot products, so multiple states are handled independently
+        rDot = np.einsum('ij,ij->j', pos, vel) / r  # Radial velocity (dot product)
+        rxyDot = np.einsum('ij,ij->j', pos[:2], vel[:2]) / rxy  # rxy dot
         azimuthDot = (vel[1] * pos[0] - vel[0] * pos[1]) / rxy2  # Azimuth rate of change
         elevationDot = (vel[2] * rxy - rxyDot * pos[2]) / r2  # Elevation rate of change
 
@@ -1183,13 +1182,17 @@ class CartesianToElevationRateBearingRateRangeRate(_AngleNonLinearGaussianMeasur
                              azimuthDot,
                              rDot]) + noise
 
-    def inverse_function(self, detection, **kwargs) -> StateVector:
+    def inverse_function(self, detection, **kwargs) -> Union[StateVector, StateVectors]:
         # Theta: elevation
         # Phi: azimuth
         # Rho: range
-        theta, phi, rho, theta_rate, phi_rate, rho_rate = detection.state_vector
+        # Cast to float to drop the angle types, which don't survive the conversion below
+        state_vector = detection.state_vector.astype(np.float64)
+        theta, phi, rho, theta_rate, phi_rate, rho_rate = (
+            state_vector[0, :], state_vector[1, :], state_vector[2, :],
+            state_vector[3, :], state_vector[4, :], state_vector[5, :])
 
-        x, y, z = sphere2cart(rho, phi, theta)
+        xyz = np.array(sphere2cart(rho, phi, theta))
 
         x_rate = (rho_rate * np.cos(theta) * np.cos(phi) -
                   rho * theta_rate * np.sin(theta) * np.cos(phi) -
@@ -1201,21 +1204,15 @@ class CartesianToElevationRateBearingRateRangeRate(_AngleNonLinearGaussianMeasur
 
         z_rate = rho_rate * np.sin(theta) + rho * theta_rate * np.cos(theta)
 
+        xyz_rate = np.array([x_rate, y_rate, z_rate])
+
         inv_rotation_matrix = inv(self.rotation_matrix)
 
-        out_vector = StateVector([[0.], [0.], [0.], [0.], [0.], [0.]])
-        out_vector[self.mapping, 0] = x, y, z
-        out_vector[self.velocity_mapping, 0] = x_rate, y_rate, z_rate
+        out_vector = np.zeros((self.ndim_state, state_vector.shape[1]))
+        out_vector[self.mapping, :] = inv_rotation_matrix @ xyz + self.translation_offset
+        out_vector[self.velocity_mapping, :] = inv_rotation_matrix @ xyz_rate + self.velocity
 
-        out_vector[self.mapping, :] = inv_rotation_matrix @ out_vector[self.mapping, :]
-        out_vector[self.velocity_mapping, :] = \
-            inv_rotation_matrix @ out_vector[self.velocity_mapping, :]
-
-        out_vector[self.mapping, :] = out_vector[self.mapping, :] + self.translation_offset
-        out_vector[self.velocity_mapping, :] = out_vector[self.velocity_mapping, :] \
-            + self.velocity
-
-        return out_vector
+        return StateVectors(out_vector)
 
     @staticmethod
     def _typed_vector():
@@ -1521,21 +1518,21 @@ class CartesianToAzimuthElevationRange(_AngleNonLinearGaussianMeasurement, Rever
 
         return StateVectors([phi, theta, rho]) + noise
 
-    def inverse_function(self, detection, **kwargs) -> StateVector:
-
-        phi, theta, rho = detection.state_vector
+    def inverse_function(self, detection, **kwargs) -> Union[StateVector, StateVectors]:
+        # Cast to float to drop the angle types, which don't survive the conversion below
+        state_vector = detection.state_vector.astype(np.float64)
+        phi, theta, rho = state_vector[0, :], state_vector[1, :], state_vector[2, :]
 
         # convert to cartesian
-        x, y, z = az_el_rg2cart(phi, theta, rho)
-        xyz = StateVector([x, y, z])
+        xyz = np.array(az_el_rg2cart(phi, theta, rho))
 
         inv_rotation_matrix = inv(self.rotation_matrix)
         xyz = inv_rotation_matrix @ xyz
 
-        res = np.zeros((self.ndim_state, 1)).view(StateVector)
+        res = np.zeros((self.ndim_state, state_vector.shape[1]))
         res[self.mapping, :] = xyz + self.translation_offset
 
-        return res
+        return StateVectors(res)
 
     @staticmethod
     def _typed_vector():

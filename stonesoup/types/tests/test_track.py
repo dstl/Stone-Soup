@@ -235,7 +235,7 @@ def test_copy():
 
     assert track is not copied_track
     assert track.states is not copied_track.states
-    assert track.init_metadata is copied_track.init_metadata
+    assert track.init_metadata is not copied_track.init_metadata
     assert track.metadatas is not copied_track.metadatas
 
     for original_state, copied_state in zip(track.states, copied_track.states):
@@ -253,3 +253,10 @@ def test_copy():
 
     assert len(track.metadatas) == 3
     assert len(copied_track.metadatas) == 4
+
+    empty_track = Track()
+    empty_track.metadata['test'] = 10
+
+    copied_track = copy.copy(empty_track)
+    copied_track.metadata['test'] = 20
+    assert empty_track.metadata['test'] == 10

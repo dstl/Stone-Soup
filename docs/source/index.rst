@@ -28,6 +28,8 @@ For community support, head over to the
 
 Installation
 ------------
+Stone Soup requires Python 3.10 or later.
+
 To install Stone Soup from PyPI with ``pip``:
 
 .. code::
@@ -47,6 +49,58 @@ the latest version from the GitHub repository:
 .. code::
 
     python -m pip install git+https://github.com/dstl/Stone-Soup.git#egg=stonesoup
+
+Optional dependencies
+^^^^^^^^^^^^^^^^^^^^^
+Some Stone Soup features use dependencies that are not required by the core
+package. These can be installed with ``pip`` extras. Multiple extras can be
+installed together, for example:
+
+.. code::
+
+    python -m pip install "stonesoup[video,optuna]"
+
+The currently available feature extras are:
+
+.. list-table::
+    :header-rows: 1
+    :widths: 20 50 30
+
+    * - Extra
+      - Feature
+      - Optional dependencies
+    * - ``video``
+      - Video reading, processing and related demonstrations
+      - ffmpeg-python, moviepy, OpenCV, yt-dlp
+    * - ``tensorflow``
+      - TensorFlow integrations
+      - TensorFlow
+    * - ``ultralytics``
+      - Ultralytics object detection
+      - ultralytics
+    * - ``mfa``
+      - Multi-frame assignment data association
+      - OR-Tools
+    * - ``ehm``
+      - Efficient hypothesis management data association
+      - pyehm
+    * - ``optuna``
+      - Optuna-based sensor management
+      - optuna
+    * - ``ode``
+      - ODE-based functionality and examples
+      - PyTorch
+    * - ``roadnet``
+      - Road-network functionality
+      - GeoPandas, NetworkX
+    * - ``architectures``
+      - Architecture graph visualisation
+      - Graphviz, NetworkX, pydot
+
+The ``dev`` extra installs the dependencies used for development and testing,
+and the ``docs`` extra installs additional dependencies required when building
+the documentation. The authoritative list of extras and packages is maintained
+in ``pyproject.toml``.
 
 
 Developing

@@ -324,7 +324,7 @@ class MultiModelParticleUpdater(ParticleUpdater):
 
 
 class RaoBlackwellisedParticleUpdater(MultiModelParticleUpdater):
-    """Particle Updater for the Raoblackwellised scheme"""
+    """Particle Updater for the RaoBlackwellised scheme"""
 
     predictor: RaoBlackwellisedMultiModelPredictor = Property(
         doc="Predictor which hold holds transition matrix, models and mappings")

@@ -10,7 +10,7 @@ from ....types.state import State
 
 
 @pytest.mark.parametrize('sign', [1, -1])
-def test_rwodel(sign):
+def test_rwmodel(sign):
     """ RandomWalk Transition Model test """
 
     # State related variables
@@ -55,8 +55,7 @@ def test_rwodel(sign):
         mean=np.array(F@state.state_vector).ravel(),
         cov=Q)
 
-    # Propagate a state vector throught the model
-    # (with internal noise)
+    # Propagate a state vector through the model (with internal noise)
     new_state_vec_w_inoise = rw.function(
         state,
         noise=True,

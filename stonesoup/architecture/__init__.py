@@ -20,7 +20,7 @@ from ..types.groundtruth import GroundTruthPath
 
 class Architecture(Base):
     """Abstract Architecture Base class. Subclasses must implement the
-    :meth:`~Architecture.propogate` method.
+    :meth:`~Architecture.propagate` method.
     """
 
     edges: Edges = Property(

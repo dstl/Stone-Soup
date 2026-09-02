@@ -176,9 +176,9 @@ initiator = MultiMeasurementInitiator(
     measurement_model=None,
     deleter=deleter,
     data_associator=GlobalNearestNeighbour(PDAHypothesiser(predictor=predictor,
-                                         updater=updater,
-                                         clutter_spatial_density=clutter_spatial_density,
-                                         prob_detect=probability_detection)),
+                                           updater=updater,
+                                           clutter_spatial_density=clutter_spatial_density,
+                                           prob_detect=probability_detection)),
     updater=updater,
     min_points=2)
 
@@ -202,9 +202,9 @@ EHM1_tracker = MultiTargetMixtureTracker(
     deleter=deleter,
     detector=detection_sims[1],
     data_associator=JPDAwithEHM(PDAHypothesiser(predictor=predictor,
-                                         updater=updater,
-                                         clutter_spatial_density=clutter_spatial_density,
-                                         prob_detect=probability_detection)),
+                                                updater=updater,
+                                                clutter_spatial_density=clutter_spatial_density,
+                                                prob_detect=probability_detection)),
     updater=updater)
 
 # Copy the same initiator for EHM2
@@ -216,9 +216,9 @@ EHM2_tracker = MultiTargetMixtureTracker(
     deleter=deleter,
     detector=detection_sims[2],
     data_associator=JPDAwithEHM2(PDAHypothesiser(predictor=predictor,
-                                                updater=updater,
-                                                clutter_spatial_density=clutter_spatial_density,
-                                                prob_detect=probability_detection)),
+                                                 updater=updater,
+                                                 clutter_spatial_density=clutter_spatial_density,
+                                                 prob_detect=probability_detection)),
     updater=updater)
 
 
@@ -230,7 +230,7 @@ EHM2_tracker = MultiTargetMixtureTracker(
 # Now, we can run the trackers and gather the final tracks as well as the detections, clutter and
 # define a metric plotter to evaluate the track accuracy using the metric manager. As the three
 # methods will use the same hypothesis we will obtain the same tracks, we verify such claim by
-# comparing the OSPA metric between each hyphotesiser. To measure the significant difference in
+# comparing the OSPA metric between each hypothesiser. To measure the significant difference in
 # computing time we measure the time while running the three different trackers.
 
 # %%
@@ -254,7 +254,7 @@ from stonesoup.metricgenerator.ospametric import OSPAMetric
 ospa_JPDA_EHM1 = OSPAMetric(c=40, p=1, generator_name='OSPA_JPDA-EHM1',
                             tracks_key='JPDA_tracks', truths_key='EHM1_tracks')
 ospa_JPDA_EHM2 = OSPAMetric(c=40, p=1, generator_name='OSPA_JPDA-EHM2',
-                           tracks_key='JPDA_tracks', truths_key='EHM2_tracks')
+                            tracks_key='JPDA_tracks', truths_key='EHM2_tracks')
 
 # Define the track data associator
 from stonesoup.dataassociator.tracktotrack import TrackToTruth
@@ -265,15 +265,15 @@ associator = TrackToTruth(association_threshold=30)
 from stonesoup.metricgenerator.plotter import TwoDPlotter
 
 plot_generator_JPDA = TwoDPlotter([0, 2], [0, 2], [0, 2], uncertainty=True, tracks_key='JPDA_tracks',
-                                 truths_key='truths', detections_key='detections',
-                                 generator_name='JPDA_plot')
+                                  truths_key='truths', detections_key='detections',
+                                  generator_name='JPDA_plot')
 plot_generator_EHM1 = TwoDPlotter([0, 2], [0, 2], [0, 2], uncertainty=True, tracks_key='EHM1_tracks',
-                                truths_key='truths', detections_key='detections',
-                                generator_name='EHM1_plot')
+                                  truths_key='truths', detections_key='detections',
+                                  generator_name='EHM1_plot')
 
 plot_generator_EHM2 = TwoDPlotter([0, 2], [0, 2], [0, 2], uncertainty=True, tracks_key='EHM2_tracks',
-                                truths_key='truths', detections_key='detections',
-                                generator_name='EHM2_plot')
+                                  truths_key='truths', detections_key='detections',
+                                  generator_name='EHM2_plot')
 
 # Load the multi-manager
 from stonesoup.metricgenerator.manager import MultiManager
@@ -347,11 +347,11 @@ plotter = Plotterly()
 
 plotter.plot_ground_truths(groundtruths, [0, 2])
 plotter.plot_measurements(detections_set, [0, 2])
-plotter.plot_tracks(JPDA_tracks, [0, 2], line= dict(color='orange'),
+plotter.plot_tracks(JPDA_tracks, [0, 2], line=dict(color='orange'),
                     label='JPDA tracks')
-plotter.plot_tracks(EHM1_tracks, [0, 2], line= dict(color='green', dash='dot'),
+plotter.plot_tracks(EHM1_tracks, [0, 2], line=dict(color='green', dash='dot'),
                     label='EHM1 tracks')
-plotter.plot_tracks(EHM2_tracks, [0, 2], line= dict(color='red', dash='dot'),
+plotter.plot_tracks(EHM2_tracks, [0, 2], line=dict(color='red', dash='dot'),
                     label='EHM2 tracks')
 plotter.fig
 
@@ -394,4 +394,3 @@ graph.fig
 # .. [#] Horridge, P. and Maskell, S., 2006, July. Real-time tracking of hundreds of
 #        targets with efficient exact JPDAF implementation. In 2006 9th International
 #        Conference on Information Fusion (pp. 1-8). IEEE
-#

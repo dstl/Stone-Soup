@@ -11,7 +11,7 @@ class OptimalPathToDestinationMeasurementModel(NonLinearGaussianMeasurement):
     r"""Shortest path to destination measurement model
 
     This is a measurement model that projects the target's position on the road network to a 2D
-    position, via a non-linear transformation function :math:`h(x)`, which parameterizes the
+    position, via a non-linear transformation function :math:`h(x)`, which parameterises the
     likelihood of the measurement given the target's state. This is a generalised implementation
     of the measurement model described in [#net]_.
 

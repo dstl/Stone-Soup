@@ -46,7 +46,7 @@ class PDAHypothesiser(Hypothesiser):
             "estimate this. Default `False`")
     normalise: bool = Property(
         default=True,
-        doc="If `True`, hypotheses are normlised to total weight of 1. Default `True`")
+        doc="If `True`, hypotheses are normalised to total weight of 1. Default `True`")
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)

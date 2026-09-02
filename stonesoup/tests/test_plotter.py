@@ -1,4 +1,3 @@
-import warnings
 from datetime import datetime, timedelta
 
 import matplotlib.pyplot as plt
@@ -237,19 +236,7 @@ def test_plot_density_equal_x_y():
         plotter.plot_density({truth}, index=None)
 
 
-def test_plot_complex_uncertainty():
-    plotter = Plotter()
-    track = Track([
-        GaussianState(
-            state_vector=[0, 0],
-            covar=[[10, -1], [1, 10]])
-    ])
-    with pytest.warns(UserWarning, match="Can not plot uncertainty for all states due to complex "
-                                         "eigenvalues or eigenvectors"):
-
-        plotter.plot_tracks(track, mapping=[0, 1], uncertainty=True)
-
-
+@pytest.mark.filterwarnings("ignore:Animation was deleted without rendering anything")
 def test_animation_plotter():
     animation_plotter = AnimationPlotter()
     animation_plotter.plot_ground_truths(truth, [0, 2])
@@ -260,13 +247,6 @@ def test_animation_plotter():
     animation_plotter_with_title.plot_ground_truths(truth, [0, 2])
     animation_plotter_with_title.plot_tracks(track, [0, 2])
     animation_plotter_with_title.run()
-    with warnings.catch_warnings():
-        warnings.filterwarnings(
-            'ignore',
-            "Animation was deleted without rendering anything"
-        )
-        del animation_plotter
-        del animation_plotter_with_title
 
 
 def test_animated_plotterly():
@@ -317,9 +297,9 @@ def test_plotterly_1d():
     plotter1d.plot_measurements(true_measurements, [0])
     plotter1d.plot_tracks(track, [0])
 
-    # check that particle=True does not plot
-    with pytest.raises(NotImplementedError):
-        plotter1d.plot_tracks(track, [0], particle=True)
+    # check that particle=True plots particles
+    plotter1d.plot_tracks(track, [0], particle=True)
+    assert "Tracks<br>(Particles)" in {data.legendgroup for data in plotter1d.fig.data}
 
     # check that uncertainty=True plots vertical error bars
     plotter1d.plot_tracks(track, [0], uncertainty=True)

@@ -166,7 +166,7 @@ def test_rao_blackwellised(
 
     assert isinstance(update, RaoBlackwellisedParticleStateUpdate)
 
-    average_model_proabilities = np.average(
+    average_model_probabilities = np.average(
         update.model_probabilities, weights=update.weight, axis=1)
-    assert len(average_model_proabilities) == update.model_probabilities.shape[0]
-    assert isinstance(dynamic_model_list[np.argmax(average_model_proabilities)], KnownTurnRate)
+    assert len(average_model_probabilities) == update.model_probabilities.shape[0]
+    assert isinstance(dynamic_model_list[np.argmax(average_model_probabilities)], KnownTurnRate)

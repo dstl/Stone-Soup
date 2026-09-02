@@ -74,7 +74,22 @@ def test_inverse(model):
     state = State(StateVector([[0.1], [10], [0], [0.2], [20]]))
     meas_state = model.function(state)
 
-    assert model.inverse_function(State(meas_state)) == approx(state.state_vector)
+    inv_state = model.inverse_function(State(meas_state))
+    assert isinstance(inv_state, StateVector)
+    assert inv_state == approx(state.state_vector)
+
+
+def test_inverse_state_vectors(model):
+    states = State(StateVectors([[0.1, 1, -5], [10, 20, 30], [0, 0, 0],
+                                 [0.2, 2, -10], [20, 40, 60]]))
+    meas_states = model.function(states)
+
+    inv_states = model.inverse_function(State(meas_states))
+
+    assert isinstance(inv_states, StateVectors)
+    assert not isinstance(inv_states, StateVector)
+    assert inv_states.shape == states.state_vector.shape
+    assert inv_states == approx(np.asarray(states.state_vector, dtype=np.float64))
 
 
 def test_rvs(model):
@@ -117,6 +132,25 @@ def test_non_linear_and_linear():
     assert model.inverse_function(State(meas_vector)) == approx(state.state_vector)
 
     assert model.covar() == approx(np.diag([1, 10, 20]))
+
+
+def test_non_linear_and_linear_state_vectors():
+    """Exercise the ``_linear_inverse_function`` branch with multiple measurements."""
+    model = CombinedReversibleGaussianMeasurementModel([
+        CartesianToBearingRange(3, [0, 1], np.diag([1, 10])),
+        LinearGaussian(3, [2], np.array([[20]])),
+    ])
+
+    states = State(StateVectors([[0, 10, -5], [10, 0, -5], [20, 30, 40]]))
+    meas_vectors = model.function(states)
+    assert isinstance(meas_vectors, StateVectors)
+
+    inv_states = model.inverse_function(State(meas_vectors))
+
+    assert isinstance(inv_states, StateVectors)
+    assert not isinstance(inv_states, StateVector)
+    assert inv_states.shape == states.state_vector.shape
+    assert inv_states == approx(np.asarray(states.state_vector, dtype=np.float64))
 
 
 def test_mismatch_ndim_state():

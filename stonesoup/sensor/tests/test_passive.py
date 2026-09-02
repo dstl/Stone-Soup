@@ -11,7 +11,7 @@ from ...types.groundtruth import GroundTruthState, GroundTruthPath
 
 def test_passive_sensor():
     # Input arguments
-    # TODO: pytest parametarization
+    # TODO: pytest parametrisation
     noise_covar = CovarianceMatrix([[np.deg2rad(0.015), 0],
                                     [0, np.deg2rad(0.1)]])
     detector_position = StateVector([1, 1, 0])

@@ -60,7 +60,7 @@ Monte Carlo Tree Search for Autonomous Source Term Estimation
 # This example and MCTS implementation is based on the work by Glover et al [#]_.
 # The simulation shown here is similar to that work, with some modification
 # to reduce execution time. The reward implemented for this problem is the
-# Kullback-Leibler divegence (KLD) using :class:`~.ExpectedKLDivergence`
+# Kullback-Leibler divergence (KLD) using :class:`~.ExpectedKLDivergence`
 # and this will be used with the :class:`~.MCTSRolloutSensorManager` and
 # benchmarked against a myopic alternative with :class:`~.BruteForceSensorManager`.
 #
@@ -90,14 +90,14 @@ from stonesoup.types.groundtruth import GroundTruthState
 from stonesoup.models.measurement.gas import IsotropicPlume
 
 start_time = datetime.now()
-theta = GroundTruthState([30, # x
-                          40, # y
-                          1, # z
-                          5, # Q
-                          4, # u
-                          np.radians(90), # phi
-                          1, # ci
-                          8], # cii
+theta = GroundTruthState([30,  # x
+                          40,  # y
+                          1,  # z
+                          5,  # Q
+                          4,  # u
+                          np.radians(90),  # phi
+                          1,  # ci
+                          8],  # cii
                          timestamp=start_time)
 
 measurement_model = IsotropicPlume()
@@ -208,10 +208,10 @@ from stonesoup.updater.particle import ParticleUpdater
 from stonesoup.models.transition.linear import RandomWalk, CombinedGaussianTransitionModel
 
 def constraint_function(particle_state):
-    logical_indx = ((particle_state.state_vector[3, :]<0) |
-        (particle_state.state_vector[4, :]<0) |
-        (particle_state.state_vector[6, :]<0) |
-        (particle_state.state_vector[7, :]<0))
+    logical_indx = ((particle_state.state_vector[3, :] < 0) |
+                    (particle_state.state_vector[4, :] < 0) |
+                    (particle_state.state_vector[6, :] < 0) |
+                    (particle_state.state_vector[7, :] < 0))
     return logical_indx
 
 resampler = ESSResampler()
@@ -304,8 +304,8 @@ priorA = ParticleState(StateVectors([np.random.uniform(0, 50, n_parts),
                                     np.random.normal(theta.state_vector[7],
                                                      1,
                                                      n_parts)]),
-                      weight=np.array([1/n_parts]*n_parts),
-                      timestamp=start_time)
+                       weight=np.array([1/n_parts]*n_parts),
+                       timestamp=start_time)
 
 priorA.parent = priorA
 priorB = copy.copy(priorA)
@@ -333,13 +333,13 @@ for n in range(n_iter):
     time = (start_time + timedelta(seconds=n+1))
     if n > 0:
         chosen_actions = sensormanagerA.choose_actions({trackA}, time, n_steps=2, step_size=2,
-                                                      action_mapping=(0, 1))
+                                                       action_mapping=(0, 1))
         for sensor, actions in chosen_actions[0].items():
             sensor.add_actions(actions)
             sensor.act(time)
 
     prediction = predictor.predict(priorA, timestamp=time)
-    theta.timestamp=time
+    theta.timestamp = time
     detection = (gas_sensorA.measure({theta}, noise=True).pop())
     hypothesis = SingleHypothesis(prediction, detection)
     update = updater.update(hypothesis)
@@ -378,9 +378,9 @@ plotterA.ax.set_title('Myopic KLD Sensor Management Result')
 
 # Plot platform start location
 plotterA.ax.plot(sensor_platformA.movement_controller.states[0].state_vector[0],
-                sensor_platformA.movement_controller.states[0].state_vector[1],
-                'go',
-               label='Start Location')
+                 sensor_platformA.movement_controller.states[0].state_vector[1],
+                 'go',
+                 label='Start Location')
 
 # Plot initial particles and store line object for setting later
 partsA, = plotterA.ax.plot(trackA[0].state_vector[0],
@@ -390,7 +390,7 @@ partsA, = plotterA.ax.plot(trackA[0].state_vector[0],
                            linewidth=0,
                            label='Particles')
 
-# Plot scatter of detection locations, intially with large marker for the legend
+# Plot scatter of detection locations, initially with large marker for the legend
 detectionsA = plotterA.ax.scatter(sensorA_x,
                                   sensorA_y,
                                   s=np.array([10]*len(sensorA_x)),
@@ -449,13 +449,13 @@ for n in range(n_iter):
     time = (start_time + timedelta(seconds=n+1))
     if n > 0:
         chosen_actions = sensormanagerB.choose_actions({trackB}, time, n_steps=2, step_size=2,
-                                                      action_mapping=(0, 1))
+                                                       action_mapping=(0, 1))
         for sensor, actions in chosen_actions[0].items():
             sensor.add_actions(actions)
             sensor.act(time)
 
     prediction = predictor.predict(priorB, timestamp=time)
-    theta.timestamp=time
+    theta.timestamp = time
     detection = (gas_sensorB.measure({theta}, noise=True).pop())
     hypothesis = SingleHypothesis(prediction, detection)
     update = updater.update(hypothesis)
@@ -490,9 +490,9 @@ plotterB.ax.set_title('MCTS KLD Sensor Management Result')
 
 # Plot platform start location
 plotterB.ax.plot(sensor_platformB.movement_controller.states[0].state_vector[0],
-                sensor_platformB.movement_controller.states[0].state_vector[1],
-                'go',
-               label='Start Location')
+                 sensor_platformB.movement_controller.states[0].state_vector[1],
+                 'go',
+                 label='Start Location')
 
 # Plot initial particles and store line object for setting later
 partsB, = plotterB.ax.plot(trackB[0].state_vector[0],
@@ -502,7 +502,7 @@ partsB, = plotterB.ax.plot(trackB[0].state_vector[0],
                            linewidth=0,
                            label='Particles')
 
-# Plot scatter of detection locations, intially with large marker for the legend
+# Plot scatter of detection locations, initially with large marker for the legend
 detectionsB = plotterB.ax.scatter(sensorB_x,
                                   sensorB_y,
                                   s=np.array([10]*len(sensorB_x)),

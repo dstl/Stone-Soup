@@ -219,7 +219,7 @@ class GaussianMixtureReducer(MixtureReducer):
             # Check for duplicate tags
             components_tags = set(component.tag for component in merged_components)
             if len(components_tags) != len(merged_components):
-                # There are duplicatze tags so assign
+                # There are duplicate tags so assign
                 # new tags to the lower weighted shared ones
                 for shared_tag in components_tags:
                     shared_components = sorted(
@@ -297,7 +297,7 @@ class CovarianceIntersection(MixtureReducer):
     @staticmethod
     def merge_components(*components, weights=None):
         r"""
-        Merge similar Gaussian components using coveriance intersection
+        Merge similar Gaussian components using covariance intersection
 
         Parameters
         ----------

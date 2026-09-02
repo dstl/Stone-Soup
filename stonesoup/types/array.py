@@ -3,6 +3,7 @@ from collections.abc import Sequence
 import numpy as np
 
 _no_value = object()
+_float_only_ufuncs = (np.isfinite, np.matmul)
 
 
 class Matrix(np.ndarray):
@@ -31,17 +32,17 @@ class Matrix(np.ndarray):
             return val
 
     def __array_ufunc__(self, ufunc, method, *inputs, **kwargs):
-        if ufunc in (np.isfinite, np.matmul):
+        if ufunc in _float_only_ufuncs:
             # Custom types break here, so simply convert to floats.
             inputs = [
                 np.asarray(input_, dtype=np.float64) if isinstance(input_, Matrix) else input_
                 for input_ in inputs]
         else:
-            # Change to standard ndarray
-            inputs = [np.asarray(input_) if isinstance(input_, Matrix) else input_
+            # Change to standard ndarray (view is cheaper than asarray for a Matrix input)
+            inputs = [input_.view(np.ndarray) if isinstance(input_, Matrix) else input_
                       for input_ in inputs]
         if 'out' in kwargs:
-            kwargs['out'] = tuple(np.asarray(out) if isinstance(out, Matrix) else out
+            kwargs['out'] = tuple(out.view(np.ndarray) if isinstance(out, Matrix) else out
                                   for out in kwargs['out'])
 
         result = super().__array_ufunc__(ufunc, method, *inputs, **kwargs)
@@ -140,9 +141,11 @@ class StateVectors(Matrix):
         return array.view(cls)
 
     def __iter__(self):
-        statev_gen = super(StateVectors, self.T).__iter__()
-        for statevector in statev_gen:
-            yield StateVector(statevector)
+        # Iterate as plain ndarray and view each column directly as a StateVector, rather than
+        # going through StateVectors.__getitem__/_cast and the StateVector() constructor for
+        # every column (both of which redo work already known to be unnecessary here).
+        for column in np.asarray(self).T:
+            yield column.reshape(-1, 1).view(StateVector)
 
     def __getitem__(self, item):
         return self._cast(super().__getitem__(item))

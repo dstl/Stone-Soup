@@ -79,7 +79,7 @@ def test_gaussianmixture_reducer(kdtree_max_distance):
 
 def test_gaussianmixture_truncating():
     """
-    Test that the trucating function of the GaussianMixtureReducer works
+    Test that the truncating function of the GaussianMixtureReducer works
     properly. It should remove low weight components and keep only a certain
     number of them (in this case, 5).
     """
