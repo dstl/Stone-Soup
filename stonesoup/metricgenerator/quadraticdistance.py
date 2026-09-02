@@ -601,6 +601,7 @@ class QuadraticDistance(MetricGenerator):
                   (hasattr(self.tracks_type, 'state_vector') and
                    not hasattr(self.tracks_type, 'covar'))):
 
+                self.truths_type, self.tracks_type = self.tracks_type, self.truths_type
                 distance = self.quadratic_dist_pt(track_states, truth_states, R)
 
             # quadratic error between track sets
