@@ -1,5 +1,6 @@
 from itertools import chain
 import numpy as np
+import copy
 from scipy.stats import multivariate_normal
 from collections import defaultdict
 from ..types.time import TimeRange
@@ -79,7 +80,6 @@ class QuadraticDistance(MetricGenerator):
                 state_type_set = set()
                 for el in element:
                     state_type_set = {type(el)}
-                    print(type(el))
                 if len(state_type_set) == 1:
                     state_type = list(state_type_set)[0]
 
@@ -641,11 +641,20 @@ class MeanQuadraticError(QuadraticDistance):
     hypotheses_key: str = Property(doc="Key to access set of hypotheses added to MetricManager",
                                    default='hypotheses')
 
+    def __init__(self, *args, **kwargs):
+        self.parameter_type = None
+        self.estimator_type = None
+        super().__init__(*args, **kwargs)
+
     def compute_metric(self, manager):
         tracks_states, self.tracks_type = self.extract_states(
             manager.states_sets[self.tracks_key])
+        self.estimator_type = copy.deepcopy(self.tracks_type)
+
         truths_states, self.truths_type = self.extract_states(
             manager.states_sets[self.truths_key])
+        self.parameter_type = copy.deepcopy(self.truths_type)
+
         hypotheses = manager.states_sets[self.hypotheses_key]
         return self.compute_over_time(tracks_states, truths_states, hypotheses)
 
@@ -862,10 +871,8 @@ class MeanQuadraticError(QuadraticDistance):
                                                                    estimator_states).value**2
 
             # check for Gaussian mixture intensity
-            if (hasattr(self.tracks_type, 'state_vector') and
-                    hasattr(self.tracks_type, 'covar')):
-                print('here')
-                print(self.tracks_type)
+            if (hasattr(self.estimator_type, 'state_vector') and
+                    hasattr(self.estimator_type, 'covar')):
 
                 covariance_term = self.kernel_smoothed_covariance(
                     estimator_states,
