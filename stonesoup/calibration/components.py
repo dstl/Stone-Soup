@@ -288,7 +288,7 @@ class BiasUncertaintyTrackSelector(TimeTrackSelector):
     ) -> set[Track]:
         fixed_sensors = set(self.fixed_sensor_ids)
         for biased_sensor_id, bias_track in bias_track_store.items():
-            if biased_sensor_id in fixed_sensors or bias_track is None:
+            if biased_sensor_id in fixed_sensors or bias_track is None or biased_sensor_id == "default":
                 continue
             if np.trace(bias_track[-1].covar) <= self.covariance_trace_threshold:
                 fixed_sensors.add(biased_sensor_id)

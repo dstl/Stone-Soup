@@ -84,9 +84,14 @@ class TranslationHeading2DBiasModelWrapper(BiasModelWrapper):
             translation_bias_offset = bias_offset_elements[:2]
             heading_bias_offset = bias_offset_elements[2]
             bias_model = copy.copy(self.measurement_model)
-            bias_model.translation_offset = (
-                bias_model.translation_offset + translation_bias_offset
-            )
+            if len(bias_model.translation_offset) == 2:
+                bias_model.translation_offset = (
+                    bias_model.translation_offset + translation_bias_offset
+                )
+            else:
+                bias_model.translation_offset = (
+                    bias_model.translation_offset + StateVector([*translation_bias_offset, 0.])
+                )
             rotation = Rotation.from_euler(
                 "xyz", bias_model.rotation_offset.flatten(), degrees=False
             ) * Rotation.from_euler("z", float(heading_bias_offset), degrees=False)
