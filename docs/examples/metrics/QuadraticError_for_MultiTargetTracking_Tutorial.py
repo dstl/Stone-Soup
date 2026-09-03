@@ -464,6 +464,7 @@ filter_data_dict = {'filter model': 'GMPHD',
 
 reward_function = QuadraticInformationGain(
     num_samples=50,
+    state_dim=4,
     filter_data=filter_data_dict,
     kernel='Gaussian',
     kernel_parameters={
