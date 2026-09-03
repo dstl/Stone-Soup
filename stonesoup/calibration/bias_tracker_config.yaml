@@ -1,0 +1,79 @@
+tracker: !stonesoup.calibration.components.BiasMultiTargetTracker
+- updater: &updater !stonesoup.updater.kalman.UnscentedKalmanUpdater
+  - measurement_model: null
+- bias_updater: &bias_updater !stonesoup.calibration.components.GaussianBiasUpdater
+  - bias_predictor: !stonesoup.predictor.kalman.ExtendedKalmanPredictor
+    - transition_model: !stonesoup.models.transition.linear.CombinedLinearGaussianTransitionModel
+      - model_list:
+        - !stonesoup.models.transition.linear.RandomWalk
+          - noise_diff_coeff: 3e-6 # x
+        - !stonesoup.models.transition.linear.RandomWalk
+          - noise_diff_coeff: 3e-6 # y
+        - !stonesoup.models.transition.linear.RandomWalk
+          - noise_diff_coeff: 3e-8 # heading (rad)
+  - bias_model_wrapper: !class:stonesoup.calibration.model.TranslationHeading2DBiasModelWrapper # just a reference to the class
+  - updater: *updater
+- bias_data_associator: !stonesoup.dataassociator.neighbour.GNNWith2DAssignment
+  - hypothesiser: !stonesoup.hypothesiser.distance.DistanceHypothesiser
+    - predictor: &predictor !stonesoup.predictor.kalman.ExtendedKalmanPredictor
+        - transition_model: !stonesoup.models.transition.linear.CombinedLinearGaussianTransitionModel
+          - model_list:
+            - !stonesoup.models.transition.linear.ConstantVelocity
+              - noise_diff_coeff: 5e-2
+            - !stonesoup.models.transition.linear.ConstantVelocity
+              - noise_diff_coeff: 5e-2
+    - updater: *bias_updater
+    - measure: !stonesoup.measures.Mahalanobis
+      - mapping:
+        - 0
+        - 1
+    - missed_distance: 3
+- calibration_track_selector: !stonesoup.calibration.components.BiasUncertaintyTrackSelector
+  - window_length: 3
+  - fixed_sensor_ids: null
+    # - could write fixed ids here if known beforehand
+  - covariance_trace_threshold: 1e0
+- initiator: !stonesoup.initiator.simple.MultiMeasurementInitiator
+  - prior_state: &prior !stonesoup.types.state.GaussianState
+    - state_vector: !stonesoup.types.array.StateVector
+      - [0]
+      - [0]
+      - [0]
+      - [0]
+    - covar: !stonesoup.types.array.CovarianceMatrix
+      - [0.25, 0, 0, 0]
+      - [0, 1.0, 0, 0]
+      - [0, 0, 0.25, 0]
+      - [0, 0, 0, 1.0]
+  - deleter: &deleter !stonesoup.deleter.time.UpdateTimeDeleter
+    - time_since_update: !datetime.timedelta 4.0
+    - delete_last_pred: true
+  - data_associator: !stonesoup.dataassociator.neighbour.GNNWith2DAssignment
+    - hypothesiser: !stonesoup.hypothesiser.distance.DistanceHypothesiser
+      - predictor: *predictor
+      - updater: *updater
+      - measure: !stonesoup.measures.state.Mahalanobis
+        - mapping:
+          - 0
+          - 1
+      - missed_distance: 5
+  - updater: *updater
+  - min_points: 5
+  - skip_non_reversible: true
+- deleter: *deleter
+- detector: null # to be overwritten once tracker has been initiated
+- data_associator: !stonesoup.dataassociator.neighbour.GNNWith2DAssignment
+  - hypothesiser: !stonesoup.hypothesiser.distance.DistanceHypothesiser
+    - predictor: *predictor
+    - updater: *updater
+    - measure: !stonesoup.measures.state.Mahalanobis
+      - mapping:
+        - 0
+        - 1
+    - missed_distance: 3
+- bias_track_store: null
+entrypoint: detector.reader
+ndim_state: 4
+mapping:
+- 0
+- 2

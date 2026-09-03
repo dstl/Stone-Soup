@@ -95,6 +95,9 @@ def init_typ(yaml):
     yaml.representer.add_multi_representer(Base, declarative_to_yaml)
     yaml.constructor.add_multi_constructor('!stonesoup.', declarative_from_yaml)
 
+    # Class reference 
+    yaml.constructor.add_multi_constructor("!class:", class_reference_from_yaml)
+
 
 class YAML(ruamel.yaml.YAML):
     """Class for YAML serialisation in Stone Soup."""
@@ -267,3 +270,17 @@ def deque_from_yaml(constructor, node):
     """Convert YAML to collections.deque"""
     iterable, maxlen = constructor.construct_sequence(node, deep=True)
     return deque(iterable, maxlen)
+
+def class_reference_from_yaml(constructor, tag_suffix, node):
+    """Returns the uninstantiated class reference."""
+    try:
+        module_name, class_name = tag_suffix.rsplit(".", 1)
+        module = import_module(module_name)
+        return getattr(module, class_name)
+    except (ImportError, AttributeError, ValueError) as e:
+        raise ConstructorError(
+            "while referencing class type",
+            node.start_mark,
+            f"unable to import class '{tag_suffix}': {e}",
+            node.start_mark,
+        )
