@@ -44,7 +44,7 @@ import numpy as np
 import ruamel.yaml
 from ruamel.yaml.constructor import ConstructorError
 
-from .base import Base, Property
+from .base import Base, Property, BaseMeta
 from .types.angle import Angle
 from .types.array import Matrix, StateVector
 from .types.numeric import Probability
@@ -94,6 +94,9 @@ def init_typ(yaml):
     # Declarative classes
     yaml.representer.add_multi_representer(Base, declarative_to_yaml)
     yaml.constructor.add_multi_constructor('!stonesoup.', declarative_from_yaml)
+
+    yaml.representer.add_representer(BaseMeta, basemeta_to_yaml)
+    yaml.constructor.add_constructor("!class", basemeta_from_yaml)
 
 
 class YAML(ruamel.yaml.YAML):
@@ -267,3 +270,16 @@ def deque_from_yaml(constructor, node):
     """Convert YAML to collections.deque"""
     iterable, maxlen = constructor.construct_sequence(node, deep=True)
     return deque(iterable, maxlen)
+
+
+def basemeta_to_yaml(representer, node):
+    return representer.represent_scalar(
+        "!class", f"{node.__module__}.{node.__qualname__}"
+    )
+
+
+def basemeta_from_yaml(constructor, node):
+    path = constructor.construct_scalar(node)
+    module_name, class_name = path.rsplit(".", 1)
+    module = import_module(module_name)
+    return getattr(module, class_name)
