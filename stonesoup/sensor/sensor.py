@@ -284,9 +284,9 @@ class Generic2DSensor(SimpleSensor):
 
         if check_visibility:
             model_class = CartesianToBearingRange
-        if isinstance(model_class, LinearGaussian):
+        if issubclass(model_class, LinearGaussian):
             if self.velocity_mapping is not None and measurement_model is None:
-                mapping = tuple(*self.position_mapping, *self.velocity_mapping)
+                mapping = tuple([*self.position_mapping, *self.velocity_mapping])
             return LinearGaussian(ndim_state=ndim_state,
                                   mapping=mapping,
                                   noise_covar=self.noise_covar)
@@ -726,7 +726,7 @@ class Generic3DSensor(Generic2DSensor):
         if issubclass(model_class, LinearGaussian):
             mapping = self.position_mapping
             if self.velocity_mapping is not None and measurement_model is None:
-                mapping = tuple(*self.position_mapping, *self.velocity_mapping)
+                mapping = tuple([*self.position_mapping, *self.velocity_mapping])
             return LinearGaussian(ndim_state=self.ndim_state,
                                   mapping=mapping,
                                   noise_covar=self.noise_covar)
