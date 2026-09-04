@@ -80,10 +80,10 @@ Applications of the Quadratic Distance to Multi-Target Tracking
 # Expanding this expression gives the following
 # $$
 # \begin{aligned}
-#     \mathcal{Q}_\Lambda(\varphi - \psi) &= \int \varphi(x)\Lambda(x,y)\varphi(y)\mathrm dx
+# \mathcal{Q}_\Lambda(\varphi - \psi) &= \int \varphi(x)\Lambda(x,y)\varphi(y)\mathrm dx
 # \mathrm dy \\
-#     &-2 \int \varphi(x)\Lambda(x,y)\psi(y)\mathrm dx \mathrm dy \\
-#     &+ \int \psi(x)\Lambda(x,y)\psi(y)\mathrm dx \mathrm dy.
+# &-2 \int \varphi(x)\Lambda(x,y)\psi(y)\mathrm dx \mathrm dy \\
+# &+ \int \psi(x)\Lambda(x,y)\psi(y)\mathrm dx \mathrm dy.
 # \end{aligned}
 # $$
 # The objects, or representations, $\varphi$ and $\psi$, may be given by any form
@@ -106,9 +106,9 @@ Applications of the Quadratic Distance to Multi-Target Tracking
 # The kernel $\Lambda(x,y)$ may be any symmetric, positive-definite function, i.e.,
 # $$
 # \begin{aligned}
-#     \Lambda(x,y)&: \mathbb{R}^d \times \mathbb{R}^d \mapsto \mathbb{R};\\
-#     \Lambda(x,y)&=\Lambda(y,x);\\
-#     \int \varphi(x)&\Lambda(x,y)\varphi(y)\mathrm dx \mathrm dy > 0, \quad \forall\,\,
+# \Lambda(x,y)&: \mathbb{R}^d \times \mathbb{R}^d \mapsto \mathbb{R};\\
+# \Lambda(x,y)&=\Lambda(y,x);\\
+# \int \varphi(x)&\Lambda(x,y)\varphi(y)\mathrm dx \mathrm dy > 0, \quad \forall\,\,
 # \varphi \in \mathcal M,
 # \end{aligned}
 # $$
@@ -141,19 +141,19 @@ Applications of the Quadratic Distance to Multi-Target Tracking
 # (MQE) of $\varphi$ as an estimator of $X$:
 # $$
 # \begin{aligned}
-#     \mathbb E_{\boldsymbol X}\big[\mathcal Q_\Lambda(\boldsymbol X - \varphi)\big] &=
+# \mathbb E_{\boldsymbol X}\big[\mathcal Q_\Lambda(\boldsymbol X - \varphi)\big] &=
 # \mathbb E_{\boldsymbol X}\bigg[\int X(x)\Lambda(x,y)X(y)\mathrm dx \mathrm dy\bigg] \\
-#     &-2 \mathbb E_{\boldsymbol X}\bigg[\int \varphi(x)\Lambda(x,y)\psi(y)\mathrm dx \mathrm dy
+# &-2 \mathbb E_{\boldsymbol X}\bigg[\int \varphi(x)\Lambda(x,y)\psi(y)\mathrm dx \mathrm dy
 # \bigg]\\
-#     &+ \int \psi(x)\Lambda(x,y)\psi(y)\mathrm dx \mathrm dy.
+# &+ \int \psi(x)\Lambda(x,y)\psi(y)\mathrm dx \mathrm dy.
 # \end{aligned}
 # $$
 # This can be factorised into the following decomposition
 # $$
 # \begin{aligned}
-#     \mathbb E_{\boldsymbol X}\big[\mathcal Q_\Lambda(\boldsymbol X - \varphi)\big] &=
+# \mathbb E_{\boldsymbol X}\big[\mathcal Q_\Lambda(\boldsymbol X - \varphi)\big] &=
 # \int \Lambda(x,y)\mathrm{cov}_{\boldsymbol X}(x,y)\mathrm dx \mathrm dy \\
-#     &+ \mathcal Q_\Lambda(\mathbb E_{\boldsymbol X}[X]-\varphi),
+# &+ \mathcal Q_\Lambda(\mathbb E_{\boldsymbol X}[X]-\varphi),
 # \end{aligned}
 # $$
 # which can be interpreted in terms of the well known bias-variance decomposition of the
@@ -173,10 +173,10 @@ Applications of the Quadratic Distance to Multi-Target Tracking
 #
 # $$
 # \begin{aligned}
-#     \mathbb E_{\boldsymbol Z}\big[\mathbb E_{\boldsymbol X}\big[\mathcal Q_\Lambda(
+# \mathbb E_{\boldsymbol Z}\big[\mathbb E_{\boldsymbol X}\big[\mathcal Q_\Lambda(
 # \boldsymbol X - \varphi)\big]\big] &=  \int \Lambda(x,y)\mathrm{cov}_{\boldsymbol X}
 # (x,y)\mathrm dx \mathrm dy \\
-#     &+ \mathbb E_{\boldsymbol Z}\big[\mathcal Q_\Lambda(\mathbb E_{\boldsymbol X}[X]-
+# &+ \mathbb E_{\boldsymbol Z}\big[\mathcal Q_\Lambda(\mathbb E_{\boldsymbol X}[X]-
 # \varphi)\big].
 # \end{aligned}
 # $$
@@ -197,7 +197,7 @@ Applications of the Quadratic Distance to Multi-Target Tracking
 
 # %%
 # Simulation
-# ==========
+# ----------
 # We now develop a multi-target tracking scenario in which the quadratic distance is
 # used to perform online sensor management of rotating range-bearing sensors and offline
 # performance evaluation. The multi-target filter considered in this simulation will be
@@ -205,7 +205,7 @@ Applications of the Quadratic Distance to Multi-Target Tracking
 
 # %%
 # Ground Truths
-# -------------
+# ^^^^^^^^^^^^^
 # Firstly, a time-varying multi-target population is generated. Increasing
 # the number of timesteps, number of initial targets, death probability or
 # birth probability will change the difficulty of the multi-target
@@ -319,7 +319,7 @@ plotter.fig
 
 # %%
 # Sensors
-# -------
+# ^^^^^^^
 # Next, :class:`~.RadarRotatingBearingRange` sensor objects are
 # initialised. In this simulation, we will considered two methods of
 # tracking the previously generated targets: one in which the sensors are
@@ -381,7 +381,7 @@ clutter_spatial_density = clutter_rate / surveillance_area
 
 # %%
 # Initialise GM-PHD Filter and Sensor Managers
-# --------------------------------------------
+# ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 # We initialise the GM-PHD filters and the sensor manager objects. The
 # random sensor manager requires little set up whereas the QIG manager
 # requires information regarding the filter. We also specify the
@@ -479,7 +479,7 @@ greedysensormanager = GreedySensorManager(sensor_setB, reward_function=reward_fu
 
 # %%
 # Random sensor management
-# ------------------------
+# ^^^^^^^^^^^^^^^^^^^^^^^^
 # We now track the targets by randomly selecting the dwell centre of each sensor.
 
 all_gaussiansA = []
@@ -632,7 +632,7 @@ plotterA.fig
 
 # %%
 # Quadratic information gain sensor management
-# --------------------------------------------
+# ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 # Now, the same targets are tracked, but the sensors are optimally
 # controlled so as to maximise the information gain. This can also be
 # interpreted in terms of uncertainty reduction as the actions maximising
