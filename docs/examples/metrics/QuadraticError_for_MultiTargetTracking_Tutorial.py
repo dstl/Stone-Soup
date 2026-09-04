@@ -492,7 +492,7 @@ filter_data_dict = {'filter model': 'GMPHD',
                     'updater': extended_kalman_updater}
 
 reward_function = QuadraticInformationGain(
-    num_samples=50,
+    num_samples=100,
     state_dim=4,
     filter_data=filter_data_dict,
     kernel='Gaussian',
@@ -902,8 +902,9 @@ plt.show()
 # uncertainty in the number of targets and the accuracy of the estimate weighted by the
 # uncertainty in individual state estimates.
 #
-# ### Truths - Posterior (Random)(RED): MQE of the posterior of the randomly managed filter
-# as an estimator of the truths
+# Truths - Posterior (Random)(RED) - MQE of the posterior of the randomly managed filter
+# as an estimator of the truths:
+#
 # First, we consider the time-varying posterior of the GM-PHD filter whose updates are performed
 # using observations from randomly controlled sensors, as the estimator of the truth. One would
 # expect the uncertainty of the estimates provided by this filter to be high as the sensors are
@@ -912,8 +913,9 @@ plt.show()
 # not be able to accurately estimate the states of the targets. The graph for this filter has a
 # large variance which is to be expected of a random sensor control scheme.
 #
-# ### Truths - Posterior (Quadratic)(YELLOW): MQE of the posterior of the QIG managed filter as
-# an estimator of the truths
+# Truths - Posterior (Quadratic)(YELLOW) - MQE of the posterior of the QIG managed filter as
+# an estimator of the truths:
+#
 # Now consider the time-varying posterior of the GM-PHD filter whose updates are performed using
 # observations from optimally controlled sensors as the estimator of the truth. Up to the
 # approximation quality of the reward function, the sensors in this case are being tasked such
@@ -935,8 +937,9 @@ plt.show()
 # with lower confidence. We also use this feature to compare the tracks of the two filters which
 # allows for the direct investigation of how and when the two methods differ.
 #
-# ### Truths - Means (Random)(RED): Quadratic distance between the truths and the extracted
-# means from the randomly managed filter
+# Truths - Means (Random)(RED) - Quadratic distance between the truths and the extracted
+# means from the randomly managed filter:
+#
 # This comparison considers the estimates of the true states to be a set of points given by
 # the means of the gaussian mixture whose component weight falls above some threshold. This
 # can be viewed as an approximation of the full estimate which is given by the Gaussian mixture.
@@ -944,25 +947,29 @@ plt.show()
 # approximation before means are extracted. This comparison receives the largest penalty
 # over the duration of the simulation.
 #
-# ### Truths - Means (Quadratic)(YELLOW): Quadratic distance between the truths and the
-# extracted means from the QIG managed filter
+# Truths - Means (Quadratic)(YELLOW) - Quadratic distance between the truths and the
+# extracted means from the QIG managed filter:
+#
 # This comparison shows a decrease in penalty when compared to the above, indicating that
 # the state estimation accuracy of the QIG managed filter is greater than that of the
 # randomly managed filter.
 #
-# ### Truths - Tracks (Random)(BROWN): Quadratic distance between the truths and the
-# Gaussian tracks from the randomly managed filter
+# Truths - Tracks (Random)(BROWN) - Quadratic distance between the truths and the
+# Gaussian tracks from the randomly managed filter:
+#
 # The second largest penalty is awarded to the tracks of the randomly managed filter.
 # This is slightly smaller than the means of the randomly managed filter's intensity due
 # to the inclusion of uncertainty in local state estimates.
 #
-# ### Truths - Tracks (Quadratic)(GREEN): Quadratic distance between the truths and the
-# Gaussian tracks from the QIG managed filter
+# Truths - Tracks (Quadratic)(GREEN) - Quadratic distance between the truths and the
+# Gaussian tracks from the QIG managed filter:
+#
 # Here, the results indicate that this estimate of the truths is the best performer since
 # it is accurate and provides uncertainty information for each state estimate.
 #
-# ### Tracks (Random) - Tracks (Quadratic)(BLUE): Quadratic distance between the Gaussian
-# tracks of the randomly and QIG managed filters
+# Tracks (Random) - Tracks (Quadratic)(BLUE) - Quadratic distance between the Gaussian
+# tracks of the randomly and QIG managed filters:
+#
 # Intuitively from the above results, the difference between the two tracks is far smaller
 # than the difference between the truth and each of these tracks. This indicates that the
 # tracks of the two objects are relatively similar. Analysing this graph provides insight
@@ -988,7 +995,7 @@ plt.show()
 
 # %%
 # Conclusions
-# ===========
+# -----------
 # We have presented the quadratic distance in the context of sensor
 # management and performance assessment. We encourage the incorporation of
 # implementations for different kernels and different filter
