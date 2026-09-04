@@ -306,7 +306,7 @@ class DecayTransition(TransitionModel):
         """
         covar = self.prob_decay(state, time_interval) * (1 - self.prob_decay(state, time_interval))
 
-        return CovarianceMatrix([np.diag(state.state_vector*covar)])
+        return CovarianceMatrix(np.diag(state.state_vector.flatten()*covar))
 
     def pdf(self, state_fin, state_ini, time_interval):
         """What's the probability of arriving at a particular state given the current state
