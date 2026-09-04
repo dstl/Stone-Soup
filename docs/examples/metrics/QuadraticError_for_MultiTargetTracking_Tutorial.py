@@ -7,13 +7,17 @@ Applications of the Quadratic Distance to Multi-Target Tracking
 ===============================================================
 """
 
+# %%
 # This tutorial demonstrates the usage of the quadratic distance in the context of multi-target
 # tracking sensor management and performance evaluation. An accessible background section is
 # provided which gives ample detail on the formulation of the quadratic distance, the mean
 # quadratic error and the quadratic information gain. A simulation is then constructed in order
 # to provide guidance and intuition on how to use the Stonesoup implementation of these tools.
 #
-# ## Motivation
+
+# %%
+# Motivation
+# ----------
 # Many problems require the comparison of multi-target states, the simplest being the assessment
 # of estimation accuracy where the notion of 'good' in the question "how good is my multi-target
 # state estimate?" is governed by the choice of function used to compare the true and estimated
@@ -33,8 +37,10 @@ Applications of the Quadratic Distance to Multi-Target Tracking
 # estimates with uncertainty) and random point patterns, described by point processes. This notion
 # allows for a well understood geometric intuition to be applied in the context of multi-target
 # tracking.
-#
-# ## Background
+
+# %%
+# Background
+# ----------
 # The quadratic distance is a widely used concept across many domains. The most familiar
 # example is that of the metric in $d$-dimensional Euclidean space
 # $$
@@ -95,7 +101,8 @@ Applications of the Quadratic Distance to Multi-Target Tracking
 # the covariance matrix $\hat P$. We now go on to discuss the implications of choosing
 # the kernel, $\Lambda(x,y)$.
 #
-# ### Kernels
+# Kernels
+# ^^^^^^^
 # The kernel $\Lambda(x,y)$ may be any symmetric, positive-definite function, i.e.,
 # $$
 # \begin{aligned}
@@ -122,7 +129,8 @@ Applications of the Quadratic Distance to Multi-Target Tracking
 # to the following resources [4]. For the remainder of this tutorial, the Gaussian kernel is
 # considered.
 #
-# ### The Mean Squared Error for point patterns
+# The Mean Squared Error for point patterns
+# ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 # The concept of Mean Squared Error is well known throughout many disciplines. In estimation
 # theory, it is used to assess the quality of a particular choice of estimator. By considering
 # the quadratic distance, or error, between a point process, $\boldsymbol X$, and a counting
@@ -152,7 +160,8 @@ Applications of the Quadratic Distance to Multi-Target Tracking
 # MSE [1]. The first term is the kernel smoothed covariance of the point process $\boldsymbol X$
 # and the second term is the squared bias of the estimator $\varphi$.
 #
-# ### The Quadratic Information Gain
+# The Quadratic Information Gain
+# ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 # In the context of multi-target filtering, it is common to make decisions regarding the
 # actions of available sensors prior to obtaining measurements. In order to do this the
 # action maximising the information gain is chosen. The information gain is commonly
@@ -171,8 +180,10 @@ Applications of the Quadratic Distance to Multi-Target Tracking
 # \varphi)\big].
 # \end{aligned}
 # $$
-#
-# ## Implementation
+
+# %%
+# Implementation
+# --------------
 # We consider the implementation of the above tools for the Gaussian
 # kernel case. Depending on the input type, the implementation varies and
 # as such we discuss implementations for the quadratic distance between
@@ -184,20 +195,21 @@ Applications of the Quadratic Distance to Multi-Target Tracking
 # considered since the computation requires knowledge of the second order
 # moment of the posterior point process [1][3].
 
-# # Simulation
+# %%
+# Simulation
+# ==========
 # We now develop a multi-target tracking scenario in which the quadratic distance is
 # used to perform online sensor management of rotating range-bearing sensors and offline
 # performance evaluation. The multi-target filter considered in this simulation will be
 # the Gaussian Mixture PHD filter.
-#
-# ### Ground Truths
+
+# %%
+# Ground Truths
+# -------------
 # Firstly, a time-varying multi-target population is generated. Increasing
 # the number of timesteps, number of initial targets, death probability or
 # birth probability will change the difficulty of the multi-target
 # tracking scenario.
-
-# In[46]:
-
 
 # Imports for plotting
 from stonesoup.plotter import MetricPlotter
@@ -300,14 +312,14 @@ for k in range(1, number_steps):
         if np.random.rand() <= death_probability:
             current_truths.remove(truth)
 
-
 # plot ground truths
 plotter = AnimatedPlotterly(timesteps, tail_length=1, sim_duration=10)
 plotter.plot_ground_truths(truths, [0, 2])
 plotter.fig
 
-
-# ### Sensors
+# %%
+# Sensors
+# -------
 # Next, :class:`~.RadarRotatingBearingRange` sensor objects are
 # initialised. In this simulation, we will considered two methods of
 # tracking the previously generated targets: one in which the sensors are
@@ -316,9 +328,6 @@ plotter.fig
 # random sensor manager and another for the quadratic distance based
 # sensor manager. The dwell centre of each sensor in the configuration may
 # controlled by the sensor manager.
-
-# In[48]:
-
 
 # sensor parameters
 n_sensors = 1
@@ -329,7 +338,6 @@ sens_noise = np.array([[np.radians(0.5) ** 2, 0],
                        [0, 1 ** 2]])
 sens_rpm = 120
 surveillance_area = (0.5 * sens_range**2 * sens_fov)
-
 
 sensor_setA = set()
 for n in range(0, n_sensors):
@@ -371,8 +379,9 @@ probability_detection = 0.99
 clutter_rate = 0
 clutter_spatial_density = clutter_rate / surveillance_area
 
-
-# ### Initialise GM-PHD Filter and Sensor Managers
+# %%
+# Initialise GM-PHD Filter and Sensor Managers
+# --------------------------------------------
 # We initialise the GM-PHD filters and the sensor manager objects. The
 # random sensor manager requires little set up whereas the QIG manager
 # requires information regarding the filter. We also specify the
@@ -381,9 +390,6 @@ clutter_spatial_density = clutter_rate / surveillance_area
 # filter, the expectation with respect to measurements must be
 # approximated numerically, hence, the number of samples with with this
 # will be done must be specified [3].
-
-# In[51]:
-
 
 # predictor
 kalman_predictor = KalmanPredictor(transition_model)
@@ -446,7 +452,6 @@ reduced_statesB = set([track[-1] for track in tracksB])
 
 
 # sensor managers initialisation
-
 randomsensormanager = RandomSensorManager(sensor_setA)
 
 # kernel parameters
@@ -472,12 +477,10 @@ reward_function = QuadraticInformationGain(
 
 greedysensormanager = GreedySensorManager(sensor_setB, reward_function=reward_function)
 
-
-# ### Random sensor management
+# %%
+# Random sensor management
+# ------------------------
 # We now track the targets by randomly selecting the dwell centre of each sensor.
-
-# In[54]:
-
 
 all_gaussiansA = []
 tracks_by_timeA = []
@@ -577,8 +580,6 @@ for track in tracksA:
     meansA.add(Track(new_mean))
 
 # plotting
-
-
 def plot_sensor_fov(fig_, sensor_set, sensor_history):
     # Plot sensor field of view
     trace_base = len(fig_.data)
@@ -620,7 +621,6 @@ def plot_sensor_fov(fig_, sensor_set, sensor_history):
         frame.traces = traces_
         frame.data = data_
 
-
 # Plot the tracks
 plotterA = AnimatedPlotterly(timesteps, tail_length=1, sim_duration=10)
 plotterA.plot_sensors(sensor_setA)
@@ -630,8 +630,9 @@ plotterA.plot_tracks(tracksA, [0, 2], uncertainty=True, plot_history=False)
 plot_sensor_fov(plotterA.fig, sensor_setA, sensor_history_A)
 plotterA.fig
 
-
-# ### Quadratic information gain sensor management
+# %%
+# Quadratic information gain sensor management
+# --------------------------------------------
 # Now, the same targets are tracked, but the sensors are optimally
 # controlled so as to maximise the information gain. This can also be
 # interpreted in terms of uncertainty reduction as the actions maximising
@@ -639,9 +640,6 @@ plotterA.fig
 # However, it must be stated that if the number of samples used to
 # approximate the QIG is low, then this relationship may not always hold.
 # This leads to a trade-off between optimality and computational cost.
-
-# In[56]:
-
 
 all_gaussiansB = []
 tracks_by_timeB = []
@@ -750,8 +748,9 @@ plotterB.plot_tracks(tracksB, [0, 2], uncertainty=True, plot_history=False)
 plot_sensor_fov(plotterB.fig, sensor_setB, sensor_history_B)
 plotterB.fig
 
-
-# ### Performance Evaluation
+# %%
+# Performance Evaluation
+# ----------------------
 # Now we will evaluate the performance of the two sensor management
 # methods using the quadratic distance and the MQE. Firstly, the MQE will
 # be used to evaluate the quality of the posterior point process as an
@@ -766,9 +765,6 @@ plotterB.fig
 # intensity, the truths and the gaussian mixture intensity. These
 # comparisons are considered for the random and QIG sensor management
 # cases.
-
-# In[58]:
-
 
 # gaussian kernel covariance matrix for metrics
 kernel_cov = 100 * np.eye(4)
@@ -859,9 +855,11 @@ graph.axes[1].set(ylabel='Quadratic Distance', title='Quadratic Distance over ti
 graph.axes[0].set(ylabel='Mean Quadratic Error', title='Mean Quadratic Error over time')
 plt.show()
 
-
-# ## Interpretation of metrics
-# ### Mean quadratic error (graph 1)
+# %%
+# Interpretation of metrics
+# -------------------------
+# Mean quadratic error (graph 1)
+# ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 # The MQE, while not strictly a mathematical metric, provides insight into the quality of the
 # estimator of the true multi-target state. This measure of quality can be interpreted as the
 # sum of the uncertainty of the estimator and the similarity of the mean of the estimator to
@@ -880,7 +878,7 @@ plt.show()
 # uncertainty in the number of targets and the accuracy of the estimate weighted by the
 # uncertainty in individual state estimates.
 #
-# #### Truths - Posterior (Random)(RED): MQE of the posterior of the randomly managed filter
+# ### Truths - Posterior (Random)(RED): MQE of the posterior of the randomly managed filter
 # as an estimator of the truths
 # First, we consider the time-varying posterior of the GM-PHD filter whose updates are performed
 # using observations from randomly controlled sensors, as the estimator of the truth. One would
@@ -890,7 +888,7 @@ plt.show()
 # not be able to accurately estimate the states of the targets. The graph for this filter has a
 # large variance which is to be expected of a random sensor control scheme.
 #
-# #### Truths - Posterior (Quadratic)(YELLOW): MQE of the posterior of the QIG managed filter as
+# ### Truths - Posterior (Quadratic)(YELLOW): MQE of the posterior of the QIG managed filter as
 # an estimator of the truths
 # Now consider the time-varying posterior of the GM-PHD filter whose updates are performed using
 # observations from optimally controlled sensors as the estimator of the truth. Up to the
@@ -901,7 +899,8 @@ plt.show()
 # The bias of this estimator is expected to be less than that of the previously discussed filter
 # as observations are obtained for tracked sensors, leading to more accurate estimates.
 #
-# ### Quadratic Distance (graph 2)
+# Quadratic Distance (graph 2)
+# ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 # The quadratic distance in this case is used to evaluate the estimation accuracy of the tracks
 # produced by the filters. A useful feature of this metric is that it can accommodate a variety
 # of inputs. here we use this feature to show the difference between the full Gaussian mixture
@@ -912,7 +911,7 @@ plt.show()
 # with lower confidence. We also use this feature to compare the tracks of the two filters which
 # allows for the direct investigation of how and when the two methods differ.
 #
-# #### Truths - Means (Random)(RED): Quadratic distance between the truths and the extracted
+# ### Truths - Means (Random)(RED): Quadratic distance between the truths and the extracted
 # means from the randomly managed filter
 # This comparison considers the estimates of the true states to be a set of points given by
 # the means of the gaussian mixture whose component weight falls above some threshold. This
@@ -921,31 +920,32 @@ plt.show()
 # approximation before means are extracted. This comparison receives the largest penalty
 # over the duration of the simulation.
 #
-# #### Truths - Means (Quadratic)(YELLOW): Quadratic distance between the truths and the
+# ### Truths - Means (Quadratic)(YELLOW): Quadratic distance between the truths and the
 # extracted means from the QIG managed filter
 # This comparison shows a decrease in penalty when compared to the above, indicating that
 # the state estimation accuracy of the QIG managed filter is greater than that of the
 # randomly managed filter.
 #
-# #### Truths - Tracks (Random)(BROWN): Quadratic distance between the truths and the
+# ### Truths - Tracks (Random)(BROWN): Quadratic distance between the truths and the
 # Gaussian tracks from the randomly managed filter
 # The second largest penalty is awarded to the tracks of the randomly managed filter.
 # This is slightly smaller than the means of the randomly managed filter's intensity due
 # to the inclusion of uncertainty in local state estimates.
 #
-# #### Truths - Tracks (Quadratic)(GREEN): Quadratic distance between the truths and the
+# ### Truths - Tracks (Quadratic)(GREEN): Quadratic distance between the truths and the
 # Gaussian tracks from the QIG managed filter
 # Here, the results indicate that this estimate of the truths is the best performer since
 # it is accurate and provides uncertainty information for each state estimate.
 #
-# #### Tracks (Random) - Tracks (Quadratic)(BLUE): Quadratic distance between the Gaussian
+# ### Tracks (Random) - Tracks (Quadratic)(BLUE): Quadratic distance between the Gaussian
 # tracks of the randomly and QIG managed filters
 # Intuitively from the above results, the difference between the two tracks is far smaller
 # than the difference between the truth and each of these tracks. This indicates that the
 # tracks of the two objects are relatively similar. Analysing this graph provides insight
 # into when the two filters perform differently and how significant this difference is.
 #
-# ### Notes on kernel covariance magnitude
+# Notes on kernel covariance magnitude
+# ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 # If the kernel used for the computation of these metrics is the same as that used in the
 # computation of the QIG reward function, then analysis may be made regarding the actual
 # error induced by the sensor configurations. The reward function in the optimal sensor
@@ -962,7 +962,9 @@ plt.show()
 # estimation which is perfect is to be rewarded, then the kernel should be
 # made strict by selecting a narrow kernel covariance.
 
-# ### Conclusions
+# %%
+# Conclusions
+# ===========
 # We have presented the quadratic distance in the context of sensor
 # management and performance assessment. We encourage the incorporation of
 # implementations for different kernels and different filter
@@ -970,7 +972,9 @@ plt.show()
 # current implementation for the Gaussian kernel or GM-PHD filter and
 # alter it accordingly to accommodate the desired kernel and filter.
 
-# ### References
+# %%
+# References
+# ----------
 # [1] Daniel E. Clark, Idyano Leroy, Peter R. Richards, Sean M. O Rourke, Quadratic error
 #    for point patterns. TechRxiv. July, 2025.
 #
@@ -985,4 +989,3 @@ plt.show()
 #
 # [4] Marc G. Genton, Classes of Kernels for Machine Learning:
 # A Statistics Perspective, Journal of Machine Learning Research 2, pp. 299-312, 2001.e
-#
