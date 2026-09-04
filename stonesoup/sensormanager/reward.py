@@ -6,6 +6,8 @@ from collections.abc import Mapping, Sequence
 import numpy as np
 
 from stonesoup.deleter.error import CovarianceBasedDeleter
+from stonesoup.predictor.composite import CompositePredictor
+from stonesoup.updater.composite import CompositeUpdater
 
 from ..base import Base, Property
 from ..dataassociator import DataAssociator
@@ -22,7 +24,7 @@ from ..types.groundtruth import GroundTruthState
 from ..types.hypothesis import SingleHypothesis
 from ..types.prediction import Prediction
 from ..types.shape import AreaOfInterest
-from ..types.state import State
+from ..types.state import CategoricalState, State
 from ..types.prediction import ParticleState
 from ..types.track import Track
 from ..updater import Updater
@@ -734,4 +736,79 @@ class DeletionUncertaintyReward(RewardFunction):
                 for sensor in predicted_sensors:
                     if sensor.is_detectable(track):
                         config_metric = 100
+        return config_metric
+
+
+class ClassificationWeightReward(RewardFunction):
+
+    predictor: CompositePredictor = Property()
+    updater: CompositeUpdater = Property()
+
+    def __call__(self, config: Mapping[Sensor, Sequence[Action]], tracks: set[Track],
+                 metric_time: datetime, *args, **kwargs):
+
+        config_metric = 0
+        predicted_sensors = set()
+        memo = {}
+        for actionable, actions in config.items():  # predict sensors
+            predicted_actionable = copy.deepcopy(actionable, memo)
+            predicted_actionable.add_actions(actions)
+            predicted_actionable.act(metric_time, noise=False)
+            if isinstance(actionable, Sensor):
+                predicted_sensors.add(predicted_actionable)
+
+        predicted_tracks = set()
+        for track in tracks:   # predict tracks
+            predicted_track = copy.copy(track)
+            predicted_track.append(self.predictor.predict(predicted_track, timestamp=metric_time))
+            predicted_tracks.add(predicted_track)
+
+        for sensor in predicted_sensors:
+            for track in predicted_tracks:
+                if sensor.is_detectable(track):  # check if track detectable
+                    for substate in track.sub_states:
+                        if isinstance(substate, CategoricalState):
+                            # if so add highest classification weight to metric
+                            strength = substate.state_vector[np.argmax(substate.state_vector)]
+                            config_metric += strength
+        # to reward observing where low weight return 1/metric
+        print(config_metric, 1/config_metric)
+        return 1/config_metric
+
+
+class ClassificationOfInterestReward(RewardFunction):
+
+    predictor: CompositePredictor = Property()
+    category_of_interest: str = Property()
+    weight: int = Property(default=10)
+
+    def __call__(self, config: Mapping[Sensor, Sequence[Action]], tracks: set[Track],
+                 metric_time: datetime, *args, **kwargs):
+
+        config_metric = 1
+        predicted_sensors = set()
+        memo = {}
+        for actionable, actions in config.items():  # predict sensors
+            predicted_actionable = copy.deepcopy(actionable, memo)
+            predicted_actionable.add_actions(actions)
+            predicted_actionable.act(metric_time, noise=False)
+            if isinstance(actionable, Sensor):
+                predicted_sensors.add(predicted_actionable)
+
+        predicted_tracks = set()
+        for track in tracks:  # predict tracks
+            predicted_track = copy.copy(track)
+            predicted_track.append(self.predictor.predict(predicted_track, timestamp=metric_time))
+            predicted_tracks.add(predicted_track)
+
+        for sensor in predicted_sensors:
+            for track in predicted_tracks:
+                if sensor.is_detectable(track):  # check if track detectable
+                    for substate in track.sub_states:
+                        if isinstance(substate, CategoricalState):
+                            # if so add highest classification weight to metric
+                            category = substate.category
+                            if category == self.category_of_interest:
+                                config_metric = self.weight  # reward observing target of interest
+
         return config_metric
