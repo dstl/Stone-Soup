@@ -42,87 +42,106 @@ Applications of the Quadratic Distance to Multi-Target Tracking
 # Background
 # ----------
 # The quadratic distance is a widely used concept across many domains. The most familiar
-# example is that of the metric in $d$-dimensional Euclidean space
-# $$
-# d(\boldsymbol{x},\boldsymbol{y})=\sqrt{\sum\limits_i^d(\boldsymbol{x}_i -
-# \boldsymbol{y}_i)^2}, \quad\quad \boldsymbol{x},\boldsymbol{y} \in \mathbb{R}^d.
-# $$
+# example is that of the metric in :math:`d`-dimensional Euclidean space
+#
+# .. math::
+#
+#     d(\boldsymbol{x},\boldsymbol{y})=\sqrt{\sum\limits_i^d(\boldsymbol{x}_i -
+#     \boldsymbol{y}_i)^2}, \quad\quad \boldsymbol{x},\boldsymbol{y} \in \mathbb{R}^d.
+# 
 # Multi-object states are not represented by vectors but rather sets of vectors.
 # This metric is well understood for the vector case but is less developed for the case
 # of sets. Recent work has developed a quadratic distance between point patterns, i.e.,
 # sets of single target states, and their random counterparts point processes. Consider
 # two multi-target state representations in the form of two sets of single target states
-# $$
-# X = \{x_i, \dots, x_{N}\}, \quad Y = \{y_i, \dots, y_{M}\}.
-# $$
+#
+# .. math::
+#
+#     X = \{x_i, \dots, x_{N}\}, \quad Y = \{y_i, \dots, y_{M}\}.
+#
 # These multi-object states may be described by counting measures, i.e., functions which
 # return the number of elements of a set which fall into a particular region of the element
-# space, $A$ for example
-# $$
-# \#_X(A)=\sum\limits_{\hat x\in X}\mathbb 1_A(\hat x), \quad \#_Y(A)=\sum\limits_{\hat y\in
-# Y} \mathbb 1_A(\hat y),
-# $$
-# where $\mathbb 1_A(y)=1$ if $y\in A$, and  $\mathbb 1_A(y)=0$ otherwise. If we instead
-# consider the integral operator kernel form of the counting measures, given by the Dirac
+# space, :math:`A` for example
+#
+# ..math::
+#
+#     \#_X(A)=\sum\limits_{\hat x\in X}\mathbb 1_A(\hat x), \quad \#_Y(A)=\sum\limits_{\hat 
+#     y\in Y} \mathbb 1_A(\hat y),
+#
+# where :math:`\mathbb 1_A(y)=1` if :math:`y\in A`, and  :math:`\mathbb 1_A(y)=0` otherwise. If we
+# instead consider the integral operator kernel form of the counting measures, given by the Dirac
 # delta mixtures
-# $$
-# \varphi(x) = \sum\limits_{\hat x\in X}\delta(x-\hat x), \quad \psi(y) = \sum\limits_{\hat
-# y\in Y}\delta(y-\hat y),
-# $$
+#
+# ..math::
+#     \varphi(x) = \sum\limits_{\hat x\in X}\delta(x-\hat x), \quad \psi(y) = \sum\limits_{\hat
+#     y\in Y}\delta(y-\hat y),
+#
 # as the model which describes these point patterns, then we can compute the quadratic distance
 # between these descriptions using the following expression
-# $$
-# \mathcal{Q}_\Lambda(\varphi - \psi) = \int (\varphi(x)-\psi(x))\Lambda(x,y)(\varphi(y)-
-# \psi(y))\mathrm dx \mathrm dy.
-# $$
-# This is the quadratic distance. The above expression is the inner product of $(\varphi -
-# \psi)$ with itself, weighted by the symmetric, positive-definite kernel $\Lambda(x,y)$.
+#
+# ..math::
+#
+#     \mathcal{Q}_\Lambda(\varphi - \psi) = \int (\varphi(x)-\psi(x))\Lambda(x,y)(\varphi(y)-
+#     \psi(y))\mathrm dx \mathrm dy.
+#
+# This is the quadratic distance. The above expression is the inner product of :math:`(\varphi -
+# \psi)` with itself, weighted by the symmetric, positive-definite kernel :math:`\Lambda(x,y)`.
 # Expanding this expression gives the following
-# $$
-# \begin{aligned}
-# \mathcal{Q}_\Lambda(\varphi - \psi) &= \int \varphi(x)\Lambda(x,y)\varphi(y)\mathrm dx
-# \mathrm dy \\
-# &-2 \int \varphi(x)\Lambda(x,y)\psi(y)\mathrm dx \mathrm dy \\
-# &+ \int \psi(x)\Lambda(x,y)\psi(y)\mathrm dx \mathrm dy.
-# \end{aligned}
-# $$
-# The objects, or representations, $\varphi$ and $\psi$, may be given by any form
-# $$
+#
+# ..math::
+#
+#     \begin{align}
+#     \mathcal{Q}_\Lambda(\varphi - \psi) &= \int \varphi(x)\Lambda(x,y)
+#     \varphi(y)\mathrm dx \mathrm dy \\
+#     &-2 \int \varphi(x)\Lambda(x,y)\psi(y)\mathrm dx \mathrm dy \\
+#     &+ \int \psi(x)\Lambda(x,y)\psi(y)\mathrm dx \mathrm dy.
+#     \end{align}
+#
+# The objects, or representations, :math:`\varphi` and :math:`\psi`, may be given by any form
+#
+# ..math::
+#
 # \varphi(x) = \sum\limits_{\hat x\in X}f(x, \hat x),
-# $$
-# where the bivariate function $f(\cdot, \cdot)$ is a distribution, i.e., the integral of this
+#
+# where the bivariate function :math:`f(\cdot, \cdot)` is a distribution, i.e., the integral of this
 # function over its domain is equal to 1. Other than the Dirac delta which is the simplest
 # example, another common example would be that of the Gaussian mixture
-# $$
+#
+# ..math::
+#
 # \varphi(x) = \sum\limits_{(\hat x, \hat P)\in X}\mathcal N(x; \hat x,\hat P).
-# $$
+#
 # This multi-target state representation may be chosen in the case where one wishes to
 # express the uncertainty regarding the state of each target within the population using
-# the covariance matrix $\hat P$. We now go on to discuss the implications of choosing
-# the kernel, $\Lambda(x,y)$.
+# the covariance matrix :math:`\hat P`. We now go on to discuss the implications of choosing
+# the kernel, :math:`\Lambda(x,y)`.
 #
 # Kernels
 # ^^^^^^^
-# The kernel $\Lambda(x,y)$ may be any symmetric, positive-definite function, i.e.,
-# $$
-# \begin{aligned}
-# \Lambda(x,y)&: \mathbb{R}^d \times \mathbb{R}^d \mapsto \mathbb{R};\\
-# \Lambda(x,y)&=\Lambda(y,x);\\
-# \int \varphi(x)&\Lambda(x,y)\varphi(y)\mathrm dx \mathrm dy > 0, \quad \forall\,\,
-# \varphi \in \mathcal M,
-# \end{aligned}
-# $$
-# where $\mathcal M$ is the space of multi-target state represented by counting measures.
+# The kernel :math:`\Lambda(x,y)` may be any symmetric, positive-definite function, i.e.,
+#
+# ..math::
+#
+#     \begin{align}
+#     \Lambda(x,y)&: \mathbb{R}^d \times \mathbb{R}^d \mapsto \mathbb{R};\\
+#     \Lambda(x,y)&=\Lambda(y,x);\\
+#     \int \varphi(x)&\Lambda(x,y)\varphi(y)\mathrm dx \mathrm dy > 0, \quad \forall\,\,
+#     \varphi \in \mathcal M,
+#     \end{align}
+#
+# where :math:`\mathcal M` is the space of multi-target state represented by counting measures.
 # The kernel determines the nature of the metric by assigning to each pair of targets a
 # weight which expresses the strength of the relationship between them. For example, the
 # Gaussian kernel
-# $$
-# \Lambda(x,y) = \exp(-\frac{1}{2}(x-y)^\top R^{-1} (x-y)),
-# $$
-# parametrised by the covariance matrix $R$, assigns a weight to the pair $(x, y)$ which
+#
+# ..math::
+#
+#     \Lambda(x,y) = \exp(-\frac{1}{2}(x-y)^\top R^{-1} (x-y)),
+#
+# parametrised by the covariance matrix :math:`R`, assigns a weight to the pair :math:`(x, y)` which
 # decays exponentially with the distance between them in the state space. The distance
 # between these state vectors is measured by the Euclidean distance weighted by the inverse
-# covariance matrix $R^{-1}$. A large covariance implies that the distance between these
+# covariance matrix :math:`R^{-1}`. A large covariance implies that the distance between these
 # points is considered small even if they are sparsely separated. Conversely, if the
 # covariance is small, then the distance between points close in proximity may be considered
 # large. Infinitely many kernel choices may be considered and the interested reader is referred
@@ -133,32 +152,36 @@ Applications of the Quadratic Distance to Multi-Target Tracking
 # ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 # The concept of Mean Squared Error is well known throughout many disciplines. In estimation
 # theory, it is used to assess the quality of a particular choice of estimator. By considering
-# the quadratic distance, or error, between a point process, $\boldsymbol X$, and a counting
-# measure, $\varphi$, we obtain a metric between the random object and the deterministic object.
+# the quadratic distance, or error, between a point process, :math:`\boldsymbol X`, and a counting
+# measure, :math:`\varphi`, we obtain a metric between the random object and the deterministic object.
 # Consider the deterministic object to be an estimator of the unknown object modelled by the
-# point process $\boldsymbol X$. If we take the expectation of this quadratic error with respect
-# to the point process $\boldsymbol X$, we arrive at an expression for the Mean Quadratic Error
-# (MQE) of $\varphi$ as an estimator of $X$:
-# $$
-# \begin{aligned}
-# \mathbb E_{\boldsymbol X}\big[\mathcal Q_\Lambda(\boldsymbol X - \varphi)\big] &=
-# \mathbb E_{\boldsymbol X}\bigg[\int X(x)\Lambda(x,y)X(y)\mathrm dx \mathrm dy\bigg] \\
-# &-2 \mathbb E_{\boldsymbol X}\bigg[\int \varphi(x)\Lambda(x,y)\psi(y)\mathrm dx \mathrm dy
-# \bigg]\\
-# &+ \int \psi(x)\Lambda(x,y)\psi(y)\mathrm dx \mathrm dy.
-# \end{aligned}
-# $$
+# point process :math:`\boldsymbol X`. If we take the expectation of this quadratic error with respect
+# to the point process :math:`\boldsymbol X`, we arrive at an expression for the Mean Quadratic Error
+# (MQE) of :math:`\varphi` as an estimator of :math:`X`:
+#
+# ..math::
+#
+#     \begin{align}
+#     \mathbb E_{\boldsymbol X}\big[\mathcal Q_\Lambda(\boldsymbol X - \varphi)\big] &=
+#     \mathbb E_{\boldsymbol X}\bigg[\int X(x)\Lambda(x,y)X(y)\mathrm dx \mathrm dy\bigg] \\
+#     &-2 \mathbb E_{\boldsymbol X}\bigg[\int \varphi(x)\Lambda(x,y)\psi(y)\mathrm dx \mathrm dy
+#     \bigg]\\
+#     &+ \int \psi(x)\Lambda(x,y)\psi(y)\mathrm dx \mathrm dy.
+#     \end{align}
+#
 # This can be factorised into the following decomposition
-# $$
-# \begin{aligned}
-# \mathbb E_{\boldsymbol X}\big[\mathcal Q_\Lambda(\boldsymbol X - \varphi)\big] &=
-# \int \Lambda(x,y)\mathrm{cov}_{\boldsymbol X}(x,y)\mathrm dx \mathrm dy \\
-# &+ \mathcal Q_\Lambda(\mathbb E_{\boldsymbol X}[X]-\varphi),
-# \end{aligned}
-# $$
+#
+# ..math::
+#
+#     \begin{align}
+#     \mathbb E_{\boldsymbol X}\big[\mathcal Q_\Lambda(\boldsymbol X - \varphi)\big] &=
+#     \int \Lambda(x,y)\mathrm{cov}_{\boldsymbol X}(x,y)\mathrm dx \mathrm dy \\
+#     &+ \mathcal Q_\Lambda(\mathbb E_{\boldsymbol X}[X]-\varphi),
+#     \end{align}
+#
 # which can be interpreted in terms of the well known bias-variance decomposition of the
-# MSE [1]. The first term is the kernel smoothed covariance of the point process $\boldsymbol X$
-# and the second term is the squared bias of the estimator $\varphi$.
+# MSE [1]. The first term is the kernel smoothed covariance of the point process :math:`\boldsymbol X`
+# and the second term is the squared bias of the estimator :math:`\varphi`.
 #
 # The Quadratic Information Gain
 # ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -166,20 +189,21 @@ Applications of the Quadratic Distance to Multi-Target Tracking
 # actions of available sensors prior to obtaining measurements. In order to do this the
 # action maximising the information gain is chosen. The information gain is commonly
 # formulated as a function of the predicted and updated probability distributions. If we
-# consider the above expression in the case where $\boldsymbol X$ denotes the predicted
-# point process and $\varphi(\boldsymbol Z)$ denotes the intensity of the posterior point
+# consider the above expression in the case where :math:`\boldsymbol X` denotes the predicted
+# point process and :math:`\varphi(\boldsymbol Z)` denotes the intensity of the posterior point
 # process as a function of the measurmeent point process, then we can develop the following
 # expression of information gain based on the MQE
 #
-# $$
-# \begin{aligned}
-# \mathbb E_{\boldsymbol Z}\big[\mathbb E_{\boldsymbol X}\big[\mathcal Q_\Lambda(
-# \boldsymbol X - \varphi)\big]\big] &=  \int \Lambda(x,y)\mathrm{cov}_{\boldsymbol X}
-# (x,y)\mathrm dx \mathrm dy \\
-# &+ \mathbb E_{\boldsymbol Z}\big[\mathcal Q_\Lambda(\mathbb E_{\boldsymbol X}[X]-
-# \varphi)\big].
-# \end{aligned}
-# $$
+# ..math::
+#
+#     \begin{align}
+#     \mathbb E_{\boldsymbol Z}\big[\mathbb E_{\boldsymbol X}\big[\mathcal Q_\Lambda(
+#     \boldsymbol X - \varphi)\big]\big] &=  \int \Lambda(x,y)\mathrm{cov}_{\boldsymbol X}
+#     (x,y)\mathrm dx \mathrm dy \\
+#     &+ \mathbb E_{\boldsymbol Z}\big[\mathcal Q_\Lambda(\mathbb E_{\boldsymbol X}[X]-
+#     \varphi)\big].
+#     \end{align}
+#
 
 # %%
 # Implementation
