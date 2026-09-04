@@ -63,7 +63,7 @@ Applications of the Quadratic Distance to Multi-Target Tracking
 # return the number of elements of a set which fall into a particular region of the element
 # space, :math:`A` for example
 #
-# ..math::
+# .. math::
 #
 #     \#_X(A)=\sum\limits_{\hat x\in X}\mathbb 1_A(\hat x), \quad \#_Y(A)=\sum\limits_{\hat 
 #     y\in Y} \mathbb 1_A(\hat y),
@@ -72,14 +72,15 @@ Applications of the Quadratic Distance to Multi-Target Tracking
 # instead consider the integral operator kernel form of the counting measures, given by the Dirac
 # delta mixtures
 #
-# ..math::
+# .. math::
+#
 #     \varphi(x) = \sum\limits_{\hat x\in X}\delta(x-\hat x), \quad \psi(y) = \sum\limits_{\hat
 #     y\in Y}\delta(y-\hat y),
 #
 # as the model which describes these point patterns, then we can compute the quadratic distance
 # between these descriptions using the following expression
 #
-# ..math::
+# .. math::
 #
 #     \mathcal{Q}_\Lambda(\varphi - \psi) = \int (\varphi(x)-\psi(x))\Lambda(x,y)(\varphi(y)-
 #     \psi(y))\mathrm dx \mathrm dy.
@@ -88,7 +89,7 @@ Applications of the Quadratic Distance to Multi-Target Tracking
 # \psi)` with itself, weighted by the symmetric, positive-definite kernel :math:`\Lambda(x,y)`.
 # Expanding this expression gives the following
 #
-# ..math::
+# .. math::
 #
 #     \begin{align}
 #     \mathcal{Q}_\Lambda(\varphi - \psi) &= \int \varphi(x)\Lambda(x,y)
@@ -99,17 +100,17 @@ Applications of the Quadratic Distance to Multi-Target Tracking
 #
 # The objects, or representations, :math:`\varphi` and :math:`\psi`, may be given by any form
 #
-# ..math::
+# .. math::
 #
-# \varphi(x) = \sum\limits_{\hat x\in X}f(x, \hat x),
+#     \varphi(x) = \sum\limits_{\hat x\in X}f(x, \hat x),
 #
 # where the bivariate function :math:`f(\cdot, \cdot)` is a distribution, i.e., the integral of this
 # function over its domain is equal to 1. Other than the Dirac delta which is the simplest
 # example, another common example would be that of the Gaussian mixture
 #
-# ..math::
+# .. math::
 #
-# \varphi(x) = \sum\limits_{(\hat x, \hat P)\in X}\mathcal N(x; \hat x,\hat P).
+#     \varphi(x) = \sum\limits_{(\hat x, \hat P)\in X}\mathcal N(x; \hat x,\hat P).
 #
 # This multi-target state representation may be chosen in the case where one wishes to
 # express the uncertainty regarding the state of each target within the population using
@@ -120,7 +121,7 @@ Applications of the Quadratic Distance to Multi-Target Tracking
 # ^^^^^^^
 # The kernel :math:`\Lambda(x,y)` may be any symmetric, positive-definite function, i.e.,
 #
-# ..math::
+# .. math::
 #
 #     \begin{align}
 #     \Lambda(x,y)&: \mathbb{R}^d \times \mathbb{R}^d \mapsto \mathbb{R};\\
@@ -134,7 +135,7 @@ Applications of the Quadratic Distance to Multi-Target Tracking
 # weight which expresses the strength of the relationship between them. For example, the
 # Gaussian kernel
 #
-# ..math::
+# .. math::
 #
 #     \Lambda(x,y) = \exp(-\frac{1}{2}(x-y)^\top R^{-1} (x-y)),
 #
@@ -159,7 +160,7 @@ Applications of the Quadratic Distance to Multi-Target Tracking
 # to the point process :math:`\boldsymbol X`, we arrive at an expression for the Mean Quadratic Error
 # (MQE) of :math:`\varphi` as an estimator of :math:`X`:
 #
-# ..math::
+# .. math::
 #
 #     \begin{align}
 #     \mathbb E_{\boldsymbol X}\big[\mathcal Q_\Lambda(\boldsymbol X - \varphi)\big] &=
@@ -171,7 +172,7 @@ Applications of the Quadratic Distance to Multi-Target Tracking
 #
 # This can be factorised into the following decomposition
 #
-# ..math::
+# .. math::
 #
 #     \begin{align}
 #     \mathbb E_{\boldsymbol X}\big[\mathcal Q_\Lambda(\boldsymbol X - \varphi)\big] &=
@@ -194,7 +195,7 @@ Applications of the Quadratic Distance to Multi-Target Tracking
 # process as a function of the measurmeent point process, then we can develop the following
 # expression of information gain based on the MQE
 #
-# ..math::
+# .. math::
 #
 #     \begin{align}
 #     \mathbb E_{\boldsymbol Z}\big[\mathbb E_{\boldsymbol X}\big[\mathcal Q_\Lambda(
@@ -492,7 +493,7 @@ filter_data_dict = {'filter model': 'GMPHD',
                     'updater': extended_kalman_updater}
 
 reward_function = QuadraticInformationGain(
-    num_samples=100,
+    num_samples=1000,
     state_dim=4,
     filter_data=filter_data_dict,
     kernel='Gaussian',
@@ -1010,13 +1011,12 @@ plt.show()
 #    for point patterns. TechRxiv. July, 2025.
 #
 # [2] Daniel E. Clark, Peter R. Richards, Sean M. O Rourke, A Functional Quadratic Form
-# Distance for Multi-Target Tracking Performance Assessment.
-# 28th International Conference on Information Fusion. July, 2025.
+#     Distance for Multi-Target Tracking Performance Assessment.
+#     28th International Conference on Information Fusion. July, 2025.
 #
 # [3] Peter R. Richards, Idyano Leroy, Daniel E. Clark, A Quadratic Reward for Information-Driven
-# Sensor
-# Management in Multi-Target Tracking. 29th International Conference on Information Fusion. June,
-# 2026.
+#     Sensor Management in Multi-Target Tracking. 29th International Conference on Information
+#     Fusion. June, 2026.
 #
-# [4] Marc G. Genton, Classes of Kernels for Machine Learning:
-# A Statistics Perspective, Journal of Machine Learning Research 2, pp. 299-312, 2001.e
+# [4] Marc G. Genton, Classes of Kernels for Machine Learning: A Statistics Perspective,
+#     Journal of Machine Learning Research 2, pp. 299-312, 2001.
