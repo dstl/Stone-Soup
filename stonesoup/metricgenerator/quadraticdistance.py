@@ -5,7 +5,7 @@ from scipy.stats import multivariate_normal
 from collections import defaultdict
 from ..types.time import TimeRange
 from ..types.metric import SingleTimeMetric, TimeRangeMetric
-from ..types.state import State, StateMutableSequence
+from ..types.state import State, TaggedWeightedGaussianState, StateMutableSequence
 from ..base import Property
 from .base import MetricGenerator
 
@@ -104,7 +104,7 @@ class QuadraticDistance(MetricGenerator):
             return state_list, state_type
 
         else:  # empty set
-            return [], State
+            return state_list, State
 
     def quadratic_dist_pp(self, trth, trck, R):
         """
@@ -132,12 +132,12 @@ class QuadraticDistance(MetricGenerator):
         Psi = len(trck)
 
         # set weights to one for non-weighted states
-        if hasattr(self.truths_type, 'weight'):
+        if isinstance(self.truths_type, TaggedWeightedGaussianState):
             trth_weights = np.array([t.weight for t in trth])
         else:
             trth_weights = np.ones(Phi)
 
-        if hasattr(self.tracks_type, 'weight'):
+        if isinstance(self.tracks_type, TaggedWeightedGaussianState):
             trck_weights = np.array([t.weight for t in trck])
         else:
             trck_weights = np.ones(Psi)
@@ -212,12 +212,12 @@ class QuadraticDistance(MetricGenerator):
         Psi = len(trck)
 
         # set weights to one for non-weighted states
-        if hasattr(self.truths_type, 'weight'):
+        if isinstance(self.truths_type, TaggedWeightedGaussianState):
             trth_weights = np.array([t.weight for t in trth])
         else:
             trth_weights = np.ones(Phi)
 
-        if hasattr(self.tracks_type, 'weight'):
+        if isinstance(self.tracks_type, TaggedWeightedGaussianState):
             trck_weights = np.array([t.weight for t in trck])
         else:
             trck_weights = np.ones(Psi)
@@ -300,12 +300,12 @@ class QuadraticDistance(MetricGenerator):
         Psi = len(trck)
 
         # set weights to one for non-weighted states
-        if hasattr(self.truths_type, 'weight'):
+        if isinstance(self.truths_type, TaggedWeightedGaussianState):
             trth_weights = np.array([t.weight for t in trth])
         else:
             trth_weights = np.ones(Phi)
 
-        if hasattr(self.tracks_type, 'weight'):
+        if isinstance(self.tracks_type, TaggedWeightedGaussianState):
             trck_weights = np.array([t.weight for t in trck])
         else:
             trck_weights = np.ones(Psi)
