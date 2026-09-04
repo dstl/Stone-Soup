@@ -551,14 +551,14 @@ graph.set_ax_title(['Extended Kalman Filter', 'Particle Filter'])  # set title f
 # %%
 # .. rubric:: Footnotes
 #
-# [^1] *D. Schuhmacher, B. Vo and B. Vo*, **A Consistent Metric for Performance Evaluation of
-#    Multi-Object Filters**, IEEE Trans. Signal Processing 2008
+# [^1] D. Schuhmacher, B. Vo and B. Vo, A Consistent Metric for Performance Evaluation of
+#    Multi-Object Filters, IEEE Trans. Signal Processing 2008
 #
-# [^2] *Daniel E. Clark, Idyano Leroy, Peter R. Richards, Sean M. O'Rourke*, **Quadratic error
-#    for point patterns**. TechRxiv. July 24, 2025.
+# [^2] Daniel E. Clark, Idyano Leroy, Peter R. Richards, Sean M. O'Rourke, Quadratic error
+#    for point patterns. TechRxiv. July 24, 2025.
 #
-# [^3] *Karoly S., Wilson J., Dutchyshyn H., Maluda J.*, **Single Integrated Air Picture (SIAP)
-#    Attributes Version 2.0**, DTIC Technical Report 2003
+# [^3] Karoly S., Wilson J., Dutchyshyn H., Maluda J., Single Integrated Air Picture (SIAP)
+#    Attributes Version 2.0, DTIC Technical Report 2003
 #
-# [^4] *https://stonesoup.readthedocs.io/en/v1.9.1/auto_examples/metrics/Applications_of_the_qu
-#    adratic_distance_to_multi-target_tracking.html
+# [^4] https://stonesoup.readthedocs.io/en/v1.9.1/auto_examples/metrics/QuadraticError_for_Mul
+#    tiTargetTracking_Tutorial.html
