@@ -2,9 +2,9 @@
 # coding: utf-8
 
 """
-===============
+===============================================================
 Applications of the Quadratic Distance to Multi-Target Tracking
-===============
+===============================================================
 """
 
 # This tutorial demonstrates the usage of the quadratic distance in the context of multi-target
