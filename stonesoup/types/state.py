@@ -1308,3 +1308,23 @@ class CompositeState(Type):
 
 
 State.register(CompositeState)  # noqa: E305
+
+
+class DecayState(State):
+    """Embodies a state with elements (atoms) that can transition from their undecayed state (1) to
+    their decayed state (0). That is handled by the transition function. The state vector is of Nx1
+    StateVector type and can be initialised either by specifying the number of atoms (N) or by
+    providing a StateVector object. The half-life of the decay is governed by the halflife
+    attribute, which is a float representing the expected time it takes for half of the atoms to
+    decay. The half life is used in the transition function.
+
+    """
+
+    halflife: float = Property(doc="The half life (timedelta object)")
+
+    def __init__(self, state_vector, *args, **kwargs):
+
+        if isinstance(state_vector, int):
+            state_vector = StateVector(np.ones(state_vector), dtype=np.int8)
+
+        super().__init__(state_vector, *args[0:], **kwargs)

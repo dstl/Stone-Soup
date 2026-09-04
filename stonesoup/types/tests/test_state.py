@@ -24,6 +24,7 @@ from ..state import (
     CategoricalState,
     CompositeState,
     CreatableFromState,
+    DecayState,
     EnsembleState,
     GaussianState,
     InformationState,
@@ -1020,3 +1021,17 @@ def test_kernel_particle_state():
     assert 4 == prior.ndim
     assert np.array_equal(state_vector @ weights[:, np.newaxis], prior.mean)
     assert np.array_equal(state_vector @ np.diag(weights) @ state_vector.T, prior.covar)
+
+
+def test_decay_state():
+    state_vector = StateVector([1, 1, 1])
+    n_atoms = 3
+    timestamp = datetime.datetime(2018, 1, 1, 14)
+    tdelta = datetime.timedelta(seconds=1)
+
+    decay_state1 = DecayState(state_vector, halflife=tdelta, timestamp=timestamp)
+    decay_state2 = DecayState(n_atoms, halflife=tdelta, timestamp=timestamp)
+
+    assert np.array_equal(decay_state1.state_vector, decay_state2.state_vector)
+    assert decay_state1.timestamp == decay_state2.timestamp
+    assert decay_state1.halflife == decay_state2.halflife
