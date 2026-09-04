@@ -40,5 +40,3 @@ def test_decaytransition():
     random_state = decay_model.rvs(decay_state, timedelta(seconds=1), num_samples=2)
     assert isinstance(random_state, StateVectors)
     assert random_state.shape[1] == 2
-
-
