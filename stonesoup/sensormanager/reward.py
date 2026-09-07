@@ -747,7 +747,7 @@ class ClassificationWeightReward(RewardFunction):
     def __call__(self, config: Mapping[Sensor, Sequence[Action]], tracks: set[Track],
                  metric_time: datetime, *args, **kwargs):
 
-        config_metric = 0
+        config_metric = 1
         predicted_sensors = set()
         memo = {}
         for actionable, actions in config.items():  # predict sensors
@@ -772,7 +772,7 @@ class ClassificationWeightReward(RewardFunction):
                             strength = substate.state_vector[np.argmax(substate.state_vector)]
                             config_metric += strength
         # to reward observing where low weight return 1/metric
-        print(config_metric, 1/config_metric)
+        # print(config_metric, 1/config_metric)
         return 1/config_metric
 
 
