@@ -739,10 +739,12 @@ class DeletionUncertaintyReward(RewardFunction):
         return config_metric
 
 
-class ClassificationWeightReward(RewardFunction):
-
+class CompositeStateReward(RewardFunction):
     predictor: CompositePredictor = Property()
     updater: CompositeUpdater = Property()
+
+
+class ClassificationWeightReward(CompositeStateReward):
 
     def __call__(self, config: Mapping[Sensor, Sequence[Action]], tracks: set[Track],
                  metric_time: datetime, *args, **kwargs):
@@ -776,9 +778,8 @@ class ClassificationWeightReward(RewardFunction):
         return 1/config_metric
 
 
-class ClassificationOfInterestReward(RewardFunction):
+class ClassificationOfInterestReward(CompositeStateReward):
 
-    predictor: CompositePredictor = Property()
     category_of_interest: str = Property()
     weight: int = Property(default=10)
 
@@ -812,3 +813,30 @@ class ClassificationOfInterestReward(RewardFunction):
                                 config_metric = self.weight  # reward observing target of interest
 
         return config_metric
+
+
+class CompositeStateMultiplicativeRewardFunction(MultiplicativeRewardFunction):
+    
+    def __call__(self, config: Mapping[Sensor, Sequence[Action]], tracks: set[Track],
+                 metric_time: datetime.datetime, *args, **kwargs):
+        if self.weights is None:
+            self.weights = [1] * len(self.reward_function_list)
+        if len(self.reward_function_list) != len(self.weights):
+            raise IndexError
+        total_reward = 1
+        for reward_function, weight in zip(self.reward_function_list, self.weights):
+            if isinstance(reward_function, UncertaintyRewardFunction):
+                kinematic_tracks = set()
+                for track in tracks:
+                    kinematic_tracks.add(Track([state.sub_states[0] for state in track]))
+                    # print(kinematic_tracks)
+                reward = reward_function(config, kinematic_tracks, metric_time, *args, **kwargs) * weight
+                total_reward *= reward           
+            elif isinstance(reward_function, CompositeStateReward):
+                # print('getting to C')
+                reward = reward_function(config, tracks, metric_time, *args, **kwargs) * weight
+                total_reward *= reward
+            else:
+                raise TypeError("Reward function class not accounted for in this setup")
+
+        return total_reward
