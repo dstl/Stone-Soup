@@ -840,3 +840,25 @@ class CompositeStateMultiplicativeRewardFunction(MultiplicativeRewardFunction):
                 raise TypeError("Reward function class not accounted for in this setup")
 
         return total_reward
+
+    
+class ClassOfInterestUncertaintyRewardFunction(UncertaintyRewardFunction):
+
+    class_of_interest: str = Property()
+
+    def __call__(self, config: Mapping[Sensor, Sequence[Action]], tracks: set[Track],
+                 metric_time: datetime.datetime, *args, **kwargs):
+
+        total_reward = 0
+        for track in tracks:
+            for substate in track.sub_states:
+                if isinstance(substate, CategoricalState): 
+                    category = substate.category
+                    # print(category)
+                    if category == self.class_of_interest:
+                        kinematic_track = Track([state.sub_states[0] for state in track])
+                        value = super().__call__(config, {kinematic_track}, metric_time, *args,
+                                                 **kwargs)
+                        total_reward += value
+
+        return total_reward
