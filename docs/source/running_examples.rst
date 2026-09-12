@@ -34,9 +34,9 @@ For :class:`~.Plotterly`, call ``show`` on the underlying Plotly figure::
     # Add truths, measurements, tracks, etc.
     plotter.fig.show()
 
-Plotly chooses a renderer according to the environment. If an IDE does not
-open the figure with its default renderer, select a suitable renderer before
-calling ``show``. For example, to open the result in the system browser::
+Plotly chooses a renderer according to the environment. If an IDE such as
+Spyder does not open the figure with its default renderer, select a suitable
+renderer before calling ``show``. For example, to open the result in the system browser::
 
     import plotly.io as pio
 
