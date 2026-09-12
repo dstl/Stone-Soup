@@ -12,9 +12,10 @@ The persistent DOI for the Stone Soup software is:
 
 * `10.5281/zenodo.4663993 <https://doi.org/10.5281/zenodo.4663993>`_
 
-The repository's ``CITATION.cff`` file is the authoritative source for the
-current software citation metadata, including the contributor list, release
-metadata, licence, repository URL and preferred publication.
+The repository's `CITATION.cff <https://github.com/dstl/Stone-Soup/blob/main/CITATION.cff>`_
+file is the authoritative source for the current software citation metadata,
+including the contributor list, release metadata, licence, repository URL and
+preferred publication.
 
 On GitHub, the **Cite this repository** control reads this file and can be used
 to copy or export a formatted citation. This is preferable to maintaining a
