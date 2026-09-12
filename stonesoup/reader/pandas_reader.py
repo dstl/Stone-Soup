@@ -1,5 +1,6 @@
 
-from collections.abc import Iterable, Iterator
+from collections.abc import Iterator
+from typing import Iterable, Union
 
 try:
     import pandas as pd
@@ -12,7 +13,7 @@ from .generic import _DictDetectionReader, _DictGroundTruthReader, _DictReader, 
 
 
 class _DataFrameReader(_DictReader):
-    dataframe: pd.DataFrame | Iterable[pd.DataFrame] = Property(
+    dataframe: Union[pd.DataFrame, Iterable[pd.DataFrame]] = Property(
         doc="DataFrame containing the state data, or an iterable yielding DataFrames in time "
             "order."
     )
