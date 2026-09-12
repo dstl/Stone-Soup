@@ -115,4 +115,4 @@ def test_gaussian_model_pdf_allows_singular_covariance():
         state.state_vector.ravel(), mean=prior.state_vector.ravel(),
         cov=covariance, allow_singular=True)
 
-    assert probability == approx(expected)
+    assert float(probability) == approx(expected)
