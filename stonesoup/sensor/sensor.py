@@ -108,7 +108,12 @@ class SimpleSensor(Sensor, ABC):
         detectable_ground_truths = sorted(
             (truth for truth in ground_truths
              if self.is_detectable(truth, measurement_model)),
-            key=lambda truth: tuple(np.asarray(truth.state_vector, dtype=np.float64).ravel()))
+            key=lambda truth: (
+                tuple(np.asarray(truth.state_vector, dtype=np.float64).ravel()),
+                str(truth.timestamp),
+                tuple(sorted((repr(key), repr(value))
+                             for key, value in getattr(truth, 'metadata', {}).items())),
+            ))
 
         if noise is True:
             random_state = random_state if random_state is not None else self.random_state

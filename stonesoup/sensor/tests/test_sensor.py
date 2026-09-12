@@ -91,6 +91,36 @@ def test_simple_sensor_seed_independent_of_truth_order():
         assert np.allclose(measurements1[truth], measurements2[truth])
 
 
+def test_simple_sensor_seed_independent_for_colocated_truths():
+    class DummySimpleSensor(SimpleSensor):
+        @property
+        def measurement_model(self):
+            return LinearGaussian(1, [0], np.diag([1]))
+
+        def is_detectable(self, state: GroundTruthState, measurement_model=None) -> bool:
+            return True
+
+        def is_clutter_detectable(self, state: Detection) -> bool:
+            return True
+
+    truth1 = GroundTruthState([[0]], metadata={'target_id': 'a'})
+    truth2 = GroundTruthState([[0]], metadata={'target_id': 'b'})
+    sensor1 = DummySimpleSensor(seed=1)
+    sensor2 = DummySimpleSensor(seed=1)
+
+    detections1 = sensor1.measure([truth1, truth2])
+    detections2 = sensor2.measure([truth2, truth1])
+
+    measurements1 = {detection.groundtruth_path.metadata['target_id']: detection.state_vector
+                     for detection in detections1}
+    measurements2 = {detection.groundtruth_path.metadata['target_id']: detection.state_vector
+                     for detection in detections2}
+
+    assert measurements1.keys() == measurements2.keys()
+    for target_id in measurements1:
+        assert np.allclose(measurements1[target_id], measurements2[target_id])
+
+
 def test_sensor_position_orientation_setting():
     sensor = DummySensor(position=StateVector([0, 0, 1]))
     assert np.allclose(sensor.position, StateVector([0, 0, 1]))
