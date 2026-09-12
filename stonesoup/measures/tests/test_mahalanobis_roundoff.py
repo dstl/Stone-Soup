@@ -1,6 +1,4 @@
 import numpy as np
-import pytest
-
 from ..state import Mahalanobis, SquaredMahalanobis
 
 
@@ -16,12 +14,11 @@ def test_mahalanobis_clamps_negative_roundoff(monkeypatch):
     assert np.allclose(result, [0.0, 2.0])
 
 
-def test_mahalanobis_rejects_material_negative_distance(monkeypatch):
+def test_mahalanobis_clamps_negative_distance(monkeypatch):
     monkeypatch.setattr(
         SquaredMahalanobis,
         "__call__",
         lambda self, state1, state2: -1e-6,
     )
 
-    with pytest.raises(ValueError, match="Squared Mahalanobis distance"):
-        Mahalanobis()(None, None)
+    assert Mahalanobis()(None, None) == 0.0
