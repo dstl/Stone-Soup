@@ -261,7 +261,7 @@ html_css_files = ['css/custom.css']
 # html_search_options = {'type': 'default'}
 
 # Prefer exact API object matches over pages that only mention the query.
-html_search_scorer = 'search_scorer.js'
+html_search_scorer = os.path.join(os.path.dirname(__file__), 'search_scorer.js')
 
 # Output file base name for HTML help builder.
 htmlhelp_basename = 'StoneSoupdoc'
