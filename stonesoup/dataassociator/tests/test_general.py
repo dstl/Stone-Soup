@@ -46,3 +46,29 @@ def test_threshold_allows_optimal_partial_assignment(
     assert actual_pairs == expected_pairs
     assert unassociated_a == {objects_a[0]}
     assert unassociated_b == {objects_b[0]}
+
+
+def test_threshold_can_leave_all_objects_unassociated():
+    objects_a = (("a", 1), ("a", 2))
+    objects_b = (("b", 1), ("b", 2))
+    associator = OneToOneAssociator(
+        measure=ProductMeasure(), maximise_measure=True, association_threshold=10)
+
+    associations, unassociated_a, unassociated_b = associator.associate(objects_a, objects_b)
+
+    assert not associations.associations
+    assert unassociated_a == set(objects_a)
+    assert unassociated_b == set(objects_b)
+
+
+def test_threshold_assignment_handles_rectangular_collections():
+    objects_a = (("a", 1), ("a", 2), ("a", 3))
+    objects_b = (("b", 1), ("b", 2))
+    associator = OneToOneAssociator(
+        measure=ProductMeasure(), maximise_measure=True, association_threshold=0)
+
+    associations, unassociated_a, unassociated_b = associator.associate(objects_a, objects_b)
+
+    assert len(associations.associations) == 2
+    assert len(unassociated_a) == 1
+    assert not unassociated_b
