@@ -183,7 +183,7 @@ class Plotter(_Plotter):
         elif isinstance(dimension, int):
             self.dimension = Dimension(dimension)
         else:
-            raise TypeError("%s is an unsupported type for 'dimension'; "
+            raise TypeError("%s is an unsupported type for \'dimension\'; "
                             "expected type %s" % (type(dimension), type(Dimension.TWO)))
         # Generate plot axes
         if fig is not None:
@@ -824,7 +824,7 @@ class MetricPlotter(ABC):
         Parameters
         ----------
         metrics : dict of :class:`~.Metric`
-            Dictionary of generated metrics which will be plotted.
+            Dictionary of generated metrics to be plotted.
         generator_names: list of str
             Generator(s) to extract specific metrics from :attr:`metrics` for plotting.
             Default None to take all metrics.
@@ -977,7 +977,7 @@ class MetricPlotter(ABC):
         self.fig, axes = plt.subplots(number_of_subplots, figsize=(10, 6*number_of_subplots))
         self.fig.subplots_adjust(hspace=0.3)
 
-        # extract data for each plot and plot it
+        # extract data for each subplot and plot it
         metric_types = self.extract_metric_types(metrics_to_plot)
 
         self.axes = axes if isinstance(axes, Iterable) else [axes]
@@ -1044,7 +1044,7 @@ class MetricPlotter(ABC):
         self.fig, axes = plt.subplots(number_of_subplots, figsize=(10, 6*number_of_subplots))
         self.fig.subplots_adjust(hspace=0.3)
 
-        # extract data for each plot and plot it
+        # extract data for each subplot and plot it
         all_metrics = {}
         for generator in metrics_to_plot.keys():
             for metric in list(metrics_to_plot[generator].keys()):
@@ -1088,7 +1088,7 @@ class MetricPlotter(ABC):
         Parameters
         ----------
         titles: list of str
-            List of strings for title text for each axis in figure.
+            List of strings for title text for each axis.
 
         Returns
         -------
@@ -1108,7 +1108,7 @@ class Plotterly(_Plotter):
 
     Parameters
     ----------
-    dimension: enum 'Dimension'
+    dimension: enum \'Dimension\'
         Optional parameter to specify 1D, 2D, or 3D plotting.
     axis_labels: list
         Optional parameter to specify the axis labels for non-xy dimensions. Default None, i.e.,
@@ -1794,7 +1794,7 @@ class PolarPlotterly(_Plotter):
         elif isinstance(dimension, int):
             self.dimension = Dimension(dimension)
         else:
-            raise TypeError("%s is an unsupported type for 'dimension'; "
+            raise TypeError("%s is an unsupported type for \'dimension\'; "
                             "expected type %s" % (type(dimension), type(Dimension.TWO)))
         if self.dimension != dimension.TWO:
             raise TypeError("Only 2D plotting currently supported")
@@ -3503,7 +3503,7 @@ class AnimatedPolarPlotterly(PolarPlotterly):
         elif isinstance(dimension, int):
             self.dimension = Dimension(dimension)
         else:
-            raise TypeError(f"{type(dimension)} is an unsupported type for 'dimension'; "
+            raise TypeError(f"{type(dimension)} is an unsupported type for \'dimension\'; "
                             f"expected type {type(Dimension.TWO)}")
         if self.dimension != dimension.TWO:
             raise TypeError("Only 2D plotting currently supported")
