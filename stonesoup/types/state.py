@@ -647,6 +647,8 @@ class ASDWeightedGaussianState(ASDGaussianState):
     """
     weight: Probability = Property(default=0, doc="Weight of the Gaussian State.")
 
+WeightedGaussianState.register(ASDWeightedGaussianState)  # noqa: E305
+
 
 class ASDTaggedWeightedGaussianState(ASDWeightedGaussianState):
     """ASD Tagged Weighted Gaussian State Type
