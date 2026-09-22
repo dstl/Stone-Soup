@@ -49,6 +49,7 @@ from .types.angle import Angle
 from .types.array import Matrix, StateVector
 from .types.numeric import Probability
 from .sensor.sensor import Sensor
+from .types.state import ParticleState
 
 __all__ = ['YAML']
 typ = 'stonesoup'
@@ -136,6 +137,9 @@ def declarative_to_yaml(representer, node):
     if isinstance(node, Sensor) and node._has_internal_controller:
         node_properties['position'] = Property(StateVector)
         node_properties['orientation'] = Property(StateVector)
+    # Special case of particle state, where weight is derived from log weight
+    if isinstance(node, ParticleState):
+        node_properties.pop('weight', None)
     return representer.represent_omap(
         yaml_tag(type(node)),
         OrderedDict((name, getattr(node, name))

@@ -8,7 +8,8 @@ from .conftest import _TestBase
 from ..sensor.sensor import Sensor
 from ..serialise import YAML
 from ..base import Property
-from ..types.array import Matrix, StateVector, CovarianceMatrix
+from ..types.array import Matrix, StateVector, StateVectors, CovarianceMatrix
+from ..types.state import ParticleState
 from ..types.angle import Angle, Bearing, Elevation, Longitude, Latitude
 
 
@@ -287,6 +288,18 @@ def test_sensor_serialisation(serialised_file):
     sensor = serialised_file.load(serialised_str)
     assert np.allclose(sensor.position, pos)
     assert np.allclose(sensor.orientation, orientation)
+
+
+def test_particle_state(serialised_file):
+    state = ParticleState(
+        StateVectors([[1, 2, 3], [4, 5, 6]]), weight=np.array([0.2, 0.3, 0.5]))
+    serialised_str = serialised_file.dumps(state)
+    assert 'log_weight' in serialised_str
+    assert '\nweight' not in serialised_str
+    new_state = serialised_file.load(serialised_str)
+    assert np.allclose(new_state.state_vector, state.state_vector)
+    assert np.allclose(new_state.log_weight, state.log_weight)
+    assert np.allclose(new_state.weight.astype(float), state.weight.astype(float))
 
 
 def test_dump(tmpdir, serialised_file):
