@@ -5,7 +5,8 @@ import pytest
 
 from ...models.measurement.linear import LinearGaussian
 from ...models.measurement.nonlinear import CartesianToBearingRange, \
-    CartesianToElevationBearingRange
+    CartesianToElevationBearingRange, Cartesian2DToBearing, CartesianToElevationBearing, \
+    CartesianToBearingRangeRate2D, CartesianToElevationRateBearingRateRangeRate
 from ...movable import FixedMovable
 from ..radar.radar import RadarElevationBearingRangeRate, RadarBearingRange, \
     RadarElevationBearingRange
@@ -13,7 +14,7 @@ from ...platform import FixedPlatform
 from ...types.detection import Detection
 from ...types.groundtruth import GroundTruthPath, GroundTruthState
 from ..base import PlatformMountable
-from ..sensor import Sensor, SensorSuite, SimpleSensor
+from ..sensor import Sensor, SensorSuite, SimpleSensor, Generic2DSensor, Generic3DSensor
 from ...types.array import StateVector, CovarianceMatrix
 from ...types.state import State
 
@@ -262,3 +263,99 @@ def test_informative():
         else:
             assert np.allclose(metadata_position, position2.state_vector[(0, 2, 3), :])
             assert np.allclose(metadata_orientation, orientation2)
+
+
+@pytest.mark.parametrize("measurement_model_class", [CartesianToBearingRange, LinearGaussian,
+                                                     Cartesian2DToBearing])
+def test_generic_sensor_2d(measurement_model_class):
+    sensor = Generic2DSensor(measurement_model_class=measurement_model_class,
+                             ndim_state=4,
+                             position_mapping=(0, 2),
+                             noise_covar=np.diag([1, 1]),
+                             min_range=10,
+                             max_range=100,
+                             fov_angle=np.pi/6)
+    measurement_model = sensor.measurement_model
+    assert isinstance(measurement_model, measurement_model_class)
+    assert measurement_model.ndim_state == 4
+    assert measurement_model.mapping == (0, 2)
+    assert np.all(measurement_model.noise_covar == np.diag([1, 1]))
+
+    target_short = State([1, 0, 0, 0])
+    target_long = State([101, 0, 0, 0])
+    target_left = State([0, 0, 50, 0])
+    target_right = State([0, 0, -50, 0])
+    target_centre = State([50, 0, 0, 0])
+
+    assert not sensor.is_detectable(target_short)
+    assert not sensor.is_detectable(target_long)
+    assert not sensor.is_detectable(target_left)
+    assert not sensor.is_detectable(target_right)
+    assert sensor.is_detectable(target_centre)
+
+
+@pytest.mark.parametrize("measurement_model_class", [CartesianToElevationBearingRange,
+                                                     LinearGaussian,
+                                                     CartesianToElevationBearing])
+def test_generic_sensor_3d(measurement_model_class):
+    sensor = Generic3DSensor(measurement_model_class=measurement_model_class,
+                             ndim_state=6,
+                             position_mapping=(0, 2, 4),
+                             noise_covar=np.diag([1, 1, 1]),
+                             min_range=10,
+                             max_range=100,
+                             fov_angle=np.pi/6,
+                             vertical_extent=np.pi/6)
+    measurement_model = sensor.measurement_model
+    assert isinstance(measurement_model, measurement_model_class)
+    assert measurement_model.ndim_state == 6
+    assert measurement_model.mapping == (0, 2, 4)
+    assert np.all(measurement_model.noise_covar == np.diag([1, 1, 1]))
+
+    target_short = State([1, 0, 0, 0, 0, 0])
+    target_long = State([101, 0, 0, 0, 0, 0])
+    target_left = State([0, 0, 50, 0, 0, 0])
+    target_right = State([0, 0, -50, 0, 0, 0])
+    target_up = State([0, 0, 0, 0, 50, 0])
+    target_down = State([0, 0, 0, 0, -50, 0])
+    target_centre = State([50, 0, 0, 0, 0, 0])
+
+    assert not sensor.is_detectable(target_short)
+    assert not sensor.is_detectable(target_long)
+    assert not sensor.is_detectable(target_left)
+    assert not sensor.is_detectable(target_right)
+    assert not sensor.is_detectable(target_up)
+    assert not sensor.is_detectable(target_down)
+    assert sensor.is_detectable(target_centre)
+
+
+@pytest.mark.parametrize("measurement_model_class", [CartesianToBearingRangeRate2D,
+                                                     LinearGaussian])
+def test_generic_sensor_2d_velocity(measurement_model_class):
+    sensor = Generic2DSensor(measurement_model_class=measurement_model_class,
+                             ndim_state=4,
+                             position_mapping=(0, 2),
+                             velocity_mapping=(1, 3),
+                             noise_covar=np.diag([1, 1, 1, 1]))
+    measurement_model = sensor.measurement_model
+    if isinstance(measurement_model, LinearGaussian):
+        assert measurement_model.mapping == (0, 2, 1, 3)
+    else:
+        assert measurement_model.mapping == (0, 2)
+        assert measurement_model.velocity_mapping == (1, 3)
+
+
+@pytest.mark.parametrize("measurement_model_class", [CartesianToElevationRateBearingRateRangeRate,
+                                                     LinearGaussian])
+def test_generic_sensor_3d_velocity(measurement_model_class):
+    sensor = Generic2DSensor(measurement_model_class=measurement_model_class,
+                             ndim_state=6,
+                             position_mapping=(0, 2, 4),
+                             velocity_mapping=(1, 3, 5),
+                             noise_covar=np.diag([1, 1, 1, 1, 1, 1]))
+    measurement_model = sensor.measurement_model
+    if isinstance(measurement_model, LinearGaussian):
+        assert measurement_model.mapping == (0, 2, 4, 1, 3, 5)
+    else:
+        assert measurement_model.mapping == (0, 2, 4)
+        assert measurement_model.velocity_mapping == (1, 3, 5)

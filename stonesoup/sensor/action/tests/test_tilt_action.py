@@ -15,8 +15,8 @@ class DummyTiltActionable(Actionable):
                                                   generator_kwargs_mapping={'rpm': 'rpm'})
     timestamp: datetime = Property(doc="Current time that actionable exists at.")
     rpm: float = Property(doc="Rotations per minute.")
-    min_tilt = np.radians(-90)
-    max_tilt = np.radians(90)
+    min_angle = np.radians(-90)
+    max_angle = np.radians(90)
 
     def validate_timestamp(self):
         if self.timestamp:
@@ -62,8 +62,8 @@ def test_tilt_action(initial_tilt_deg):
     assert generator.min == max(actionable.tilt_centre[0, 0] - np.radians(60), -np.radians(90))
 
     for angle in np.linspace(0, np.radians(60), 10):
-        tilt1 = min(actionable.tilt_centre[0, 0] + angle, actionable.max_tilt)
-        tilt2 = max(actionable.tilt_centre[0, 0] - angle, actionable.min_tilt)
+        tilt1 = min(actionable.tilt_centre[0, 0] + angle, actionable.max_angle)
+        tilt2 = max(actionable.tilt_centre[0, 0] - angle, actionable.min_angle)
 
         assert tilt1 in generator
         assert float(tilt1) in generator
@@ -94,26 +94,26 @@ def test_tilt_action(initial_tilt_deg):
             assert increasing1 is None
             assert increasing2 is None
             assert tilt_end1 == tilt_end2 == start
-        elif actionable.tilt_centre[0, 0] == actionable.min_tilt:
+        elif actionable.tilt_centre[0, 0] == actionable.min_angle:
             assert increasing1
             assert increasing2 is None
-        elif actionable.tilt_centre[0, 0] == actionable.max_tilt:
+        elif actionable.tilt_centre[0, 0] == actionable.max_angle:
             assert increasing1 is None
             assert not increasing2
         else:
             assert increasing1
             assert not increasing2
 
-        if tilt1 == actionable.max_tilt:
-            new_tilt_time = ((actionable.max_tilt - actionable.tilt_centre[0, 0]) /
+        if tilt1 == actionable.max_angle:
+            new_tilt_time = ((actionable.max_angle - actionable.tilt_centre[0, 0]) /
                              np.radians(60) * (end-start))
             new_tilt_end = start + new_tilt_time
             assert tilt_end1 == new_tilt_end
         else:
             assert tilt_end1 == tilt_end
 
-        if tilt2 == actionable.min_tilt:
-            new_tilt_time = ((actionable.tilt_centre[0, 0] - actionable.min_tilt) /
+        if tilt2 == actionable.min_angle:
+            new_tilt_time = ((actionable.tilt_centre[0, 0] - actionable.min_angle) /
                              np.radians(60) * (end-start))
             new_tilt_end = start + new_tilt_time
             assert tilt_end2 == new_tilt_end
@@ -121,20 +121,20 @@ def test_tilt_action(initial_tilt_deg):
             assert tilt_end2 == tilt_end
 
     actions = [action for action in generator]
-    if (actionable.min_tilt + np.radians(60) <= actionable.tilt_centre[0, 0] <=
-            actionable.max_tilt - np.radians(60)):
+    if (actionable.min_angle + np.radians(60) <= actionable.tilt_centre[0, 0] <=
+            actionable.max_angle - np.radians(60)):
         assert len(actions) == 5
         target_tilts = np.array([-60, -30, 0, 30, 60])
-    elif (actionable.min_tilt + np.radians(30) <= actionable.tilt_centre[0, 0] <=
-            actionable.max_tilt - np.radians(30)):
+    elif (actionable.min_angle + np.radians(30) <= actionable.tilt_centre[0, 0] <=
+            actionable.max_angle - np.radians(30)):
         assert len(actions) == 4
-        if actionable.tilt_centre[0, 0] < (actionable.max_tilt + actionable.min_tilt) / 2:
+        if actionable.tilt_centre[0, 0] < (actionable.max_angle + actionable.min_angle) / 2:
             target_tilts = np.array([-30, 0, 30, 60])
         else:
             target_tilts = np.array([-60, -30, 0, 30])
     else:
         assert len(actions) == 3
-        if actionable.tilt_centre[0, 0] < (actionable.max_tilt + actionable.min_tilt) / 2:
+        if actionable.tilt_centre[0, 0] < (actionable.max_angle + actionable.min_angle) / 2:
             target_tilts = np.array([0, 30, 60])
         else:
             target_tilts = np.array([-60, -30, 0])
@@ -147,22 +147,22 @@ def test_tilt_action(initial_tilt_deg):
 
     generator(np.radians(1))
     for angle in np.arange(0, 181, 1):
-        tilt1 = min(actionable.tilt_centre[0, 0] + np.radians(angle), actionable.max_tilt)
-        tilt2 = max(actionable.tilt_centre[0, 0] - np.radians(angle), actionable.min_tilt)
+        tilt1 = min(actionable.tilt_centre[0, 0] + np.radians(angle), actionable.max_angle)
+        tilt2 = max(actionable.tilt_centre[0, 0] - np.radians(angle), actionable.min_angle)
         action1 = generator.action_from_value(tilt1)
         action2 = generator.action_from_value(tilt2)
-        if (angle > 60 and (actionable.min_tilt + np.radians(60) + generator.epsilon <
+        if (angle > 60 and (actionable.min_angle + np.radians(60) + generator.epsilon <
                             actionable.tilt_centre[0, 0] <
-                            actionable.max_tilt - np.radians(60) - generator.epsilon)):
+                            actionable.max_angle - np.radians(60) - generator.epsilon)):
             assert action1 is None
             assert action2 is None
         elif angle > 60 and (actionable.tilt_centre[0, 0] <=
-                             actionable.min_tilt + np.radians(60) + generator.epsilon):
+                             actionable.min_angle + np.radians(60) + generator.epsilon):
             assert action1 is None
             assert isinstance(action2, ChangeTiltAction)
             assert pytest.approx(action2.target_value) == tilt2
         elif angle > 60 and (actionable.tilt_centre[0, 0] >=
-                             actionable.max_tilt - np.radians(60) - generator.epsilon):
+                             actionable.max_angle - np.radians(60) - generator.epsilon):
             assert isinstance(action1, ChangeTiltAction)
             assert pytest.approx(action1.target_value) == tilt1
             assert action2 is None
