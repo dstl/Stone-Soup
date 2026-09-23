@@ -164,7 +164,6 @@ sensor_platformA = FixedPlatform(
                                                     position_mapping=(0, 1, 2),
                                                     resolution=2,
                                                     n_steps=1,
-                                                    step_size=1,
                                                     action_mapping=(0, 1),
                                                     action_space=np.array([[0, 50], [0, 50]])),
     sensors=[gas_sensorA])
@@ -179,7 +178,6 @@ sensor_platformB = FixedPlatform(
                                                     position_mapping=(0, 1, 2),
                                                     resolution=2,
                                                     n_steps=1,
-                                                    step_size=1,
                                                     action_mapping=(0, 1),
                                                     action_space=np.array([[0, 50], [0, 50]])),
     sensors=[gas_sensorB])
@@ -332,8 +330,7 @@ sensorA_y = [sensor_platformA.position[1]]
 for n in range(n_iter):
     time = (start_time + timedelta(seconds=n+1))
     if n > 0:
-        chosen_actions = sensormanagerA.choose_actions({trackA}, time, n_steps=2, step_size=2,
-                                                       action_mapping=(0, 1))
+        chosen_actions = sensormanagerA.choose_actions({trackA}, time)
         for sensor, actions in chosen_actions[0].items():
             sensor.add_actions(actions)
             sensor.act(time)
@@ -448,8 +445,7 @@ sensorB_y = [sensor_platformB.position[1]]
 for n in range(n_iter):
     time = (start_time + timedelta(seconds=n+1))
     if n > 0:
-        chosen_actions = sensormanagerB.choose_actions({trackB}, time, n_steps=2, step_size=2,
-                                                       action_mapping=(0, 1))
+        chosen_actions = sensormanagerB.choose_actions({trackB}, time)
         for sensor, actions in chosen_actions[0].items():
             sensor.add_actions(actions)
             sensor.act(time)

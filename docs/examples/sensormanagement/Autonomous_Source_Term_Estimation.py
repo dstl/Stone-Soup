@@ -134,9 +134,8 @@ sensor_platform = FixedPlatform(
     movement_controller=NStepDirectionalGridMovable(states=[State([[5], [5], [0.]],
                                                                   timestamp=start_time)],
                                                     position_mapping=(0, 1, 2),
-                                                    resolution=1,
+                                                    resolution=2,
                                                     n_steps=2,
-                                                    step_size=2,
                                                     action_mapping=(0, 1),
                                                     action_space=np.array([[0, 50], [0, 50]])),
     sensors=[gas_sensor])
@@ -257,8 +256,7 @@ sensor_y = [sensor_platform.position[1]]
 for n in range(n_iter):
     time = (start_time + timedelta(seconds=n + 1))
     if n > 0:
-        chosen_actions = sensormanager.choose_actions({track}, time, n_steps=2, step_size=2,
-                                                      action_mapping=(0, 1))
+        chosen_actions = sensormanager.choose_actions({track}, time)
         for sensor, actions in chosen_actions[0].items():
             sensor.add_actions(actions)
             sensor.act(time)
