@@ -97,6 +97,6 @@ be available on the PR, and any failures should be addressed.
 .. _MIT: https://opensource.org/licenses/MIT
 .. _LGPL: https://opensource.org/licenses/lgpl-license
 .. _Stone Soup GitHub repo: https://github.com/dstl/Stone-Soup
-.. _GitHub Flow: https://guides.github.com/introduction/flow/index.html
+.. _GitHub Flow: https://docs.github.com/en/get-started/using-github/github-flow
 .. _CircleCI: https://circleci.com/
 .. _Codecov: https://codecov.io/
