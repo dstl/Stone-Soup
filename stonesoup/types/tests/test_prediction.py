@@ -163,6 +163,86 @@ def test_particle_parent_parent(particle_class):
     pickle.dumps(state3)
 
 
+@pytest.mark.parametrize(
+    'particle_class',
+    [
+        ParticleStatePrediction,
+        MultiModelParticleStatePrediction,
+        RaoBlackwellisedParticleStatePrediction,
+        BernoulliParticleStatePrediction,
+    ]
+)
+def test_particle_prediction_parent_prior(particle_class):
+    """ Check historical particle predictions weaken duplicate prior/parent references. """
+    state = ParticleState([[1, 2, 3]], weight=np.full((3,), 1/3))
+    pred1 = particle_class([[2, 3, 1]], weight=np.full((3,), 1/3), prior=state, parent=state)
+    pred2 = particle_class([[3, 1, 2]], weight=np.full((3,), 1/3), prior=pred1, parent=pred1)
+
+    assert pred1.prior is state
+    assert pred1.parent is state
+    assert pred2.prior is pred1
+    assert pred2.parent is pred1
+
+    del state
+
+    assert pred1.prior is None
+    assert pred1.parent is None
+    assert pred2.prior is pred1
+    assert pred2.parent is pred1
+
+    pickle.dumps(pred1)
+
+
+@pytest.mark.parametrize(
+    'particle_class',
+    [
+        ParticleStatePrediction,
+        MultiModelParticleStatePrediction,
+        RaoBlackwellisedParticleStatePrediction,
+        BernoulliParticleStatePrediction,
+    ]
+)
+def test_particle_prediction_different_parent_prior(particle_class):
+    # Check a distinct particle parent remains strongly referenced when prior is weakened.
+    prior = ParticleState([[1, 2, 3]], weight=np.full((3,), 1/3))
+    parent = ParticleState([[4, 5, 6]], weight=np.full((3,), 1/3))
+    pred1 = particle_class([[2, 3, 1]], weight=np.full((3,), 1/3), prior=prior, parent=parent)
+    pred2 = particle_class([[3, 1, 2]], weight=np.full((3,), 1/3), prior=pred1, parent=pred1)
+
+    del prior
+
+    assert pred1.prior is None
+    assert pred1.parent is parent
+    assert pred2.prior is pred1
+    assert pred2.parent is pred1
+
+
+@pytest.mark.parametrize(
+    'particle_class',
+    [
+        ParticleStatePrediction,
+        MultiModelParticleStatePrediction,
+        RaoBlackwellisedParticleStatePrediction,
+        BernoulliParticleStatePrediction,
+    ]
+)
+def test_particle_measurement_prediction_parent(particle_class):
+    # Check particle measurement predictions do not retain their parent state.
+    parent = ParticleState([[1, 2, 3]], weight=np.full((3,), 1/3))
+    prediction = particle_class([[2, 3, 1]], weight=np.full((3,), 1/3), parent=parent)
+    measurement_prediction = MeasurementPrediction.from_state(prediction)
+
+    assert isinstance(measurement_prediction, ParticleMeasurementPrediction)
+    assert measurement_prediction.parent is parent
+
+    del prediction
+    del parent
+
+    assert measurement_prediction.parent is None
+
+    pickle.dumps(measurement_prediction)
+
+
 def test_statemeasurementprediction():
     """ MeasurementPrediction test """
 

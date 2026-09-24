@@ -187,6 +187,17 @@ class ParticleStatePrediction(Prediction, ParticleState):
     This is a simple Particle state prediction object.
     """
 
+    def _weaken_historical_references(self):
+        # Keep the original prior available for comparison.
+        prior = self.prior
+
+        # Weaken the standard Prediction.prior reference.
+        super()._weaken_historical_references()
+
+        # Avoid retaining the same historical state through parent.
+        if self.parent is prior:
+            self._weaken_parent_reference()
+
 
 class PointMassStatePrediction(Prediction, PointMassState):
     """PointMassStatePrediction type
@@ -200,6 +211,11 @@ class ParticleMeasurementPrediction(MeasurementPrediction, ParticleState):
 
     This is a simple Particle measurement prediction object.
     """
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        # Measurement predictions should not retain their parent state.
+        self._weaken_parent_reference()
 
 
 class PointMassMeasurementPrediction(MeasurementPrediction, PointMassState):
@@ -215,6 +231,17 @@ class MultiModelParticleStatePrediction(Prediction, MultiModelParticleState):
     This is a simple multi-model Particle state prediction object.
     """
 
+    def _weaken_historical_references(self):
+        # Keep the original prior available for comparison.
+        prior = self.prior
+
+        # Weaken the standard Prediction.prior reference.
+        super()._weaken_historical_references()
+
+        # Avoid retaining the same historical state through parent.
+        if self.parent is prior:
+            self._weaken_parent_reference()
+
 
 class RaoBlackwellisedParticleStatePrediction(Prediction, RaoBlackwellisedParticleState):
     """RaoBlackwellisedParticleStatePrediction type
@@ -222,11 +249,33 @@ class RaoBlackwellisedParticleStatePrediction(Prediction, RaoBlackwellisedPartic
     This is a simple Rao Blackwellised Particle state prediction object.
     """
 
+    def _weaken_historical_references(self):
+        # Keep the original prior available for comparison.
+        prior = self.prior
+
+        # Weaken the standard Prediction.prior reference.
+        super()._weaken_historical_references()
+
+        # Avoid retaining the same historical state through parent.
+        if self.parent is prior:
+            self._weaken_parent_reference()
+
 
 class BernoulliParticleStatePrediction(Prediction, BernoulliParticleState):
     """BernoulliParticleStatePrediction type
 
     This is a simple Bernoulli Particle state prediction object"""
+
+    def _weaken_historical_references(self):
+        # Keep the original prior available for comparison.
+        prior = self.prior
+
+        # Weaken the standard Prediction.prior reference.
+        super()._weaken_historical_references()
+
+        # Avoid retaining the same historical state through parent.
+        if self.parent is prior:
+            self._weaken_parent_reference()
 
 
 class KernelParticleStatePrediction(Prediction, KernelParticleState):
