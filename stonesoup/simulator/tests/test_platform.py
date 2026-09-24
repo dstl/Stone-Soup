@@ -112,3 +112,31 @@ def test_detection_simulator(sensor_model1,
         for detection in detections:
             # Detection at location of ground truth or at platform.
             assert int(detection.state_vector[0]) in (int(n/3), 2*int(n/3))
+
+
+@pytest.mark.parametrize("attributes_inform", [{"sensor_name"}, {}])
+def test_informative(sensor_model1,
+                     transition_model1,
+                     attributes_inform):
+    # Tests that metadata is indeed attached to detections as specified:
+    sensor = deepcopy(sensor_model1)
+    sensor.sensor_name = "Tim"
+    platform = build_platform([sensor], 1.0)
+
+    initial_state = State(np.array([[0], [0], [0], [0]]),
+                          timestamp=datetime.datetime(2020, 4, 1))
+    ground_truth = SingleTargetGroundTruthSimulator(transition_model1,
+                                                    initial_state,
+                                                    number_steps=10)
+
+    detector = PlatformDetectionSimulator(
+        groundtruth=ground_truth,
+        platforms=[platform],
+        attributes_inform=attributes_inform)
+    for _, (_, detections) in enumerate(detector):
+        for detection in detections:
+            # Detection carries the right metadata:
+            if attributes_inform == {"sensor_name"}:
+                assert detection.metadata == {'sensor_name': 'Tim'}
+            elif attributes_inform == {}:
+                assert detection.metadata == {}

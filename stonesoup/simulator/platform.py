@@ -12,6 +12,7 @@ class PlatformDetectionSimulator(DetectionSimulator):
 
     Processes ground truth data and generates :class:`~.Detection` data
     according to a list of platforms by calling each sensor in these platforms.
+    Can append information of the sensors to the metadata of their corresponding detections.
 
     """
     groundtruth: GroundTruthReader = Property(
@@ -20,6 +21,9 @@ class PlatformDetectionSimulator(DetectionSimulator):
         doc='List of platforms in :class:`~.Platform` to generate sensor detections from.')
     platforms_detectable: bool = Property(
         default=True, doc='If sensor platforms are able to detect each other. Default ``True``')
+    attributes_inform: set[str] = Property(
+        default_factory=set, doc="Names of attributes to store the value of at time of detection."
+    )
 
     @BufferedGenerator.generator_method
     def detections_gen(self):
@@ -39,4 +43,11 @@ class PlatformDetectionSimulator(DetectionSimulator):
                     else:
                         truths_to_be_measured = truths
                     detections = sensor.measure(truths_to_be_measured)
+
+                    # Store metadata:
+                    attributes_dict = {attribute_name: sensor.__getattribute__(attribute_name)
+                                       for attribute_name in self.attributes_inform}
+                    for detection in detections:
+                        detection.metadata.update(attributes_dict)
+
                     yield time, detections
