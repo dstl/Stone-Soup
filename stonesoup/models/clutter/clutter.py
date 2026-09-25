@@ -1,12 +1,11 @@
 import numpy as np
 from scipy.stats import poisson
-from collections.abc import Callable
+from collections.abc import Callable, Sequence
 from typing import Union, Optional
 from abc import ABC
 
 from ..base import Model
 from ...base import Property
-from ...types.detection import Clutter
 from ...types.groundtruth import GroundTruthState
 from ...types.array import StateVector, StateVectors
 from ...types.numeric import Probability
@@ -25,6 +24,8 @@ class ClutterModel(Model, ABC):
     as they operate in the same state space.
     """
 
+    ndim_state: int = Property(doc="Number of state dimensions")
+    mapping: Sequence[int] = Property(doc="Mapping between measurement and state dims")
     clutter_rate: float = Property(
         default=1.0,
         doc="The average number of clutter points per time step. The actual "
@@ -51,6 +52,9 @@ class ClutterModel(Model, ABC):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
+        if len(self.mapping) != len(self.dist_params):
+            raise ValueError("The length of property `dist_params` must be equal to the `mapping`")
+
         if isinstance(self.seed, int):
             self.random_state = np.random.RandomState(self.seed)
         elif isinstance(self.seed, np.random.RandomState):
@@ -58,7 +62,7 @@ class ClutterModel(Model, ABC):
         else:
             self.random_state = None
 
-    def function(self, ground_truths: set[GroundTruthState], **kwargs) -> set[Clutter]:
+    def function(self, ground_truths: set[GroundTruthState], **kwargs) -> set[State]:
         """
         Use the defined distribution and parameters to create simulated clutter
         for the current time step. Return this clutter to the calling sensor so
@@ -71,8 +75,8 @@ class ClutterModel(Model, ABC):
 
         Returns
         -------
-        : set of :class:`~.Clutter`
-            The simulated clutter.
+        : set of :class:`~.State`
+            The simulated clutter locations.
         """
         # Extract the timestamp from the ground_truths. Groundtruth is
         # necessary to get the proper timestamp. If there is no
@@ -88,20 +92,9 @@ class ClutterModel(Model, ABC):
             random_vector = np.array([self.distribution(*arg) for arg in self.dist_params])
 
             # Make a State object with the random vector
-            state = State([0.0] * self.measurement_model.ndim_state, timestamp=timestamp)
-            state.state_vector[self.measurement_model.mapping, 0] += random_vector
-
-            # Use the sensor's measurement model to incorporate the
-            # translation offset and sensor rotation. This will also
-            # convert the vector to the proper measurement space
-            # (polar or spherical coordinates)
-            clutter_vector = self.measurement_model.function(state)
-
-            # Create a clutter object.
-            clutter.add(Clutter(state_vector=clutter_vector,
-                                timestamp=timestamp,
-                                measurement_model=self.measurement_model))
-
+            state = State([0.0] * self.ndim_state, timestamp=timestamp)
+            state.state_vector[self.mapping, 0] += random_vector
+            clutter.add(state)
         return clutter
 
     @property
@@ -110,10 +103,7 @@ class ClutterModel(Model, ABC):
         Return the number of measurement dimensions or, if a measurement model has
         not yet been assigned, the number of state dimensions.
         """
-        if hasattr(self, 'measurement_model'):
-            return self.measurement_model.ndim_meas
-        else:
-            return len(self.dist_params)
+        return self.ndim_state
 
     def rvs(self, num_samples: int = 1, **kwargs) -> Union[StateVector, StateVectors]:
         """

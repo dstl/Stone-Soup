@@ -10,7 +10,6 @@ from ...movable import FixedMovable
 from ..radar.radar import RadarElevationBearingRangeRate, RadarBearingRange, \
     RadarElevationBearingRange
 from ...platform import FixedPlatform
-from ...types.detection import Detection
 from ...types.groundtruth import GroundTruthPath, GroundTruthState
 from ..base import PlatformMountable
 from ..sensor import Sensor, SensorSuite, SimpleSensor
@@ -41,9 +40,6 @@ def test_simple_sensor_seed():
             return LinearGaussian(1, [0], np.diag([1]))
 
         def is_detectable(self, state: GroundTruthState, measurement_model=None) -> bool:
-            return True
-
-        def is_clutter_detectable(self, state: Detection) -> bool:
             return True
 
     s1 = DummySimpleSensor()

@@ -136,6 +136,8 @@ gt_simulator = MultiTargetGroundTruthSimulator(
 # %%
 from stonesoup.models.clutter.clutter import ClutterModel
 clutter_model = ClutterModel(
+    ndim_state=6,
+    mapping=(0, 2, 4),
     clutter_rate=2.0,
     distribution=np.random.default_rng().uniform,
     dist_params=((-600.0, 600.0), (-600.0, 600.0), (250.0, 750.0))
