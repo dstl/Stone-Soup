@@ -1,3 +1,4 @@
+import copy
 import datetime
 from itertools import product
 
@@ -5,7 +6,7 @@ import numpy as np
 import pytest
 
 from ...gater.distance import DistanceGater
-from ...hypothesiser.mfa import MFAHypothesiser
+from ...hypothesiser.mfa import MFAHypothesiser, MHMFAHypothesiser
 from ...measures import Mahalanobis
 from ...types.detection import Detection
 from ...types.mixture import GaussianMixture
@@ -141,3 +142,95 @@ def test_mfa_no_tracks(data_associator):
 
     associations = data_associator.associate(set(), {Detection([0, 1])}, datetime.datetime.now())
     assert not associations
+
+
+@pytest.mark.parametrize('slide_window', [2, 3, 6])
+def test_mhmfa(predictor, updater, measurement_model, probability_hypothesiser, slide_window):
+    # Hypothesiser and Data Associator
+    hypothesiser = MHMFAHypothesiser([
+        copy.deepcopy(probability_hypothesiser), copy.deepcopy(probability_hypothesiser)])
+    for hyp, prob_div in zip(hypothesiser.hypothesisers, [1, 2]):
+        hyp.normalise = False
+        hyp.prob_detect /= prob_div
+
+    data_associator = MFADataAssociator(hypothesiser, slide_window=slide_window)
+    start_time = datetime.datetime.now()
+
+    prior1 = GaussianMixture([TaggedWeightedGaussianState([[0], [1], [0], [1]],
+                                                          np.diag([1.5, 0.5, 1.5, 0.5]),
+                                                          timestamp=start_time,
+                                                          weight=Probability(1), tag=[])])
+    prior2 = GaussianMixture([TaggedWeightedGaussianState([[0], [1], [40], [-1]],
+                                                          np.diag([1.5, 0.5, 1.5, 0.5]),
+                                                          timestamp=start_time,
+                                                          weight=Probability(1), tag=[])])
+    tracks = {Track([prior1]), Track([prior2])}
+
+    timestamp = start_time + datetime.timedelta(seconds=1)
+    detections = generate_detections(tracks, timestamp, predictor, measurement_model)
+
+    associations = data_associator.associate(tracks, detections, timestamp)
+
+    # Association for each track
+    assert tracks == associations.keys()
+
+    # All measurements should feature
+    assert detections == {hyp.measurement for mhyp in associations.values() for hyp in mhyp if hyp}
+
+    # Missed detections
+    assert len([hyp for mhyp in associations.values() for hyp in mhyp if not hyp]) == 4
+
+    for track, mhyp in associations.items():
+        assert len(mhyp) == 10
+
+    # Let's add a gate
+    data_associator.hypothesiser = DistanceGater(data_associator.hypothesiser, Mahalanobis(), 6)
+    associations = data_associator.associate(tracks, detections, timestamp)
+
+    assert tracks == associations.keys()
+    assert detections == {hyp.measurement for mhyp in associations.values() for hyp in mhyp if hyp}
+    assert len([hyp for mhyp in associations.values() for hyp in mhyp if not hyp]) == 4
+
+    for track, mhyp in associations.items():
+        assert len(mhyp) == 6  # One missed, and detections near track
+        assert {hyp.prediction.tag[-1] for hyp in mhyp} < set(product(range(5), range(2)))
+
+    step = 2
+    timestamp += datetime.timedelta(seconds=1)
+    update_tracks(associations, updater)
+    detections = generate_detections(tracks, timestamp, predictor, measurement_model)
+    associations = data_associator.associate(tracks, detections, timestamp)
+
+    for track, mhyp in associations.items():
+        assert len(mhyp) == 6**step if slide_window > step else 6  # Pruned
+        for hyp in mhyp:
+            assert len(hyp.prediction.tag) == step
+            if not hyp:
+                assert hyp.prediction.tag[-1][0] == 0
+                assert hyp.prediction.tag[-2][0] in range(5)
+                assert hyp.prediction.tag[-2][1] in range(2)
+                assert hyp.prediction.tag[-2][1] in range(2)
+            else:
+                assert tuple(hyp.prediction.tag) in list(
+                    product(*[list(product(range(5), range(2)))]*2))
+
+    step = 3
+    timestamp += datetime.timedelta(seconds=1)
+    update_tracks(associations, updater)
+    detections = generate_detections(tracks, timestamp, predictor, measurement_model)
+    associations = data_associator.associate(tracks, detections, timestamp)
+
+    for track, mhyp in associations.items():
+        assert len(mhyp) == 6**step if slide_window > step else 6**(slide_window-1)
+        for hyp in mhyp:
+            assert len(hyp.prediction.tag) == step
+            if not hyp:
+                assert hyp.prediction.tag[-1][0] == 0
+                assert hyp.prediction.tag[-2][0] in range(5)
+                assert hyp.prediction.tag[-3][0] in range(5)
+                assert hyp.prediction.tag[-1][1] in range(2)
+                assert hyp.prediction.tag[-2][1] in range(2)
+                assert hyp.prediction.tag[-3][1] in range(2)
+            else:
+                assert tuple(hyp.prediction.tag) in list(
+                    product(*[list(product(range(5), range(2)))]*3))
