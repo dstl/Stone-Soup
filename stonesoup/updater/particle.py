@@ -13,6 +13,7 @@ from .base import Updater
 from .kalman import KalmanUpdater, ExtendedKalmanUpdater
 from ..base import Property
 from ..functions import cholesky_eps, sde_euler_maruyama_integration
+from ..models.measurement import MeasurementModel
 from ..predictor.particle import MultiModelPredictor, RaoBlackwellisedMultiModelPredictor
 from ..resampler import Resampler
 from ..regulariser import Regulariser
@@ -33,6 +34,12 @@ class ParticleUpdater(Updater):
     required).
     """
 
+    measurement_model: MeasurementModel = Property(
+        default=None,
+        doc="The measurement model to be used. This need not be defined if a "
+            "measurement model is provided in the measurement. If no model "
+            "specified on construction, or in the measurement, then error "
+            "will be thrown.")
     resampler: Resampler = Property(default=None, doc='Resampler to prevent particle degeneracy')
     regulariser: Regulariser = Property(
         default=None,
@@ -79,10 +86,8 @@ class ParticleUpdater(Updater):
             hypothesis=hypothesis,
             timestamp=hypothesis.prediction.timestamp)
 
-        if hypothesis.measurement.measurement_model is None:
-            measurement_model = self.measurement_model
-        else:
-            measurement_model = hypothesis.measurement.measurement_model
+        measurement_model = self._check_measurement_model(
+            hypothesis.measurement.measurement_model)
 
         # p(y_k|x_k)
         loglikelihood = measurement_model.logpdf(hypothesis.measurement, predicted_state,
@@ -118,8 +123,7 @@ class ParticleUpdater(Updater):
     def predict_measurement(self, predicted_state, measurement_model=None, measurement_noise=True,
                             **kwargs):
 
-        if measurement_model is None:
-            measurement_model = self.measurement_model
+        measurement_model = self._check_measurement_model(measurement_model)
 
         new_state_vector = measurement_model.function(
             predicted_state, noise=measurement_noise, **kwargs)
@@ -144,12 +148,17 @@ class GromovFlowParticleUpdater(Updater):
            method for stochastic particle flow filters." 2017
     """
 
+    measurement_model: MeasurementModel = Property(
+        default=None,
+        doc="The measurement model to be used. This need not be defined if a "
+            "measurement model is provided in the measurement. If no model "
+            "specified on construction, or in the measurement, then error "
+            "will be thrown.")
+
     def update(self, hypothesis, **kwargs):
 
-        if hypothesis.measurement.measurement_model is None:
-            measurement_model = self.measurement_model
-        else:
-            measurement_model = hypothesis.measurement.measurement_model
+        measurement_model = self._check_measurement_model(
+            hypothesis.measurement.measurement_model)
 
         num_steps = 20
         b = 2
@@ -267,6 +276,7 @@ class GromovFlowKalmanParticleUpdater(GromovFlowParticleUpdater):
 class MultiModelParticleUpdater(ParticleUpdater):
     """Particle Updater for the Multi Model system"""
 
+    measurement_model: MeasurementModel = Property(doc="measurement model")
     predictor: MultiModelPredictor = Property(
         doc="Predictor which hold holds transition matrix")
 
@@ -284,10 +294,8 @@ class MultiModelParticleUpdater(ParticleUpdater):
         : :class:`~.MultiModelParticleStateUpdate`
             The state posterior
         """
-        if hypothesis.measurement.measurement_model is None:
-            measurement_model = self.measurement_model
-        else:
-            measurement_model = hypothesis.measurement.measurement_model
+        measurement_model = self._check_measurement_model(
+            hypothesis.measurement.measurement_model)
 
         update = Update.from_state(
             hypothesis.prediction,
@@ -344,10 +352,8 @@ class RaoBlackwellisedParticleUpdater(MultiModelParticleUpdater):
             The state posterior
         """
 
-        if hypothesis.measurement.measurement_model is None:
-            measurement_model = self.measurement_model
-        else:
-            measurement_model = hypothesis.measurement.measurement_model
+        measurement_model = self._check_measurement_model(
+            hypothesis.measurement.measurement_model)
 
         update = Update.from_state(
             hypothesis.prediction,
@@ -490,7 +496,7 @@ class BernoulliParticleUpdater(ParticleUpdater):
             log_detection_probability = self.get_log_detection_probability(prediction)
 
             for detection in detections:
-                measurement_model = detection.measurement_model or self.measurement_model
+                measurement_model = self._check_measurement_model(detection.measurement_model)
                 log_meas_likelihood.append(measurement_model.logpdf(detection, updated_state))
                 delta_part2.append(self._log_space_product(
                     log_detection_probability,
@@ -628,6 +634,7 @@ class SMCPHDUpdater(ParticleUpdater):
            confirm tracks in a multi-target environment,” in 2011 Jahrestagung der Gesellschaft
            fr Informatik, October 2011.
     """
+    measurement_model: MeasurementModel = Property(doc="measurement model")
     prob_detect: Probability = Property(
         default=Probability(0.85),
         doc="Target Detection Probability")
