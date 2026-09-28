@@ -62,7 +62,7 @@ class ChangeAngleAction(Action):
         return actionable_value
 
 
-class AngleActionsGenerator(RealNumberActionGenerator):
+class AngleActionGenerator(RealNumberActionGenerator):
     """Generates possible actions for changing an actionable property of a sensor in a given
     time period."""
 
@@ -76,11 +76,6 @@ class AngleActionsGenerator(RealNumberActionGenerator):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.epsilon = Angle(np.radians(1e-6))
-
-    @property
-    @abstractmethod
-    def default_action(self):
-        return NotImplementedError
 
     def __call__(self, resolution=None, epsilon=None):
         """
@@ -98,6 +93,8 @@ class AngleActionsGenerator(RealNumberActionGenerator):
 
     @property
     def initial_value(self):
+        """Initial angle value for use where a :class:`~.SensorManager` requires an `initial_value`
+         for optimisation."""
         return Angle(self.current_value[0, 0])
 
     @property

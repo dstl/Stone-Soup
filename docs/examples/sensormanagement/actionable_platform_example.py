@@ -121,9 +121,8 @@ platform = FixedPlatform(
     movement_controller=NStepDirectionalGridMovable(states=[State([[-500], [500]],
                                                                   timestamp=start_time)],
                                                     position_mapping=(0, 1),
-                                                    resolution=1,
+                                                    resolution=6.25,  # 6.25 seems to match target
                                                     n_steps=2,
-                                                    step_size=6.25,  # 6.25 seems to match target
                                                     action_mapping=(0, 1)),
     sensors=[sensor])
 

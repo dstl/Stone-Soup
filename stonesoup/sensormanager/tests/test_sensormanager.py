@@ -505,9 +505,8 @@ def test_sensor_manager_with_platform(params):
     platform = Platform(movement_controller=NStepDirectionalGridMovable(
         states=[State(StateVector([[-20], [0]]), start_time)],
         position_mapping=(0, 1),
-        resolution=1,
+        resolution=2,
         n_steps=2,
-        step_size=2
     ))
 
     sensor = RadarRotatingBearingRange(
