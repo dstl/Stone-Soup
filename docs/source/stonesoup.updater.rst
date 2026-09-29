@@ -95,3 +95,9 @@ Probabilistic
 
 .. automodule:: stonesoup.updater.probability
     :show-inheritance:
+
+Multi
+-----
+
+.. automodule:: stonesoup.updater.multi
+    :show-inheritance:
