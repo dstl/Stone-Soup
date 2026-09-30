@@ -95,3 +95,9 @@ Probabilistic
 
 .. automodule:: stonesoup.updater.probability
     :show-inheritance:
+
+Out of Sequence
+---------------
+
+.. automodule:: stonesoup.updater.oos
+    :show-inheritance:
