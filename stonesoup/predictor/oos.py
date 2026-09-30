@@ -12,14 +12,6 @@ from . import Predictor
 from ._utils import predict_lru_cache
 
 
-# Remove code used for weakrefs
-def new_init(self, *args, **kwargs):
-    super(Prediction, self).__init__(*args, **kwargs)
-
-
-Prediction.__init__ = new_init
-
-
 def get_hypothesis(
         hypothesis: SingleHypothesis | MultipleHypothesis,
         f: Callable[[SingleHypothesis], bool] = lambda x: True) -> SingleHypothesis | None:
@@ -45,15 +37,37 @@ def get_hypothesis(
         return hypothesis
 
 
+def get_prior_state(state):
+    """Get the state preceding the given state
+
+    If the state is an instance of `Prediction`, this is the `prior` attribute.
+    If the state is an instance of `Update`, this is the associated hypothesis's
+    prediction's `prior`. Otherwise, there is no prior state.
+
+    Parameters
+    ----------
+    state : :class:`~.State`
+        The state to get the prior state of.
+
+    Returns
+    -------
+    : :class:`~.State` or None
+        The prior state, or ``None`` if there is no prior state.
+    """
+    if isinstance(state, Prediction):
+        return state.prior
+    elif isinstance(state, Update):
+        return getattr(get_hypothesis(state.hypothesis).prediction, 'prior', None)
+    else:
+        return None
+
+
 def get_past_states(state):
     """
     Yields the sequence of past states leading up to the given state.
 
-    Traverses backwards through a chain of states, yielding each state in the chain.
-    If the state is an instance of `Prediction`, it follows the `prior` attribute.
-    If the state is an instance of `Update`, it retrieves the associated hypothesis's
-    prediction's `prior`.
-    Stops when there are no more prior states.
+    Traverses backwards through a chain of states, yielding each state in the chain,
+    following :func:`get_prior_state`. Stops when there are no more prior states.
 
     Parameters
     ----------
@@ -66,12 +80,7 @@ def get_past_states(state):
     """
     while state is not None:
         yield state
-        if isinstance(state, Prediction):
-            state = state.prior
-        elif isinstance(state, Update):
-            state = getattr(get_hypothesis(state.hypothesis).prediction, 'prior', None)
-        else:
-            state = None
+        state = get_prior_state(state)
 
 
 class OOSPredictorWrapper(Predictor):

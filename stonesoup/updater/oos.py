@@ -6,7 +6,7 @@ from ..base import Property
 from ..hypothesiser import Hypothesiser
 from ..initiator.simple import SimpleMeasurementInitiator, SinglePointInitiator
 from ..predictor import Predictor
-from ..predictor.oos import get_hypothesis, get_past_states
+from ..predictor.oos import get_hypothesis, get_past_states, get_prior_state
 from ..types.multihypothesis import MultipleHypothesis
 from ..types.prediction import Prediction
 from ..types.update import Update
@@ -18,6 +18,10 @@ class OOSUpdaterWrapper(Updater):
     OOSUpdaterWrapper is a wrapper for an Updater that enables out-of-sequence (OOS) measurement
     updates. It manages the process of updating state estimates when measurements arrive out of
     chronological order, by reprocessing the affected states and propagating updates forward.
+
+    To enable this, the chain of past states is required. As :class:`~.Prediction` only holds a
+    weak reference to states further back in this chain (to limit memory use), this updater holds
+    strong references to the prior of each state it creates, for at least :attr:`min_history`.
     """
     measurement_model = None
     updater: Updater = Property(doc="Updater being wrapped to carry out update stage")
@@ -35,9 +39,14 @@ class OOSUpdaterWrapper(Updater):
             "Default ``None``, where existing hypotheses are used.")
     min_history: datetime.timedelta = Property(
         default=None,
-        doc="Min history to ensure is used for out of sequence, where weakref to prior beyond "
-            "this time will be set to enable garbage collection of old states. Default ``None``, "
-            "where history is kept indefinitely.")
+        doc="Min history to ensure is kept for out of sequence, beyond which references to "
+            "prior states are released, enabling garbage collection of old states. Default "
+            "``None``, where history is kept indefinitely.")
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        # Strong references from each state to its prior state
+        self._priors = weakref.WeakKeyDictionary()
 
     @staticmethod
     def _update_states(latest_state, prior):
@@ -75,6 +84,42 @@ class OOSUpdaterWrapper(Updater):
         return self.initiator.initiate(
                     {hypothesis.measurement}, hypothesis.prediction.timestamp, **kwargs).pop()[-1]
 
+    def _hold_prior(self, state):
+        """Hold strong reference to prior of state, so that it is not garbage collected"""
+        prior = get_prior_state(state)
+        if prior is not None:
+            self._priors[state] = prior
+
+    @staticmethod
+    def _release_prior(state):
+        """Replace reference to prior of state with weakref, so it can be garbage collected"""
+        if isinstance(state, Prediction):
+            predictions = [state]
+        elif isinstance(state, Update):
+            if isinstance(state.hypothesis, MultipleHypothesis):
+                predictions = [hyp.prediction for hyp in state.hypothesis]
+            else:
+                predictions = [state.hypothesis.prediction]
+        else:
+            predictions = []
+        for prediction in predictions:
+            if isinstance(prediction, Prediction) and prediction.prior is not None:
+                prediction.prior = weakref.ref(prediction.prior)
+
+    def _prune_history(self, state):
+        """Release references to states older than :attr:`min_history`"""
+        cutoff = state.timestamp - self.min_history
+        # Find the most recent state at or before the cutoff, which must be kept to cover
+        # the full min history
+        for state in get_past_states(state):
+            if state.timestamp <= cutoff:
+                break
+        else:
+            return
+        while state is not None:
+            self._release_prior(state)
+            state = self._priors.pop(state, None)
+
     def _repredict(self, prediction, timestamp, **kwargs):
         return self.predictor.predict(prediction.prior, timestamp, **kwargs)
 
@@ -107,8 +152,10 @@ class OOSUpdaterWrapper(Updater):
                 post = hypothesis.prediction
             else:
                 post = self.updater.update(hypothesis, **kwargs)
+            self._hold_prior(post)
 
-        for state in reversed(self._update_states(latest_state, prior)):
+        superseded_states = self._update_states(latest_state, prior)
+        for state in reversed(superseded_states):
             pred = self.predictor.predict(post, state.timestamp, **kwargs)
             if isinstance(state, Prediction):
                 post = pred
@@ -121,12 +168,13 @@ class OOSUpdaterWrapper(Updater):
                 post = self.updater.update(hyp, **kwargs)
             else:
                 raise TypeError(f"Unexpected state type: {type(state)!r}")
+            self._hold_prior(post)
+
+        # Superseded states have been replaced by reprocessed states, so no longer need history
+        for state in superseded_states:
+            self._priors.pop(state, None)
 
         if self.min_history:
-            for state in get_past_states(post):
-                if isinstance(state, Prediction) and state.prior \
-                        and state.prior.timestamp < post.timestamp - self.min_history:
-                    state.prior = weakref.ref(state.prior)
-                    break
+            self._prune_history(post)
 
         return post
