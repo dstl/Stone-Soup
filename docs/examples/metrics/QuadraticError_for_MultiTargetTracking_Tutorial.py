@@ -13,7 +13,7 @@ Applications of the Quadratic Distance to Multi-Target Tracking
 # tracking sensor management and performance evaluation. An accessible background section is
 # provided which gives ample detail on the formulation of the quadratic distance, the mean
 # quadratic error and the quadratic information gain. A simulation is then constructed in order
-# to provide guidance and intuition on how to use the Stonesoup implementation of these tools.
+# to provide guidance and intuition on how to use the Stone Soup implementation of these tools.
 #
 
 # %%
@@ -26,18 +26,18 @@ Applications of the Quadratic Distance to Multi-Target Tracking
 # subset of these functions which abide by the axioms of symmetry, positive-definiteness and the
 # triangle inequality are termed metrics or distances. Functions which do not abide by these
 # axioms are often termed measures (not to be confused with objects appearing under the same
-# name in the field of measure theory). Metrics provide a qunatitative comparison which is
+# name in the field of measure theory). Metrics provide a quantitative comparison which is
 # objective, whereas measures tend to be subjective and based on qualitative features. The
 # notion of quadratic error (or Euclidean error) is ubiquitous in mathematical analysis. Being
 # able to consider the quadratic distance between multi-target state representations allows for
 # the application of a vast range of analysis techniques to the problems of multi-target tracking,
 # namely tools from the domains of estimation theory, decision theory and information theory just
-# to name a few may be utilised. The quadratic distance for point patterns, developed in [1], is
+# to name a few may be utilised. The quadratic distance for point patterns, developed in [1]_, is
 # a metric on the space of point patterns (multi-target state representations). The metric can
-# compare, point patterns (sets of target states), distribution mixtures (sets of target state
-# estimates with uncertainty) and random point patterns, described by point processes. This notion
+# compare point patterns (sets of target states), distribution mixtures (sets of target state
+# estimates with uncertainty) and random point patterns described by point processes. This notion
 # allows for a well understood geometric intuition to be applied in the context of multi-target
-# tracking.
+# tracking [2]_.
 
 # %%
 # Background
@@ -86,7 +86,7 @@ Applications of the Quadratic Distance to Multi-Target Tracking
 #     \mathcal{Q}_\Lambda(\varphi - \psi) = \int (\varphi(x)-\psi(x))\Lambda(x,y)(\varphi(y)-
 #     \psi(y))\mathrm dx \mathrm dy.
 #
-# This is the quadratic distance. The above expression is the inner product of :math:`(\varphi -
+# This is the quadratic distance [1]_[2]_. The above expression is the inner product of :math:`(\varphi -
 # \psi)` with itself, weighted by the symmetric, positive-definite kernel :math:`\Lambda(x,y)`.
 # Expanding this expression gives the following
 #
@@ -149,7 +149,7 @@ Applications of the Quadratic Distance to Multi-Target Tracking
 # points is considered small even if they are sparsely separated. Conversely, if the
 # covariance is small, then the distance between points close in proximity may be considered
 # large. Infinitely many kernel choices may be considered and the interested reader is referred
-# to the following resources [4]. For the remainder of this tutorial, the Gaussian kernel is
+# to the following resources [4]_. For the remainder of this example, the Gaussian kernel is
 # considered.
 #
 # The Mean Squared Error for point patterns
@@ -197,7 +197,7 @@ Applications of the Quadratic Distance to Multi-Target Tracking
 # formulated as a function of the predicted and updated probability distributions. If we
 # consider the above expression in the case where :math:`\boldsymbol X` denotes the predicted
 # point process and :math:`\varphi(\boldsymbol Z)` denotes the intensity of the posterior point
-# process as a function of the measurmeent point process, then we can develop the following
+# process as a function of the measurement point process, then we can develop the following
 # expression of information gain based on the MQE
 #
 # .. math::
@@ -220,11 +220,11 @@ Applications of the Quadratic Distance to Multi-Target Tracking
 # as such we discuss implementations for the quadratic distance between
 # point patterns, between a point pattern and a gaussian mixture, and
 # between gaussian mixtures. The implemented expressions may be found in
-# [1]. The implementation of the MQE and the QIG is developed for the
-# specific case of the Gaussian mixture PHD filter [1][3]. The
+# [1]_. The implementation of the MQE and the QIG is developed for the
+# specific case of the Gaussian mixture PHD filter [1]_[3]_. The
 # implementation of these tools is bespoke to the filtering method
 # considered since the computation requires knowledge of the second order
-# moment of the posterior point process [1][3].
+# moment of the posterior point process [1]_[3]_.
 
 # %%
 # Simulation
@@ -352,13 +352,13 @@ plotter.fig
 # Sensors
 # ^^^^^^^
 # Next, :class:`~.RadarRotatingBearingRange` sensor objects are
-# initialised. In this simulation, we will considered two methods of
+# initialised. In this simulation, we will consider two methods of
 # tracking the previously generated targets: one in which the sensors are
 # tasked randomly and another in which the sensors are tasked optimally
 # according to the QIG. Two sets of sensors are created: one for the
 # random sensor manager and another for the quadratic distance based
 # sensor manager. The dwell centre of each sensor in the configuration may
-# controlled by the sensor manager.
+# be controlled by the sensor manager.
 
 # sensor parameters
 n_sensors = 1
@@ -419,8 +419,8 @@ clutter_spatial_density = clutter_rate / surveillance_area
 # particular Gaussian kernel to be used by the QIG reward function. Due to
 # the nature of the posterior intensity of the Gaussian Mixture PHD
 # filter, the expectation with respect to measurements must be
-# approximated numerically, hence, the number of samples with with this
-# will be done must be specified [3].
+# approximated numerically, hence, the number of samples with which this
+# will be done must be specified [3]_.
 
 # predictor
 kalman_predictor = KalmanPredictor(transition_model)
@@ -995,7 +995,7 @@ plt.show()
 # metric will show more varied behaviour. If the covariance magnitude of
 # the Gaussian kernel is small, then, unless extremely accurate and
 # certain, the performance of the filters will appear to be invariably
-# poor. this oparameter may be selected depending on the notion of
+# poor. This parameter may be selected depending on the notion of
 # successful estimation in the particular scenario at hand. If only
 # estimation which is perfect is to be rewarded, then the kernel should be
 # made strict by selecting a narrow kernel covariance.
@@ -1013,16 +1013,16 @@ plt.show()
 # %%
 # References
 # ----------
-# [1] Daniel E. Clark, Idyano Leroy, Peter R. Richards, Sean M. O Rourke, Quadratic error
+# .. [1] Daniel E. Clark, Idyano Leroy, Peter R. Richards, Sean M. O Rourke, Quadratic error
 #    for point patterns. TechRxiv. July, 2025.
 #
-# [2] Daniel E. Clark, Peter R. Richards, Sean M. O Rourke, A Functional Quadratic Form
+# .. [2] Daniel E. Clark, Peter R. Richards, Sean M. O Rourke, A Functional Quadratic Form
 #     Distance for Multi-Target Tracking Performance Assessment.
 #     28th International Conference on Information Fusion. July, 2025.
 #
-# [3] Peter R. Richards, Idyano Leroy, Daniel E. Clark, A Quadratic Reward for Information-Driven
+# .. [3] Peter R. Richards, Idyano Leroy, Daniel E. Clark, A Quadratic Reward for Information-Driven
 #     Sensor Management in Multi-Target Tracking. 29th International Conference on Information
 #     Fusion. June, 2026.
 #
-# [4] Marc G. Genton, Classes of Kernels for Machine Learning: A Statistics Perspective,
+# .. [4] Marc G. Genton, Classes of Kernels for Machine Learning: A Statistics Perspective,
 #     Journal of Machine Learning Research 2, pp. 299-312, 2001.

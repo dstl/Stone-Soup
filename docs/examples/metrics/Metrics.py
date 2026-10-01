@@ -89,8 +89,8 @@ basic_PF = BasicMetrics(generator_name='basic_PF', tracks_key='PF_tracks', truth
 # calculated at each time step to show how far the tracks are from the ground truth paths. It
 # returns an overall multi-track to multi-ground-truth missed distance for each time step.
 #
-# The generator has two additional properties: $p \in [1,\infty]$ for outlier sensitivity
-# and $c > 1$ for cardinality penalty[^1].
+# The generator has two additional properties: :math:`p \in [1,\infty]` for outlier sensitivity
+# and :math:`c > 1` for cardinality penalty[#]_.
 
 ospa_EKF_truth = OSPAMetric(c=40, p=1, generator_name='OSPA_EKF-truth',
                             tracks_key='EKF_tracks', truths_key='truths')
@@ -103,22 +103,22 @@ ospa_EKF_PF = OSPAMetric(c=40, p=1, generator_name='OSPA_EKF-PF',
 # Next, we create generators for the quadratic distance metric using the
 # :class:`~.QuadraticDistance` class. This metric computes the quadratic
 # distance between two objects. These objects may take many forms, however,
-# this implementation allows for point set and Gaussian mixture objects.[^2]
+# this implementation allows for point set and Gaussian mixture objects.[#]_
 #
-# The metric is parametrised by a kernel, $\Lambda(x,y)$, which determines
+# The metric is parametrised by a kernel, :math:`\Lambda(x,y)`, which determines
 # the association between two elements of the compared objects. In this case
 # we compute the quadratic distance for the Gaussian kernel parametrisation
-# where $\Lambda(x,y)=\exp(-\frac{1}{2}(x-y)^\top R^{-1} (x-y))$, by setting
+# where :math:`\Lambda(x,y)=\exp(-\frac{1}{2}(x-y)^\top R^{-1} (x-y))`, by setting
 # `kernel='Gaussian'` in the generator.
 #
 # This kernel has a single parameter given by the symmetric, positive-definite
-# covariance matrix $R$. Here we set $R=$ `kernel_cov` $=rI$, where $r=10$, by
-# setting `kernel_parameters={'covariance':kernel_cov}`. The value of $r$ may
+# covariance matrix `R`. Here we set `R=kernel_cov=r`, where `r=10`, by
+# setting `kernel_parameters={'covariance':kernel_cov}`. The value of `r` may
 # be changed to influence the strictness of the metric.
 #
 # A more detailed exposition of this metric and its usage within stoneoup
 # can be found in the "Applications of the quadratic distance to
-# multi-target tracking" example worksheet [^4].
+# multi-target tracking" example worksheet [#]_.
 
 # Gaussian kernel parameter
 r = 100
@@ -144,7 +144,7 @@ quaderr_EKF_PF = QuadraticDistance(state_dim=4,
 
 # %%
 # Next, we create the Single Integrated Air Picture (SIAP) metric generators. These metrics are
-# applicable to tracking in general - not just the air domain.[^3]
+# applicable to tracking in general - not just the air domain. [#]_
 #
 # The SIAP generators will generate a series of different SIAP metrics that
 # provide information about the accuracy of the tracking. They generate different SIAP
@@ -551,14 +551,14 @@ graph.set_ax_title(['Extended Kalman Filter', 'Particle Filter'])  # set title f
 # %%
 # .. rubric:: Footnotes
 #
-# [^1] D. Schuhmacher, B. Vo and B. Vo, A Consistent Metric for Performance Evaluation of
+# .. [#] D. Schuhmacher, B. Vo and B. Vo, A Consistent Metric for Performance Evaluation of
 #    Multi-Object Filters, IEEE Trans. Signal Processing 2008
 #
-# [^2] Daniel E. Clark, Idyano Leroy, Peter R. Richards, Sean M. O'Rourke, Quadratic error
+# .. [#] Daniel E. Clark, Idyano Leroy, Peter R. Richards, Sean M. O'Rourke, Quadratic error
 #    for point patterns. TechRxiv. July 24, 2025.
 #
-# [^3] Karoly S., Wilson J., Dutchyshyn H., Maluda J., Single Integrated Air Picture (SIAP)
-#    Attributes Version 2.0, DTIC Technical Report 2003
-#
-# [^4] https://stonesoup.readthedocs.io/en/v1.9.1/auto_examples/metrics/QuadraticError_for_Mul
+# .. [#] https://stonesoup.readthedocs.io/en/v1.9.1/auto_examples/metrics/QuadraticError_for_Mul
 #    tiTargetTracking_Tutorial.html
+#
+# .. [#] Karoly S., Wilson J., Dutchyshyn H., Maluda J., Single Integrated Air Picture (SIAP)
+#    Attributes Version 2.0, DTIC Technical Report 2003
