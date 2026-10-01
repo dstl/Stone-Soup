@@ -13,11 +13,12 @@ from stonesoup.models.transition.linear import CombinedLinearGaussianTransitionM
 from stonesoup.platform.base import Obstacle
 from stonesoup.platform.shape import Shape
 from stonesoup.plotter import Plotter, Dimension, AnimatedPlotterly, AnimationPlotter, Plotterly, \
-    PolarPlotterly, AnimatedPolarPlotterly, merge_dicts
+    PolarPlotterly, AnimatedPolarPlotterly, MetricPlotter, merge_dicts
 from stonesoup.predictor.kalman import KalmanPredictor
 from stonesoup.sensor.radar.radar import RadarElevationBearingRange
 from stonesoup.types.detection import TrueDetection, Clutter
 from stonesoup.types.groundtruth import GroundTruthPath, GroundTruthState
+from stonesoup.types.metric import SingleTimeMetric, TimeRangeMetric
 from stonesoup.types.state import GaussianState, State, StateVector
 from stonesoup.types.track import Track
 from stonesoup.updater.kalman import KalmanUpdater
@@ -667,3 +668,29 @@ def test_obstacles(plotters, obstacles):
         plotters.plot_measurements(all_measurements, [0, 1])
         plotters.plot_tracks(track, [0, 1])
         plotters.plot_obstacles(obstacles)
+
+
+@pytest.fixture
+def metrics():
+    return {
+        generator_name: {'Metric': TimeRangeMetric(
+            title='Metric', generator=None,
+            value=[SingleTimeMetric(title='Metric', value=n*k, timestamp=timestamp, generator=None)
+                   for k, timestamp in enumerate(timesteps)])}
+        for n, generator_name in enumerate(('A', 'B', 'C'))}
+
+
+@pytest.mark.parametrize("linestyle, expected", [
+    (None, ['-', '-', '-']),  # default
+    (':', [':', ':', ':']),
+    ((0, (5, 5)), ['--', '--', '--']),  # tuple dash pattern (reported by matplotlib as '--')
+    (['-', '--', ':'], ['-', '--', ':']),
+])
+def test_metric_plotter_linestyle(metrics, linestyle, expected):
+    kwargs = {} if linestyle is None else {'linestyle': linestyle}
+    plotter = MetricPlotter()
+    plotter.plot_metrics(metrics, color=['red', 'green', 'blue'], **kwargs)
+    axis = plotter.axes[0]
+    assert [line.get_linestyle() for line in axis.lines] == expected
+    assert [line.get_linestyle() for line in axis.get_legend().get_lines()] == expected
+    assert [line.get_color() for line in axis.lines] == ['red', 'green', 'blue']
