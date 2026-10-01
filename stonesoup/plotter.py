@@ -719,6 +719,7 @@ class Plotter(_Plotter):
             covars = np.asarray([component.covar[np.ix_(mapping, mapping)]
                                  for component in state_sequences], dtype=np.float64)
             weights = np.asarray(state_sequences.weights, dtype=np.float64)
+            weights = weights / weights.sum()
 
             std_devs = np.sqrt(np.diagonal(covars, axis1=1, axis2=2))
             lower = np.min(means - 3 * std_devs, axis=0)

@@ -44,3 +44,10 @@ def test_plot_density_gaussian_mixture(monkeypatch):
     assert plotted['kwargs']['shading'] == 'auto'
     assert plotted['kwargs']['cmap'] == 'viridis'
     assert_allclose(plotted['density'], expected)
+
+    scaled_mixture = GaussianMixture([
+        WeightedGaussianState([0, 0, 0, 0], covariance_1, weight=4),
+        WeightedGaussianState([5, 0, 4, 0], covariance_2, weight=6),
+    ])
+    plotter.plot_density(scaled_mixture, mapping=(0, 2), n_bins=30)
+    assert_allclose(plotted['density'], expected)
