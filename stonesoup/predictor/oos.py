@@ -125,10 +125,10 @@ class OOSPredictorWrapper(Predictor):
             for state in get_past_states(states[-1]):
                 if isinstance(state, Update):
                     state_seq.insert(0, state)
+                    if len(state_seq) > 1:
+                        smooth_states = self.smoother.smooth(state_seq)
+                        new_prior = smooth_states[0]
                     break
-            if len(state_seq) > 1:
-                smooth_states = self.smoother.smooth(state_seq)
-                new_prior = smooth_states[0]
 
         if new_prior.timestamp <= timestamp:
             prediction = self.predictor.predict(new_prior, timestamp, **kwargs)
