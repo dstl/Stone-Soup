@@ -43,42 +43,6 @@ Metrics example
 # parameter to the tracks set and the *truths_key* parameter to the second tracks set that is
 # being used as a ground truth proxy.
 
-from matplotlib import pyplot as plt
-from stonesoup.plotter import MetricPlotter
-from stonesoup.metricgenerator.metrictables import SIAPTableGenerator
-from stonesoup.initiator.simple import SimpleMeasurementInitiator
-from stonesoup.initiator.simple import GaussianParticleInitiator
-from stonesoup.updater.particle import ParticleUpdater
-from stonesoup.resampler.particle import ESSResampler
-from stonesoup.predictor.particle import ParticlePredictor
-from stonesoup.tracker.simple import MultiTargetTracker
-from stonesoup.initiator.simple import MultiMeasurementInitiator
-from stonesoup.deleter.time import UpdateTimeDeleter
-from stonesoup.dataassociator.neighbour import GNNWith2DAssignment
-from stonesoup.measures import Mahalanobis
-from stonesoup.hypothesiser.distance import DistanceHypothesiser
-from stonesoup.updater.kalman import ExtendedKalmanUpdater
-from stonesoup.predictor.kalman import ExtendedKalmanPredictor
-from stonesoup.plotter import Plotterly
-from stonesoup.simulator.platform import PlatformDetectionSimulator
-from itertools import tee
-from stonesoup.platform import FixedPlatform
-from stonesoup.sensor.radar import RadarBearingRange
-from stonesoup.simulator.simple import SwitchMultiTargetGroundTruthSimulator
-from stonesoup.models.transition.linear import \
-    CombinedLinearGaussianTransitionModel, ConstantVelocity, KnownTurnRate
-from stonesoup.types.state import State, GaussianState
-from stonesoup.types.array import StateVector, CovarianceMatrix
-import datetime
-from stonesoup.metricgenerator.manager import MultiManager
-from stonesoup.metricgenerator.plotter import TwoDPlotter
-from stonesoup.metricgenerator.uncertaintymetric import SumofCovarianceNormsMetric
-from stonesoup.dataassociator.tracktotrack import TrackToTruth
-from stonesoup.measures import Euclidean
-from stonesoup.metricgenerator.tracktotruthmetrics import SIAPMetrics
-import numpy as np
-from stonesoup.metricgenerator.quadraticdistance import QuadraticDistance
-from stonesoup.metricgenerator.ospametric import OSPAMetric
 from stonesoup.metricgenerator.basicmetrics import BasicMetrics
 
 basic_EKF = BasicMetrics(generator_name='basic_EKF', tracks_key='EKF_tracks', truths_key='truths')
@@ -91,6 +55,8 @@ basic_PF = BasicMetrics(generator_name='basic_PF', tracks_key='PF_tracks', truth
 #
 # The generator has two additional properties: :math:`p \in [1,\infty]` for outlier sensitivity
 # and :math:`c > 1` for cardinality penalty[#]_.
+
+from stonesoup.metricgenerator.ospametric import OSPAMetric
 
 ospa_EKF_truth = OSPAMetric(c=40, p=1, generator_name='OSPA_EKF-truth',
                             tracks_key='EKF_tracks', truths_key='truths')
@@ -119,6 +85,8 @@ ospa_EKF_PF = OSPAMetric(c=40, p=1, generator_name='OSPA_EKF-PF',
 # A more detailed exposition of this metric and its usage within stoneoup
 # can be found in the "Applications of the quadratic distance to
 # multi-target tracking" example worksheet [#]_.
+
+from stonesoup.metricgenerator.quadraticdistance import QuadraticDistance
 
 # Gaussian kernel parameter
 r = 100
@@ -154,6 +122,9 @@ quaderr_EKF_PF = QuadraticDistance(state_dim=4,
 # The SIAP Metrics require a way to associate tracks to truth, so we'll use a Track to Truth
 # associator which uses Euclidean distance measure by default.
 
+from stonesoup.metricgenerator.tracktotruthmetrics import SIAPMetrics
+from stonesoup.measures import Euclidean
+
 siap_EKF_truth = SIAPMetrics(position_measure=Euclidean((0, 2)),
                              velocity_measure=Euclidean((1, 3)),
                              generator_name='SIAP_EKF-truth',
@@ -168,6 +139,7 @@ siap_PF_truth = SIAPMetrics(position_measure=Euclidean((0, 2)),
                             truths_key='truths'
                             )
 
+from stonesoup.dataassociator.tracktotrack import TrackToTruth
 
 associator = TrackToTruth(association_threshold=30)
 
@@ -176,6 +148,8 @@ associator = TrackToTruth(association_threshold=30)
 # calculate the sum of the covariance matrix norms of each track state at each time step. These
 # metrics produced will indicate how uncertain the tracks we have produced are. Higher sum of
 # covariance norms means higher uncertainty.
+
+from stonesoup.metricgenerator.uncertaintymetric import SumofCovarianceNormsMetric
 
 sum_cov_norms_EKF = SumofCovarianceNormsMetric(tracks_key='EKF_tracks',
                                                generator_name='sum_cov_norms_EKF')
@@ -187,6 +161,8 @@ sum_cov_norms_PF = SumofCovarianceNormsMetric(tracks_key='PF_tracks',
 # using. These will take in the tracks, ground truths, and detections that we generate and plot
 # them in 2 dimensions.
 
+from stonesoup.metricgenerator.plotter import TwoDPlotter
+
 plot_generator_EKF = TwoDPlotter([0, 2], [0, 2], [0, 2], uncertainty=True, tracks_key='EKF_tracks',
                                  truths_key='truths', detections_key='detections',
                                  generator_name='EKF_plot')
@@ -196,6 +172,8 @@ plot_generator_PF = TwoDPlotter([0, 2], [0, 2], [0, 2], uncertainty=True, tracks
 
 # %%
 # Add our metric generators to the :class:`~.MultiManager`:
+
+from stonesoup.metricgenerator.manager import MultiManager
 
 metric_manager = MultiManager([basic_EKF,
                                basic_PF,
@@ -221,6 +199,11 @@ metric_manager = MultiManager([basic_EKF,
 # Particle Filter tracker will be given the same sets of truths and detections to track, so
 # we can fairly compare the results.
 
+import numpy as np
+import datetime
+from stonesoup.types.array import StateVector, CovarianceMatrix
+from stonesoup.types.state import State, GaussianState
+
 start_time = datetime.datetime.now()
 np.random.seed(8)
 initial_state_mean = StateVector([[0], [0], [0], [0]])
@@ -229,6 +212,8 @@ timestep_size = datetime.timedelta(seconds=5)
 number_steps = 20
 initial_state = GaussianState(initial_state_mean, initial_state_covariance)
 
+from stonesoup.models.transition.linear import \
+    CombinedLinearGaussianTransitionModel, ConstantVelocity, KnownTurnRate
 
 # initialise the transition models the ground truth can use
 constant_velocity = CombinedLinearGaussianTransitionModel(
@@ -242,6 +227,7 @@ model_probs = np.array([[0.7, 0.15, 0.15],  # keep straight, turn left, turn rig
                         [0.4, 0.6, 0.0],  # go straight, keep turning left, turn right
                         [0.4, 0.0, 0.6]])  # go straight, turn left, keep turning right
 
+from stonesoup.simulator.simple import SwitchMultiTargetGroundTruthSimulator
 
 # generate truths
 n_truths = 3
@@ -272,6 +258,8 @@ ground_truth_gen = SwitchMultiTargetGroundTruthSimulator(
 # Next, we create a sensor and use it to generate detections from the targets.
 # In this example, we use a radar with imperfect measurements in bearing-range space.
 
+from stonesoup.sensor.radar import RadarBearingRange
+
 # Create the sensor
 sensor = RadarBearingRange(
     ndim_state=4,
@@ -280,11 +268,14 @@ sensor = RadarBearingRange(
     clutter_model=None,  # Can add clutter model in future if desired
 )
 
+from stonesoup.platform import FixedPlatform
 
 platform = FixedPlatform(State(StateVector([20, 0, 0, 0])), position_mapping=[0, 2],
                          sensors=[sensor])
 
 # create identical detection sets for each tracker to use
+from itertools import tee
+from stonesoup.simulator.platform import PlatformDetectionSimulator
 
 detector = PlatformDetectionSimulator(ground_truth_gen, platforms=[platform])
 detector, *detectors = tee(detector, 3)
@@ -299,6 +290,7 @@ for time, detects in detector:
     detections |= detects
     truths |= ground_truth_gen.groundtruth_paths
 
+from stonesoup.plotter import Plotterly
 
 plotter = Plotterly()
 plotter.plot_ground_truths(truths, [0, 2])
@@ -312,18 +304,25 @@ plotter.fig
 # We now create and run the two trackers: one with the Extended Kalman Filter (EKF)
 # and the other with the Particle Filter (PF). We start with the EKF tracker.
 
+from stonesoup.predictor.kalman import ExtendedKalmanPredictor
+from stonesoup.updater.kalman import ExtendedKalmanUpdater
+
 transition_model_estimate = CombinedLinearGaussianTransitionModel([ConstantVelocity(0.5),
                                                                    ConstantVelocity(0.5)])
 predictor_EKF = ExtendedKalmanPredictor(transition_model_estimate)
 updater_EKF = ExtendedKalmanUpdater(sensor)
 
+from stonesoup.hypothesiser.distance import DistanceHypothesiser
+from stonesoup.measures import Mahalanobis
 
 hypothesiser_EKF = DistanceHypothesiser(predictor_EKF, updater_EKF,
                                         measure=Mahalanobis(), missed_distance=4)
 
+from stonesoup.dataassociator.neighbour import GNNWith2DAssignment
 
 data_associator_EKF = GNNWith2DAssignment(hypothesiser_EKF)
 
+from stonesoup.deleter.time import UpdateTimeDeleter
 
 deleter = UpdateTimeDeleter(datetime.timedelta(seconds=5), delete_last_pred=True)
 
@@ -331,6 +330,7 @@ init_transition_model = CombinedLinearGaussianTransitionModel(
     (ConstantVelocity(1), ConstantVelocity(1)))
 init_predictor_EKF = ExtendedKalmanPredictor(init_transition_model)
 
+from stonesoup.initiator.simple import MultiMeasurementInitiator
 
 initiator_EKF = MultiMeasurementInitiator(
     GaussianState(
@@ -344,6 +344,7 @@ initiator_EKF = MultiMeasurementInitiator(
     min_points=2
 )
 
+from stonesoup.tracker.simple import MultiTargetTracker
 
 kalman_tracker_EKF = MultiTargetTracker(  # Run the tracker
     initiator=initiator_EKF,
@@ -356,7 +357,11 @@ kalman_tracker_EKF = MultiTargetTracker(  # Run the tracker
 # %%
 # Run the tracker with the Particle Filter:
 
+from stonesoup.predictor.particle import ParticlePredictor
+from stonesoup.resampler.particle import ESSResampler
+
 resampler = ESSResampler()
+from stonesoup.updater.particle import ParticleUpdater
 
 predictor_PF = ParticlePredictor(transition_model_estimate)
 updater_PF = ParticleUpdater(measurement_model=None, resampler=resampler)
@@ -365,6 +370,8 @@ hypothesiser_PF = DistanceHypothesiser(predictor_PF, updater_PF,
                                        measure=Mahalanobis(), missed_distance=4)
 data_associator_PF = GNNWith2DAssignment(hypothesiser_PF)
 
+from stonesoup.initiator.simple import GaussianParticleInitiator
+from stonesoup.initiator.simple import SimpleMeasurementInitiator
 
 prior_state = GaussianState(
     StateVector([20, 0, 10, 0]),
@@ -447,6 +454,8 @@ for generator in metrics.keys():
 #
 # We first create a table for the EKF SIAPs:
 
+from stonesoup.metricgenerator.metrictables import SIAPTableGenerator
+
 siap_metrics = metrics['SIAP_EKF-truth']
 siap_averages_EKF = {siap_metrics.get(metric) for metric in siap_metrics
                      if metric.startswith("SIAP") and not metric.endswith(" at times")}
@@ -501,6 +510,8 @@ siap_table = SIAPTableGenerator(siap_averages_PF).compute_metric()
 #
 # We start by plotting the OSPA distances, quadratic distances and SIAP metrics. Plots will
 # be combined for the same metric type.
+
+from stonesoup.plotter import MetricPlotter
 
 graph = MetricPlotter()
 graph.plot_metrics(metrics, generator_names=['OSPA_EKF-truth',
