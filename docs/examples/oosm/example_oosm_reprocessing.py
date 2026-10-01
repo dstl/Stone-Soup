@@ -363,14 +363,14 @@ from stonesoup.plotter import MetricPlotter
 
 graph = MetricPlotter()
 graph.plot_metrics(metrics, generator_names=[generator.generator_name for generator in generators],
-                   color=['orange', 'red', 'green'])
+                   color=['orange', 'red', 'green'], linestyle=['-', '-', '--'])
 graph.axes[0].set(ylabel='OSPA metrics', title='OSPA distances over time')
 graph.fig
 
 # %%
-# As the OOS tracks match the reference tracks, the OSPA distance for the OOS tracks is hidden
-# under that of the reference tracks. The tracker ignoring the OOSM is generally less accurate,
-# as it doesn't use the information from the second sensor.
+# As the OOS tracks match the reference tracks, the OSPA distance for the OOS tracks lies under
+# the dashed line of the reference tracks. The tracker ignoring the OOSM is generally less
+# accurate, as it doesn't use the information from the second sensor.
 
 # %%
 # Conclusion
