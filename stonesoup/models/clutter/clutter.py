@@ -14,14 +14,13 @@ from ...types.state import State
 
 class ClutterModel(Model, ABC):
     """A model for generating sensor clutter (false alarms) according to a specified
-    distribution in the state space relative to the sensor's position.
+    distribution in state space.
 
     Note
     ----
-    Instances of this class do not hold information about the measurement space until
-    immediately before they are called to function. As such, the same :class:`ClutterModel`
-    object could be used with multiple different :class:`~.MeasurementModel` as long
-    as they operate in the same state space.
+    Clutter is only produced for the dimensions specified in :attr:`mapping`.
+    If multiple sensors operate on different state dimensions then the mapping should include all
+    these dimensions.
     """
 
     ndim_state: int = Property(doc="Number of state dimensions")
@@ -33,12 +32,12 @@ class ClutterModel(Model, ABC):
     distribution: Callable = Property(
         default=np.random.default_rng().uniform,
         doc="A function which represents the distribution of the clutter over the "
-            "measurement space. The function should return a single value (ie, do "
+            "state space. The function should return a single value (ie, do "
             "not use multivariate distributions).")
     dist_params: tuple = Property(
         default=((-200, 200), (-200, 200)),
         doc="The required parameters for the clutter distribution function. The "
-        "length of the list must be equal to the number of state dimensions "
+        "length of the list must be equal to the number of state dimensions in the mapping "
         "and should be defined for use in Cartesian space."
         "The default defines the space for a uniform distribution in 2D. The call "
         "`np.array([self.distribution(*arg) for arg in self.dist_params])` "
