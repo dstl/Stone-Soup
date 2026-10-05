@@ -6,6 +6,7 @@ import pytest
 from scipy.stats import multivariate_normal
 
 from ..hypothesis import SingleHypothesis
+from ..multihypothesis import MultipleHypothesis
 from ..prediction import (
     Prediction, MeasurementPrediction,
     StatePrediction, StateMeasurementPrediction,
@@ -36,7 +37,29 @@ def test_stateprediction():
     assert timestamp == state_prediction.timestamp
 
 
-def test_prediction_prior():
+def test_prediction_prior_prediction():
+    """ Test that the prior of a prediction is weakly referenced """
+    state0 = State([[1, 2, 3]])
+    pred1 = StatePrediction([[2, 3, 1]], prior=state0)
+    update1 = StatePrediction([[2, 3, 1]], prior=pred1)
+    pred2 = StatePrediction([[3, 1, 2]], prior=update1)
+
+    assert pred1.prior is state0
+    assert update1.prior.prior is state0
+    assert pred2.prior is update1
+
+    del state0
+
+    assert pred1.prior is None
+    assert update1.prior.prior is None
+    assert pred2.prior is update1
+
+    pickle.dumps(pred1)
+
+
+def test_prediction_prior_single_hypothesis():
+    """ Test that the prior of a prediction is weakly referenced when the prior is
+     a state update with a single hypothesis """
     state0 = State([[1, 2, 3]])
     pred1 = StatePrediction([[2, 3, 1]], prior=state0)
     update1 = StateUpdate([[2, 3, 1]], hypothesis=SingleHypothesis(pred1, None))
@@ -50,6 +73,76 @@ def test_prediction_prior():
 
     assert pred1.prior is None
     assert update1.hypothesis.prediction.prior is None
+    assert pred2.prior is update1
+
+    pickle.dumps(pred1)
+
+
+def test_prediction_prior_multiple_hypothesis():
+    """ Test that the prior of a prediction is weakly referenced when the prior is
+    a state update with multiple hypotheses """
+    state0 = State([[1, 2, 3]])
+    state1 = State([[4, 5, 6]])
+
+    pred1 = StatePrediction([[2, 3, 1]], prior=state0)
+    pred2 = StatePrediction([[5, 6, 4]], prior=state1)
+
+    update1 = StateUpdate(
+        [[2, 3, 1]],
+        hypothesis=MultipleHypothesis([
+            SingleHypothesis(pred1, None),
+            SingleHypothesis(pred2, None),
+        ])
+    )
+
+    pred3 = StatePrediction([[3, 1, 2]], prior=update1)
+
+    assert pred1.prior is state0
+    assert pred2.prior is state1
+    assert update1.hypothesis.single_hypotheses[0].prediction.prior is state0
+    assert update1.hypothesis.single_hypotheses[1].prediction.prior is state1
+    assert pred3.prior is update1
+
+    del state0
+    del state1
+
+    assert pred1.prior is None
+    assert pred2.prior is None
+    assert update1.hypothesis.single_hypotheses[0].prediction.prior is None
+    assert update1.hypothesis.single_hypotheses[1].prediction.prior is None
+    assert pred3.prior is update1
+
+    pickle.dumps(pred1)
+    pickle.dumps(pred2)
+
+
+def test_prediction_prior_multiple_hypothesis_shared_prediction():
+    """ Test that the prior of a prediction is weakly referenced when the prior is
+    a state update with multiple hypotheses that share the same prediction """
+    state0 = State([[1, 2, 3]])
+
+    pred1 = StatePrediction([[2, 3, 1]], prior=state0)
+
+    update1 = StateUpdate(
+        [[2, 3, 1]],
+        hypothesis=MultipleHypothesis([
+            SingleHypothesis(pred1, None),
+            SingleHypothesis(pred1, None),
+        ])
+    )
+
+    pred2 = StatePrediction([[3, 1, 2]], prior=update1)
+
+    assert pred1.prior is state0
+    assert update1.hypothesis.single_hypotheses[0].prediction.prior is state0
+    assert update1.hypothesis.single_hypotheses[1].prediction.prior is state0
+    assert pred2.prior is update1
+
+    del state0
+
+    assert pred1.prior is None
+    assert update1.hypothesis.single_hypotheses[0].prediction.prior is None
+    assert update1.hypothesis.single_hypotheses[1].prediction.prior is None
     assert pred2.prior is update1
 
     pickle.dumps(pred1)
