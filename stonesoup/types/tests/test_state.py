@@ -36,7 +36,11 @@ from ..state import (
     State,
     StateMutableSequence,
     WeightedGaussianState,
+    ModelAugmentedWeightedGaussianState,
+    ExpandedModelAugmentedWeightedGaussianState
 )
+from ...models.transition.linear import (ConstantVelocity,
+                                         CombinedGaussianTransitionModel)
 
 
 def test_state():
@@ -1020,3 +1024,31 @@ def test_kernel_particle_state():
     assert 4 == prior.ndim
     assert np.array_equal(state_vector @ weights[:, np.newaxis], prior.mean)
     assert np.array_equal(state_vector @ np.diag(weights) @ state_vector.T, prior.covar)
+
+
+def test_emawgs():
+    start_time = datetime.datetime.now().replace(second=0, microsecond=0)
+    transition_model = CombinedGaussianTransitionModel([ConstantVelocity(1),
+                                                        ConstantVelocity(1)])
+    mawgs = ModelAugmentedWeightedGaussianState(
+        state_vector=[0, 1, 0, 1],
+        covar=np.diag([2, 1, 2, 1]),
+        weight=Probability(1),
+        model_histories=[transition_model],
+        measurement_histories=[],
+        model_history_length=0,
+        measurement_history_length=0
+    )
+    eprior = ExpandedModelAugmentedWeightedGaussianState(
+        state_vector=[0],
+        covar=np.diag([11.5]),
+        timestamp=start_time,
+        weight=Probability(0),
+        model_histories=[],
+        model_history_length=0,
+        model=transition_model)
+    emawgs = mawgs.from_state(eprior,
+                              **{name: getattr(mawgs, name) for name in type(mawgs).properties},
+                              model=transition_model)
+    assert transition_model == emawgs.model
+    assert [transition_model] == emawgs.model_histories
