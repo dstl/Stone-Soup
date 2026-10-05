@@ -8,6 +8,7 @@ from .kalman import KalmanUpdater
 from ..types.update import GaussianMixtureUpdate
 from ..types.state import TaggedWeightedGaussianState
 from ..types.numeric import Probability
+from ..types.detector_context import SimpleDetectorContext
 
 
 class PointProcessUpdater(Base):
@@ -35,7 +36,7 @@ class PointProcessUpdater(Base):
         default=1,
         doc="Probability of a target surviving until the next timestep")
 
-    def update(self, hypotheses):
+    def update(self, hypotheses, detector_context=None, **kwargs):
         """
         Updates the current components in a
         :class:`GaussianMixture` by applying the underlying \
@@ -55,6 +56,7 @@ class PointProcessUpdater(Base):
         """
         updated_components = list()
         weight_sum_list = list()
+        detector_context = self._detector_context(detector_context)
         # Loop over all measurements
         for multi_hypothesis in hypotheses[:-1]:
             updated_measurement_components = list()
@@ -74,7 +76,7 @@ class PointProcessUpdater(Base):
                     mean=measurement_prediction.mean.flatten(),
                     cov=measurement_prediction.covar
                 )
-                new_weight = self.prob_detection\
+                new_weight = detector_context.prob_detection(hypothesis)\
                     * prediction.weight * q
                 if prediction.tag != 'birth':
                     new_weight *= self.prob_survival
@@ -89,16 +91,16 @@ class PointProcessUpdater(Base):
                     timestamp=temp_updated_component.timestamp
                 )
                 # Add updated component to mixture
-                updated_measurement_components.append(updated_component)
+                updated_measurement_components.append((updated_component, hypothesis.measurement))
             weight_sum_list.append(weight_sum)
-            for component in updated_measurement_components:
+            for component, detection in updated_measurement_components:
                 if self.normalisation:
                     component.weight /= \
-                        (weight_sum + self.clutter_spatial_density)
+                        (weight_sum + detector_context.clutter_spatial_density(detection))
                 updated_components.append(component)
 
         # Calculate the correction terms
-        l1 = self._calculate_update_terms(weight_sum_list, hypotheses)
+        l1 = self._calculate_update_terms(weight_sum_list, hypotheses, detector_context)
 
         for missed_detected_hypotheses in hypotheses[-1]:
             # Add all active components except birth component back into
@@ -107,7 +109,8 @@ class PointProcessUpdater(Base):
                 component = TaggedWeightedGaussianState(
                     tag=missed_detected_hypotheses.prediction.tag,
                     weight=missed_detected_hypotheses.prediction.weight
-                    * (1-self.prob_detection) * l1 * self.prob_survival,
+                    * (1-detector_context.prob_detection(missed_detected_hypotheses))
+                    * l1 * self.prob_survival,
                     state_vector=missed_detected_hypotheses.prediction.mean,
                     covar=missed_detected_hypotheses.prediction.covar,
                     timestamp=missed_detected_hypotheses.prediction.timestamp)
@@ -123,8 +126,15 @@ class PointProcessUpdater(Base):
         return GaussianMixtureUpdate(hypothesis=hypotheses,
                                      components=updated_components)
 
+    def _detector_context(self, detector_context):
+        if detector_context is not None:
+            return detector_context
+        return SimpleDetectorContext(
+            prob_detection=self.prob_detection,
+            clutter_spatial_density=self.clutter_spatial_density)
+
     @abstractmethod
-    def _calculate_update_terms(self, updated_sum_list, hypotheses):
+    def _calculate_update_terms(self, updated_sum_list, hypotheses, detector_context):
         raise NotImplementedError
 
 
@@ -145,7 +155,7 @@ class PHDUpdater(PointProcessUpdater):
     https://ieeexplore.ieee.org/document/4086095.
     """
     @staticmethod
-    def _calculate_update_terms(updated_sum_list, hypotheses):
+    def _calculate_update_terms(updated_sum_list, hypotheses, detector_context):
         return 1
 
 
@@ -174,7 +184,7 @@ class LCCUpdater(PointProcessUpdater):
         super().__init__(*args, **kwargs)
         self.second_order_cumulant = 0
 
-    def _calculate_update_terms(self, updated_sum_list, hypotheses):
+    def _calculate_update_terms(self, updated_sum_list, hypotheses, detector_context):
         """
         Calculate the higher order terms used in the LCC Filter
         """
@@ -185,9 +195,13 @@ class LCCUpdater(PointProcessUpdater):
         # Second order predicted cumulant c(2)
         predicted_c2 = self.second_order_cumulant * self.prob_survival**2
         # Detected predicted weight mu_d
-        detected_weight_sum = self.prob_detection*predicted_weight_sum
+        detected_weight_sum = Probability.sum(
+            detector_context.prob_detection(hypothesis) * hypothesis.prediction.weight
+            for hypothesis in hypotheses[-1]) * self.prob_survival
         # Detected predicted weight mu_phi
-        misdetected_weight_sum = (1-self.prob_detection)*predicted_weight_sum
+        misdetected_weight_sum = Probability.sum(
+            (1-detector_context.prob_detection(hypothesis)) * hypothesis.prediction.weight
+            for hypothesis in hypotheses[-1]) * self.prob_survival
         # Calculate the alpha of the predicted Panjer process
         alpha_pred = ((predicted_weight_sum +
                        self.mean_number_of_false_alarms)**2)\
@@ -201,10 +215,10 @@ class LCCUpdater(PointProcessUpdater):
         l2 = numerator/(denominator**2)
         # Calculate updated c(2)
         detected_c2 = \
-            Probability.sum([weight_sum/((weight_sum +
-                             self.clutter_spatial_density)
-                             ** 2)
-                            for weight_sum in updated_sum_list])
+            Probability.sum(
+                weight_sum/((weight_sum + detector_context.clutter_spatial_density(
+                    multi_hypothesis[0].measurement)) ** 2)
+                for weight_sum, multi_hypothesis in zip(updated_sum_list, hypotheses[:-1]))
         misdetected_c2 = (misdetected_weight_sum**2)*l2
         self.second_order_cumulant = misdetected_c2 - detected_c2
         # Return the l1 correction factor for miss detected weight update
