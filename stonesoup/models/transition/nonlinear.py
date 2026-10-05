@@ -310,9 +310,7 @@ class DecayTransition(TransitionModel):
 
     def pdf(self, state_fin, state_ini, time_interval):
         """What's the probability of arriving at a particular state given the current state
-        and time interval? There's likely a quicker way to do this based on summing the vectors
-        directly rather than looping, but this is a simple implementation that's not likely to be
-        used often.
+        and time interval?
 
         Parameters
         ----------
