@@ -20,7 +20,7 @@ def get_hypothesis(
     Parameters
     ----------
     hypothesis: :class:`~.SingleHypothesis` or :class:`~.MultipleHypothesis`
-        Input hypothesis which will be return in case of being single hypothesis, or
+        Input hypothesis which will be returned in case of being single hypothesis, or
         first single hypothesis from multiple hypothesis filtered by :attr:`f`.
     f: callable
         Function which takes a hypothesis and returns boolean. Default always
@@ -110,7 +110,7 @@ class OOSPredictorWrapper(Predictor):
         states = []
         for state in get_past_states(prior):
             states.append(state)
-            if (timestamp - state.timestamp).total_seconds() >= 0:
+            if timestamp >= state.timestamp:
                 break
         return states
 
