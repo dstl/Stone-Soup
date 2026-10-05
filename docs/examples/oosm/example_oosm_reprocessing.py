@@ -37,7 +37,9 @@ Handling OOSM by reprocessing the history of a track
 # - :class:`~.OOSUpdaterWrapper` carries out the update, and reprocesses the subsequent states.
 #
 # As they are wrappers, they can be used with other standard components, such as hypothesisers
-# and data associators. In this example we consider a multi-target scenario with clutter, where
+# and data associators.
+#
+# In this example we consider a multi-target scenario with clutter, where
 # two sensors observe two targets. The scans from the second sensor arrive with a delay, and so
 # will be out of sequence with respect to the scans from the first sensor. We compare:
 #

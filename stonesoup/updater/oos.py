@@ -62,13 +62,13 @@ class OOSUpdaterWrapper(Updater):
         if isinstance(hypothesis, MultipleHypothesis):
             hypothesis.single_hypotheses = [
                 self._update_hypotheses(hyp, prediction, repredict) for hyp in hypothesis]
+            return hypothesis
+        if repredict:
+            hypothesis.prediction = self._repredict(
+                prediction, hypothesis.prediction.timestamp)
         else:
-            if repredict:
-                hypothesis.prediction = self._repredict(
-                    prediction, hypothesis.prediction.timestamp)
-            else:
-                hypothesis.prediction = prediction
-            hypothesis.measurement_prediction = None
+            hypothesis.prediction = prediction
+        hypothesis.measurement_prediction = None
         return hypothesis
 
     @classmethod
