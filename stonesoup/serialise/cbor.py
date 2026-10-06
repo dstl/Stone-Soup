@@ -17,10 +17,11 @@ Similar features to YAML are supported:
 - NumPy arrays are stored as binary typed arrays (RFC 8746, tags 64-87) within multi-dimensional
   arrays (tag 40).
 
-Datetimes are stored as RFC 3339 strings (tag 0). As Stone Soup typically uses naive datetimes,
-these are by default stored without a timezone offset, which isn't strictly compliant with
-RFC 8949, but are loaded back as naive datetimes. Alternatively, a timezone can be set (see
-:class:`~.CBOR`), which is assumed for naive datetimes, which are then loaded as timezone aware.
+Timezone aware datetimes are stored as RFC 3339 strings (tag 0). As RFC 3339 requires a
+timezone offset, naive datetimes (as typically used in Stone Soup) are by default instead stored
+with their type name (tag 27), with an ISO 8601 string without an offset, and are loaded back as
+naive datetimes. Alternatively, a timezone can be set (see :class:`~.CBOR`), which is assumed for
+naive datetimes, which are then stored as RFC 3339 strings, and loaded as timezone aware.
 
 Multiple objects can be written one after another to the same file (a CBOR sequence, RFC 8742),
 analogous to multiple YAML documents.
@@ -143,8 +144,8 @@ class CBOR:
     timezone : datetime.tzinfo, optional
         Timezone assumed for naive datetimes, which are stored with the corresponding offset,
         and hence loaded as timezone aware datetimes. Default `None`, where naive datetimes are
-        stored without a timezone offset (which isn't strictly compliant with RFC 8949), and
-        loaded as naive datetimes. Timezone aware datetimes are unaffected.
+        stored without a timezone offset (with their type name, as an RFC 3339 string requires
+        an offset), and loaded as naive datetimes. Timezone aware datetimes are unaffected.
     """
 
     def __init__(self, value_sharing=True, string_referencing=True, timezone=None):
@@ -176,6 +177,7 @@ class CBOR:
         ]
         # Decoders by type name, for objects stored with tag 27
         self._decoders = {
+            type_name(datetime.datetime): datetime.datetime.fromisoformat,  # Naive
             type_name(datetime.timedelta): datetime.timedelta,
             type_name(deque): deque,
             type_name(Path): Path,
@@ -234,9 +236,13 @@ class CBOR:
     def _encode_datetime(self, encoder, obj):
         """Encode datetime as RFC 3339 string (tag 0).
 
-        Naive datetimes are assumed to be in :attr:`timezone` if set, otherwise they are stored
-        without a timezone offset."""
-        if obj.utcoffset() is None and self.timezone is not None:
+        Naive datetimes are assumed to be in :attr:`timezone` if set. Otherwise, as RFC 3339
+        requires a timezone offset, they are stored with their type name (tag 27) and an ISO 8601
+        string without an offset."""
+        if obj.utcoffset() is None:
+            if self.timezone is None:
+                encode_object(encoder, type_name(datetime.datetime), obj.isoformat())
+                return
             obj = obj.replace(tzinfo=self.timezone)
         encoder.encode_length(_MAJOR_TAG, TAG_DATETIME_STRING)
         encoder.encode(obj.isoformat())
@@ -468,6 +474,8 @@ def _encode_deque(encoder, obj):
 
 def _json_object(value, immutable):
     name, *args = value
+    if name == type_name(datetime.datetime) and len(args) == 1 and isinstance(args[0], str):
+        return args[0]  # Naive datetime, shown as ISO 8601 string, as timezone aware ones are
     if len(args) == 1 and isinstance(args[0], Mapping):
         args = args[0]  # Component properties
     return {f"!{name}": args}

@@ -170,11 +170,15 @@ def test_datetime(serialiser, instance):
 
 
 def test_datetime_naive_no_timezone(serialiser):
-    # Default: stored without offset (not strictly RFC 3339) and loaded as naive
+    # Default: stored without offset and loaded as naive. As RFC 3339 (tag 0) requires an
+    # offset, stored with type name (tag 27) instead.
     instance = datetime.datetime(2024, 1, 2, 3, 4, 5, 6)
     data = serialiser.dumps(instance)
     assert b'2024-01-02T03:04:05.000006' in data
     assert b'2024-01-02T03:04:05.000006+' not in data
+    raw = cbor2.loads(data)
+    assert isinstance(raw, cbor2.CBORTag) and raw.tag == 27
+    assert list(raw.value) == ['datetime.datetime', '2024-01-02T03:04:05.000006']
     new_instance = serialiser.loads(data)
     assert new_instance.tzinfo is None
     assert new_instance == instance
@@ -198,6 +202,7 @@ def test_datetime_naive_with_timezone(timezone, expected_offset):
 
     data = serialiser.dumps(instance)
     assert f'2024-07-02T03:04:05.000006{expected_offset}'.encode() in data
+    assert isinstance(cbor2.loads(data), datetime.datetime)  # Standard RFC 3339 string (tag 0)
 
     new_instance = serialiser.loads(data)
     assert new_instance.utcoffset() is not None  # Now timezone aware
