@@ -61,6 +61,23 @@ def test_tracks_cbor(tracker, tmpdir):
     assert n == 1
 
 
+@pytest.mark.parametrize('timezone', [None, datetime.timezone.utc], ids=['naive', 'utc'])
+def test_timezone_cbor(detection_reader, tmpdir, timezone):
+    filename = tmpdir.join("detections.cbor")
+
+    with CBORWriter(filename.strpath, detections_source=detection_reader,
+                    timezone=timezone) as writer:
+        writer.write()
+
+    reader = CBORDetectionReader(filename.strpath)
+    for n, (time, detections) in enumerate(reader):
+        assert time.tzinfo is timezone
+        assert time.replace(tzinfo=None) == datetime.datetime(2018, 1, 1, 14, n)
+        for detection in detections:
+            assert detection.timestamp == time
+    assert n == 2
+
+
 def test_cbor_bad_init(tmpdir):
     filename = tmpdir.join("bad_init.cbor")
     with pytest.raises(ValueError, match="At least one source required"):

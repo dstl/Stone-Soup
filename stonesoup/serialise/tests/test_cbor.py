@@ -168,6 +168,65 @@ def test_datetime(serialiser, instance):
         assert new_instance.utcoffset() == instance.utcoffset()
 
 
+def test_datetime_naive_no_timezone(serialiser):
+    # Default: stored without offset (not strictly RFC 3339) and loaded as naive
+    instance = datetime.datetime(2024, 1, 2, 3, 4, 5, 6)
+    data = serialiser.dumps(instance)
+    assert b'2024-01-02T03:04:05.000006' in data
+    assert b'2024-01-02T03:04:05.000006+' not in data
+    new_instance = serialiser.loads(data)
+    assert new_instance.tzinfo is None
+    assert new_instance == instance
+
+
+@pytest.mark.parametrize(
+    'timezone, expected_offset',
+    [(datetime.timezone.utc, '+00:00'),
+     (datetime.timezone(datetime.timedelta(hours=-5)), '-05:00'),
+     ('Europe/London', '+01:00')],  # Summer time
+    ids=['utc', 'fixed_offset', 'zoneinfo'])
+def test_datetime_naive_with_timezone(timezone, expected_offset):
+    if isinstance(timezone, str):
+        zoneinfo = pytest.importorskip('zoneinfo')
+        try:
+            timezone = zoneinfo.ZoneInfo(timezone)
+        except zoneinfo.ZoneInfoNotFoundError:
+            pytest.skip("Timezone data not available")
+    serialiser = CBOR(timezone=timezone)
+    instance = datetime.datetime(2024, 7, 2, 3, 4, 5, 6)
+
+    data = serialiser.dumps(instance)
+    assert f'2024-07-02T03:04:05.000006{expected_offset}'.encode() in data
+
+    new_instance = serialiser.loads(data)
+    assert new_instance.utcoffset() is not None  # Now timezone aware
+    assert new_instance == instance.replace(tzinfo=timezone)
+    assert new_instance.replace(tzinfo=None) == instance  # Same wall clock time
+
+
+def test_datetime_aware_with_timezone():
+    # Timezone aware datetimes unaffected by timezone option
+    serialiser = CBOR(timezone=datetime.timezone.utc)
+    instance = datetime.datetime(
+        2024, 1, 2, 3, 4, 5, tzinfo=datetime.timezone(datetime.timedelta(hours=1)))
+    new_instance = serialiser.loads(serialiser.dumps(instance))
+    assert new_instance == instance
+    assert new_instance.utcoffset() == datetime.timedelta(hours=1)
+
+
+def test_datetime_timezone_nested():
+    # Applies to datetimes within components, e.g. state timestamps
+    serialiser = CBOR(timezone=datetime.timezone.utc)
+    track = Track([GaussianState([1, 2], np.eye(2), timestamp=datetime.datetime(2024, 1, 2))])
+    new_track = serialiser.loads(serialiser.dumps(track))
+    assert new_track.timestamp == datetime.datetime(2024, 1, 2, tzinfo=datetime.timezone.utc)
+
+
+def test_bad_timezone():
+    with pytest.raises(TypeError, match="timezone must be a datetime.tzinfo"):
+        CBOR(timezone="UTC")
+
+
 def test_deque(serialiser):
     instance = deque([3, 4, 5, 6, 7, 8, 9], 5)
     new_instance = serialiser.loads(serialiser.dumps(instance))

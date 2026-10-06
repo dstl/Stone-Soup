@@ -17,6 +17,11 @@ Similar features to YAML are supported:
 - NumPy arrays are stored as binary typed arrays (RFC 8746, tags 64-87) within multi-dimensional
   arrays (tag 40).
 
+Datetimes are stored as RFC 3339 strings (tag 0). As Stone Soup typically uses naive datetimes,
+these are by default stored without a timezone offset, which isn't strictly compliant with
+RFC 8949, but are loaded back as naive datetimes. Alternatively, a timezone can be set (see
+:class:`~.CBOR`), which is assumed for naive datetimes, which are then loaded as timezone aware.
+
 Multiple objects can be written one after another to the same file (a CBOR sequence, RFC 8742),
 analogous to multiple YAML documents.
 
@@ -126,16 +131,25 @@ class CBOR:
         when loaded. Default `True`.
     string_referencing : bool
         Store repeated strings only once. Default `True`.
+    timezone : datetime.tzinfo, optional
+        Timezone assumed for naive datetimes, which are stored with the corresponding offset,
+        and hence loaded as timezone aware datetimes. Default `None`, where naive datetimes are
+        stored without a timezone offset (which isn't strictly compliant with RFC 8949), and
+        loaded as naive datetimes. Timezone aware datetimes are unaffected.
     """
 
-    def __init__(self, value_sharing=True, string_referencing=True):
+    def __init__(self, value_sharing=True, string_referencing=True, timezone=None):
+        if timezone is not None and not isinstance(timezone, datetime.tzinfo):
+            raise TypeError(
+                f"timezone must be a datetime.tzinfo or None, not {type(timezone).__name__}")
         self.value_sharing = value_sharing
         self.string_referencing = string_referencing
+        self.timezone = timezone
         self._all_encoders_cache = None
         self._registered_multi_encoders = []
         # Type specific encoders, by exact type (checked before `default`)
         self._encoders = {
-            datetime.datetime: _encode_datetime,
+            datetime.datetime: self._encode_datetime,
             datetime.timedelta: _encode_timedelta,
             deque: _encode_deque,
             Probability: _encode_probability,
@@ -149,7 +163,7 @@ class CBOR:
             (np.integer, lambda encoder, obj: encoder.encode(int(obj))),
             (np.floating, lambda encoder, obj: encoder.encode(float(obj))),
             (Path, _encode_path),
-            (datetime.datetime, _encode_datetime),
+            (datetime.datetime, self._encode_datetime),
         ]
         # Decoders by type name, for objects stored with tag 27
         self._decoders = {
@@ -207,6 +221,16 @@ class CBOR:
             else:
                 self._encoders[class_] = encoder
         self._decoders[name or type_name(class_)] = decoder or class_
+
+    def _encode_datetime(self, encoder, obj):
+        """Encode datetime as RFC 3339 string (tag 0).
+
+        Naive datetimes are assumed to be in :attr:`timezone` if set, otherwise they are stored
+        without a timezone offset."""
+        if obj.utcoffset() is None and self.timezone is not None:
+            obj = obj.replace(tzinfo=self.timezone)
+        encoder.encode_length(_MAJOR_TAG, TAG_DATETIME_STRING)
+        encoder.encode(obj.isoformat())
 
     def _default(self, encoder, obj):
         for class_, class_encoder in self._multi_encoders:
@@ -413,14 +437,6 @@ def _encode_angle(encoder, obj):
 
 def _encode_probability(encoder, obj):
     encode_object(encoder, type_name(type(obj)), obj.log_value)
-
-
-def _encode_datetime(encoder, obj):
-    """Encode datetime as RFC 3339 string (tag 0).
-
-    Naive datetimes (as typically used in Stone Soup) are stored without a timezone offset."""
-    encoder.encode_length(_MAJOR_TAG, TAG_DATETIME_STRING)
-    encoder.encode(obj.isoformat())
 
 
 def _encode_timedelta(encoder, obj):

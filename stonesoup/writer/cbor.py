@@ -1,3 +1,4 @@
+import datetime
 from pathlib import Path
 
 from ..base import Property
@@ -21,6 +22,12 @@ class CBORWriter(Writer):
     sensor_data_source: SensorDataReader = Property(default=None)
     detections_source: DetectionReader = Property(default=None)
     tracks_source: Tracker = Property(default=None)
+    timezone: datetime.tzinfo = Property(
+        default=None,
+        doc="Timezone assumed for naive datetimes, which are then stored with the corresponding "
+            "offset, and hence read as timezone aware datetimes. Default `None`, where naive "
+            "datetimes are stored without a timezone offset, and read as naive datetimes. See "
+            ":class:`~.CBOR`.")
 
     def __init__(self, path, *args, **kwargs):
         if not isinstance(path, Path):
@@ -31,7 +38,7 @@ class CBORWriter(Writer):
             raise ValueError("At least one source required")
 
         self._file = self.path.open('wb')
-        self._cbor = CBOR()
+        self._cbor = CBOR(timezone=self.timezone)
 
     def write(self):
         if self.tracks_source:
