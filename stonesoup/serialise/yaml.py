@@ -6,7 +6,7 @@ components and data types.
 
 This module functions as a plug-in for ruamel.yaml_, specified by
 :code:`typ='stonesoup'`, but for convenience it is recommended to
-use :class:`~.stonesoup.serialise.YAML` which defaults with the plug-in
+use :class:`~.serialise.yaml.YAML` which defaults with the plug-in
 enabled.
 
 It is also possible to extend the serialisation for other types with
@@ -44,12 +44,12 @@ import numpy as np
 import ruamel.yaml
 from ruamel.yaml.constructor import ConstructorError
 
-from .base import Base, Property
-from .types.angle import Angle
-from .types.array import Matrix, StateVector
-from .types.numeric import Probability
-from .sensor.sensor import Sensor
-from .types.state import ParticleState
+from ..base import Base, Property
+from ..types.angle import Angle
+from ..types.array import Matrix, StateVector
+from ..types.numeric import Probability
+from ..sensor.sensor import Sensor
+from ..types.state import ParticleState
 
 __all__ = ['YAML']
 typ = 'stonesoup'
@@ -107,7 +107,7 @@ class YAML(ruamel.yaml.YAML):
         typ.append('stonesoup')
         if kwargs.get('plug_ins') is None:
             kwargs['plug_ins'] = []
-        kwargs['plug_ins'].append('stonesoup.serialise')
+        kwargs['plug_ins'].append('stonesoup.serialise.yaml')
 
         super().__init__(typ=typ, **kwargs)
         self.representer.default_flow_style = False
