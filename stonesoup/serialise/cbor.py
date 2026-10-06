@@ -25,6 +25,11 @@ RFC 8949, but are loaded back as naive datetimes. Alternatively, a timezone can 
 Multiple objects can be written one after another to the same file (a CBOR sequence, RFC 8742),
 analogous to multiple YAML documents.
 
+CBOR files can be viewed as JSON from the command line, without loading any Stone Soup
+components (see :func:`iter_json_compatible`)::
+
+    python -m stonesoup.serialise.cbor [--compact] FILE [FILE ...]
+
 It is also possible to extend the serialisation for other types with Stone Soup, via
 `stonesoup.serialise.cbor` entry point, typically expected to be used with
 :mod:`stonesoup.plugins`. The entry point should point to a function which expects a single
@@ -35,9 +40,13 @@ argument, a :class:`~.CBOR` instance, on which :meth:`~.CBOR.register` can be ca
 .. _serialised object with type name and constructor arguments:
     http://cbor.schmorp.de/generic-object
 """
+import argparse
 import datetime
+import json
+import sys
 import warnings
 from collections import deque
+from collections.abc import Mapping
 from importlib.metadata import entry_points
 from io import BytesIO
 from os import PathLike
@@ -54,7 +63,7 @@ from ..types.numeric import Probability
 from ..types.state import ParticleState
 from .yaml import get_class
 
-__all__ = ['CBOR', 'encode_object']
+__all__ = ['CBOR', 'encode_object', 'iter_json_compatible']
 
 # CBOR major types
 _MAJOR_ARRAY = 4
@@ -324,18 +333,23 @@ class CBOR:
 
     def load_all(self, stream):
         """Generator, loading each object in a sequence, from bytes, (binary) stream or path."""
-        if isinstance(stream, (bytes, bytearray, memoryview)):
-            stream = BytesIO(stream)
-        elif isinstance(stream, (str, PathLike)):
-            with open(stream, 'rb') as file:
-                yield from self.load_all(file)
+        yield from _decode_all(stream, self._semantic_decoders)
+
+
+def _decode_all(stream, semantic_decoders):
+    """Generator, decoding each item in a CBOR sequence, from bytes, (binary) stream or path."""
+    if isinstance(stream, (bytes, bytearray, memoryview)):
+        stream = BytesIO(stream)
+    elif isinstance(stream, (str, PathLike)):
+        with open(stream, 'rb') as file:
+            yield from _decode_all(file, semantic_decoders)
+        return
+    decoder = cbor2.CBORDecoder(stream, semantic_decoders=semantic_decoders)
+    while True:
+        try:
+            yield decoder.decode()
+        except cbor2.CBORDecodeEOF:
             return
-        decoder = self._decoder(stream)
-        while True:
-            try:
-                yield decoder.decode()
-            except cbor2.CBORDecodeEOF:
-                return
 
 
 def _get_declarative_class(name):
@@ -450,3 +464,84 @@ def _encode_path(encoder, obj):
 @cbor2.shareable_encoder
 def _encode_deque(encoder, obj):
     encode_object(encoder, type_name(deque), list(obj), obj.maxlen)
+
+
+def _json_object(value, immutable):
+    name, *args = value
+    if len(args) == 1 and isinstance(args[0], Mapping):
+        args = args[0]  # Component properties
+    return {f"!{name}": args}
+
+
+_JSON_SEMANTIC_DECODERS = {
+    TAG_OBJECT: _json_object,
+    TAG_MULTI_DIM_ARRAY: _decode_multi_dim_array,
+    TAG_SET: lambda value, immutable: list(value),
+    **{tag: lambda value, immutable, dtype=dtype: np.frombuffer(value, dtype)
+       for tag, dtype in _TYPED_ARRAY_TAGS.items()},
+}
+
+
+def _to_json_compatible(obj):
+    if obj is None or isinstance(obj, (str, bool, int, float)):
+        return obj
+    elif isinstance(obj, Mapping):
+        return {_to_json_key(key): _to_json_compatible(value) for key, value in obj.items()}
+    elif isinstance(obj, (list, tuple, set, frozenset)):
+        return [_to_json_compatible(item) for item in obj]
+    elif isinstance(obj, np.ndarray):
+        return _to_json_compatible(obj.tolist())
+    elif isinstance(obj, (datetime.datetime, datetime.date)):
+        return obj.isoformat()
+    elif isinstance(obj, (bytes, bytearray)):
+        return obj.hex()
+    elif isinstance(obj, cbor2.CBORTag):
+        return {f"CBORTag:{obj.tag}": _to_json_compatible(obj.value)}
+    else:
+        return str(obj)
+
+
+def _to_json_key(key):
+    if key is None or isinstance(key, (str, bool, int, float)):
+        return key
+    return json.dumps(_to_json_compatible(key))
+
+
+def iter_json_compatible(stream):
+    """Generator of each item in a CBOR sequence, converted to JSON compatible types.
+
+    This is intended for inspecting serialised data. Unlike :meth:`CBOR.load_all`, objects are
+    not constructed, so no classes are imported. Instead, objects stored with their type name
+    are represented as ``{"!type_name": properties}`` (or a list of arguments for non-component
+    types), similar to YAML tags; arrays as nested lists; sets as lists; and datetimes as ISO
+    8601 strings. Objects referenced multiple times are repeated in full.
+
+    Parameters
+    ----------
+    stream : bytes, file or path
+        CBOR data, (binary) stream or path.
+    """
+    for item in _decode_all(stream, _JSON_SEMANTIC_DECODERS):
+        yield _to_json_compatible(item)
+
+
+def main(args=None):
+    """Command line interface, printing each item in CBOR file(s) as JSON."""
+    parser = argparse.ArgumentParser(
+        prog='python -m stonesoup.serialise.cbor',
+        description="Print Stone Soup CBOR data as JSON, without loading any components.")
+    parser.add_argument(
+        'files', nargs='+', metavar='FILE', help="CBOR file(s) to print, or - for stdin")
+    parser.add_argument(
+        '--compact', action='store_true',
+        help="print each item on a single line (JSON Lines), instead of indented")
+    options = parser.parse_args(args)
+
+    for file in options.files:
+        stream = sys.stdin.buffer if file == '-' else file
+        for item in iter_json_compatible(stream):
+            print(json.dumps(item, indent=None if options.compact else 2))
+
+
+if __name__ == '__main__':
+    main()

@@ -1,4 +1,5 @@
 import datetime
+import json
 from collections import deque
 from pathlib import Path
 
@@ -391,3 +392,114 @@ def test_dump_all(tmpdir, serialiser, base):
     read_documents = list(serialiser.load_all(path.read_bytes()))
     assert [document[:3] for document in read_documents] == \
         [document[:3] for document in documents]
+
+
+def test_iter_json_compatible(base):
+    from ..cbor import iter_json_compatible
+
+    instance = base(2, "20")
+    data = CBOR().dumps({
+        'time': datetime.datetime(2024, 1, 2, 3, 4, 5),
+        'component': instance,
+        'shared': instance,
+        'array': StateVector([1., 2.]),
+        'int_array': np.array([[1, 2], [3, 4]], dtype=np.int32),
+        'bearing': Bearing(0.5),
+        'timedelta': datetime.timedelta(seconds=1.5),
+        'set': {1},
+        'tuple_key': {(1, 2): 'a'},
+        'unknown_type': cbor2.CBORTag(27, ['not.a.real.Type', {'a': 1}]),
+        'unknown_tag': cbor2.CBORTag(12345, 'value'),
+        'bytes': b'\x01\x02',
+    })
+
+    items = list(iter_json_compatible(data))
+    assert len(items) == 1
+    item = items[0]
+    json.dumps(item)  # Should be JSON serialisable
+    component = {'!stonesoup.tests.conftest._TestBase': {'property_a': 2, 'property_b': '20'}}
+    assert item == {
+        'time': '2024-01-02T03:04:05',
+        'component': component,
+        'shared': component,  # Repeated in full
+        'array': {'!stonesoup.types.array.StateVector': [[[1.], [2.]]]},
+        'int_array': [[1, 2], [3, 4]],
+        'bearing': {'!stonesoup.types.angle.Bearing': [0.5]},
+        'timedelta': {'!datetime.timedelta': [0, 1, 500000]},
+        'set': [1],
+        'tuple_key': {'[1, 2]': 'a'},
+        'unknown_type': {'!not.a.real.Type': {'a': 1}},  # Not imported
+        'unknown_tag': {'CBORTag:12345': 'value'},
+        'bytes': '0102',
+    }
+
+
+def test_iter_json_compatible_sequence(tmpdir):
+    from ..cbor import iter_json_compatible
+
+    path = Path(tmpdir.join('file.cbor'))
+    CBOR().dump_all([{'a': i} for i in range(3)], path)
+    assert list(iter_json_compatible(path)) == [{'a': 0}, {'a': 1}, {'a': 2}]
+    with path.open('rb') as file:
+        assert list(iter_json_compatible(file)) == [{'a': 0}, {'a': 1}, {'a': 2}]
+
+
+@pytest.mark.parametrize('compact', [True, False], ids=['compact', 'indented'])
+def test_main(tmpdir, capsys, base, compact):
+    from ..cbor import main
+
+    path = Path(tmpdir.join('file.cbor'))
+    CBOR().dump_all([{'time': datetime.datetime(2024, 1, 1, 0, 0, i), 'component': base(i, "a")}
+                     for i in range(2)], path)
+    main(['--compact', str(path)] if compact else [str(path)])
+
+    output = capsys.readouterr().out
+    if compact:
+        lines = output.splitlines()
+        assert len(lines) == 2
+        items = [json.loads(line) for line in lines]
+    else:
+        decoder = json.JSONDecoder()
+        items, index = [], 0
+        while index < len(output.strip()):
+            item, index = decoder.raw_decode(output, index)
+            items.append(item)
+            while index < len(output) and output[index].isspace():
+                index += 1
+        assert '\n  ' in output  # Indented
+    assert items == [
+        {'time': f'2024-01-01T00:00:0{i}',
+         'component': {'!stonesoup.tests.conftest._TestBase': {
+             'property_a': i, 'property_b': 'a'}}}
+        for i in range(2)]
+
+
+def test_main_stdin(capsys, monkeypatch):
+    import io
+    import sys
+    from ..cbor import main
+
+    stdin = io.TextIOWrapper(io.BytesIO(CBOR().dumps([1, 2]) + CBOR().dumps({'a': 3})))
+    monkeypatch.setattr(sys, 'stdin', stdin)
+    main(['--compact', '-'])
+    assert capsys.readouterr().out.splitlines() == ['[1, 2]', '{"a": 3}']
+
+
+def test_main_module(tmpdir):
+    import os
+    import subprocess
+    import sys
+
+    import stonesoup
+
+    path = Path(tmpdir.join('file.cbor'))
+    CBOR().dump({'a': [1, 2]}, path)
+    # Ensure same Stone Soup as under test is used
+    env = dict(os.environ)
+    env['PYTHONPATH'] = os.pathsep.join(
+        [str(Path(stonesoup.__file__).parent.parent), env.get('PYTHONPATH', '')])
+    result = subprocess.run(
+        [sys.executable, '-W', 'error::RuntimeWarning', '-m', 'stonesoup.serialise.cbor',
+         '--compact', str(path)],
+        capture_output=True, text=True, env=env, check=True)
+    assert result.stdout == '{"a": [1, 2]}\n'
