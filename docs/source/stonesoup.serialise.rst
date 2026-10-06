@@ -7,3 +7,7 @@ Serialisation
 YAML
 ----
 .. automodule:: stonesoup.serialise.yaml
+
+CBOR
+----
+.. automodule:: stonesoup.serialise.cbor

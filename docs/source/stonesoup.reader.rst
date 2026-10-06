@@ -20,6 +20,11 @@ YAML
 .. automodule:: stonesoup.reader.yaml
     :show-inheritance:
 
+CBOR
+----
+.. automodule:: stonesoup.reader.cbor
+    :show-inheritance:
+
 HDF5
 ----
 .. automodule:: stonesoup.reader.hdf5
