@@ -10,7 +10,7 @@ cbor2 = pytest.importorskip("cbor2")
 
 from .test_yaml import TestSensor, first_class, second_class  # noqa: E402
 from .. import CBOR  # noqa: E402
-from ..cbor import encode_object  # noqa: E402
+from ..cbor import _encode_object  # noqa: E402
 from ..yaml import get_class  # noqa: E402
 from ...base import Property  # noqa: E402
 from ...tests.conftest import _TestBase  # noqa: E402
@@ -350,8 +350,10 @@ class _Custom:
 
 
 def test_register(serialiser):
+    # As documented in `CBOR.register`
     serialiser.register(
-        _Custom, lambda encoder, obj: encode_object(encoder, 'custom.Custom', obj.value),
+        _Custom,
+        lambda encoder, obj: encoder.encode(cbor2.CBORTag(27, ['custom.Custom', obj.value])),
         name='custom.Custom')
     new_instance = serialiser.loads(serialiser.dumps([_Custom(5)]))[0]
     assert isinstance(new_instance, _Custom)
@@ -363,7 +365,7 @@ def test_register_subclasses(base, serialiser):
         pass
 
     serialiser.register(
-        base, lambda encoder, obj: encode_object(encoder, 'custom.Base', obj.property_b),
+        base, lambda encoder, obj: _encode_object(encoder, 'custom.Base', obj.property_b),
         decoder=lambda value: f"decoded {value}", name='custom.Base', subclasses=True)
     assert serialiser.loads(serialiser.dumps([base(1, "a"), _SubBase(2, "b")])) == \
         ["decoded a", "decoded b"]
@@ -400,7 +402,7 @@ def test_dump_all(tmpdir, serialiser, base):
 
 
 def test_iter_json_compatible(base):
-    from ..cbor import iter_json_compatible
+    from ..cbor import _iter_json_compatible
 
     instance = base(2, "20")
     data = CBOR().dumps({
@@ -418,7 +420,7 @@ def test_iter_json_compatible(base):
         'bytes': b'\x01\x02',
     })
 
-    items = list(iter_json_compatible(data))
+    items = list(_iter_json_compatible(data))
     assert len(items) == 1
     item = items[0]
     json.dumps(item)  # Should be JSON serialisable
@@ -440,13 +442,13 @@ def test_iter_json_compatible(base):
 
 
 def test_iter_json_compatible_sequence(tmpdir):
-    from ..cbor import iter_json_compatible
+    from ..cbor import _iter_json_compatible
 
     path = Path(tmpdir.join('file.cbor'))
     CBOR().dump_all([{'a': i} for i in range(3)], path)
-    assert list(iter_json_compatible(path)) == [{'a': 0}, {'a': 1}, {'a': 2}]
+    assert list(_iter_json_compatible(path)) == [{'a': 0}, {'a': 1}, {'a': 2}]
     with path.open('rb') as file:
-        assert list(iter_json_compatible(file)) == [{'a': 0}, {'a': 1}, {'a': 2}]
+        assert list(_iter_json_compatible(file)) == [{'a': 0}, {'a': 1}, {'a': 2}]
 
 
 @pytest.mark.parametrize('compact', [True, False], ids=['compact', 'indented'])

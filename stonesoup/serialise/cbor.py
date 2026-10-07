@@ -27,7 +27,7 @@ Multiple objects can be written one after another to the same file (a CBOR seque
 analogous to multiple YAML documents.
 
 CBOR files can be viewed as JSON from the command line, without loading any Stone Soup
-components (see :func:`iter_json_compatible`)::
+components::
 
     python -m stonesoup.serialise.cbor [--compact] FILE [FILE ...]
 
@@ -64,7 +64,7 @@ from ..types.numeric import Probability
 from ..types.state import ParticleState
 from .yaml import get_class
 
-__all__ = ['CBOR', 'encode_object', 'iter_json_compatible']
+__all__ = ['CBOR']
 
 # CBOR major types
 _MAJOR_ARRAY = 4
@@ -215,10 +215,11 @@ class CBOR:
             Type to register.
         encoder : callable, optional
             Function taking the :class:`cbor2.CBOREncoder` and object, which should encode the
-            object. Typically this is done with :func:`encode_object`.
+            object. Typically this is as tag 27 with the type name and arguments, e.g.
+            ``encoder.encode(cbor2.CBORTag(27, [name, *args]))``.
         decoder : callable, optional
-            Function taking the arguments that were passed to :func:`encode_object`, and
-            returning the decoded object. Default is to call `class_` with the arguments.
+            Function taking the arguments stored after the type name (as encoded by `encoder`),
+            and returning the decoded object. Default is to call `class_` with the arguments.
         name : str, optional
             Type name used in the serialised data. Default is module and qualified class name.
         subclasses : bool
@@ -241,7 +242,7 @@ class CBOR:
         string without an offset."""
         if obj.utcoffset() is None:
             if self.timezone is None:
-                encode_object(encoder, type_name(datetime.datetime), obj.isoformat())
+                _encode_object(encoder, type_name(datetime.datetime), obj.isoformat())
                 return
             obj = obj.replace(tzinfo=self.timezone)
         encoder.encode_length(_MAJOR_TAG, TAG_DATETIME_STRING)
@@ -373,7 +374,7 @@ def _get_declarative_class(name):
     return class_
 
 
-def encode_object(encoder, name, *args):
+def _encode_object(encoder, name, *args):
     """Encode object with type name and arguments (CBOR tag 27).
 
     Avoids creating temporary containers, which would otherwise be marked as shareable when
@@ -452,24 +453,24 @@ def _encode_ndarray(encoder, obj):
 
 
 def _encode_angle(encoder, obj):
-    encode_object(encoder, type_name(type(obj)), float(obj))
+    _encode_object(encoder, type_name(type(obj)), float(obj))
 
 
 def _encode_probability(encoder, obj):
-    encode_object(encoder, type_name(type(obj)), obj.log_value)
+    _encode_object(encoder, type_name(type(obj)), obj.log_value)
 
 
 def _encode_timedelta(encoder, obj):
-    encode_object(encoder, type_name(type(obj)), obj.days, obj.seconds, obj.microseconds)
+    _encode_object(encoder, type_name(type(obj)), obj.days, obj.seconds, obj.microseconds)
 
 
 def _encode_path(encoder, obj):
-    encode_object(encoder, type_name(Path), str(obj))
+    _encode_object(encoder, type_name(Path), str(obj))
 
 
 @cbor2.shareable_encoder
 def _encode_deque(encoder, obj):
-    encode_object(encoder, type_name(deque), list(obj), obj.maxlen)
+    _encode_object(encoder, type_name(deque), list(obj), obj.maxlen)
 
 
 def _json_object(value, immutable):
@@ -515,7 +516,7 @@ def _to_json_key(key):
     return json.dumps(_to_json_compatible(key))
 
 
-def iter_json_compatible(stream):
+def _iter_json_compatible(stream):
     """Generator of each item in a CBOR sequence, converted to JSON compatible types.
 
     This is intended for inspecting serialised data. Unlike :meth:`CBOR.load_all`, objects are
@@ -526,7 +527,7 @@ def iter_json_compatible(stream):
 
     Parameters
     ----------
-    stream : bytes, file or path
+    stream : bytes, file object, str or os.PathLike
         CBOR data, (binary) stream or path.
     """
     for item in _decode_all(stream, _JSON_SEMANTIC_DECODERS):
@@ -547,7 +548,7 @@ def main(args=None):
 
     for file in options.files:
         stream = sys.stdin.buffer if file == '-' else file
-        for item in iter_json_compatible(stream):
+        for item in _iter_json_compatible(stream):
             print(json.dumps(item, indent=None if options.compact else 2))
 
 
