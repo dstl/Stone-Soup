@@ -1,4 +1,4 @@
-from functools import lru_cache
+from ..functions.caching import instance_lru_cache
 
 from ..base import Property
 from .base import Updater
@@ -79,7 +79,7 @@ class ChernoffUpdater(Updater):
         default=0.5,
         doc="A weighting parameter in the range :math:`(0,1]`")
 
-    @lru_cache()
+    @instance_lru_cache()
     def predict_measurement(self, predicted_state, measurement_model=None, measurement_noise=True,
                             **kwargs):
         r"""

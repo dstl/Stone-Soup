@@ -1,7 +1,7 @@
 import copy
 import warnings
 from collections.abc import Callable, Collection
-from functools import lru_cache
+from ..functions.caching import instance_lru_cache
 
 import numpy as np
 from scipy.linalg import inv
@@ -114,7 +114,7 @@ class ParticleUpdater(Updater):
 
         return predicted_state
 
-    @lru_cache()
+    @instance_lru_cache()
     def predict_measurement(self, predicted_state, measurement_model=None, measurement_noise=True,
                             **kwargs):
 

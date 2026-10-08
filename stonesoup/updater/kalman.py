@@ -2,7 +2,7 @@ import warnings
 
 import numpy as np
 import scipy.linalg as la
-from functools import lru_cache
+from ..functions.caching import instance_lru_cache
 
 from ..base import Property
 from .base import Updater
@@ -229,7 +229,7 @@ class KalmanUpdater(Updater):
 
         return post_cov.view(CovarianceMatrix), kalman_gain
 
-    @lru_cache()
+    @instance_lru_cache()
     def predict_measurement(self, predicted_state, measurement_model=None, measurement_noise=True,
                             **kwargs):
         r"""Predict the measurement implied by the predicted state mean
@@ -410,7 +410,7 @@ class UnscentedKalmanUpdater(KalmanUpdater):
         doc="Secondary spread scaling parameter. Default is calculated as "
             "3-Ns")
 
-    @lru_cache()
+    @instance_lru_cache()
     def predict_measurement(self, predicted_state, measurement_model=None, measurement_noise=True,
                             **kwargs):
         """Unscented Kalman Filter measurement prediction step. Uses the
@@ -872,7 +872,7 @@ class CubatureKalmanUpdater(KalmanUpdater):
         doc="Scaling parameter. Default is 1.0. Lower values select points closer to the mean and "
             "vice versa.")
 
-    @lru_cache()
+    @instance_lru_cache()
     def predict_measurement(self, predicted_state, measurement_model=None, measurement_noise=True,
                             **kwargs):
         """Cubature Kalman Filter measurement prediction step. Uses the cubature transform to
@@ -937,7 +937,7 @@ class StochasticIntegrationUpdater(KalmanUpdater):
         default=5, doc="order of SIR (orders 1, 3, 5 are currently supported)"
     )
 
-    @lru_cache()
+    @instance_lru_cache()
     def predict_measurement(
         self, predicted_state, measurement_model=None, measurement_noise=True, **kwargs
     ):

@@ -1,4 +1,4 @@
-from functools import lru_cache
+from ..functions.caching import instance_lru_cache
 
 import numpy as np
 
@@ -21,7 +21,7 @@ class ASDKalmanUpdater(KalmanUpdater):
         Electronic Systems,
         vol. 47, no. 4, pp. 2766-2778, OCTOBER 2011, doi: 10.1109/TAES.2011.6034663.
     """
-    @lru_cache()
+    @instance_lru_cache()
     def predict_measurement(self, predicted_state, measurement_model=None, measurement_noise=True,
                             **kwargs):
         r"""Predict the measurement implied by the predicted state mean

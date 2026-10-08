@@ -1,4 +1,4 @@
-from functools import lru_cache
+from ..functions.caching import instance_lru_cache
 
 import numpy as np
 from scipy.stats import multivariate_normal
@@ -26,7 +26,7 @@ class AdaptiveKernelKalmanUpdater(Updater):
             "true distribution is Gaussian, the value of 2 is optimal. "
             "Default is 1e-3")
 
-    @lru_cache()
+    @instance_lru_cache()
     def predict_measurement(self, state_prediction, measurement_model=None,
                             **kwargs):
 
