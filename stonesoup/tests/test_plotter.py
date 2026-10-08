@@ -667,3 +667,34 @@ def test_obstacles(plotters, obstacles):
         plotters.plot_measurements(all_measurements, [0, 1])
         plotters.plot_tracks(track, [0, 1])
         plotters.plot_obstacles(obstacles)
+
+
+def test_plotter_show(monkeypatch):
+    """Plotter.show should forward to matplotlib.pyplot.show (#739)."""
+    called = {}
+
+    def fake_show(*args, **kwargs):
+        called['args'] = args
+        called['kwargs'] = kwargs
+        return 'shown'
+
+    monkeypatch.setattr('stonesoup.plotter.plt.show', fake_show)
+    plotter = Plotter()
+    assert plotter.show(block=False) == 'shown'
+    assert called['kwargs'] == {'block': False}
+
+
+def test_plotterly_show(monkeypatch):
+    """Plotterly.show should forward to the underlying figure.show (#739)."""
+    called = {}
+
+    plotter = Plotterly()
+
+    def fake_show(*args, **kwargs):
+        called['args'] = args
+        called['kwargs'] = kwargs
+        return 'shown'
+
+    monkeypatch.setattr(plotter.fig, 'show', fake_show)
+    assert plotter.show(renderer='json') == 'shown'
+    assert called['kwargs'] == {'renderer': 'json'}
