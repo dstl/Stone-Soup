@@ -1,4 +1,4 @@
-from functools import lru_cache
+from ..functions.caching import instance_lru_cache
 
 import numpy as np
 from scipy.stats import multivariate_normal
@@ -72,7 +72,7 @@ class PointMassUpdater(Updater):
 
         return predicted_state
 
-    @lru_cache()
+    @instance_lru_cache()
     def predict_measurement(self, state_prediction, measurement_model=None, **kwargs):
 
         if measurement_model is None:

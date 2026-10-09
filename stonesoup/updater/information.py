@@ -1,4 +1,4 @@
-from functools import lru_cache
+from ..functions.caching import instance_lru_cache
 
 import numpy as np
 
@@ -61,7 +61,7 @@ class InformationKalmanUpdater(KalmanUpdater):
 
         return inv_measurement_covar
 
-    @lru_cache()
+    @instance_lru_cache()
     def predict_measurement(self, predicted_state, measurement_model=None, measurement_noise=True,
                             **kwargs):
         r"""There's no direct analogue of a predicted measurement in the information form. This
