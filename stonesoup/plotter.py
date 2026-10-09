@@ -3,7 +3,7 @@ from abc import ABC, abstractmethod
 from collections.abc import Collection, Iterable
 from datetime import datetime, timedelta
 from enum import IntEnum
-from itertools import chain
+from itertools import chain, repeat
 from typing import Optional, Union
 
 import numpy as np
@@ -798,7 +798,8 @@ class MetricPlotter(ABC):
         and generates legend(s) automatically. Metrics are plotted as lines with default colors.
 
         Users can change linestyle, color and marker or other features using keyword arguments.
-        Any changes will apply to all metrics.
+        Any changes will apply to all metrics, except when combining plots, where a list of colors
+        and/or a list of linestyles can be provided, which are applied to each metric in turn.
 
         Parameters
         ----------
@@ -814,6 +815,8 @@ class MetricPlotter(ABC):
             Plot metrics of same type on the same subplot. Default True.
         \\*\\*kwargs: dict
             Additional arguments to be passed to plot function. Default is ``linestyle="-"``.
+            When combining plots, ``color`` and ``linestyle`` can be a list, with an entry for
+            each metric.
 
         Returns
         -------
@@ -968,24 +971,30 @@ class MetricPlotter(ABC):
             colour_map = metrics_kwargs['color']
             metrics_kwargs.pop('color')
 
+        # line styles for lines to be plotted: either a list, or a single style for all lines
+        # (note that a single style may be a tuple, e.g. a dash pattern)
+        linestyle = metrics_kwargs.pop('linestyle')
+
         for metric_type, axis in zip(list(metric_types), self.axes):
             artists = []
             legend_dict = {}
 
             colour_map_copy = iter(colour_map.copy())
+            linestyles = iter(linestyle) if isinstance(linestyle, list) else repeat(linestyle)
 
             for generator in metrics_to_plot.keys():
                 for metric in metrics_to_plot[generator].keys():
                     if metric == metric_type:
                         colour = next(colour_map_copy)
+                        line_style = next(linestyles)
                         metric_values = metrics_to_plot[generator][metric].value
                         artists.extend(axis.plot([_.timestamp for _ in metric_values],
                                                  [_.value for _ in metric_values],
                                                  color=colour,
+                                                 linestyle=line_style,
                                                  **metrics_kwargs))
 
-                        metric_handle = Line2D([], [], linestyle=metrics_kwargs['linestyle'],
-                                               color=colour)
+                        metric_handle = Line2D([], [], linestyle=line_style, color=colour)
                         legend_dict[generator] = metric_handle
 
             # Generate legend
