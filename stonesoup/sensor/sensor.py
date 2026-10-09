@@ -235,10 +235,6 @@ class VisibilityInformed2DSensor(SimpleSensor):
         self._all_verts = [obstacle.vertices for obstacle in self.obstacles]
         self._all_rel_edges = [obstacle.relative_edges for obstacle in self.obstacles]
 
-        # Sensor position the relevant obstacles were last calculated for
-        # (stored per instance)
-        self._cached_position = None
-
     @property
     def _relevant_obstacles(self):
         self._get_relevant_obstacles()
@@ -251,11 +247,9 @@ class VisibilityInformed2DSensor(SimpleSensor):
             # Call vertices for each obstacle to update self._all_verts and self._all_rel_edges
             _ = [obstacle.vertices for obstacle in self.obstacles]
 
-        if self.max_range < np.inf and (self._cached_position is None or
-                                        np.any(self._cached_position != self.position) or
-                                        not self._relevant_obs):
-
-            self._cached_position = self.position.copy()
+        # Relevant obstacles depend on the obstacles' positions as well as
+        # the sensor's, so they are recalculated on each call
+        if self.max_range < np.inf:
             self._relevant_obs_idx = \
                 np.where([np.any(np.sqrt(
                                          np.sum((vertices[0:2, :]-self.position[0:2])**2, axis=0))
