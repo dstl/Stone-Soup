@@ -1087,3 +1087,36 @@ def test_from_obstacle(position2, orientation2, mapping2):
     assert np.all(initial_obstacle.position_mapping == mapping)
     assert np.all(initial_obstacle.vertices == initial_verts)
     assert np.all(initial_obstacle.relative_edges == initial_relative_edges)
+
+
+def test_obstacle_vertices_independent_between_instances():
+    # Moving one obstacle must not stop another obstacle's vertices from
+    # being updated when it moves (previously a class level lru_cache was
+    # shared and cleared across all instances)
+    shape = Shape(shape_data=np.array([[-1, 1, 1, -1], [-1, -1, 1, 1]]))
+    timestamp = datetime.datetime(2026, 1, 1)
+    obstacle_a = Obstacle(states=State(StateVector([0, 0]), timestamp=timestamp),
+                          position_mapping=(0, 1), shape=shape)
+    obstacle_b = Obstacle(states=State(StateVector([0, 0]), timestamp=timestamp),
+                          position_mapping=(0, 1), shape=shape)
+    _ = obstacle_a.vertices, obstacle_b.vertices
+
+    timestamp += datetime.timedelta(seconds=1)
+    obstacle_b.states.append(State(StateVector([5, 0]), timestamp=timestamp))
+    obstacle_a.states.append(State(StateVector([7, 0]), timestamp=timestamp))
+    _ = obstacle_a.vertices
+
+    assert np.allclose(obstacle_b.vertices,
+                       obstacle_b._calculate_verts())
+    assert np.allclose(obstacle_b.vertices[:, 0], [6, -1])
+    assert np.allclose(obstacle_a.vertices[:, 0], [8, -1])
+
+
+def test_obstacle_pickle():
+    import pickle
+    shape = Shape(shape_data=np.array([[-1, 1, 1, -1], [-1, -1, 1, 1]]))
+    obstacle = Obstacle(states=State(StateVector([0, 0])),
+                        position_mapping=(0, 1), shape=shape)
+    _ = obstacle.vertices
+    obstacle2 = pickle.loads(pickle.dumps(obstacle))
+    assert np.allclose(obstacle2.vertices, obstacle.vertices)

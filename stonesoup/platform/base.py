@@ -1,7 +1,6 @@
 import uuid
 from collections.abc import MutableSequence
 from datetime import datetime
-from functools import lru_cache
 
 import numpy as np
 
@@ -98,11 +97,20 @@ class Platform(Base):
             sensor.movement_controller = self.movement_controller
 
         if self.shape:
+            # Position and orientation the vertices and relative edges
+            # were last calculated for (stored per instance)
+            self._cached_orientation = self._copy_or_none(self.orientation)
+            self._cached_position = self._copy_or_none(self.position)
+
             # Initialise vertices
             self._vertices = self._calculate_verts()
 
             # Initialise relative_edges
             self._relative_edges = self._calculate_relative_edges()
+
+    @staticmethod
+    def _copy_or_none(value):
+        return None if value is None else value.copy()
 
     @staticmethod
     def _tuple_or_none(value):
@@ -222,29 +230,17 @@ class Platform(Base):
         self._update_verts_and_relative_edges()
         return self._relative_edges
 
-    @lru_cache(maxsize=None)
-    def _orientation_cache(self):
-        # Cache for orientation allows for vertices and relative edges to be
-        # be calculated when necessary. Maxsize set to unlimited as it
-        # is cleared before assigning a new value
-        return self.orientation
-
-    @lru_cache(maxsize=None)
-    def _position_cache(self):
-        # Cache for position allows for vertices and relative edges to be
-        # calculated only when necessary. Maxsize set to unlimited as it
-        # is cleared before assigning a new value
-        return self.position
-
     def _update_verts_and_relative_edges(self):
         # Checks to see if cached position and orientation matches the
         # current property. If they match nothing is calculated. If they
         # don't vertices and relative edges are recalculated.
-        if np.any(self._orientation_cache() != self.orientation) or \
-                np.any(self._position_cache() != self.position):
+        orientation = self.orientation
+        position = self.position
+        if np.any(self._cached_orientation != orientation) or \
+                np.any(self._cached_position != position):
 
-            self._orientation_cache.cache_clear()
-            self._position_cache.cache_clear()
+            self._cached_orientation = self._copy_or_none(orientation)
+            self._cached_position = self._copy_or_none(position)
             self._vertices[:] = self._calculate_verts()
             self._relative_edges[:] = self._calculate_relative_edges()
 
