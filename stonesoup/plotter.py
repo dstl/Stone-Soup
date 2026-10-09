@@ -174,6 +174,12 @@ class Plotter(_Plotter):
     legend_dict: dict
         Dictionary of legend handles as :class:`matplotlib.legend_handler.HandlerBase`
         and labels as str
+
+    Notes
+    -----
+    When running scripts outside of a notebook, call :meth:`show` (or
+    ``matplotlib.pyplot.show()``) after plotting so the figure window appears
+    (see issue #739).
     """
 
     def __init__(self, dimension=Dimension.TWO, fig=None, ax=None, **kwargs):
@@ -212,6 +218,18 @@ class Plotter(_Plotter):
         # prevent multiple entries with the same label from displaying on legend
         # This is new compared to plotter.py
         self.legend_dict = {}  # create an empty dictionary to hold legend entries
+
+    def show(self, *args, **kwargs):
+        """Display the figure.
+
+        Convenience wrapper around :func:`matplotlib.pyplot.show`. Useful when
+        running Stone Soup scripts from the command line or an IDE, where the
+        figure is otherwise not shown automatically (see issue #739).
+
+        Extra positional and keyword arguments are forwarded to
+        :func:`matplotlib.pyplot.show`.
+        """
+        return plt.show(*args, **kwargs)
 
     def plot_ground_truths(self, truths, mapping, label="Ground Truth", **kwargs):
         """Plots ground truth(s)
@@ -1099,6 +1117,13 @@ class Plotterly(_Plotter):
     ----------
     fig: plotly.graph_objects.Figure
         Generated figure to display graphs.
+
+    Notes
+    -----
+    When running scripts outside of a notebook, call :meth:`show` (or
+    ``plotter.fig.show()``) after plotting so the figure appears. Returning
+    ``plotter.fig`` alone is enough in Jupyter, but not in many IDEs or when
+    running a ``.py`` file from the command line (see issue #739).
     """
     def __init__(self, dimension=Dimension.TWO, axis_labels=None, to_scale=True, **kwargs):
         if dimension != Dimension.ONE:
@@ -1148,6 +1173,19 @@ class Plotterly(_Plotter):
             raise ValueError("No indices provided in mapping.")
         elif len(mapping) != self.dimension:
             raise TypeError("Plotter dimension is not same as the mapping dimension.")
+
+    def show(self, *args, **kwargs):
+        """Display the figure.
+
+        Convenience wrapper around :meth:`plotly.graph_objects.Figure.show`.
+        Useful when running Stone Soup scripts from the command line or an IDE,
+        where returning ``plotter.fig`` alone does not open a viewer (see issue
+        #739).
+
+        Extra positional and keyword arguments are forwarded to
+        :meth:`plotly.graph_objects.Figure.show`.
+        """
+        return self.fig.show(*args, **kwargs)
 
     def plot_ground_truths(self, truths, mapping, label="Ground Truth", **kwargs):
         """Plots ground truth(s)
