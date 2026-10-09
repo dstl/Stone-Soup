@@ -5,7 +5,7 @@ from scipy.stats import multivariate_normal
 from scipy.linalg import inv
 
 from ..nonlinear import (
-    CartesianToElevationBearingRange, CartesianToBearingRange,
+    CartesianToElevationBearingRange, CartesianToBearingRange, Cartesian3DToBearingRange,
     CartesianToElevationBearing, Cartesian2DToBearing, CartesianToBearingRangeRate,
     CartesianToElevationBearingRangeRate, RangeRangeRateBinning,
     CartesianToAzimuthElevationRange, CartesianToBearingRangeRate2D,
@@ -70,6 +70,21 @@ def h3d(state_vector, pos_map,  translation_offset, rotation_offset):
     return StateVector([Elevation(theta), Bearing(phi), rho])
 
 
+def h3d_bearing_range(state_vector, pos_map, translation_offset, rotation_offset):
+    xyz = state_vector[pos_map, :] - translation_offset
+
+    # Get rotation matrix
+    theta_x, theta_y, theta_z = - rotation_offset[:, 0]
+    theta_y = - theta_y
+
+    rotation_matrix = rotx(theta_x) @ roty(theta_y) @ rotz(theta_z)
+    xyz_rot = rotation_matrix @ xyz
+
+    rho, phi, _ = cart2sphere(*xyz_rot)
+
+    return StateVector([Bearing(phi), rho])
+
+
 def hbearing(state_vector, pos_map, translation_offset, rotation_offset):
     xyz = state_vector[pos_map, :] - translation_offset
 
@@ -129,6 +144,7 @@ def assert_inverse_function_vectorised(model, state_vec):
     [LinearGaussian,
      CartesianToElevationBearingRange,
      CartesianToBearingRange,
+     Cartesian3DToBearingRange,
      CartesianToElevationBearing,
      Cartesian2DToBearing,
      CartesianToBearingRangeRate,
@@ -221,6 +237,26 @@ def test_none_covar(model_class):
             None
         ),
         (   # 2D meas, 3D state
+            h3d_bearing_range,
+            Cartesian3DToBearingRange,
+            StateVector([[1], [2], [2]]),
+            CovarianceMatrix([[0.015, 0],
+                              [0, 0.1]]),
+            np.array([0, 1, 2]),
+            StateVector([[-1], [0.5], [1]]),
+            StateVector([[.2], [3], [-1]])
+        ),
+        (   # 2D meas, 3D state
+            h3d_bearing_range,
+            Cartesian3DToBearingRange,
+            StateVector([[1], [2], [2]]),
+            CovarianceMatrix([[0.015, 0],
+                              [0, 0.1]]),
+            np.array([0, 1, 2]),
+            None,
+            None
+        ),
+        (   # 2D meas, 3D state
             hbearing,
             CartesianToElevationBearing,
             StateVector([[1], [2], [3]]),
@@ -255,6 +291,7 @@ def test_none_covar(model_class):
     ids=["Bearing1", "Bearing2",
          "BearingRange1", "BearingRange2", "BearingRange3",
          "RangeBearingElevation1", "RangeBearingElevation1",
+         "BearingSlantRange1", "BearingSlantRange2",
          "BearingsOnly1", "BearingsOnly2", "AzimuthElevationRange"]
 )
 def test_models(h, ModelClass, state_vec, R,
@@ -1324,6 +1361,16 @@ def test_calc_pdf():
                 None
         ),
         (   # 2D meas, 3D state
+                h3d_bearing_range,
+                Cartesian3DToBearingRange,
+                StateVectors([[1, 1], [2, 2], [2, 2]]),
+                CovarianceMatrix([[0.015, 0],
+                                  [0, 0.1]]),
+                np.array([0, 1, 2]),
+                StateVector([[-1], [0.5], [1]]),
+                StateVector([[.2], [3], [-1]])
+        ),
+        (   # 2D meas, 3D state
                 hbearing,
                 CartesianToElevationBearing,
                 StateVectors([[1, 1], [2, 2], [3, 3]]),
@@ -1347,6 +1394,7 @@ def test_calc_pdf():
     ids=["Bearing1", "Bearing2",
          "BearingElevation1", "BearingElevation2",
          "RangeBearingElevation1", "RangeBearingElevation1",
+         "BearingSlantRange1",
          "BearingsOnly1", "BearingsOnly2"]
 )
 def test_models_with_particles(h, ModelClass, state_vec, R,

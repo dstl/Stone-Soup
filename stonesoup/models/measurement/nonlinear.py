@@ -416,6 +416,107 @@ class CartesianToBearingRange(_AngleNonLinearGaussianMeasurement, ReversibleMode
         return np.array([[Bearing(0)], [0.]])
 
 
+class Cartesian3DToBearingRange(_AngleNonLinearGaussianMeasurement):
+    r"""This is a class implementation of a time-invariant measurement model, \
+    where measurements are assumed to be received in the form of bearing \
+    (:math:`\phi`) and slant range (:math:`r`) of a target in 3D space, with \
+    Gaussian noise in each dimension.
+
+    This is suited to 2D radars, which measure range to a target in 3D, but provide no \
+    elevation measurement. Unlike :class:`~.CartesianToBearingRange`, the range is the full 3D \
+    (slant) range, so the target height contributes to the measured range.
+
+    The model is described by the following equations:
+
+    .. math::
+
+      \vec{y}_t = h(\vec{x}_t, \vec{v}_t)
+
+    where:
+
+    * :math:`\vec{y}_t` is a measurement vector of the form:
+
+    .. math::
+
+      \vec{y}_t = \begin{bmatrix}
+                \phi \\
+                r
+            \end{bmatrix}
+
+    * :math:`h` is a non-linear model function of the form:
+
+    .. math::
+
+      h(\vec{x}_t,\vec{v}_t) = \begin{bmatrix}
+                atan2(\mathcal{y},\mathcal{x}) \\
+                \sqrt{\mathcal{x}^2 + \mathcal{y}^2 + \mathcal{z}^2}
+                \end{bmatrix} + \vec{v}_t
+
+    * :math:`\vec{v}_t` is Gaussian distributed with covariance :math:`R`, i.e.:
+
+    .. math::
+
+      \vec{v}_t \sim \mathcal{N}(0,R)
+
+    .. math::
+
+      R = \begin{bmatrix}
+            \sigma_{\phi}^2 & 0 \\
+            0 & \sigma_{r}^2
+            \end{bmatrix}
+
+    The :py:attr:`mapping` property of the model is a 3 element vector, \
+    whose first (i.e. :py:attr:`mapping[0]`), second (i.e. \
+    :py:attr:`mapping[1]`) and third (i.e. :py:attr:`mapping[2]`) elements \
+    contain the state index of the :math:`x`, :math:`y` and :math:`z`  \
+    coordinates, respectively.
+
+    Note
+    ----
+    This model isn't reversible, as the elevation of the target isn't observed.
+
+    """  # noqa:E501
+
+    translation_offset: StateVector = Property(
+        default_factory=lambda: StateVector([[0.], [0.], [0.]]),
+        doc="A 3x1 array specifying the Cartesian origin offset in terms of :math:`x,y,z` "
+            "coordinates.")
+
+    @property
+    def ndim_meas(self) -> int:
+        """ndim_meas getter method
+
+        Returns
+        -------
+        :class:`int`
+            The number of measurement dimensions
+        """
+
+        return 2
+
+    def _function(self, state, noise=False, **kwargs) -> StateVector:
+        if isinstance(noise, bool) or noise is None:
+            if noise:
+                noise = self.rvs(num_samples=state.state_vector.shape[1], **kwargs)
+            else:
+                noise = 0
+
+        # Account for origin offset
+        xyz = state.state_vector[self.mapping, :] - self.translation_offset
+
+        # Rotate coordinates
+        xyz_rot = self.rotation_matrix @ xyz
+
+        # Convert to Spherical, dropping elevation
+        rho, phi, _ = cart2sphere(xyz_rot[0, :], xyz_rot[1, :], xyz_rot[2, :])
+
+        return StateVectors([phi, rho]) + noise
+
+    @staticmethod
+    def _typed_vector():
+        return np.array([[Bearing(0.)], [0.]])
+
+
 class CartesianToElevationBearing(_AngleNonLinearGaussianMeasurement):
     r"""This is a class implementation of a time-invariant measurement model, \
     where measurements are assumed to be received in the form of bearing \
