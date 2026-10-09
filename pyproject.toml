@@ -44,6 +44,7 @@ Issues = "https://github.com/dstl/Stone-Soup/issues"
 
 [project.optional-dependencies]
 dev = [
+    "cbor2",
     "confluent-kafka",
     "coverage>=7.2",
     "flake8",
@@ -81,6 +82,9 @@ ultralytics = [
 ]
 mfa = [
     "ortools",
+]
+cbor = [
+    "cbor2",
 ]
 ehm = [
     "pyehm",

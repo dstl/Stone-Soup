@@ -12,6 +12,11 @@ YAML
 .. automodule:: stonesoup.writer.yaml
     :show-inheritance:
 
+CBOR
+----
+.. automodule:: stonesoup.writer.cbor
+    :show-inheritance:
+
 Kafka
 -----
 .. automodule:: stonesoup.writer.kafka

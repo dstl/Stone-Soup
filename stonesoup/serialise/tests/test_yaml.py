@@ -4,13 +4,13 @@ import numpy as np
 import pytest
 from ruamel.yaml.constructor import ConstructorError
 
-from .conftest import _TestBase
-from ..sensor.sensor import Sensor
-from ..serialise import YAML
-from ..base import Property
-from ..types.array import Matrix, StateVector, StateVectors, CovarianceMatrix
-from ..types.state import ParticleState
-from ..types.angle import Angle, Bearing, Elevation, Longitude, Latitude
+from ...tests.conftest import _TestBase
+from ...sensor.sensor import Sensor
+from .. import YAML
+from ...base import Property
+from ...types.array import Matrix, StateVector, StateVectors, CovarianceMatrix
+from ...types.state import ParticleState
+from ...types.angle import Angle, Bearing, Elevation, Longitude, Latitude
 
 
 @pytest.fixture(params=['rt', 'safe'])
@@ -90,7 +90,7 @@ def test_angle(serialised_file, instance):
 
 
 def test_probability(serialised_file):
-    from ..types.numeric import Probability
+    from ...types.numeric import Probability
 
     instance = Probability(1E-100)
 
