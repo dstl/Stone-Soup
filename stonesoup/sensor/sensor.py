@@ -1,6 +1,5 @@
 from abc import abstractmethod, ABC
 from collections.abc import Sequence
-from functools import lru_cache
 from typing import Union, Optional, TYPE_CHECKING
 
 try:
@@ -236,13 +235,6 @@ class VisibilityInformed2DSensor(SimpleSensor):
         self._all_verts = [obstacle.vertices for obstacle in self.obstacles]
         self._all_rel_edges = [obstacle.relative_edges for obstacle in self.obstacles]
 
-    @lru_cache(maxsize=None)
-    def _position_cache(self):
-        # Cache for position allows for vertices and relative edges to be
-        # calculated only when necessary. Maxsize set to unlimited as it
-        # is cleared before assigning a new value
-        return self.position
-
     @property
     def _relevant_obstacles(self):
         self._get_relevant_obstacles()
@@ -255,10 +247,9 @@ class VisibilityInformed2DSensor(SimpleSensor):
             # Call vertices for each obstacle to update self._all_verts and self._all_rel_edges
             _ = [obstacle.vertices for obstacle in self.obstacles]
 
-        if self.max_range < np.inf and (np.any(self._position_cache() != self.position) or
-                                        not self._relevant_obs):
-
-            self._position_cache.cache_clear()
+        # Relevant obstacles depend on the obstacles' positions as well as
+        # the sensor's, so they are recalculated on each call
+        if self.max_range < np.inf:
             self._relevant_obs_idx = \
                 np.where([np.any(np.sqrt(
                                          np.sum((vertices[0:2, :]-self.position[0:2])**2, axis=0))

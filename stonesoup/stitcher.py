@@ -1,7 +1,6 @@
 from collections import defaultdict
 from copy import deepcopy
 from datetime import timedelta
-from functools import lru_cache
 
 import numpy as np
 from scipy.optimize import linear_sum_assignment
@@ -31,7 +30,6 @@ class TrackStitcher(Base):
         default=timedelta(seconds=30))
 
     @staticmethod
-    @lru_cache()
     def _extract_detection(track, backward=False):
         state = track[-1] if backward else track[0]
         return Detection(state_vector=state.state_vector,
@@ -62,6 +60,10 @@ class TrackStitcher(Base):
         endpoint of a track segment
         """
         x_forward = defaultdict(dict)
+        # Detections are cached only for the duration of this call, so a
+        # track that later changes isn't served a stale endpoint, and tracks
+        # aren't kept alive after stitching
+        detections = {}
         for n in range(int((min(track[0].timestamp for track in tracks) -
                             start_time).total_seconds()),
                        int((max(track[-1].timestamp for track in tracks) -
@@ -73,7 +75,9 @@ class TrackStitcher(Base):
                 if (timestamp - self.search_window) <= track[-1].timestamp < timestamp:
                     poss_tracks.append(track)
                 if timestamp < track[0].timestamp <= (timestamp + timedelta(seconds=1)):
-                    poss_detections.add(self._extract_detection(track))
+                    if track not in detections:
+                        detections[track] = self._extract_detection(track)
+                    poss_detections.add(detections[track])
             if not poss_detections:
                 continue
             for track in poss_tracks:
@@ -92,6 +96,8 @@ class TrackStitcher(Base):
         the endpoint of a track segment
         """
         x_backward = defaultdict(dict)
+        # See forward_predict for why detections are cached per call
+        detections = {}
         for n in range(int((max(track[-1].timestamp for track in tracks) -
                             start_time).total_seconds()),
                        int((min(track[0].timestamp for track in tracks) -
@@ -104,7 +110,9 @@ class TrackStitcher(Base):
                 if timestamp < track[0].timestamp <= (timestamp + self.search_window):
                     poss_tracks.append(track)
                 if (timestamp - timedelta(seconds=1)) < track[-1].timestamp <= timestamp:
-                    poss_detections.add(self._extract_detection(track, backward=True))
+                    if track not in detections:
+                        detections[track] = self._extract_detection(track, backward=True)
+                    poss_detections.add(detections[track])
                 if not poss_detections:
                     continue
             for track in poss_tracks:

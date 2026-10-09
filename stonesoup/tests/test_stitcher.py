@@ -1,4 +1,7 @@
+import gc
+import weakref
 from datetime import datetime, timedelta
+
 import numpy as np
 import pytest
 import collections
@@ -20,6 +23,7 @@ from stonesoup.initiator.simple import MultiMeasurementInitiator
 from stonesoup.types.groundtruth import GroundTruthPath, GroundTruthState
 from stonesoup.stitcher import TrackStitcher
 from stonesoup.tracker.simple import MultiTargetTracker
+from stonesoup.types.track import Track
 
 
 @pytest.fixture
@@ -167,3 +171,62 @@ def test__merge_forward_and_backward():
     x_backward = {'a': {'b_id': 'b_val'}}
     with pytest.raises(RuntimeError):
         TrackStitcher._merge_forward_and_backward(x_forward, x_backward)
+
+
+class _RecordingHypothesiser:
+    """Records detections passed to it and always returns a missed hypothesis"""
+    class _Missed:
+        distance = 1.
+
+        def __bool__(self):
+            return False
+
+    def __init__(self):
+        self.detections = []
+
+    def hypothesise(self, track, detections, timestamp):
+        self.detections.extend(detections)
+        return [self._Missed()]
+
+
+def _make_track(start, *values):
+    return Track([GaussianState([[value]], [[1.]], timestamp=start + timedelta(seconds=n))
+                  for n, value in enumerate(values)])
+
+
+def test_backward_detection_not_stale_after_track_extended():
+    # Endpoints must reflect the track's current states, not those from a
+    # previous call (previously a class level lru_cache keyed on the track
+    # returned the old endpoint)
+    start = datetime(2026, 1, 1)
+    track_a = _make_track(start, 0., 1.)
+    track_b = _make_track(start + timedelta(seconds=5), 10.)
+    hypothesiser = _RecordingHypothesiser()
+    stitcher = TrackStitcher(backward_hypothesiser=hypothesiser)
+
+    stitcher.backward_predict({track_a, track_b}, start)
+    assert hypothesiser.detections
+    assert all(detection.state_vector[0, 0] == 1. for detection in hypothesiser.detections)
+
+    track_a.append(GaussianState([[2.]], [[1.]], timestamp=start + timedelta(seconds=2)))
+    hypothesiser.detections.clear()
+    stitcher.backward_predict({track_a, track_b}, start)
+    assert hypothesiser.detections
+    for detection in hypothesiser.detections:
+        assert detection.state_vector[0, 0] == 2.
+        assert detection.timestamp == start + timedelta(seconds=2)
+
+
+def test_stitcher_does_not_keep_tracks_alive():
+    start = datetime(2026, 1, 1)
+    track_a = _make_track(start, 0., 1.)
+    track_b = _make_track(start + timedelta(seconds=5), 10.)
+    stitcher = TrackStitcher(forward_hypothesiser=_RecordingHypothesiser(),
+                             backward_hypothesiser=_RecordingHypothesiser())
+    stitcher.forward_predict({track_a, track_b}, start)
+    stitcher.backward_predict({track_a, track_b}, start)
+
+    track_refs = [weakref.ref(track_a), weakref.ref(track_b)]
+    del track_a, track_b
+    gc.collect()
+    assert all(ref() is None for ref in track_refs)
