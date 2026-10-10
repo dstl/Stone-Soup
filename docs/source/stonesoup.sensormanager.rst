@@ -11,6 +11,9 @@ Sensor Managers
     :show-inheritance:
     :inherited-members:
 
+.. automodule:: stonesoup.sensormanager.optuna
+    :show-inheritance:
+    :inherited-members:
 
 Tree Search Managers
 --------------------

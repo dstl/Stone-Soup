@@ -4,8 +4,11 @@ import numpy as np
 from datetime import datetime, timedelta
 from ordered_set import OrderedSet
 
+from stonesoup.movable.sample import CircleSampleActionableMovable
+from stonesoup.platform.base import FixedPlatform
+
 from ...types.array import StateVector
-from ...types.state import GaussianState
+from ...types.state import GaussianState, State
 from ...types.track import Track
 from ...sensor.radar import RadarRotatingBearingRange
 from ...predictor.kalman import KalmanPredictor
@@ -53,7 +56,6 @@ def params():
         noise_covar=np.array([[0.0001 ** 2, 0],
                               [0, 0.0001 ** 2]]),
         ndim_state=4,
-        position=np.array([[0], [0]]),
         rpm=60,
         fov_angle=np.radians(90),
         dwell_centre=StateVector([np.radians(315)]),
@@ -62,6 +64,16 @@ def params():
     )
     sensor.timestamp = start_time
     sensor_set.add(sensor)
+
+    platform_set = set()
+    platform = FixedPlatform(movement_controller=CircleSampleActionableMovable(
+        states=[State([[0], [0], [0], [0]], timestamp=start_time)],
+        position_mapping=(0, 2),
+        n_samples=10,
+        max_state_change=1,
+        action_mapping=(0, 1)),
+        sensors=sensor_set)
+    platform_set.add(platform)
 
     predictor = KalmanPredictor(transition_model)
     updater = ExtendedKalmanUpdater(measurement_model=None)
@@ -73,4 +85,5 @@ def params():
 
     return {'start_time': start_time, 'transition_model': transition_model,
             'predictor': predictor, 'updater': updater, 'sensor_set': sensor_set,
-            'timesteps': timesteps, 'tracks': tracks, 'truths': truths}
+            'platform_set': platform_set, 'timesteps': timesteps, 'tracks': tracks,
+            'truths': truths}

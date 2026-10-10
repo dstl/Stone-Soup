@@ -90,9 +90,9 @@ class CircleSampleActionableMovable(_SampleActionableMovable):
     with :class:`~.CircleSamplePositionActionGenerator` """
 
     generator = CircleSamplePositionActionGenerator
-    _generator_kwargs = _SampleActionableMovable._generator_kwargs | {'maximum_travel'}
+    _generator_kwargs = _SampleActionableMovable._generator_kwargs | {'max_state_change'}
 
-    maximum_travel: float = Property(
+    max_state_change: float = Property(
         default=1.0,
         doc="Maximum possible travel distance. Specifies the radius of "
         "sampling area."
