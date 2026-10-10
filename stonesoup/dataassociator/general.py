@@ -76,32 +76,48 @@ class OneToOneAssociator(Associator):
             for j, b in enumerate(list_of_bs):
                 distance_matrix[i, j] = self.individual_weighting(a, b)
 
-        # Use "shortest path" assignment algorithm on distance matrix
-        # to assign tracks to nearest detection
-        # Maximise flag = true for probability instance
-        # (converts minimisation problem to maximisation problem)
-        row_ind, col_ind = linear_sum_assignment(
-            distance_matrix, self.maximise_measure)
+        if self.maximise_measure:
+            valid_matrix = distance_matrix > self.association_threshold
+            preference_matrix = distance_matrix
+        else:
+            valid_matrix = distance_matrix < self.association_threshold
+            preference_matrix = -distance_matrix
+
+        # Make leaving an object unassociated part of the optimisation rather than assigning all
+        # possible real pairs first and applying the threshold afterwards. The transformed score
+        # gives every valid pair a cardinality bonus larger than the maximum possible difference
+        # between equal-cardinality matchings. This therefore maximises the number of valid pairs
+        # first, then preserves the original maximise/minimise objective within that cardinality.
+        max_associations = min(len(objects_a), len(objects_b))
+        assignment_matrix = np.full(
+            (len(objects_a), len(objects_b) + len(objects_a)), -1.0, dtype=float)
+        assignment_matrix[:, len(objects_b):] = 0.0
+
+        valid_preferences = preference_matrix[valid_matrix]
+        if valid_preferences.size:
+            preference_min = np.min(valid_preferences)
+            preference_range = np.ptp(valid_preferences)
+            normalised_preferences = np.zeros_like(distance_matrix)
+            if preference_range > 0:
+                normalised_preferences[valid_matrix] = (
+                    preference_matrix[valid_matrix] - preference_min) / preference_range
+
+            assignment_matrix[:, :len(objects_b)][valid_matrix] = (
+                max_associations + 1 + normalised_preferences[valid_matrix])
+
+        row_ind, col_ind = linear_sum_assignment(assignment_matrix, maximize=True)
 
         # Create dictionary for associations
         associations = AssociationSet()
 
         # Generate dict of key/value pairs
         for i, j in zip(row_ind, col_ind):
+            if j >= len(list_of_bs) or not valid_matrix[i, j]:
+                continue
+
             object_a = list_of_as[i]
             object_b = list_of_bs[j]
-
-            value = distance_matrix[i, j]
-
-            # Check association meets threshold
-            if self.maximise_measure:
-                if value > self.association_threshold:
-                    # Meets threshold
-                    associations.associations.add(Association({object_a, object_b}))
-            else:  # Minimise measure
-                if value < self.association_threshold:
-                    # Meets threshold
-                    associations.associations.add(Association({object_a, object_b}))
+            associations.associations.add(Association({object_a, object_b}))
 
         associated_objects = {obj
                               for assoc in associations.associations
