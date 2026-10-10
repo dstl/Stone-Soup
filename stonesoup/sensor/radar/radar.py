@@ -18,12 +18,11 @@ from ...sensor.action.dwell_action import DwellActionsGenerator
 from ...sensor.action.tilt_action import TiltActionsGenerator
 from ...sensormanager.action import ActionableProperty
 from ...sensor.sensor import Sensor, VisibilityInformed2DSensor
-from ...types.array import CovarianceMatrix
+from ...types.array import CovarianceMatrix, StateVector
 from ...types.angle import Angle
-from ...types.detection import TrueDetection, Detection
+from ...types.detection import TrueDetection
 from ...types.groundtruth import GroundTruthState
 from ...types.numeric import Probability
-from ...types.state import StateVector
 
 
 class RadarBearingRange(VisibilityInformed2DSensor):
@@ -68,12 +67,6 @@ class RadarBearingRange(VisibilityInformed2DSensor):
         detectable = true_range <= self.max_range
         visible = self.is_visible(state)
         return detectable & visible
-
-    def is_clutter_detectable(self, state: Detection) -> bool:
-        clutter_cart = self.measurement_model.inverse_function(state)
-        visible = self.is_visible(clutter_cart)
-        detectable = state.state_vector[1, 0] <= self.max_range
-        return detectable and visible
 
 
 class RadarBearing(VisibilityInformed2DSensor):
@@ -132,9 +125,6 @@ class RadarBearing(VisibilityInformed2DSensor):
         detectable = true_range <= self.max_range
         visible = self.is_visible(state)
         return detectable & visible
-
-    def is_clutter_detectable(self, state: Detection) -> bool:
-        return True
 
 
 class RadarRotatingBearingRange(RadarBearingRange):
@@ -215,21 +205,6 @@ class RadarRotatingBearingRange(RadarBearingRange):
         visible = self.is_visible(state)
 
         return detectable & visible
-
-    def is_clutter_detectable(self, state: Detection) -> bool:
-        measurement_vector = state.state_vector
-
-        # Check if state falls within sensor's FOV
-        fov_min = -self.fov_angle / 2
-        fov_max = +self.fov_angle / 2
-        bearing_t = measurement_vector[0, 0]
-        true_range = measurement_vector[1, 0]
-
-        detectable = fov_min <= bearing_t <= fov_max and true_range <= self.max_range
-        clutter_cart = self.measurement_model.inverse_function(state)
-        visible = self.is_visible(clutter_cart)
-
-        return detectable and visible
 
 
 class RadarRotatingBearing(RadarBearing):
@@ -451,24 +426,6 @@ class RadarRotatingElevationBearingRange(RadarElevationBearingRange):
         elevation_t = measurement_vector[0, 0]
         bearing_t = measurement_vector[1, 0]
         true_range = measurement_vector[2, 0]
-        return (ver_min <= elevation_t <= ver_max and
-                fov_min <= bearing_t <= fov_max and
-                true_range <= self.max_range)
-
-    def is_clutter_detectable(self, state: Detection) -> bool:
-        measurement_vector = state.state_vector
-
-        # Check if state falls within sensor's FOV
-        ver_min = -self.vertical_extent / 2
-        ver_max = +self.vertical_extent / 2
-
-        fov_min = -self.fov_angle / 2
-        fov_max = +self.fov_angle / 2
-
-        elevation_t = measurement_vector[0, 0]
-        bearing_t = measurement_vector[1, 0]
-        true_range = measurement_vector[2, 0]
-
         return (ver_min <= elevation_t <= ver_max and
                 fov_min <= bearing_t <= fov_max and
                 true_range <= self.max_range)
