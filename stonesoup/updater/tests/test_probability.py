@@ -51,3 +51,12 @@ def test_pda(gm_method):
 
     assert np.allclose(posterior_state.state_vector, posterior_state3.state_vector)
     assert np.allclose(posterior_state.covar, posterior_state3.covar)
+
+    # Measurement predictions should be calculated if not present
+    for hypothesis in hypotheses:
+        hypothesis.measurement_prediction = None
+    posterior_state4 = pdaupdater.update(hypotheses)
+    assert all(hypothesis.measurement_prediction is not None for hypothesis in hypotheses
+               if hypothesis)
+    assert np.allclose(posterior_state.state_vector, posterior_state4.state_vector)
+    assert np.allclose(posterior_state.covar, posterior_state4.covar)

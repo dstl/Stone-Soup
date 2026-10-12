@@ -180,8 +180,13 @@ class PDAUpdater(ExtendedKalmanUpdater):
                     posterior_covariance
                 posterior_mean = copy(hypothesis.prediction.state_vector)
             else:
-                innovation = hypothesis.measurement.state_vector - \
-                             hypothesis.measurement_prediction.state_vector
+                if hypothesis.measurement_prediction is None:
+                    measurement_model = self._check_measurement_model(
+                        hypothesis.measurement.measurement_model)
+                    hypothesis.measurement_prediction = self.predict_measurement(
+                        hypothesis.prediction, measurement_model=measurement_model, **kwargs)
+                innovation = (hypothesis.measurement.state_vector
+                              - hypothesis.measurement_prediction.state_vector)
 
             sum_of_innovations += hypothesis.probability * innovation
             sum_of_weighted_cov += hypothesis.probability * (innovation @ innovation.T)
