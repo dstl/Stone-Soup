@@ -3,6 +3,7 @@ from collections.abc import Iterator, Sequence
 from itertools import product
 
 import numpy as np
+from scipy.stats import qmc
 
 from ...base import Property
 from ...sensormanager.action import ActionGenerator, Action
@@ -173,6 +174,11 @@ class CircleSamplePositionActionGenerator(SamplePositionActionGenerator):
         "sampling area."
     )
 
+    use_qmc: bool = Property(
+        default=False,
+        doc="Use a Sobol quasi-random sequence instead of pseudorandom sampling."
+    )
+
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
@@ -182,13 +188,28 @@ class CircleSamplePositionActionGenerator(SamplePositionActionGenerator):
                              f":class:`~.CircleSamplePositionActionGenerator` "
                              f"is designed for 2D action generation only.")
 
+    @staticmethod
+    def _generate_samples(n_samples, qmc_engine=None):
+        if qmc_engine is None:
+            return np.random.uniform([0, 0], [1, 2*np.pi], (n_samples, 2))
+
+        radius_angle_samples = qmc_engine.random(n_samples)
+        radius_angle_samples[:, 1] *= 2*np.pi
+        return radius_angle_samples
+
     def __iter__(self):
 
         yield MovePositionAction(generator=self,
                                  end_time=self.end_time,
                                  target_value=self.current_value)
 
-        radius_angle_samples = np.random.uniform([0, 0], [1, 2*np.pi], (self.n_samples, 2))
+        qmc_engine = None
+        if self.use_qmc:
+            qmc_engine = qmc.Sobol(d=2, scramble=False)
+            # The first Sobol point is the origin, which duplicates the default action.
+            qmc_engine.random(1)
+
+        radius_angle_samples = self._generate_samples(self.n_samples, qmc_engine)
 
         sample_values = self.maximum_travel*np.sqrt(radius_angle_samples[:, 0]) *\
             np.array([np.sin(radius_angle_samples[:, 1]), np.cos(radius_angle_samples[:, 1])])
@@ -204,7 +225,7 @@ class CircleSamplePositionActionGenerator(SamplePositionActionGenerator):
                 _, idx = np.where(np.logical_or(
                     target_values[self.action_mapping, :] > self.action_space[:, [1]],
                     target_values[self.action_mapping, :] < self.action_space[:, [0]]))
-                radius_angle_samples = np.random.uniform([0, 0], [1, 2*np.pi], (len(idx), 2))
+                radius_angle_samples = self._generate_samples(len(idx), qmc_engine)
                 sample_values = self.maximum_travel*np.sqrt(radius_angle_samples[:, 0]) *\
                     np.array([np.sin(radius_angle_samples[:, 1]),
                               np.cos(radius_angle_samples[:, 1])])
