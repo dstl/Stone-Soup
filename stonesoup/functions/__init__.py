@@ -761,13 +761,13 @@ def mod_bearing(x):
 
     Parameters
     ----------
-    x: float
-        bearing angle in radians
+    x : float or numpy.ndarray
+        Bearing angle or array of bearing angles in radians.
 
     Returns
     -------
-    float
-        Angle in radians in the range math: :math:`-\pi` to :math:`+\pi`
+    float or numpy.ndarray
+        Angle or array of angles in radians in the range :math:`-\pi` to :math:`+\pi`.
     """
 
     x = (x+np.pi) % (2.0*np.pi)-np.pi
@@ -781,13 +781,13 @@ def mod_elevation(x):
 
     Parameters
     ----------
-    x: float
-        elevation angle in radians
+    x : float or numpy.ndarray
+        Elevation angle or array of elevation angles in radians.
 
     Returns
     -------
-    float
-        Angle in radians in the range math: :math:`-\pi/2` to :math:`+\pi/2`
+    float or numpy.ndarray
+        Angle or array of angles in radians in the range :math:`-\pi/2` to :math:`+\pi/2`.
 
     Note
     ----
