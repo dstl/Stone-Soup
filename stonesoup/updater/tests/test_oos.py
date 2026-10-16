@@ -8,6 +8,7 @@ from ..kalman import ExtendedKalmanUpdater, KalmanUpdater
 from ..oos import OOSUpdater
 from ..probability import PDAUpdater
 from ...hypothesiser.probability import PDAHypothesiser
+from ...initiator import Initiator
 from ...initiator.simple import SimpleMeasurementInitiator, SinglePointInitiator
 from ...models.measurement.linear import LinearGaussian
 from ...models.transition.linear import ConstantVelocity
@@ -345,6 +346,23 @@ def test_before_earliest_state_initiator_unexpected_state(
     prediction = oos_predictor.predict(state, time(-1))
     with pytest.raises(TypeError, match="Unexpected state type"):
         oos_updater.update(SingleHypothesis(prediction, detection(-1)))
+
+
+class NoTrackInitiator(Initiator):
+    """Initiator which initiates no tracks, as where a measurement can't be initiated from"""
+    def initiate(self, detections, timestamp, **kwargs):
+        return set()
+
+
+def test_before_earliest_state_initiator_no_track(oos_predictor, updater, prior):
+    oos_updater = OOSUpdater(updater, oos_predictor, initiator=NoTrackInitiator())
+    state = run(oos_predictor, oos_updater, prior, [1, 2, 3])
+    prediction = oos_predictor.predict(state, time(-1))
+
+    # Nothing initiated from the detection, so no new information: latest state returned
+    post = oos_updater.update(SingleHypothesis(prediction, detection(-1)))
+    assert post is state
+    assert [seconds(past_state) for past_state in get_past_states(post)] == [3, 2, 1, 0]
 
 
 def run_pda(hypothesiser, updater, state, order):
