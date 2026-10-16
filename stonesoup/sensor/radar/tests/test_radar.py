@@ -1204,3 +1204,33 @@ def test_is_visible_sensors(sensor, params):
 
             # Check no obstacles returns correct response
             assert not np.any(vis_sensor_no_obs.in_obstacle(state))
+
+
+@pytest.mark.parametrize('max_range', [np.inf, 50])
+def test_is_visible_multiple_moving_obstacles(max_range):
+    # When several obstacles move in the same time step, each one's vertices
+    # must be updated before checking visibility (previously a shared cache
+    # meant only the first obstacle to be checked was updated, so the others
+    # kept their old outlines)
+    shape = Shape(shape_data=np.array([[-1, 1, 1, -1], [-1, -1, 1, 1]]))
+    timestamp = datetime.datetime(2026, 1, 1)
+    obstacle_a = Obstacle(states=State(StateVector([[20], [20]]), timestamp=timestamp),
+                          position_mapping=(0, 1), shape=shape)
+    obstacle_b = Obstacle(states=State(StateVector([[-20], [-20]]), timestamp=timestamp),
+                          position_mapping=(0, 1), shape=shape)
+    sensor = RadarBearingRange(ndim_state=2,
+                               position_mapping=(0, 1),
+                               noise_covar=np.diag([np.radians(1)**2, 1]),
+                               position=StateVector([[0], [0]]),
+                               obstacles=[obstacle_a, obstacle_b],
+                               moving_obstacle_flag=True,
+                               max_range=max_range)
+    target = StateVector([[5], [0]])
+    assert sensor.is_visible(target)
+
+    # Both obstacles move; obstacle B now sits between the sensor and target
+    timestamp += datetime.timedelta(seconds=1)
+    obstacle_a.states.append(State(StateVector([[30], [30]]), timestamp=timestamp))
+    obstacle_b.states.append(State(StateVector([[2.5], [0]]), timestamp=timestamp))
+    assert not sensor.is_visible(target)
+    assert sensor.is_visible(StateVector([[-5], [0]]))
