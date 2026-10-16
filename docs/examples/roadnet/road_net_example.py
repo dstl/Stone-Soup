@@ -292,10 +292,10 @@ prior_state = ParticleStateUpdate(state_vector=prior_sv,
 #     .. math::
 #
 #         p(y_k|x_k) = \begin{cases}\mathcal{N}(y_k; h(x_k), R),
-#                                             & \text{if } e_k \in \text{shortest_path}(s_k, d_k) \\
+#                                             & \text{if } e_k \in \text{shortest\_path}(s_k, d_k) \\
 #                     0 & \text{otherwise}\end{cases}
 #
-#     where :math:`\text{shortest_path}(s_k, d_k)` is the shortest path between the source node
+#     where :math:`\text{shortest\_path}(s_k, d_k)` is the shortest path between the source node
 #     :math:`s_k` and destination node :math:`d_k` on the road network.
 #
 # This indicator function is used to inform the destination estimation process, by setting the likelihood
