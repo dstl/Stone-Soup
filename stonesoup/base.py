@@ -543,10 +543,6 @@ class Base(metaclass=BaseMeta):
         truncate = f'\n{fillvalue}\n{fillvalue}  (truncated due to length)\n{fillvalue}'
         return ''.join([rep[:max_out], truncate]) if len(rep) > max_out else rep
 
-    if sys.version_info < (3, 11):
-        def __getstate__(self):
-            return self.__dict__
-
 
 class ImmutableMeta(BaseMeta):
     """Metaclass for immutable Stone Soup objects. New classes using this metaclass have all
