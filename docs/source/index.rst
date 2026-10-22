@@ -28,7 +28,7 @@ For community support, head over to the
 
 Installation
 ------------
-Stone Soup requires Python 3.10 or later.
+Stone Soup requires Python 3.11 or later.
 
 To install Stone Soup from PyPI with ``pip``:
 
