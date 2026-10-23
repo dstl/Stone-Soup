@@ -719,8 +719,8 @@ class ParticleState(State):
                 raise ValueError("Either all particles should have"
                                  " parents or none of them should.")
 
-        if self.parent and self.parent.parent:  # Create weakref to avoid using significant memory
-            self.parent.parent = weakref.ref(self.parent.parent)
+        if self.parent:  # Create weakref to avoid using significant memory
+            self.parent._weaken_parent_reference()
 
         if self.state_vector is not None and not isinstance(self.state_vector, StateVectors):
             self.state_vector = StateVectors(self.state_vector)
@@ -749,6 +749,11 @@ class ParticleState(State):
                                            log_weight=log_weight,
                                            parent=parent)
         return result
+
+    def _weaken_parent_reference(self):
+        if (self._property_parent is not None
+                and not isinstance(self._property_parent, weakref.ReferenceType)):
+            self._property_parent = weakref.ref(self._property_parent)
 
     @parent.getter
     def parent(self):
