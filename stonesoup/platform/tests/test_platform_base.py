@@ -1,5 +1,8 @@
 import copy
 import datetime
+import gc
+import pickle
+import weakref
 
 import numpy as np
 import pytest
@@ -1087,3 +1090,74 @@ def test_from_obstacle(position2, orientation2, mapping2):
     assert np.all(initial_obstacle.position_mapping == mapping)
     assert np.all(initial_obstacle.vertices == initial_verts)
     assert np.all(initial_obstacle.relative_edges == initial_relative_edges)
+
+
+def test_obstacle_vertices_independent_between_instances():
+    # Moving one obstacle must not stop another obstacle's vertices from
+    # being updated when it moves (previously a class level lru_cache was
+    # shared and cleared across all instances)
+    shape = Shape(shape_data=np.array([[-1, 1, 1, -1], [-1, -1, 1, 1]]))
+    timestamp = datetime.datetime(2026, 1, 1)
+    obstacle_a = Obstacle(states=State(StateVector([0, 0]), timestamp=timestamp),
+                          position_mapping=(0, 1), shape=shape)
+    obstacle_b = Obstacle(states=State(StateVector([0, 0]), timestamp=timestamp),
+                          position_mapping=(0, 1), shape=shape)
+    _ = obstacle_a.vertices, obstacle_b.vertices
+
+    timestamp += datetime.timedelta(seconds=1)
+    obstacle_b.states.append(State(StateVector([5, 0]), timestamp=timestamp))
+    obstacle_a.states.append(State(StateVector([7, 0]), timestamp=timestamp))
+    _ = obstacle_a.vertices
+
+    assert np.allclose(obstacle_b.vertices,
+                       obstacle_b._calculate_verts())
+    assert np.allclose(obstacle_b.vertices[:, 0], [6, -1])
+    assert np.allclose(obstacle_a.vertices[:, 0], [8, -1])
+
+
+def _square_obstacle(x=0, y=0, timestamp=None):
+    shape = Shape(shape_data=np.array([[-1, 1, 1, -1], [-1, -1, 1, 1]]))
+    return Obstacle(states=State(StateVector([x, y]), timestamp=timestamp),
+                    position_mapping=(0, 1), shape=shape)
+
+
+def test_obstacle_moved_before_vertices_first_used():
+    # Vertices must reflect a move made before they were first accessed
+    timestamp = datetime.datetime(2026, 1, 1)
+    obstacle = _square_obstacle(timestamp=timestamp)
+    obstacle.states.append(State(StateVector([3, 0]),
+                                 timestamp=timestamp + datetime.timedelta(seconds=1)))
+    assert np.allclose(obstacle.vertices[:, 0], [4, -1])
+    assert np.allclose(obstacle.vertices, obstacle._calculate_verts())
+
+
+@pytest.mark.parametrize('copier', [lambda obj: pickle.loads(pickle.dumps(obj)),
+                                    copy.deepcopy],
+                         ids=['pickle', 'deepcopy'])
+def test_obstacle_copy_after_vertices(copier):
+    timestamp = datetime.datetime(2026, 1, 1)
+    obstacle = _square_obstacle(timestamp=timestamp)
+    _ = obstacle.vertices, obstacle.relative_edges
+    obstacle_copy = copier(obstacle)
+    assert np.allclose(obstacle_copy.vertices, obstacle.vertices)
+    assert np.allclose(obstacle_copy.relative_edges, obstacle.relative_edges)
+
+    # Copy and original update independently when moved
+    timestamp += datetime.timedelta(seconds=1)
+    obstacle_copy.states.append(State(StateVector([3, 0]), timestamp=timestamp))
+    assert np.allclose(obstacle_copy.vertices[:, 0], [4, -1])
+    assert np.allclose(obstacle.vertices[:, 0], [1, -1])
+    obstacle.states.append(State(StateVector([0, 4]), timestamp=timestamp))
+    assert np.allclose(obstacle.vertices[:, 0], [1, 3])
+    assert np.allclose(obstacle_copy.vertices[:, 0], [4, -1])
+
+
+def test_obstacle_released_after_vertices():
+    # Checking vertices must not keep the obstacle alive (previously a class
+    # level lru_cache held a reference to it)
+    obstacle = _square_obstacle()
+    _ = obstacle.vertices, obstacle.relative_edges
+    obstacle_ref = weakref.ref(obstacle)
+    del obstacle
+    gc.collect()
+    assert obstacle_ref() is None
