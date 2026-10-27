@@ -78,6 +78,10 @@ class ChernoffUpdater(Updater):
     omega: float = Property(
         default=0.5,
         doc="A weighting parameter in the range :math:`(0,1]`")
+    force_symmetric_covariance: bool = Property(
+        default=False,
+        doc="A flag to force the output covariance matrix to be symmetric by way of a simple "
+            "geometric combination of the matrix and transpose. Default is False.")
 
     @instance_lru_cache()
     def predict_measurement(self, predicted_state, measurement_model=None, measurement_noise=True,
@@ -122,7 +126,7 @@ class ChernoffUpdater(Updater):
                                                 predicted_state.timestamp,
                                                 cross_covar=meas_cross_cov)
 
-    def update(self, hypothesis, force_symmetric_covariance=False, **kwargs):
+    def update(self, hypothesis, force_symmetric_covariance=None, **kwargs):
         r"""
         Given a hypothesis, calculate the posterior mean and covariance.
 
@@ -135,7 +139,8 @@ class ChernoffUpdater(Updater):
 
         force_symmetric_covariance: bool
             A flag to force the output covariance matrix to be symmetric by way of a simple
-            geometric combination of the matrix and transpose. Default is False.
+            geometric combination of the matrix and transpose. Default is None, where
+            :attr:`force_symmetric_covariance` is used.
 
         Returns
         -------
@@ -156,6 +161,8 @@ class ChernoffUpdater(Updater):
                                                             weights=[self.omega, 1-self.omega])
 
         # Optionally force the posterior covariance to be a symmetric matrix
+        if force_symmetric_covariance is None:
+            force_symmetric_covariance = self.force_symmetric_covariance
         if force_symmetric_covariance:
             posterior.covar = \
                 (posterior.covar + posterior.covar.T)/2
