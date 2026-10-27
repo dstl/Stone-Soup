@@ -1,7 +1,9 @@
 import pytest
 import numpy as np
 
-from ...types.state import GaussianState
+from ...types.multihypothesis import MultipleHypothesis
+from ...types.state import GaussianState, WeightedGaussianState
+from ...types.update import GaussianMixtureUpdate
 from ...types.track import Track
 from ..track import Tracks2GaussianDetectionFeeder, ReplayTrackFeeder
 
@@ -55,6 +57,20 @@ def test_Track2GaussianDetectionFeeder(tracks):
                               if detection.metadata['track_id'] == track.id))
         assert np.all(detection.state_vector == track.state_vector)
         assert np.all(detection.covar == track.covar)
+
+
+def test_Track2GaussianDetectionFeeder_mixture():
+    """Track of Gaussian mixture states, whose timestamp is that of its components"""
+    track = Track([GaussianMixtureUpdate(hypothesis=MultipleHypothesis(), components=[
+        WeightedGaussianState([1, 1, 1, 1], np.diag([2, 2, 2, 2]), timestamp=2, weight=0.75),
+        WeightedGaussianState([3, 1, 3, 1], np.diag([2, 2, 2, 2]), timestamp=2, weight=0.25)])])
+    feeder = Tracks2GaussianDetectionFeeder(reader=[(2, [track])])
+    time, detections = next(feeder.data_gen())
+
+    detection, = detections
+    assert detection.timestamp == track.timestamp == time
+    assert np.allclose(detection.state_vector, track.mean)
+    assert np.allclose(detection.covar, track.covar)
 
 
 @pytest.mark.parametrize(("tracks", "times"),
