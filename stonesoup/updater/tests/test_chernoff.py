@@ -122,7 +122,8 @@ def test_chernoff_force_symmetric_covariance(property_value, argument, symmetric
         measurement_model=LinearGaussian(ndim_state=2, mapping=[0, 1], noise_covar=covar))
     updater = ChernoffUpdater(None, force_symmetric_covariance=property_value)
 
-    kwargs = {} if argument is None else {'force_symmetric_covariance': argument}
-    posterior = updater.update(SingleHypothesis(prediction, measurement), **kwargs)
+    posterior = updater.update(
+            SingleHypothesis(prediction, measurement),
+            force_symmetric_covariance=argument)
 
     assert np.array_equal(posterior.covar, posterior.covar.T) == symmetric
