@@ -92,3 +92,30 @@ def test_multi_target_mixture_tracker(
 
     assert max_tracks >= 3  # Should of had at least 3 tracks in single step
     assert len(total_tracks) >= 6  # Should of had at least 6 over all steps
+
+
+def test_multi_target_tracker_rejects_multiple_hypothesis(
+        initiator, deleter, detector, data_mixture_associator, updater):
+    """MultiTargetTracker must not silently fail on mixture associations (#877)."""
+    import pytest
+
+    tracker = MultiTargetTracker(
+        initiator, deleter, detector, data_mixture_associator, updater)
+
+    # First step initiates tracks from detections (no associations yet).
+    next(iter(tracker))
+    # Second step associates existing tracks via MultipleHypothesis.
+    with pytest.raises(TypeError, match='MultipleHypothesis'):
+        next(iter(tracker))
+
+
+def test_single_target_tracker_rejects_multiple_hypothesis(
+        initiator, deleter, detector, data_mixture_associator, updater):
+    import pytest
+
+    tracker = SingleTargetTracker(
+        initiator, deleter, detector, data_mixture_associator, updater)
+
+    next(iter(tracker))
+    with pytest.raises(TypeError, match='MultipleHypothesis'):
+        next(iter(tracker))
