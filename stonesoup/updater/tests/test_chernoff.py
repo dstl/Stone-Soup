@@ -103,3 +103,27 @@ def test_chernoff(UpdaterClass, measurement_model, prediction, measurement, omeg
                        measurement_prediction.covar, 0, atol=1.e-14)
     assert np.array_equal(posterior.hypothesis.measurement, measurement)
     assert posterior.timestamp == prediction.timestamp
+
+
+@pytest.mark.parametrize("property_value, argument, symmetric", [
+    (False, None, False),
+    (True, None, True),
+    (False, True, True),
+    (True, False, False),
+])
+def test_chernoff_force_symmetric_covariance(property_value, argument, symmetric):
+    """Symmetric covariance forced by the property, unless the update argument says otherwise"""
+    # Asymmetric prediction covariance, as from accumulated rounding
+    prediction = GaussianStatePrediction(
+        np.array([[-6.45], [0.7]]), np.array([[4.1123, 0.0013], [0.0019, 0.0365]]))
+    covar = np.diag([0.75, 1.2])
+    measurement = GaussianDetection(
+        state_vector=np.array([[-6.23], [0.83]]), covar=covar,
+        measurement_model=LinearGaussian(ndim_state=2, mapping=[0, 1], noise_covar=covar))
+    updater = ChernoffUpdater(None, force_symmetric_covariance=property_value)
+
+    posterior = updater.update(
+            SingleHypothesis(prediction, measurement),
+            force_symmetric_covariance=argument)
+
+    assert np.array_equal(posterior.covar, posterior.covar.T) == symmetric
