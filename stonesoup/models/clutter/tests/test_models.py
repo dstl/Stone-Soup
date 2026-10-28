@@ -4,7 +4,6 @@ import datetime
 
 from ..clutter import ClutterModel
 from ...measurement.nonlinear import CartesianToBearingRange, CartesianToElevationBearingRange
-from ....types.detection import Clutter
 from ....types.array import StateVector
 from ....types.state import State
 
@@ -24,10 +23,10 @@ from ....types.state import State
 )
 def test_model(clutter_rate, dist_params, meas_model):
     model_test = ClutterModel(clutter_rate=clutter_rate,
+                              ndim_state=meas_model.ndim_state,
+                              mapping=meas_model.mapping,
                               distribution=np.random.default_rng().uniform,
                               dist_params=dist_params)
-
-    model_test.measurement_model = meas_model
 
     # Test on 0 groundtruths
     clutter = model_test.function(set())
@@ -36,14 +35,10 @@ def test_model(clutter_rate, dist_params, meas_model):
     # Test on 1 groundtruth
     truth1 = State(StateVector([1, 1, 1, 1, 1, 1]), timestamp=datetime.datetime.now())
     clutter = model_test.function({truth1})
-    assert np.all(isinstance(c, Clutter) for c in clutter)
-    assert np.all(c.ndim == meas_model.ndim_meas for c in clutter)
 
     # Test on +1 groundtruth
     truth2 = State(StateVector([1, 1, 1, 1, 1, 1]), timestamp=datetime.datetime.now())
     clutter = model_test.function({truth1, truth2})
-    assert np.all(isinstance(c, Clutter) for c in clutter)
-    assert np.all(c.ndim == meas_model.ndim_meas for c in clutter)
 
 
 @pytest.mark.parametrize("clutter_rate", [5])
@@ -61,9 +56,8 @@ def test_model(clutter_rate, dist_params, meas_model):
 )
 def test_ndim(clutter_rate, dist_params, meas_model):
     model_test = ClutterModel(clutter_rate=clutter_rate,
+                              ndim_state=meas_model.ndim_state,
+                              mapping=meas_model.mapping,
                               distribution=np.random.default_rng().uniform,
                               dist_params=dist_params)
-    assert model_test.ndim == len(dist_params)
-
-    model_test.measurement_model = meas_model
-    assert model_test.ndim == meas_model.ndim_meas
+    assert model_test.ndim == model_test.ndim_state
