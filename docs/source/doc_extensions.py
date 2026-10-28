@@ -46,9 +46,9 @@ def declarative_class(app, what, name, obj, options, lines):
         for name, property_ in obj.properties.items():
             # there may be a better way to do the check below, but the typing API is variable
             # across Python versions, making it tricky and this may do well enough.
-            if hasattr(property_.cls, '__module__') and property_.cls.__module__ == 'typing':
+            if getattr(property_.cls, '__module__', '') in ('typing', 'types'):
                 class_name = str(property_.cls)
-                class_name = class_name.replace('typing.', '')
+                class_name = class_name.replace(property_.cls.__module__, '')
                 class_name = STONESOUP_TYPE_REGEX.sub('', class_name)
                 is_sequence = False
             elif isinstance(property_.cls, str):
