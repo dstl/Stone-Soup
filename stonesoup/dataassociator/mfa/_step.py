@@ -197,6 +197,13 @@ def algorithm_step(
     state: AlgorithmState,
     hyp_info: HypInfo,
 ):
+    if hyp_info.multi_hyp:
+        state.uprimal = _getPrimal(
+            hyp_info.constraint_matrix, hyp_info.all_costs
+        )
+        state.should_break = True
+        return
+
     slide_window = state.delta.shape[0]
     # get suboptimal solution for each subproblem
     sub_dual_cost = np.zeros((slide_window,), dtype=np.float64)
