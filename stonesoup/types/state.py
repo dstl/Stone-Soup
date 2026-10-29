@@ -168,9 +168,17 @@ class CreatableFromState:
 
 
 class PointMassState(State):
-    """PointMassState State type
+    """State distribution approximated by probability density values on a grid.
 
-    For the Lagrangian Point Mass filter.
+    Used by the Lagrangian point-mass filter, this state represents a continuous
+    distribution on a regular multidimensional grid. Each column of
+    :attr:`state_vector` is a grid point, and the corresponding entry in
+    :attr:`weight` is its probability density value. The grid cell volume,
+    given by the product of :attr:`grid_delta`, scales these values when
+    computing the mean and covariance.
+
+    The grid geometry is described by :attr:`grid_dim`, :attr:`center`,
+    :attr:`eigVec` and :attr:`Npa`.
     """
 
     state_vector: StateVectors = Property(doc="State vectors.")
@@ -211,9 +219,18 @@ State.register(PointMassState)  # noqa: E305
 
 
 class ASDState(Type):
-    """ASD State type
+    """State at multiple timestamps for accumulated state density filtering.
 
-    For the use of Accumulated State Densities.
+    Accumulated state densities represent the joint state over several time
+    steps, allowing delayed, out-of-sequence measurements to update both past
+    and current estimates. This class stores the state vectors stacked
+    vertically in :attr:`multi_state_vector`, in the same order as
+    :attr:`timestamps`, with the newest first. :attr:`state_vector` and
+    :attr:`timestamp` expose the newest state.
+
+    During prediction, :attr:`max_nstep` limits the number of stored time steps;
+    a value of 0 disables pruning. :class:`~.ASDGaussianState` adds the joint
+    covariance, including correlations between states at different timestamps.
     """
 
     multi_state_vector: StateVector = Property(
@@ -952,6 +969,17 @@ class MultiModelParticleState(ParticleState):
 
 
 class RaoBlackwellisedParticleState(ParticleState):
+    """Particle state for Rao-Blackwellised multiple-model filtering.
+
+    The continuous state is represented by weighted particles, while the
+    discrete dynamic model is represented by a probability distribution for
+    each particle. :attr:`model_probabilities` has shape
+    ``(n_models, n_particles)``, with each column holding the model
+    probabilities for the corresponding column of :attr:`state_vector`.
+
+    Unlike :class:`~.MultiModelParticleState`, which stores a single model
+    index per particle, this state retains probabilities over all models.
+    """
 
     model_probabilities: np.ndarray = Property(
         default=None,
