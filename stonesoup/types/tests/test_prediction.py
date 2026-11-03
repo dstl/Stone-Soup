@@ -1,11 +1,15 @@
 import datetime
+import gc
 import pickle
+import weakref
 
 import numpy as np
 import pytest
 from scipy.stats import multivariate_normal
 
+from ..detection import Detection
 from ..hypothesis import SingleHypothesis
+from ..multihypothesis import MultipleHypothesis
 from ..prediction import (
     Prediction, MeasurementPrediction,
     StatePrediction, StateMeasurementPrediction,
@@ -18,7 +22,7 @@ from ..prediction import (
 from ..state import (
     State, GaussianState, SqrtGaussianState, TaggedWeightedGaussianState, ParticleState)
 from ..track import Track
-from ..update import StateUpdate
+from ..update import Update, StateUpdate
 from ..array import StateVectors
 
 
@@ -68,6 +72,125 @@ def test_particle_parent_parent(particle_class):
     assert state3.prior.parent is None
 
     pickle.dumps(state3)
+
+
+def test_prediction_prior_prediction():
+    # e.g. consecutive missed detections
+    state0 = State([[1, 2, 3]])
+    pred1 = StatePrediction([[2, 3, 1]], prior=state0)
+    pred2 = StatePrediction([[3, 1, 2]], prior=pred1)
+
+    assert pred1.prior is state0
+    assert pred2.prior is pred1
+
+    del state0
+
+    assert pred1.prior is None
+    assert pred2.prior is pred1
+
+    pickle.dumps(pred1)
+
+
+def test_prediction_prior_multiple_hypothesis():
+    state0 = State([[1, 2, 3]])
+    state1 = State([[4, 5, 6]])
+    pred1 = StatePrediction([[2, 3, 1]], prior=state0)
+    pred2 = StatePrediction([[5, 6, 4]], prior=state1)
+    update1 = StateUpdate([[2, 3, 1]], hypothesis=MultipleHypothesis([
+        SingleHypothesis(pred1, None), SingleHypothesis(pred2, None), SingleHypothesis(pred1, None)
+    ]))
+    pred3 = StatePrediction([[3, 1, 2]], prior=update1)
+
+    assert pred1.prior is state0
+    assert pred2.prior is state1
+
+    del state0, state1
+
+    assert pred1.prior is None
+    assert pred2.prior is None
+    assert pred3.prior is update1
+
+    pickle.dumps(update1)
+
+
+@pytest.mark.parametrize(
+    'particle_class', [ParticleStatePrediction, MultiModelParticleStatePrediction,
+                       RaoBlackwellisedParticleStatePrediction, BernoulliParticleStatePrediction])
+def test_particle_prediction_parent_history(particle_class):
+    weight = np.full((3, ), 1/3)
+    prior = ParticleState([[1, 2, 3]], weight=weight)
+    parent = ParticleState([[4, 5, 6]], weight=weight)  # e.g. Bernoulli untransitioned state
+    pred1 = particle_class([[2, 3, 1]], weight=weight, prior=prior, parent=parent)
+    meas_pred1 = ParticleMeasurementPrediction([[2, 3, 1]], weight=weight, parent=prior)
+    update1 = Update.from_state(
+        pred1, hypothesis=SingleHypothesis(pred1, None, measurement_prediction=meas_pred1))
+
+    assert update1.parent is parent
+
+    pred2 = particle_class([[3, 1, 2]], weight=weight, prior=update1, parent=update1)
+
+    assert pred1.prior is prior
+    assert pred1.parent is parent
+    assert meas_pred1.parent is prior
+
+    del prior, parent
+
+    # All historical references should now be weak
+    assert pred1.prior is None
+    assert pred1.parent is None
+    assert meas_pred1.parent is None
+    assert update1.parent is None
+    assert pred2.prior is update1
+    assert pred2.parent is update1
+
+    pickle.dumps(update1)
+
+
+@pytest.mark.parametrize('particles', [False, True], ids=['gaussian', 'particle'])
+@pytest.mark.parametrize('detect_every', [1, 3], ids=['detections', 'missed_detections'])
+@pytest.mark.parametrize('multiple', [False, True], ids=['single', 'multiple'])
+def test_history_bounded(particles, detect_every, multiple):
+    """Holding only the latest state should not retain the whole history, mimicking how
+    predictors and updaters construct predictions and updates."""
+
+    def run(num_steps):
+        refs = []
+        timestamp = datetime.datetime(2025, 1, 1)
+        if particles:
+            state = ParticleState(
+                StateVectors(np.random.randn(2, 10)), weight=np.full(10, 1/10),
+                timestamp=timestamp)
+        else:
+            state = GaussianState([[0], [1]], np.eye(2), timestamp=timestamp)
+        for step in range(1, num_steps + 1):
+            timestamp += datetime.timedelta(seconds=1)
+            if particles:
+                prediction = Prediction.from_state(
+                    state, state_vector=state.state_vector + 1, timestamp=timestamp,
+                    parent=state, prior=state)
+            else:
+                prediction = Prediction.from_state(
+                    state, state.state_vector + 1, timestamp=timestamp, prior=state)
+            refs.append(weakref.ref(prediction))
+            if step % detect_every:
+                state = prediction
+                continue
+            meas_prediction = MeasurementPrediction.from_state(
+                prediction, state_vector=prediction.state_vector)
+            refs.append(weakref.ref(meas_prediction))
+            hypothesis = SingleHypothesis(
+                prediction, Detection([[0]], timestamp=timestamp),
+                measurement_prediction=meas_prediction)
+            if multiple:
+                hypothesis = MultipleHypothesis([hypothesis, SingleHypothesis(prediction, None)])
+            state = Update.from_state(prediction, hypothesis=hypothesis)
+            refs.append(weakref.ref(state))
+        del prediction, meas_prediction, hypothesis
+        gc.collect()
+        return sum(ref() is not None for ref in refs)
+
+    # Number of states retained shouldn't depend on length of history
+    assert run(12) == run(24)
 
 
 def test_statemeasurementprediction():

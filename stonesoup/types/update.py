@@ -20,6 +20,12 @@ class Update(Type, CreatableFromState):
 
     hypothesis: Hypothesis = Property(doc="Hypothesis used for updating")
 
+    def _weaken_history(self):
+        super()._weaken_history()
+        # Hypothesis is retained (e.g. for associated measurements), but not its history
+        if isinstance(self.hypothesis, Type):
+            self.hypothesis._weaken_history()
+
 
 class StateUpdate(Update, State):
     """ StateUpdate type

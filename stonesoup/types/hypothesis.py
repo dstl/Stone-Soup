@@ -63,6 +63,13 @@ class SingleHypothesis(Hypothesis):
         return (not isinstance(self.measurement, MissedDetection)) and \
                (self.measurement is not None)
 
+    def _weaken_history(self):
+        super()._weaken_history()
+        # Prediction and measurement prediction are retained, but not their history
+        for state in (self.prediction, self.measurement_prediction):
+            if isinstance(state, Type):
+                state._weaken_history()
+
 
 class SingleDistanceHypothesis(SingleHypothesis):
     """Distance scored hypothesis subclass.

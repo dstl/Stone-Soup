@@ -719,8 +719,9 @@ class ParticleState(State):
                 raise ValueError("Either all particles should have"
                                  " parents or none of them should.")
 
-        if self.parent and self.parent.parent:  # Create weakref to avoid using significant memory
-            self.parent.parent = weakref.ref(self.parent.parent)
+        if self.parent is not None:
+            # Parent is now historical, so weaken its references to avoid using significant memory
+            self.parent._weaken_history()
 
         if self.state_vector is not None and not isinstance(self.state_vector, StateVectors):
             self.state_vector = StateVectors(self.state_vector)
@@ -749,6 +750,10 @@ class ParticleState(State):
                                            log_weight=log_weight,
                                            parent=parent)
         return result
+
+    def _weaken_history(self):
+        super()._weaken_history()
+        self._weaken_property('parent')
 
     @parent.getter
     def parent(self):
@@ -1255,6 +1260,11 @@ class CompositeState(Type):
             raise ValueError("Cannot create an empty composite state")
 
         self._check_timestamp()  # validate timestamps of sub-states
+
+    def _weaken_history(self):
+        super()._weaken_history()
+        for sub_state in self.sub_states:
+            sub_state._weaken_history()
 
     @property
     def timestamp(self):

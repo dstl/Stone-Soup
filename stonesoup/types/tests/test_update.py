@@ -5,10 +5,11 @@ import pytest
 from scipy.stats import multivariate_normal
 
 from ..array import StateVector, StateVectors
-from ..detection import Detection
-from ..hypothesis import SingleHypothesis
+from ..detection import Detection, CompositeDetection
+from ..hypothesis import SingleHypothesis, CompositeHypothesis
 from ..particle import Particle
 from ..prediction import (
+    CompositePrediction,
     GaussianStatePrediction, GaussianMeasurementPrediction,
     StatePrediction, StateMeasurementPrediction,
     ParticleStatePrediction, ParticleMeasurementPrediction,
@@ -20,7 +21,8 @@ from ..state import (
 from ..track import Track
 from ..update import (
     Update, StateUpdate, GaussianStateUpdate, SqrtGaussianStateUpdate, ParticleStateUpdate,
-    ASDGaussianStateUpdate, TaggedWeightedGaussianStateUpdate, KernelParticleStateUpdate)
+    ASDGaussianStateUpdate, TaggedWeightedGaussianStateUpdate, KernelParticleStateUpdate,
+    CompositeUpdate)
 
 
 def test_stateupdate():
@@ -261,3 +263,24 @@ def test_kernel_particle_state_update():
     assert np.array_equal(measurement, update.hypothesis.measurement)
     assert np.array_equal(proposal, update.proposal)
     assert np.array_equal(timestamp, update.timestamp)
+
+
+def test_composite_update_history():
+    timestamp = datetime.datetime.now()
+    state0 = State([[1]], timestamp=timestamp)
+    sub_prediction = StatePrediction([[2]], timestamp=timestamp, prior=state0)
+    sub_hypothesis = SingleHypothesis(sub_prediction, Detection([[2]], timestamp=timestamp))
+    sub_update = StateUpdate([[2]], hypothesis=sub_hypothesis, timestamp=timestamp)
+    update = CompositeUpdate(
+        sub_states=[sub_update],
+        hypothesis=CompositeHypothesis(
+            sub_hypotheses=[sub_hypothesis],
+            prediction=CompositePrediction([sub_prediction]),
+            measurement=CompositeDetection([sub_hypothesis.measurement])))
+    prediction = CompositePrediction(
+        [StatePrediction([[3]], timestamp=timestamp, prior=update)], prior=update)
+
+    del state0
+
+    assert sub_prediction.prior is None
+    assert prediction.prior is update

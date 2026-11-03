@@ -18,10 +18,14 @@ class Particle(Type):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        if self.parent and self.parent.parent:
-            self.parent.parent = weakref.ref(self.parent.parent)
+        if self.parent is not None:
+            self.parent._weaken_history()
         if self.state_vector is not None and not isinstance(self.state_vector, StateVector):
             self.state_vector = StateVector(self.state_vector)
+
+    def _weaken_history(self):
+        super()._weaken_history()
+        self._weaken_property('parent')
 
     @property
     def ndim(self):

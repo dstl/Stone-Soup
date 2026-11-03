@@ -24,12 +24,13 @@ class Prediction(Type, CreatableFromState):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        if hasattr(self.prior, 'hypothesis'):
-            if hasattr(self.prior.hypothesis, 'prediction'):
-                prior_prediction_prior = getattr(self.prior.hypothesis.prediction, 'prior', None)
-                if prior_prediction_prior is not None:
-                    # Create weakref to avoid using significant memory
-                    self.prior.hypothesis.prediction.prior = weakref.ref(prior_prediction_prior)
+        if isinstance(self.prior, Type):
+            # Prior is now historical, so weaken its references to avoid using significant memory
+            self.prior._weaken_history()
+
+    def _weaken_history(self):
+        super()._weaken_history()
+        self._weaken_property('prior')
 
     @prior.getter
     def prior(self):

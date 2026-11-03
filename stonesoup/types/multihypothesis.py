@@ -39,6 +39,11 @@ class MultipleHypothesis(Type, Sequence):
         if self.normalise:
             self.normalise_probabilities()
 
+    def _weaken_history(self):
+        super()._weaken_history()
+        for hypothesis in self.single_hypotheses:
+            hypothesis._weaken_history()
+
     def __len__(self):
         return self.single_hypotheses.__len__()
 
