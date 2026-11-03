@@ -124,8 +124,10 @@ class ParticleUpdater(Updater):
         new_state_vector = measurement_model.function(
             predicted_state, noise=measurement_noise, **kwargs)
 
+        # Parent of predicted state isn't the parent in measurement space, so isn't copied
         return MeasurementPrediction.from_state(
-            predicted_state, state_vector=new_state_vector, timestamp=predicted_state.timestamp)
+            predicted_state, state_vector=new_state_vector, timestamp=predicted_state.timestamp,
+            parent=None)
 
 
 class GromovFlowParticleUpdater(Updater):
