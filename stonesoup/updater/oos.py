@@ -92,19 +92,9 @@ class OOSUpdater(Updater):
 
     @staticmethod
     def _release_prior(state):
-        """Replace reference to prior of state with weakref, so it can be garbage collected"""
-        if isinstance(state, Prediction):
-            predictions = [state]
-        elif isinstance(state, Update):
-            if isinstance(state.hypothesis, MultipleHypothesis):
-                predictions = [hyp.prediction for hyp in state.hypothesis]
-            else:
-                predictions = [state.hypothesis.prediction]
-        else:
-            predictions = []
-        for prediction in predictions:
-            if isinstance(prediction, Prediction) and prediction.prior is not None:
-                prediction.prior = weakref.ref(prediction.prior)
+        """Replace references to history of state with weakrefs, so it can be garbage
+        collected"""
+        state._weaken_history()
 
     def _prune_history(self, state):
         """Release references to states older than :attr:`min_history`"""

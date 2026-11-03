@@ -1,11 +1,13 @@
 import datetime
 import gc
+import weakref
 
 import numpy as np
 import pytest
 
 from ..kalman import ExtendedKalmanUpdater, KalmanUpdater
 from ..oos import OOSUpdater
+from ..particle import ParticleUpdater
 from ..probability import PDAUpdater
 from ...hypothesiser.probability import PDAHypothesiser
 from ...initiator.simple import SimpleMeasurementInitiator, SinglePointInitiator
@@ -13,11 +15,13 @@ from ...models.measurement.linear import LinearGaussian
 from ...models.transition.linear import ConstantVelocity
 from ...predictor.kalman import KalmanPredictor
 from ...predictor.oos import OOSPredictor, get_past_states
+from ...predictor.particle import ParticlePredictor
+from ...types.array import StateVectors
 from ...types.detection import Detection, MissedDetection
 from ...types.hypothesis import SingleHypothesis
 from ...types.multihypothesis import MultipleHypothesis
 from ...types.prediction import Prediction
-from ...types.state import GaussianState
+from ...types.state import GaussianState, ParticleState
 from ...types.update import Update
 
 start_time = datetime.datetime(2025, 1, 1)
@@ -402,6 +406,31 @@ def test_min_history_multiple_hypothesis(oos_predictor, prior, measurement_model
         updater, oos_predictor, min_history=datetime.timedelta(seconds=3))
     oos_state = run_pda_latest(oos_updater)
     assert [seconds(past_state) for past_state in get_past_states(oos_state)] == [10, 9, 8, 7]
+
+
+def test_min_history_particle(transition_model, measurement_model):
+    # Particle states also reference history via parent, which should be released too
+    predictor = ParticlePredictor(transition_model)
+    oos_predictor = OOSPredictor(predictor)
+    oos_updater = OOSUpdater(
+        ParticleUpdater(measurement_model), oos_predictor,
+        min_history=datetime.timedelta(seconds=3))
+
+    state = ParticleState(
+        StateVectors(np.random.default_rng(1).normal(size=(2, 50))), weight=np.full(50, 1/50),
+        timestamp=time(0))
+    refs = []
+    for seconds_ in range(1, 11):
+        prediction = oos_predictor.predict(state, time(seconds_))
+        state = oos_updater.update(SingleHypothesis(prediction, detection(seconds_)))
+        refs.append(weakref.ref(state))
+        del prediction
+        ParticlePredictor.predict.cache_clear()
+        ParticleUpdater.predict_measurement.cache_clear()
+        clear_caches()
+
+    assert [seconds(past_state) for past_state in get_past_states(state)] == [10, 9, 8, 7]
+    assert [seconds(ref()) for ref in refs if ref() is not None] == [7, 8, 9, 10]
 
 
 @pytest.mark.parametrize('missed', [set(), {7.5}, {8}, {7, 9}], ids=str)
