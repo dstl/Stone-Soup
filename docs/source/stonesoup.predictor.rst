@@ -54,3 +54,9 @@ Composite
 
 .. automodule:: stonesoup.predictor.composite
     :show-inheritance:
+
+Out of Sequence
+---------------
+
+.. automodule:: stonesoup.predictor.oos
+    :show-inheritance:
