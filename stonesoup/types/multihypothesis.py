@@ -102,9 +102,10 @@ class MultipleHypothesis(Type, Sequence):
         sum_weights = Probability.sum(
             hypothesis.probability for hypothesis in self.single_hypotheses)
 
+        # As probabilities, so a small probability doesn't underflow to zero
         for hypothesis in self.single_hypotheses:
             hypothesis.probability =\
-                (hypothesis.probability * total_weight)/sum_weights
+                (Probability(hypothesis.probability) * Probability(total_weight))/sum_weights
 
     def get_missed_detection_probability(self):
         for hypothesis in self.single_hypotheses:
@@ -183,7 +184,7 @@ class MultipleCompositeHypothesis(Type, Sequence):
         # this will NOT affect the probabilities of each composite hypothesis' sub-hypotheses
         for hypothesis in self.single_hypotheses:
             hypothesis.probability = \
-                (hypothesis.probability * total_weight) / sum_weights
+                (Probability(hypothesis.probability) * Probability(total_weight)) / sum_weights
 
     def get_missed_detection_probability(self):
         for hypothesis in self.single_hypotheses:

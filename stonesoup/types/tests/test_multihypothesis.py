@@ -124,6 +124,27 @@ def test_multiplehypothesis_edge_cases():
     assert len(multihypothesis) == 0
 
 
+@pytest.mark.parametrize('total_weight', [1, 0.5])
+def test_multiplehypothesis_normalise_tiny_probability(total_weight):
+    """A probability too small for a float isn't normalised to zero"""
+    timestamp = 1
+    prediction = GaussianStatePrediction([[1]], np.diag([10]), timestamp=timestamp)
+    log_probability = -1000
+    multihypothesis = MultipleHypothesis([
+        SingleProbabilityHypothesis(
+            prediction, MissedDetection(timestamp=timestamp), Probability(0.1)),
+        SingleProbabilityHypothesis(
+            prediction, Detection([[2]], timestamp=timestamp),
+            Probability(log_probability, log_value=True))],
+        normalise=True, total_weight=total_weight)
+
+    missed, detected = multihypothesis
+    assert isinstance(detected.probability, Probability)
+    assert detected.probability.log_value == pytest.approx(
+        log_probability - np.log(0.1) + np.log(total_weight))
+    assert float(missed.probability) == pytest.approx(total_weight)
+
+
 def test_multi_composite_hypothesis(composite_hypothesis1,
                                     composite_hypothesis2,
                                     composite_probability_hypothesis1,

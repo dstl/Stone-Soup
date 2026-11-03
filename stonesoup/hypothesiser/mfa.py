@@ -61,7 +61,8 @@ class MFAHypothesiser(Hypothesiser):
             for hypothesis in component_hypotheses:
                 # Update component tag and weight
                 det_idx = detections_tuple.index(hypothesis.measurement) + 1 if hypothesis else 0
-                new_weight = Probability(component.weight * hypothesis.weight)
+                # As probabilities, so the product of small weights doesn't underflow to zero
+                new_weight = Probability(component.weight) * Probability(hypothesis.weight)
                 new_weight /= component_weight_sum
                 hypothesis.prediction = \
                     Prediction.from_state(

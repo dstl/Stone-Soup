@@ -8,6 +8,8 @@ from ..mfa import MFAHypothesiser
 from ...gater.distance import DistanceGater
 from ...measures import Euclidean
 from ...types.detection import Detection, MissedDetection
+from ...types.hypothesis import SingleProbabilityHypothesis
+from ...types.multihypothesis import MultipleHypothesis
 from ...types.mixture import GaussianMixture
 from ...types.numeric import Probability
 from ...types.state import TaggedWeightedGaussianState
@@ -134,3 +136,31 @@ def test_mfa_bad_timestamp(hypothesiser):
 
     with pytest.warns(match="All detections should have the same timestamp"):
         hypothesiser.hypothesise(track, detections, timestamp, tuple(detections))
+
+
+def test_mfa_float_component_weight_tiny_probability(predictor):
+    """A component weight as a float (e.g. from an initiator) times a hypothesis probability too
+    small for a float isn't zero"""
+    timestamp = datetime.datetime.now()
+    detection = Detection(np.array([[2]]), timestamp)
+    log_probability = -1000
+
+    class TinyHypothesiser(PDAHypothesiser):
+        def hypothesise(self, track, detections, timestamp, **kwargs):
+            prediction = self.predictor.predict(track, timestamp=timestamp)
+            return MultipleHypothesis([
+                SingleProbabilityHypothesis(
+                    prediction, MissedDetection(timestamp=timestamp), Probability(1)),
+                SingleProbabilityHypothesis(
+                    prediction, detection, Probability(log_probability, log_value=True))])
+
+    hypothesiser = MFAHypothesiser(TinyHypothesiser(predictor, None, 1e-3))
+    track = Track([GaussianMixture([TaggedWeightedGaussianState(
+        state_vector=[[0]], covar=[[1]], weight=1., tag=[], timestamp=timestamp)])])
+    multi_hypothesis = hypothesiser.hypothesise(
+        track, {detection}, timestamp, detections_tuple=(detection,))
+
+    weights = {hypothesis.measurement: hypothesis.prediction.weight
+               for hypothesis in multi_hypothesis}
+    assert weights[detection].log_value == pytest.approx(log_probability)
+    assert -np.log(weights[detection]) == pytest.approx(-log_probability)
