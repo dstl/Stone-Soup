@@ -32,9 +32,9 @@ Handling OOSM by reprocessing the history of a track
 # In Stone Soup, this is implemented with two wrapper components, which can wrap existing
 # predictors and updaters:
 #
-# - :class:`~.OOSPredictorWrapper` predicts from the appropriate state in the track's
+# - :class:`~.OOSPredictor` predicts from the appropriate state in the track's
 #   history, rather than the latest state;
-# - :class:`~.OOSUpdaterWrapper` carries out the update, and reprocesses the subsequent states.
+# - :class:`~.OOSUpdater` carries out the update, and reprocesses the subsequent states.
 #
 # As they are wrappers, they can be used with other standard components, such as hypothesisers
 # and data associators.
@@ -177,26 +177,26 @@ predictor = ExtendedKalmanPredictor(transition_model)
 updater = ExtendedKalmanUpdater(measurement_model=None)
 
 # %%
-# We now wrap these in the OOS components. The :class:`~.OOSUpdaterWrapper` also requires a
+# We now wrap these in the OOS components. The :class:`~.OOSUpdater` also requires a
 # predictor, which is used to re-predict the subsequent states when reprocessing. Both wrappers
 # have further options, which aren't used in this example:
 #
-# - :attr:`~.OOSPredictorWrapper.backward_predictor` can be used to predict backwards, in case a
+# - :attr:`~.OOSPredictor.backward_predictor` can be used to predict backwards, in case a
 #   measurement arrives from before the start of the track;
-# - :attr:`~.OOSPredictorWrapper.smoother` can be used to smooth the track's history, so that the
+# - :attr:`~.OOSPredictor.smoother` can be used to smooth the track's history, so that the
 #   prediction to the OOSM time also uses information from later measurements, which can help
 #   with data association. The update itself is still carried out using the unsmoothed state;
-# - :attr:`~.OOSUpdaterWrapper.hypothesiser` can be used to regenerate hypotheses for the
+# - :attr:`~.OOSUpdater.hypothesiser` can be used to regenerate hypotheses for the
 #   subsequent measurements when reprocessing, e.g. to recalculate association probabilities for
 #   probabilistic data association;
-# - :attr:`~.OOSUpdaterWrapper.min_history` can be used to limit how far back the history is
+# - :attr:`~.OOSUpdater.min_history` can be used to limit how far back the history is
 #   kept, allowing old states to be released from memory. By default, all history is kept.
 
-from stonesoup.predictor.oos import OOSPredictorWrapper
-from stonesoup.updater.oos import OOSUpdaterWrapper
+from stonesoup.predictor.oos import OOSPredictor
+from stonesoup.updater.oos import OOSUpdater
 
-oos_predictor = OOSPredictorWrapper(predictor)
-oos_updater = OOSUpdaterWrapper(updater, predictor=oos_predictor)
+oos_predictor = OOSPredictor(predictor)
+oos_updater = OOSUpdater(updater, predictor=oos_predictor)
 
 # %%
 # For data association, we use :class:`~.GNNWith2DAssignment` with a
@@ -229,7 +229,7 @@ priors = [
 # detection, or otherwise the prediction is added to the track.
 #
 # Note that for the OOS components, missed detections are also passed to the
-# :class:`~.OOSUpdaterWrapper`. This is because the prediction may be for a time in the past, in
+# :class:`~.OOSUpdater`. This is because the prediction may be for a time in the past, in
 # which case the updater will insert the prediction into the track's history, and reprocess the
 # subsequent states to return an estimate at the latest time.
 
@@ -241,7 +241,7 @@ def run_tracker(scans, data_associator, updater):
     for _, scan_time, detections in scans:
         associations = data_associator.associate(tracks, detections, scan_time)
         for track, hypothesis in associations.items():
-            if hypothesis or isinstance(updater, OOSUpdaterWrapper):
+            if hypothesis or isinstance(updater, OOSUpdater):
                 track.append(updater.update(hypothesis))
             else:
                 track.append(hypothesis.prediction)
@@ -251,8 +251,8 @@ def run_tracker(scans, data_associator, updater):
 # %%
 # Firstly, we run the tracker with the OOS components, processing the scans in the order they
 # arrive. When a scan from the second sensor arrives, the tracks have already been updated with
-# the later scans from the first sensor. The :class:`~.OOSPredictorWrapper` predicts from the
-# state before the scan time, and the :class:`~.OOSUpdaterWrapper` updates and then reprocesses
+# the later scans from the first sensor. The :class:`~.OOSPredictor` predicts from the
+# state before the scan time, and the :class:`~.OOSUpdater` updates and then reprocesses
 # the later updates, returning a new estimate at the latest time.
 
 oos_tracks = run_tracker(arrival_ordered_scans, oos_data_associator, oos_updater)
@@ -292,7 +292,7 @@ reference_tracks = run_tracker(scans, data_associator, updater)
 # tracks will be the same as the reference tracks, provided the same data association decisions
 # are made. However, these decisions can differ: when a scan from the first sensor arrives, it is
 # associated before the earlier, delayed, scan from the second sensor has arrived, and these
-# associations are kept when reprocessing (unless a :attr:`~.OOSUpdaterWrapper.hypothesiser` is
+# associations are kept when reprocessing (unless a :attr:`~.OOSUpdater.hypothesiser` is
 # provided). We can check how many of the states in the OOS tracks match the reference tracks.
 
 
@@ -377,8 +377,8 @@ graph.fig
 # %%
 # Conclusion
 # ----------
-# In this example we have shown how to use the :class:`~.OOSPredictorWrapper` and
-# :class:`~.OOSUpdaterWrapper` components to handle out of sequence measurements, by
+# In this example we have shown how to use the :class:`~.OOSPredictor` and
+# :class:`~.OOSUpdater` components to handle out of sequence measurements, by
 # reprocessing the history of each track. These components wrap the standard predictors and
 # updaters, and so can be used alongside other Stone Soup components, such as hypothesisers and
 # data associators.

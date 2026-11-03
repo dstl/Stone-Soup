@@ -4,7 +4,7 @@ import numpy as np
 import pytest
 
 from ..kalman import KalmanPredictor
-from ..oos import OOSPredictorWrapper, get_hypothesis, get_past_states, get_prior_state
+from ..oos import OOSPredictor, get_hypothesis, get_past_states, get_prior_state
 from ...models.measurement.linear import LinearGaussian
 from ...models.transition.linear import ConstantVelocity
 from ...smoother.kalman import KalmanSmoother
@@ -130,7 +130,7 @@ def test_get_past_states(track, predictor):
 
 @pytest.mark.parametrize('prior_type', ['state', 'track'])
 def test_predict_in_sequence(track, predictor, prior_type):
-    oos_predictor = OOSPredictorWrapper(predictor)
+    oos_predictor = OOSPredictor(predictor)
     prior = track if prior_type == 'track' else track[5]
 
     prediction = oos_predictor.predict(prior, time(6))
@@ -156,7 +156,7 @@ def test_predict_in_sequence(track, predictor, prior_type):
         (0, 0),
     ])
 def test_predict_out_of_sequence(track, predictor, prior_type, seconds, prior_index):
-    oos_predictor = OOSPredictorWrapper(predictor)
+    oos_predictor = OOSPredictor(predictor)
     prior = track if prior_type == 'track' else track[5]
 
     prediction = oos_predictor.predict(prior, time(seconds))
@@ -169,13 +169,13 @@ def test_predict_out_of_sequence(track, predictor, prior_type, seconds, prior_in
 
 
 def test_predict_before_earliest_state(track, predictor):
-    oos_predictor = OOSPredictorWrapper(predictor)
+    oos_predictor = OOSPredictor(predictor)
     with pytest.raises(ValueError, match="Cannot predict"):
         oos_predictor.predict(track[5], time(-1))
 
     # Different model, so can check the backward predictor is the one used
     backward_predictor = KalmanPredictor(ConstantVelocity(0))
-    oos_predictor = OOSPredictorWrapper(predictor, backward_predictor=backward_predictor)
+    oos_predictor = OOSPredictor(predictor, backward_predictor=backward_predictor)
     prediction = oos_predictor.predict(track[5], time(-1))
     assert_states_equal(prediction, backward_predictor.predict(track[0], time(-1)))
     assert prediction.prior is track[0]
@@ -190,7 +190,7 @@ def test_predict_before_earliest_state(track, predictor):
 
 def test_predict_smoother(track, predictor, transition_model):
     smoother = KalmanSmoother(transition_model)
-    oos_predictor = OOSPredictorWrapper(predictor, smoother=smoother)
+    oos_predictor = OOSPredictor(predictor, smoother=smoother)
 
     # Out of sequence: prediction is from smoothed state, using the later states
     prediction = oos_predictor.predict(track[5], time(2.5))
@@ -225,7 +225,7 @@ def test_predict_smoother_missed_detection(track, predictor, updater, transition
         SingleHypothesis(prediction, Detection([[8.5]], timestamp=time(8)))))
 
     smoother = KalmanSmoother(transition_model)
-    oos_predictor = OOSPredictorWrapper(predictor, smoother=smoother)
+    oos_predictor = OOSPredictor(predictor, smoother=smoother)
 
     # Smoothed from most recent update before the predictions
     prediction = oos_predictor.predict(track[8], time(6.5))

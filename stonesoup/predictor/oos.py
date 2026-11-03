@@ -83,9 +83,9 @@ def get_past_states(state):
         state = get_prior_state(state)
 
 
-class OOSPredictorWrapper(Predictor):
+class OOSPredictor(Predictor):
     """
-    OOSPredictorWrapper is a wrapper class for handling out-of-sequence (OOS) prediction scenarios.
+    OOSPredictor is a wrapper class for handling out-of-sequence (OOS) prediction scenarios.
 
     This class enables prediction in cases where the sequence of states is not strictly
     chronological, by supporting both forward and backward prediction, as well as optional

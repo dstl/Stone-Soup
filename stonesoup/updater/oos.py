@@ -13,9 +13,9 @@ from ..types.update import Update
 from . import Updater
 
 
-class OOSUpdaterWrapper(Updater):
+class OOSUpdater(Updater):
     """
-    OOSUpdaterWrapper is a wrapper for an Updater that enables out-of-sequence (OOS) measurement
+    OOSUpdater is a wrapper for an Updater that enables out-of-sequence (OOS) measurement
     updates. It manages the process of updating state estimates when measurements arrive out of
     chronological order, by reprocessing the affected states and propagating updates forward.
 

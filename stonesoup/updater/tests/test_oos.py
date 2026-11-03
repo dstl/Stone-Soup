@@ -5,14 +5,14 @@ import numpy as np
 import pytest
 
 from ..kalman import ExtendedKalmanUpdater, KalmanUpdater
-from ..oos import OOSUpdaterWrapper
+from ..oos import OOSUpdater
 from ..probability import PDAUpdater
 from ...hypothesiser.probability import PDAHypothesiser
 from ...initiator.simple import SimpleMeasurementInitiator, SinglePointInitiator
 from ...models.measurement.linear import LinearGaussian
 from ...models.transition.linear import ConstantVelocity
 from ...predictor.kalman import KalmanPredictor
-from ...predictor.oos import OOSPredictorWrapper, get_past_states
+from ...predictor.oos import OOSPredictor, get_past_states
 from ...types.detection import Detection, MissedDetection
 from ...types.hypothesis import SingleHypothesis
 from ...types.multihypothesis import MultipleHypothesis
@@ -47,8 +47,8 @@ def gc_freeze():
 def clear_caches():
     """Clear caches which hold references to states, and run garbage collection (as states may
     be in reference cycles), to ensure tests aren't reliant on states being kept alive by these"""
-    OOSPredictorWrapper._predict_states.cache_clear()
-    OOSPredictorWrapper.predict.cache_clear()
+    OOSPredictor._predict_states.cache_clear()
+    OOSPredictor.predict.cache_clear()
     KalmanPredictor.predict.cache_clear()
     KalmanUpdater.predict_measurement.cache_clear()
     ExtendedKalmanUpdater.predict_measurement.cache_clear()
@@ -123,12 +123,12 @@ def updater(measurement_model):
 @pytest.fixture()
 def oos_predictor(predictor):
     # Backward predictor with different model, without process noise
-    return OOSPredictorWrapper(predictor, backward_predictor=KalmanPredictor(ConstantVelocity(0)))
+    return OOSPredictor(predictor, backward_predictor=KalmanPredictor(ConstantVelocity(0)))
 
 
 @pytest.fixture()
 def oos_updater(updater, oos_predictor):
-    return OOSUpdaterWrapper(updater, oos_predictor)
+    return OOSUpdater(updater, oos_predictor)
 
 
 @pytest.fixture()
@@ -157,12 +157,12 @@ def test_get_detections(predictor, prior):
     hypothesis1 = SingleHypothesis(prediction, detection(1))
     hypothesis2 = SingleHypothesis(prediction, detection(1))
 
-    assert OOSUpdaterWrapper._get_detections(null_hypothesis) == set()
-    assert OOSUpdaterWrapper._get_detections(hypothesis1) == {hypothesis1.measurement}
-    assert OOSUpdaterWrapper._get_detections(
+    assert OOSUpdater._get_detections(null_hypothesis) == set()
+    assert OOSUpdater._get_detections(hypothesis1) == {hypothesis1.measurement}
+    assert OOSUpdater._get_detections(
         MultipleHypothesis([null_hypothesis, hypothesis1, hypothesis2])) \
         == {hypothesis1.measurement, hypothesis2.measurement}
-    assert OOSUpdaterWrapper._get_detections(MultipleHypothesis([null_hypothesis])) == set()
+    assert OOSUpdater._get_detections(MultipleHypothesis([null_hypothesis])) == set()
 
 
 def test_in_sequence(oos_predictor, oos_updater, predictor, updater, prior):
@@ -257,7 +257,7 @@ def test_before_earliest_state_initiator(
         oos_predictor, updater, predictor, prior, measurement_model, initiator_class):
     initiator = initiator_class(
         GaussianState([[0.], [1.]], np.diag([10., 1.])), measurement_model)
-    oos_updater = OOSUpdaterWrapper(updater, oos_predictor, initiator=initiator)
+    oos_updater = OOSUpdater(updater, oos_predictor, initiator=initiator)
 
     # Track which starts with state from an initiator, at 2 seconds
     initial_state = initiator.initiate({detection(2)}, time(2)).pop().state
@@ -289,7 +289,7 @@ def test_before_earliest_state_initiator_unexpected_state(
         oos_predictor, updater, prior, measurement_model):
     initiator = SimpleMeasurementInitiator(
         GaussianState([[0.], [1.]], np.diag([10., 1.])), measurement_model)
-    oos_updater = OOSUpdaterWrapper(updater, oos_predictor, initiator=initiator)
+    oos_updater = OOSUpdater(updater, oos_predictor, initiator=initiator)
 
     # Track starts with a state which isn't an update or a prediction, so can't be reprocessed
     state = run(oos_predictor, oos_updater, prior, [1, 2, 3])
@@ -327,7 +327,7 @@ def test_hypothesiser(oos_predictor, predictor, prior, measurement_model, order)
 
     # With hypothesiser, association probabilities are recalculated when reprocessing, so same
     # as if detections processed in sequence
-    oos_updater = OOSUpdaterWrapper(updater, oos_predictor, hypothesiser=oos_hypothesiser)
+    oos_updater = OOSUpdater(updater, oos_predictor, hypothesiser=oos_hypothesiser)
     oos_state = run_pda(oos_hypothesiser, oos_updater, prior, order)[0]
     assert [seconds(past_state) for past_state in get_past_states(oos_state)] \
         == sorted(order, reverse=True) + [0]
@@ -341,7 +341,7 @@ def test_hypothesiser(oos_predictor, predictor, prior, measurement_model, order)
 
     # Without hypothesiser, existing association probabilities are used when reprocessing, so
     # result differs
-    oos_updater = OOSUpdaterWrapper(updater, oos_predictor)
+    oos_updater = OOSUpdater(updater, oos_predictor)
     oos_state = run_pda(oos_hypothesiser, oos_updater, prior, order)[0]
     assert oos_state.timestamp == expected_states[0].timestamp
     assert [seconds(past_state) for past_state in get_past_states(oos_state)] \
@@ -351,13 +351,13 @@ def test_hypothesiser(oos_predictor, predictor, prior, measurement_model, order)
 
 def test_min_history(oos_predictor, updater, predictor, prior):
     # Without min history, all history is kept
-    oos_updater = OOSUpdaterWrapper(updater, oos_predictor)
+    oos_updater = OOSUpdater(updater, oos_predictor)
     oos_state = run(oos_predictor, oos_updater, prior, range(1, 11))
     assert [seconds(past_state) for past_state in get_past_states(oos_state)] \
         == [10, 9, 8, 7, 6, 5, 4, 3, 2, 1, 0]
 
     # With min history, history kept back to the most recent state at or before min history
-    oos_updater = OOSUpdaterWrapper(
+    oos_updater = OOSUpdater(
         updater, oos_predictor, min_history=datetime.timedelta(seconds=3))
     oos_state = run(oos_predictor, oos_updater, prior, range(1, 11))
     assert [seconds(past_state) for past_state in get_past_states(oos_state)] == [10, 9, 8, 7]
@@ -368,7 +368,7 @@ def test_min_history(oos_predictor, updater, predictor, prior):
         assert [seconds(past_state) for past_state in get_past_states(oos_state)] \
             == list(range(num_steps, -1, -1))
 
-    oos_updater = OOSUpdaterWrapper(
+    oos_updater = OOSUpdater(
         updater, oos_predictor, min_history=datetime.timedelta(seconds=2.5))
     oos_state = run(oos_predictor, oos_updater, prior, range(1, 11))
     assert [seconds(past_state) for past_state in get_past_states(oos_state)] == [10, 9, 8, 7]
@@ -393,12 +393,12 @@ def test_min_history_multiple_hypothesis(oos_predictor, prior, measurement_model
             clear_caches()
         return state
 
-    oos_updater = OOSUpdaterWrapper(updater, oos_predictor)
+    oos_updater = OOSUpdater(updater, oos_predictor)
     oos_state = run_pda_latest(oos_updater)
     assert [seconds(past_state) for past_state in get_past_states(oos_state)] \
         == [10, 9, 8, 7, 6, 5, 4, 3, 2, 1, 0]
 
-    oos_updater = OOSUpdaterWrapper(
+    oos_updater = OOSUpdater(
         updater, oos_predictor, min_history=datetime.timedelta(seconds=3))
     oos_state = run_pda_latest(oos_updater)
     assert [seconds(past_state) for past_state in get_past_states(oos_state)] == [10, 9, 8, 7]
@@ -406,7 +406,7 @@ def test_min_history_multiple_hypothesis(oos_predictor, prior, measurement_model
 
 @pytest.mark.parametrize('missed', [set(), {7.5}, {8}, {7, 9}], ids=str)
 def test_min_history_out_of_sequence(oos_predictor, updater, predictor, prior, missed):
-    oos_updater = OOSUpdaterWrapper(
+    oos_updater = OOSUpdater(
         updater, oos_predictor, min_history=datetime.timedelta(seconds=3))
 
     # Out of sequence detection within min history
@@ -427,8 +427,8 @@ def test_min_history_out_of_sequence(oos_predictor, updater, predictor, prior, m
 
 def test_min_history_exceeded(updater, predictor, prior):
     # No backward predictor
-    oos_predictor = OOSPredictorWrapper(predictor)
-    oos_updater = OOSUpdaterWrapper(
+    oos_predictor = OOSPredictor(predictor)
+    oos_updater = OOSUpdater(
         updater, oos_predictor, min_history=datetime.timedelta(seconds=3))
     oos_state = run(oos_predictor, oos_updater, prior, range(1, 11))
 
