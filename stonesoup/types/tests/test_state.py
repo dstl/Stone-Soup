@@ -1,5 +1,6 @@
 import copy
 import datetime
+import gc
 import pickle
 
 import numpy as np
@@ -735,6 +736,10 @@ def test_creatable_from_state_error():
                              'CreatableFromState \\(or a subclass\\)'):
         class SubSubclassCfs(State, SubclassCfs):
             pass
+    # The class above failed in `__init_subclass__`, so was never initialised by `ABCMeta`
+    # and shares `State`'s ABC cache, but lingers in `State.__subclasses__()` until garbage
+    # collected, where later `issubclass` checks can corrupt `State`'s negative cache.
+    gc.collect()
 
 
 # noinspection PyUnusedLocal
@@ -745,6 +750,10 @@ def test_creatable_from_state_multi_base_error():
                        match='A CreatableFromState subclass must have exactly two superclasses'):
         class SubSubclassCfs(State, StateMutableSequence, SubclassCfs):
             pass
+    # The class above failed in `__init_subclass__`, so was never initialised by `ABCMeta`
+    # and shares `State`'s ABC cache, but lingers in `State.__subclasses__()` until garbage
+    # collected, where later `issubclass` checks can corrupt `State`'s negative cache.
+    gc.collect()
 
 
 def test_categorical_state():
