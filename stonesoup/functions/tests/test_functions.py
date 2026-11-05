@@ -479,7 +479,8 @@ def test_cubature_transform_angle_wrap():
                             CovarianceMatrix([[1e-4, 1e-5], [1e-5, 1.]]))
 
     def to_bearing(state):
-        return StateVector([Bearing(state.state_vector[0, 0]), state.state_vector[1, 0]])
+        return StateVectors([[Bearing(x) for x in state.state_vector[0, :]],
+                             state.state_vector[1, :]])
 
     mean, covar, cross_covar, cubature_points = cubature_transform(instate, to_bearing)
     assert any(point[0, 0] < 0 for point in cubature_points)  # Some points have wrapped

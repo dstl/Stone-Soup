@@ -13,7 +13,6 @@ from scipy.stats import ortho_group
 
 from ..types.array import CovarianceMatrix, StateVector, StateVectors
 from ..types.numeric import Probability
-from ..types.state import State
 
 
 def block_diag(*arrays):
@@ -1033,14 +1032,15 @@ def cubature_transform(state, fun, points_noise=None, covar_noise=None, alpha=1.
         A Gaussian state with mean and covariance
     fun : function handle
         A (non-linear) transition function
-        Must be of the form "y = fun(x,w)", where y can be a scalar or \
-        :class:`numpy.ndarray` of shape `(Ns, 1)` or `(Ns,)`
+        Must be of the form "y = fun(x,w)", where x is a :class:`~.State` with all cubature
+        points as its :class:`~.StateVectors`, and y the :class:`~.StateVectors` of the
+        transformed points, as is the case for :meth:`~.Model.function`
     covar_noise : :class:`~.CovarianceMatrix` of shape `(Ns, Ns)`, optional
         Additive noise covariance matrix
         (default is `None`)
     points_noise : :class:`numpy.ndarray` of shape `(Nw, 2*Ns)`, optional
-        points to pass into f's second argument, with each column passed with the corresponding
-        cubature point
+        points to pass into f's second argument, with each column corresponding to a cubature
+        point
         (default is `None`)
     alpha : float, optional
         scaling parameter allowing the selection of cubature points closer to the mean (lower
@@ -1067,12 +1067,14 @@ def cubature_transform(state, fun, points_noise=None, covar_noise=None, alpha=1.
     ndim_state = np.shape(state.state_vector)[0]
     cubature_points = gauss2cubature(state, alpha)
 
+    # Put the cubature points into a copy of the state, so all points are transformed at once
+    cubature_points_states = copy.copy(state)
+    cubature_points_states.state_vector = cubature_points
+
     if points_noise is None:
-        cubature_points_t = StateVectors([fun(State(cub_point)) for cub_point in cubature_points])
+        cubature_points_t = StateVectors(fun(cubature_points_states))
     else:
-        cubature_points_t = StateVectors([
-            fun(State(cub_point), point_noise)
-            for cub_point, point_noise in zip(cubature_points, StateVectors(points_noise))])
+        cubature_points_t = StateVectors(fun(cubature_points_states, points_noise))
 
     mean, covar = cubature2gauss(cubature_points_t, covar_noise, alpha)
 
