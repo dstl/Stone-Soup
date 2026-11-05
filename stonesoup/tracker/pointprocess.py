@@ -77,6 +77,7 @@ class PointProcessMultiTargetTracker(_TrackerMixInNext, Tracker):
 
     def __next__(self) -> tuple[datetime.datetime, set[Track]]:
         time, detections = next(self.detector_iter)
+        detector_context = getattr(detections, 'detector_context', None)
         # Add birth component
         self.birth_component.timestamp = time
         self.gaussian_mixture.append(self.birth_component)
@@ -84,10 +85,12 @@ class PointProcessMultiTargetTracker(_TrackerMixInNext, Tracker):
         hypotheses = self.hypothesiser.hypothesise(
                     self.gaussian_mixture.components,
                     detections,
-                    time
+                    time,
+                    detector_context=detector_context
                     )
         # Perform GM Update
-        self.gaussian_mixture = self.updater.update(hypotheses)
+        self.gaussian_mixture = self.updater.update(
+            hypotheses, detector_context=detector_context)
         # Reduce mixture - Pruning and Merging
         self.gaussian_mixture.components = \
             self.reducer.reduce(self.gaussian_mixture.components)
