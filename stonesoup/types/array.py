@@ -129,6 +129,10 @@ class StateVectors(Matrix):
     custom types are handled correctly. This can be initialised by a sequence
     type (list, tuple; not array) that contains :class:`StateVector`, otherwise
     it's called same as :func:`numpy.asarray`.
+
+    Iteration yields one :class:`StateVector` per column, and ``len(state_vectors)``
+    returns ``num_components``. The number of dimensions is available as
+    ``state_vectors.shape[0]``.
     """
 
     def __new__(cls, states, *args, **kwargs):
@@ -139,6 +143,10 @@ class StateVectors(Matrix):
         if array.shape[1] == 1:
             return array.view(StateVector)
         return array.view(cls)
+
+    def __len__(self):
+        """Return the number of state vectors (columns)."""
+        return self.shape[1]
 
     def __iter__(self):
         # Iterate as plain ndarray and view each column directly as a StateVector, rather than
