@@ -2,22 +2,20 @@
 Plugin system for Stone Soup.
 
 Stone Soup is able to import plugins using package metadata. Packages can
-register themselves for discovery by providing the :attr:`entry_points` argument
-to setup() in :attr:`setup.py`.
+register themselves for discovery by providing the
+:attr:`[project.entry-points."stonesoup.plugins"]` table in :attr:`pyproject.toml`.
 
-For example if you have a package named :attr:`my_package` and its :attr:`setup.py` file includes:
+For example if you have a package named :attr:`my_package` and its
+:attr:`pyproject.toml` file includes:
 
-.. code-block:: python
+.. code-block::
 
-    setup(
-        ...
-        entry_points={'stonesoup.plugins': 'my_plugin = my_package'}
-        ...
-    )
+    [project.entry-points."stonesoup.plugins"]
+    my_plugin = "my_package"
 
 Then Stone Soup will discover your plugin and load all of the registered entry points. It is
-possible to name your plugin the same name as your package name in :attr:`setup()`. Your plugin
-can be loaded using:
+possible to name your plugin the same name as your package name under
+:attr:`[project.entry-points."stonesoup.plugins"]`. Your plugin can be loaded using:
 
 .. code-block:: python
 
