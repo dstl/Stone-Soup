@@ -103,6 +103,8 @@ from stonesoup.models.clutter.clutter import ClutterModel
 # Define the clutter model which will be the same for both sensors
 # Keep the clutter rate low due to particle filter errors
 clutter_model = ClutterModel(
+    ndim_state=4,
+    mapping=(0, 2),
     clutter_rate=1,
     distribution=np.random.default_rng().uniform,
     dist_params=((0, 150), (-105, 105)))
