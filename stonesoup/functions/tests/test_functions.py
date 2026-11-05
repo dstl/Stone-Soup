@@ -29,6 +29,7 @@ from .. import (
     rotx,
     roty,
     rotz,
+    sigma2gauss,
     sphere2cart,
     stochastic_cubature_rule_points,
     batch_multivariate_normal_logpdf
@@ -244,6 +245,23 @@ def test_gauss2sigma_bad_covar(gauss2x):
 
     with pytest.warns(UserWarning, match="Matrix is not positive definite"):
         gauss2x(state)
+
+
+@pytest.mark.parametrize("gauss2x", [(gauss2sigma), (gauss2cubature)])
+def test_gauss2x_bad_covar_recovered(gauss2x):
+    # Correlated covariance, made slightly indefinite to force the fallback square root
+    covar = np.array([[2., 1., 1.], [1., 1., 0.], [1., 0., 1.]]) - 1e-9*np.identity(3)
+    state = GaussianState([[1.], [-2.], [3.]], covar)
+
+    with pytest.warns(UserWarning, match="Matrix is not positive definite"):
+        points = gauss2x(state)
+
+    if gauss2x is gauss2sigma:
+        sigma_points_states, mean_weights, covar_weights = points
+        _, out_covar = sigma2gauss(sigma_points_states.state_vector, mean_weights, covar_weights)
+    else:
+        _, out_covar = cubature2gauss(points)
+    assert np.allclose(out_covar, covar, atol=1e-6)
 
 
 @pytest.mark.parametrize(

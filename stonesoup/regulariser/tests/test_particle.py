@@ -10,6 +10,7 @@ from ...predictor.particle import MultiModelPredictor
 from ...resampler.particle import SystematicResampler
 from ...types.detection import Detection
 from ...types.hypothesis import SingleHypothesis
+from ...types.array import StateVectors
 from ...types.particle import Particle, MultiModelParticle
 from ...types.prediction import ParticleStatePrediction, ParticleMeasurementPrediction
 from ...types.state import ParticleState, MultiModelParticleState
@@ -128,6 +129,40 @@ def test_regulariser(transition_model, model_flag, constraint_func):
         new_particles = regulariser.regularise(particles,
                                                state_update.particle_list)
     assert "Only ParticleState type is supported!" in str(e.value)
+
+
+def test_regulariser_move_covariance():
+    # Moves should be drawn from a Gaussian kernel with covariance hopt^2 times the (correlated)
+    # posterior covariance
+    np.random.seed(1)
+    timestamp = datetime.datetime.now()
+    nparticles = 20000
+    covar = np.array([[4., 3.], [3., 4.]])
+    particles = ParticleState(
+        StateVectors(np.random.multivariate_normal([0., 0.], covar, size=nparticles).T),
+        weight=np.full(nparticles, 1/nparticles), timestamp=timestamp)
+
+    prediction = ParticleStatePrediction(particles.state_vector, weight=particles.weight,
+                                         timestamp=timestamp, transition_model=None)
+
+    measurement_model = LinearGaussian(ndim_state=2, mapping=(0, 1), noise_covar=np.eye(2))
+    measurement = Detection(state_vector=np.array([[0.], [0.]]),
+                            timestamp=timestamp, measurement_model=measurement_model)
+    state_update = Update.from_state(
+        state=prediction,
+        hypothesis=SingleHypothesis(prediction=prediction, measurement=measurement))
+
+    moved = {}
+
+    def capture_moves(particles):
+        moved['state_vector'] = np.array(particles.state_vector)
+        return np.zeros(nparticles, dtype=bool)
+
+    MCMCRegulariser(constraint_func=capture_moves).regularise(particles, state_update)
+
+    hopt = (4/(2+2))**(1/(2+4))*nparticles**(-1/(2+4))
+    moves = moved['state_vector'] - np.asarray(particles.state_vector)
+    assert np.allclose(np.cov(moves) / hopt**2, state_update.covar, rtol=0.05, atol=0.1)
 
 
 def test_no_measurement():

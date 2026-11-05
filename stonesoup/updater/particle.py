@@ -180,7 +180,7 @@ class GromovFlowParticleUpdater(Updater):
             f = -b @ (measurement_particle_state_vector - hypothesis.measurement.state_vector)
 
             Q = b @ H @ a
-            B = cholesky_eps((Q+Q.T)/2)
+            B = cholesky_eps((Q+Q.T)/2, lower=True)
 
             return f, B
 

@@ -257,7 +257,7 @@ def gauss2sigma(state, alpha=1.0, beta=2.0, kappa=None):
         sqrt_sigma = np.linalg.cholesky(state.covar)
     except np.linalg.LinAlgError as e:
         warnings.warn(repr(e))
-        sqrt_sigma = cholesky_eps(state.covar)
+        sqrt_sigma = cholesky_eps(state.covar, lower=True)
 
     # Calculate scaling factor for all off-center points
     alpha2 = np.power(alpha, 2)
@@ -955,7 +955,7 @@ def gauss2cubature(state, alpha=1.0):
         sqrt_covar = np.linalg.cholesky(state.covar)
     except np.linalg.LinAlgError as e:
         warnings.warn(repr(e))
-        sqrt_covar = cholesky_eps(state.covar)
+        sqrt_covar = cholesky_eps(state.covar, lower=True)
 
     cuba_points = np.sqrt(alpha*ndim_state) * np.hstack((np.identity(ndim_state),
                                                          -np.identity(ndim_state)))
