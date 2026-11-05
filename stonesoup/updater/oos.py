@@ -130,7 +130,7 @@ class OOSUpdater(Updater):
 
     def update(self, hypothesis, **kwargs):
         prediction = get_hypothesis(hypothesis, lambda x: not x).prediction
-        latest_state = prediction.prior.orig_prior
+        latest_state = prediction.orig_prior()
         prior = prediction.prior
 
         if prior.timestamp > prediction.timestamp:

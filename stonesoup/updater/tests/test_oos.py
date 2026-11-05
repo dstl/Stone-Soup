@@ -181,6 +181,30 @@ def test_in_sequence(oos_predictor, oos_updater, predictor, updater, prior):
     assert_history_equal(oos_state, expected_states)
 
 
+def test_out_of_sequence_shared_history(
+        oos_predictor, oos_updater, predictor, updater, prior):
+    """Out of sequence update of a latest state sharing history with another (e.g. components of
+    a Gaussian mixture) reprocesses its own history, regardless of the other's prediction."""
+    shared = run(oos_predictor, oos_updater, prior, [1, 2])
+    branches = []
+    for value in (3.5, 2.5):
+        prediction = oos_predictor.predict(shared, time(3))
+        branches.append(oos_updater.update(SingleHypothesis(
+            prediction, Detection([[value]], timestamp=time(3)))))
+
+    # Both predicted out of sequence (to the shared state), then the first updated
+    predictions = [oos_predictor.predict(branch, time(1.5)) for branch in branches]
+    post = oos_updater.update(SingleHypothesis(predictions[0], detection(1.5)))
+
+    expected = prior
+    for seconds_, measurement in ((1, detection(1)), (1.5, detection(1.5)), (2, detection(2)),
+                                  (3, Detection([[3.5]], timestamp=time(3)))):
+        expected = updater.update(SingleHypothesis(
+            predictor.predict(expected, time(seconds_)), measurement))
+    assert_states_equal(post, expected)
+    assert post.hypothesis.measurement.state_vector[0, 0] == 3.5
+
+
 @pytest.mark.parametrize(
     'order',
     [

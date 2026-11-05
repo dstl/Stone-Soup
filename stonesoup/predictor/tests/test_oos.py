@@ -136,13 +136,13 @@ def test_predict_in_sequence(track, predictor, prior_type):
     prediction = oos_predictor.predict(prior, time(6))
     assert_states_equal(prediction, predictor.predict(track[5], time(6)))
     assert prediction.prior is track[5]
-    assert prediction.prior.orig_prior is track[5]
+    assert prediction.orig_prior() is track[5]
 
     # Same time as latest state
     prediction = oos_predictor.predict(prior, time(5))
     assert_states_equal(prediction, track[5])
     assert prediction.prior is track[5]
-    assert prediction.prior.orig_prior is track[5]
+    assert prediction.orig_prior() is track[5]
 
 
 @pytest.mark.parametrize('prior_type', ['state', 'track'])
@@ -165,7 +165,7 @@ def test_predict_out_of_sequence(track, predictor, prior_type, seconds, prior_in
     assert_states_equal(prediction, predictor.predict(track[prior_index], time(seconds)))
     assert prediction.prior is track[prior_index]
     # with reference to the latest state
-    assert prediction.prior.orig_prior is track[5]
+    assert prediction.orig_prior() is track[5]
 
 
 def test_predict_before_earliest_state(track, predictor):
@@ -179,7 +179,7 @@ def test_predict_before_earliest_state(track, predictor):
     prediction = oos_predictor.predict(track[5], time(-1))
     assert_states_equal(prediction, backward_predictor.predict(track[0], time(-1)))
     assert prediction.prior is track[0]
-    assert prediction.prior.orig_prior is track[5]
+    assert prediction.orig_prior() is track[5]
 
     # Backward predictor not used when a state is available to predict forward from
     prediction = oos_predictor.predict(track[5], time(2.5))
@@ -202,7 +202,7 @@ def test_predict_smoother(track, predictor, transition_model):
         prediction.state_vector, predictor.predict(track[2], time(2.5)).state_vector)
     # but the prior is still the original state
     assert prediction.prior is track[2]
-    assert prediction.prior.orig_prior is track[5]
+    assert prediction.orig_prior() is track[5]
 
     # In sequence: no later states to smooth with
     prediction = oos_predictor.predict(track[5], time(6))
@@ -213,7 +213,7 @@ def test_predict_smoother(track, predictor, transition_model):
     prediction = oos_predictor.predict(track[5], time(0.5))
     assert_states_equal(prediction, predictor.predict(track[0], time(0.5)))
     assert prediction.prior is track[0]
-    assert prediction.prior.orig_prior is track[5]
+    assert prediction.orig_prior() is track[5]
 
 
 def test_predict_smoother_missed_detection(track, predictor, updater, transition_model):
@@ -233,4 +233,4 @@ def test_predict_smoother_missed_detection(track, predictor, updater, transition
     assert smoothed_state.timestamp == time(5)
     assert_states_equal(prediction, predictor.predict(smoothed_state, time(6.5)))
     assert prediction.prior is track[6]
-    assert prediction.prior.orig_prior is track[8]
+    assert prediction.orig_prior() is track[8]
