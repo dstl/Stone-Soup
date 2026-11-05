@@ -73,6 +73,28 @@ def test_statevectors_slice_length():
     assert len(single_column) == 4
 
 
+@pytest.mark.parametrize('method', ['ravel', 'flatten'])
+@pytest.mark.parametrize('num_states', [0, 10])
+def test_statevectors_flattened_length(method, num_states):
+    array = np.arange(4 * num_states).reshape(4, num_states)
+    flattened = getattr(StateVectors(array), method)()
+
+    assert flattened.ndim == 1
+    assert len(flattened) == array.size
+    assert len(list(flattened)) == array.size
+    assert np.array_equal(flattened, array.ravel())
+
+
+def test_statevectors_row_length():
+    array = np.arange(40).reshape(4, 10)
+    row = StateVectors(array)[0]
+
+    assert isinstance(row, Matrix)
+    assert not isinstance(row, StateVectors)
+    assert len(row) == 10
+    assert np.array_equal(row, array[0])
+
+
 def test_statevectors_mean():
     svs = StateVectors([[1., 2., 3.], [4., 5., 6.]])
     mean = StateVector([[2., 5.]])

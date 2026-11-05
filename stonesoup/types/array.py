@@ -132,7 +132,8 @@ class StateVectors(Matrix):
 
     Iteration yields one :class:`StateVector` per column, and ``len(state_vectors)``
     returns ``num_components``. The number of dimensions is available as
-    ``state_vectors.shape[0]``.
+    ``state_vectors.shape[0]``. One-dimensional views, such as those returned
+    by ``ravel()`` and ``flatten()``, retain NumPy's element-count length.
     """
 
     def __new__(cls, states, *args, **kwargs):
@@ -145,7 +146,9 @@ class StateVectors(Matrix):
         return array.view(cls)
 
     def __len__(self):
-        """Return the number of state vectors (columns)."""
+        """Return the number of columns, or the NumPy length for a 1-D view."""
+        if self.ndim < 2:
+            return super().__len__()
         return self.shape[1]
 
     def __iter__(self):
