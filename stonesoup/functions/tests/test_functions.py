@@ -7,6 +7,7 @@ from scipy.linalg import LinAlgError, cholesky
 from scipy.stats import multivariate_normal
 import warnings
 
+from ...types.angle import Bearing
 from ...types.array import CovarianceMatrix, Matrix, StateVector, StateVectors
 from ...types.state import GaussianState, State
 from ...types.detection import Detection
@@ -437,6 +438,54 @@ def test_cubature_transform(mean, covar, alp):
     assert np.allclose(outcovar, instate.covar)
     assert np.allclose(mean, instate.state_vector)
     assert np.allclose(covar, instate.covar)
+    assert np.allclose(cross_covar, instate.covar)
+
+
+@pytest.mark.parametrize("alpha", [1.0, 0.7, 2.0])
+def test_cubature_transform_small_covar_large_mean(alpha):
+    # Spread of the cubature points is tiny relative to the mean, which loses all precision
+    # if the covariance is calculated from raw second moments
+    instate = GaussianState(
+        StateVector([1e5, -2e5, 3e5]),
+        CovarianceMatrix([[1e-6, 2e-7, 0], [2e-7, 2e-6, -1e-7], [0, -1e-7, 3e-6]]))
+
+    cub_pts = gauss2cubature(instate, alpha=alpha)
+    outsv, outcovar = cubature2gauss(cub_pts, alpha=alpha)
+    assert np.allclose(outsv, instate.state_vector, rtol=0, atol=1e-9)
+    assert np.allclose(outcovar, instate.covar, rtol=1e-6, atol=1e-12)
+
+    mean, covar, cross_covar, _ = cubature_transform(
+        instate, lambda state: state.state_vector, alpha=alpha)
+    assert np.allclose(mean, instate.state_vector, rtol=0, atol=1e-9)
+    assert np.allclose(covar, instate.covar, rtol=1e-6, atol=1e-12)
+    assert np.allclose(cross_covar, instate.covar, rtol=1e-6, atol=1e-12)
+
+
+def test_cubature_transform_points_noise():
+    instate = GaussianState(StateVector([1., -2.]), CovarianceMatrix([[1., 0.1], [0.1, 2.]]))
+    points_noise = np.array([[0.1, 0.2, 0.3, 0.4], [-0.5, -0.6, -0.7, -0.8]])
+
+    def add_noise(state, noise):
+        return state.state_vector + noise
+
+    _, _, _, cubature_points_t = cubature_transform(
+        instate, add_noise, points_noise=points_noise)
+    assert np.allclose(cubature_points_t, gauss2cubature(instate) + points_noise)
+
+
+def test_cubature_transform_angle_wrap():
+    # Transformed bearing straddles the +/-pi wrap, so differences from the mean must be wrapped
+    instate = GaussianState(StateVector([np.pi - 1e-3, 5.]),
+                            CovarianceMatrix([[1e-4, 1e-5], [1e-5, 1.]]))
+
+    def to_bearing(state):
+        return StateVector([Bearing(state.state_vector[0, 0]), state.state_vector[1, 0]])
+
+    mean, covar, cross_covar, cubature_points = cubature_transform(instate, to_bearing)
+    assert any(point[0, 0] < 0 for point in cubature_points)  # Some points have wrapped
+    assert float(mean[0, 0]) == approx(np.pi - 1e-3)
+    assert np.allclose(covar, instate.covar)
+    assert np.allclose(cross_covar, instate.covar)
 
 
 @pytest.mark.parametrize(
