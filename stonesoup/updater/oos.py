@@ -170,10 +170,6 @@ class OOSUpdater(Updater):
                 raise TypeError(f"Unexpected state type: {type(state)!r}")
             self._hold_prior(post)
 
-        # Superseded states have been replaced by reprocessed states, so no longer need history
-        for state in superseded_states:
-            self._priors.pop(state, None)
-
         if self.min_history:
             self._prune_history(post)
 

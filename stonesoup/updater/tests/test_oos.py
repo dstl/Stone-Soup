@@ -205,6 +205,31 @@ def test_out_of_sequence_shared_history(
     assert post.hypothesis.measurement.state_vector[0, 0] == 3.5
 
 
+def test_out_of_sequence_keeps_shared_history(oos_predictor, oos_updater, prior):
+    """Out of sequence update of a latest state sharing history with another (e.g. components of
+    a Gaussian mixture) supersedes the shared states only for itself: the other's history, which
+    it is otherwise reliant on the updater for, is kept."""
+    shared = run(oos_predictor, oos_updater, prior, [1, 2])
+    branches = []
+    for value in (3.5, 2.5):
+        prediction = oos_predictor.predict(shared, time(3))
+        branches.append(oos_updater.update(SingleHypothesis(
+            prediction, Detection([[value]], timestamp=time(3)))))
+    del shared, prediction
+    clear_caches()
+
+    # Before all the shared history, so the states at 1 and 2 are superseded for the first
+    prediction = oos_predictor.predict(branches[0], time(0.5))
+    branches[0] = oos_updater.update(SingleHypothesis(prediction, detection(0.5)))
+    del prediction
+    clear_caches()
+
+    assert [seconds(past_state) for past_state in get_past_states(branches[0])] \
+        == [3, 2, 1, 0.5, 0]
+    assert [seconds(past_state) for past_state in get_past_states(branches[1])] \
+        == [3, 2, 1, 0]
+
+
 @pytest.mark.parametrize(
     'order',
     [
