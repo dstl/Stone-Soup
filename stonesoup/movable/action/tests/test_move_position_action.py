@@ -230,7 +230,7 @@ def test_circle_sample_action_gen(gen_param_dict, state, position_mapping):
 
     # Test error raises for invalid action space, action mapping or incompatibility of the two
     if action_space is not None:
-        if (len(action_space) != len(action_mapping)) or \
+        if (action_space.shape[0] != len(action_mapping)) or \
                 (np.any(state[action_mapping, :] < action_space[:, [0]]) or
                  np.any(state[action_mapping, :] > action_space[:, [1]])) or \
                 (len(action_mapping) != 2):
@@ -352,7 +352,7 @@ def test_max_speed_action_gen(gen_param_dict, state, position_mapping):
 
     # Test error raises for invalid action space, action mapping or incompatibility of the two
     if action_space is not None:
-        if (len(action_space) != len(action_mapping)) or \
+        if (action_space.shape[0] != len(action_mapping)) or \
                 (np.any(state[action_mapping, :] < action_space[:, [0]]) or
                  np.any(state[action_mapping, :] > action_space[:, [1]])) or \
                 (len(action_mapping) != 2):

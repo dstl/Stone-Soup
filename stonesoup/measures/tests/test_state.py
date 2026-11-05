@@ -80,6 +80,20 @@ def test_mahalanobis():
         measure = measure(state_u, State([0, 1]))
 
 
+@pytest.mark.parametrize('measure', [
+    measures.Euclidean(), measures.EuclideanWeighted([1, 2, 3, 1]),
+    measures.SquaredMahalanobis(), measures.Mahalanobis()])
+def test_vectorised_distance_dimensions(measure):
+    result = measure(state_u, state_vm)
+    expected = [measure(state_u, State(column)) for column in vm]
+    assert result == pytest.approx(expected)
+
+    # Four columns must not disguise a mismatch in the number of dimensions.
+    mismatched_state = State(StateVectors(np.zeros((2, 4))))
+    with pytest.raises(ValueError, match=r'4 != 2'):
+        measure(state_u, mismatched_state)
+
+
 def test_hellinger():
     v = StateVector([[11.], [10.], [10.], [2.]])
     state_v = GaussianState(v, vi, timestamp=t)
