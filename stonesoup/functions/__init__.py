@@ -13,7 +13,6 @@ from scipy.stats import ortho_group
 
 from ..types.array import CovarianceMatrix, StateVector, StateVectors
 from ..types.numeric import Probability
-from ..types.state import State
 
 
 def block_diag(*arrays):
@@ -980,8 +979,8 @@ def cubature2gauss(cubature_points, covar_noise=None, alpha=1.0):
 
     .. math::
 
-        \Sigma = \frac{1}{\alpha}\left(\frac{1}{m} \sum\limits_{i=1}^{m} X_i X_i^T -
-        \mathbf{\mu}\mathbf{\mu}^T\right) + Q
+        \Sigma = \frac{1}{\alpha m}
+            \sum\limits_{i=1}^{m} (X_i - \mathbf{\mu})(X_i - \mathbf{\mu})^T + Q
 
     where :math:`Q` is an optional additive noise matrix. The scaling parameter :math:`\alpha`
     allow the for cubature points closer to the mean or more in the tails,
@@ -1006,9 +1005,10 @@ def cubature2gauss(cubature_points, covar_noise=None, alpha=1.0):
 
     m = np.shape(cubature_points)[1]
     mean = np.average(cubature_points, axis=1)
-    sigma_mult = cubature_points @ cubature_points.T
-    mean_mult = mean @ mean.T
-    covar = (1/alpha)*((1/m)*sigma_mult - mean_mult)
+    # Centre the points before forming the outer products, as the raw second moment minus the
+    # outer product of the mean loses precision when the spread is small relative to the mean.
+    points_diff = _points_diff(cubature_points, mean)
+    covar = (1/(alpha*m)) * points_diff @ points_diff.T
 
     if covar_noise is not None:
         covar = covar + covar_noise
@@ -1032,13 +1032,15 @@ def cubature_transform(state, fun, points_noise=None, covar_noise=None, alpha=1.
         A Gaussian state with mean and covariance
     fun : function handle
         A (non-linear) transition function
-        Must be of the form "y = fun(x,w)", where y can be a scalar or \
-        :class:`numpy.ndarray` of shape `(Ns, 1)` or `(Ns,)`
+        Must be of the form "y = fun(x,w)", where x is a :class:`~.State` with all cubature
+        points as its :class:`~.StateVectors`, and y the :class:`~.StateVectors` of the
+        transformed points, as is the case for :meth:`~.Model.function`
     covar_noise : :class:`~.CovarianceMatrix` of shape `(Ns, Ns)`, optional
         Additive noise covariance matrix
         (default is `None`)
-    points_noise : :class:`numpy.ndarray` of shape `(Ns, 2*Ns+1,)`, optional
-        points to pass into f's second argument
+    points_noise : :class:`numpy.ndarray` of shape `(Nw, 2*Ns)`, optional
+        points to pass into f's second argument, with each column corresponding to a cubature
+        point
         (default is `None`)
     alpha : float, optional
         scaling parameter allowing the selection of cubature points closer to the mean (lower
@@ -1063,19 +1065,22 @@ def cubature_transform(state, fun, points_noise=None, covar_noise=None, alpha=1.
 
     """
     ndim_state = np.shape(state.state_vector)[0]
-    cubature_points = gauss2cubature(state)
+    cubature_points = gauss2cubature(state, alpha)
+
+    # Put the cubature points into a copy of the state, so all points are transformed at once
+    cubature_points_states = copy.copy(state)
+    cubature_points_states.state_vector = cubature_points
 
     if points_noise is None:
-        cubature_points_t = StateVectors([fun(State(cub_point)) for cub_point in cubature_points])
+        cubature_points_t = StateVectors(fun(cubature_points_states))
     else:
-        cubature_points_t = StateVectors([
-            fun(State(cub_point), points_noise)
-            for cub_point, point_noise in zip(cubature_points, points_noise)])
+        cubature_points_t = StateVectors(fun(cubature_points_states, points_noise))
 
-    mean, covar = cubature2gauss(cubature_points_t, covar_noise)
+    mean, covar = cubature2gauss(cubature_points_t, covar_noise, alpha)
 
-    cross_covar = (1/alpha)*((1./(2*ndim_state))*cubature_points@cubature_points_t.T
-                             - np.average(cubature_points, axis=1)@mean.T)
+    cross_covar = (1/(alpha*2*ndim_state)) \
+        * _points_diff(cubature_points, np.average(cubature_points, axis=1)) \
+        @ _points_diff(cubature_points_t, mean).T
     cross_covar = cross_covar.view(CovarianceMatrix)
 
     return mean, covar, cross_covar, cubature_points_t
