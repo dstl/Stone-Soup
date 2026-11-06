@@ -1,3 +1,5 @@
+import copy
+import weakref
 from collections.abc import Callable
 from functools import lru_cache
 
@@ -137,6 +139,10 @@ class OOSPredictor(Predictor):
         else:  # states[-1].timestamp > timestamp
             raise ValueError(f"Cannot predict: {timestamp} < {states[-1].timestamp}")
 
+        # Copy, as the prediction from the wrapped predictor may be cached and shared, so that
+        # the latest state predicted from is recorded on this prediction only. Weak reference, so
+        # latest states aren't kept alive beyond min history through their predictions.
+        prediction = copy.copy(prediction)
         prediction.prior = states[-1]
-        prediction.prior.orig_prior = prior
+        prediction.orig_prior = weakref.ref(prior)
         return prediction
