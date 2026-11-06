@@ -1,0 +1,5 @@
+from ..linear import CombinedLinearGaussianTransitionModel, LinearGaussianTransitionModel
+
+
+def test_combined_linear_gaussian_registered_as_linear_gaussian():
+    assert issubclass(CombinedLinearGaussianTransitionModel, LinearGaussianTransitionModel)
