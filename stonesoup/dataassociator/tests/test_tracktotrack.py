@@ -1,10 +1,11 @@
 import datetime
 
+import numpy as np
 import pytest
 
 from ...types.association import Association
 from ...types.groundtruth import GroundTruthPath, GroundTruthState
-from ...types.state import State
+from ...types.state import ParticleState, State
 from ...types.track import Track
 from ..tracktotrack import (
     TrackIDbased,
@@ -63,7 +64,14 @@ def tracks():
     return tracks
 
 
-def test_euclidiantracktotrack(tracks):
+@pytest.mark.parametrize('particle_tracks', [False, True])
+def test_euclidiantracktotrack(tracks, particle_tracks):
+    if particle_tracks:
+        for track in tracks:
+            track.states = [ParticleState(
+                np.repeat(state.state_vector, 3, axis=1), weight=np.full(3, 1 / 3),
+                timestamp=state.timestamp) for state in track]
+
     complete_associator = TrackToTrackCounting(
         association_threshold=10,
         consec_pairs_confirm=3,

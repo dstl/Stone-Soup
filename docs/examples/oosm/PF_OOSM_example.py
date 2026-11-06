@@ -250,7 +250,7 @@ for k in range(1, len(arrival_time_ordered)):  # loop over the scans
 
         # Create the sample state
         sample_state = [track[tb_index].state_vector[ii].mean() for ii in
-                        range(len(track[tb_index].state_vector))]
+                        range(track[tb_index].state_vector.shape[0])]
 
         # draw the samples
         samples = multivariate_normal.rvs(

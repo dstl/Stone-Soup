@@ -110,7 +110,7 @@ class TrackToTrackCounting(TwoTrackToTrackAssociator):
 
         if not self.measure:
             state1 = next(iter(tracks_set_1))[0]
-            total = len(state1.state_vector)
+            total = state1.state_vector.shape[0]
             if not self.pos_map:
                 self.pos_map = [i for i in range(total)]
 

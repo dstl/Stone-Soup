@@ -96,10 +96,10 @@ class Euclidean(Measure):
             u = state_vector1[self.mapping, :]
             v = state_vector2[self.mapping2, :]
         else:
-            if len(state_vector1) != len(state_vector2):
+            if state_vector1.shape[0] != state_vector2.shape[0]:
                 raise ValueError(
-                    f"Shape mismatch between state1 and state2 along axis 0, \
-                        {len(state_vector1)} != {len(state_vector2)}."
+                    "Shape mismatch between state1 and state2 along axis 0, "
+                    f"{state_vector1.shape[0]} != {state_vector2.shape[0]}."
                 )
             u = state_vector1[:, :]
             v = state_vector2[:, :]
@@ -153,10 +153,10 @@ class EuclideanWeighted(Measure):
             u = state_vector1[self.mapping, :]
             v = state_vector2[self.mapping2, :]
         else:
-            if len(state_vector1) != len(state_vector2):
+            if state_vector1.shape[0] != state_vector2.shape[0]:
                 raise ValueError(
-                    f"Shape mismatch between state1 and state2 along axis 0, \
-                        {len(state_vector1)} != {len(state_vector2)}."
+                    "Shape mismatch between state1 and state2 along axis 0, "
+                    f"{state_vector1.shape[0]} != {state_vector2.shape[0]}."
                 )
             u = state_vector1[:, :]
             v = state_vector2[:, :]
@@ -227,10 +227,10 @@ class SquaredMahalanobis(Measure):
             # extract the mapped covariance data
             vi = self._inv_cov(state1, tuple(self.mapping))
         else:
-            if len(state_vector1) != len(state_vector2):
+            if state_vector1.shape[0] != state_vector2.shape[0]:
                 raise ValueError(
-                    f"Shape mismatch between state1 and state2 along axis 0, \
-                        {len(state_vector1)} != {len(state_vector2)}."
+                    "Shape mismatch between state1 and state2 along axis 0, "
+                    f"{state_vector1.shape[0]} != {state_vector2.shape[0]}."
                 )
 
             u = state_vector1[:, 0]
