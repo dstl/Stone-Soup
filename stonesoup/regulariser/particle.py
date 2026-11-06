@@ -99,7 +99,7 @@ class MCMCRegulariser(Regulariser):
             # move particles
             moved_particles = copy.copy(posterior)
             moved_particles.state_vector = moved_particles.state_vector + \
-                hopt * cholesky_eps(covar_est) @ np.random.randn(ndim, nparticles)
+                hopt * cholesky_eps(covar_est, lower=True) @ np.random.randn(ndim, nparticles)
 
             # Apply constraints if defined
             if self.constraint_func is not None:
