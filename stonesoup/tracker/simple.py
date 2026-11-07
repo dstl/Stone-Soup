@@ -10,10 +10,20 @@ from ..functions import gm_reduce_single
 from ..initiator import Initiator
 from ..reader import DetectionReader
 from ..types.array import StateVectors
+from ..types.multihypothesis import MultipleHypothesis
 from ..types.prediction import GaussianStatePrediction
 from ..types.track import Track
 from ..types.update import GaussianStateUpdate
 from ..updater import Updater
+
+
+def _reject_multiple_hypothesis(hypothesis, tracker_name, mixture_name):
+    """Raise if a soft/mixture association was passed to a hard-assignment tracker."""
+    if isinstance(hypothesis, MultipleHypothesis):
+        raise TypeError(
+            f"{tracker_name} expects a SingleHypothesis (or empty association) from "
+            f"the data associator, but received a MultipleHypothesis. Use "
+            f"{mixture_name} with a mixture associator such as PDA/JPDA instead.")
 
 
 class SingleTargetTracker(_TrackerMixInNext, Tracker):
@@ -27,6 +37,9 @@ class SingleTargetTracker(_TrackerMixInNext, Tracker):
     :attr:`deleter`, and if deleted the :attr:`initiator` is called to generate
     a new track. Similarly if no track is present (i.e. tracker is initialised
     or deleted in previous iteration), only the :attr:`initiator` is called.
+
+    This tracker expects hard (single) associations. For soft / mixture
+    associations such as PDA or JPDA, use :class:`~.SingleTargetMixtureTracker`.
 
     Parameters
     ----------
@@ -57,12 +70,14 @@ class SingleTargetTracker(_TrackerMixInNext, Tracker):
         if self._track is not None:
             associations = self.data_associator.associate(
                 self.tracks, detections, time)
-            if associations[self._track]:
-                state_post = self.updater.update(associations[self._track])
+            hypothesis = associations[self._track]
+            _reject_multiple_hypothesis(
+                hypothesis, type(self).__name__, 'SingleTargetMixtureTracker')
+            if hypothesis:
+                state_post = self.updater.update(hypothesis)
                 self._track.append(state_post)
             else:
-                self._track.append(
-                    associations[self._track].prediction)
+                self._track.append(hypothesis.prediction)
 
         if self._track is None or self.deleter.delete_tracks(self.tracks):
             new_tracks = self.initiator.initiate(detections, time)
@@ -183,6 +198,9 @@ class MultiTargetTracker(_TrackerMixInNext, Tracker):
     :attr:`deleter`, and remaining unassociated detections are passed to the
     :attr:`initiator` to generate new tracks.
 
+    This tracker expects hard (single) associations. For soft / mixture
+    associations such as PDA or JPDA, use :class:`~.MultiTargetMixtureTracker`.
+
     Parameters
     ----------
     """
@@ -208,6 +226,8 @@ class MultiTargetTracker(_TrackerMixInNext, Tracker):
             self.tracks, detections, time)
         associated_detections = set()
         for track, hypothesis in associations.items():
+            _reject_multiple_hypothesis(
+                hypothesis, type(self).__name__, 'MultiTargetMixtureTracker')
             if hypothesis:
                 state_post = self.updater.update(hypothesis)
                 track.append(state_post)
