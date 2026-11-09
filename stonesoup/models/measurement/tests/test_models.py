@@ -1725,3 +1725,15 @@ def test_state_vectors():
     actual_measurement = measurement_model.function(input_state, noise=False)
 
     assert np.allclose(actual_measurement, expected_measurement, rtol=1e-9)
+
+
+def test_elevation_logpdf_large_difference():
+    model = CartesianToElevationBearing(
+        ndim_state=3, mapping=(0, 1, 2), noise_covar=np.diag([np.radians(10)**2]*2))
+    # Target at -80 degrees elevation, bearing 0
+    state = State(StateVector([np.cos(np.radians(-80)), 0., np.sin(np.radians(-80))]))
+    measurement = State(StateVector([Elevation(np.radians(80)), Bearing(0.)]))
+
+    expected = multivariate_normal.logpdf(
+        [np.radians(160), 0.], cov=model.covar())
+    assert model.logpdf(measurement, state) == approx(expected)

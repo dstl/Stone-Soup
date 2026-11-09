@@ -7,6 +7,7 @@ from scipy.linalg import LinAlgError, cholesky
 from scipy.stats import multivariate_normal
 import warnings
 
+from ...types.angle import Bearing, Elevation
 from ...types.array import CovarianceMatrix, Matrix, StateVector, StateVectors
 from ...types.state import GaussianState, State
 from ...types.detection import Detection
@@ -31,6 +32,7 @@ from .. import (
     rotz,
     sigma2gauss,
     sphere2cart,
+    _points_diff,
     stochastic_cubature_rule_points,
     batch_multivariate_normal_logpdf
 )
@@ -215,6 +217,18 @@ def test_elevation():
 
     for ind, val in enumerate(rad_in):
         assert rad_out[ind] == approx(mod_elevation(val))
+
+
+def test_points_diff_elevation():
+    points = StateVectors([[Elevation(deg2rad(80.)), Elevation(deg2rad(-80.))],
+                           [Bearing(deg2rad(170.)), Bearing(deg2rad(-170.))]])
+    mean = StateVector([[Elevation(deg2rad(-80.))], [Bearing(deg2rad(-170.))]])
+
+    diff = _points_diff(points, mean)
+
+    # Elevation difference must not be folded into [-pi/2, pi/2]
+    assert diff[0] == approx(deg2rad([160., 0.]))
+    assert diff[1] == approx(deg2rad([-20., 0.]))
 
 
 @pytest.mark.parametrize(
