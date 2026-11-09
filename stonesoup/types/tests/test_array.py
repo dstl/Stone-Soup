@@ -39,6 +39,62 @@ def test_statevectors():
         assert isinstance(sv, StateVector)
 
 
+@pytest.mark.parametrize('num_dimensions, num_states', [(4, 10), (10, 4), (4, 0)])
+def test_statevectors_length(num_dimensions, num_states):
+    state_vectors = StateVectors(np.zeros((num_dimensions, num_states)))
+
+    assert len(state_vectors) == num_states
+    assert len(state_vectors) == len(list(state_vectors))
+    assert len(np.asarray(state_vectors)) == num_dimensions
+
+
+def test_statevectors_single_column_length():
+    state_vector = StateVector([1., 2., 3., 4.])
+    state_vectors = StateVectors([state_vector])
+
+    assert isinstance(state_vectors, StateVectors)
+    assert len(state_vectors) == 1
+    assert len(list(state_vectors)) == 1
+    assert len(state_vector) == 4
+
+    single_column = StateVectors(np.asarray(state_vector))
+    assert isinstance(single_column, StateVector)
+    assert len(single_column) == 4
+
+
+def test_statevectors_slice_length():
+    state_vectors = StateVectors(np.zeros((4, 10)))
+
+    assert len(state_vectors[:, :3]) == 3
+    assert len(state_vectors[:, :0]) == 0
+
+    single_column = state_vectors[:, :1]
+    assert isinstance(single_column, StateVector)
+    assert len(single_column) == 4
+
+
+@pytest.mark.parametrize('method', ['ravel', 'flatten'])
+@pytest.mark.parametrize('num_states', [0, 10])
+def test_statevectors_flattened_length(method, num_states):
+    array = np.arange(4 * num_states).reshape(4, num_states)
+    flattened = getattr(StateVectors(array), method)()
+
+    assert flattened.ndim == 1
+    assert len(flattened) == array.size
+    assert len(list(flattened)) == array.size
+    assert np.array_equal(flattened, array.ravel())
+
+
+def test_statevectors_row_length():
+    array = np.arange(40).reshape(4, 10)
+    row = StateVectors(array)[0]
+
+    assert isinstance(row, Matrix)
+    assert not isinstance(row, StateVectors)
+    assert len(row) == 10
+    assert np.array_equal(row, array[0])
+
+
 def test_statevectors_mean():
     svs = StateVectors([[1., 2., 3.], [4., 5., 6.]])
     mean = StateVector([[2., 5.]])

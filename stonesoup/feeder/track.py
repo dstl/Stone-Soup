@@ -26,7 +26,7 @@ class Tracks2GaussianDetectionFeeder(DetectionFeeder):
             detections = set()
             for track in tracks:
                 if isinstance(track, Track):
-                    dim = len(track.state.state_vector)
+                    dim = track.state.state_vector.shape[0]
                     metadata = track.metadata.copy()
                     metadata['track_id'] = track.id
                     detections.add(

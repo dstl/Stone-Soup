@@ -41,7 +41,7 @@ class GridActionGenerator(ActionGenerator):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         if self.action_space is not None:
-            if len(self.action_space) != len(self.action_mapping):
+            if self.action_space.shape[0] != len(self.action_mapping):
                 raise ValueError(f"Dimensions of action_space {self.action_space.shape} "
                                  f"are not compatible with action_mapping of length "
                                  f"{len(self.action_mapping)}. action_space should be "
@@ -136,7 +136,7 @@ class SamplePositionActionGenerator(ActionGenerator):
         super().__init__(*args, **kwargs)
 
         if self.action_space is not None:
-            if len(self.action_space) != len(self.action_mapping):
+            if self.action_space.shape[0] != len(self.action_mapping):
                 raise ValueError(f"Dimensions of action_space {self.action_space.shape} "
                                  f"are not compatible with action_mapping of length "
                                  f"{len(self.action_mapping)}. action_space should be "
@@ -282,7 +282,7 @@ class MaxSpeedPositionActionGenerator(ActionGenerator):
                              "generation only.")
 
         if self.action_space is not None:
-            if len(self.action_space) != len(self.action_mapping):
+            if self.action_space.shape[0] != len(self.action_mapping):
                 raise ValueError(f"Dimensions of action_space {self.action_space.shape} are not "
                                  "compatible with action_mapping of length "
                                  f"{len(self.action_mapping)}. action_space should be of shape "

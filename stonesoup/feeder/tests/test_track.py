@@ -1,7 +1,8 @@
 import pytest
 import numpy as np
 
-from ...types.state import GaussianState
+from ...types.array import StateVectors
+from ...types.state import GaussianState, ParticleState
 from ...types.track import Track
 from ..track import Tracks2GaussianDetectionFeeder, ReplayTrackFeeder
 
@@ -55,6 +56,18 @@ def test_Track2GaussianDetectionFeeder(tracks):
                               if detection.metadata['track_id'] == track.id))
         assert np.all(detection.state_vector == track.state_vector)
         assert np.all(detection.covar == track.covar)
+
+
+def test_particle_track_detection_dimensions():
+    track = Track(ParticleState(StateVectors([[0., 1., 2.], [1., 2., 3.]]),
+                                weight=np.full(3, 1 / 3), timestamp=2))
+    feeder = Tracks2GaussianDetectionFeeder(reader=[(2, [track])])
+    _, detections = next(feeder.data_gen())
+    detection = detections.pop()
+
+    assert detection.measurement_model.ndim == 2
+    assert np.allclose(detection.state_vector, track.mean)
+    assert np.allclose(detection.covar, track.covar)
 
 
 @pytest.mark.parametrize(("tracks", "times"),
