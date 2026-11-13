@@ -25,7 +25,33 @@ sys.path.insert(0, os.path.abspath('.'))
 sys.path.insert(0, os.path.abspath('../../'))
 
 import plotly.io as pio
-pio.renderers.default = 'sphinx_gallery'
+from plotly.io._base_renderers import SphinxGalleryHtmlRenderer
+
+
+class SphinxGalleryNoMathJaxRenderer(SphinxGalleryHtmlRenderer):
+    """Plotly's sphinx_gallery renderer, but without injecting MathJax.
+
+    Plotly's renderer adds its own MathJax script with every figure, which clashes with the
+    MathJax loaded by :mod:`sphinx.ext.mathjax` and stops equations rendering on the page.
+    """
+    def to_mimebundle(self, fig_dict):
+        html = pio.to_html(
+            fig_dict,
+            config=self.config,
+            auto_play=self.auto_play,
+            include_plotlyjs="cdn" if self.connected else True,
+            include_mathjax=False,  # Sphinx already loads MathJax
+            full_html=self.full_html,
+            animation_opts=self.animation_opts,
+            default_width="100%",
+            default_height=525,
+            validate=False,
+        )
+        return {"text/html": html}
+
+
+pio.renderers['sphinx_gallery_nomathjax'] = SphinxGalleryNoMathJaxRenderer()
+pio.renderers.default = 'sphinx_gallery_nomathjax'
 
 # -- General configuration ------------------------------------------------
 
