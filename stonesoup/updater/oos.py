@@ -81,8 +81,11 @@ class OOSUpdater(Updater):
             return {hypothesis.measurement}
 
     def _initiate_state(self, hypothesis, **kwargs):
-        return self.initiator.initiate(
-                    {hypothesis.measurement}, hypothesis.prediction.timestamp, **kwargs).pop()[-1]
+        """The state initiated from the hypothesis's measurement, or ``None`` where the
+        initiator initiates no track from it"""
+        tracks = self.initiator.initiate(
+            {hypothesis.measurement}, hypothesis.prediction.timestamp, **kwargs)
+        return tracks.pop()[-1] if tracks else None
 
     def _hold_prior(self, state):
         """Hold strong reference to prior of state, so that it is not garbage collected"""
@@ -130,7 +133,7 @@ class OOSUpdater(Updater):
 
     def update(self, hypothesis, **kwargs):
         prediction = get_hypothesis(hypothesis, lambda x: not x).prediction
-        latest_state = prediction.prior.orig_prior
+        latest_state = prediction.orig_prior()
         prior = prediction.prior
 
         if prior.timestamp > prediction.timestamp:
@@ -141,7 +144,11 @@ class OOSUpdater(Updater):
             elif self.initiator:
                 # Ideally shouldn't use one hypothesis here
                 post = self._initiate_state(hyp, **kwargs)
-                prior = None
+                if post is None:
+                    # Nothing could be initiated from the measurement: no new information
+                    post = prior = latest_state
+                else:
+                    prior = None
             else:  # not self.initiator
                 raise RuntimeError("Hypothesis prior to earliest state and no initiator")
         else:
@@ -169,10 +176,6 @@ class OOSUpdater(Updater):
             else:
                 raise TypeError(f"Unexpected state type: {type(state)!r}")
             self._hold_prior(post)
-
-        # Superseded states have been replaced by reprocessed states, so no longer need history
-        for state in superseded_states:
-            self._priors.pop(state, None)
 
         if self.min_history:
             self._prune_history(post)
