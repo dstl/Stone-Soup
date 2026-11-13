@@ -32,7 +32,10 @@ class DetectionReader(Reader):
         : :class:`datetime.datetime`
             Datetime of current time step
         : set of :class:`~.Detection`
-            Detections generate in the time step
+            Detections generated in the time step. Readers should continue
+            to yield ``(timestamp, detections)``, where ``detections`` may
+            be a plain ``set`` or a :class:`~.DetectionSet` when detector
+            context is available.
         """
         raise NotImplementedError
 
