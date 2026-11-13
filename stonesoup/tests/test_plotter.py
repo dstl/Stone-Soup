@@ -310,6 +310,44 @@ def test_plotterly_1d():
     assert np.any(~np.isnan(err_array))
 
 
+def test_plotter_1d():
+    plotter1d = Plotter(dimension=Dimension.ONE)
+    assert plotter1d.ax.get_xlabel() == "Time"
+
+    # check that ground truth is plotted against time
+    truth_line = plotter1d.plot_ground_truths(truth, [0])[0]
+    assert list(truth_line.get_xdata()) == [state.timestamp for state in truth]
+    assert np.allclose(truth_line.get_ydata(),
+                       [float(state.state_vector[0]) for state in truth])
+
+    plotter1d.plot_measurements(all_measurements, [0])
+    assert {'Measurements\n(Detections)', 'Measurements\n(Clutter)'} \
+        <= set(plotter1d.legend_dict.keys())
+
+    track_line = plotter1d.plot_tracks(track, [0])[0]
+    assert list(track_line.get_xdata()) == [state.timestamp for state in track]
+    assert np.allclose(track_line.get_ydata(), [float(state.mean[0]) for state in track])
+
+    # check that particle=True plots particles
+    plotter1d.plot_tracks(track, [0], particle=True)
+    assert "Particles" in plotter1d.legend_dict
+
+    # check that uncertainty=True plots vertical error bars every err_freq states
+    artists = plotter1d.plot_tracks(track, [0], uncertainty=True, err_freq=2)
+    assert "Uncertainty" in plotter1d.legend_dict
+    error_bars = plotter1d.legend_dict["Uncertainty"].lines[2][0]
+    segments = error_bars.get_segments()
+    assert len(segments) == len(list(track)[::2])
+    for segment, state in zip(segments, list(track)[::2]):
+        assert np.isclose(segment[1, 1] - segment[0, 1], 2 * np.sqrt(state.covar[0, 0]))
+    assert error_bars in artists
+
+    with pytest.raises(NotImplementedError):
+        plotter1d.plot_sensors(sensor2d)
+    with pytest.raises(NotImplementedError):
+        plotter1d.plot_obstacles(obstacle_list)
+
+
 def test_plotterly_2d():
     plotter2d = Plotterly()
     plotter2d.plot_ground_truths(truth, [0, 2])
