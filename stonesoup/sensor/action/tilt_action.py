@@ -3,7 +3,7 @@ from collections.abc import Iterator
 import numpy as np
 
 from ...base import Property
-from ...types.angle import Angle, Elevation
+from ...types.angle import Elevation
 from ...functions import mod_elevation
 from .base import ChangeAngleAction, AngleActionsGenerator
 
@@ -38,8 +38,8 @@ class TiltActionsGenerator(AngleActionsGenerator):
     """Generates possible actions for changing the tilt centre of a sensor in a given
     time period."""
 
-    max_tilt: float = Property(default=np.radians(90))
-    min_tilt: float = Property(default=np.radians(-90))
+    max_angle: float = Property(default=np.radians(90))
+    min_angle: float = Property(default=np.radians(-90))
 
     @property
     def default_action(self):
@@ -49,20 +49,12 @@ class TiltActionsGenerator(AngleActionsGenerator):
                                 target_value=self.initial_value,
                                 increasing_angle=None)
 
-    @property
-    def min(self):
-        return max(Angle(self.initial_value - self.angle_delta), self.min_tilt)
-
-    @property
-    def max(self):
-        return min(Angle(self.initial_value + self.angle_delta), self.max_tilt)
-
     def __iter__(self) -> Iterator[ChangeTiltAction]:
         """Returns ChangeTiltAction types, where the value is a possible value of the [0, 0]
         element of the tilt centre's state vector."""
 
         current_angle = self.initial_value
-        while current_angle - self.resolution >= max(self.min_tilt, self.min-self.epsilon):
+        while current_angle - self.resolution >= max(self.min_angle, self.min-self.epsilon):
             current_angle -= self.resolution
         while current_angle <= self.max + self.epsilon:
             rot_end_time, increasing = self._end_time_direction(current_angle)

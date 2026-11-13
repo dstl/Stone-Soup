@@ -149,4 +149,6 @@ class PlatformMountable(Base, ABC):
 
             It is settable if, and only if, the sensor holds its own internal movement_controller
             which is a :class:`~.MovingMovable`."""
+        if self.movement_controller is None:
+            return None
         return self.movement_controller.velocity
