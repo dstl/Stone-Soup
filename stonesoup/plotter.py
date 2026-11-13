@@ -155,14 +155,17 @@ class Plotter(_Plotter):
     A plotting class which is used to simplify the process of plotting ground truths,
     measurements, clutter and tracks. Tracks can be plotted with uncertainty ellipses or
     particles if required. Legends are automatically generated with each plot.
-    Three dimensional plots can be created using the optional dimension parameter.
+    One and three dimensional plots can be created using the optional dimension parameter.
+    One dimensional plots show a single state component against time.
 
     Parameters
     ----------
     dimension: enum \'Dimension\'
-        Optional parameter to specify 2D or 3D plotting. Default is 2D plotting.
-    plot_timeseries: bool
-        Specify whether data to be plotted is time series data. Default False
+        Optional parameter to specify 1D, 2D or 3D plotting. Default is 2D plotting.
+    fig: matplotlib.figure.Figure
+        Optional parameter to specify a premade figure
+    ax : matplotlib.axes.Axes
+        Optional parameter to specify a premade axis
     \\*\\*kwargs: dict
         Additional arguments to be passed to plot function. For example, figsize (Default is
         (10, 6)).
@@ -200,21 +203,32 @@ class Plotter(_Plotter):
             figure_kwargs.update(kwargs)
             self.fig = plt.figure(**figure_kwargs)
 
-        if self.dimension is Dimension.TWO:  # 2D axes
+        if self.dimension is Dimension.ONE:  # 2D axes of state against time
+            if ax is not None:
+                self.ax = ax
+            else:
+                self.ax = self.fig.add_subplot(1, 1, 1)
+            self.ax.set_xlabel("Time")
+            self.ax.set_ylabel("$x$")
+        elif self.dimension is Dimension.TWO:  # 2D axes
             if ax is not None:
                 self.ax = ax
             else:
                 self.ax = self.fig.add_subplot(1, 1, 1)
             self.ax.axis('equal')
-        else:  # 3D axes
+            self.ax.set_xlabel("$x$")
+            self.ax.set_ylabel("$y$")
+        elif self.dimension is Dimension.THREE:  # 3D axes
             if ax is not None:
                 self.ax = ax
             else:
                 self.ax = self.fig.add_subplot(111, projection='3d')
             self.ax.axis('auto')
+            self.ax.set_xlabel("$x$")
+            self.ax.set_ylabel("$y$")
             self.ax.set_zlabel("$z$")
-        self.ax.set_xlabel("$x$")
-        self.ax.set_ylabel("$y$")
+        else:
+            raise NotImplementedError(f"{self.dimension} is not supported for this plotter")
 
         # Create empty dictionary for legend handles and labels - dict used to
         # prevent multiple entries with the same label from displaying on legend
@@ -273,7 +287,12 @@ class Plotter(_Plotter):
 
         artists = []
         for truth in truths:
-            if self.dimension is Dimension.TWO:  # plots the ground truths in xy
+            if self.dimension is Dimension.ONE:  # plots the ground truths against time
+                artists.extend(
+                    self.ax.plot([state.timestamp for state in truth],
+                                 [state.state_vector[mapping[0]] for state in truth],
+                                 **truths_kwargs))
+            elif self.dimension is Dimension.TWO:  # plots the ground truths in xy
                 artists.extend(
                     self.ax.plot([state.state_vector[mapping[0]] for state in truth],
                                  [state.state_vector[mapping[1]] for state in truth],
@@ -361,10 +380,10 @@ class Plotter(_Plotter):
 
         artists = []
         if plot_detections:
-            detection_array = np.array(list(plot_detections.values()))
-            # *detection_array.T unpacks detection_array by columns
-            # (same as passing in detection_array[:,0], detection_array[:,1], etc...)
-            artists.append(self.ax.scatter(*detection_array.T, **measurement_kwargs))
+            detection_array = self._measurement_plot_data(plot_detections)
+            # *detection_array unpacks detection_array by rows
+            # (same as passing in detection_array[0], detection_array[1], etc...)
+            artists.append(self.ax.scatter(*detection_array, **measurement_kwargs))
             measurements_handle = Line2D([], [], linestyle='', **measurement_kwargs)
 
             # Generate legend items for measurements
@@ -377,8 +396,8 @@ class Plotter(_Plotter):
         if plot_clutter:
             clutter_kwargs = kwargs.copy()
             clutter_kwargs.update(dict(marker='2'))
-            clutter_array = np.array(list(plot_clutter.values()))
-            artists.append(self.ax.scatter(*clutter_array.T, **clutter_kwargs))
+            clutter_array = self._measurement_plot_data(plot_clutter)
+            artists.append(self.ax.scatter(*clutter_array, **clutter_kwargs))
             clutter_handle = Line2D([], [], linestyle='', **clutter_kwargs)
 
             # Generate legend items for clutter
@@ -391,15 +410,25 @@ class Plotter(_Plotter):
                                           labels=self.legend_dict.keys()))
         return artists
 
+    def _measurement_plot_data(self, plot_measurements):
+        """Arrange converted measurements into a sequence of coordinate arrays to plot, with
+        timestamps as the first coordinate when plotting in 1D."""
+        measurement_array = np.array(list(plot_measurements.values())).T
+        if self.dimension is Dimension.ONE:
+            return [[measurement.timestamp for measurement in plot_measurements],
+                    measurement_array[0]]
+        return measurement_array
+
     def plot_tracks(self, tracks, mapping, uncertainty=False, particle=False, label="Tracks",
                     err_freq=1, same_color=False, uncertainty_alpha=0.2, **kwargs):
         """Plots track(s)
 
         Plots each track generated, generating a legend automatically. If ``uncertainty=True``
         and is being plotted in 2D, error ellipses are plotted. If being plotted in
-        3D, uncertainty bars are plotted every :attr:`err_freq` measurement, default
-        plots uncertainty bars at every track step. Tracks are plotted as solid
-        lines with point markers and default colors. Uncertainty bars are plotted
+        1D or 3D, uncertainty bars are plotted every :attr:`err_freq` measurement, default
+        plots uncertainty bars at every track step. In 1D these are vertical bars of one
+        standard deviation, in the same colour as the track. Tracks are plotted as solid
+        lines with point markers and default colors. In 3D, uncertainty bars are plotted
         with a default color which is the same for all tracks.
 
         Users can change linestyle, color and marker using keyword arguments. Uncertainty metrics
@@ -414,7 +443,8 @@ class Plotter(_Plotter):
             List of items specifying the mapping of the position
             components of the state space.
         uncertainty : bool
-            If True, function plots uncertainty ellipses or bars.
+            If True, function plots uncertainty: vertical error bars (1D), ellipses (2D),
+            or error bars (3D).
         particle : bool
             If True, function plots particles.
         label: str
@@ -464,6 +494,8 @@ class Plotter(_Plotter):
                 [(getattr(state, 'mean', state.state_vector)[mapping, :])
                  for state in track],
                 axis=1)
+            if self.dimension is Dimension.ONE:  # plot state against time
+                data = [np.array([state.timestamp for state in track]), data[0]]
 
             line = self.ax.plot(
                 *data,
@@ -472,7 +504,7 @@ class Plotter(_Plotter):
             artists.extend(line)
             if not_update_indexes:
                 artists.extend(self.ax.plot(
-                    *data[:, not_update_indexes],
+                    *[coords[not_update_indexes] for coords in data],
                     marker="o" if "marker" not in kwargs else kwargs['marker'],
                     linestyle='',
                     color=plt.getp(line[0], 'color')))
@@ -490,7 +522,27 @@ class Plotter(_Plotter):
                               marker=tracks_kwargs['marker'], color=tracks_kwargs['color'])
         self.legend_dict[label] = track_handle
         if uncertainty:
-            if self.dimension is Dimension.TWO:
+            if self.dimension is Dimension.ONE:
+                # Plot vertical error bars of one standard deviation on tracks
+                errorbar_handle = None
+                for track in tracks:
+                    HH = np.eye(track.ndim)[mapping[:1], :]  # Get position mapping matrix
+                    err_states = list(track)[::err_freq]  # plot the first one
+                    errorbar_handle = self.ax.errorbar(
+                        [state.timestamp for state in err_states],
+                        [float(state.mean[mapping[0]]) for state in err_states],
+                        yerr=[np.sqrt((HH @ state.covar @ HH.T)[0, 0])
+                              for state in err_states],
+                        fmt='none', capsize=3, ecolor=track_colors[track])
+                    artists.extend(errorbar_handle.get_children())
+
+                # Generate legend items for uncertainty error bars
+                if errorbar_handle is not None:
+                    self.legend_dict["Uncertainty"] = errorbar_handle
+                # Generate legend
+                artists.append(self.ax.legend(handles=self.legend_dict.values(),
+                                              labels=self.legend_dict.keys()))
+            elif self.dimension is Dimension.TWO:
                 # Plot uncertainty ellipses
                 for track in tracks:
                     HH = np.eye(track.ndim)[mapping, :]  # Get position mapping matrix
@@ -549,11 +601,15 @@ class Plotter(_Plotter):
                         check += 1
 
         if particle:
-            if self.dimension is Dimension.TWO:
+            if self.dimension in (Dimension.ONE, Dimension.TWO):
                 # Plot particles
                 for track in tracks:
                     for state in track:
-                        data = state.state_vector[mapping[:2], :]
+                        if self.dimension is Dimension.ONE:  # plot particles against time
+                            values = state.state_vector[mapping[0], :]
+                            data = [[state.timestamp] * len(values), values]
+                        else:
+                            data = state.state_vector[mapping[:2], :]
                         artists.extend(self.ax.plot(data[0], data[1], linestyle='', marker=".",
                                                     markersize=1, alpha=0.5))
 
@@ -587,7 +643,8 @@ class Plotter(_Plotter):
             Sensors to plot
         mapping: list
             List of items specifying the mapping of the position components of the
-            sensor's position. Default is either [0, 1] or [0, 1, 2] depending on `self.dimension`
+            sensor's position. Default is either [0, 1] or [0, 1, 2] depending on `self.dimension`.
+            Sensor plotting is not supported in 1D.
         label: str
             Label to apply to all sensors for legend.
         \\*\\*kwargs: dict
@@ -1112,7 +1169,8 @@ class Plotterly(_Plotter):
     A plotting class which is used to simplify the process of plotting ground truths,
     measurements, clutter and tracks. Tracks can be plotted with uncertainty ellipses or
     particles if required. Legends are automatically generated with each plot.
-    Three-dimensional plots can be created using the optional dimension parameter.
+    One and three dimensional plots can be created using the optional dimension parameter.
+    One dimensional plots show a single state component against time.
 
     Parameters
     ----------
