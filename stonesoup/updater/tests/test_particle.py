@@ -118,6 +118,40 @@ def test_particle(updater):
 
 
 @pytest.mark.parametrize(
+    "updater_class",
+    [ParticleUpdater, GromovFlowParticleUpdater, GromovFlowKalmanParticleUpdater])
+def test_particle_measurement_model_from_detection(updater_class):
+    # Updater constructed without a measurement model should use the one on the detection
+    updater = updater_class()
+    assert updater.measurement_model is None
+
+    measurement_model = LinearGaussian(
+        ndim_state=2, mapping=[0], noise_covar=np.array([[0.04]]))
+    timestamp = datetime.datetime.now()
+    particles = [Particle([[x], [y]], 1 / 9)
+                 for x, y in itertools.product((10, 20, 30), repeat=2)]
+    prediction = ParticleStatePrediction(None, particle_list=particles,
+                                         timestamp=timestamp,
+                                         parent=ParticleState(None, particle_list=particles))
+
+    measurement_prediction = updater.predict_measurement(
+        prediction, measurement_model=measurement_model, measurement_noise=False)
+    assert np.array_equal(measurement_prediction.state_vector, prediction.state_vector[[0], :])
+
+    measurement = Detection([[15.0]], timestamp=timestamp, measurement_model=measurement_model)
+    updated_state = updater.update(SingleHypothesis(prediction, measurement))
+    assert updated_state.timestamp == timestamp
+    assert updated_state.hypothesis.measurement == measurement
+    assert np.allclose(updated_state.mean, StateVectors([[15.0], [20.0]]), rtol=5e-2)
+
+    # No model on updater or detection should raise a clear error
+    with pytest.raises(ValueError, match="No measurement model specified"):
+        updater.predict_measurement(prediction)
+    with pytest.raises(ValueError, match="No measurement model specified"):
+        updater.update(SingleHypothesis(prediction, Detection([[15.0]], timestamp=timestamp)))
+
+
+@pytest.mark.parametrize(
         "updater, extra_params",
         [
             (BernoulliParticleUpdater,  # predictor
