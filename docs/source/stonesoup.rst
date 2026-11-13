@@ -40,6 +40,7 @@ Algorithm Components
 ^^^^^^^^^^^^^^^^^^^^
 .. toctree::
 
+    stonesoup.augmentor
     stonesoup.dataassociator
     stonesoup.deleter
     stonesoup.gater
@@ -49,7 +50,9 @@ Algorithm Components
     stonesoup.mixturereducer
     stonesoup.models
     stonesoup.predictor
+    stonesoup.predictors
     stonesoup.proposal
+    stonesoup.reducer
     stonesoup.regulariser
     stonesoup.resampler
     stonesoup.sampler
