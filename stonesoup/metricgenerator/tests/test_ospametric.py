@@ -1,5 +1,6 @@
 """GOSPA/OSPA tests."""
 import datetime
+import itertools
 
 import numpy as np
 import pytest
@@ -763,6 +764,86 @@ def test_ospa_computemetric_cardinality_error(p, first_value, second_value):
     assert second_association.value == pytest.approx(second_value)
     assert second_association.timestamp == time + datetime.timedelta(seconds=1)
     assert second_association.generator == generator
+
+
+@pytest.mark.parametrize(
+    'p,expected', ((1, 3.), (2, 4.), (np.inf, 4.)), ids=('p=1', 'p=2', 'p=inf'))
+def test_ospametric_assignment_minimises_powered_distance(p, expected):
+    """OSPA pairs states to minimise the sum of d^p, or the largest d for p = inf.
+
+    One pairing has distances 0 and 6, the other 4 and 4. The first has the
+    smaller sum of distances, but the second is the optimal pairing for p = 2 and
+    p = inf.
+    """
+    generator = OSPAMetric(c=10, p=p)
+
+    time = datetime.datetime.now()
+    truths = [State(state_vector=[[0], [0]], timestamp=time),
+              State(state_vector=[[4], [0]], timestamp=time)]
+    tracks = [State(state_vector=[[0], [0]], timestamp=time),
+              State(state_vector=[[-0.5], [np.sqrt(15.75)]], timestamp=time)]
+
+    metric = generator.compute_OSPA_distance(tracks, truths)
+
+    assert metric.value == pytest.approx(expected)
+
+
+def _ospa_by_exhaustive_search(xs, ys, c, p):
+    """OSPA distance (Schuhmacher et al. 2008, eqs. 3 and 4) by trying every pairing."""
+    if len(xs) > len(ys):
+        xs, ys = ys, xs
+    m, n = len(xs), len(ys)
+
+    def cut_off_distance(x, y):
+        return min(c, np.linalg.norm(x - y))
+
+    if np.isinf(p):
+        if m != n:
+            return c
+        return min(max(cut_off_distance(x, ys[j]) for x, j in zip(xs, perm))
+                   for perm in itertools.permutations(range(n)))
+    best = min(sum(cut_off_distance(x, ys[j])**p for x, j in zip(xs, perm))
+               for perm in itertools.permutations(range(n), m))
+    return ((best + c**p * (n - m)) / n)**(1/p)
+
+
+@pytest.mark.parametrize('p', (1, 2, 3, np.inf), ids=('p=1', 'p=2', 'p=3', 'p=inf'))
+def test_ospametric_matches_exhaustive_search(p):
+    """OSPA distance agrees with the definition evaluated over every pairing."""
+    c = 5
+    generator = OSPAMetric(c=c, p=p)
+
+    time = datetime.datetime.now()
+    rng = np.random.default_rng(2008)
+    for _ in range(50):
+        num_tracks, num_truths = rng.integers(1, 5, size=2)
+        track_points = rng.uniform(0, 10, (num_tracks, 2))
+        truth_points = rng.uniform(0, 10, (num_truths, 2))
+        tracks = [State(state_vector=point, timestamp=time) for point in track_points]
+        truths = [State(state_vector=point, timestamp=time) for point in truth_points]
+
+        metric = generator.compute_OSPA_distance(tracks, truths)
+
+        assert metric.value == pytest.approx(
+            _ospa_by_exhaustive_search(track_points, truth_points, c, p))
+
+
+def test_ospametric_symmetric():
+    """Swapping the two sets of states gives the same OSPA distance.
+
+    Both pairings here have the same sum of distances, 3, but different sums of
+    squares, 5 and 9, so a pairing chosen on distance alone depends on the order.
+    """
+    generator = OSPAMetric(c=3, p=2)
+
+    time = datetime.datetime.now()
+    first = [State(state_vector=[[0]], timestamp=time),
+             State(state_vector=[[1]], timestamp=time)]
+    second = [State(state_vector=[[1]], timestamp=time),
+              State(state_vector=[[3]], timestamp=time)]
+
+    assert generator.compute_OSPA_distance(first, second).value == pytest.approx(np.sqrt(2.5))
+    assert generator.compute_OSPA_distance(second, first).value == pytest.approx(np.sqrt(2.5))
 
 
 @pytest.mark.parametrize("associations, expected_losses", [
