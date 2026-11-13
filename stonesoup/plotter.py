@@ -39,12 +39,14 @@ class Dimension(IntEnum):
 
     Attributes
     ----------
+    ONE: int
+        Specifies 1D plotting (state against time) for Plotter object
     TWO: int
         Specifies 2D plotting for Plotter object
     THREE: int
         Specifies 3D plotting for Plotter object
     """
-    ONE = 1  # 1D plotting mode (plot state over time in Plotterly)
+    ONE = 1  # 1D plotting mode (plot state over time)
     TWO = 2  # 2D plotting mode (original plotter.py functionality)
     THREE = 3  # 3D plotting mode
 
@@ -183,13 +185,13 @@ class Plotter(_Plotter):
     """
 
     def __init__(self, dimension=Dimension.TWO, fig=None, ax=None, **kwargs):
-        if isinstance(dimension, type(Dimension.TWO)):
+        if isinstance(dimension, Dimension):
             self.dimension = dimension
         elif isinstance(dimension, int):
             self.dimension = Dimension(dimension)
         else:
-            raise TypeError("%s is an unsupported type for \'dimension\'; "
-                            "expected type %s" % (type(dimension), type(Dimension.TWO)))
+            raise TypeError(f"{type(dimension)} is an unsupported type for \'dimension\'; "
+                            "expected type {Dimension}")
         # Generate plot axes
         if fig is not None:
             self.fig = fig
@@ -652,7 +654,7 @@ class Plotter(_Plotter):
         if not isinstance(obstacles, Collection):
             obstacles = {obstacles}
 
-        if self.dimension == 1 or self.dimension == 3:
+        if self.dimension in (Dimension.ONE, Dimension.THREE):
             raise NotImplementedError
 
         obstacle_kwargs = dict(linestyle='-', marker='.', color='grey')
@@ -1135,7 +1137,15 @@ class Plotterly(_Plotter):
     running a ``.py`` file from the command line (see issue #739).
     """
     def __init__(self, dimension=Dimension.TWO, axis_labels=None, to_scale=True, **kwargs):
-        if dimension != Dimension.ONE:
+        if isinstance(dimension, Dimension):
+            self.dimension = dimension
+        elif isinstance(dimension, int):
+            self.dimension = Dimension(dimension)
+        else:
+            raise TypeError(f"{type(dimension)} is an unsupported type for \'dimension\'; "
+                            "expected type {Dimension}")
+
+        if dimension != 1:
             if not axis_labels:
                 axis_labels = ["x", "y"]
         else:
@@ -1146,9 +1156,6 @@ class Plotterly(_Plotter):
                 axis_labels = ["Time", "x"]
         if go is None:
             raise RuntimeError("Usage of Plotterly plotter requires installation of `plotly`")
-
-        self.dimension = Dimension(dimension)  # allows 1, 2, 3,
-        # Dimension(1), Dimension(2) or Dimension(3)
 
         from plotly import colors
         layout_kwargs = dict(
