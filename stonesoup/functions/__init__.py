@@ -296,7 +296,7 @@ def _points_diff(points, mean):
 
     Equivalent to ``points - mean``, except that for rows of :class:`~.Angle`
     (e.g. :class:`~.Bearing`/:class:`~.Elevation`) the difference is wrapped
-    to its minimal representation using the row's vectorised `mod_angle`,
+    to its minimal representation using the row's vectorised `mod_angle_difference`,
     rather than relying on element-wise :class:`~.Angle` arithmetic, which
     forces a Python-level loop over every sigma point as `numpy` cannot
     vectorise `object` dtype arrays.
@@ -309,7 +309,7 @@ def _points_diff(points, mean):
     diff = np.empty(points_array.shape, dtype=np.float64)
     for dim, row in enumerate(points_array):
         row_diff = row.astype(np.float64) - float(mean_array[dim, 0])
-        mod_angle = getattr(type(row[0]), 'mod_angle', None)
+        mod_angle = getattr(type(row[0]), 'mod_angle_difference', None)
         diff[dim] = mod_angle(row_diff) if mod_angle is not None else row_diff
     return diff
 

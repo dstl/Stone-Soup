@@ -15,6 +15,15 @@ class Angle(Real):
     def mod_angle(value):
         return float(value)
 
+    @classmethod
+    def mod_angle_difference(cls, value):
+        """Wrap the difference between two angles of this type to its minimal representation.
+
+        Defaults to :meth:`mod_angle`, but may differ where the range of differences is wider
+        than the range of the angle itself (e.g. :class:`Elevation`).
+        """
+        return cls.mod_angle(value)
+
     @property
     def degrees(self):
         return self.rad2deg()
@@ -211,15 +220,27 @@ class Bearing(Angle):
 
 
 class Elevation(Angle):
-    """Elevation angle class.
+    r"""Elevation angle class.
 
     Elevation handles modulo arithmetic for adding and subtracting elevation
     angles. The return type for addition and subtraction is Elevation.
     Multiplication or division produces a float object rather than Elevation.
+
+    Note
+    ----
+    As subtracting two elevations returns an :class:`Elevation`, differences with magnitude
+    greater than :math:`\pi/2` are folded back into range. :meth:`mod_angle_difference` should
+    be used where such differences may arise.
     """
     @staticmethod
     def mod_angle(value):
         return mod_elevation(value)
+
+    @staticmethod
+    def mod_angle_difference(value):
+        # The difference of two elevations lies in [-pi, pi], so must not be folded into
+        # [-pi/2, pi/2] like an elevation itself.
+        return mod_bearing(value)
 
 
 class Azimuth(Angle):

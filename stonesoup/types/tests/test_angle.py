@@ -154,3 +154,14 @@ def test_wrapping_equality_and_abs(class_):
 
 def test_hash(class_):
     _ = {class_(x) for x in range(6)}
+
+
+def test_elevation_mod_angle_difference():
+    # Difference of elevations spans [-pi, pi], so isn't folded like an elevation
+    diff = float(Elevation(deg2rad(80.))) - float(Elevation(deg2rad(-80.)))
+    assert Elevation.mod_angle_difference(diff) == approx(deg2rad(160.))
+    assert Elevation.mod_angle_difference(-diff) == approx(deg2rad(-160.))
+    assert Elevation.mod_angle_difference(deg2rad(370.)) == approx(deg2rad(10.))
+    # Other angle types defer to their usual wrapping
+    assert Bearing.mod_angle_difference(deg2rad(190.)) == approx(deg2rad(-170.))
+    assert Latitude.mod_angle_difference(deg2rad(160.)) == approx(deg2rad(160.))

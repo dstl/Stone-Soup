@@ -164,7 +164,7 @@ class _AngleNonLinearGaussianMeasurement(NonLinearGaussianMeasurement):
         # This is required as log pdf converts arrays to floats
         vector = state1.state_vector.astype(np.float64) - self._function(state2, **kwargs)
         for dim, val in enumerate(self._typed_vector().ravel()):
-            mod_angle = getattr(type(val), 'mod_angle', None)
+            mod_angle = getattr(type(val), 'mod_angle_difference', None)
             if mod_angle is not None:
                 vector[dim, :] = mod_angle(vector[dim, :])
 
