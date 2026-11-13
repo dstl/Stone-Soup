@@ -1,6 +1,8 @@
 import datetime
 from time import sleep
 
+import numpy as np
+
 try:
     import requests
     from requests.compat import urljoin
@@ -24,7 +26,9 @@ class _OpenSkyNetworkReader(Reader):
     API to fetch air traffic control data.
 
     The state vector consists of longitude, latitude
-    (in decimal degrees) and altitude (in meters).
+    (in decimal degrees) and altitude (in meters). If :attr:`include_velocity`
+    is `True`, it is extended with East, North and Up velocity components (in
+    meters per second).
 
     .. note::
 
@@ -49,6 +53,15 @@ class _OpenSkyNetworkReader(Reader):
         default=datetime.timedelta(seconds=15),
         doc="Time of each poll after reported time from OpenSky. "
             "Must be greater than 10 seconds. Default 15 seconds.")
+    include_velocity: bool = Property(
+        default=False,
+        doc="Whether to append velocity components to the state vector, giving "
+            "longitude (°), latitude (°), altitude (m), East velocity (m/s), North "
+            "velocity (m/s) and Up velocity (m/s). The East and North components are "
+            "derived from OpenSky's ground speed (``velocity``) and track angle "
+            "(``true_track``, clockwise from North), and Up from ``vertical_rate``. "
+            "States which do not report all three of these values are skipped. "
+            "Default `False`, where only position is included.")
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -88,8 +101,15 @@ class _OpenSkyNetworkReader(Reader):
                     if time is not None and timestamp <= time:
                         continue
 
+                    state_vector = [[state[5]], [state[6]], [state[13]]]
+                    if self.include_velocity:
+                        velocity = self._velocity_components(state)
+                        if velocity is None:
+                            continue
+                        state_vector.extend([component] for component in velocity)
+
                     states_and_metadata.append((
-                        State([[state[5]], [state[6]], [state[13]]], timestamp=timestamp),
+                        State(state_vector, timestamp=timestamp),
                         {
                             'icao24': state[0],
                             'callsign': state[1],
@@ -108,6 +128,29 @@ class _OpenSkyNetworkReader(Reader):
                         datetime.timezone.utc).replace(tzinfo=None):
                     sleep(0.1)
 
+    @staticmethod
+    def _velocity_components(state):
+        """Derive East, North and Up velocity components from an OpenSky state.
+
+        Parameters
+        ----------
+        state : list
+            State vector as returned by the OpenSky Network REST API.
+
+        Returns
+        -------
+        tuple of float or None
+            East, North and Up velocity (m/s), or `None` if the ground speed,
+            track angle or vertical rate is unavailable.
+        """
+        ground_speed, true_track, vertical_rate = state[9], state[10], state[11]
+        if ground_speed is None or true_track is None or vertical_rate is None:
+            return None
+        track = np.radians(true_track)
+        return (ground_speed * np.sin(track),  # East
+                ground_speed * np.cos(track),  # North
+                vertical_rate)  # Up
+
 
 class OpenSkyNetworkDetectionReader(_OpenSkyNetworkReader, DetectionReader):
     """OpenSky Network detection reader
@@ -116,7 +159,8 @@ class OpenSkyNetworkDetectionReader(_OpenSkyNetworkReader, DetectionReader):
     API to fetch air traffic control data.
 
     The detection state vector consists of longitude, latitude
-    (in decimal degrees) and altitude (in meters).
+    (in decimal degrees) and altitude (in meters), optionally followed by East,
+    North and Up velocity (in meters per second); see :attr:`include_velocity`.
 
     .. note::
 
@@ -128,7 +172,7 @@ class OpenSkyNetworkDetectionReader(_OpenSkyNetworkReader, DetectionReader):
     @BufferedGenerator.generator_method
     def detections_gen(self):
         for time, states_and_metadata in self.data_gen():
-            yield time, {Detection(state.state_vector, state.timestamp, metadata)
+            yield time, {Detection(state.state_vector, state.timestamp, metadata=metadata)
                          for state, metadata in states_and_metadata}
 
 
@@ -139,7 +183,8 @@ class OpenSkyNetworkGroundTruthReader(_OpenSkyNetworkReader, GroundTruthReader):
     API to fetch air traffic control data.
 
     The groundtruth state vector consists of longitude, latitude
-    (in decimal degrees) and altitude (in meters).
+    (in decimal degrees) and altitude (in meters), optionally followed by East,
+    North and Up velocity (in meters per second); see :attr:`include_velocity`.
 
     Paths that are yielded are grouped based on the International Civil Aviation
     Organisation (ICAO) 24-bit address.
