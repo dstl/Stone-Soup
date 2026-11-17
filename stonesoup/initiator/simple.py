@@ -6,16 +6,20 @@ from .base import GaussianInitiator, ParticleInitiator, Initiator
 from ..base import Property
 from ..dataassociator import DataAssociator
 from ..deleter import Deleter
+from ..functions import gm_reduce_single
 from ..models.base import LinearModel, ReversibleModel
 from ..models.measurement import MeasurementModel
+from ..types.array import StateVectors
 from ..types.hypothesis import SingleHypothesis
 from ..types.mixture import GaussianMixture
+from ..types.multihypothesis import MultipleHypothesis
 from ..types.numeric import Probability
+from ..types.prediction import GaussianStatePrediction
 from ..types.state import State, GaussianState, ParticleState, TaggedWeightedGaussianState, \
     ASDGaussianState, EnsembleState
 from ..types.track import Track
 from ..types.update import ParticleStateUpdate, Update, \
-    GaussianMixtureUpdate, ASDGaussianStateUpdate, EnsembleStateUpdate
+    GaussianMixtureUpdate, GaussianStateUpdate, ASDGaussianStateUpdate, EnsembleStateUpdate
 from ..updater import Updater
 from ..updater.kalman import ExtendedKalmanUpdater
 
@@ -288,13 +292,54 @@ class MultiMeasurementInitiator(GaussianInitiator):
             associations = self.data_associator.associate(
                 self.holding_tracks, detections, timestamp)
 
-            for track, hypothesis in associations.items():
-                if hypothesis:
-                    state_post = self.updater.update(hypothesis)
-                    track.append(state_post)
-                    associated_detections.add(hypothesis.measurement)
+            for track, multihypothesis in associations.items():
+                if multihypothesis:
+                    if isinstance(multihypothesis, MultipleHypothesis):
+                        # Calculate the state of each track as a Gaussian Mixture of
+                        # possible associations with each detection
+                        posterior_states = []
+                        posterior_state_weights = []
+                        for hypothesis in multihypothesis:
+                            if not hypothesis:
+                                posterior_states.append(hypothesis.prediction)
+                            else:
+                                posterior_states.append(self.updater.update(hypothesis))
+                            posterior_state_weights.append(hypothesis.probability)
+
+                        means = StateVectors([state.state_vector for state in posterior_states])
+                        covars = np.stack([state.covar for state in posterior_states], axis=2)
+                        weights = np.asarray(posterior_state_weights)
+
+                        # Reduce the mixture to a single Gaussian State
+                        post_mean, post_covar = gm_reduce_single(means, covars, weights)
+
+                        missed_detection_weight = next(hypothesis.weight for hypothesis 
+                                                       in multihypothesis if not hypothesis)
+
+                        # Distinguish between appending StateUpdates or StatePredictions to the track 
+                        # depending on the missed detection weight.
+                        if any(hypothesis.weight > missed_detection_weight
+                               for hypothesis in multihypothesis):
+                            track.append(GaussianStateUpdate(
+                                post_mean, post_covar,
+                                multihypothesis,
+                                multihypothesis[0].measurement.timestamp))
+                        else:
+                            track.append(GaussianStatePrediction(
+                                post_mean, post_covar,
+                                multihypothesis[0].prediction.timestamp))
+
+                        # If the weight for a hypothesis exceeds the missed_detection_weight,
+                        # it is an associated detection and not eligible for initiating new tracks
+                        for hypothesis in multihypothesis:
+                            if hypothesis.weight > missed_detection_weight:
+                                associated_detections.add(hypothesis.measurement)
+                    else:
+                        state_post = self.updater.update(multihypothesis)
+                        track.append(state_post)
+                        associated_detections.add(multihypothesis.measurement)
                 else:
-                    track.append(hypothesis.prediction)
+                    track.append(multihypothesis.prediction)
 
                 if sum(1 for state in track if not self.updates_only or isinstance(state, Update))\
                         >= self.min_points:
