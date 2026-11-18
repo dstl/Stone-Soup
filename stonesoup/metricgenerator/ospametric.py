@@ -522,8 +522,8 @@ class OSPAMetric(GOSPAMetric):
             distance = 0
         elif self.p < np.inf:
             cost_matrix = self.compute_cost_matrix(track_states, truth_states, complete=True)
-            # Solve cost matrix with Hungarian/Munkres using
-            row_ind, col_ind = linear_sum_assignment(cost_matrix)
+            # Pair to minimise the sum of d^p (not the sum of d), as GOSPA does
+            row_ind, col_ind = linear_sum_assignment(cost_matrix**self.p)
             # Length of longest set of states
             n = max(len(track_states), len(truth_states))
             # Calculate metric
@@ -531,8 +531,19 @@ class OSPAMetric(GOSPAMetric):
         else:  # self.p == np.inf
             if len(track_states) == len(truth_states):
                 cost_matrix = self.compute_cost_matrix(track_states, truth_states)
-                row_ind, col_ind = linear_sum_assignment(cost_matrix)
-                distance = np.max(cost_matrix[row_ind, col_ind])
+                # Bottleneck assignment: the smallest distance t such that every
+                # state can be paired with another no further than t away.
+                thresholds = np.unique(cost_matrix)
+                low, high = 0, len(thresholds) - 1
+                while low < high:
+                    mid = (low + high) // 2
+                    exceeds = (cost_matrix > thresholds[mid]).astype(float)
+                    row_ind, col_ind = linear_sum_assignment(exceeds)
+                    if exceeds[row_ind, col_ind].any():
+                        low = mid + 1
+                    else:
+                        high = mid
+                distance = thresholds[low]
             else:
                 distance = self.c
 
