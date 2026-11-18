@@ -8,6 +8,7 @@ from ..kalman import ExtendedKalmanUpdater, KalmanUpdater
 from ..oos import OOSUpdater
 from ..probability import PDAUpdater
 from ...hypothesiser.probability import PDAHypothesiser
+from ...initiator import Initiator
 from ...initiator.simple import SimpleMeasurementInitiator, SinglePointInitiator
 from ...models.measurement.linear import LinearGaussian
 from ...models.transition.linear import ConstantVelocity
@@ -181,6 +182,55 @@ def test_in_sequence(oos_predictor, oos_updater, predictor, updater, prior):
     assert_history_equal(oos_state, expected_states)
 
 
+def test_out_of_sequence_shared_history(
+        oos_predictor, oos_updater, predictor, updater, prior):
+    """Out of sequence update of a latest state sharing history with another (e.g. components of
+    a Gaussian mixture) reprocesses its own history, regardless of the other's prediction."""
+    shared = run(oos_predictor, oos_updater, prior, [1, 2])
+    branches = []
+    for value in (3.5, 2.5):
+        prediction = oos_predictor.predict(shared, time(3))
+        branches.append(oos_updater.update(SingleHypothesis(
+            prediction, Detection([[value]], timestamp=time(3)))))
+
+    # Both predicted out of sequence (to the shared state), then the first updated
+    predictions = [oos_predictor.predict(branch, time(1.5)) for branch in branches]
+    post = oos_updater.update(SingleHypothesis(predictions[0], detection(1.5)))
+
+    expected = prior
+    for seconds_, measurement in ((1, detection(1)), (1.5, detection(1.5)), (2, detection(2)),
+                                  (3, Detection([[3.5]], timestamp=time(3)))):
+        expected = updater.update(SingleHypothesis(
+            predictor.predict(expected, time(seconds_)), measurement))
+    assert_states_equal(post, expected)
+    assert post.hypothesis.measurement.state_vector[0, 0] == 3.5
+
+
+def test_out_of_sequence_keeps_shared_history(oos_predictor, oos_updater, prior):
+    """Out of sequence update of a latest state sharing history with another (e.g. components of
+    a Gaussian mixture) supersedes the shared states only for itself: the other's history, which
+    it is otherwise reliant on the updater for, is kept."""
+    shared = run(oos_predictor, oos_updater, prior, [1, 2])
+    branches = []
+    for value in (3.5, 2.5):
+        prediction = oos_predictor.predict(shared, time(3))
+        branches.append(oos_updater.update(SingleHypothesis(
+            prediction, Detection([[value]], timestamp=time(3)))))
+    del shared, prediction
+    clear_caches()
+
+    # Before all the shared history, so the states at 1 and 2 are superseded for the first
+    prediction = oos_predictor.predict(branches[0], time(0.5))
+    branches[0] = oos_updater.update(SingleHypothesis(prediction, detection(0.5)))
+    del prediction
+    clear_caches()
+
+    assert [seconds(past_state) for past_state in get_past_states(branches[0])] \
+        == [3, 2, 1, 0.5, 0]
+    assert [seconds(past_state) for past_state in get_past_states(branches[1])] \
+        == [3, 2, 1, 0]
+
+
 @pytest.mark.parametrize(
     'order',
     [
@@ -296,6 +346,23 @@ def test_before_earliest_state_initiator_unexpected_state(
     prediction = oos_predictor.predict(state, time(-1))
     with pytest.raises(TypeError, match="Unexpected state type"):
         oos_updater.update(SingleHypothesis(prediction, detection(-1)))
+
+
+class NoTrackInitiator(Initiator):
+    """Initiator which initiates no tracks, as where a measurement can't be initiated from"""
+    def initiate(self, detections, timestamp, **kwargs):
+        return set()
+
+
+def test_before_earliest_state_initiator_no_track(oos_predictor, updater, prior):
+    oos_updater = OOSUpdater(updater, oos_predictor, initiator=NoTrackInitiator())
+    state = run(oos_predictor, oos_updater, prior, [1, 2, 3])
+    prediction = oos_predictor.predict(state, time(-1))
+
+    # Nothing initiated from the detection, so no new information: latest state returned
+    post = oos_updater.update(SingleHypothesis(prediction, detection(-1)))
+    assert post is state
+    assert [seconds(past_state) for past_state in get_past_states(post)] == [3, 2, 1, 0]
 
 
 def run_pda(hypothesiser, updater, state, order):
