@@ -1,6 +1,7 @@
 """Test for updater.chernoff module"""
 import pytest
 import numpy as np
+from scipy.stats import multivariate_normal
 
 from stonesoup.models.measurement.linear import LinearGaussian
 from stonesoup.types.detection import GaussianDetection
@@ -24,14 +25,25 @@ from stonesoup.updater.chernoff import ChernoffUpdater
             GaussianDetection(state_vector=np.array([[-6.23, 0.83]]),
                               covar=np.diag([0.75, 1.2])),
             0.5
-        )
+        ),
+        (   # Chernoff Updater, asymmetric omega
+            ChernoffUpdater,
+            LinearGaussian(ndim_state=2, mapping=[0, 1],
+                           noise_covar=np.array([[0.04, 0.04]])),
+            GaussianStatePrediction(np.array([[-6.45], [0.7]]),
+                                    np.array([[4.1123, 0.0013],
+                                              [0.0013, 0.0365]])),
+            GaussianDetection(state_vector=np.array([[-6.23, 0.83]]),
+                              covar=np.diag([0.75, 1.2])),
+            0.3
+        ),
     ],
-    ids=["standard"]
+    ids=["standard", "asymmetric_omega"]
 )
 def test_chernoff(UpdaterClass, measurement_model, prediction, measurement, omega):
 
     # Calculate evaluation variables
-    innov_cov = 1/(1-omega)*measurement_model.noise_covar + 1/omega*prediction.covar
+    innov_cov = measurement_model.noise_covar/omega + prediction.covar/(1-omega)
     eval_measurement_prediction = GaussianMeasurementPrediction(
         measurement_model.matrix() @ prediction.mean,
         innov_cov,
@@ -127,3 +139,31 @@ def test_chernoff_force_symmetric_covariance(property_value, argument, symmetric
             force_symmetric_covariance=argument)
 
     assert np.array_equal(posterior.covar, posterior.covar.T) == symmetric
+
+
+@pytest.mark.parametrize("omega", [0.2, 0.5, 0.7])
+def test_chernoff_innovation_covariance_normalises(omega):
+    """Innovation covariance is the normalising constant of the Chernoff fusion rule
+
+    For the Gaussian case, the identity
+    N(x; a, A/omega) N(x; b, B/(1-omega)) = N(x; d, D) N(a; b, V)
+    holds for all x, where (d, D) is the updated state.
+    """
+    prediction = GaussianStatePrediction(
+        np.array([[-6.45], [0.7]]), np.array([[4.1123, 0.0013], [0.0013, 0.0365]]))
+    covar = np.array([[0.75, 0.1], [0.1, 1.2]])
+    measurement = GaussianDetection(
+        state_vector=np.array([[-6.23], [0.83]]), covar=covar,
+        measurement_model=LinearGaussian(ndim_state=2, mapping=[0, 1], noise_covar=covar))
+    updater = ChernoffUpdater(None, omega=omega)
+
+    posterior = updater.update(SingleHypothesis(prediction, measurement))
+    innov_covar = posterior.hypothesis.measurement_prediction.covar
+
+    a, b = measurement.state_vector.ravel(), prediction.state_vector.ravel()
+    for x in ([-6.3, 0.75], [-5., 1.], [-8., 0.2]):
+        lhs = (multivariate_normal.pdf(x, a, covar/omega)
+               * multivariate_normal.pdf(x, b, prediction.covar/(1-omega)))
+        rhs = (multivariate_normal.pdf(x, posterior.state_vector.ravel(), posterior.covar)
+               * multivariate_normal.pdf(a, b, innov_covar))
+        assert np.isclose(lhs, rhs)

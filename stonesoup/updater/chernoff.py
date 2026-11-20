@@ -20,7 +20,7 @@ class ChernoffUpdater(Updater):
            p_{\omega}(x_{k}) = \frac{p_{1}(x_{k})^{\omega}p_{2}(x_{k})^{1-\omega}}
                                     {\int p_{1}(x)^{\omega}p_{2}(x)^{1-\omega} \mathrm{d} x}
 
-    where :math:`\omega` is a weighting parameter in the range :math:`(0,1]`, which can be found
+    where :math:`\omega` is a weighting parameter in the range :math:`(0,1)`, which can be found
     using an optimization algorithm.
 
     In situations where :math:`p_1(x)` and :math:`p_2(x)` are multivariate Gaussian distributions,
@@ -35,8 +35,7 @@ class ChernoffUpdater(Updater):
 
             D &= \left ( \omega A^{-1} + (1-\omega)B^{-1} \right )^{-1}\\
             d &= D \left ( \omega A^{-1}a + (1-\omega)B^{-1}b \right )\\
-            V &= \frac{A}{1-\omega} + \frac{B}{\omega}
-
+            V &= \frac{A}{\omega} + \frac{B}{1-\omega}
 
     In filters where gating is required, the gating region can be written using the innovation
     covariance matrix as:
@@ -77,7 +76,8 @@ class ChernoffUpdater(Updater):
 
     omega: float = Property(
         default=0.5,
-        doc="A weighting parameter in the range :math:`(0,1]`")
+        doc="A weighting parameter in the range :math:`(0,1)`, applied to the measurement, with "
+            ":math:`1-\\omega` applied to the prediction")
     force_symmetric_covariance: bool = Property(
         default=False,
         doc="A flag to force the output covariance matrix to be symmetric by way of a simple "
@@ -112,7 +112,7 @@ class ChernoffUpdater(Updater):
         if measurement_noise:
             # The innovation covariance uses the noise covariance from the measurement model
             state_covar_m = measurement_model.noise_covar
-            innov_covar = 1/(1-self.omega)*state_covar_m + 1/self.omega*predicted_state.covar
+            innov_covar = state_covar_m/self.omega + predicted_state.covar/(1-self.omega)
         else:
             innov_covar = predicted_state.covar
 
