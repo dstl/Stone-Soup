@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+# coding: utf-8
 
 """
 ===============
@@ -53,7 +54,7 @@ basic_PF = BasicMetrics(generator_name='basic_PF', tracks_key='PF_tracks', truth
 # returns an overall multi-track to multi-ground-truth missed distance for each time step.
 #
 # The generator has two additional properties: :math:`p \in [1,\infty]` for outlier sensitivity
-# and :math:`c > 1` for cardinality penalty. [#]_
+# and :math:`c > 1` for cardinality penalty[#]_.
 
 from stonesoup.metricgenerator.ospametric import OSPAMetric
 
@@ -63,6 +64,51 @@ ospa_PF_truth = OSPAMetric(c=40, p=1, generator_name='OSPA_PF-truth',
                            tracks_key='PF_tracks', truths_key='truths')
 ospa_EKF_PF = OSPAMetric(c=40, p=1, generator_name='OSPA_EKF-PF',
                          tracks_key='EKF_tracks', truths_key='PF_tracks')
+
+# %%
+# Next, we create generators for the quadratic distance metric using the
+# :class:`~.QuadraticDistance` class. This metric computes the quadratic
+# distance between two objects. These objects may take many forms, however,
+# this implementation allows for point set and Gaussian mixture objects.[#]_
+#
+# The metric is parametrised by a kernel, :math:`\Lambda(x,y)`, which determines
+# the association between two elements of the compared objects. In this case
+# we compute the quadratic distance for the Gaussian kernel parametrisation
+# where :math:`\Lambda(x,y)=\exp(-\frac{1}{2}(x-y)^\top R^{-1} (x-y))`, by setting
+# `kernel='Gaussian'` in the generator.
+#
+# This kernel has a single parameter given by the symmetric, positive-definite
+# covariance matrix `R`. Here we set `R=kernel_cov=r`, where `r=10`, by
+# setting `kernel_parameters={'covariance':kernel_cov}`. The value of `r` may
+# be changed to influence the strictness of the metric.
+#
+# A more detailed exposition of this metric and its usage within stoneoup
+# can be found in the "Applications of the quadratic distance to
+# multi-target tracking" example worksheet [#]_.
+
+from stonesoup.metricgenerator.quadraticdistance import QuadraticDistance
+
+# Gaussian kernel parameter
+r = 100
+kernel_cov = r * np.eye(4)
+
+quaderr_EKF_truth = QuadraticDistance(state_dim=4,
+                                      kernel='Gaussian',
+                                      kernel_parameters={'covariance': kernel_cov},
+                                      generator_name='Quadratic_Distance_EKF-truth',
+                                      tracks_key='EKF_tracks', truths_key='truths')
+
+quaderr_PF_truth = QuadraticDistance(state_dim=4,
+                                     kernel='Gaussian',
+                                     kernel_parameters={'covariance': kernel_cov},
+                                     generator_name='Quadratic_Distance_PF-truth',
+                                     tracks_key='PF_tracks', truths_key='truths')
+
+quaderr_EKF_PF = QuadraticDistance(state_dim=4,
+                                   kernel='Gaussian',
+                                   kernel_parameters={'covariance': kernel_cov},
+                                   generator_name='Quadratic_Distance_EKF-PF',
+                                   tracks_key='EKF_tracks', truths_key='PF_tracks')
 
 # %%
 # Next, we create the Single Integrated Air Picture (SIAP) metric generators. These metrics are
@@ -139,7 +185,10 @@ metric_manager = MultiManager([basic_EKF,
                                sum_cov_norms_EKF,
                                sum_cov_norms_PF,
                                plot_generator_EKF,
-                               plot_generator_PF
+                               plot_generator_PF,
+                               quaderr_EKF_truth,
+                               quaderr_PF_truth,
+                               quaderr_EKF_PF
                                ], associator)  # associator for generating SIAP metrics
 
 # %%
@@ -179,7 +228,6 @@ model_probs = np.array([[0.7, 0.15, 0.15],  # keep straight, turn left, turn rig
                         [0.4, 0.0, 0.6]])  # go straight, turn left, keep turning right
 
 from stonesoup.simulator.simple import SwitchMultiTargetGroundTruthSimulator
-from stonesoup.types.state import GaussianState
 
 # generate truths
 n_truths = 3
@@ -323,7 +371,6 @@ hypothesiser_PF = DistanceHypothesiser(predictor_PF, updater_PF,
 data_associator_PF = GNNWith2DAssignment(hypothesiser_PF)
 
 from stonesoup.initiator.simple import GaussianParticleInitiator
-from stonesoup.types.state import GaussianState
 from stonesoup.initiator.simple import SimpleMeasurementInitiator
 
 prior_state = GaussianState(
@@ -359,7 +406,6 @@ tracker_PF = MultiTargetTracker(
 # Setting *overwrite* to ``False`` allows new data to be added to the :class:`~.MultiManager`
 # without overwriting existing data, as demonstrated in the code below:
 
-
 # add tracks data to metric manager
 for step, (time, current_tracks) in enumerate(kalman_tracker_EKF, 1):
     metric_manager.add_data({'EKF_tracks': current_tracks}, overwrite=False)
@@ -370,7 +416,6 @@ for step, (time, current_tracks) in enumerate(tracker_PF, 1):
 # add truths and detections
 metric_manager.add_data({'truths': truths,
                          'detections': detections}, overwrite=False)
-
 
 # %%
 # Generate metrics
@@ -425,7 +470,6 @@ siap_averages_PF = {siap_metrics.get(metric) for metric in siap_metrics
 siap_table = SIAPTableGenerator(siap_averages_PF).compute_metric()
 
 # %%
-#
 # We can see that the values for most of the SIAP metric averages are similar between
 # the trackers, again showing their tracking quality is very similar. Other specific
 # observations include:
@@ -464,8 +508,8 @@ siap_table = SIAPTableGenerator(siap_averages_PF).compute_metric()
 # - You can specify additional formatting, like colour and linestyle, for the plots
 #   produced by using keyword arguments from matplotlib pyplot.
 #
-# We start by plotting the OSPA distances and SIAP metrics. Plots will be combined for the
-# same metric type.
+# We start by plotting the OSPA distances, quadratic distances and SIAP metrics. Plots will
+# be combined for the same metric type.
 
 from stonesoup.plotter import MetricPlotter
 
@@ -474,26 +518,30 @@ graph.plot_metrics(metrics, generator_names=['OSPA_EKF-truth',
                                              'OSPA_PF-truth',
                                              'OSPA_EKF-PF',
                                              'SIAP_EKF-truth',
-                                             'SIAP_PF-truth'],
-                   # metric_names=['OSPA distances',
-                   #               'SIAP Position Accuracy at times']
-                   # uncomment and run to see effect
+                                             'SIAP_PF-truth',
+                                             'Quadratic_Distance_EKF-truth',
+                                             'Quadratic_Distance_PF-truth',
+                                             'Quadratic_Distance_EKF-PF'],
+                  # metric_names=["OSPA distances",
+                  #               "SIAP Position Accuracy at times"]
+                  # uncomment and run to see effect
                    color=['orange', 'green', 'blue'])
 
 # update y-axis label and title; other subplots are displaying auto-generated title and labels
 graph.axes[0].set(ylabel='OSPA metrics', title='OSPA distances over time')
+graph.axes[1].set(ylabel='Quadratic Distance', title='Quadratic distance over time')
 graph.fig.show()
 
 # %%
 # From these plots, we can see that we lose some track accuracy towards the end of the
 # simulation. We can once again see how similar the tracking performance is across both
-# trackers. The blue line in the OSPA distances plot indicates the distance between tracks
-# produced by both trackers at each time step.
+# trackers. The blue line in the OSPA and quadratic distance plots indicates the distance
+# between tracks produced by both trackers at each time step. The quadratic distance
+# indicates that the performance of the trackers does not change drastically throughout
+# the scenario.
 #
 # We now plot the sum of covariance norms metrics for both trackers. We plot the
 # metrics separately and specify additional keyword arguments to customise the plot.
-
-# sphinx_gallery_thumbnail_number = 7
 
 graph = MetricPlotter()
 graph.plot_metrics(metrics, generator_names=['sum_cov_norms_EKF',
@@ -511,11 +559,17 @@ graph.set_ax_title(['Extended Kalman Filter', 'Particle Filter'])  # set title f
 # You can change the parameters in the ground truth and trackers and see how it affects the
 # different metrics.
 
-
 # %%
 # .. rubric:: Footnotes
 #
-# .. [#] *D. Schuhmacher, B. Vo and B. Vo*, **A Consistent Metric for Performance Evaluation of
-#    Multi-Object Filters**, IEEE Trans. Signal Processing 2008
-# .. [#] *Karoly S., Wilson J., Dutchyshyn H., Maluda J.*, **Single Integrated Air Picture (SIAP)
-#    Attributes Version 2.0**, DTIC Technical Report 2003
+# .. [#] D. Schuhmacher, B. Vo and B. Vo, A Consistent Metric for Performance Evaluation of
+#    Multi-Object Filters, IEEE Trans. Signal Processing 2008
+#
+# .. [#] Daniel E. Clark, Idyano Leroy, Peter R. Richards, Sean M. O'Rourke, Quadratic error
+#    for point patterns. TechRxiv. July 24, 2025.
+#
+# .. [#] https://stonesoup.readthedocs.io/en/v1.9.1/auto_examples/metrics/QuadraticError_for_Mul
+#    tiTargetTracking_Tutorial.html
+#
+# .. [#] Karoly S., Wilson J., Dutchyshyn H., Maluda J., Single Integrated Air Picture (SIAP)
+#    Attributes Version 2.0, DTIC Technical Report 2003
