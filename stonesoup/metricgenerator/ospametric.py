@@ -222,9 +222,9 @@ class GOSPAMetric(MetricGenerator):
 
             switching_metric.add_associations(truth_mapping)
             metric.value['switching'] = switching_metric.loss()
-            metric.value['distance'] = np.power(metric.value['distance']**self.alpha +
-                                                metric.value['switching']**self.alpha,
-                                                1.0/self.alpha)
+            metric.value['distance'] = np.power(metric.value['distance']**self.p +
+                                                metric.value['switching']**self.p,
+                                                1.0/self.p)
             gospa_metrics.append(metric)
 
         # If only one timestamp is present then return a SingleTimeMetric

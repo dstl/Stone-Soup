@@ -308,11 +308,11 @@ def test_ospametric_computemetric(p):
     assert second_association.generator == generator
 
 
-def test_switching_gospametric_computemetric():
+@pytest.mark.parametrize('p', [1, 2, 3])
+def test_switching_gospametric_computemetric(p):
     """Test GOSPA compute metric."""
     max_penalty = 2
     switching_penalty = 3
-    p = 2
     generator = GOSPAMetric(
         c=max_penalty,
         p=p,
@@ -353,8 +353,8 @@ def test_switching_gospametric_computemetric():
     assert abs(second_association.value['distance'] - np.power(
         max_penalty**p + (2.5**(1/p)*switching_penalty)**p, 1./p)) < 1e-9
     assert second_association.value['localisation'] == 0
-    assert second_association.value['missed'] == 1*max_penalty
-    assert second_association.value['false'] == 1*max_penalty
+    assert second_association.value['missed'] == max_penalty**p / 2
+    assert second_association.value['false'] == max_penalty**p / 2
     assert abs(second_association.value['switching'] - 2.5**(1/p)*switching_penalty) < 1e-9
     assert second_association.timestamp == times[1]
     assert second_association.generator == generator
